@@ -4,6 +4,7 @@ import { SearchForm } from "./components/search-form"
 import { Menu } from "./components/menu"
 import { StatusBar } from "./components/StatusBar"
 import { ConfigProvider } from "./components/config-provider"
+import { ThemeProvider } from "./components/theme-provider"
 
 const appConfig: AppConfig = {
   version: "0.0.1"
@@ -32,9 +33,11 @@ function AppLayout() {
 
 function App() {
   return (
-    <ConfigProvider appConfig={appConfig}>
-      <AppLayout />
-    </ConfigProvider>
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <ConfigProvider appConfig={appConfig}>
+        <AppLayout />
+      </ConfigProvider>
+    </ThemeProvider>
   )
 }
 
