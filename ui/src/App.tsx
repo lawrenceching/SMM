@@ -5,6 +5,14 @@ import { Menu } from "./components/menu"
 import { StatusBar } from "./components/StatusBar"
 import { ConfigProvider } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 const appConfig: AppConfig = {
   version: "0.0.1"
@@ -19,7 +27,18 @@ function AppLayout() {
           <SearchForm />
         </LeftSidebarContent>
         <SidebarContent>
-          {/* Main content area */}
+        <Dialog>
+          <DialogTrigger>Open</DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Are you absolutely sure?</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete your account
+                and remove your data from our servers.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
         </SidebarContent>
         <RightSidebarContent>
           Right SideBar
