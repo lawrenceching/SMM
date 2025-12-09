@@ -22,14 +22,13 @@ import {
   import { useState } from "react";
   import { MicIcon, PaperclipIcon } from "lucide-react";
   const models = [
-    { id: "gpt-4o", name: "GPT-4o" },
-    { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
+    { id: "deepseek-chat", name: "DeepSeek Chat" },
   ];
 
 export function AiChatbox() {
 
-    const [input, setInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState(models[0].id);
+  const [input, setInput] = useState("");
+  const [selectedModel, setSelectedModel] = useState(models[0].id); // Default to DeepSeek
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
