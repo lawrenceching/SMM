@@ -72,7 +72,9 @@ function AppLayout() {
           </div>
         </SidebarContent>
         <RightSidebarContent>
+          <div className="w-full h-full">
           <AiChatbox />
+          </div>
         </RightSidebarContent>
       </ThreeColumnLayout>
 
