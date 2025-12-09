@@ -20,6 +20,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
+import { SearchForm } from "./components/search-form"
+import { Menu } from "./components/menu"
 const appConfig: AppConfig = {
   version: "0.0.1"
 }
@@ -27,24 +29,23 @@ const appConfig: AppConfig = {
 function App() {
   return (
     <div className="flex min-h-svh flex-col ">
-      <div className="flex-1 bg-amber-200 flex flex-col">
+      <div className="flex-1 flex flex-col">
 
       <ResizablePanelGroup
       direction="horizontal"
-      className="border bg-amber-600 h-full w-full flex-1"
+      className="border h-full w-full flex-1"
     >
       <ResizablePanel defaultSize={20} minSize={20} maxSize={40}>
-        <div className="flex h-full bg-amber-300 items-center justify-center p-6">
-          Left Sidebar
+        <div className="flex flex-col h-full">
+          <Menu/>
+          <SearchForm />
         </div>
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize={80}>
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={60}>
-            <div className="flex h-full items-center justify-center p-6">
-              Content
-            </div>
+            
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel defaultSize={40} minSize={30} maxSize={40}>
