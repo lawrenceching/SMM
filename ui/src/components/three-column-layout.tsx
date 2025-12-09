@@ -17,7 +17,7 @@ interface SlotProps {
   children?: ReactNode
 }
 
-export function ThreeColumnLayout({ children, className }: LayoutProps) {
+export function ThreeColumnLayout({ children, className }: ThreeColumnLayoutProps) {
   // Filter children by slot prop
   const leftSidebarContent = getChildrenBySlot(children, "left-sidebar-content")
   const rightSidebarContent = getChildrenBySlot(children, "right-sidebar-content")

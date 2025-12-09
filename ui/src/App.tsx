@@ -9,6 +9,7 @@ import { DialogProvider, useDialogs } from "./components/dialog-provider"
 import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
+import { AiChatbox } from "./components/ai-chatbox"
 
 const appConfig: AppConfig = {
   version: "0.0.1"
@@ -71,7 +72,7 @@ function AppLayout() {
           </div>
         </SidebarContent>
         <RightSidebarContent>
-          Right SideBar
+          <AiChatbox />
         </RightSidebarContent>
       </ThreeColumnLayout>
 
