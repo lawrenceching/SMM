@@ -2,6 +2,7 @@
 
 ## Folder Structure
 
+* core - The common and share code. The code in this module MUST be available in both frontend(browser) and backend(Bun.js and Node.js) side.
 * ui - The HTML frontend
 * electron - The electron application, which use the dist files from `ui`
 * cli - The server side app
