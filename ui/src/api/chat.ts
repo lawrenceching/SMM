@@ -1,9 +1,15 @@
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 import { getDeepseekProvider, DEEPSEEK_MODEL } from '../lib/ai-provider';
+
+interface ChatRequest {
+  messages?: UIMessage[];
+  model?: string;
+}
 
 export async function handleChatRequest(request: Request): Promise<Response> {
   try {
-    const { messages, model } = await request.json();
+    const body = await request.json() as ChatRequest;
+    const { messages, model } = body;
     console.log('Received chat request:', { messageCount: messages?.length, model });
 
     // Convert UI messages to model messages format

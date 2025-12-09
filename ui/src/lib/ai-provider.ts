@@ -9,19 +9,23 @@ function getApiKey(): string {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nodeProcess = (globalThis as any).process;
     if (nodeProcess?.env) {
-      return nodeProcess.env.VITE_DEEPSEEK_API_KEY || nodeProcess.env.DEEPSEEK_API_KEY || '';
+      return nodeProcess.env.VITE_DEEPSEEK_API_KEY || nodeProcess.env.DEEPSEEK_API_KEY || 'sk-ce25f3132fbc4b599f0f26eede96d390';
     }
   } catch {
     // process not available
   }
   
   // In client context, use import.meta.env
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_DEEPSEEK_API_KEY || '';
+  if (typeof import.meta !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metaEnv = (import.meta as any).env;
+    if (metaEnv) {
+      return metaEnv.VITE_DEEPSEEK_API_KEY || 'sk-ce25f3132fbc4b599f0f26eede96d390';
+    }
   }
   
-  // Fallback
-  return '';
+  // Fallback (for development - should use environment variables in production)
+  return 'sk-ce25f3132fbc4b599f0f26eede96d390';
 }
 
 // Create DeepSeek provider configuration (lazy initialization)
