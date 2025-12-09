@@ -1,17 +1,18 @@
 import type { AppConfig } from "@core/types"
-import { Layout, LeftSidebarContent, RightSidebarContent, SidebarContent } from "@/components/layout"
+import { ThreeColumnLayout, LeftSidebarContent, RightSidebarContent, SidebarContent } from "@/components/three-column-layout"
 import { SearchForm } from "./components/search-form"
 import { Menu } from "./components/menu"
+import { StatusBar } from "./components/StatusBar"
+import { ConfigProvider } from "./components/config-provider"
 
 const appConfig: AppConfig = {
   version: "0.0.1"
 }
 
-function App() {
+function AppLayout() {
   return (
     <div className="flex min-h-svh flex-col">
-      
-      <Layout className="flex flex-col flex-1">
+      <ThreeColumnLayout className="flex flex-col flex-1">
         <LeftSidebarContent>
           <Menu/>
           <SearchForm />
@@ -22,13 +23,18 @@ function App() {
         <RightSidebarContent>
           Right SideBar
         </RightSidebarContent>
-      </Layout>
-      
-      <div className="h-[30px] w-full bg-gray-400 flex">
-        <div className="flex-1"></div>
-        <div className="max-w-[60px]">{appConfig.version}</div>
-      </div>
+      </ThreeColumnLayout>
+
+      <StatusBar className="bg-gray-400"/>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <ConfigProvider appConfig={appConfig}>
+      <AppLayout />
+    </ConfigProvider>
   )
 }
 

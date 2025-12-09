@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import React from "react"
 import type { ReactNode } from "react"
 
-interface LayoutProps {
+interface ThreeColumnLayoutProps {
   children: ReactNode
   className?: string
 }
@@ -17,7 +17,7 @@ interface SlotProps {
   children?: ReactNode
 }
 
-export function Layout({ children, className }: LayoutProps) {
+export function ThreeColumnLayout({ children, className }: LayoutProps) {
   // Filter children by slot prop
   const leftSidebarContent = getChildrenBySlot(children, "left-sidebar-content")
   const rightSidebarContent = getChildrenBySlot(children, "right-sidebar-content")
