@@ -13,25 +13,35 @@ const appConfig: AppConfig = {
 }
 
 function AppLayout() {
+  const { confirmationDialog, spinnerDialog } = useDialogs()
+  const [openConfirmation, closeConfirmation] = confirmationDialog
+  const [openSpinner, closeSpinner] = spinnerDialog
 
-  
-  const { openDialog, closeDialog } = useDialogs()
-
-  const handleOpen = () => {
-    openDialog({
+  const handleOpenConfirmation = () => {
+    openConfirmation({
       title: "Are you absolutely sure?",
       description: "This action cannot be undone.",
       content: (
-        <div>
+        <div className="flex flex-col gap-4">
           <p>This will permanently delete your account.</p>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={closeDialog}>Confirm</Button>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={closeConfirmation} variant="outline">Cancel</Button>
+            <Button onClick={closeConfirmation}>Confirm</Button>
+          </div>
         </div>
       ),
       onClose: () => {
-        console.log("Dialog closed")
+        console.log("Confirmation dialog closed")
       }
     })
+  }
+
+  const handleOpenSpinner = () => {
+    openSpinner("Loading, please wait...")
+    // Auto-close after 3 seconds to demonstrate it works
+    setTimeout(() => {
+      closeSpinner()
+    }, 3000)
   }
 
   return (
@@ -42,7 +52,10 @@ function AppLayout() {
           <SearchForm />
         </LeftSidebarContent>
         <SidebarContent>
-        <Button onClick={handleOpen}>Open Dialog</Button>
+          <div className="flex flex-col gap-4 p-4">
+            <Button onClick={handleOpenConfirmation}>Open Confirmation Dialog</Button>
+            <Button onClick={handleOpenSpinner}>Open Spinner Dialog</Button>
+          </div>
         </SidebarContent>
         <RightSidebarContent>
           Right SideBar
