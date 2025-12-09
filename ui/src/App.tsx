@@ -7,6 +7,8 @@ import { ConfigProvider } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
 import { DialogProvider, useDialogs } from "./components/dialog-provider"
 import { Button } from "./components/ui/button"
+import { Toaster } from "./components/ui/sonner"
+import { toast } from "sonner"
 
 const appConfig: AppConfig = {
   version: "0.0.1"
@@ -44,6 +46,16 @@ function AppLayout() {
     }, 3000)
   }
 
+  const handleShowToast = () => {
+    toast("Event has been created", {
+      description: "Sunday, December 03, 2023 at 9:00 AM",
+      action: {
+        label: "Undo",
+        onClick: () => console.log("Undo"),
+      },
+    })
+  }
+
   return (
     <div className="flex min-h-svh flex-col">
       <ThreeColumnLayout className="flex flex-col flex-1">
@@ -55,6 +67,7 @@ function AppLayout() {
           <div className="flex flex-col gap-4 p-4">
             <Button onClick={handleOpenConfirmation}>Open Confirmation Dialog</Button>
             <Button onClick={handleOpenSpinner}>Open Spinner Dialog</Button>
+            <Button onClick={handleShowToast}>Show Toast</Button>
           </div>
         </SidebarContent>
         <RightSidebarContent>
@@ -73,6 +86,7 @@ function App() {
       <ConfigProvider appConfig={appConfig}>
         <DialogProvider>
           <AppLayout />
+          <Toaster position="bottom-right" />
         </DialogProvider>
       </ConfigProvider>
     </ThemeProvider>
