@@ -1,4 +1,3 @@
-import type { AppConfig } from "@core/types"
 import { ThreeColumnLayout, LeftSidebarContent, RightSidebarContent, SidebarContent } from "@/components/three-column-layout"
 import { SearchForm } from "./components/search-form"
 import { Menu } from "./components/menu"
@@ -10,10 +9,6 @@ import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
-
-const appConfig: AppConfig = {
-  version: "0.0.1"
-}
 
 function AppLayout() {
   const { confirmationDialog, spinnerDialog } = useDialogs()
@@ -86,7 +81,7 @@ function AppLayout() {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <ConfigProvider appConfig={appConfig}>
+      <ConfigProvider>
         <DialogProvider>
           <AppLayout />
           <Toaster position="bottom-right" />

@@ -49,7 +49,7 @@ const args = parseArgs();
 
 // Create and start the server
 const server = new Server({
-  port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 3000),
+  port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
   root: args.staticDir ?? './public',
 });
 

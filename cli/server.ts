@@ -5,6 +5,7 @@ import path from 'path';
 import { z } from 'zod';
 import type { ApiExecutePostRequestBody } from '../core/types';
 import { executeHelloTask } from './tasks/HelloTask';
+import { handleChatRequest } from './tasks/ChatTask';
 
 export interface ServerConfig {
   port?: number;
@@ -42,6 +43,20 @@ export class Server {
     });
 
     // API routes
+    this.app.post('/api/chat', async (c) => {
+      try {
+        // Use Hono's native request object
+        const response = await handleChatRequest(c.req.raw);
+        return response;
+      } catch (error) {
+        console.error('Chat route error:', error);
+        return c.json({ 
+          error: 'Failed to process chat request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
+      }
+    });
+
     this.app.post('/api/execute', async (c) => {
       try {
         const rawBody = await c.req.json();
