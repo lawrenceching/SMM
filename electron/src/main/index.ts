@@ -24,7 +24,7 @@ function getCLIExecutablePath(): string {
 function getPublicFolderPath(): string {
   if (is.dev) {
     // Development: use the actual path
-    return join(__dirname, '../../../cli/dist/public')
+    return join(__dirname, '../../../ui/dist')
   } else {
     // Production: use extraResources path
     // Public folder is bundled to 'public' in resources/
