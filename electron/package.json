@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "A minimal Electron application with TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "Lawrence Ching",
+  "homepage": "https://gitcode.com/lawrenceching/simple-media-manager",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

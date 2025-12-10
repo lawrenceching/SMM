@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { logger } from 'hono/logger';
+import path from 'path';
 
 export interface ServerConfig {
   port?: number;
@@ -15,7 +16,8 @@ export class Server {
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
-    this.root = config.root ?? './public';
+    const rootPath = config.root ?? './public';
+    this.root = path.resolve(rootPath);
     
     this.app = new Hono();
     this.setupMiddleware();
@@ -52,6 +54,7 @@ export class Server {
       fetch: this.app.fetch,
     });
 
+    console.log(`📁 Static file root: ${this.root}`);
     console.log(`🚀 Static file server running on http://localhost:${this.port}`);
   }
 
