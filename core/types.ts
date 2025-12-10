@@ -12,3 +12,11 @@ export interface AppConfig {
 export interface UserConfig {
 
 }
+
+/**
+ * Request body for POST /api/execute endpoint
+ */
+export interface ApiExecutePostRequestBody {
+  name: string;
+  data: any;
+}

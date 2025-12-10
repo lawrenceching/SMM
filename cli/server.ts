@@ -2,6 +2,9 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { logger } from 'hono/logger';
 import path from 'path';
+import { z } from 'zod';
+import type { ApiExecutePostRequestBody } from '../core/types';
+import { executeHelloTask } from './tasks/HelloTask';
 
 export interface ServerConfig {
   port?: number;
@@ -30,6 +33,52 @@ export class Server {
   }
 
   private setupRoutes() {
+    // Zod schema for request body validation
+    const executeRequestSchema = z.object({
+      name: z.enum(['hello', 'system'], {
+        message: 'name must be one of: "hello", "system"'
+      }),
+      data: z.any()
+    });
+
+    // API routes
+    this.app.post('/api/execute', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        
+        // Validate request body with Zod
+        const validationResult = executeRequestSchema.safeParse(rawBody);
+        
+        if (!validationResult.success) {
+          return c.json({ 
+            error: 'Validation failed',
+            details: validationResult.error.issues.map((err) => ({
+              path: err.path.join('.'),
+              message: err.message
+            }))
+          }, 400);
+        }
+
+        const body = validationResult.data;
+
+        // Execute task based on name
+        if (body.name === 'hello') {
+          const result = await executeHelloTask();
+          return c.json(result);
+        }
+
+        // Handle other task names (e.g., 'system')
+        return c.json({ 
+          error: `Task "${body.name}" is not yet implemented`
+        }, 501);
+      } catch (error) {
+        return c.json({ 
+          error: 'Invalid JSON body or parsing error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 400);
+      }
+    });
+
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)
     this.app.use('/*', serveStatic({ 

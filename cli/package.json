@@ -12,7 +12,8 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.0",
     "ai": "^5.0.108",
-    "hono": "^4.10.8"
+    "hono": "^4.10.8",
+    "zod": "^4.1.13"
   },
   "scripts": {
     "start": "bun run index.ts",
