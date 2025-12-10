@@ -16,7 +16,7 @@ extraResources:
     to: 'cli.exe'
     filter:
       - '**/*'
-  - from: '../cli/dist/public'
+  - from: '../ui/dist'
     to: 'public'
     filter:
       - '**/*'
