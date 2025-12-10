@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { Server } from './server';
 
 // Create a custom provider with your baseURL and API key
 const customProvider = createOpenAICompatible({
@@ -8,9 +9,18 @@ const customProvider = createOpenAICompatible({
   apiKey: '', // Your API key
 });
 
-const { text } = await generateText({
-  model: customProvider('deepseek-chat'), // Use the custom provider
-  prompt: 'Hello',
+// Create and start the server
+const server = new Server({
+  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+  root: './public',
 });
 
-console.log(text);
+server.start();
+
+// AI code
+// const { text } = await generateText({
+//   model: customProvider('deepseek-chat'), // Use the custom provider
+//   prompt: 'Hello',
+// });
+// 
+// console.log(text);
