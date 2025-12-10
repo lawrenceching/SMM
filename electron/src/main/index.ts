@@ -1,10 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
+import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 let cliProcess: ChildProcess | null = null
+let cliPort: number | null = null
 
 // Get the CLI executable path - works in both dev and production
 function getCLIExecutablePath(): string {
@@ -30,19 +32,69 @@ function getPublicFolderPath(): string {
   }
 }
 
-function startCLI(): void {
+/**
+ * Find a free port from the given range, trying ports sequentially
+ * @param minPort Minimum port number (inclusive)
+ * @param maxPort Maximum port number (inclusive)
+ * @returns Promise that resolves to a free port number, or null if no free port is found
+ */
+function findFreePort(minPort: number, maxPort: number): Promise<number | null> {
+  return new Promise((resolve) => {
+    function tryPort(port: number): void {
+      if (port > maxPort) {
+        resolve(null)
+        return
+      }
+
+      const server = createServer()
+      server.listen(port, () => {
+        server.once('close', () => {
+          resolve(port)
+        })
+        server.close()
+      })
+      server.on('error', () => {
+        // Port is in use, try next port
+        tryPort(port + 1)
+      })
+    }
+
+    tryPort(minPort)
+  })
+}
+
+/**
+ * Get a free port from the range [30000, 65535]
+ * @returns Promise that resolves to a free port number
+ */
+async function getFreePort(): Promise<number> {
+  const port = await findFreePort(30000, 65535)
+  if (port === null) {
+    throw new Error('No free port found in range [30000, 65535]')
+  }
+  return port
+}
+
+async function startCLI(): Promise<void> {
   if (cliProcess) {
     console.log('CLI is already running')
     return
+  }
+
+  // Get a free port if not already set
+  if (cliPort === null) {
+    cliPort = await getFreePort()
+    console.log(`Found free port: ${cliPort}`)
   }
 
   const CLI_EXECUTABLE = getCLIExecutablePath()
   const PUBLIC_FOLDER = getPublicFolderPath()
   console.log(`Starting CLI from: ${CLI_EXECUTABLE}`)
   console.log(`Public folder path: ${PUBLIC_FOLDER}`)
+  console.log(`CLI port: ${cliPort}`)
 
   try {
-    cliProcess = spawn(CLI_EXECUTABLE, ['--staticDir', PUBLIC_FOLDER], {
+    cliProcess = spawn(CLI_EXECUTABLE, ['--staticDir', PUBLIC_FOLDER, '--port', cliPort.toString()], {
       stdio: 'pipe', // Pipe stdio to prevent console window from appearing on Windows
       detached: false,
       windowsHide: true // Hide the console window on Windows
@@ -111,12 +163,13 @@ function createWindow(): void {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
+  const port = cliPort ?? 3000
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     // mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.loadURL('http://localhost:3000')
+    mainWindow.loadURL(`http://localhost:${port}`)
   } else {
     // mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-    mainWindow.loadURL('http://localhost:3000')
+    mainWindow.loadURL(`http://localhost:${port}`)
   }
 }
 
@@ -137,10 +190,14 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // Start the CLI executable
-  startCLI()
-
-  createWindow()
+  // Start the CLI executable and then create window
+  startCLI().then(() => {
+    createWindow()
+  }).catch((error) => {
+    console.error('Failed to start CLI:', error)
+    // Still create window even if CLI fails to start
+    createWindow()
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
