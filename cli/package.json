@@ -15,6 +15,7 @@
     "hono": "^4.10.8"
   },
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "build": "bun build index.ts --compile --outfile dist/cli"
   }
 }
