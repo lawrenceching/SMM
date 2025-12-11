@@ -19,3 +19,16 @@ The `electron` module wrap HTML files into Electron application. And implement t
 
 The `cli` module serves HTML as web UI and Implement the platform specific logic.
 `cli` is a Bun application written in TypeScipt, and will be build into executable for different OS and arch.
+
+## Unit Test
+
+This is the unit test guideline for AI Agent.
+
+Following the red-green principle, you need to ensure the unit test is actually work by:
+
+1. Comment out part of production code
+2. Run unit test
+3. Verify the unit test fail with expected error reason
+4. Uncomment the production code which commented out in step 1
+
+Repeat above step to ensure all assertions are actual working.
