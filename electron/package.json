@@ -1,5 +1,5 @@
 {
-  "name": "electron",
+  "name": "SMM",
   "version": "1.0.0",
   "description": "A minimal Electron application with TypeScript",
   "main": "./out/main/index.js",

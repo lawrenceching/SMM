@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: me.imlc.smm
 productName: SMM
 directories:
   buildResources: build

@@ -21,6 +21,12 @@ interface HelloResponse {
   version: string
 }
 
+async function getConfigFromElectronIpcChannel() {
+  // 1. Check if it's in Electron environment
+  // 2. If yes, call ExecuteChannel channel with name "get-config"
+  // 3. Get the user config path from the response
+}
+
 export function ConfigProvider({
   appConfig: initialAppConfig,
   userConfig = {},

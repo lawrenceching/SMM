@@ -73,7 +73,7 @@ function AppLayout() {
         </RightSidebarContent>
       </ThreeColumnLayout>
 
-      <StatusBar className="bg-gray-400"/>
+      <StatusBar />
     </div>
   )
 }

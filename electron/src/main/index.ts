@@ -4,6 +4,7 @@ import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { channelRoute } from './ChannelRoute'
 
 let cliProcess: ChildProcess | null = null
 let cliPort: number | null = null
@@ -97,20 +98,23 @@ async function startCLI(): Promise<void> {
     cliProcess = spawn(CLI_EXECUTABLE, ['--staticDir', PUBLIC_FOLDER, '--port', cliPort.toString()], {
       stdio: 'pipe', // Pipe stdio to prevent console window from appearing on Windows
       detached: false,
-      windowsHide: true // Hide the console window on Windows
+      windowsHide: true, // Hide the console window on Windows
+      env: {
+        USER_DATA_DIR: app.getPath('userData')
+      }
     })
 
     // Capture stdout from CLI
     if (cliProcess.stdout) {
       cliProcess.stdout.on('data', (data) => {
-        console.log(`CLI stdout: ${data.toString().trim()}`)
+        console.log(`[cli] ${data.toString().trim()}`)
       })
     }
 
     // Capture stderr from CLI
     if (cliProcess.stderr) {
       cliProcess.stderr.on('data', (data) => {
-        console.error(`CLI stderr: ${data.toString().trim()}`)
+        console.error(`[cli] ${data.toString().trim()}`)
       })
     }
 
@@ -189,6 +193,13 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // ExecuteChannel IPC handler
+  ipcMain.handle('ExecuteChannel', async (_event, request: ExecuteChannelRequest): Promise<ExecuteChannelResponse> => {
+    // Handle the request and return a response
+    // You can customize this handler based on your needs
+    return channelRoute(request);
+  })
 
   // Start the CLI executable and then create window
   startCLI().then(() => {
