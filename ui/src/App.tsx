@@ -9,7 +9,7 @@ import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
 import {
@@ -18,6 +18,19 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ArrowUpDown, Filter } from "lucide-react"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -168,13 +181,119 @@ function MediaFolderListItem(folder: MediaFolderListItemProps) {
   )
 }
 
+
+type SortOrder = "alphabetical" | "reverse-alphabetical"
+type FilterType = "all" | "tvshow" | "movie" | "music"
+
+interface MediaFolderToolbarProps {
+  sortOrder: SortOrder
+  onSortOrderChange: (order: SortOrder) => void
+  filterType: FilterType
+  onFilterTypeChange: (type: FilterType) => void
+}
+
+function MediaFolderToolbar({
+  sortOrder,
+  onSortOrderChange,
+  filterType,
+  onFilterTypeChange,
+}: MediaFolderToolbarProps) {
+  const sortLabels: Record<SortOrder, string> = {
+    alphabetical: "按字母顺序",
+    "reverse-alphabetical": "按字母倒序",
+  }
+
+  const filterLabels: Record<FilterType, string> = {
+    all: "全部类型",
+    tvshow: "电视剧",
+    movie: "电影",
+    music: "音乐",
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 border-b">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>
+            <Select onValueChange={onSortOrderChange}>
+              <SelectTrigger 
+                size="sm" 
+                className={cn(
+                  "h-8 w-8 p-0 justify-center!",
+                  "[&>svg:last-child]:hidden" // Hide the default chevron icon
+                )}
+              >
+                <ArrowUpDown className="h-4 w-4" />
+                <SelectValue className="sr-only" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alphabetical">按字母顺序</SelectItem>
+                <SelectItem value="reverse-alphabetical">按字母倒序</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>排序: {sortLabels[sortOrder]}</p>
+        </TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>
+            <Select onValueChange={onFilterTypeChange}>
+              <SelectTrigger 
+                size="sm" 
+                className={cn(
+                  "h-8 w-8 p-0 justify-center!",
+                  "[&>svg:last-child]:hidden" // Hide the default chevron icon
+                )}
+              >
+                <Filter className="h-4 w-4" />
+                <SelectValue className="sr-only" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部类型</SelectItem>
+                <SelectItem value="tvshow">电视剧</SelectItem>
+                <SelectItem value="movie">电影</SelectItem>
+                <SelectItem value="music">音乐</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>筛选: {filterLabels[filterType]}</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
 function AppLayout() {
   const { confirmationDialog, spinnerDialog, configDialog } = useDialogs()
   const [openConfirmation, closeConfirmation] = confirmationDialog
   const [openSpinner, closeSpinner] = spinnerDialog
   const [openConfig] = configDialog
 
-  
+  const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
+  const [filterType, setFilterType] = useState<FilterType>("all")
+
+  const filteredAndSortedFolders = useMemo(() => {
+    let result = [...folders]
+
+    // Filter by type
+    if (filterType !== "all") {
+      result = result.filter((folder) => folder.mediaType === filterType)
+    }
+
+    // Sort by alphabetical order
+    result.sort((a, b) => {
+      const comparison = a.mediaName.localeCompare(b.mediaName, undefined, { sensitivity: 'base' })
+      return sortOrder === "alphabetical" ? comparison : -comparison
+    })
+
+    return result
+  }, [sortOrder, filterType])
 
   const handleOpenConfirmation = () => {
     openConfirmation({
@@ -222,9 +341,15 @@ function AppLayout() {
       <ThreeColumnLayout className="flex flex-col flex-1">
         <LeftSidebarContent>
           <Menu/>
+          <MediaFolderToolbar
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            filterType={filterType}
+            onFilterTypeChange={setFilterType}
+          />
           <SearchForm />
           <div className="flex flex-col gap-4 p-4">
-            {folders.map((folder) => (
+            {filteredAndSortedFolders.map((folder) => (
               <MediaFolderListItem key={folder.path} {...folder} />
             ))}
           </div>
