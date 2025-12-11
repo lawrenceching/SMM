@@ -1,14 +1,23 @@
+import { useState } from "react"
 import { useConfig } from "@/components/config-provider"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import type { AI } from "@core/types"
+import { ComboboxDemo } from "../ComboboxDemo"
 
 const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
 
+const aiProviderOptions: ComboboxOption[] = aiProviders.map((provider) => ({
+  value: provider,
+  label: provider,
+}))
+
 export function AiSettings() {
   const { userConfig } = useConfig()
+  const [selectedProvider, setSelectedProvider] = useState<AI>(
+    (userConfig.selectedAI as AI) || "DeepSeek"
+  )
 
   const getProviderConfig = (provider: AI) => {
     const providerKeyMap: Record<AI, keyof NonNullable<typeof userConfig.ai>> = {
@@ -22,6 +31,9 @@ export function AiSettings() {
     return userConfig.ai?.[providerKey] || { baseURL: '', apiKey: '', model: '' }
   }
 
+  const config = getProviderConfig(selectedProvider)
+  const providerKey = selectedProvider.toLowerCase()
+
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -31,63 +43,53 @@ export function AiSettings() {
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="selected-ai">Selected AI Provider</Label>
-          <Select defaultValue={userConfig.selectedAI || 'DeepSeek'}>
-            <SelectTrigger id="selected-ai">
-              <SelectValue placeholder="Select AI provider" />
-            </SelectTrigger>
-            <SelectContent>
-              {aiProviders.map((provider) => (
-                <SelectItem key={provider} value={provider}>
-                  {provider}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="selected-ai">Select AI Provider</Label>
+          <Combobox
+            options={aiProviderOptions}
+            value={selectedProvider}
+            onValueChange={(value) => setSelectedProvider(value as AI)}
+            placeholder="Select AI provider..."
+            searchPlaceholder="Search AI providers..."
+            emptyText="No AI provider found."
+            className="w-full"
+          />
         </div>
 
-        <Separator />
-
-        {aiProviders.map((provider) => {
-          const config = getProviderConfig(provider)
-          const providerKey = provider.toLowerCase()
-
-          return (
-            <div key={provider} className="space-y-4 p-4 border rounded-lg">
-              <h3 className="font-semibold">{provider} Configuration</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor={`${providerKey}-baseurl`}>Base URL</Label>
-                <Input
-                  id={`${providerKey}-baseurl`}
-                  defaultValue={config.baseURL || ''}
-                  placeholder="https://api.example.com/v1"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`${providerKey}-apikey`}>API Key</Label>
-                <Input
-                  id={`${providerKey}-apikey`}
-                  type="password"
-                  defaultValue={config.apiKey || ''}
-                  placeholder="Enter your API key"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`${providerKey}-model`}>Model</Label>
-                <Input
-                  id={`${providerKey}-model`}
-                  defaultValue={config.model || ''}
-                  placeholder="model-name"
-                />
-              </div>
+        <div className="space-y-4 p-4 border rounded-lg">
+          <h3 className="font-semibold text-lg">{selectedProvider} Configuration</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${providerKey}-baseurl`}>Base URL</Label>
+              <Input
+                id={`${providerKey}-baseurl`}
+                defaultValue={config.baseURL || ''}
+                placeholder="https://api.example.com/v1"
+              />
             </div>
-          )
-        })}
+
+            <div className="space-y-2">
+              <Label htmlFor={`${providerKey}-apikey`}>API Key</Label>
+              <Input
+                id={`${providerKey}-apikey`}
+                type="password"
+                defaultValue={config.apiKey || ''}
+                placeholder="Enter your API key"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${providerKey}-model`}>Model</Label>
+              <Input
+                id={`${providerKey}-model`}
+                defaultValue={config.model || ''}
+                placeholder="model-name"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
