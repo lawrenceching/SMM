@@ -11,9 +11,10 @@ import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
 
 function AppLayout() {
-  const { confirmationDialog, spinnerDialog } = useDialogs()
+  const { confirmationDialog, spinnerDialog, configDialog } = useDialogs()
   const [openConfirmation, closeConfirmation] = confirmationDialog
   const [openSpinner, closeSpinner] = spinnerDialog
+  const [openConfig] = configDialog
 
   const handleOpenConfirmation = () => {
     openConfirmation({
@@ -52,6 +53,10 @@ function AppLayout() {
     })
   }
 
+  const handleOpenConfig = () => {
+    openConfig()
+  }
+
   return (
     <div className="flex min-h-svh flex-col">
       <ThreeColumnLayout className="flex flex-col flex-1">
@@ -64,6 +69,7 @@ function AppLayout() {
             <Button onClick={handleOpenConfirmation}>Open Confirmation Dialog</Button>
             <Button onClick={handleOpenSpinner}>Open Spinner Dialog</Button>
             <Button onClick={handleShowToast}>Show Toast</Button>
+            <Button onClick={handleOpenConfig}>Open Config Dialog</Button>
           </div>
         </SidebarContent>
         <RightSidebarContent>

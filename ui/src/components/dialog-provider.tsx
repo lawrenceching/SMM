@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfigPanel } from "@/components/ui/config-panel"
 
 interface DialogConfig {
   title?: string
@@ -64,6 +65,24 @@ function SpinnerDialog({ isOpen, message }: SpinnerDialogProps) {
   )
 }
 
+interface ConfigDialogProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+function ConfigDialog({ isOpen, onClose }: ConfigDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-[90vw] w-full h-[90vh] p-0"
+        showCloseButton={true}
+      >
+        <ConfigPanel />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface DialogContextValue {
   confirmationDialog: [
     openConfirmation: (config: DialogConfig) => void,
@@ -72,6 +91,10 @@ interface DialogContextValue {
   spinnerDialog: [
     openSpinner: (message?: string) => void,
     closeSpinner: () => void
+  ]
+  configDialog: [
+    openConfig: () => void,
+    closeConfig: () => void
   ]
 }
 
@@ -89,6 +112,9 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Spinner dialog state
   const [isSpinnerOpen, setIsSpinnerOpen] = useState(false)
   const [spinnerMessage, setSpinnerMessage] = useState<string | undefined>(undefined)
+
+  // Config dialog state
+  const [isConfigOpen, setIsConfigOpen] = useState(false)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -118,9 +144,18 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openConfig = useCallback(() => {
+    setIsConfigOpen(true)
+  }, [])
+
+  const closeConfig = useCallback(() => {
+    setIsConfigOpen(false)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
+    configDialog: [openConfig, closeConfig],
   }
 
   return (
@@ -134,6 +169,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <SpinnerDialog
         isOpen={isSpinnerOpen}
         message={spinnerMessage}
+      />
+      <ConfigDialog
+        isOpen={isConfigOpen}
+        onClose={closeConfig}
       />
     </DialogContext.Provider>
   )

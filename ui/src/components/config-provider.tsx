@@ -24,12 +24,6 @@ interface HelloResponse {
   userDataDir: string;
 }
 
-async function getConfigFromElectronIpcChannel() {
-  // 1. Check if it's in Electron environment
-  // 2. If yes, call ExecuteChannel channel with name "get-config"
-  // 3. Get the user config path from the response
-}
-
 const defaultUserConfig: UserConfig = {
   applicationLanguage: 'zh-CN',
   tmdb: {
@@ -74,12 +68,13 @@ const defaultUserConfig: UserConfig = {
 
 export function ConfigProvider({
   appConfig: initialAppConfig,
-  userConfig = defaultUserConfig,
+  userConfig: initialUserConfig = defaultUserConfig,
   children,
 }: ConfigProviderProps) {
   const [appConfig, setAppConfig] = useState<AppConfig>(
     initialAppConfig || { version: "unknown" }
   )
+  const [userConfig, setUserConfig] = useState<UserConfig>(initialUserConfig || defaultUserConfig)
   const [isLoading, setIsLoading] = useState(!initialAppConfig)
   const [error, setError] = useState<Error | null>(null)
 
@@ -108,13 +103,12 @@ export function ConfigProvider({
 
         const data: HelloResponse = await response.json()
         const userDataDir = data.userDataDir;
-        console.log(`userDataDir: ${userDataDir}`)
 
         const filePath = join(userDataDir, 'smm.json');
-        console.log(`filePath: ${filePath}`)
 
         const config = await readFileApi(filePath);
-        console.log(`config: `, config)
+
+        setUserConfig(config);
 
         // Map HelloResponse to AppConfig
         setAppConfig({
