@@ -165,9 +165,10 @@ async function openNativeFileDialog(): Promise<FileItem | null> {
 }
 
 export function Menu() {
-  const { openFolderDialog, filePickerDialog } = useDialogs()
+  const { openFolderDialog, filePickerDialog, downloadVideoDialog } = useDialogs()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
+  const [openDownloadVideo] = downloadVideoDialog
 
   const handleOpenFolder = () => {
     // Check if in Electron environment
@@ -207,7 +208,10 @@ export function Menu() {
         {
           name: "Download Video",
           onClick: () => {
-            console.log("Download Video")
+            openDownloadVideo((url: string, downloadFolder: string) => {
+              console.log(`Downloading video from ${url} to ${downloadFolder}`)
+              // TODO: Implement video download logic
+            })
           }
         },
         {

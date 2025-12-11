@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react"
 import type { ReactNode } from "react"
-import { Loader2, File } from "lucide-react"
+import { Loader2, File, FolderOpen } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,9 @@ import {
 import { ConfigPanel } from "@/components/ui/config-panel"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
 interface DialogConfig {
@@ -181,6 +184,108 @@ function FilePickerDialog({ isOpen, onClose, onSelect, title = "Select File or F
   )
 }
 
+interface DownloadVideoDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onStart: (url: string, downloadFolder: string) => void
+  onOpenFilePicker: (onSelect: (file: FileItem) => void) => void
+}
+
+function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: DownloadVideoDialogProps) {
+  const [url, setUrl] = useState("")
+  const [downloadFolder, setDownloadFolder] = useState("")
+  const [progress, setProgress] = useState(0)
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const handleStart = () => {
+    if (url.trim() && downloadFolder.trim()) {
+      setIsDownloading(true)
+      setProgress(0)
+      onStart(url.trim(), downloadFolder.trim())
+      // TODO: Update progress based on actual download progress
+    }
+  }
+
+  const handleCancel = () => {
+    setUrl("")
+    setDownloadFolder("")
+    setProgress(0)
+    setIsDownloading(false)
+    onClose()
+  }
+
+  const handleFolderSelect = () => {
+    onOpenFilePicker((file: FileItem) => {
+      setDownloadFolder(file.path)
+    })
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent showCloseButton={true} className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Download Video</DialogTitle>
+          <DialogDescription>
+            Enter the video URL and select the download folder
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="url">Video URL</Label>
+            <Input
+              id="url"
+              type="url"
+              placeholder="https://example.com/video.mp4"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              disabled={isDownloading}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="downloadFolder">Download Folder</Label>
+            <div className="flex gap-2">
+              <Input
+                id="downloadFolder"
+                type="text"
+                placeholder="Select download folder..."
+                value={downloadFolder}
+                onChange={(e) => setDownloadFolder(e.target.value)}
+                disabled={isDownloading}
+                readOnly
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFolderSelect}
+                disabled={isDownloading}
+              >
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          {isDownloading && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Downloading...</span>
+                <span className="text-muted-foreground">{progress}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" onClick={handleCancel} disabled={isDownloading}>
+            Cancel
+          </Button>
+          <Button onClick={handleStart} disabled={!url.trim() || !downloadFolder.trim() || isDownloading}>
+            {isDownloading ? "Downloading..." : "Start"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface OpenFolderDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -260,6 +365,10 @@ interface DialogContextValue {
     openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string }) => void,
     closeFilePicker: () => void
   ]
+  downloadVideoDialog: [
+    openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void) => void,
+    closeDownloadVideo: () => void
+  ]
 }
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined)
@@ -288,6 +397,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isFilePickerOpen, setIsFilePickerOpen] = useState(false)
   const [filePickerOnSelect, setFilePickerOnSelect] = useState<((file: FileItem) => void) | null>(null)
   const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string }>({})
+
+  // Download video dialog state
+  const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
+  const [downloadVideoOnStart, setDownloadVideoOnStart] = useState<((url: string, downloadFolder: string) => void) | null>(null)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -365,12 +478,32 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeFilePicker()
   }, [filePickerOnSelect, closeFilePicker])
 
+  const openDownloadVideo = useCallback((onStart: (url: string, downloadFolder: string) => void) => {
+    setDownloadVideoOnStart(() => onStart)
+    setIsDownloadVideoOpen(true)
+  }, [])
+
+  const closeDownloadVideo = useCallback(() => {
+    setIsDownloadVideoOpen(false)
+    setTimeout(() => {
+      setDownloadVideoOnStart(null)
+    }, 200)
+  }, [])
+
+  const handleDownloadStart = useCallback((url: string, downloadFolder: string) => {
+    if (downloadVideoOnStart) {
+      downloadVideoOnStart(url, downloadFolder)
+    }
+    // Don't close the dialog automatically - let the download complete
+  }, [downloadVideoOnStart])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
     configDialog: [openConfig, closeConfig],
     openFolderDialog: [openOpenFolder, closeOpenFolder],
     filePickerDialog: [openFilePicker, closeFilePicker],
+    downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
   }
 
   return (
@@ -400,6 +533,12 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onSelect={handleFileSelect}
         title={filePickerOptions.title}
         description={filePickerOptions.description}
+      />
+      <DownloadVideoDialog
+        isOpen={isDownloadVideoOpen}
+        onClose={closeDownloadVideo}
+        onStart={handleDownloadStart}
+        onOpenFilePicker={openFilePicker}
       />
     </DialogContext.Provider>
   )
