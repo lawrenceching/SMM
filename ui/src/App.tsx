@@ -11,7 +11,13 @@ import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
 import { useMemo } from "react"
 import { basename } from "./lib/path"
-
+import { cn } from "@/lib/utils"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -25,23 +31,30 @@ interface MediaFolderListItemProps {
    * could be base64 encoded image data (data:image/svg+xml;base64,... or data:image/svg+xml;base64,...), file path (file://), web URL (https://)
    */
   icon?: string
+  /**
+   * Whether this folder is currently selected
+   */
+  selected?: boolean
 }
 
 const folders: MediaFolderListItemProps[] = [
   {
     mediaName: "The Simpsons",
     path: "/Users/john/Downloads/The Simpsons [2025][1080P]",
-    mediaType: 'tvshow'
+    mediaType: 'tvshow',
+    selected: true
   },
   {
     mediaName: "Super Hero",
     path: "/Users/john/Downloads/Super Hero [2025][1080P]",
-    mediaType: 'movie'
+    mediaType: 'movie',
+    selected: false
   },
   {
     mediaName: "Bilibili Music",
     path: "/Users/john/Downloads/music",
-    mediaType: 'music'
+    mediaType: 'music',
+    selected: false
   }
 ]
 
@@ -125,14 +138,32 @@ function MediaFolderListItem(folder: MediaFolderListItemProps) {
   }, [folder.path])
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div className={cn(
+      "flex flex-col gap-2 p-2 rounded-md hover:bg-primary/10 cursor-pointer",
+      folder.selected && "bg-primary/30"
+    )}>
+
+<ContextMenu>
+  <ContextMenuTrigger>
+  <div className="flex items-center gap-2">
         <img src={fallbackThumbnail} alt={folder.mediaName} className="w-10 h-10 rounded-md" />
         <div>
           <h5 className="text-sm font-bold">{folder.mediaName}</h5>
-          <p className="text-sm text-gray-500">{folderName}</p>
+          <p className="text-sm text-muted-foreground">{folderName}</p>
         </div>
       </div>
+
+  </ContextMenuTrigger>
+  <ContextMenuContent>
+    <ContextMenuItem><div className="flex items-center gap-4">
+      <span >Delete</span>
+      <span className="text-xs text-muted-foreground">will NOT delete from disk</span>
+      </div></ContextMenuItem>
+    <ContextMenuItem>Open in Explorer</ContextMenuItem>
+  </ContextMenuContent>
+</ContextMenu>
+
+      
     </div>
   )
 }
