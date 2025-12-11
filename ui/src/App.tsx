@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/tooltip"
 import { ArrowUpDown, Filter } from "lucide-react"
 import Welcome from "./components/welcome"
+import TvShowPanel from "./components/TvShowPanel"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -377,7 +378,8 @@ function AppLayout() {
         <SidebarContent>
           {
             folders.length === 0 && <Welcome />
-          }
+          } 
+          {folders.length > 0 && <TvShowPanel />}
           {/* <div className="flex flex-col gap-4 p-4">
             <Button onClick={handleOpenConfirmation}>Open Confirmation Dialog</Button>
             <Button onClick={handleOpenSpinner}>Open Spinner Dialog</Button>
