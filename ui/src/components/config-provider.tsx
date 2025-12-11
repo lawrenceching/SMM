@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { RenameRules, TMDBInstance, type AppConfig, type UserConfig } from "@core/types"
+import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
 
@@ -59,7 +59,7 @@ const defaultUserConfig: UserConfig = {
     }
   },
   selectedAI: 'DeepSeek',
-  selectedTMDBIntance: TMDBInstance.public,
+  selectedTMDBIntance: 'public',
   folders: [],
   dryRun: false,
   selectedRenameRule: RenameRules.Plex.name,

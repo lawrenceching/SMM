@@ -76,10 +76,7 @@ export interface WriteFileResponseBody {
 }
 
 export type AI = "OpenAI" | "DeepSeek" | "OpenRouter" | "GLM" | "Other"
-export enum TMDBInstance {
-  public = "public",
-  customized = "customized",
-}
+export type TMDBInstance = "public" | "customized"
 
 export interface RenameRuleVariable {
   type: "buildin" | "javascript"

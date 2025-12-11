@@ -14,7 +14,6 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
-import { LogOutIcon } from "lucide-react"
 
 export interface MenuItem {
   name: string

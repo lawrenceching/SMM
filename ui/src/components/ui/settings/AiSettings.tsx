@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import type { AI } from "@core/types"
-import { ComboboxDemo } from "../ComboboxDemo"
 
 const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
 
