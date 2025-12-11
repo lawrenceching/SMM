@@ -75,6 +75,18 @@ export interface WriteFileResponseBody {
   error?: string;
 }
 
+export interface ReadImageRequestBody {
+  path: string;
+}
+
+export interface ReadImageResponseBody {
+  /**
+   * In a format "data:image:xxxx"
+   */
+  data?: string;
+  error?: string;
+}
+
 export type AI = "OpenAI" | "DeepSeek" | "OpenRouter" | "GLM" | "Other"
 export type TMDBInstance = "public" | "customized"
 

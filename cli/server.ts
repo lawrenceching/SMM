@@ -8,6 +8,7 @@ import { executeHelloTask } from './tasks/HelloTask';
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
+import { handleReadImage } from './src/route/ReadImage';
 
 export interface ServerConfig {
   port?: number;
@@ -129,6 +130,25 @@ export class Server {
         console.error('WriteFile route error:', error);
         return c.json({ 
           error: 'Failed to process write file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
+      }
+    });
+
+    this.app.post('/api/readImage', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleReadImage(rawBody);
+        
+        // If there's an error, return 400, otherwise 200
+        if (result.error) {
+          return c.json(result, 400);
+        }
+        return c.json(result);
+      } catch (error) {
+        console.error('ReadImage route error:', error);
+        return c.json({ 
+          error: 'Failed to process read image request',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 500);
       }
