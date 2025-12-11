@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ArrowUpDown, Filter } from "lucide-react"
+import Welcome from "./components/welcome"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -374,12 +375,15 @@ function AppLayout() {
           </div>
         </LeftSidebarContent>
         <SidebarContent>
-          <div className="flex flex-col gap-4 p-4">
+          {
+            folders.length === 0 && <Welcome />
+          }
+          {/* <div className="flex flex-col gap-4 p-4">
             <Button onClick={handleOpenConfirmation}>Open Confirmation Dialog</Button>
             <Button onClick={handleOpenSpinner}>Open Spinner Dialog</Button>
             <Button onClick={handleShowToast}>Show Toast</Button>
             <Button onClick={handleOpenConfig}>Open Config Dialog</Button>
-          </div>
+          </div> */}
         </SidebarContent>
         <RightSidebarContent>
           <div className="w-full h-full">
