@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react"
 import type { ReactNode } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, File } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ConfigPanel } from "@/components/ui/config-panel"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 interface DialogConfig {
   title?: string
@@ -88,6 +91,154 @@ function ConfigDialog({ isOpen, onClose }: ConfigDialogProps) {
   )
 }
 
+export type FolderType = "tvshow" | "movie" | "music"
+
+export interface FileItem {
+  name: string
+  path: string
+  isDirectory?: boolean
+}
+
+interface FilePickerDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onSelect: (file: FileItem) => void
+  title?: string
+  description?: string
+}
+
+// Mock data - will be replaced with backend API call
+const mockFiles: FileItem[] = [
+  { name: "Documents", path: "C:\\Users\\lawrence\\Documents", isDirectory: true },
+  { name: "Downloads", path: "C:\\Users\\lawrence\\Downloads", isDirectory: true },
+  { name: "Pictures", path: "C:\\Users\\lawrence\\Pictures", isDirectory: true },
+  { name: "Videos", path: "C:\\Users\\lawrence\\Videos", isDirectory: true },
+  { name: "Desktop", path: "C:\\Users\\lawrence\\Desktop", isDirectory: true },
+  { name: "Music", path: "C:\\Users\\lawrence\\Music", isDirectory: true },
+  { name: "project1", path: "C:\\Users\\lawrence\\workspace\\project1", isDirectory: true },
+  { name: "project2", path: "C:\\Users\\lawrence\\workspace\\project2", isDirectory: true },
+]
+
+function FilePickerDialog({ isOpen, onClose, onSelect, title = "Select File or Folder", description = "Choose a file or folder from the list" }: FilePickerDialogProps) {
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
+  const [files] = useState<FileItem[]>(mockFiles) // TODO: Replace with backend API call
+
+  const handleSelect = (file: FileItem) => {
+    setSelectedFile(file)
+  }
+
+  const handleConfirm = () => {
+    if (selectedFile) {
+      onSelect(selectedFile)
+      setSelectedFile(null)
+      onClose()
+    }
+  }
+
+  const handleCancel = () => {
+    setSelectedFile(null)
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent showCloseButton={true} className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+          <div className="flex flex-col gap-1">
+            {files.map((file) => (
+              <div
+                key={file.path}
+                onClick={() => handleSelect(file)}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  selectedFile?.path === file.path && "bg-primary/10 border border-primary"
+                )}
+              >
+                <File className="h-4 w-4 shrink-0" />
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="font-medium truncate">{file.name}</span>
+                  <span className="text-xs text-muted-foreground truncate">{file.path}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!selectedFile}>
+            Select
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface OpenFolderDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onSelect: (type: FolderType) => void
+}
+
+function OpenFolderDialog({ isOpen, onClose, onSelect }: OpenFolderDialogProps) {
+  const handleSelect = (type: FolderType) => {
+    onSelect(type)
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent showCloseButton={true}>
+        <DialogHeader>
+          <DialogTitle>Select Folder Type</DialogTitle>
+          <DialogDescription>
+            Choose the type of media folder you want to open
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-4">
+          <Button
+            variant="outline"
+            className="w-full justify-start h-auto py-4"
+            onClick={() => handleSelect("tvshow")}
+          >
+            <div className="flex flex-col items-start gap-1">
+              <span className="font-semibold">Tv Show / Anime</span>
+              <span className="text-xs text-muted-foreground">For television series and anime</span>
+            </div>
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start h-auto py-4"
+            onClick={() => handleSelect("movie")}
+          >
+            <div className="flex flex-col items-start gap-1">
+              <span className="font-semibold">Movie</span>
+              <span className="text-xs text-muted-foreground">For movies and films</span>
+            </div>
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start h-auto py-4"
+            onClick={() => handleSelect("music")}
+          >
+            <div className="flex flex-col items-start gap-1">
+              <span className="font-semibold">Music</span>
+              <span className="text-xs text-muted-foreground">For music albums and tracks</span>
+            </div>
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface DialogContextValue {
   confirmationDialog: [
     openConfirmation: (config: DialogConfig) => void,
@@ -100,6 +251,14 @@ interface DialogContextValue {
   configDialog: [
     openConfig: () => void,
     closeConfig: () => void
+  ]
+  openFolderDialog: [
+    openOpenFolder: (onSelect: (type: FolderType) => void) => void,
+    closeOpenFolder: () => void
+  ]
+  filePickerDialog: [
+    openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string }) => void,
+    closeFilePicker: () => void
   ]
 }
 
@@ -120,6 +279,15 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   // Config dialog state
   const [isConfigOpen, setIsConfigOpen] = useState(false)
+
+  // Open folder dialog state
+  const [isOpenFolderOpen, setIsOpenFolderOpen] = useState(false)
+  const [openFolderOnSelect, setOpenFolderOnSelect] = useState<((type: FolderType) => void) | null>(null)
+
+  // File picker dialog state
+  const [isFilePickerOpen, setIsFilePickerOpen] = useState(false)
+  const [filePickerOnSelect, setFilePickerOnSelect] = useState<((file: FileItem) => void) | null>(null)
+  const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string }>({})
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -157,10 +325,52 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsConfigOpen(false)
   }, [])
 
+  const openOpenFolder = useCallback((onSelect: (type: FolderType) => void) => {
+    setOpenFolderOnSelect(() => onSelect)
+    setIsOpenFolderOpen(true)
+  }, [])
+
+  const closeOpenFolder = useCallback(() => {
+    setIsOpenFolderOpen(false)
+    setTimeout(() => {
+      setOpenFolderOnSelect(null)
+    }, 200)
+  }, [])
+
+  const handleFolderTypeSelect = useCallback((type: FolderType) => {
+    if (openFolderOnSelect) {
+      openFolderOnSelect(type)
+    }
+    closeOpenFolder()
+  }, [openFolderOnSelect, closeOpenFolder])
+
+  const openFilePicker = useCallback((onSelect: (file: FileItem) => void, options?: { title?: string; description?: string }) => {
+    setFilePickerOnSelect(() => onSelect)
+    setFilePickerOptions(options || {})
+    setIsFilePickerOpen(true)
+  }, [])
+
+  const closeFilePicker = useCallback(() => {
+    setIsFilePickerOpen(false)
+    setTimeout(() => {
+      setFilePickerOnSelect(null)
+      setFilePickerOptions({})
+    }, 200)
+  }, [])
+
+  const handleFileSelect = useCallback((file: FileItem) => {
+    if (filePickerOnSelect) {
+      filePickerOnSelect(file)
+    }
+    closeFilePicker()
+  }, [filePickerOnSelect, closeFilePicker])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
     configDialog: [openConfig, closeConfig],
+    openFolderDialog: [openOpenFolder, closeOpenFolder],
+    filePickerDialog: [openFilePicker, closeFilePicker],
   }
 
   return (
@@ -178,6 +388,18 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <ConfigDialog
         isOpen={isConfigOpen}
         onClose={closeConfig}
+      />
+      <OpenFolderDialog
+        isOpen={isOpenFolderOpen}
+        onClose={closeOpenFolder}
+        onSelect={handleFolderTypeSelect}
+      />
+      <FilePickerDialog
+        isOpen={isFilePickerOpen}
+        onClose={closeFilePicker}
+        onSelect={handleFileSelect}
+        title={filePickerOptions.title}
+        description={filePickerOptions.description}
       />
     </DialogContext.Provider>
   )

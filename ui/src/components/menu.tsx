@@ -14,6 +14,8 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
+import { useDialogs } from "@/components/dialog-provider"
+import type { FolderType, FileItem } from "@/components/dialog-provider"
 
 export interface MenuItem {
   name: string
@@ -60,35 +62,6 @@ export interface MenuTemplate {
   label: string
   submenu: MenuContentItem[]
 }
-
-const template: MenuTemplate[] = [
-  {
-    label: 'SMM',
-    submenu: [
-      {
-        name: "Open Folder",
-        onClick: () => {
-          console.log("Open TvShow/Anime Folder")
-        }
-      },
-      {
-        name: "Download Video",
-        onClick: () => {
-          console.log("Download Video")
-        }
-      },
-      {
-        type: "separator"
-      },
-      {
-        name: "Exit",
-        onClick: () => {
-          console.log("Exit")
-        }
-      }
-    ]
-  },
-]
 
 function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
   if ("type" in item && item.type === "separator") {
@@ -154,7 +127,102 @@ function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
   )
 }
 
+// Check if running in Electron environment
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
+}
+
+// Open native file dialog in Electron
+async function openNativeFileDialog(): Promise<FileItem | null> {
+  if (!isElectron()) {
+    return null
+  }
+
+  try {
+    // Check if electron.dialog is available
+    const electron = (window as any).electron
+    if (electron?.dialog?.showOpenDialog) {
+      const result = await electron.dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: 'Select Folder'
+      })
+      
+      if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+        const path = result.filePaths[0]
+        const name = path.split(/[/\\]/).pop() || path
+        return {
+          name,
+          path,
+          isDirectory: true
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to open native file dialog:', error)
+  }
+  
+  return null
+}
+
 export function Menu() {
+  const { openFolderDialog, filePickerDialog } = useDialogs()
+  const [openOpenFolder] = openFolderDialog
+  const [openFilePicker] = filePickerDialog
+
+  const handleOpenFolder = () => {
+    // Check if in Electron environment
+    if (isElectron()) {
+      // Use OpenFolderDialog to select folder type
+      openOpenFolder((type: FolderType) => {
+        console.log(`Selected folder type: ${type}`)
+        // TODO: Handle folder selection based on type
+        // After type selection, you can open native file dialog if needed
+        openNativeFileDialog().then((selectedFile) => {
+          if (selectedFile) {
+            console.log(`Selected folder: ${selectedFile.path}`)
+            // TODO: Handle folder selection based on type
+          }
+        })
+      })
+    } else {
+      // Use FilePickerDialog for browser
+      openFilePicker((file: FileItem) => {
+        console.log(`Selected folder: ${file.path}`)
+        // TODO: Handle folder selection
+      }, {
+        title: "Select Folder",
+        description: "Choose a folder to open"
+      })
+    }
+  }
+
+  const template: MenuTemplate[] = [
+    {
+      label: 'SMM',
+      submenu: [
+        {
+          name: "Open Folder",
+          onClick: handleOpenFolder
+        },
+        {
+          name: "Download Video",
+          onClick: () => {
+            console.log("Download Video")
+          }
+        },
+        {
+          type: "separator"
+        },
+        {
+          name: "Exit",
+          onClick: () => {
+            console.log("Exit")
+          }
+        }
+      ]
+    },
+  ]
+
   return (
     <Menubar>
       {template.map((menu) => (
