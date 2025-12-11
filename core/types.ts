@@ -506,3 +506,31 @@ export interface TMDBEpisode {
   vote_count: number
   runtime: number
 }
+
+
+export interface ReadMediaMetadataRequestBody {
+  /**
+   * Absolute path of media folder in platform-specific format
+   */
+  path: string;
+}
+
+export interface ReadMediaMetadataResponseBody {
+  data: MediaMetadata;
+}
+
+export interface WriteMediaMetadataRequestBody {
+  data: MediaMetadata;
+}
+
+/**
+ * RFC 9457 Problem Details for HTTP APIs
+ *   https://www.rfc-editor.org/rfc/rfc9457.html
+ */
+export interface ProblemDetails {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  instance: string;
+}

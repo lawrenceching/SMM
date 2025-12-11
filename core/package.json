@@ -1,0 +1,14 @@
+{
+  "name": "core",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "es-toolkit": "^1.42.0",
+    "filenamify": "^7.0.1",
+    "slash": "^5.1.0"
+  }
+}
