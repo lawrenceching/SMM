@@ -277,9 +277,22 @@ function AppLayout() {
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
   const [filterType, setFilterType] = useState<FilterType>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
 
   const filteredAndSortedFolders = useMemo(() => {
     let result = [...folders]
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter((folder) => {
+        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
+        const pathMatch = folder.path.toLowerCase().includes(query)
+        const folderName = basename(folder.path) || ""
+        const folderNameMatch = folderName.toLowerCase().includes(query)
+        return mediaNameMatch || pathMatch || folderNameMatch
+      })
+    }
 
     // Filter by type
     if (filterType !== "all") {
@@ -293,7 +306,7 @@ function AppLayout() {
     })
 
     return result
-  }, [sortOrder, filterType])
+  }, [sortOrder, filterType, searchQuery])
 
   const handleOpenConfirmation = () => {
     openConfirmation({
@@ -347,7 +360,13 @@ function AppLayout() {
             filterType={filterType}
             onFilterTypeChange={setFilterType}
           />
-          <SearchForm />
+          <div className="p-1">
+            <SearchForm 
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              placeholder="Search media folders..."
+            />
+          </div>
           <div className="flex flex-col gap-4 p-4">
             {filteredAndSortedFolders.map((folder) => (
               <MediaFolderListItem key={folder.path} {...folder} />
