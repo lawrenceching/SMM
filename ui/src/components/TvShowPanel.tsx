@@ -2,10 +2,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileList } from "./FileList"
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
 import { TvShowEpisodes } from "./tvshow-episodes"
+import { useMediaMetadata } from "./media-metadata-provider"
 
 function TvShowPanel() {
+
+  const { selectedMediaMetadata: mediaMetadata } = useMediaMetadata()
+
   return (
     <div className='p-1 w-full h-full'>
+      {mediaMetadata?.mediaFolderPath}
         <Tabs defaultValue="account" className="w-full h-full">
         <TabsList>
             <TabsTrigger value="overall">Overall</TabsTrigger>
@@ -19,7 +24,7 @@ function TvShowPanel() {
         <TvShowEpisodes />
         </TabsContent>
         <TabsContent value="filess">
-            <FileList />
+            <FileList files={mediaMetadata?.files ?? []} />
         </TabsContent>
         </Tabs>
     </div>

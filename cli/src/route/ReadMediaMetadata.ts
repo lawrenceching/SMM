@@ -54,7 +54,9 @@ export async function handleReadMediaMetadata(app: Hono) {
         if(!isExist) {
             const metadata = await newMediaMetadata(new Path(folderPath));
             console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(metadata)}`)
-            return c.json(metadata, 201);
+            return c.json({
+                data: metadata
+            } as ReadMediaMetadataResponseBody, 201);
         } else {
 
             const data = await Bun.file(metadataFilePath).json();

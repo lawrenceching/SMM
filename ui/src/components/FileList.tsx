@@ -5,19 +5,11 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 
-const files: string[] = [
-    "file1.txt",
-    "file2.txt",
-    "file3.txt",
-    "file4.txt",
-    "file5.txt",
-    "file6.txt",
-    "file7.txt",
-    "file8.txt",
-    "file9.txt",
-    "file10.txt",
-]
-export function FileList() {
+interface FileListProps {
+    files: string[]
+}
+
+export function FileList({ files }: FileListProps) {
 
     return (
         <div>

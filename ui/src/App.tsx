@@ -9,7 +9,7 @@ import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
 import {
@@ -33,6 +33,7 @@ import {
 import { ArrowUpDown, Filter } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
+import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -50,33 +51,17 @@ interface MediaFolderListItemProps {
    * Whether this folder is currently selected
    */
   selected?: boolean
+  /**
+   * Click handler for the folder item
+   */
+  onClick?: () => void
 }
 
-const folders: MediaFolderListItemProps[] = [
-  {
-    mediaName: "The Simpsons",
-    path: "/Users/john/Downloads/The Simpsons [2025][1080P]",
-    mediaType: 'tvshow',
-    selected: true
-  },
-  {
-    mediaName: "Super Hero",
-    path: "/Users/john/Downloads/Super Hero [2025][1080P]",
-    mediaType: 'movie',
-    selected: false
-  },
-  {
-    mediaName: "Bilibili Music",
-    path: "/Users/john/Downloads/music",
-    mediaType: 'music',
-    selected: false
-  }
-]
 
-function MediaFolderListItem(folder: MediaFolderListItemProps) {
+function MediaFolderListItem({mediaName, path, mediaType, selected, icon, onClick}: MediaFolderListItemProps) {
 
   const fallbackThumbnail = useMemo(() => {
-    switch (folder.mediaType) {
+    switch (mediaType) {
       case 'tvshow': {
         // TV show icon - purple/blue gradient with play icon
         const svg = `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -146,24 +131,27 @@ function MediaFolderListItem(folder: MediaFolderListItemProps) {
         return `data:image/svg+xml;base64,${btoa(svg)}`
       }
     }
-  }, [folder.mediaType])
+  }, [mediaType])
 
   const folderName = useMemo(() => {
-    return basename(folder.path)
-  }, [folder.path])
+    return basename(path)
+  }, [path])
 
   return (
-    <div className={cn(
-      "flex flex-col gap-2 p-2 rounded-md hover:bg-primary/10 cursor-pointer",
-      folder.selected && "bg-primary/30"
-    )}>
+    <div 
+      className={cn(
+        "flex flex-col gap-2 p-2 rounded-md hover:bg-primary/10 cursor-pointer",
+        selected && "bg-primary/30"
+      )}
+      onClick={onClick}
+    >
 
 <ContextMenu>
   <ContextMenuTrigger>
   <div className="flex items-center gap-2">
-        <img src={fallbackThumbnail} alt={folder.mediaName} className="w-10 h-10 rounded-md" />
+        <img src={fallbackThumbnail} alt={mediaName} className="w-10 h-10 rounded-md" />
         <div>
-          <h5 className="text-sm font-bold">{folder.mediaName}</h5>
+          <h5 className="text-sm font-bold">{mediaName}</h5>
           <p className="text-sm text-muted-foreground">{folderName}</p>
         </div>
       </div>
@@ -281,6 +269,18 @@ function AppLayout() {
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
 
+  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+
+  const folders: MediaFolderListItemProps[] = useMemo(() => {
+    return mediaMetadatas.map((metadata) => {
+      return {
+        mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
+        path: metadata.mediaFolderPath,
+        mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
+      } as MediaFolderListItemProps
+    })
+  }, [mediaMetadatas])
+
   const filteredAndSortedFolders = useMemo(() => {
     let result = [...folders]
 
@@ -308,7 +308,7 @@ function AppLayout() {
     })
 
     return result
-  }, [sortOrder, filterType, searchQuery])
+  }, [folders,sortOrder, filterType, searchQuery])
 
   const handleOpenConfirmation = () => {
     openConfirmation({
@@ -351,6 +351,13 @@ function AppLayout() {
     openConfig()
   }
 
+  const handleMediaFolderListItemClick = useCallback((path: string) => {
+    const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
+    if (index !== -1) {
+      setSelectedMediaMetadata(index)
+    }
+  }, [mediaMetadatas])
+
   return (
     <div className="flex min-h-svh flex-col">
       <ThreeColumnLayout className="flex flex-col flex-1">
@@ -371,7 +378,7 @@ function AppLayout() {
           </div>
           <div className="flex flex-col gap-4 p-4">
             {filteredAndSortedFolders.map((folder) => (
-              <MediaFolderListItem key={folder.path} {...folder} />
+              <MediaFolderListItem key={folder.path} {...folder} onClick={() => handleMediaFolderListItemClick(folder.path)} />
             ))}
           </div>
         </LeftSidebarContent>
@@ -404,7 +411,9 @@ function App() {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <ConfigProvider>
         <DialogProvider>
+          <MediaMetadataProvider>
           <AppLayout />
+          </MediaMetadataProvider>
           <Toaster position="bottom-right" />
         </DialogProvider>
       </ConfigProvider>
