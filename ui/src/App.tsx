@@ -9,9 +9,11 @@ import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
+import type { FolderType } from "@/components/dialog-provider"
+import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -30,7 +32,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ArrowUpDown, Filter } from "lucide-react"
+import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
@@ -260,16 +262,33 @@ function MediaFolderToolbar({
 }
 
 function AppLayout() {
-  const { confirmationDialog, spinnerDialog, configDialog } = useDialogs()
+  const { confirmationDialog, spinnerDialog, configDialog, openFolderDialog } = useDialogs()
   const [openConfirmation, closeConfirmation] = confirmationDialog
   const [openSpinner, closeSpinner] = spinnerDialog
   const [openConfig] = configDialog
+  const [openOpenFolder] = openFolderDialog
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [isDragOver, setIsDragOver] = useState(false)
+  const dragDepthRef = useRef(0)
+  const pendingFolderPathRef = useRef<string | null>(null)
 
-  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata } = useMediaMetadata()
+
+  // Select folder when it's added to mediaMetadatas
+  useEffect(() => {
+    if (pendingFolderPathRef.current) {
+      const index = mediaMetadatas.findIndex(
+        (m) => m.mediaFolderPath === pendingFolderPathRef.current
+      )
+      if (index !== -1) {
+        setSelectedMediaMetadata(index)
+        pendingFolderPathRef.current = null
+      }
+    }
+  }, [mediaMetadatas, setSelectedMediaMetadata])
 
   const folders: MediaFolderListItemProps[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
@@ -356,10 +375,178 @@ function AppLayout() {
     if (index !== -1) {
       setSelectedMediaMetadata(index)
     }
-  }, [mediaMetadatas])
+  }, [mediaMetadatas, setSelectedMediaMetadata])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes('Files')) {
+      dragDepthRef.current++
+      if (dragDepthRef.current === 1) {
+        setIsDragOver(true)
+      }
+    }
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes('Files')) {
+      dragDepthRef.current--
+      if (dragDepthRef.current === 0) {
+        setIsDragOver(false)
+      }
+    }
+  }, [])
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    setIsDragOver(false)
+    dragDepthRef.current = 0
+
+    // Check if we're in Electron environment
+    const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
+    
+    // Find the first folder (directory) in the dropped items
+    let folderPath: string | null = null
+
+    if (isElectron) {
+      // In Electron, use webUtils.getPathForFile to get the file path
+      const files = Array.from(e.dataTransfer.files)
+      console.log('Drop event (Electron):', { filesCount: files.length, files })
+
+      if (files.length > 0) {
+        const file = files[0]
+        console.log('File from Electron:', { name: file.name, type: file.type, size: file.size })
+        
+        // Try to get path using Electron's webUtils API via the exposed API
+        const api = (window as any).api
+        console.log('API object:', api)
+        console.log('api.getPathForFile exists?', api && typeof api.getPathForFile === 'function')
+        
+        if (api && typeof api.getPathForFile === 'function') {
+          try {
+            console.log('Calling api.getPathForFile with file:', file)
+            const filePath = api.getPathForFile(file)
+            console.log('File path from api.getPathForFile:', filePath)
+            if (filePath) {
+              folderPath = filePath
+            } else {
+              console.warn('api.getPathForFile returned null or undefined')
+            }
+          } catch (error) {
+            console.error('Error calling api.getPathForFile:', error)
+          }
+        } else {
+          console.warn('api.getPathForFile is not available. API:', api)
+        }
+        
+        // Fallback: try direct path property (might work in some Electron versions)
+        if (!folderPath && (file as any).path) {
+          folderPath = (file as any).path
+          console.log('File path from file.path property:', folderPath)
+        }
+      }
+    } else {
+      // In browser, we can't directly access folder paths
+      console.warn('Folder drag and drop is only supported in Electron environment')
+      return
+    }
+
+    console.log('Final extracted folder path:', folderPath)
+
+    if (!folderPath) {
+      console.warn('No folder path found in dropped items. Files:', e.dataTransfer.files, 'Items:', e.dataTransfer.items)
+      return
+    }
+
+    // Check if folder already exists
+    const existingMetadata = mediaMetadatas.find(
+      (m) => m.mediaFolderPath === folderPath
+    )
+    if (existingMetadata) {
+      // Folder already exists, just select it
+      const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === folderPath)
+      if (index !== -1) {
+        setSelectedMediaMetadata(index)
+      }
+      return
+    }
+
+    // Store folderPath in a variable that will be captured in the closure
+    const droppedFolderPath = folderPath
+
+    console.log('Opening OpenFolderDialog for path:', droppedFolderPath)
+
+    // Open OpenFolderDialog to select folder type
+    openOpenFolder(async (type: FolderType) => {
+      console.log('Folder type selected:', type, 'for path:', droppedFolderPath)
+      try {
+        // Read media metadata for the folder
+        const response = await readMediaMetadataApi(droppedFolderPath)
+        const metadata = response.data
+
+        // Set the folder type based on selection
+        const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
+          tvshow: "tvshow-folder",
+          movie: "movie-folder",
+          music: "music-folder"
+        }
+        metadata.type = folderTypeMap[type]
+
+        // Add to media metadata
+        addMediaMetadata(metadata)
+
+        // Track the folder path so we can select it when it's added
+        pendingFolderPathRef.current = droppedFolderPath
+      } catch (error) {
+        console.error('Failed to read media metadata:', error)
+        // TODO: Show error toast or dialog
+      }
+    })
+  }, [mediaMetadatas, openOpenFolder, addMediaMetadata, setSelectedMediaMetadata])
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div 
+      className="flex min-h-svh flex-col relative"
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag and Drop Overlay */}
+      {isDragOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md transition-opacity duration-200">
+          <div className="flex flex-col items-center justify-center gap-6 p-16 rounded-2xl border-4 border-dashed border-primary bg-primary/10 shadow-2xl transform transition-all duration-300 scale-100">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <FolderOpen className="h-20 w-20 text-primary relative z-10 animate-bounce" />
+              <Upload className="h-10 w-10 text-primary absolute -top-3 -right-3 bg-background rounded-full p-2 border-4 border-primary shadow-lg z-10" />
+            </div>
+            <div className="text-center space-y-3">
+              <h3 className="text-3xl font-bold text-foreground">Drop Folder Here</h3>
+              <p className="text-base text-muted-foreground max-w-md">
+                Release the folder to add it to your media library and select its type
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <span>Ready to receive folder</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <ThreeColumnLayout className="flex flex-col flex-1">
         <LeftSidebarContent>
           <Menu/>

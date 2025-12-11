@@ -12,6 +12,7 @@ interface ExecuteChannelResponse {
 
 interface API {
   executeChannel: (request: ExecuteChannelRequest) => Promise<ExecuteChannelResponse>
+  getPathForFile: (file: File) => string | null
 }
 
 declare global {
