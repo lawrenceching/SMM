@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileList } from "./FileList"
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
+import { TvShowEpisodes } from "./tvshow-episodes"
 
 function TvShowPanel() {
   return (
@@ -14,7 +15,9 @@ function TvShowPanel() {
         <TabsContent value="overall" className="w-full h-full" >   
             <TMDBTVShowOverview className="w-full h-full"/>
         </TabsContent>
-        <TabsContent value="tvshow">Make changes to your account here.</TabsContent>
+        <TabsContent value="tvshow">
+        <TvShowEpisodes />
+        </TabsContent>
         <TabsContent value="filess">
             <FileList />
         </TabsContent>
