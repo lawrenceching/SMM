@@ -11,7 +11,7 @@ export interface HelloResponse {
     userDataDir: string;
 }
 
-function getUserDataDir(): string {
+export function getUserDataDir(): string {
 
   const dirFromEnv = process.env.USER_DATA_DIR;
   if (!!dirFromEnv) {
@@ -24,7 +24,7 @@ function getUserDataDir(): string {
   switch (platform) {
     case 'win32':
       // Windows: %APPDATA%
-      return process.env.APPDATA || path.join(homedir, 'AppData', 'Roaming');
+      return process.env.APPDATA ? path.join(process.env.APPDATA, 'SMM') : path.join(homedir, 'AppData', 'Roaming', 'SMM');
     case 'darwin':
       // macOS: ~/Library/Application Support
       return path.join(homedir, 'Library', 'Application Support');

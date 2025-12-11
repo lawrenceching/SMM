@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
-import type { AppConfig, UserConfig } from "@core/types"
+import { RenameRules, TMDBInstance, type AppConfig, type UserConfig } from "@core/types"
+import { join } from "@/lib/path"
+import { readFileApi } from "@/api/readFile"
 
 interface ConfigContextValue {
   appConfig: AppConfig
@@ -17,8 +19,9 @@ interface ConfigProviderProps {
 }
 
 interface HelloResponse {
-  uptime: number
-  version: string
+  uptime: number;
+  version: string;
+  userDataDir: string;
 }
 
 async function getConfigFromElectronIpcChannel() {
@@ -27,9 +30,51 @@ async function getConfigFromElectronIpcChannel() {
   // 3. Get the user config path from the response
 }
 
+const defaultUserConfig: UserConfig = {
+  applicationLanguage: 'zh-CN',
+  tmdb: {
+    host: 'https://api.themoviedb.org/3',
+    apiKey: '',
+    httpProxy: ''
+  },
+  ai: {
+    deepseek: {
+      baseURL: 'https://api.deepseek.com',
+      apiKey: '',
+      model: 'deepseek-chat'
+    },
+    openAI: {
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: '',
+      model: 'gpt-4o'
+    },
+    openrouter: {
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: '',
+      model: 'deepseek/deepseek-chat'
+    },
+    glm: {
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      apiKey: '',
+      model: 'GLM-4.5'
+    },
+    other: {
+      baseURL: '',
+      apiKey: '',
+      model: ''
+    }
+  },
+  selectedAI: 'DeepSeek',
+  selectedTMDBIntance: TMDBInstance.public,
+  folders: [],
+  dryRun: false,
+  selectedRenameRule: RenameRules.Plex.name,
+  renameRules: [],
+}
+
 export function ConfigProvider({
   appConfig: initialAppConfig,
-  userConfig = {},
+  userConfig = defaultUserConfig,
   children,
 }: ConfigProviderProps) {
   const [appConfig, setAppConfig] = useState<AppConfig>(
@@ -62,7 +107,15 @@ export function ConfigProvider({
         }
 
         const data: HelloResponse = await response.json()
-        
+        const userDataDir = data.userDataDir;
+        console.log(`userDataDir: ${userDataDir}`)
+
+        const filePath = join(userDataDir, 'smm.json');
+        console.log(`filePath: ${filePath}`)
+
+        const config = await readFileApi(filePath);
+        console.log(`config: `, config)
+
         // Map HelloResponse to AppConfig
         setAppConfig({
           version: data.version,

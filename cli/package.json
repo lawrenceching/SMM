@@ -17,6 +17,7 @@
     "zod": "^4.1.13"
   },
   "scripts": {
+    "dev": "bun run index.ts",
     "start": "bun run index.ts",
     "build": "bun run scripts/build.ts"
   }

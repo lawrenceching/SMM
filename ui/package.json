@@ -35,6 +35,8 @@
     "harden-react-markdown": "^1.1.7",
     "katex": "^0.16.27",
     "lucide-react": "^0.556.0",
+    "path-browserify": "^1.0.1",
+    "path-browserify-esm": "^1.0.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",

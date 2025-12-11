@@ -6,6 +6,8 @@ import { z } from 'zod';
 import type { ApiExecutePostRequestBody } from '../core/types';
 import { executeHelloTask } from './tasks/HelloTask';
 import { handleChatRequest } from './tasks/ChatTask';
+import { handleReadFile } from './src/route/ReadFile';
+import { handleWriteFile } from './src/route/WriteFile';
 
 export interface ServerConfig {
   port?: number;
@@ -91,6 +93,44 @@ export class Server {
           error: 'Invalid JSON body or parsing error',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 400);
+      }
+    });
+
+    this.app.post('/api/readFile', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleReadFile(rawBody);
+        
+        // If there's an error, return 400, otherwise 200
+        if (result.error) {
+          return c.json(result, 400);
+        }
+        return c.json(result);
+      } catch (error) {
+        console.error('ReadFile route error:', error);
+        return c.json({ 
+          error: 'Failed to process read file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
+      }
+    });
+
+    this.app.post('/api/writeFile', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleWriteFile(rawBody);
+        
+        // If there's an error, return 400, otherwise 200
+        if (result.error) {
+          return c.json(result, 400);
+        }
+        return c.json(result);
+      } catch (error) {
+        console.error('WriteFile route error:', error);
+        return c.json({ 
+          error: 'Failed to process write file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
       }
     });
 
