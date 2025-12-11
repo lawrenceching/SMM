@@ -43,7 +43,7 @@ export function ThreeColumnLayout({ children, className }: ThreeColumnLayoutProp
                 {sidebarContent}
               </ResizablePanel>
               <ResizableHandle />
-              <ResizablePanel defaultSize={40} minSize={30} maxSize={40}>
+              <ResizablePanel defaultSize={30} minSize={30} maxSize={40}>
                 {/* right sidebar */}
                 <div className="flex h-full items-center justify-center p-6">
                   {rightSidebarContent}
