@@ -3,9 +3,9 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel
 
 
 function ConfigPanelSidebar() {
-    return <Sidebar collapsible="none">
+    return <Sidebar collapsible="none" className="border-r h-full flex flex-col">
     <SidebarHeader />
-    <SidebarContent>
+    <SidebarContent className="flex-1">
       <SidebarGroup>
         <SidebarGroupLabel>
             <h1>Config Panel</h1>
@@ -18,16 +18,18 @@ function ConfigPanelSidebar() {
 
 function ConfigPanel() {
   return (
-    <div>
-        <SidebarProvider>
-      <ConfigPanelSidebar />
-      <main>
-        <SidebarTrigger />
-        <div>
-            <h1>Config Panel</h1>
+    <div className="h-full w-full flex flex-col">
+      <SidebarProvider className="h-full flex flex-col" style={{ minHeight: 0 }}>
+        <div className="flex h-full w-full">
+          <ConfigPanelSidebar />
+          <main className="flex-1 flex flex-col min-w-0">
+            <SidebarTrigger />
+            <div className="flex-1 overflow-auto">
+              <h1>Config Panel</h1>
+            </div>
+          </main>
         </div>
-      </main>
-    </SidebarProvider>
+      </SidebarProvider>
     </div>
   )
 }

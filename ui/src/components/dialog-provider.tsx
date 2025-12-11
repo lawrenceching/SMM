@@ -74,7 +74,12 @@ function ConfigDialog({ isOpen, onClose }: ConfigDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-[90vw] w-full h-[90vh] p-0"
+        className="p-0 flex flex-col"
+        style={{
+          maxWidth: '90vw',
+          width: '100%',
+          height: '90vh'
+        }}
         showCloseButton={true}
       >
         <ConfigPanel />
