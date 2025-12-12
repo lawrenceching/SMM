@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { useConfig } from "./config-provider"
+import { useMediaMetadata } from "./media-metadata-provider"
+import { Path } from "@core/path"
+import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 
 interface DialogConfig {
   title?: string
@@ -297,6 +300,7 @@ interface OpenFolderDialogProps {
 function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderDialogProps) {
 
   const { userConfig, setUserConfig } = useConfig()
+  const { addMediaMetadata } = useMediaMetadata()
 
   const handleSelect = (type: FolderType) => {
     console.log(`[DialogProvider] handleSelect ${type} ${folderPath}`)
@@ -316,6 +320,20 @@ function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderD
     setUserConfig({
       ...userConfig,
       folders: [...userConfig.folders, folderPath]
+    })
+
+    readMediaMetadataApi(folderPath).then((data) => {
+      if(!!data.data) {
+        console.log(`[OpenFolderDialog] Media metadata is already exists, skip adding new metadata`)
+      } else {
+        addMediaMetadata({
+          mediaFolderPath: Path.posix(folderPath),
+          type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
+        })
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to read media metadata:", error)
     })
 
     onSelect(type)

@@ -2,7 +2,7 @@ import { ThreeColumnLayout, LeftSidebarContent, RightSidebarContent, SidebarCont
 import { SearchForm } from "./components/search-form"
 import { Menu } from "./components/menu"
 import { StatusBar } from "./components/StatusBar"
-import { ConfigProvider } from "./components/config-provider"
+import { ConfigProvider, useConfig } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
 import { DialogProvider, useDialogs } from "./components/dialog-provider"
 import { Button } from "./components/ui/button"
@@ -36,11 +36,13 @@ import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
+import { Path } from "@core/path"
+import type { UserConfig } from "@core/types"
 
 interface MediaFolderListItemProps {
   mediaName: string,
   /**
-   * Absolute path of the media folder, in Platform-specific format
+   * Absolute path of the media folder, in POSIX format
    */
   path: string,
   mediaType: 'tvshow' | 'movie' | 'music'
@@ -61,6 +63,9 @@ interface MediaFolderListItemProps {
 
 
 function MediaFolderListItem({mediaName, path, mediaType, selected, icon, onClick}: MediaFolderListItemProps) {
+
+  const { removeMediaMetadata } = useMediaMetadata()
+  const { userConfig, setUserConfig } = useConfig()
 
   const fallbackThumbnail = useMemo(() => {
     switch (mediaType) {
@@ -139,6 +144,21 @@ function MediaFolderListItem({mediaName, path, mediaType, selected, icon, onClic
     return basename(path)
   }, [path])
 
+  const handleDeleteButtonClick = useCallback(() => {
+    removeMediaMetadata(path)
+
+    const newUserConfig: UserConfig = {
+      ...userConfig,
+      folders: userConfig.folders.filter((folder) => Path.posix(folder) !== path),
+    }
+
+    setUserConfig(newUserConfig)
+  }, [path, userConfig, setUserConfig])
+
+  const handleOpenInExplorerButtonClick = useCallback(() => {
+    // TODO: open in explorer
+  }, [path])
+
   return (
     <div 
       className={cn(
@@ -160,11 +180,12 @@ function MediaFolderListItem({mediaName, path, mediaType, selected, icon, onClic
 
   </ContextMenuTrigger>
   <ContextMenuContent>
-    <ContextMenuItem><div className="flex items-center gap-4">
-      <span >Delete</span>
+    <ContextMenuItem onClick={handleDeleteButtonClick}>
+      <div className="flex items-center gap-4">
+      <span>Delete</span>
       <span className="text-xs text-muted-foreground">will NOT delete from disk</span>
       </div></ContextMenuItem>
-    <ContextMenuItem>Open in Explorer</ContextMenuItem>
+    <ContextMenuItem onClick={handleOpenInExplorerButtonClick}>Open in Explorer</ContextMenuItem>
   </ContextMenuContent>
 </ContextMenu>
 
@@ -595,14 +616,17 @@ function AppLayout() {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      
       <ConfigProvider>
+      <MediaMetadataProvider>
         <DialogProvider>
-          <MediaMetadataProvider>
+        
           <AppLayout />
-          </MediaMetadataProvider>
           <Toaster position="bottom-right" />
         </DialogProvider>
+        </MediaMetadataProvider>
       </ConfigProvider>
+      
     </ThemeProvider>
   )
 }

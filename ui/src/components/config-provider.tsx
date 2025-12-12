@@ -3,6 +3,7 @@ import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
+import { useMediaMetadata } from "./media-metadata-provider"
 
 interface ConfigContextValue {
   appConfig: AppConfig
@@ -68,8 +69,6 @@ const defaultUserConfig: UserConfig = {
   renameRules: [],
 }
 
-let userDataDir: string | undefined = undefined
-
 export function ConfigProvider({
   appConfig: initialAppConfig,
   userConfig: initialUserConfig = defaultUserConfig,
@@ -106,8 +105,13 @@ export function ConfigProvider({
         }
 
         const data: HelloResponse = await response.json()
-        const _userDataDir = data.userDataDir;
-        userDataDir = _userDataDir;
+        const userDataDir = data.userDataDir;
+        setAppConfig((prev) => {
+          return {
+            ...prev,
+            userDataDir: userDataDir,
+          }
+        })
 
         const filePath = join(userDataDir, 'smm.json');
 
@@ -116,8 +120,11 @@ export function ConfigProvider({
         setUserConfig(config);
 
         // Map HelloResponse to AppConfig
-        setAppConfig({
-          version: data.version,
+        setAppConfig((prev) => {
+          return {
+            ...prev,
+            version: data.version,
+          }
         })
       } catch (err) {
         console.error("Failed to fetch app config:", err)
@@ -132,10 +139,10 @@ export function ConfigProvider({
   }, [initialAppConfig])
 
   const saveUserConfig = useCallback((config: UserConfig) => {
-    if(!userDataDir) {
+    if(!appConfig.userDataDir) {
       throw new Error("User data directory not found")
     }
-    writeFile(join(userDataDir, 'smm.json'), JSON.stringify(config))
+    writeFile(join(appConfig.userDataDir, 'smm.json'), JSON.stringify(config))
     .then(() => {
       console.log("User config written successfully")
       setUserConfig(config)
@@ -144,7 +151,7 @@ export function ConfigProvider({
       console.error("Failed to write user config:", err)
       setError(err instanceof Error ? err : new Error("Unknown error"))
     })
-  }, [])
+  }, [appConfig.userDataDir])
 
   const value: ConfigContextValue = {
     appConfig,

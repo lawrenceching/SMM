@@ -2,6 +2,10 @@ import type { MediaMetadata } from "@core/types";
 import type { ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from "@core/types";
 
 
+/**
+ * 
+ * @param path platform-specific path
+ */
 export async function readMediaMetadataApi(path: string): Promise<ReadMediaMetadataResponseBody> {
   const req: ReadMediaMetadataRequestBody = {
     path: path,

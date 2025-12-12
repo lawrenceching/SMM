@@ -2,11 +2,16 @@ import { createContext, useContext, useState, useCallback, type ReactNode, useEf
 import type { MediaMetadata } from "@core/types"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useConfig } from "./config-provider"
+import { writeMediaMetadata } from "@/api/writeMediaMatadata"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: MediaMetadata[]
   addMediaMetadata: (metadata: MediaMetadata) => void
   updateMediaMetadata: (path: string, metadata: MediaMetadata) => void
+  /**
+   * @param path POSIX
+   * @returns 
+   */
   removeMediaMetadata: (path: string) => void
   getMediaMetadata: (path: string) => MediaMetadata | undefined
   selectedMediaMetadata: MediaMetadata | undefined
@@ -26,7 +31,7 @@ export function MediaMetadataProvider({
 }: MediaMetadataProviderProps) {
   const [mediaMetadatas, setMediaMetadatas] = useState<MediaMetadata[]>(initialMediaMetadatas)
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
-  const { userConfig } = useConfig()
+  const { userConfig, appConfig } = useConfig()
   const selectedMediaMetadata: MediaMetadata | undefined = useMemo(() => {
     if (selectedIndex < 0 || selectedIndex >= mediaMetadatas.length) {
       return undefined
@@ -40,20 +45,29 @@ export function MediaMetadataProvider({
   }, [])
 
   const addMediaMetadata = useCallback((metadata: MediaMetadata) => {
-    setMediaMetadatas((prev) => {
-      // Check if metadata with the same path already exists
-      const existingIndex = prev.findIndex(
-        (m) => m.mediaFolderPath === metadata.mediaFolderPath
-      )
-      if (existingIndex >= 0) {
-        // Update existing metadata
-        const updated = [...prev]
-        updated[existingIndex] = metadata
-        return updated
-      }
-      // Add new metadata
-      return [...prev, metadata]
-    })
+    
+    writeMediaMetadata(metadata)
+      .then(() => {
+        setMediaMetadatas((prev) => {
+          // Check if metadata with the same path already exists
+          const existingIndex = prev.findIndex(
+            (m) => m.mediaFolderPath === metadata.mediaFolderPath
+          )
+          if (existingIndex >= 0) {
+            // Update existing metadata
+            const updated = [...prev]
+            updated[existingIndex] = metadata
+            return updated
+          }
+          // Add new metadata
+          return [...prev, metadata]
+        })
+        console.log("Media metadata written successfully")
+      })
+      .catch((error) => {
+        console.error("Failed to write media metadata:", error)
+      })
+    
   }, [])
 
   const updateMediaMetadata = useCallback((path: string, metadata: MediaMetadata) => {

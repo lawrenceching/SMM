@@ -9,7 +9,9 @@ import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleReadImage } from './src/route/ReadImage';
-import { handleReadMediaMetadata } from '@/route/ReadMediaMetadata';
+import { handleReadMediaMetadata } from '@/route/api/mediaMetadata/read';
+import { handleWriteMediaMetadata } from '@/route/api/mediaMetadata/write';
+import { handleDeleteMediaMetadata } from '@/route/api/mediaMetadata/delete';
 
 export interface ServerConfig {
   port?: number;
@@ -158,6 +160,8 @@ export class Server {
     });
 
     handleReadMediaMetadata(this.app);
+    handleWriteMediaMetadata(this.app);
+    handleDeleteMediaMetadata(this.app);
 
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)

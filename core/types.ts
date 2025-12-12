@@ -3,6 +3,7 @@
  */
 export interface AppConfig {
     version: string;
+    userDataDir?: string;
 }
 
 
@@ -517,10 +518,25 @@ export interface ReadMediaMetadataRequestBody {
 
 export interface ReadMediaMetadataResponseBody {
   data: MediaMetadata;
+  error?: string;
 }
 
 export interface WriteMediaMetadataRequestBody {
   data: MediaMetadata;
+}
+
+export interface WriteMediaMetadataResponseBody {
+  data: MediaMetadata;
+}
+
+export interface DeleteMediaMetadataRequestBody {
+  /**
+   * Absolute path of media folder in platform-specific format
+   */
+  path: string;
+}
+
+export interface DeleteMediaMetadataResponseBody {
 }
 
 /**
