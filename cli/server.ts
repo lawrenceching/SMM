@@ -9,9 +9,9 @@ import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleReadImage } from './src/route/ReadImage';
-import { handleReadMediaMetadata } from '@/route/api/mediaMetadata/read';
-import { handleWriteMediaMetadata } from '@/route/api/mediaMetadata/write';
-import { handleDeleteMediaMetadata } from '@/route/api/mediaMetadata/delete';
+import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
+import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
+import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
 
 export interface ServerConfig {
   port?: number;
