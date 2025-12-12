@@ -83,7 +83,7 @@ export function MediaMetadataProvider({
       })
     })
     
-  }, [])
+  }, [userConfig])
 
   const value: MediaMetadataContextValue = {
     mediaMetadatas,

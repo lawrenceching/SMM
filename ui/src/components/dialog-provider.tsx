@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { useConfig } from "./config-provider"
 
 interface DialogConfig {
   title?: string
@@ -290,10 +291,33 @@ interface OpenFolderDialogProps {
   isOpen: boolean
   onClose: () => void
   onSelect: (type: FolderType) => void
+  folderPath?: string
 }
 
-function OpenFolderDialog({ isOpen, onClose, onSelect }: OpenFolderDialogProps) {
+function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderDialogProps) {
+
+  const { userConfig, setUserConfig } = useConfig()
+
   const handleSelect = (type: FolderType) => {
+    console.log(`[DialogProvider] handleSelect ${type} ${folderPath}`)
+
+    if(!folderPath) {
+      console.error("Folder path is required")
+      onClose()
+      return;
+    }
+
+    if(userConfig === undefined) {
+      console.error("User config is required")
+      onClose()
+      return
+    }
+
+    setUserConfig({
+      ...userConfig,
+      folders: [...userConfig.folders, folderPath]
+    })
+
     onSelect(type)
     onClose()
   }
@@ -307,6 +331,15 @@ function OpenFolderDialog({ isOpen, onClose, onSelect }: OpenFolderDialogProps) 
             Choose the type of media folder you want to open
           </DialogDescription>
         </DialogHeader>
+        {folderPath && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-muted border">
+            <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-xs font-medium text-muted-foreground">Folder Path</span>
+              <span className="text-sm truncate">{folderPath}</span>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col gap-3 py-4">
           <Button
             variant="outline"
@@ -358,7 +391,7 @@ interface DialogContextValue {
     closeConfig: () => void
   ]
   openFolderDialog: [
-    openOpenFolder: (onSelect: (type: FolderType) => void) => void,
+    openOpenFolder: (onSelect: (type: FolderType) => void, folderPath?: string) => void,
     closeOpenFolder: () => void
   ]
   filePickerDialog: [
@@ -392,6 +425,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Open folder dialog state
   const [isOpenFolderOpen, setIsOpenFolderOpen] = useState(false)
   const [openFolderOnSelect, setOpenFolderOnSelect] = useState<((type: FolderType) => void) | null>(null)
+  const [openFolderPath, setOpenFolderPath] = useState<string | undefined>(undefined)
 
   // File picker dialog state
   const [isFilePickerOpen, setIsFilePickerOpen] = useState(false)
@@ -438,8 +472,9 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsConfigOpen(false)
   }, [])
 
-  const openOpenFolder = useCallback((onSelect: (type: FolderType) => void) => {
+  const openOpenFolder = useCallback((onSelect: (type: FolderType) => void, folderPath?: string) => {
     setOpenFolderOnSelect(() => onSelect)
+    setOpenFolderPath(folderPath)
     setIsOpenFolderOpen(true)
   }, [])
 
@@ -447,6 +482,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsOpenFolderOpen(false)
     setTimeout(() => {
       setOpenFolderOnSelect(null)
+      setOpenFolderPath(undefined)
     }, 200)
   }, [])
 
@@ -526,6 +562,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isOpenFolderOpen}
         onClose={closeOpenFolder}
         onSelect={handleFolderTypeSelect}
+        folderPath={openFolderPath}
       />
       <FilePickerDialog
         isOpen={isFilePickerOpen}

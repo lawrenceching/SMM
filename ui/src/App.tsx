@@ -504,16 +504,15 @@ function AppLayout() {
         }
         metadata.type = folderTypeMap[type]
 
-        // Add to media metadata
+        // Add the metadata to the list
         addMediaMetadata(metadata)
 
-        // Track the folder path so we can select it when it's added
+        // Select the newly added folder
         pendingFolderPathRef.current = droppedFolderPath
       } catch (error) {
         console.error('Failed to read media metadata:', error)
-        // TODO: Show error toast or dialog
       }
-    })
+    }, droppedFolderPath)
   }, [mediaMetadatas, openOpenFolder, addMediaMetadata, setSelectedMediaMetadata])
 
   return (

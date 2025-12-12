@@ -1,13 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
+import { writeFile } from "@/api/writeFile"
 
 interface ConfigContextValue {
   appConfig: AppConfig
   userConfig: UserConfig
   isLoading: boolean
   error: Error | null
+  setUserConfig: (config: UserConfig) => void
 }
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined)
@@ -66,6 +68,8 @@ const defaultUserConfig: UserConfig = {
   renameRules: [],
 }
 
+let userDataDir: string | undefined = undefined
+
 export function ConfigProvider({
   appConfig: initialAppConfig,
   userConfig: initialUserConfig = defaultUserConfig,
@@ -102,7 +106,8 @@ export function ConfigProvider({
         }
 
         const data: HelloResponse = await response.json()
-        const userDataDir = data.userDataDir;
+        const _userDataDir = data.userDataDir;
+        userDataDir = _userDataDir;
 
         const filePath = join(userDataDir, 'smm.json');
 
@@ -126,11 +131,27 @@ export function ConfigProvider({
     fetchAppConfig()
   }, [initialAppConfig])
 
+  const saveUserConfig = useCallback((config: UserConfig) => {
+    if(!userDataDir) {
+      throw new Error("User data directory not found")
+    }
+    writeFile(join(userDataDir, 'smm.json'), JSON.stringify(config))
+    .then(() => {
+      console.log("User config written successfully")
+      setUserConfig(config)
+    })
+    .catch((err) => {
+      console.error("Failed to write user config:", err)
+      setError(err instanceof Error ? err : new Error("Unknown error"))
+    })
+  }, [])
+
   const value: ConfigContextValue = {
     appConfig,
     userConfig,
     isLoading,
     error,
+    setUserConfig: saveUserConfig,
   }
 
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>

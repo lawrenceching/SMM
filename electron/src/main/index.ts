@@ -167,7 +167,7 @@ function createWindow(): void {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  const port = cliPort ?? 3000
+  const port = 5173;
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     // mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(`http://localhost:${port}`)

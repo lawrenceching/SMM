@@ -118,8 +118,10 @@ export class Server {
     });
 
     this.app.post('/api/writeFile', async (c) => {
+      
       try {
         const rawBody = await c.req.json();
+        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.path}`)
         const result = await handleWriteFile(rawBody);
         
         // If there's an error, return 400, otherwise 200
