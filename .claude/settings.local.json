@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat /c/Users/lawrence/workspace/smm-mono/cli/package.json)",
+      "Bash(cat /c/Users/lawrence/workspace/smm-mono/ui/package.json)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
