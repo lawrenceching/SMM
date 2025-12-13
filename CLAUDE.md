@@ -158,7 +158,7 @@ Variables available: `SEASON`, `SEASON_P2`, `EPISODE`, `EPISODE_P2`, `NAME`, `TV
 
 ## Build System
 
-- **UI**: Vite + TypeScript + Tailwind CSS
+- **UI**: Vite + TypeScript + Tailwind CSS + Shadcn UI
 - **CLI**: Bun runtime with TypeScript compilation
 - **Electron**: electron-vite with separate configs for main and renderer processes
 - **CI/CD**: GitHub Actions (`.github/workflows/build.yml`) builds UI and CLI on push/PR
