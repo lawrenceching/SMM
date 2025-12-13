@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react"
+import { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ReactNode } from "react"
 import { Loader2, File, FolderOpen } from "lucide-react"
 import {
@@ -19,6 +19,7 @@ import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { Path } from "@core/path"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
+import { listFilesApi } from "@/api/listFiles"
 
 interface DialogConfig {
   title?: string
@@ -114,24 +115,107 @@ interface FilePickerDialogProps {
   description?: string
 }
 
-// Mock data - will be replaced with backend API call
-const mockFiles: FileItem[] = [
-  { name: "Documents", path: "C:\\Users\\lawrence\\Documents", isDirectory: true },
-  { name: "Downloads", path: "C:\\Users\\lawrence\\Downloads", isDirectory: true },
-  { name: "Pictures", path: "C:\\Users\\lawrence\\Pictures", isDirectory: true },
-  { name: "Videos", path: "C:\\Users\\lawrence\\Videos", isDirectory: true },
-  { name: "Desktop", path: "C:\\Users\\lawrence\\Desktop", isDirectory: true },
-  { name: "Music", path: "C:\\Users\\lawrence\\Music", isDirectory: true },
-  { name: "project1", path: "C:\\Users\\lawrence\\workspace\\project1", isDirectory: true },
-  { name: "project2", path: "C:\\Users\\lawrence\\workspace\\project2", isDirectory: true },
-]
-
 function FilePickerDialog({ isOpen, onClose, onSelect, title = "Select File or Folder", description = "Choose a file or folder from the list" }: FilePickerDialogProps) {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
-  const [files] = useState<FileItem[]>(mockFiles) // TODO: Replace with backend API call
+  const [files, setFiles] = useState<FileItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPath, setCurrentPath] = useState<string>("~")
+  const [pathHistory, setPathHistory] = useState<string[]>(["~"])
 
-  const handleSelect = (file: FileItem) => {
+  const loadFiles = useCallback(async (path: string) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      // Make two API calls: one for folders, one for files
+      const [foldersResponse, filesResponse] = await Promise.all([
+        listFilesApi(path, {
+          onlyFolders: true,
+          includeHiddenFiles: false,
+        }),
+        listFilesApi(path, {
+          onlyFiles: true,
+          includeHiddenFiles: false,
+        }),
+      ])
+      
+      if (foldersResponse.error || filesResponse.error) {
+        setError(foldersResponse.error || filesResponse.error || 'Failed to load files')
+        setFiles([])
+      } else {
+        // Convert folders to FileItem format
+        const folders: FileItem[] = foldersResponse.data.map((filePath) => {
+          const pathParts = filePath.split(/[/\\]/)
+          const name = pathParts[pathParts.length - 1] || filePath
+          return {
+            name,
+            path: filePath,
+            isDirectory: true,
+          }
+        })
+
+        // Convert files to FileItem format
+        const files: FileItem[] = filesResponse.data.map((filePath) => {
+          const pathParts = filePath.split(/[/\\]/)
+          const name = pathParts[pathParts.length - 1] || filePath
+          return {
+            name,
+            path: filePath,
+            isDirectory: false,
+          }
+        })
+
+        // Sort: folders first, then files, both alphabetically
+        const sortedFolders = folders.sort((a, b) => a.name.localeCompare(b.name))
+        const sortedFiles = files.sort((a, b) => a.name.localeCompare(b.name))
+        
+        setFiles([...sortedFolders, ...sortedFiles])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load files')
+      setFiles([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Load files when dialog opens or path changes
+  useEffect(() => {
+    if (isOpen) {
+      loadFiles(currentPath)
+    } else {
+      // Reset state when dialog closes
+      setFiles([])
+      setSelectedFile(null)
+      setError(null)
+      setCurrentPath("~")
+      setPathHistory(["~"])
+    }
+  }, [isOpen, currentPath, loadFiles])
+
+  const handleItemClick = (file: FileItem) => {
+    // Single-click: select file or folder
     setSelectedFile(file)
+  }
+
+  const handleItemDoubleClick = (file: FileItem) => {
+    // Double-click: navigate into folder
+    if (file.isDirectory) {
+      setPathHistory([...pathHistory, currentPath])
+      setCurrentPath(file.path)
+      setSelectedFile(null)
+    }
+  }
+
+  const handleGoBack = () => {
+    if (pathHistory.length > 1) {
+      const newHistory = [...pathHistory]
+      newHistory.pop() // Remove current path
+      const previousPath = newHistory[newHistory.length - 1]
+      setPathHistory(newHistory)
+      setCurrentPath(previousPath)
+      setSelectedFile(null)
+    }
   }
 
   const handleConfirm = () => {
@@ -154,35 +238,74 @@ function FilePickerDialog({ isOpen, onClose, onSelect, title = "Select File or F
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-          <div className="flex flex-col gap-1">
-            {files.map((file) => (
-              <div
-                key={file.path}
-                onClick={() => handleSelect(file)}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  selectedFile?.path === file.path && "bg-primary/10 border border-primary"
-                )}
+        <div className="flex flex-col gap-2">
+          {/* Current path and navigation */}
+          <div className="flex items-center gap-2">
+            {pathHistory.length > 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoBack}
+                disabled={isLoading}
               >
-                <File className="h-4 w-4 shrink-0" />
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-medium truncate">{file.name}</span>
-                  <span className="text-xs text-muted-foreground truncate">{file.path}</span>
-                </div>
-              </div>
-            ))}
+                ← Back
+              </Button>
+            )}
+            <div className="flex-1 text-sm text-muted-foreground truncate">
+              {currentPath}
+            </div>
           </div>
-        </ScrollArea>
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} disabled={!selectedFile}>
-            Select
-          </Button>
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-8 text-sm text-destructive">
+                {error}
+              </div>
+            ) : files.length === 0 ? (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                No files or folders found
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {files.map((file) => (
+                  <div
+                    key={file.path}
+                    onClick={() => handleItemClick(file)}
+                    onDoubleClick={() => handleItemDoubleClick(file)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      selectedFile?.path === file.path && "bg-primary/10 border border-primary"
+                    )}
+                  >
+                    {file.isDirectory ? (
+                      <FolderOpen className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <File className="h-4 w-4 shrink-0" />
+                    )}
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="font-medium truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground truncate">{file.path}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </div>
+        {selectedFile && (
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>
+              Confirm
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

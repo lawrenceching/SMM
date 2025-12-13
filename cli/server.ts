@@ -9,6 +9,7 @@ import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleReadImage } from './src/route/ReadImage';
+import { handleListFiles } from './src/route/ListFiles';
 import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
@@ -156,6 +157,48 @@ export class Server {
           error: 'Failed to process read image request',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 500);
+      }
+    });
+
+    // GET /api/listFiles - supports query parameters
+    this.app.get('/api/listFiles', async (c) => {
+      try {
+        const query = c.req.query();
+        const body: any = {
+          path: query.path || '',
+        };
+        if (query.onlyFiles !== undefined) {
+          body.onlyFiles = query.onlyFiles === 'true';
+        }
+        if (query.onlyFolders !== undefined) {
+          body.onlyFolders = query.onlyFolders === 'true';
+        }
+        if (query.includeHiddenFiles !== undefined) {
+          body.includeHiddenFiles = query.includeHiddenFiles === 'true';
+        }
+        const result = await handleListFiles(body);
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('ListFiles route error:', error);
+        return c.json({ 
+          data: [],
+          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
+        }, 200);
+      }
+    });
+
+    // POST /api/listFiles - supports request body
+    this.app.post('/api/listFiles', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleListFiles(rawBody);
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('ListFiles route error:', error);
+        return c.json({ 
+          data: [],
+          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
+        }, 200);
       }
     });
 

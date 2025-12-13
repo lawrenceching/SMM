@@ -35,7 +35,7 @@ export async function handleReadMediaMetadata(app: Hono) {
             if (!stats.isDirectory()) {
                 const resp: ReadMediaMetadataResponseBody = {
                     data: {} as MediaMetadata,
-                    error: 'Folder Not Found'
+                    error: `Folder Not Found: ${folderPath} is not a directory`
                 };
                 console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
                 return c.json(resp, 200);
@@ -44,7 +44,7 @@ export async function handleReadMediaMetadata(app: Hono) {
             // Folder doesn't exist or can't be accessed
             const resp: ReadMediaMetadataResponseBody = {
                 data: {} as MediaMetadata,
-                error: 'Folder Not Found'
+                error: `Folder Not Found: ${folderPath} was not found`
             };
             console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
             return c.json(resp, 200);
@@ -66,7 +66,7 @@ export async function handleReadMediaMetadata(app: Hono) {
                 // Error creating metadata (e.g., can't list files)
                 const resp: ReadMediaMetadataResponseBody = {
                     data: {} as MediaMetadata,
-                    error: 'Media Metadata Not Found'
+                    error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to create metadata'}`
                 };
                 console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
                 return c.json(resp, 200);
@@ -84,7 +84,7 @@ export async function handleReadMediaMetadata(app: Hono) {
                 // Error reading cache file
                 const resp: ReadMediaMetadataResponseBody = {
                     data: {} as MediaMetadata,
-                    error: 'Media Metadata Not Found'
+                    error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to read metadata cache'}`
                 };
                 console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
                 return c.json(resp, 200);

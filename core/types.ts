@@ -76,6 +76,33 @@ export interface WriteFileResponseBody {
   error?: string;
 }
 
+export interface ListFilesRequestBody {
+  /**
+   * Absolute path of folder, it could be POSIX path or Windows path
+   */
+  path: string;
+
+  /**
+   * List only file. If onlyFiles and onlyFolders are set to true, ignore the onlyFolders.
+   */
+  onlyFiles?: boolean;
+
+  /**
+   * List only folder. If onlyFiles and onlyFolders are set to true, ignore the onlyFolders.
+   */
+  onlyFolders?: boolean;
+
+  /**
+   * List hidden files. Default is false
+   */
+  includeHiddenFiles?: boolean;
+}
+
+export interface ListFilesResponseBody {
+  data: string[];
+  error?: string;
+}
+
 export interface ReadImageRequestBody {
   path: string;
 }
@@ -527,6 +554,11 @@ export interface WriteMediaMetadataRequestBody {
 
 export interface WriteMediaMetadataResponseBody {
   data: MediaMetadata;
+  error?: string;
+}
+
+export interface DeleteMediaMetadataResponseBody {
+  error?: string;
 }
 
 export interface DeleteMediaMetadataRequestBody {
@@ -534,9 +566,6 @@ export interface DeleteMediaMetadataRequestBody {
    * Absolute path of media folder in platform-specific format
    */
   path: string;
-}
-
-export interface DeleteMediaMetadataResponseBody {
 }
 
 /**

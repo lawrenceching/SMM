@@ -1,4 +1,4 @@
-import type { MediaMetadata, ProblemDetails, WriteMediaMetadataRequestBody, WriteMediaMetadataResponseBody } from "@core/types";
+import type { MediaMetadata, WriteMediaMetadataRequestBody, WriteMediaMetadataResponseBody } from "@core/types";
 import type { Hono } from "hono";
 import { mkdir } from "fs/promises";
 import { mediaMetadataDir, metadataCacheFilePath } from "./utils";
@@ -10,15 +10,12 @@ export async function handleWriteMediaMetadata(app: Hono) {
         const metadata = raw.data;
 
         if (!metadata.mediaFolderPath) {
-            const problemDetails: ProblemDetails = {
-                type: 'https://www.example.com/problemdetails/types/unexpected-error',
-                title: 'Invalid Request',
-                status: 400,
-                detail: 'mediaFolderPath is required in metadata',
-                instance: c.req.url,
+            const resp: WriteMediaMetadataResponseBody = {
+                data: {} as MediaMetadata,
+                error: 'Invalid Request: mediaFolderPath is required in metadata'
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(problemDetails)}`)
-            return c.json(problemDetails, 400);
+            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+            return c.json(resp, 200);
         }
 
         const metadataFilePath = metadataCacheFilePath(metadata.mediaFolderPath);
@@ -27,15 +24,12 @@ export async function handleWriteMediaMetadata(app: Hono) {
         try {
             await mkdir(mediaMetadataDir, { recursive: true });
         } catch (error) {
-            const problemDetails: ProblemDetails = {
-                type: 'https://www.example.com/problemdetails/types/unexpected-error',
-                title: 'Internal Server Error',
-                status: 500,
-                detail: `Failed to create metadata directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                instance: c.req.url,
+            const resp: WriteMediaMetadataResponseBody = {
+                data: {} as MediaMetadata,
+                error: `Create Directory Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(problemDetails)}`)
-            return c.json(problemDetails, 500);
+            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+            return c.json(resp, 200);
         }
 
         // Write metadata to file
@@ -48,15 +42,12 @@ export async function handleWriteMediaMetadata(app: Hono) {
             console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
             return c.json(resp, 200);
         } catch (error) {
-            const problemDetails: ProblemDetails = {
-                type: 'https://www.example.com/problemdetails/types/unexpected-error',
-                title: 'Internal Server Error',
-                status: 500,
-                detail: `Failed to write metadata file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                instance: c.req.url,
+            const resp: WriteMediaMetadataResponseBody = {
+                data: {} as MediaMetadata,
+                error: `Write File Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(problemDetails)}`)
-            return c.json(problemDetails, 500);
+            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+            return c.json(resp, 200);
         }
     });
 }
