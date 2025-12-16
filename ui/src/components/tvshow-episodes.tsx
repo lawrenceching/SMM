@@ -32,7 +32,7 @@ interface Episode {
     /**
      * Absolute path of the video file, in POSIX format
      */
-    videoFilePath: string;
+    videoFilePath: File;
     
     /**
      * The associated files of the episode
@@ -41,7 +41,19 @@ interface Episode {
      * - audio: audio file absolute path, in POSIX format
      * - nfo: nfo file absolute path, in POSIX format
      */
-    associatedFiles: string[];
+    associatedFiles: File[];
+}
+
+interface File {
+    tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | "";
+    /**
+     * The relative path of the file, in POSIX format. Relative to the media folder.
+     */
+    path: string;
+    /**
+     * New path (or new file name) of the file, in POSIX format. Relative to the media folder.
+     */
+    newPath: string;
 }
 
 interface Season {
@@ -56,16 +68,66 @@ const episodes: Episode[] = [
         seasonNumber: 1,
         episodeNumber: 1,
         thumbnail: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMzIwIDE4MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxYTFhMWEiLz48Y2lyY2xlIGN4PSIxNjAiIGN5PSI5MCIgcj0iMzAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIvPjxwYXRoIGQ9Ik0xNTAgNzUgTDE1MCAxMDUgTDE3NSA5MCBaIiBmaWxsPSIjMDAwIi8+PHRleHQgeD0iMTYwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UzAxRTAxPC90ZXh0Pjwvc3ZnPg==",
-        videoFilePath: "path/to/video.mp4",
-        associatedFiles: ["path/to/subtitle.srt", "path/to/audio.mp3", "path/to/nfo.nfo"],
+        videoFilePath: {
+            path: "[xxxx] Episode 1 - Blablabla [1080p].mkv",
+            newPath: "Season 01/S01E01 - Blablabla.mkv",
+            tag: "VID",
+        },
+        associatedFiles: [
+            {
+                path: "Subtitles/English.srt",
+                newPath: "Season 01/S01E01 - Blablabla.srt",
+                tag: "SUB",
+            },
+            {
+                path: "Audio/English.mp3",
+                newPath: "Season 01/S01E01 - Blablabla.mp3",
+                tag: "AUD",
+            },
+            {
+                path: "NFO/English.nfo",
+                newPath: "Season 01/S01E01 - Blablabla.nfo",
+                tag: "NFO",
+            },
+            {
+                path: "Poster/English.jpg",
+                newPath: "Season 01/S01E01 - Blablabla.jpg",
+                tag: "POSTER",
+            },
+        ],
     },
     {
         name: "Episode 2",
         seasonNumber: 1,
         episodeNumber: 1,
         thumbnail: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMzIwIDE4MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxYTFhMWEiLz48Y2lyY2xlIGN4PSIxNjAiIGN5PSI5MCIgcj0iMzAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIvPjxwYXRoIGQ9Ik0xNTAgNzUgTDE1MCAxMDUgTDE3NSA5MCBaIiBmaWxsPSIjMDAwIi8+PHRleHQgeD0iMTYwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UzAxRTAxPC90ZXh0Pjwvc3ZnPg==",
-        videoFilePath: "path/to/video.mp4",
-        associatedFiles: ["path/to/subtitle.srt", "path/to/audio.mp3", "path/to/nfo.nfo"],
+        videoFilePath: {
+            path: "[xxxx] Episode 2 - Blablabla [1080p].mkv",
+            newPath: "Season 01/S01E02 - Blablabla.mkv",
+            tag: "VID",
+        },
+        associatedFiles: [
+            {
+                path: "Subtitles/English.srt",
+                newPath: "Season 01/S01E02 - Blablabla.srt",
+                tag: "SUB",
+            },
+            {
+                path: "Audio/English.mp3",
+                newPath: "Season 01/S01E02 - Blablabla.mp3",
+                tag: "AUD",
+            },
+            {
+                path: "NFO/English.nfo",
+                newPath: "Season 01/S01E02 - Blablabla.nfo",
+                tag: "NFO",
+            },
+            {
+                path: "Poster/English.jpg",
+                newPath: "Season 01/S01E02 - Blablabla.jpg",
+                tag: "POSTER",
+            },
+        ],
     },
 ];
 
@@ -86,18 +148,7 @@ const mockSeasons: Season[] = [
 
 interface EpisodeItemProps {
     episode: Episode;
-    selected: boolean;
-}
-
-function getFileTag(file: string): "VID" | "SUB" | "AUD" | "NFO" | "" {
-    // TODO: implement this function, the origin SMM has static config for all extension of types
-    if (file.endsWith(".srt")) {
-        return "SUB";
-    }
-    if (file.endsWith(".mp3")) {
-        return "AUD";
-    }
-    return "";
+    selected?: boolean;
 }
 
 interface FileItem {
@@ -108,7 +159,7 @@ interface FileItem {
     path: string;
 }
 
-function EpisodeItem({ episode, selected }: EpisodeItemProps) {
+function EpisodeItem({ episode, selected = false }: EpisodeItemProps) {
 
     const tag = useMemo(() => {
         return `S${episode.seasonNumber}E${episode.episodeNumber}`;
@@ -117,8 +168,8 @@ function EpisodeItem({ episode, selected }: EpisodeItemProps) {
     const associatedFiles: FileItem[] = useMemo(() => {
         return episode.associatedFiles.map((file) => {
             return {
-                tag: getFileTag(file),
-                path: file,
+                tag: file.tag as "VID" | "SUB" | "AUD" | "NFO",
+                path: file.path,
             } as FileItem;
         });
     }, [episode.associatedFiles]);
@@ -143,12 +194,12 @@ function EpisodeItem({ episode, selected }: EpisodeItemProps) {
               {episode.name}
             </div>
             <div className="text-sm text-muted-foreground"> 
-                <span className="text-sm text-muted-foreground select-none p-1">VID</span> 
-                {episode.videoFilePath}
+                <span className="text-sm text-muted-foreground select-none p-1">{episode.videoFilePath.tag}</span> 
+                {episode.videoFilePath.path}
             </div>
             {
-                associatedFiles.map((file) => (
-                    <div className="text-sm text-muted-foreground">
+                associatedFiles.map((file, index) => (
+                    <div key={index} className="text-sm text-muted-foreground">
                         <span className="text-sm text-muted-foreground select-none p-1">{file.tag}</span>
                         {file.path}
                     </div>
@@ -169,7 +220,7 @@ function EpisodeItem({ episode, selected }: EpisodeItemProps) {
 
 export function TvShowEpisodes() {
 
-    const [seasons, setSeasons] = useState<Season[]>(mockSeasons);
+    const [seasons] = useState<Season[]>(mockSeasons);
 
     return (
         <div>
