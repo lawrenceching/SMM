@@ -1,0 +1,64 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug CLI (Launch)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/cli",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--inspect", "run", "index.ts"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug CLI Server (server.ts)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/cli",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--inspect", "run", "server.ts"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Electron Main",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/electron",
+      "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron-vite",
+      "runtimeArgs": ["--sourcemap"],
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron-vite.cmd"
+      },
+      "env": {
+        "REMOTE_DEBUGGING_PORT": "9222"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach to CLI (Port 9229)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ],
+  "compounds": []
+}
