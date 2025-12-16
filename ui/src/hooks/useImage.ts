@@ -58,52 +58,37 @@ export function useImage(url?: string, placeholder?: string): string | undefined
 
       console.log(`[useImage] downloading image from HTTP/HTTPS URL: ${normalizedUrl}`)
       
-      // Download image to temp file, then get base64 encoded data
-      window.api
-        .downloadImageToTemp(normalizedUrl)
-        .then((downloadResp) => {
-          if (downloadResp.error) {
-            console.error(`[useImage] Failed to download image: ${downloadResp.error}`)
-            setImageData(placeholder)
-            return
+      // Download the image using the /api/image endpoint
+      fetch(`/api/image?url=${encodeURIComponent(normalizedUrl)}`)
+        .then(async (resp) => {
+          if (!resp.ok) {
+            throw new Error(`Failed to download image: ${resp.statusText}`)
           }
           
-          if (!downloadResp.data) {
-            setImageData(placeholder)
-            return
+          // Get the image as blob
+          const blob = await resp.blob()
+          
+          // Convert blob to base64 data URL
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            const base64data = reader.result as string
+            setImageData(base64data)
           }
-
-          // Get base64 encoded image from temp file
-          return window.api.getBase64EncodedImage(downloadResp.data)
-        })
-        .then((base64Resp) => {
-          if (base64Resp && base64Resp.data !== undefined && base64Resp.data !== null) {
-            setImageData(base64Resp.data)
-          } else {
+          reader.onerror = () => {
+            console.error('[useImage] Failed to convert image to base64')
             setImageData(placeholder)
           }
+          reader.readAsDataURL(blob)
         })
         .catch((error) => {
-          console.error(`[useImage] Error processing HTTP/HTTPS image:`, error)
+          console.error(`[useImage] Error downloading image from ${normalizedUrl}:`, error)
           setImageData(placeholder)
         })
+      
       return
     }
 
-    // For other cases (like relative paths), try to treat as local file
-    console.log(`[useImage] loading base64 encoded image from URL: ${url}`)
-    window.api
-      .getBase64EncodedImage(url)
-      .then((resp) => {
-        if (resp.data !== undefined && resp.data !== null) {
-          setImageData(resp.data)
-        } else {
-          setImageData(placeholder)
-        }
-      })
-      .catch(() => {
-        setImageData(placeholder)
-      })
+   
   }, [url, placeholder])
 
   return imageData

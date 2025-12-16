@@ -10,6 +10,7 @@ import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
+import { handleDownloadImage } from './src/route/DownloadImage';
 import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
@@ -157,6 +158,27 @@ export class Server {
         return c.json({ 
           error: 'Failed to process read image request',
           details: error instanceof Error ? error.message : 'Unknown error'
+        }, 500);
+      }
+    });
+
+    // GET /api/image?url=xxxx - Download and return image from URL
+    this.app.get('/api/image', async (c) => {
+      try {
+        const url = c.req.query('url');
+        
+        if (!url) {
+          return c.json({ 
+            error: 'Missing required query parameter: url'
+          }, 400);
+        }
+
+        const imageResponse = await handleDownloadImage(url);
+        return imageResponse;
+      } catch (error) {
+        console.error('DownloadImage route error:', error);
+        return c.json({ 
+          error: `Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`
         }, 500);
       }
     });

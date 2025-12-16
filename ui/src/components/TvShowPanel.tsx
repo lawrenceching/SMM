@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
 import { FileList } from "./FileList"
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
 import { TvShowEpisodes } from "./tvshow-episodes"
+import { buildTvShowEpisodesPropsFromMediaMetadata } from "@/lib/utils"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { useDialogs } from "./dialog-provider"
 import { useConfig } from "./config-provider"
@@ -59,6 +60,11 @@ function TvShowPanel() {
     openMediaSearch(handleTmdbIdSelect)
   }
 
+  // Build TvShowEpisodesProps from mediaMetadata
+  const tvShowEpisodesProps = useMemo(() => {
+    return buildTvShowEpisodesPropsFromMediaMetadata(mediaMetadata)
+  }, [mediaMetadata])
+
   return (
     <div className='p-1 w-full h-full'>
         <Tabs defaultValue="overall" className="w-full h-full">
@@ -89,7 +95,7 @@ function TvShowPanel() {
             )}
         </TabsContent>
         <TabsContent value="tvshow">
-        <TvShowEpisodes />
+        <TvShowEpisodes seasons={tvShowEpisodesProps.seasons} />
         </TabsContent>
         <TabsContent value="filess">
             <FileList files={mediaMetadata?.files ?? []} />

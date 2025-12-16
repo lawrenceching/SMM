@@ -1,4 +1,4 @@
-import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails } from "@core/types";
+import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { getUserDataDir } from "../../tasks/HelloTask";
 import path from "path";
 
@@ -156,7 +156,8 @@ export async function search({ keyword, type, baseURL, language }: TmdbSearchReq
 async function makeTmdbRequest(
   endpoint: string,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
-  baseURL?: string
+  baseURL?: string,
+  appendToResponse?: string
 ): Promise<{ data: any; error?: string }> {
   try {
     // Get user config to retrieve TMDB settings
@@ -201,6 +202,9 @@ async function makeTmdbRequest(
     }
     if (language) {
       queryParams.push(`language=${tmdbLanguage}`);
+    }
+    if (appendToResponse) {
+      queryParams.push(`append_to_response=${encodeURIComponent(appendToResponse)}`);
     }
     
     const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
@@ -275,7 +279,7 @@ export async function getMovie(
 }
 
 /**
- * Gets a TV show by TMDB ID
+ * Gets a TV show by TMDB ID with all seasons and episodes using append_to_response
  */
 export async function getTvShow(
   id: number,
@@ -291,7 +295,45 @@ export async function getTvShow(
     };
   }
 
-  const result = await makeTmdbRequest(`/tv/${id}`, language, baseURL);
+  // First, get basic TV show info to determine which seasons exist
+  const basicResult = await makeTmdbRequest(`/tv/${id}`, language, baseURL);
+  
+  if (basicResult.error) {
+    return {
+      data: undefined,
+      error: basicResult.error
+    };
+  }
+
+  const basicData = basicResult.data as TMDBTVShowDetails;
+  
+  // Build append_to_response parameter with all existing seasons
+  // Use the seasons array from the basic response to get accurate season numbers
+  const seasonNumbers: string[] = [];
+  if (basicData.seasons && Array.isArray(basicData.seasons)) {
+    basicData.seasons.forEach(season => {
+      seasonNumbers.push(`season/${season.season_number}`);
+    });
+  }
+  
+  // If no seasons array or empty, fall back to number_of_seasons
+  if (seasonNumbers.length === 0 && basicData.number_of_seasons) {
+    for (let i = 0; i <= basicData.number_of_seasons; i++) {
+      seasonNumbers.push(`season/${i}`);
+    }
+  }
+  
+  // If no seasons to append, return the basic data
+  if (seasonNumbers.length === 0) {
+    return {
+      data: basicData
+    };
+  }
+  
+  const appendToResponse = seasonNumbers.join(',');
+  
+  // Now make a request with append_to_response to get all seasons with episodes
+  const result = await makeTmdbRequest(`/tv/${id}`, language, baseURL, appendToResponse);
   
   if (result.error) {
     return {
@@ -300,7 +342,29 @@ export async function getTvShow(
     };
   }
 
+  const fullData = result.data as TMDBTVShowDetails & Record<string, any>;
+  
+  // Merge the appended season data back into the seasons array
+  if (fullData.seasons && Array.isArray(fullData.seasons)) {
+    fullData.seasons = fullData.seasons.map((season) => {
+      const seasonKey = `season/${season.season_number}`;
+      // If this season was appended, use the appended data which includes episodes
+      if (fullData[seasonKey] && fullData[seasonKey].episodes) {
+        return {
+          ...season,
+          episodes: fullData[seasonKey].episodes
+        };
+      }
+      return season;
+    });
+  }
+
+  // Clean up the appended season objects from the response
+  seasonNumbers.forEach(seasonKey => {
+    delete fullData[seasonKey];
+  });
+
   return {
-    data: result.data as TMDBTVShowDetails
+    data: fullData as TMDBTVShowDetails
   };
 }
