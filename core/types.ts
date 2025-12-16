@@ -544,7 +544,7 @@ export interface ReadMediaMetadataRequestBody {
 }
 
 export interface ReadMediaMetadataResponseBody {
-  data: MediaMetadata;
+  data?: MediaMetadata;
   error?: string;
 }
 

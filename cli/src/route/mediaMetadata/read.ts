@@ -1,9 +1,10 @@
-import type { MediaMetadata, ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from "@core/types";
+import type { MediaMetadata, ProblemDetails, ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from "@core/types";
 import type { Hono } from "hono";
 import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import { listFiles } from "@/utils/files";
 import { metadataCacheFilePath } from "./utils";
+import { mediaMetadataToString } from "lib/log";
 
 export async function newMediaMetadata(folderPath: Path) {
     const metadata: MediaMetadata = {
@@ -50,43 +51,38 @@ export async function handleReadMediaMetadata(app: Hono) {
             return c.json(resp, 200);
         }
 
-        const metadataFilePath = metadataCacheFilePath(folderPath);
+        const metadataFilePath = metadataCacheFilePath(Path.posix(folderPath));
         const isExist = await Bun.file(metadataFilePath).exists();
         
         if(!isExist) {
-            // Cache doesn't exist, create new metadata
-            try {
-                const metadata = await newMediaMetadata(new Path(folderPath));
-                const resp: ReadMediaMetadataResponseBody = {
-                    data: metadata
-                };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
-                return c.json(resp, 200);
-            } catch (error) {
-                // Error creating metadata (e.g., can't list files)
-                const resp: ReadMediaMetadataResponseBody = {
-                    data: {} as MediaMetadata,
-                    error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to create metadata'}`
-                };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
-                return c.json(resp, 200);
-            }
+            console.error(`[ReadMediaMetadata] Media Metadata Not Found: ${metadataFilePath} was not found`)
+            const resp: ReadMediaMetadataResponseBody = {
+                data: undefined,
+                error: `Media Metadata Not Found: ${metadataFilePath} was not found`
+            };
+
+            return c.json(resp, 200);
+
         } else {
             // Cache exists, read it
             try {
+                console.log(`[ReadMediaMetadata] Reading metadata from file: ${metadataFilePath}`)
                 const data = await Bun.file(metadataFilePath).json();
                 const resp: ReadMediaMetadataResponseBody = {
                     data
                 };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
+                console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
                 return c.json(resp, 200);
             } catch (error) {
+                console.error(`[ReadMediaMetadata] Error reading metadata from file: ${metadataFilePath}`, error)
                 // Error reading cache file
                 const resp: ReadMediaMetadataResponseBody = {
                     data: {} as MediaMetadata,
                     error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to read metadata cache'}`
                 };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
+                console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
                 return c.json(resp, 200);
             }
         }

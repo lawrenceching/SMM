@@ -21,10 +21,15 @@ interface SearchResult {
   thumbnail: string;
 }
 
-export function MediaSearch() {
+interface MediaSearchProps {
+  onSelect?: (tmdbId: number) => void;
+}
+
+export function MediaSearch({ onSelect }: MediaSearchProps) {
   const [query, setQuery] = useState('');
   const [mediaType, setMediaType] = useState<MediaType>('tvshow');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userConfig } = useConfig();
@@ -116,7 +121,17 @@ export function MediaSearch() {
               results.map((result) => (
                 <div
                   key={result.id}
-                  className="flex gap-4 p-4 rounded-lg border bg-background hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedResult(result);
+                    if (onSelect) {
+                      onSelect(parseInt(result.id));
+                    }
+                  }}
+                  className={`flex gap-4 p-4 rounded-lg border transition-colors cursor-pointer ${
+                    selectedResult?.id === result.id
+                      ? 'bg-primary/10 ring-2 ring-primary ring-inset'
+                      : 'bg-background hover:bg-accent'
+                  }`}
                 >
                   <div className="shrink-0">
                     <img

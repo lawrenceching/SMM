@@ -31,7 +31,7 @@ export function MediaMetadataProvider({
 }: MediaMetadataProviderProps) {
   const [mediaMetadatas, setMediaMetadatas] = useState<MediaMetadata[]>(initialMediaMetadatas)
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
-  const { userConfig, appConfig } = useConfig()
+  const { userConfig } = useConfig()
   const selectedMediaMetadata: MediaMetadata | undefined = useMemo(() => {
     if (selectedIndex < 0 || selectedIndex >= mediaMetadatas.length) {
       return undefined
@@ -44,31 +44,37 @@ export function MediaMetadataProvider({
     setSelectedIndex(index)
   }, [])
 
+  /**
+   * Internal function to add media metadata to the list.
+   * It will check if the metadata already exists in the list, if it does, it will update the metadata, otherwise it will add the metadata to the list.
+   */
+  const _addMediaMetadata = useCallback((metadata: MediaMetadata) => {
+    setMediaMetadatas((prev) => {
+      // Check if metadata with the same path already exists
+      const existingIndex = prev.findIndex(
+        (m) => m.mediaFolderPath === metadata.mediaFolderPath
+      )
+      if (existingIndex >= 0) {
+        // Update existing metadata
+        const updated = [...prev]
+        updated[existingIndex] = metadata
+        return updated
+      }
+      // Add new metadata
+      return [...prev, metadata]
+    })
+  }, [])
+
   const addMediaMetadata = useCallback((metadata: MediaMetadata) => {
-    
     writeMediaMetadata(metadata)
       .then(() => {
-        setMediaMetadatas((prev) => {
-          // Check if metadata with the same path already exists
-          const existingIndex = prev.findIndex(
-            (m) => m.mediaFolderPath === metadata.mediaFolderPath
-          )
-          if (existingIndex >= 0) {
-            // Update existing metadata
-            const updated = [...prev]
-            updated[existingIndex] = metadata
-            return updated
-          }
-          // Add new metadata
-          return [...prev, metadata]
-        })
+        _addMediaMetadata(metadata)
         console.log("Media metadata written successfully")
       })
       .catch((error) => {
         console.error("Failed to write media metadata:", error)
       })
-    
-  }, [])
+  }, [_addMediaMetadata])
 
   const updateMediaMetadata = useCallback((path: string, metadata: MediaMetadata) => {
     setMediaMetadatas((prev) =>
@@ -90,14 +96,16 @@ export function MediaMetadataProvider({
   )
 
   useEffect(() => {
-
     userConfig.folders.map((path) => {
-      readMediaMetadataApi(path).then((data) => {
-        addMediaMetadata(data.data)
+      readMediaMetadataApi(path).then((response) => {
+        if (response.data && !response.error) {
+          _addMediaMetadata(response.data)
+        }
+      }).catch((error) => {
+        console.error("Failed to read media metadata:", error)
       })
     })
-    
-  }, [userConfig])
+  }, [userConfig, _addMediaMetadata])
 
   const value: MediaMetadataContextValue = {
     mediaMetadatas,

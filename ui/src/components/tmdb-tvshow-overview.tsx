@@ -1,29 +1,13 @@
-import type { TMDBTVShow } from "@core/types"
+import type { TMDBTVShowDetails } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Star, TrendingUp, Globe, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useDialogs } from "./dialog-provider"
-
-const tmdbTVShow: TMDBTVShow = {
-    id: 1396,
-    name: "Breaking Bad",
-    original_name: "Breaking Bad",
-    overview: "When Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drugs and crime.",
-    poster_path: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
-    backdrop_path: "/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",
-    first_air_date: "2008-01-20",
-    vote_average: 9.5,
-    vote_count: 15473,
-    popularity: 275.324,
-    genre_ids: [18, 80],
-    origin_country: ["US"],
-    media_type: "tv"
-}
 
 interface TMDBTVShowOverviewProps {
-    tvShow?: TMDBTVShow
+    tvShow?: TMDBTVShowDetails
     className?: string
+    onOpenMediaSearch?: () => void
 }
 
 // Helper function to format date
@@ -48,12 +32,30 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow = tmdbTVShow, className }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMDBTVShowOverviewProps) {
+    if (!tvShow) {
+        return (
+            <div className={cn("flex items-center justify-center w-full h-full", className)}>
+                <div className="text-center space-y-4">
+                    <p className="text-muted-foreground">No TV show selected</p>
+                    {onOpenMediaSearch && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={onOpenMediaSearch}
+                        >
+                            <Search className="size-4 mr-2" />
+                            Search Media
+                        </Button>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
     const posterUrl = getTMDBImageUrl(tvShow.poster_path, "w500")
     const backdropUrl = getTMDBImageUrl(tvShow.backdrop_path, "w780")
     const formattedDate = formatDate(tvShow.first_air_date)
-    const { mediaSearchDialog } = useDialogs()
-    const [openMediaSearch] = mediaSearchDialog
     
     return (
         <div className={cn("relative w-full h-full overflow-hidden rounded-lg flex flex-col", className)}>
@@ -89,15 +91,17 @@ export function TMDBTVShowOverview({ tvShow = tmdbTVShow, className }: TMDBTVSho
                                     <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
                                 )}
                             </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={openMediaSearch}
-                                className="shrink-0"
-                            >
-                                <Search className="size-4 mr-2" />
-                                Search Media
-                            </Button>
+                            {onOpenMediaSearch && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={onOpenMediaSearch}
+                                    className="shrink-0"
+                                >
+                                    <Search className="size-4 mr-2" />
+                                    Search Media
+                                </Button>
+                            )}
                         </div>
                         
                         {/* Metadata Badges */}

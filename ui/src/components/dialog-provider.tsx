@@ -433,21 +433,31 @@ function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: Dow
 interface MediaSearchDialogProps {
   isOpen: boolean
   onClose: () => void
+  onSelect?: (tmdbId: number) => void
 }
 
-function MediaSearchDialog({ isOpen, onClose }: MediaSearchDialogProps) {
+function MediaSearchDialog({ isOpen, onClose, onSelect }: MediaSearchDialogProps) {
+  const [selectedTmdbId, setSelectedTmdbId] = useState<number | null>(null);
+
+  const handleConfirm = () => {
+    if (selectedTmdbId && onSelect) {
+      onSelect(selectedTmdbId);
+    }
+    onClose();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="max-w-3xl overflow-hidden"
         showCloseButton={true}
       >
-        <MediaSearch />
+        <MediaSearch onSelect={(id) => setSelectedTmdbId(id)} />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={onClose}>
+          <Button onClick={handleConfirm} disabled={!selectedTmdbId}>
             Confirm
           </Button>
         </DialogFooter>
@@ -587,7 +597,7 @@ interface DialogContextValue {
     closeDownloadVideo: () => void
   ]
   mediaSearchDialog: [
-    openMediaSearch: () => void,
+    openMediaSearch: (onSelect?: (tmdbId: number) => void) => void,
     closeMediaSearch: () => void
   ]
 }
@@ -626,6 +636,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   // Media search dialog state
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
+  const [mediaSearchOnSelect, setMediaSearchOnSelect] = useState<((tmdbId: number) => void) | null>(null)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -724,12 +735,16 @@ export function DialogProvider({ children }: DialogProviderProps) {
     // Don't close the dialog automatically - let the download complete
   }, [downloadVideoOnStart])
 
-  const openMediaSearch = useCallback(() => {
+  const openMediaSearch = useCallback((onSelect?: (tmdbId: number) => void) => {
+    setMediaSearchOnSelect(() => onSelect || null)
     setIsMediaSearchOpen(true)
   }, [])
 
   const closeMediaSearch = useCallback(() => {
     setIsMediaSearchOpen(false)
+    setTimeout(() => {
+      setMediaSearchOnSelect(null)
+    }, 200)
   }, [])
 
   const value: DialogContextValue = {
@@ -780,6 +795,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <MediaSearchDialog
         isOpen={isMediaSearchOpen}
         onClose={closeMediaSearch}
+        onSelect={mediaSearchOnSelect || undefined}
       />
     </DialogContext.Provider>
   )
