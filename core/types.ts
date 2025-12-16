@@ -595,3 +595,13 @@ export interface TmdbSearchResponseBody {
   error?: string
 }
 
+export interface TmdbMovieResponseBody {
+  data?: TMDBMovie
+  error?: string
+}
+
+export interface TmdbTvShowResponseBody {
+  data?: TMDBTVShowDetails
+  error?: string
+}
+
