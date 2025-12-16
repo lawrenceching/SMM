@@ -13,6 +13,7 @@ import { handleListFiles } from './src/route/ListFiles';
 import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
+import { search as handleTmdbSearch } from './src/route/Tmdb';
 
 export interface ServerConfig {
   port?: number;
@@ -205,6 +206,26 @@ export class Server {
     handleReadMediaMetadata(this.app);
     handleWriteMediaMetadata(this.app);
     handleDeleteMediaMetadata(this.app);
+
+    // POST /api/tmdb/search - Search TMDB for movies or TV shows
+    this.app.post('/api/tmdb/search', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleTmdbSearch(rawBody);
+        
+        // If there's an error, return 200 with error field (following the pattern)
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('TMDB search route error:', error);
+        return c.json({ 
+          results: [],
+          page: 0,
+          total_pages: 0,
+          total_results: 0,
+          error: `Failed to process TMDB search request: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }, 200);
+      }
+    });
 
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)

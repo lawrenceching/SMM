@@ -579,3 +579,19 @@ export interface ProblemDetails {
   detail: string;
   instance: string;
 }
+
+export interface TmdbSearchRequestBody {
+  keyword: string, 
+  type: "movie" | "tv", 
+  language: 'zh-CN' | 'en-US' | 'ja-JP',
+  baseURL?: string
+}
+
+export interface TmdbSearchResponseBody {
+  results: Array<TMDBMovie | TMDBTVShow>
+  page: number
+  total_pages: number
+  total_results: number
+  error?: string
+}
+
