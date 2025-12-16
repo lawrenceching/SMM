@@ -1,7 +1,9 @@
 import type { TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Calendar, Star, TrendingUp, Globe, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useDialogs } from "./dialog-provider"
 
 const tmdbTVShow: TMDBTVShow = {
     id: 1396,
@@ -50,6 +52,8 @@ export function TMDBTVShowOverview({ tvShow = tmdbTVShow, className }: TMDBTVSho
     const posterUrl = getTMDBImageUrl(tvShow.poster_path, "w500")
     const backdropUrl = getTMDBImageUrl(tvShow.backdrop_path, "w780")
     const formattedDate = formatDate(tvShow.first_air_date)
+    const { mediaSearchDialog } = useDialogs()
+    const [openMediaSearch] = mediaSearchDialog
     
     return (
         <div className={cn("relative w-full h-full overflow-hidden rounded-lg flex flex-col", className)}>
@@ -78,11 +82,22 @@ export function TMDBTVShowOverview({ tvShow = tmdbTVShow, className }: TMDBTVSho
                     {/* Details */}
                     <div className="flex-1 space-y-4">
                         {/* Title */}
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{tvShow.name}</h1>
-                            {tvShow.original_name !== tvShow.name && (
-                                <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
-                            )}
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold mb-2">{tvShow.name}</h1>
+                                {tvShow.original_name !== tvShow.name && (
+                                    <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
+                                )}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={openMediaSearch}
+                                className="shrink-0"
+                            >
+                                <Search className="size-4 mr-2" />
+                                Search Media
+                            </Button>
                         </div>
                         
                         {/* Metadata Badges */}

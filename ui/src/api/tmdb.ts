@@ -1,0 +1,45 @@
+import type { TmdbSearchRequestBody, TmdbSearchResponseBody } from '@core/types';
+
+/**
+ * Search TMDB for movies or TV shows
+ */
+export async function searchTmdb(
+  keyword: string,
+  type: 'movie' | 'tv',
+  language: 'zh-CN' | 'en-US' | 'ja-JP',
+  baseURL?: string
+): Promise<TmdbSearchResponseBody> {
+  const req: TmdbSearchRequestBody = {
+    keyword,
+    type,
+    language,
+    baseURL,
+  };
+
+  const resp = await fetch('/api/tmdb/search', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(req),
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Failed to search TMDB: ${resp.statusText}`);
+  }
+
+  const data: TmdbSearchResponseBody = await resp.json();
+  return data;
+}
+
+/**
+ * Helper function to get TMDB image URL
+ */
+export function getTMDBImageUrl(
+  path: string | null,
+  size: 'w200' | 'w300' | 'w500' | 'w780' | 'original' = 'w500'
+): string | null {
+  if (!path) return null;
+  const baseUrl = 'https://image.tmdb.org/t/p';
+  return `${baseUrl}/${size}${path}`;
+}

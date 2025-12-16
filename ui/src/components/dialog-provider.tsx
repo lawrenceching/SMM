@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -20,6 +21,7 @@ import { useMediaMetadata } from "./media-metadata-provider"
 import { Path } from "@core/path"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { listFilesApi } from "@/api/listFiles"
+import { MediaSearch } from "./MediaSearch"
 
 interface DialogConfig {
   title?: string
@@ -428,6 +430,32 @@ function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: Dow
   )
 }
 
+interface MediaSearchDialogProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+function MediaSearchDialog({ isOpen, onClose }: MediaSearchDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-3xl overflow-hidden"
+        showCloseButton={true}
+      >
+        <MediaSearch />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={onClose}>
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface OpenFolderDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -558,6 +586,10 @@ interface DialogContextValue {
     openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void) => void,
     closeDownloadVideo: () => void
   ]
+  mediaSearchDialog: [
+    openMediaSearch: () => void,
+    closeMediaSearch: () => void
+  ]
 }
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined)
@@ -591,6 +623,9 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Download video dialog state
   const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
   const [downloadVideoOnStart, setDownloadVideoOnStart] = useState<((url: string, downloadFolder: string) => void) | null>(null)
+
+  // Media search dialog state
+  const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -689,6 +724,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
     // Don't close the dialog automatically - let the download complete
   }, [downloadVideoOnStart])
 
+  const openMediaSearch = useCallback(() => {
+    setIsMediaSearchOpen(true)
+  }, [])
+
+  const closeMediaSearch = useCallback(() => {
+    setIsMediaSearchOpen(false)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -696,6 +739,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     openFolderDialog: [openOpenFolder, closeOpenFolder],
     filePickerDialog: [openFilePicker, closeFilePicker],
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
+    mediaSearchDialog: [openMediaSearch, closeMediaSearch],
   }
 
   return (
@@ -732,6 +776,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onClose={closeDownloadVideo}
         onStart={handleDownloadStart}
         onOpenFilePicker={openFilePicker}
+      />
+      <MediaSearchDialog
+        isOpen={isMediaSearchOpen}
+        onClose={closeMediaSearch}
       />
     </DialogContext.Provider>
   )
