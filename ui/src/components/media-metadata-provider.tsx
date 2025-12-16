@@ -3,6 +3,7 @@ import type { MediaMetadata } from "@core/types"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useConfig } from "./config-provider"
 import { writeMediaMetadata } from "@/api/writeMediaMatadata"
+import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: MediaMetadata[]
@@ -77,15 +78,33 @@ export function MediaMetadataProvider({
   }, [_addMediaMetadata])
 
   const updateMediaMetadata = useCallback((path: string, metadata: MediaMetadata) => {
-    setMediaMetadatas((prev) =>
-      prev.map((m) => (m.mediaFolderPath === path ? metadata : m))
-    )
-  }, [])
+    // Ensure metadata.mediaFolderPath is set to the provided path if not already set
+    const metadataToUpdate: MediaMetadata = {
+      ...metadata,
+      mediaFolderPath: metadata.mediaFolderPath || path
+    }
+    
+    writeMediaMetadata(metadataToUpdate)
+      .then(() => {
+        _addMediaMetadata(metadataToUpdate)
+        console.log("Media metadata updated successfully")
+      })
+      .catch((error) => {
+        console.error("Failed to update media metadata:", error)
+      })
+  }, [_addMediaMetadata])
 
   const removeMediaMetadata = useCallback((path: string) => {
-    setMediaMetadatas((prev) =>
-      prev.filter((m) => m.mediaFolderPath !== path)
-    )
+    deleteMediaMetadata(path)
+      .then(() => {
+        setMediaMetadatas((prev) =>
+          prev.filter((m) => m.mediaFolderPath !== path)
+        )
+        console.log("Media metadata deleted successfully")
+      })
+      .catch((error) => {
+        console.error("Failed to delete media metadata:", error)
+      })
   }, [])
 
   const getMediaMetadata = useCallback(
