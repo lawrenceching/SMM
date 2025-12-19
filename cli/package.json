@@ -11,6 +11,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.88",
     "@ai-sdk/openai-compatible": "^1.0.0",
     "ai": "^5.0.108",
     "hono": "^4.10.8",

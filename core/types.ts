@@ -605,3 +605,23 @@ export interface TmdbTvShowResponseBody {
   error?: string
 }
 
+export interface OpenAIGenerateObjectRequestBody {
+  baseURL: string
+  apiKey: string
+  model: string
+  prompt: string
+}
+
+export interface OpenAIGenerateObjectResponseBody {
+  data: any
+  error?: string
+}
+
+/**
+ * Record the result of local media file matching to corresponding seasons and episodes
+ */
+export interface MediaFileMatchResult {
+  path: string
+  seasonNumber: string
+  episodeNumber: string
+}

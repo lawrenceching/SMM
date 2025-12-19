@@ -55,8 +55,6 @@ export function useImage(url?: string, placeholder?: string): string | undefined
       if (url.startsWith('//')) {
         normalizedUrl = `https:${url}`
       }
-
-      console.log(`[useImage] downloading image from HTTP/HTTPS URL: ${normalizedUrl}`)
       
       // Download the image using the /api/image endpoint
       fetch(`/api/image?url=${encodeURIComponent(normalizedUrl)}`)
