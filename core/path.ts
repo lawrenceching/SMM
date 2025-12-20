@@ -218,16 +218,33 @@ export class Path {
 
     /**
      * support running in both Node.js and browser environment
-     * @returns 
+     * @returns true if running on Windows, false otherwise
      */
-    static isWindows() {
-        try {
-            return process.platform === "win32"
-        } catch (_) {
-            // do nothing
+    static isWindows(): boolean {
+        // Node.js/Bun environment
+        if (typeof process !== 'undefined' && process.platform) {
+            return process.platform === "win32";
         }
 
-        return (window as any).electron?.process?.platform === "win32"
+        // Electron renderer and browser environment
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const win = typeof globalThis !== 'undefined' ? (globalThis as any).window : undefined;
+        if (win) {
+            // Check if electron API is available
+            const electron = win.electron;
+            if (electron?.process?.platform) {
+                return electron.process.platform === "win32";
+            }
+
+            // Fallback: detect Windows from user agent in browser
+            const nav = win.navigator;
+            if (nav?.userAgent) {
+                return /Win/i.test(nav.userAgent);
+            }
+        }
+
+        // Default to false if we can't determine
+        return false;
     }
 
     static pathSeparator() {

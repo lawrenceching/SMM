@@ -5,6 +5,10 @@ import type { TvShowEpisodesProps, Episode, File, Season } from "@/components/tv
 import { basename, extname, relative } from "@/lib/path"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
+import { downloadImageApi } from "@/api/downloadImage"
+import { isError, ExistedFileError } from "@core/errors"
+import pLimit from 'p-limit';
+const limit = pLimit(1);
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -139,7 +143,6 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
       };
 
       if(videoFilePath) {
-        debugger;
         episodeProps.videoFilePath = {
           path: getRelativePath(videoFilePath.absolutePath, mediaFolderPath),
           tag: "VID",
@@ -179,7 +182,6 @@ export function generateNameByRenameRule(
   renameRule: RenameRule,
   mediaFileMetadata?: MediaFileMetadata,
 ): string {
-  debugger;
   const variables: Record<string, string> = {}
 
   Object.keys(RenameRuleVariables).map(key => {
@@ -211,5 +213,51 @@ export function generateNameByRenameRule(
     const filename = parts[parts.length - 1]
     const validFilename = filenamify(filename)
     return [...parts.slice(0, -1), validFilename].join('/')
+  }
+}
+
+
+export async function downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
+  return await limit(() => _downloadThumbnail(mediaMetadata, mediaFileMetadata));
+}
+
+export async function _downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
+
+  const seasonNumber = mediaFileMetadata.seasonNumber;
+  const episodeNumber = mediaFileMetadata.episodeNumber;
+  const episode = mediaMetadata.tmdbTvShow?.seasons.find(season => season.season_number === seasonNumber)?.episodes?.find(episode => episode.episode_number === episodeNumber);
+  if(!episode) {
+    return;
+  }
+  const thumbnailUrl = episode.still_path ? getTMDBImageUrl(episode.still_path, 'w780') ?? undefined : undefined;
+  if(!thumbnailUrl) {
+    console.error(`[downloadThumbnail] Failed to get thumbnail URL for episode ${seasonNumber} ${episodeNumber}`);
+    return;
+  }
+  console.log(`[downloadThumbnail] Downloading thumbnail for media file: `, mediaFileMetadata.absolutePath);
+  console.log(`[downloadThumbnail] Downloading thumbnail for episode ${seasonNumber} ${episodeNumber} from ${thumbnailUrl}`);
+
+  const videoFileName = basename(mediaFileMetadata.absolutePath)!;
+  const videoFileNameExt = extname(videoFileName);
+  const videoFileNameWithoutExt = videoFileName.replace(videoFileNameExt, '');
+
+  const thumbnailExt = thumbnailUrl?.split('.').pop();
+  if(!thumbnailExt) {
+    console.error(`[downloadThumbnail] Failed to get thumbnail extension from ${thumbnailUrl}`);
+    return;
+  }
+
+  const thumbnailFileName = `${videoFileNameWithoutExt}.${thumbnailExt}`;
+  const thumbnailFilePath = mediaFileMetadata.absolutePath.replace(videoFileName, thumbnailFileName);
+  console.log(`[downloadThumbnail] Downloading thumbnail to ${thumbnailFilePath}`);
+
+  const resp = await downloadImageApi(thumbnailUrl, thumbnailFilePath);
+  if(resp.error) {
+    if(isError(resp.error, ExistedFileError)) {
+      console.log(`[downloadThumbnail] Thumbnail already exists: ${thumbnailFilePath}`);
+    } else {
+      console.error(`[downloadThumbnail] Failed to download thumbnail: ${resp.error}`);
+    }
+    return;
   }
 }

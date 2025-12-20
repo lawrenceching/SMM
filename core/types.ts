@@ -625,3 +625,19 @@ export interface MediaFileMatchResult {
   seasonNumber: string
   episodeNumber: string
 }
+
+export interface DownloadImageRequestBody {
+  url: string
+  /**
+   * The absolute path in platform format
+   */
+  path: string
+}
+
+export interface DownloadImageResponseBody {
+  data: {
+    url: string
+    path: string
+  }
+  error?: string
+}

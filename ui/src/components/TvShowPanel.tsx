@@ -1,16 +1,17 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
 import { FileList } from "./FileList"
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
 import { TvShowEpisodes, type TvShowEpisodesProps } from "./tvshow-episodes"
-import { buildTvShowEpisodesPropsFromMediaMetadata, generateNameByRenameRule } from "@/lib/utils"
+import { buildTvShowEpisodesPropsFromMediaMetadata, downloadThumbnail, generateNameByRenameRule } from "@/lib/utils"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { useDialogs } from "./dialog-provider"
 import { useConfig } from "./config-provider"
 import { getTvShowById } from "@/api/tmdb"
 import { RenameRules, type MediaFileMetadata, type MediaMetadata } from "@core/types"
+import { toast } from "sonner"
 
 function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata, addMediaMetadata } = useMediaMetadata()
@@ -68,9 +69,35 @@ function TvShowPanel() {
     return buildTvShowEpisodesPropsFromMediaMetadata(mediaMetadata, selectedRenameRule)
   }, [mediaMetadata])
 
+  const handleScrapeButtonClick = useCallback(() => {
+    if(!mediaMetadata) {
+      return;
+    }
+
+    if(!mediaMetadata.tmdbTvShow) {
+      return;
+    }
+
+    if(mediaMetadata.mediaFiles) {
+      const promises = mediaMetadata.mediaFiles.map(mediaFile => {
+        return downloadThumbnail(mediaMetadata, mediaFile)
+      })
+  
+      Promise.all(promises).then(() => {
+        toast.success('封面刮削成功')
+      }).catch((error) => {
+        toast.error(`刮削封面因未知原因失败: ${error.message}`)
+      })
+    }
+
+  }, [mediaMetadata])
+
   return (
     <div className='p-1 w-full h-full'>
-        <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>Rename</Button>
+        <div>
+           <Button onClick={() => setIsEditing(!isEditing)}>Rename</Button>
+           <Button onClick={handleScrapeButtonClick}>Scrape</Button>
+        </div>
         <Tabs defaultValue="overall" className="w-full h-full">
         <TabsList>
             <TabsTrigger value="overall">Overall</TabsTrigger>
