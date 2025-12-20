@@ -1,4 +1,4 @@
-name: Build UI and CLI
+name: Build UI, CLI and Electron
 
 on:
   push:
@@ -6,12 +6,14 @@ on:
     paths:
       - 'ui/**'
       - 'cli/**'
+      - 'electron/**'
       - '.github/workflows/build.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'ui/**'
       - 'cli/**'
+      - 'electron/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -79,4 +81,77 @@ jobs:
           name: cli-dist
           path: cli/dist
           retention-days: 7
+
+  build-electron:
+    name: Build Electron Distribution
+    needs: [build-ui, build-cli]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            build-command: build:linux
+          - os: windows-latest
+            platform: win
+            build-command: build:win
+          - os: macos-latest
+            platform: mac
+            build-command: build:mac
+    
+    defaults:
+      run:
+        working-directory: ./electron
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+      
+      - name: Install dependencies for core module
+        run: cd ../core/ && bun install --frozen-lockfile
+      
+      - name: Download UI build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: ui/dist
+      
+      - name: Download CLI build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-dist
+          path: cli/dist
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Electron (${{ matrix.platform }})
+        run: npm run ${{ matrix.build-command }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Electron distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-dist-${{ matrix.platform }}
+          path: |
+            electron/dist/*.exe
+            electron/dist/*.dmg
+            electron/dist/*.AppImage
+            electron/dist/*.deb
+            electron/dist/*.snap
+          retention-days: 30
 
