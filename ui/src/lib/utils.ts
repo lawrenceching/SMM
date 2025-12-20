@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { type MediaMetadata, type MediaFileMetadata, type TMDBEpisode, RenameRuleVariables, type RenameRule } from "@core/types"
-import type { TvShowEpisodesProps, Episode, File, Season } from "@/components/tvshow-episodes"
+import { type MediaMetadata, type MediaFileMetadata, RenameRuleVariables, type RenameRule } from "@core/types"
+import type { TvShowEpisodesProps, Episode, File } from "@/components/tvshow-episodes"
 import { basename, extname, relative } from "@/lib/path"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
@@ -114,11 +114,11 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
   renameRule: RenameRule | undefined
 ): TvShowEpisodesProps {
   if (!mediaMetadata) {
-    return { seasons: [] };
+    return { seasons: [], isEditing: false };
   }
 
   if(!mediaMetadata.tmdbTvShow) {
-    return { seasons: [] };
+    return { seasons: [], isEditing: false };
   }
 
   const mediaFolderPath = mediaMetadata.mediaFolderPath;
@@ -126,6 +126,7 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
   
   const props: TvShowEpisodesProps = {
     seasons: [],
+    isEditing: false,
   }
 
   
@@ -184,15 +185,13 @@ export function generateNameByRenameRule(
 ): string {
   const variables: Record<string, string> = {}
 
-  Object.keys(RenameRuleVariables).map(key => {
-    const variable = RenameRuleVariables[key]
-    if(variable.type === "buildin") {
-      variables[variable.name] = RenameRuleVariables[key].fn(mediaMetadata, mediaFileMetadata)
+  RenameRuleVariables.forEach(variable => {
+    if(variable.type === "buildin" && !!variable.fn) {
+      variables[variable.name] = variable.fn(mediaMetadata, mediaFileMetadata)
     } else {
       console.error(`Unsupported variable type: ${variable.type}`)
       return '';
     }
-
   })
 
   let generatedName = renameRule.template

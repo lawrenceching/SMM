@@ -222,8 +222,10 @@ export class Path {
      */
     static isWindows(): boolean {
         // Node.js/Bun environment
-        if (typeof process !== 'undefined' && process.platform) {
-            return process.platform === "win32";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+        if (proc?.platform) {
+            return proc.platform === "win32";
         }
 
         // Electron renderer and browser environment

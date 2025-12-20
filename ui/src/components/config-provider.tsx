@@ -3,7 +3,6 @@ import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
-import { useMediaMetadata } from "./media-metadata-provider"
 
 interface ConfigContextValue {
   appConfig: AppConfig

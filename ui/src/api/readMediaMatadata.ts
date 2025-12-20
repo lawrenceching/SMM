@@ -1,6 +1,4 @@
-import type { MediaMetadata } from "@core/types";
 import type { ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from "@core/types";
-
 
 /**
  * 

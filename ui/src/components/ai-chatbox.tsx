@@ -20,7 +20,6 @@ import {
     TaskTrigger,
     TaskContent,
     TaskItem,
-    TaskItemFile,
   } from "@/components/ui/shadcn-io/ai/task";
   import {
     Conversation,
@@ -35,7 +34,7 @@ import { Button } from "./ui/button";
 import { useMediaMetadata } from "./media-metadata-provider";
 import { generateMediaFileMetadatas, templates } from "@/lib/ai";
 import { useConfig } from './config-provider';
-import type { AI, MediaFileMatchResult, MediaFileMetadata, OpenAICompatibleConfig, TMDBTVShowDetails } from '@core/types';
+import type { AI, MediaFileMatchResult, OpenAICompatibleConfig, TMDBTVShowDetails } from '@core/types';
 
   const models = [
     { id: "deepseek-chat", name: "DeepSeek Chat"},

@@ -33,18 +33,19 @@ export function useImage(url?: string, placeholder?: string): string | undefined
         localPath = localPath.substring(1)
       }
       console.log(`[useImage] loading base64 encoded image from local file: ${localPath}`)
-      window.api
-        .getBase64EncodedImage(localPath)
-        .then((resp) => {
-          if (resp.data !== undefined && resp.data !== null) {
-            setImageData(resp.data)
-          } else {
-            setImageData(placeholder)
-          }
-        })
-        .catch(() => {
-          setImageData(placeholder)
-        })
+      throw new Error("Supported getBase64EncodedImage API")
+      // window.api
+      //   .getBase64EncodedImage(localPath)
+      //   .then((resp) => {
+      //     if (resp.data !== undefined && resp.data !== null) {
+      //       setImageData(resp.data)
+      //     } else {
+      //       setImageData(placeholder)
+      //     }
+      //   })
+      //   .catch(() => {
+      //     setImageData(placeholder)
+      //   })
       return
     }
 

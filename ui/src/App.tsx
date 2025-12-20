@@ -5,9 +5,7 @@ import { StatusBar } from "./components/StatusBar"
 import { ConfigProvider, useConfig } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
 import { DialogProvider, useDialogs } from "./components/dialog-provider"
-import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/sonner"
-import { toast } from "sonner"
 import { AiChatbox } from "./components/ai-chatbox"
 import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import { basename } from "./lib/path"
@@ -62,7 +60,7 @@ interface MediaFolderListItemProps {
 }
 
 
-function MediaFolderListItem({mediaName, path, mediaType, selected, icon, onClick}: MediaFolderListItemProps) {
+function MediaFolderListItem({mediaName, path, mediaType, selected, onClick}: MediaFolderListItemProps) {
 
   const { removeMediaMetadata } = useMediaMetadata()
   const { userConfig, setUserConfig } = useConfig()
@@ -283,10 +281,7 @@ function MediaFolderToolbar({
 }
 
 function AppLayout() {
-  const { confirmationDialog, spinnerDialog, configDialog, openFolderDialog } = useDialogs()
-  const [openConfirmation, closeConfirmation] = confirmationDialog
-  const [openSpinner, closeSpinner] = spinnerDialog
-  const [openConfig] = configDialog
+  const { openFolderDialog } = useDialogs()
   const [openOpenFolder] = openFolderDialog
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
@@ -349,47 +344,6 @@ function AppLayout() {
 
     return result
   }, [folders,sortOrder, filterType, searchQuery])
-
-  const handleOpenConfirmation = () => {
-    openConfirmation({
-      title: "Are you absolutely sure?",
-      description: "This action cannot be undone.",
-      content: (
-        <div className="flex flex-col gap-4">
-          <p>This will permanently delete your account.</p>
-          <div className="flex gap-2 justify-end">
-            <Button onClick={closeConfirmation} variant="outline">Cancel</Button>
-            <Button onClick={closeConfirmation}>Confirm</Button>
-          </div>
-        </div>
-      ),
-      onClose: () => {
-        console.log("Confirmation dialog closed")
-      }
-    })
-  }
-
-  const handleOpenSpinner = () => {
-    openSpinner("Loading, please wait...")
-    // Auto-close after 3 seconds to demonstrate it works
-    setTimeout(() => {
-      closeSpinner()
-    }, 3000)
-  }
-
-  const handleShowToast = () => {
-    toast("Event has been created", {
-      description: "Sunday, December 03, 2023 at 9:00 AM",
-      action: {
-        label: "Undo",
-        onClick: () => console.log("Undo"),
-      },
-    })
-  }
-
-  const handleOpenConfig = () => {
-    openConfig()
-  }
 
   const handleMediaFolderListItemClick = useCallback((path: string) => {
     const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
@@ -516,6 +470,11 @@ function AppLayout() {
         // Read media metadata for the folder
         const response = await readMediaMetadataApi(droppedFolderPath)
         const metadata = response.data
+
+        if(!metadata) {
+          console.error('Failed to read media metadata')
+          return
+        }
 
         // Set the folder type based on selection
         const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
