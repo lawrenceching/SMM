@@ -64,6 +64,9 @@ jobs:
         with:
           bun-version: latest
       
+      - name: Install dependencies for core module
+        run: cd ../core/ && bun install --frozen-lockfile
+      
       - name: Install dependencies
         run: bun install --frozen-lockfile
       
