@@ -72,7 +72,7 @@ function findAssociatedFiles(mediaFolderPath: string, filePaths: string[], video
       const file: File = {
         path: getRelativePath(paths, mediaFolderPath),
         tag: tag,
-        newPath: ''
+        newPath: 'AAA'
       }
       return file;
     })
@@ -117,7 +117,6 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
 
   const mediaFolderPath = mediaMetadata.mediaFolderPath;
   const tmdbTvShow = mediaMetadata.tmdbTvShow;
-  const hasMediaFiles = mediaMetadata.mediaFiles && mediaMetadata.mediaFiles.length > 0;
   
   const props: TvShowEpisodesProps = {
     seasons: [],

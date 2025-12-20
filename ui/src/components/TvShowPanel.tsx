@@ -19,6 +19,7 @@ function TvShowPanel() {
   const { userConfig } = useConfig()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   const handleTmdbIdSelect = async (tmdbId: number) => {
     setIsLoading(true)
@@ -67,6 +68,7 @@ function TvShowPanel() {
 
   return (
     <div className='p-1 w-full h-full'>
+        <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>Rename</Button>
         <Tabs defaultValue="overall" className="w-full h-full">
         <TabsList>
             <TabsTrigger value="overall">Overall</TabsTrigger>
@@ -95,7 +97,7 @@ function TvShowPanel() {
             )}
         </TabsContent>
         <TabsContent value="tvshow">
-        <TvShowEpisodes seasons={tvShowEpisodesProps.seasons} />
+          <TvShowEpisodes seasons={tvShowEpisodesProps.seasons} isEditing={isEditing} />
         </TabsContent>
         <TabsContent value="filess">
             <FileList files={mediaMetadata?.files ?? []} />

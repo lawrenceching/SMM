@@ -10,6 +10,7 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
   } from "@/components/ui/context-menu"
+import { ArrowRight } from "lucide-react";
 import { useMemo } from "react";
 import Image from "./Image";
 import { cn } from "@/lib/utils";
@@ -65,17 +66,10 @@ export interface Season {
 interface EpisodeItemProps {
     episode: Episode;
     selected?: boolean;
+    isEditing: boolean;
 }
 
-interface FileItem {
-    tag: "VID" | "SUB" | "AUD" | "NFO";
-    /**
-     * Relative path of media folder, in POSIX format
-     */
-    path: string;
-}
-
-function EpisodeItem({ episode, selected = false }: EpisodeItemProps) {
+function EpisodeItem({ episode, selected = false, isEditing = false }: EpisodeItemProps) {
 
     const tag = useMemo(() => {
 
@@ -86,19 +80,6 @@ function EpisodeItem({ episode, selected = false }: EpisodeItemProps) {
         return `S${episode.seasonNumber}E${episode.episodeNumber}`;
     }, [episode.seasonNumber, episode.episodeNumber]);
 
-    const associatedFiles: FileItem[] = useMemo(() => {
-
-        if(episode.associatedFiles === undefined) {
-            return [];
-        }
-
-        return episode.associatedFiles.map((file) => {
-            return {
-                tag: file.tag as "VID" | "SUB" | "AUD" | "NFO",
-                path: file.path,
-            } as FileItem;
-        });
-    }, [episode.associatedFiles]);
 
     return (
         <div>
@@ -126,16 +107,36 @@ function EpisodeItem({ episode, selected = false }: EpisodeItemProps) {
             {
                 episode.videoFilePath && (
                     <div className="text-sm text-muted-foreground"> 
-                        <span className="text-sm text-muted-foreground select-none p-1">{episode.videoFilePath.tag}</span> 
-                        {episode.videoFilePath.path}
+                        <div>
+                            <div className="text-sm text-muted-foreground select-none p-1 w-[60px] inline-block">{episode.videoFilePath.tag}</div> 
+                            {episode.videoFilePath.path}
+                        </div>
+                        {
+                            isEditing && (
+                                <div>
+                                    <div className="w-[60px] inline-block"><ArrowRight/></div>
+                                    {episode.videoFilePath.newPath}
+                                </div>
+                            )
+                        }
                     </div>
                 )
             }
             {
-                associatedFiles.map((file, index) => (
+                episode.associatedFiles.map((file, index) => (
                     <div key={index} className="text-sm text-muted-foreground">
-                        <span className="text-sm text-muted-foreground select-none p-1">{file.tag}</span>
-                        {file.path}
+                        <div>
+                            <div className="text-sm text-muted-foreground select-none p-1 w-[60px] inline-block">{file.tag}</div>
+                            {file.path}
+                        </div>
+                        {
+                            isEditing && (
+                                <div>
+                                    <div className="w-[60px] inline-block"><ArrowRight/></div>
+                                    {file.newPath}
+                                </div>
+                            )
+                        }
                     </div>
                 ))
             }
@@ -154,9 +155,10 @@ function EpisodeItem({ episode, selected = false }: EpisodeItemProps) {
 
 export interface TvShowEpisodesProps {
     seasons: Season[];
+    isEditing: boolean;
 }
 
-export function TvShowEpisodes({ seasons }: TvShowEpisodesProps) {
+export function TvShowEpisodes({ seasons, isEditing }: TvShowEpisodesProps) {
 
     return (
         <div>
@@ -168,7 +170,7 @@ export function TvShowEpisodes({ seasons }: TvShowEpisodesProps) {
                 <AccordionTrigger>{season.name}</AccordionTrigger>
                 <AccordionContent>
                     {season.episodes.map((episode, index) => (
-                        <EpisodeItem key={index} episode={episode} />
+                        <EpisodeItem key={index} episode={episode} isEditing={isEditing} />
                     ))}
                 </AccordionContent>
             </AccordionItem>
