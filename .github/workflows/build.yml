@@ -16,6 +16,32 @@ on:
       - 'electron/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Git tag for the release (e.g. v1.2.3)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release title (optional)'
+        required: false
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        default: false
+        type: boolean
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        default: false
+        type: boolean
+      body:
+        description: 'Release notes (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build-ui:
@@ -85,6 +111,7 @@ jobs:
   build-electron:
     name: Build Electron Distribution
     needs: [build-ui, build-cli]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -154,4 +181,32 @@ jobs:
             electron/dist/*.deb
             electron/dist/*.snap
           retention-days: 30
+
+  release-electron:
+    name: Create GitHub Release (Electron installers)
+    needs: [build-electron]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Electron artifacts (all platforms)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: electron-dist-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ (github.event.inputs.release_name != '' && github.event.inputs.release_name) || github.event.inputs.tag_name }}
+          draft: ${{ github.event.inputs.draft == 'true' }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          body: ${{ github.event.inputs.body }}
+          files: |
+            dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
