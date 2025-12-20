@@ -12,6 +12,7 @@ import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
 import type { FolderType } from "@/components/dialog-provider"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
+import { openInFileManagerApi } from "@/api/openInFileManager"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -153,8 +154,17 @@ function MediaFolderListItem({mediaName, path, mediaType, selected, onClick}: Me
     setUserConfig(newUserConfig)
   }, [path, userConfig, setUserConfig])
 
-  const handleOpenInExplorerButtonClick = useCallback(() => {
-    // TODO: open in explorer
+  const handleOpenInExplorerButtonClick = useCallback(async () => {
+    try {
+      const result = await openInFileManagerApi(path);
+      if (result.error) {
+        console.error('[OpenInFileManager] Error:', result.error);
+        // You might want to show a toast notification here
+      }
+    } catch (error) {
+      console.error('[OpenInFileManager] Failed to open folder:', error);
+      // You might want to show a toast notification here
+    }
   }, [path])
 
   return (

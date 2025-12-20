@@ -641,3 +641,17 @@ export interface DownloadImageResponseBody {
   }
   error?: string
 }
+
+export interface OpenInFileManagerRequestBody {
+  /**
+   * The absolute path to the folder to open
+   */
+  path: string
+}
+
+export interface OpenInFileManagerResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}

@@ -17,6 +17,7 @@ import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
 import { search as handleTmdbSearch, getMovie as handleTmdbGetMovie, getTvShow as handleTmdbGetTvShow } from './src/route/Tmdb';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
+import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 
 export interface ServerConfig {
   port?: number;
@@ -232,6 +233,7 @@ export class Server {
     handleDeleteMediaMetadata(this.app);
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
+    handleOpenInFileManagerRequest(this.app);
 
     // POST /api/tmdb/search - Search TMDB for movies or TV shows
     this.app.post('/api/tmdb/search', async (c) => {
