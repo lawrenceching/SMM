@@ -2,6 +2,7 @@ appId: me.imlc.smm
 productName: SMM
 directories:
   buildResources: build
+icon: build/icon.png
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -27,6 +28,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  installerIcon: build/icon.ico
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
