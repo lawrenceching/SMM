@@ -1,16 +1,16 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
 import { FileList } from "./FileList"
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
-import { TvShowEpisodes } from "./tvshow-episodes"
-import { buildTvShowEpisodesPropsFromMediaMetadata } from "@/lib/utils"
+import { TvShowEpisodes, type TvShowEpisodesProps } from "./tvshow-episodes"
+import { buildTvShowEpisodesPropsFromMediaMetadata, generateNameByRenameRule } from "@/lib/utils"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { useDialogs } from "./dialog-provider"
 import { useConfig } from "./config-provider"
 import { getTvShowById } from "@/api/tmdb"
-import type { MediaMetadata } from "@core/types"
+import { RenameRules, type MediaFileMetadata, type MediaMetadata } from "@core/types"
 
 function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata, addMediaMetadata } = useMediaMetadata()
@@ -20,6 +20,7 @@ function TvShowPanel() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [selectedRenameRuleName, setSelectedRenameRuleName] = useState<string | undefined>('Plex(TvShow/Anime)')
 
   const handleTmdbIdSelect = async (tmdbId: number) => {
     setIsLoading(true)
@@ -63,7 +64,8 @@ function TvShowPanel() {
 
   // Build TvShowEpisodesProps from mediaMetadata
   const tvShowEpisodesProps = useMemo(() => {
-    return buildTvShowEpisodesPropsFromMediaMetadata(mediaMetadata)
+    const selectedRenameRule = selectedRenameRuleName ? Object.values(RenameRules).find(rule => rule.name === selectedRenameRuleName) : undefined
+    return buildTvShowEpisodesPropsFromMediaMetadata(mediaMetadata, selectedRenameRule)
   }, [mediaMetadata])
 
   return (

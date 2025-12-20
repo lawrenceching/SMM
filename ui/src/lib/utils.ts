@@ -1,9 +1,10 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { MediaMetadata, MediaFileMetadata, TMDBEpisode } from "@core/types"
+import { type MediaMetadata, type MediaFileMetadata, type TMDBEpisode, RenameRuleVariables, type RenameRule } from "@core/types"
 import type { TvShowEpisodesProps, Episode, File, Season } from "@/components/tvshow-episodes"
 import { basename, extname, relative } from "@/lib/path"
 import { getTMDBImageUrl } from "@/api/tmdb"
+import filenamify from 'filenamify';
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -72,7 +73,7 @@ function findAssociatedFiles(mediaFolderPath: string, filePaths: string[], video
       const file: File = {
         path: getRelativePath(paths, mediaFolderPath),
         tag: tag,
-        newPath: 'AAA'
+        newPath: 'N/A'
       }
       return file;
     })
@@ -105,7 +106,8 @@ function getRelativePath(absolutePath: string, mediaFolderPath: string | undefin
  * Build TvShowEpisodesProps from MediaMetadata
  */
 export function buildTvShowEpisodesPropsFromMediaMetadata(
-  mediaMetadata: MediaMetadata | null | undefined
+  mediaMetadata: MediaMetadata | null | undefined,
+  renameRule: RenameRule | undefined
 ): TvShowEpisodesProps {
   if (!mediaMetadata) {
     return { seasons: [] };
@@ -137,12 +139,16 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
       };
 
       if(videoFilePath) {
+        debugger;
         episodeProps.videoFilePath = {
           path: getRelativePath(videoFilePath.absolutePath, mediaFolderPath),
           tag: "VID",
           newPath: ''
         }
         episodeProps.associatedFiles = findAssociatedFiles(mediaFolderPath!, mediaMetadata.files ?? [], videoFilePath.absolutePath);
+        if(renameRule) {
+          episodeProps.videoFilePath.newPath = generateNameByRenameRule(mediaMetadata, renameRule, videoFilePath)
+        }
       }
 
       return episodeProps;
@@ -155,4 +161,55 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
   });
 
   return props;
+}
+
+
+/**
+ * Generates a name from a rename rule template.
+ * Can be used for both file names and folder names.
+ * 
+ * @param mediaMetadata The media metadata containing TV show/movie information
+ * @param renameRule The rename rule with template to use
+ * @param mediaFileMetadata Optional media file metadata. If provided, all RenameRuleVariables are used.
+ *                         If not provided, only MediaMetadata-only variables are used (TV_SHOW_NAME, TMDB_ID, RELEASE_YEAR).
+ * @returns The generated name (sanitized with filenamify). For paths with '/', only the filename part is sanitized.
+ */
+export function generateNameByRenameRule(
+  mediaMetadata: MediaMetadata,
+  renameRule: RenameRule,
+  mediaFileMetadata?: MediaFileMetadata,
+): string {
+  debugger;
+  const variables: Record<string, string> = {}
+
+  Object.keys(RenameRuleVariables).map(key => {
+    const variable = RenameRuleVariables[key]
+    if(variable.type === "buildin") {
+      variables[variable.name] = RenameRuleVariables[key].fn(mediaMetadata, mediaFileMetadata)
+    } else {
+      console.error(`Unsupported variable type: ${variable.type}`)
+      return '';
+    }
+
+  })
+
+  let generatedName = renameRule.template
+
+  // Replace all occurrences of each variable in the template
+  Object.keys(variables).forEach(key => {
+    // Use global regex to replace all occurrences
+    const regex = new RegExp(`\\{${key}\\}`, 'g')
+    generatedName = generatedName.replace(regex, variables[key])
+  })
+
+  // Handle paths with '/' separators (for file paths with season folders)
+  const parts = generatedName.split('/')
+
+  if(parts.length === 1) {
+    return filenamify(generatedName)
+  } else {
+    const filename = parts[parts.length - 1]
+    const validFilename = filenamify(filename)
+    return [...parts.slice(0, -1), validFilename].join('/')
+  }
 }

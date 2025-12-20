@@ -226,7 +226,7 @@ export const TvShowNameVariable: RenameRuleVariable = {
   description: 'The name of TV show',
   example: 'The Long TV Show, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    return mediaMetadata.officalMediaName || '';
+    return mediaMetadata.tmdbTvShow?.name || '';
   }
 }
 
