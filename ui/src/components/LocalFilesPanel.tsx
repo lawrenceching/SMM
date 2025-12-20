@@ -5,17 +5,8 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
-import { FileIcon, FolderIcon, FolderOpen, MoreHorizontal } from "lucide-react"
+import { FileIcon } from "lucide-react"
 import { useMemo } from "react"
 
 interface File {
@@ -73,21 +64,6 @@ function LocalFilesPanel({ files, onFileAction, mediaFolderPath }: LocalFilesPan
         if (onFileAction) {
             onFileAction(action, file);
         }
-    };
-
-    const getFileName = (path: string) => {
-        return path.split("/").pop() || path;
-    };
-
-    const getFileExtension = (path: string) => {
-        return path.split(".").pop()?.toLowerCase() || "";
-    };
-
-    const isImageOrVideo = (path: string) => {
-        const ext = getFileExtension(path);
-        const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
-        const videoExts = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v"];
-        return imageExts.includes(ext) || videoExts.includes(ext);
     };
 
     return (
