@@ -12,6 +12,7 @@ import { useConfig } from "./config-provider"
 import { getTvShowById } from "@/api/tmdb"
 import { RenameRules, type MediaMetadata } from "@core/types"
 import { toast } from "sonner"
+import LocalFilesPanel from "./LocalFilesPanel"
 
 function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata, addMediaMetadata } = useMediaMetadata()
@@ -129,7 +130,7 @@ function TvShowPanel() {
           <TvShowEpisodes seasons={tvShowEpisodesProps.seasons} isEditing={isEditing} />
         </TabsContent>
         <TabsContent value="filess">
-            <FileList files={mediaMetadata?.files ?? []} />
+            <LocalFilesPanel files={mediaMetadata?.files?.map((file) => ({ path: file })) ?? []} mediaFolderPath={mediaMetadata?.mediaFolderPath ?? ""} />
         </TabsContent>
         </Tabs>
     </div>

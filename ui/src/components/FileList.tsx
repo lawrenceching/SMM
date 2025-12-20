@@ -9,6 +9,11 @@ interface FileListProps {
     files: string[]
 }
 
+/**
+ * @deprecated("Use LocalFilesPanel instead")
+ * @param param0 
+ * @returns 
+ */
 export function FileList({ files }: FileListProps) {
 
     return (
