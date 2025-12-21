@@ -12,6 +12,7 @@ import { getTvShowById } from "@/api/tmdb"
 import { RenameRules, type MediaMetadata } from "@core/types"
 import { toast } from "sonner"
 import LocalFilesPanel from "./LocalFilesPanel"
+import { RenameRuleCombobox } from "./rename-rules-combobox"
 
 function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata, addMediaMetadata } = useMediaMetadata()
@@ -21,7 +22,8 @@ function TvShowPanel() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [selectedRenameRuleName] = useState<string | undefined>('Plex(TvShow/Anime)')
+  const [selectedRenameRuleName, setSelectedRenameRuleName] = useState<string | undefined>('Plex(TvShow/Anime)')
+  const [isInRenameStatus, setIsInRenameStatus] = useState(true)
 
   const handleTmdbIdSelect = async (tmdbId: number) => {
     setIsLoading(true)
@@ -67,7 +69,7 @@ function TvShowPanel() {
   const tvShowEpisodesProps = useMemo(() => {
     const selectedRenameRule = selectedRenameRuleName ? Object.values(RenameRules).find(rule => rule.name === selectedRenameRuleName) : undefined
     return buildTvShowEpisodesPropsFromMediaMetadata(mediaMetadata, selectedRenameRule)
-  }, [mediaMetadata])
+  }, [mediaMetadata, selectedRenameRuleName])
 
   const handleScrapeButtonClick = useCallback(() => {
     if(!mediaMetadata) {
@@ -92,11 +94,23 @@ function TvShowPanel() {
 
   }, [mediaMetadata])
 
+  const handleRenameRuleChange = (renameRuleName: string) => {
+    setSelectedRenameRuleName(renameRuleName)
+  }
+
   return (
     <div className='p-1 w-full h-full'>
         <div>
            <Button onClick={() => setIsEditing(!isEditing)}>Rename</Button>
            <Button onClick={handleScrapeButtonClick}>Scrape</Button>
+        </div>
+        <div className="flex items-center gap-2 bg-amber-500/20 py-2 px-1 border-y border-amber-500/50 my-2">
+          <div className="flex-1">
+            <RenameRuleCombobox onRenameRuleChange={handleRenameRuleChange} />
+          </div>
+          
+          <Button>Confirm</Button>
+
         </div>
         <Tabs defaultValue="overall" className="w-full h-full">
         <TabsList>
