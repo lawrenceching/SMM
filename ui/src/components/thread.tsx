@@ -1,8 +1,3 @@
-// import {
-//   ComposerAddAttachment,
-//   ComposerAttachments,
-//   UserMessageAttachments,
-// } from "@/components/attachment";
 import { MarkdownText } from "@/components/markdown-text";
 import { ToolFallback } from "@/components/tool-fallback";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
@@ -16,7 +11,6 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
-  useAssistantApi,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -28,11 +22,9 @@ import {
   DownloadIcon,
   PencilIcon,
   RefreshCwIcon,
-  Satellite,
   SquareIcon,
 } from "lucide-react";
-import { type FC, useCallback, useEffect, useRef } from "react";
-import { flushSync } from "@assistant-ui/tap";
+import type { FC } from "react";
 
 export const Thread: FC = () => {
   return (
@@ -142,72 +134,16 @@ const ThreadSuggestions: FC = () => {
 };
 
 const Composer: FC = () => {
-  const api = useAssistantApi();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Automatically enable editing mode when component mounts
-  useEffect(() => {
-    const composer = api.composer();
-    const state = composer.getState();
-    const threadState = api.thread().getState();
-    
-    // Only begin editing if not already editing and it's a thread composer
-    if (!state.isEditing && state.type === "thread" && !threadState.isDisabled) {
-      flushSync(() => {
-        if (typeof composer.beginEdit === 'function') {
-          composer.beginEdit();
-        }
-      });
-    }
-  }, [api]);
-
-  const handleFocus = useCallback(() => {
-    const composer = api.composer();
-    const state = composer.getState();
-    const threadState = api.thread().getState();
-    
-    console.log('Input focused, state:', { isEditing: state.isEditing, isDisabled: threadState.isDisabled });
-    
-    // Only begin editing if not already editing and it's a thread composer
-    if (!state.isEditing && state.type === "thread" && !threadState.isDisabled) {
-      flushSync(() => {
-        if (typeof composer.beginEdit === 'function') {
-          composer.beginEdit();
-        }
-      });
-    }
-  }, [api]);
-
-  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
-    console.log('handleInput: ', e.target.value)
-    const textarea = e.target as HTMLTextAreaElement;
-    const newValue = textarea.value;
-    
-    // Manually update the composer text since onChange isn't firing reliably
-    const composer = api.composer();
-    const state = composer.getState();
-    console.log('state.isEditing: ', state.isEditing)
-    if (state.isEditing) {
-      flushSync(() => {
-        console.log('setText: ', newValue)
-        composer.setText(newValue);
-      });
-    }
-  }, [api]);
-
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone className="aui-composer-attachment-dropzone flex w-full flex-col rounded-2xl border border-input bg-background px-1 pt-2 outline-none transition-shadow has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50">
-        {/* <ComposerAttachments /> */}
+        <div></div>
         <ComposerPrimitive.Input
-          ref={inputRef}
-          placeholder="Send a message... blablabla"
+          placeholder="Send a message..."
           className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
           rows={1}
           autoFocus
           aria-label="Message input"
-          onFocus={handleFocus}
-          onInput={handleInput}
         />
         <ComposerAction />
       </ComposerPrimitive.AttachmentDropzone>
@@ -216,13 +152,11 @@ const Composer: FC = () => {
 };
 
 const ComposerAction: FC = () => {
-
   return (
     <div className="aui-composer-action-wrapper relative mx-2 mb-2 flex items-center justify-between">
-      {/* <ComposerAddAttachment /> */}
       <div></div>
 
-      <AssistantIf condition={({ thread }) => { return !thread.isRunning }}>
+      <AssistantIf condition={({ thread }) => !thread.isRunning}>
         <ComposerPrimitive.Send asChild>
           <TooltipIconButton
             tooltip="Send message"
@@ -327,7 +261,7 @@ const UserMessage: FC = () => {
       className="aui-user-message-root fade-in slide-in-from-bottom-1 mx-auto grid w-full max-w-(--thread-max-width) animate-in auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] content-start gap-y-2 px-2 py-3 duration-150 [&:where(>*)]:col-start-2"
       data-role="user"
     >
-      {/* <UserMessageAttachments /> */}
+      <div></div>
 
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
         <div className="aui-user-message-content wrap-break-word rounded-2xl bg-muted px-4 py-2.5 text-foreground">

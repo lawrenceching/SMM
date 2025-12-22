@@ -35,11 +35,12 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-import { AssistantModal } from "@/components/assistant-modal";
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
-import { Thread } from "./components/thread"
+
+import { AssistantModal } from "./components/assistant-modal"
+
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -508,12 +509,6 @@ function AppLayout() {
     }, droppedFolderPath)
   }, [mediaMetadatas, openOpenFolder, addMediaMetadata, setSelectedMediaMetadata])
 
-  const runtime = useChatRuntime({
-    transport: new AssistantChatTransport({
-      api: "/api/chat",
-    }),
-  });
-
   return (
     <div 
       className="flex min-h-svh flex-col relative"
@@ -582,32 +577,40 @@ function AppLayout() {
         <RightSidebarContent>
           <div className="w-full h-full">
           
-          <AssistantRuntimeProvider runtime={runtime}>
+          {/* <MyRuntimeProvider>
           <Thread />
-    </AssistantRuntimeProvider>
+    </MyRuntimeProvider> */}
           </div>
         </RightSidebarContent>
       </ThreeColumnLayout>
 
       <StatusBar />
-
+{/* 
       <AssistantRuntimeProvider runtime={runtime}>
       <AssistantModal />
-    </AssistantRuntimeProvider>
+    </AssistantRuntimeProvider> */}
     </div>
   )
 }
 
 function App() {
+
+  const runtime = useChatRuntime({
+    transport: new AssistantChatTransport({
+      api: "/api/chat",
+    }),
+  });
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       
       <ConfigProvider>
       <MediaMetadataProvider>
         <DialogProvider>
-        
-        
           <AppLayout />
+          <AssistantRuntimeProvider runtime={runtime}>
+              <AssistantModal />
+          </AssistantRuntimeProvider>
           <Toaster position="bottom-right" />
         </DialogProvider>
         </MediaMetadataProvider>
