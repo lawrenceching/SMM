@@ -100,52 +100,11 @@ function TvShowPanel() {
 
   return (
     <div className='p-1 w-full h-full'>
-        <div>
-           <Button onClick={() => setIsEditing(!isEditing)}>Rename</Button>
-           <Button onClick={handleScrapeButtonClick}>Scrape</Button>
-        </div>
-        <div className="flex items-center gap-2 bg-amber-500/20 py-2 px-1 border-y border-amber-500/50 my-2">
-          <div className="flex-1">
-            <RenameRuleCombobox onRenameRuleChange={handleRenameRuleChange} />
-          </div>
-          
-          <Button>Confirm</Button>
-
-        </div>
-        <Tabs defaultValue="overall" className="w-full h-full">
-        <TabsList>
-            <TabsTrigger value="overall">Overall</TabsTrigger>
-            <TabsTrigger value="tvshow">Tv Show</TabsTrigger>
-            <TabsTrigger value="filess">Files</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overall" className="w-full h-full" >   
-            {isLoading ? (
-              <div className="flex items-center justify-center w-full h-full">
-                <div className="text-muted-foreground">Loading TV show details...</div>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center w-full h-full gap-4">
-                <div className="text-destructive">{error}</div>
-                <Button variant="outline" onClick={handleOpenMediaSearch}>
-                  <Search className="size-4 mr-2" />
-                  Search Again
-                </Button>
-              </div>
-            ) : (
-              <TMDBTVShowOverview 
+        <TMDBTVShowOverview 
                 tvShow={mediaMetadata?.tmdbTvShow} 
                 className="w-full h-full"
                 onOpenMediaSearch={handleOpenMediaSearch}
               />
-            )}
-        </TabsContent>
-        <TabsContent value="tvshow">
-          <TvShowEpisodes seasons={tvShowEpisodesProps.seasons} isEditing={isEditing} />
-        </TabsContent>
-        <TabsContent value="filess">
-            <LocalFilesPanel files={mediaMetadata?.files?.map((file) => ({ path: file })) ?? []} mediaFolderPath={mediaMetadata?.mediaFolderPath ?? ""} />
-        </TabsContent>
-        </Tabs>
     </div>
   )
 }
