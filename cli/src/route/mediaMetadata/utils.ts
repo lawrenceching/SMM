@@ -8,4 +8,3 @@ export function metadataCacheFilePath(folderPathInPosix: string) {
     const filename = folderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
     return join(mediaMetadataDir, `${filename}.json`)
 }
-

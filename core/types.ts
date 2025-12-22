@@ -655,3 +655,21 @@ export interface OpenInFileManagerResponseBody {
   }
   error?: string
 }
+
+export interface HelloResponseBody {
+  /**
+   * application uptime in seconds
+   */
+  uptime: number;
+  version: string;
+
+  /**
+   * path in platform-specific format
+   */
+  userDataDir: string;
+
+  /**
+   * path in platform-specific format
+   */
+  appDataDir: string;
+}

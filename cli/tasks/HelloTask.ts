@@ -1,16 +1,7 @@
 import { APP_VERSION } from '../src/version';
 import os from 'os';
 import path from 'path';
-
-export interface HelloResponse {
-    /**
-     * application uptime in seconds
-     */
-    uptime: number;
-    version: string;
-    userDataDir: string;
-    appDataDir: string;
-}
+import type { HelloResponseBody } from '@core/types';
 
 /**
  * Returns the directory path for user configuration files.
@@ -76,7 +67,7 @@ export function getAppDataDir(): string {
   }
 }
 
-export async function executeHelloTask(): Promise<HelloResponse> {
+export async function executeHelloTask(): Promise<HelloResponseBody> {
   return {
     uptime: process.uptime(),
     version: APP_VERSION,

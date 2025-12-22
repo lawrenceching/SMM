@@ -33,15 +33,12 @@ import {
 import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 
-import { AssistantModal } from "./components/assistant-modal"
-import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from "zod";
+import { Assistant } from "./ai/Assistant"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -672,19 +669,6 @@ function AppLayout() {
 }
 
 
-const randomUUID = tool({
-  description: "Get a random UUID",
-  parameters: z.object(),
-  execute: async ({}) => {
-    return Date.now().toString();
-  },
-});
-// Create the component
-const RandomUUIDTool = makeAssistantTool({
-  ...randomUUID,
-  toolName: "get-random-uuid",
-});
-
 function App() {
 
   const runtime = useChatRuntime({
@@ -701,10 +685,7 @@ function App() {
         <DialogProvider>
           <AppLayout />
 
-          <AssistantRuntimeProvider runtime={runtime}>
-            <RandomUUIDTool />
-              <AssistantModal />
-          </AssistantRuntimeProvider>
+          <Assistant />
           <Toaster position="bottom-right" />
         </DialogProvider>
         </MediaMetadataProvider>

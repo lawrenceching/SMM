@@ -25,15 +25,14 @@ export async function handleChatRequest(request: Request): Promise<Response> {
       messages: modelMessages,
       tools: {
         ...frontendTools(tools),
-        listFiles: {
-          description: "List files that managed by this application",
+        description: {
+          description: "Get description of Simple Media Manager(SMM)",
           inputSchema: z.object(),
           execute: async ({  }) => {
-            return [
-              '/path/to/file1',
-              '/path/to/file2',
-              '/path/to/file3',
-            ]
+            return `Simple Media Manager(SMM) is an application to manage media files and scrape matadata. 
+SMM is powered by AI. 
+SMM is a cross-platform application provided Desktop Application client and webui(which extends SMM to be server-side app and NAS app).`
+
           },
         },
       },

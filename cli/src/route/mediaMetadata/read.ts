@@ -5,6 +5,7 @@ import { Path } from "@core/path";
 import { listFiles } from "@/utils/files";
 import { metadataCacheFilePath } from "./utils";
 import { mediaMetadataToString } from "lib/log";
+import path from "node:path";
 
 export async function newMediaMetadata(folderPath: Path) {
     const metadata: MediaMetadata = {
@@ -67,7 +68,10 @@ export async function handleReadMediaMetadata(app: Hono) {
             // Cache exists, read it
             try {
                 console.log(`[ReadMediaMetadata] Reading metadata from file: ${metadataFilePath}`)
-                const data = await Bun.file(metadataFilePath).json();
+                const data = await Bun.file(metadataFilePath).json() as MediaMetadata;
+
+                data.files = await listFiles(new Path(folderPath), true);
+
                 const resp: ReadMediaMetadataResponseBody = {
                     data
                 };
