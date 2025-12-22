@@ -1,6 +1,6 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe, Tv } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe, Tv, ChevronDown, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect } from "react"
@@ -44,6 +44,7 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
     const [searchError, setSearchError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState(tvShow?.name || "")
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
+    const [expandedSeasonId, setExpandedSeasonId] = useState<number | null>(null)
     const { userConfig } = useConfig()
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
@@ -330,50 +331,145 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                         .filter(season => season.season_number > 0) // Filter out specials (season 0)
                                         .map((season) => {
                                             const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")
+                                            const isExpanded = expandedSeasonId === season.id
+                                            const hasEpisodes = season.episodes && season.episodes.length > 0
+                                            
                                             return (
                                                 <div
                                                     key={season.id}
-                                                    className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="rounded-lg border bg-card overflow-hidden transition-all"
                                                 >
-                                                    {seasonPosterUrl ? (
-                                                        <div className="shrink-0">
-                                                            <img
-                                                                src={seasonPosterUrl}
-                                                                alt={season.name}
-                                                                className="w-24 h-36 object-cover rounded-md bg-muted"
-                                                                onError={(e) => {
-                                                                    const target = e.target as HTMLImageElement
-                                                                    target.style.display = "none"
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="shrink-0 w-24 h-36 rounded-md bg-muted flex items-center justify-center">
-                                                            <Tv className="size-8 text-muted-foreground/50" />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-start justify-between gap-2 mb-1">
-                                                            <h3 className="font-semibold text-base">
-                                                                {season.name}
-                                                            </h3>
-                                                            {season.episode_count > 0 && (
-                                                                <Badge variant="secondary" className="shrink-0">
-                                                                    {season.episode_count} {season.episode_count === 1 ? 'episode' : 'episodes'}
-                                                                </Badge>
+                                                    <div
+                                                        onClick={() => setExpandedSeasonId(isExpanded ? null : season.id)}
+                                                        className="flex gap-4 p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                                                    >
+                                                        {seasonPosterUrl ? (
+                                                            <div className="shrink-0">
+                                                                <img
+                                                                    src={seasonPosterUrl}
+                                                                    alt={season.name}
+                                                                    className="w-24 h-36 object-cover rounded-md bg-muted"
+                                                                    onError={(e) => {
+                                                                        const target = e.target as HTMLImageElement
+                                                                        target.style.display = "none"
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="shrink-0 w-24 h-36 rounded-md bg-muted flex items-center justify-center">
+                                                                <Tv className="size-8 text-muted-foreground/50" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-start justify-between gap-2 mb-1">
+                                                                <h3 className="font-semibold text-base">
+                                                                    {season.name}
+                                                                </h3>
+                                                                <div className="flex items-center gap-2">
+                                                                    {season.episode_count > 0 && (
+                                                                        <Badge variant="secondary" className="shrink-0">
+                                                                            {season.episode_count} {season.episode_count === 1 ? 'episode' : 'episodes'}
+                                                                        </Badge>
+                                                                    )}
+                                                                    <ChevronDown 
+                                                                        className={cn(
+                                                                            "size-5 text-muted-foreground transition-transform shrink-0",
+                                                                            isExpanded && "transform rotate-180"
+                                                                        )}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            {season.air_date && (
+                                                                <p className="text-sm text-muted-foreground mb-2">
+                                                                    {formatDate(season.air_date)}
+                                                                </p>
+                                                            )}
+                                                            {season.overview && (
+                                                                <p className={cn(
+                                                                    "text-sm text-muted-foreground",
+                                                                    !isExpanded && "line-clamp-3"
+                                                                )}>
+                                                                    {season.overview}
+                                                                </p>
                                                             )}
                                                         </div>
-                                                        {season.air_date && (
-                                                            <p className="text-sm text-muted-foreground mb-2">
-                                                                {formatDate(season.air_date)}
-                                                            </p>
-                                                        )}
-                                                        {season.overview && (
-                                                            <p className="text-sm text-muted-foreground line-clamp-3">
-                                                                {season.overview}
-                                                            </p>
-                                                        )}
                                                     </div>
+                                                    
+                                                    {/* Episodes - Expandable */}
+                                                    {isExpanded && (
+                                                        <div className="px-4 pb-4 border-t bg-muted/30">
+                                                            <div className="pt-4 space-y-3">
+                                                                {hasEpisodes ? (
+                                                                    season.episodes!.map((episode) => {
+                                                                        const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
+                                                                        return (
+                                                                            <div
+                                                                                key={episode.id}
+                                                                                className="flex gap-3 p-3 rounded-md bg-background border"
+                                                                            >
+                                                                                {episodeStillUrl ? (
+                                                                                    <div className="shrink-0">
+                                                                                        <img
+                                                                                            src={episodeStillUrl}
+                                                                                            alt={episode.name}
+                                                                                            className="w-32 h-20 object-cover rounded-md bg-muted"
+                                                                                            onError={(e) => {
+                                                                                                const target = e.target as HTMLImageElement
+                                                                                                target.style.display = "none"
+                                                                                            }}
+                                                                                        />
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="shrink-0 w-32 h-20 rounded-md bg-muted flex items-center justify-center">
+                                                                                        <Play className="size-6 text-muted-foreground/50" />
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-xs font-mono text-muted-foreground">
+                                                                                                E{episode.episode_number.toString().padStart(2, '0')}
+                                                                                            </span>
+                                                                                            <h4 className="font-semibold text-sm">
+                                                                                                {episode.name}
+                                                                                            </h4>
+                                                                                        </div>
+                                                                                        {episode.vote_average > 0 && (
+                                                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                                                <Star className="size-3 fill-yellow-500 text-yellow-500" />
+                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                    {episode.vote_average.toFixed(1)}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    {episode.air_date && (
+                                                                                        <p className="text-xs text-muted-foreground mb-1">
+                                                                                            {formatDate(episode.air_date)}
+                                                                                        </p>
+                                                                                    )}
+                                                                                    {episode.runtime > 0 && (
+                                                                                        <p className="text-xs text-muted-foreground mb-2">
+                                                                                            {episode.runtime} min
+                                                                                        </p>
+                                                                                    )}
+                                                                                    {episode.overview && (
+                                                                                        <p className="text-xs text-muted-foreground line-clamp-2">
+                                                                                            {episode.overview}
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    })
+                                                                ) : (
+                                                                    <div className="text-center py-8 text-sm text-muted-foreground">
+                                                                        Episode information not available
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })}
