@@ -1,6 +1,6 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe, Tv } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect } from "react"
@@ -303,8 +303,83 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                 </div>
                             </div>
                         )}
+                        
+                        
                     </div>
                 </div>
+
+
+                {/* Seasons */}
+                {isUpdatingTvShow ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-24" />
+                                <div className="space-y-3">
+                                    <Skeleton className="h-32 w-full" />
+                                    <Skeleton className="h-32 w-full" />
+                                    <Skeleton className="h-32 w-full" />
+                                </div>
+                            </div>
+                        ) : tvShow.seasons && tvShow.seasons.length > 0 && (
+                            <div className="space-y-2">
+                                <h2 className="text-lg font-semibold flex items-center gap-2">
+                                    <Tv className="size-5" />
+                                    Seasons ({tvShow.number_of_seasons})
+                                </h2>
+                                <div className="space-y-3">
+                                    {tvShow.seasons
+                                        .filter(season => season.season_number > 0) // Filter out specials (season 0)
+                                        .map((season) => {
+                                            const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")
+                                            return (
+                                                <div
+                                                    key={season.id}
+                                                    className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                >
+                                                    {seasonPosterUrl ? (
+                                                        <div className="shrink-0">
+                                                            <img
+                                                                src={seasonPosterUrl}
+                                                                alt={season.name}
+                                                                className="w-24 h-36 object-cover rounded-md bg-muted"
+                                                                onError={(e) => {
+                                                                    const target = e.target as HTMLImageElement
+                                                                    target.style.display = "none"
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="shrink-0 w-24 h-36 rounded-md bg-muted flex items-center justify-center">
+                                                            <Tv className="size-8 text-muted-foreground/50" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                            <h3 className="font-semibold text-base">
+                                                                {season.name}
+                                                            </h3>
+                                                            {season.episode_count > 0 && (
+                                                                <Badge variant="secondary" className="shrink-0">
+                                                                    {season.episode_count} {season.episode_count === 1 ? 'episode' : 'episodes'}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {season.air_date && (
+                                                            <p className="text-sm text-muted-foreground mb-2">
+                                                                {formatDate(season.air_date)}
+                                                            </p>
+                                                        )}
+                                                        {season.overview && (
+                                                            <p className="text-sm text-muted-foreground line-clamp-3">
+                                                                {season.overview}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                </div>
+                            </div>
+                        )}
             </div>
         </div>
     )
