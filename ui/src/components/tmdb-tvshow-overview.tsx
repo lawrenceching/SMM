@@ -7,6 +7,7 @@ import { ImmersiveInput } from "./ImmersiveInput"
 import { useCallback, useState, useRef, useEffect } from "react"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
@@ -71,6 +72,7 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState(tvShow.name || "")
+    const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
     const inputContainerRef = useRef<HTMLDivElement>(null)
     const { userConfig } = useConfig()
 
@@ -157,6 +159,9 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
             return
         }
 
+        setIsUpdatingTvShow(true)
+        setIsSearchOpen(false)
+
         try {
             // Get language from user config, default to en-US
             const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
@@ -166,13 +171,13 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
 
             if (response.error) {
                 console.error("Failed to get TV show details:", response.error)
-                setIsSearchOpen(false)
+                setIsUpdatingTvShow(false)
                 return
             }
 
             if (!response.data) {
                 console.error("No TV show data returned")
-                setIsSearchOpen(false)
+                setIsUpdatingTvShow(false)
                 return
             }
 
@@ -184,10 +189,10 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                 type: 'tvshow-folder',
             })
 
-            setIsSearchOpen(false)
+            setIsUpdatingTvShow(false)
         } catch (error) {
             console.error("Failed to update media metadata:", error)
-            setIsSearchOpen(false)
+            setIsUpdatingTvShow(false)
         }
     }, [selectedMediaMetadata, userConfig, updateMediaMetadata])
     
@@ -205,7 +210,11 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
             <div className="relative p-6 flex-1 overflow-y-auto">
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* Poster */}
-                    {posterUrl && (
+                    {isUpdatingTvShow ? (
+                        <div className="shrink-0">
+                            <Skeleton className="w-48 h-[288px] rounded-lg" />
+                        </div>
+                    ) : posterUrl ? (
                         <div className="shrink-0">
                             <img
                                 src={posterUrl}
@@ -213,32 +222,38 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                 className="w-48 rounded-lg shadow-lg object-cover"
                             />
                         </div>
-                    )}
+                    ) : null}
                     
                     {/* Details */}
                     <div className="flex-1 space-y-4">
                         {/* Title */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
-                                <Popover 
-                                    open={isSearchOpen} 
-                                    onOpenChange={(open) => {
-                                        setIsSearchOpen(open)
-                                    }}
-                                    modal={false}
-                                >
-                                    <PopoverAnchor asChild>
-                                        <div ref={inputContainerRef}>
-                                            <ImmersiveInput 
-                                                value={searchQuery} 
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                onSearch={handleSearchButtonClick}
-                                                isOpen={isSearchOpen}
-                                                className="text-3xl font-bold mb-2 block"
-                                                placeholder="Enter TV show name"
-                                            />
-                                        </div>
-                                    </PopoverAnchor>
+                                {isUpdatingTvShow ? (
+                                    <div className="space-y-2 mb-2">
+                                        <Skeleton className="h-9 w-3/4" />
+                                        <Skeleton className="h-6 w-1/2" />
+                                    </div>
+                                ) : (
+                                    <Popover 
+                                        open={isSearchOpen} 
+                                        onOpenChange={(open) => {
+                                            setIsSearchOpen(open)
+                                        }}
+                                        modal={false}
+                                    >
+                                        <PopoverAnchor asChild>
+                                            <div ref={inputContainerRef}>
+                                                <ImmersiveInput 
+                                                    value={searchQuery} 
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    onSearch={handleSearchButtonClick}
+                                                    isOpen={isSearchOpen}
+                                                    className="text-3xl font-bold mb-2 block"
+                                                    placeholder="Enter TV show name"
+                                                />
+                                            </div>
+                                        </PopoverAnchor>
                                     <PopoverContent 
                                         className="p-0" 
                                         align="start"
@@ -325,43 +340,60 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                             </div>
                                         </ScrollArea>
                                     </PopoverContent>
-                                </Popover>
-                                {tvShow.original_name !== tvShow.name && (
+                                    </Popover>
+                                )}
+                                {isUpdatingTvShow ? null : tvShow.original_name !== tvShow.name && (
                                     <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
                                 )}
                             </div>
                         </div>
                         
                         {/* Metadata Badges */}
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary" className="gap-1">
-                                <Calendar className="size-3" />
-                                {formattedDate}
-                            </Badge>
-                            
-                            <Badge variant="secondary" className="gap-1">
-                                <Star className="size-3 fill-yellow-500 text-yellow-500" />
-                                {tvShow.vote_average.toFixed(1)}
-                                <span className="text-xs text-muted-foreground">
-                                    ({tvShow.vote_count.toLocaleString()})
-                                </span>
-                            </Badge>
-                            
-                            <Badge variant="secondary" className="gap-1">
-                                <TrendingUp className="size-3" />
-                                {tvShow.popularity.toFixed(0)}
-                            </Badge>
-                            
-                            {tvShow.origin_country && tvShow.origin_country.length > 0 && (
-                                <Badge variant="outline" className="gap-1">
-                                    <Globe className="size-3" />
-                                    {tvShow.origin_country.join(", ")}
+                        {isUpdatingTvShow ? (
+                            <div className="flex flex-wrap gap-2">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-6 w-24" />
+                                <Skeleton className="h-6 w-20" />
+                                <Skeleton className="h-6 w-28" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                <Badge variant="secondary" className="gap-1">
+                                    <Calendar className="size-3" />
+                                    {formattedDate}
                                 </Badge>
-                            )}
-                        </div>
+                                
+                                <Badge variant="secondary" className="gap-1">
+                                    <Star className="size-3 fill-yellow-500 text-yellow-500" />
+                                    {tvShow.vote_average.toFixed(1)}
+                                    <span className="text-xs text-muted-foreground">
+                                        ({tvShow.vote_count.toLocaleString()})
+                                    </span>
+                                </Badge>
+                                
+                                <Badge variant="secondary" className="gap-1">
+                                    <TrendingUp className="size-3" />
+                                    {tvShow.popularity.toFixed(0)}
+                                </Badge>
+                                
+                                {tvShow.origin_country && tvShow.origin_country.length > 0 && (
+                                    <Badge variant="outline" className="gap-1">
+                                        <Globe className="size-3" />
+                                        {tvShow.origin_country.join(", ")}
+                                    </Badge>
+                                )}
+                            </div>
+                        )}
                         
                         {/* Overview */}
-                        {tvShow.overview && (
+                        {isUpdatingTvShow ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-24" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </div>
+                        ) : tvShow.overview && (
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold">Overview</h2>
                                 <p className="text-muted-foreground leading-relaxed">{tvShow.overview}</p>
@@ -369,7 +401,16 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                         )}
                         
                         {/* Genre IDs - Display as badges */}
-                        {tvShow.genre_ids && tvShow.genre_ids.length > 0 && (
+                        {isUpdatingTvShow ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-20" />
+                                <div className="flex flex-wrap gap-2">
+                                    <Skeleton className="h-6 w-20" />
+                                    <Skeleton className="h-6 w-24" />
+                                    <Skeleton className="h-6 w-18" />
+                                </div>
+                            </div>
+                        ) : tvShow.genre_ids && tvShow.genre_ids.length > 0 && (
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold">Genres</h2>
                                 <div className="flex flex-wrap gap-2">
