@@ -34,9 +34,14 @@ import {
 import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
+import { AssistantModal } from "@/components/assistant-modal";
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
+import { Thread } from "./components/thread"
+import { ThreadList } from "./components/thread-list"
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -505,6 +510,12 @@ function AppLayout() {
     }, droppedFolderPath)
   }, [mediaMetadatas, openOpenFolder, addMediaMetadata, setSelectedMediaMetadata])
 
+  const runtime = useChatRuntime({
+    transport: new AssistantChatTransport({
+      api: "/api/chat",
+    }),
+  });
+
   return (
     <div 
       className="flex min-h-svh flex-col relative"
@@ -572,12 +583,19 @@ function AppLayout() {
         </SidebarContent>
         <RightSidebarContent>
           <div className="w-full h-full">
-          <AiChatbox />
+          
+          <AssistantRuntimeProvider runtime={runtime}>
+          <Thread />
+    </AssistantRuntimeProvider>
           </div>
         </RightSidebarContent>
       </ThreeColumnLayout>
 
       <StatusBar />
+
+      <AssistantRuntimeProvider runtime={runtime}>
+      <AssistantModal />
+    </AssistantRuntimeProvider>
     </div>
   )
 }
@@ -589,6 +607,7 @@ function App() {
       <ConfigProvider>
       <MediaMetadataProvider>
         <DialogProvider>
+        
         
           <AppLayout />
           <Toaster position="bottom-right" />
