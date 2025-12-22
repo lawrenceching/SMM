@@ -7,8 +7,9 @@ import { ImmersiveInput } from "./ImmersiveInput"
 import { useCallback, useState, useRef, useEffect } from "react"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { searchTmdb } from "@/api/tmdb"
+import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
+import { useMediaMetadata } from "./media-metadata-provider"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -58,6 +59,8 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
             </div>
         )
     }
+
+    const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
 
     const posterUrl = getTMDBImageUrl(tvShow.poster_path, "w500")
     const backdropUrl = getTMDBImageUrl(tvShow.backdrop_path, "w780")
@@ -141,11 +144,52 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
         }
     }, [searchQuery, userConfig])
 
-    const handleSelectResult = useCallback((result: TMDBTVShow) => {
-        // TODO: Handle result selection - could call a callback prop to update the TV show
-        console.log("Selected:", result)
-        setIsSearchOpen(false)
-    }, [])
+    const handleSelectResult = useCallback(async (result: TMDBTVShow) => {
+
+        if(selectedMediaMetadata?.tmdbTvShow?.id === result.id) {
+            setIsSearchOpen(false)
+            return
+        }
+
+        if (!selectedMediaMetadata?.mediaFolderPath) {
+            console.error("No media metadata path available")
+            setIsSearchOpen(false)
+            return
+        }
+
+        try {
+            // Get language from user config, default to en-US
+            const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
+            
+            // Fetch full TV show details
+            const response = await getTvShowById(result.id, language)
+
+            if (response.error) {
+                console.error("Failed to get TV show details:", response.error)
+                setIsSearchOpen(false)
+                return
+            }
+
+            if (!response.data) {
+                console.error("No TV show data returned")
+                setIsSearchOpen(false)
+                return
+            }
+
+            // Update media metadata with the new TV show
+            updateMediaMetadata(selectedMediaMetadata.mediaFolderPath, {
+                ...selectedMediaMetadata,
+                tmdbTvShow: response.data,
+                tmdbMediaType: 'tv',
+                type: 'tvshow-folder',
+            })
+
+            setIsSearchOpen(false)
+        } catch (error) {
+            console.error("Failed to update media metadata:", error)
+            setIsSearchOpen(false)
+        }
+    }, [selectedMediaMetadata, userConfig, updateMediaMetadata])
     
     return (
         <div className={cn("relative w-full h-full overflow-hidden rounded-lg flex flex-col", className)}>
