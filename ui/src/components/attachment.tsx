@@ -1,6 +1,6 @@
 "use client";
 
-import { PropsWithChildren, useEffect, useState, type FC } from "react";
+import { type PropsWithChildren, useEffect, useState, type FC } from "react";
 import { XIcon, PlusIcon, FileText } from "lucide-react";
 import {
   AttachmentPrimitive,
@@ -64,8 +64,8 @@ type AttachmentPreviewProps = {
   src: string;
 };
 
-const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+const AttachmentPreview: FC<AttachmentPreviewProps> = ({  }) => {
+  // const [isLoaded, setIsLoaded] = useState(false);
   return (
     // <Image
     //   src={src}
@@ -80,6 +80,7 @@ const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
     //   onLoadingComplete={() => setIsLoaded(true)}
     //   priority={false}
     // />
+    <div>Hello</div>
   );
 };
 

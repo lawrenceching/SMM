@@ -28,6 +28,7 @@ import {
   DownloadIcon,
   PencilIcon,
   RefreshCwIcon,
+  Satellite,
   SquareIcon,
 } from "lucide-react";
 import { type FC, useCallback, useEffect, useRef } from "react";
@@ -178,14 +179,17 @@ const Composer: FC = () => {
   }, [api]);
 
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
+    console.log('handleInput: ', e.target.value)
     const textarea = e.target as HTMLTextAreaElement;
     const newValue = textarea.value;
     
     // Manually update the composer text since onChange isn't firing reliably
     const composer = api.composer();
     const state = composer.getState();
+    console.log('state.isEditing: ', state.isEditing)
     if (state.isEditing) {
       flushSync(() => {
+        console.log('setText: ', newValue)
         composer.setText(newValue);
       });
     }
@@ -197,7 +201,7 @@ const Composer: FC = () => {
         {/* <ComposerAttachments /> */}
         <ComposerPrimitive.Input
           ref={inputRef}
-          placeholder="Send a message..."
+          placeholder="Send a message... blablabla"
           className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
           rows={1}
           autoFocus

@@ -6,7 +6,6 @@ import { ConfigProvider, useConfig } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
 import { DialogProvider, useDialogs } from "./components/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
-import { AiChatbox } from "./components/ai-chatbox"
 import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
@@ -41,7 +40,6 @@ import { MediaMetadataProvider, useMediaMetadata } from "./components/media-meta
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 import { Thread } from "./components/thread"
-import { ThreadList } from "./components/thread-list"
 
 interface MediaFolderListItemProps {
   mediaName: string,

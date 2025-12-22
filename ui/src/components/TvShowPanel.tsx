@@ -23,7 +23,7 @@ function TvShowPanel() {
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [selectedRenameRuleName, setSelectedRenameRuleName] = useState<string | undefined>('Plex(TvShow/Anime)')
-  const [isInRenameStatus, setIsInRenameStatus] = useState(true)
+  // const [isInRenameStatus, setIsInRenameStatus] = useState(true)
 
   const handleTmdbIdSelect = async (tmdbId: number) => {
     setIsLoading(true)
