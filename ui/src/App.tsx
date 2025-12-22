@@ -33,7 +33,6 @@ import {
 import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
-import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
