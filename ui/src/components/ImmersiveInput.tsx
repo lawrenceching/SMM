@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button"
 interface ImmersiveInputProps extends React.ComponentProps<"input"> {
   className?: string
   onSearch?: () => void
+  isOpen?: boolean
 }
 
-export function ImmersiveInput({ className, value, onChange, onSearch, ...props }: ImmersiveInputProps) {
+export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, ...props }: ImmersiveInputProps) {
   const [isFocused, setIsFocused] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
+
+  // Show focused appearance if input is focused OR dropdown is open
+  const shouldShowFocused = isFocused || (isOpen ?? false)
 
   // If value is provided without onChange, use defaultValue for uncontrolled mode
   const isControlled = value !== undefined && onChange !== undefined
@@ -27,6 +31,11 @@ export function ImmersiveInput({ className, value, onChange, onSearch, ...props 
   }
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // If dropdown is open, don't update internal focus state
+    if (isOpen) {
+      props.onBlur?.(e)
+      return
+    }
     // Delay blur to allow button click
     setTimeout(() => {
       if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
@@ -39,10 +48,17 @@ export function ImmersiveInput({ className, value, onChange, onSearch, ...props 
   const handleSearchClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
+    // Prevent blur from closing popover
+    e.stopImmediatePropagation?.()
+    // Keep focus on input when search button is clicked
+    // Use requestAnimationFrame to ensure focus happens after any blur events
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
     onSearch?.()
   }
 
-  const showSearchButton = isFocused && onSearch
+  const showSearchButton = shouldShowFocused && onSearch
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -57,13 +73,13 @@ export function ImmersiveInput({ className, value, onChange, onSearch, ...props 
           // Base styles - always applied
           "w-full min-w-0 outline-none transition-all",
           // Label-like styles when not focused
-          !isFocused && [
+          !shouldShowFocused && [
             "border-0 bg-transparent px-3 py-0 shadow-none",
             "text-foreground cursor-text",
             "hover:text-foreground/80",
           ],
           // Input-like styles when focused
-          isFocused && [
+          shouldShowFocused && [
             "file:text-foreground placeholder:text-muted-foreground",
             "selection:bg-primary selection:text-primary-foreground",
             "dark:bg-input/30 border-input h-9 rounded-md border bg-transparent px-3 py-1 shadow-xs",
