@@ -1,12 +1,9 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar, Star, TrendingUp, Globe, Search } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ImmersiveInput } from "./ImmersiveInput"
-import { useCallback, useState, useRef, useEffect } from "react"
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
+import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
@@ -41,74 +38,30 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMDBTVShowOverviewProps) {
-    if (!tvShow) {
-        return (
-            <div className={cn("flex items-center justify-center w-full h-full", className)}>
-                <div className="text-center space-y-4">
-                    <p className="text-muted-foreground">No TV show selected</p>
-                    {onOpenMediaSearch && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={onOpenMediaSearch}
-                        >
-                            <Search className="size-4 mr-2" />
-                            Search Media
-                        </Button>
-                    )}
-                </div>
-            </div>
-        )
-    }
-
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
-
-    const posterUrl = getTMDBImageUrl(tvShow.poster_path, "w500")
-    const backdropUrl = getTMDBImageUrl(tvShow.backdrop_path, "w780")
-    const formattedDate = formatDate(tvShow.first_air_date)
-    const [isSearchOpen, setIsSearchOpen] = useState(false)
-    const [popoverWidth, setPopoverWidth] = useState<number | undefined>(undefined)
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
-    const [searchQuery, setSearchQuery] = useState(tvShow.name || "")
+    const [searchQuery, setSearchQuery] = useState(tvShow?.name || "")
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
-    const inputContainerRef = useRef<HTMLDivElement>(null)
     const { userConfig } = useConfig()
 
-    // Measure input width when popover opens
-    useEffect(() => {
-        if (isSearchOpen && inputContainerRef.current) {
-            const width = inputContainerRef.current.offsetWidth
-            setPopoverWidth(width)
-        }
-    }, [isSearchOpen])
+    const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
+    const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
+    const formattedDate = tvShow ? formatDate(tvShow.first_air_date) : "N/A"
 
     // Update search query when tvShow name changes
     useEffect(() => {
-        if (tvShow.name) {
+        if (tvShow?.name) {
             setSearchQuery(tvShow.name)
         }
-    }, [tvShow.name])
+    }, [tvShow?.name])
 
-    const handleSearchButtonClick = useCallback(async () => {
-        // Prevent popover from closing
-        const wasOpen = isSearchOpen
-        if (!wasOpen) {
-            setIsSearchOpen(true)
-        }
-        
-        // Keep input focused
-        setTimeout(() => {
-            inputContainerRef.current?.querySelector('input')?.focus()
-        }, 0)
-        
+    const handleSearch = useCallback(async () => {
         // Perform search if there's a query
         if (!searchQuery.trim()) {
-            if (!wasOpen) {
-                setSearchResults([])
-                setSearchError(null)
-            }
+            setSearchResults([])
+            setSearchError(null)
             return
         }
 
@@ -147,20 +100,16 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
     }, [searchQuery, userConfig])
 
     const handleSelectResult = useCallback(async (result: TMDBTVShow) => {
-
         if(selectedMediaMetadata?.tmdbTvShow?.id === result.id) {
-            setIsSearchOpen(false)
             return
         }
 
         if (!selectedMediaMetadata?.mediaFolderPath) {
             console.error("No media metadata path available")
-            setIsSearchOpen(false)
             return
         }
 
         setIsUpdatingTvShow(true)
-        setIsSearchOpen(false)
 
         try {
             // Get language from user config, default to en-US
@@ -195,6 +144,31 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
             setIsUpdatingTvShow(false)
         }
     }, [selectedMediaMetadata, userConfig, updateMediaMetadata])
+    
+    // When tvShow is undefined, show only ImmersiveSearchbox
+    if (!tvShow) {
+        return (
+            <div className={cn("relative w-full h-full flex flex-col", className)}>
+                <div className="relative p-6 flex-1 overflow-y-auto">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            <ImmersiveSearchbox
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                onSearch={handleSearch}
+                                onSelect={handleSelectResult}
+                                searchResults={searchResults}
+                                isSearching={isSearching}
+                                searchError={searchError}
+                                placeholder="Enter TV show name"
+                                inputClassName="text-3xl font-bold mb-2 block"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
     
     return (
         <div className={cn("relative w-full h-full overflow-hidden rounded-lg flex flex-col", className)}>
@@ -235,115 +209,22 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                         <Skeleton className="h-6 w-1/2" />
                                     </div>
                                 ) : (
-                                    <Popover 
-                                        open={isSearchOpen} 
-                                        onOpenChange={(open) => {
-                                            setIsSearchOpen(open)
-                                        }}
-                                        modal={false}
-                                    >
-                                        <PopoverAnchor asChild>
-                                            <div ref={inputContainerRef}>
-                                                <ImmersiveInput 
-                                                    value={searchQuery} 
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    onSearch={handleSearchButtonClick}
-                                                    isOpen={isSearchOpen}
-                                                    className="text-3xl font-bold mb-2 block"
-                                                    placeholder="Enter TV show name"
-                                                />
-                                            </div>
-                                        </PopoverAnchor>
-                                    <PopoverContent 
-                                        className="p-0" 
-                                        align="start"
-                                        side="bottom"
-                                        sideOffset={8}
-                                        style={{ width: popoverWidth ? `${popoverWidth}px` : undefined }}
-                                        onInteractOutside={(e) => {
-                                            // Prevent closing when clicking the search button
-                                            const target = e.target as HTMLElement
-                                            if (inputContainerRef.current?.contains(target)) {
-                                                e.preventDefault()
-                                            }
-                                        }}
-                                    >
-                                        <ScrollArea className="max-h-[400px]">
-                                            <div className="p-2">
-                                                {isSearching ? (
-                                                    <div className="flex items-center justify-center h-32">
-                                                        <div className="text-muted-foreground">Searching...</div>
-                                                    </div>
-                                                ) : searchError ? (
-                                                    <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                                                        {searchError}
-                                                    </div>
-                                                ) : searchResults.length > 0 ? (
-                                                    searchResults.map((result) => {
-                                                        const resultPosterUrl = getTMDBImageUrl(result.poster_path, "w200")
-                                                        return (
-                                                            <div
-                                                                key={result.id}
-                                                                onClick={() => handleSelectResult(result)}
-                                                                className="flex gap-3 p-3 rounded-md cursor-pointer hover:bg-accent transition-colors"
-                                                            >
-                                                                {resultPosterUrl && (
-                                                                    <div className="shrink-0">
-                                                                        <img
-                                                                            src={resultPosterUrl}
-                                                                            alt={result.name}
-                                                                            className="w-16 h-24 object-cover rounded-md bg-muted"
-                                                                            onError={(e) => {
-                                                                                const target = e.target as HTMLImageElement
-                                                                                target.style.display = "none"
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                                <div className="flex-1 min-w-0">
-                                                                    <h3 className="font-semibold text-base mb-1">
-                                                                        {result.name}
-                                                                    </h3>
-                                                                    {result.original_name !== result.name && (
-                                                                        <p className="text-sm text-muted-foreground mb-1">
-                                                                            {result.original_name}
-                                                                        </p>
-                                                                    )}
-                                                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                                                        {result.overview || 'No overview available'}
-                                                                    </p>
-                                                                    {(result.first_air_date || result.vote_average) && (
-                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                                            {result.first_air_date && (
-                                                                                <span>{formatDate(result.first_air_date)}</span>
-                                                                            )}
-                                                                            {result.first_air_date && result.vote_average && (
-                                                                                <span>•</span>
-                                                                            )}
-                                                                            {result.vote_average > 0 && (
-                                                                                <span className="flex items-center gap-1">
-                                                                                    <Star className="size-3 fill-yellow-500 text-yellow-500" />
-                                                                                    {result.vote_average.toFixed(1)}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )
-                                                    })
-                                                ) : (
-                                                    <div className="flex items-center justify-center h-32 text-muted-foreground">
-                                                        {searchQuery.trim() ? 'No results found' : 'Enter a search query and click search'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </ScrollArea>
-                                    </PopoverContent>
-                                    </Popover>
-                                )}
-                                {isUpdatingTvShow ? null : tvShow.original_name !== tvShow.name && (
-                                    <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
+                                    <>
+                                        <ImmersiveSearchbox
+                                            value={searchQuery}
+                                            onChange={setSearchQuery}
+                                            onSearch={handleSearch}
+                                            onSelect={handleSelectResult}
+                                            searchResults={searchResults}
+                                            isSearching={isSearching}
+                                            searchError={searchError}
+                                            placeholder="Enter TV show name"
+                                            inputClassName="text-3xl font-bold mb-2 block"
+                                        />
+                                        {tvShow.original_name !== tvShow.name && (
+                                            <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
