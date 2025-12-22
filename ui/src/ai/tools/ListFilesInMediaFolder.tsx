@@ -1,7 +1,7 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
 import { z } from "zod";
 import { useMediaMetadata } from "@/components/media-metadata-provider";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import type { MediaMetadata } from "@core/types";
 
 interface ToolResponse {

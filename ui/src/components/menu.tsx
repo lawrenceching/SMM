@@ -15,7 +15,6 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/components/dialog-provider"
-import type { FolderType, FileItem } from "@/components/dialog-provider"
 
 export interface MenuItem {
   name: string

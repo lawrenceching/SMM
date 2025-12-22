@@ -332,7 +332,7 @@ async function openNativeFileDialog(): Promise<FileItem | null> {
 
 function AppLayout() {
 
-  const { openFolderDialog, filePickerDialog, downloadVideoDialog } = useDialogs()
+  const { openFolderDialog, filePickerDialog } = useDialogs()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
 
@@ -670,12 +670,6 @@ function AppLayout() {
 
 
 function App() {
-
-  const runtime = useChatRuntime({
-    transport: new AssistantChatTransport({
-      api: "/api/chat",
-    }),
-  });
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
