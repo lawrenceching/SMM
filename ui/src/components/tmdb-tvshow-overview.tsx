@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Star, TrendingUp, Globe, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveInput } from "./ImmersiveInput"
+import { useCallback } from "react"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -57,6 +58,10 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
     const posterUrl = getTMDBImageUrl(tvShow.poster_path, "w500")
     const backdropUrl = getTMDBImageUrl(tvShow.backdrop_path, "w780")
     const formattedDate = formatDate(tvShow.first_air_date)
+
+    const handleSearchButtonClick = useCallback(() => {
+        
+    }, [onOpenMediaSearch])
     
     return (
         <div className={cn("relative w-full h-full overflow-hidden rounded-lg flex flex-col", className)}>
@@ -89,6 +94,7 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                             <div>
                                 <ImmersiveInput 
                                     value={tvShow.name} 
+                                    onSearch={handleSearchButtonClick}
                                     className="text-3xl font-bold mb-2 block"
                                     placeholder="Enter TV show name"
                                 />
@@ -96,17 +102,6 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                     <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
                                 )}
                             </div>
-                            {onOpenMediaSearch && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={onOpenMediaSearch}
-                                    className="shrink-0"
-                                >
-                                    <Search className="size-4 mr-2" />
-                                    Search Media
-                                </Button>
-                            )}
                         </div>
                         
                         {/* Metadata Badges */}
