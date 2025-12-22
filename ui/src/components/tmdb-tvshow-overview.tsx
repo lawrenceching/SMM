@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Star, TrendingUp, Globe, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ImmersiveInput } from "./ImmersiveInput"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -86,7 +87,11 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                         {/* Title */}
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h1 className="text-3xl font-bold mb-2">{tvShow.name}</h1>
+                                <ImmersiveInput 
+                                    value={tvShow.name} 
+                                    className="text-3xl font-bold mb-2 block"
+                                    placeholder="Enter TV show name"
+                                />
                                 {tvShow.original_name !== tvShow.name && (
                                     <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
                                 )}
