@@ -37,7 +37,10 @@ export function ThreeColumnLayout({ children, className }: ThreeColumnLayoutProp
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel defaultSize={80}>
-            <ResizablePanelGroup direction="horizontal">
+
+{
+  (rightSidebarContent as any).length > 0 && (
+    <ResizablePanelGroup direction="horizontal">
               {/* sidebar content */}
               <ResizablePanel defaultSize={60}>
                 {sidebarContent}
@@ -50,6 +53,21 @@ export function ThreeColumnLayout({ children, className }: ThreeColumnLayoutProp
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
+  )
+}
+
+{
+  (rightSidebarContent as any).length === 0 && (
+    <ResizablePanelGroup direction="horizontal">
+      {/* sidebar content */}
+      <ResizablePanel defaultSize={100}>
+        {sidebarContent}
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  )
+}
+
+            
           </ResizablePanel>
         </ResizablePanelGroup>
         </>

@@ -648,14 +648,10 @@ function AppLayout() {
             <Button onClick={handleOpenConfig}>Open Config Dialog</Button>
           </div> */}
         </SidebarContent>
-        <RightSidebarContent>
+        {/* <RightSidebarContent>
           <div className="w-full h-full">
-          
-          {/* <MyRuntimeProvider>
-          <Thread />
-    </MyRuntimeProvider> */}
           </div>
-        </RightSidebarContent>
+        </RightSidebarContent> */}
       </ThreeColumnLayout>
 
       <StatusBar />
