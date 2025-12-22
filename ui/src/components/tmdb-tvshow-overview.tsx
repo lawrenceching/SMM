@@ -1,6 +1,6 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe, Tv, ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe, Tv, ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Link2, FileEdit, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect } from "react"
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
+import { Button } from "./ui/button"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -306,6 +307,64 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                             </div>
                         )}
                         
+                        {/* Action Buttons */}
+                        {isUpdatingTvShow ? (
+                            <div className="flex gap-2 flex-wrap">
+                                <Skeleton className="h-9 w-32" />
+                                <Skeleton className="h-9 w-24" />
+                                <Skeleton className="h-9 w-28" />
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 flex-wrap">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        // TODO: Implement match episode functionality for all episodes
+                                        console.log("Match Episodes", tvShow)
+                                    }}
+                                >
+                                    <Link2 className="size-4 mr-2" />
+                                    Match Episodes
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        // TODO: Implement rename functionality for all files
+                                        console.log("Rename", selectedMediaMetadata)
+                                    }}
+                                >
+                                    <FileEdit className="size-4 mr-2" />
+                                    Rename
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                        if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
+                                        
+                                        try {
+                                            const { downloadThumbnail } = await import("@/lib/utils")
+                                            const promises = selectedMediaMetadata.mediaFiles.map(mediaFile => {
+                                                return downloadThumbnail(selectedMediaMetadata, mediaFile)
+                                            })
+                                            
+                                            await Promise.all(promises)
+                                            // TODO: Show success toast
+                                            console.log("Scrape successful")
+                                        } catch (error) {
+                                            console.error("Scrape failed:", error)
+                                            // TODO: Show error toast
+                                        }
+                                    }}
+                                    disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
+                                >
+                                    <Download className="size-4 mr-2" />
+                                    Scrape
+                                </Button>
+                            </div>
+                        )}
                         
                     </div>
                 </div>
@@ -498,6 +557,7 @@ export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMD
                                                                                             </p>
                                                                                         )}
                                                                                     </div>
+
                                                                                 </div>
                                                                                 
                                                                                 {/* Files - Expandable */}
