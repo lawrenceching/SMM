@@ -1,6 +1,7 @@
 import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 import { getDeepseekProvider, DEEPSEEK_MODEL } from '../lib/ai-provider';
 import { z } from 'zod';
+import { frontendTools } from "@assistant-ui/react-ai-sdk";
 
 interface ChatRequest {
   messages?: UIMessage[];
@@ -23,6 +24,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
       model: deepseekProvider(model || DEEPSEEK_MODEL),
       messages: modelMessages,
       tools: {
+        ...frontendTools(tools),
         listFiles: {
           description: "List files that managed by this application",
           inputSchema: z.object(),

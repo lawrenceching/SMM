@@ -1,8 +1,8 @@
-import { getUserDataDir } from "tasks/HelloTask";
+import { getAppDataDir } from "tasks/HelloTask";
 import path, { join } from "path";
 
-const userDataDir = getUserDataDir();
-export const mediaMetadataDir = path.join(userDataDir, 'metadata');
+const appDataDir = getAppDataDir();
+export const mediaMetadataDir = path.join(appDataDir, 'metadata');
 
 export function metadataCacheFilePath(folderPathInPosix: string) {
     const filename = folderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')

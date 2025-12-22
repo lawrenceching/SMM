@@ -1,6 +1,8 @@
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
+import { executeHelloTask, getUserDataDir, getAppDataDir } from 'tasks/HelloTask';
+import { mkdir } from 'fs/promises';
 
 interface CommandLineArguments {
   staticDir?: string;
@@ -55,10 +57,13 @@ const server = new Server({
 
 server.start();
 
-// AI code
-// const { text } = await generateText({
-//   model: customProvider('deepseek-chat'), // Use the custom provider
-//   prompt: 'Hello',
-// });
-// 
-// console.log(text);
+// Initialize user data dir and app data dir
+const userDataDir = getUserDataDir();
+const appDataDir = getAppDataDir();
+
+// Create directories using fs/promises (optimized in Bun, simpler than Node.js)
+await mkdir(userDataDir, { recursive: true });
+await mkdir(appDataDir, { recursive: true });
+
+console.log(`User data directory initialized: ${userDataDir}`);
+console.log(`App data directory initialized: ${appDataDir}`);

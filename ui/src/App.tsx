@@ -9,7 +9,7 @@ import { Toaster } from "./components/ui/sonner"
 import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import { basename } from "./lib/path"
 import { cn } from "@/lib/utils"
-import type { FolderType } from "@/components/dialog-provider"
+import type { FileItem, FolderType } from "@/components/dialog-provider"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import {
@@ -40,7 +40,13 @@ import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 
 import { AssistantModal } from "./components/assistant-modal"
+import { makeAssistantTool, tool } from "@assistant-ui/react";
+import { z } from "zod";
 
+// Check if running in Electron environment
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
+}
 
 interface MediaFolderListItemProps {
   mediaName: string,
@@ -294,9 +300,44 @@ function MediaFolderToolbar({
   )
 }
 
+
+// Open native file dialog in Electron
+async function openNativeFileDialog(): Promise<FileItem | null> {
+  if (!isElectron()) {
+    return null
+  }
+
+  try {
+    // Check if electron.dialog is available
+    const electron = (window as any).electron
+    if (electron?.dialog?.showOpenDialog) {
+      const result = await electron.dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: 'Select Folder'
+      })
+      
+      if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+        const path = result.filePaths[0]
+        const name = path.split(/[/\\]/).pop() || path
+        return {
+          name,
+          path,
+          isDirectory: true
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to open native file dialog:', error)
+  }
+  
+  return null
+}
+
 function AppLayout() {
-  const { openFolderDialog } = useDialogs()
+
+  const { openFolderDialog, filePickerDialog, downloadVideoDialog } = useDialogs()
   const [openOpenFolder] = openFolderDialog
+  const [openFilePicker] = filePickerDialog
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
   const [filterType, setFilterType] = useState<FilterType>("all")
@@ -396,6 +437,69 @@ function AppLayout() {
     }
   }, [])
 
+  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
+    console.log('Folder type selected:', type, 'for path:', folderPath)
+      try {
+        // Read media metadata for the folder
+        const response = await readMediaMetadataApi(folderPath)
+        const metadata = response.data
+
+        if(!metadata) {
+          console.error('Failed to read media metadata')
+          return
+        }
+
+        // Set the folder type based on selection
+        const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
+          tvshow: "tvshow-folder",
+          movie: "movie-folder",
+          music: "music-folder"
+        }
+        metadata.type = folderTypeMap[type]
+
+        // Add the metadata to the list
+        addMediaMetadata(metadata)
+
+        // Select the newly added folder
+        pendingFolderPathRef.current = folderPath
+      } catch (error) {
+        console.error('Failed to read media metadata:', error)
+      }
+  }, [addMediaMetadata])
+
+  const handleOpenFolderMenuClick = useCallback(() => {
+    // Check if in Electron environment
+    if (isElectron()) {
+      // Use OpenFolderDialog to select folder type
+      openOpenFolder((type: FolderType) => {
+        console.log(`Selected folder type: ${type}`)
+        // TODO: Handle folder selection based on type
+        // After type selection, you can open native file dialog if needed
+        openNativeFileDialog().then((selectedFile) => {
+          if (selectedFile) {
+            console.log(`Selected folder: ${selectedFile.path}`)
+            // TODO: Handle folder selection based on type
+          }
+        })
+      })
+    } else {
+
+      openFilePicker((file: FileItem) => {
+        console.log(`Selected folder: ${file.path}`)
+        
+        openOpenFolder((type: FolderType) => {
+          onFolderSelected(type, file.path)
+          
+        }, file.path)
+
+      }, {
+        title: "Select Folder",
+        description: "Choose a folder to open"
+      })
+      
+    }
+  }, [openOpenFolder])
+
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -479,33 +583,7 @@ function AppLayout() {
 
     // Open OpenFolderDialog to select folder type
     openOpenFolder(async (type: FolderType) => {
-      console.log('Folder type selected:', type, 'for path:', droppedFolderPath)
-      try {
-        // Read media metadata for the folder
-        const response = await readMediaMetadataApi(droppedFolderPath)
-        const metadata = response.data
-
-        if(!metadata) {
-          console.error('Failed to read media metadata')
-          return
-        }
-
-        // Set the folder type based on selection
-        const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
-          tvshow: "tvshow-folder",
-          movie: "movie-folder",
-          music: "music-folder"
-        }
-        metadata.type = folderTypeMap[type]
-
-        // Add the metadata to the list
-        addMediaMetadata(metadata)
-
-        // Select the newly added folder
-        pendingFolderPathRef.current = droppedFolderPath
-      } catch (error) {
-        console.error('Failed to read media metadata:', error)
-      }
+      onFolderSelected(type, droppedFolderPath)
     }, droppedFolderPath)
   }, [mediaMetadatas, openOpenFolder, addMediaMetadata, setSelectedMediaMetadata])
 
@@ -542,7 +620,7 @@ function AppLayout() {
       
       <ThreeColumnLayout className="flex flex-col flex-1">
         <LeftSidebarContent>
-          <Menu/>
+          <Menu onOpenFolderMenuClick={handleOpenFolderMenuClick} />
           <MediaFolderToolbar
             sortOrder={sortOrder}
             onSortOrderChange={setSortOrder}
@@ -593,6 +671,20 @@ function AppLayout() {
   )
 }
 
+
+const randomUUID = tool({
+  description: "Get a random UUID",
+  parameters: z.object(),
+  execute: async ({}) => {
+    return Date.now().toString();
+  },
+});
+// Create the component
+const RandomUUIDTool = makeAssistantTool({
+  ...randomUUID,
+  toolName: "get-random-uuid",
+});
+
 function App() {
 
   const runtime = useChatRuntime({
@@ -608,7 +700,9 @@ function App() {
       <MediaMetadataProvider>
         <DialogProvider>
           <AppLayout />
+
           <AssistantRuntimeProvider runtime={runtime}>
+            <RandomUUIDTool />
               <AssistantModal />
           </AssistantRuntimeProvider>
           <Toaster position="bottom-right" />
@@ -621,3 +715,4 @@ function App() {
 }
 
 export default App
+

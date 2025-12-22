@@ -21,12 +21,14 @@ export async function handleReadFile(body: ReadFileRequestBody): Promise<ReadFil
 
     const { path: filePath } = validationResult.data;
     const userDataDir = getUserDataDir();
+    console.log(`userDataDir: ${userDataDir}`)
     
     // Validate path is within user data dir
     let validatedPath: string;
     try {
       validatedPath = validatePathInUserDataDir(filePath, userDataDir);
     } catch (error) {
+      console.log(`invalid path: ${filePath}`)
       return {
         error: error instanceof Error ? error.message : 'Path validation failed',
       };
