@@ -1,8 +1,7 @@
 import { AssistantModal } from "@/components/assistant-modal";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { GetMediaFoldersTool } from "./tools/GetMediaFolders";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { GetFilesInMediaFolderTool } from "./tools/ListFilesInMediaFolder";
+import { GetMediaFoldersTool, GetFilesInMediaFolderTool, MatchEpisodeTool } from "./tools";
 
 export function Assistant() {
     const runtime = useChatRuntime({
@@ -14,6 +13,7 @@ export function Assistant() {
     return <AssistantRuntimeProvider runtime={runtime}>
         <GetMediaFoldersTool />
         <GetFilesInMediaFolderTool />
+        <MatchEpisodeTool />
         <AssistantModal />
     </AssistantRuntimeProvider>
 }
