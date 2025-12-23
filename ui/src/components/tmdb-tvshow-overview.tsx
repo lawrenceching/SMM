@@ -42,7 +42,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
-    const [searchQuery, setSearchQuery] = useState(tvShow?.name || "")
+    const [searchQuery, setSearchQuery] = useState("")
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
     const [expandedSeasonId, setExpandedSeasonId] = useState<number | null>(null)
     const [expandedEpisodeId, setExpandedEpisodeId] = useState<number | null>(null)
@@ -56,6 +56,8 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
     useEffect(() => {
         if (tvShow?.name) {
             setSearchQuery(tvShow.name)
+        } else {
+            setSearchQuery("")
         }
     }, [tvShow?.name])
 
@@ -148,7 +150,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
     }, [selectedMediaMetadata, userConfig, updateMediaMetadata])
     
     // When tvShow is undefined, show only ImmersiveSearchbox
-    if (!tvShow) {
+    if (!tvShow && !isUpdatingTvShow) {
         return (
             <div className={cn("relative w-full h-full flex flex-col", className)}>
                 <div className="relative p-6 flex-1 overflow-y-auto">
@@ -162,7 +164,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                 searchResults={searchResults}
                                 isSearching={isSearching}
                                 searchError={searchError}
-                                placeholder="Enter TV show name"
+                                placeholder="未识别媒体库, 请在此处输入并搜索电视剧/动画"
                                 inputClassName="text-3xl font-bold mb-2 block"
                             />
                         </div>
