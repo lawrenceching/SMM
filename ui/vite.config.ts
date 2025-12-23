@@ -19,6 +19,12 @@ export default defineConfig({
         target: 'http://localhost:30000',
         changeOrigin: true,
       },
+      // WebSocket endpoint exposed by the CLI server (Bun/Hono) at GET /ws
+      '/ws': {
+        target: 'http://localhost:30000',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   resolve: {

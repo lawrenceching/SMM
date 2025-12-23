@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { serveStatic } from 'hono/bun';
+import { serveStatic, upgradeWebSocket, websocket } from 'hono/bun';
 import { logger } from 'hono/logger';
 import path from 'path';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import { search as handleTmdbSearch, getMovie as handleTmdbGetMovie, getTvShow a
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
+import { createWebSocketHandler } from './src/route/WebSocket';
 
 export interface ServerConfig {
   port?: number;
@@ -235,6 +236,9 @@ export class Server {
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
 
+    // WebSocket route - must be before static file middleware
+    this.app.get('/ws', upgradeWebSocket(createWebSocketHandler()));
+
     // POST /api/tmdb/search - Search TMDB for movies or TV shows
     this.app.post('/api/tmdb/search', async (c) => {
       try {
@@ -327,10 +331,12 @@ export class Server {
     this.server = Bun.serve({
       port: this.port,
       fetch: this.app.fetch,
+      websocket,
     });
 
     console.log(`📁 Static file root: ${this.root}`);
     console.log(`🚀 Static file server running on http://localhost:${this.port}`);
+    console.log(`🔌 WebSocket server available at ws://localhost:${this.port}/ws`);
   }
 
   stop(): void {

@@ -38,6 +38,7 @@ import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 
 import { Assistant } from "./ai/Assistant"
+import { useWebSocket } from "./hooks/useWebSocket"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -665,6 +666,8 @@ function AppLayout() {
 
 
 function App() {
+  // Establish WebSocket connection when app loads
+  useWebSocket();
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
