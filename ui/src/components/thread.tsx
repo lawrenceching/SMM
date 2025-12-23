@@ -28,6 +28,7 @@ import {
 import type { FC } from "react";
 import { useMediaMetadata } from "./media-metadata-provider";
 import { basename } from "@/lib/path";
+import { matchFilesPrompt } from "@/ai/prompts";
 
 export const Thread: FC = () => {
   return (
@@ -96,9 +97,9 @@ const ThreadWelcome: FC = () => {
 
 const SUGGESTIONS = [
   {
-    title: "What's the weather",
-    label: "in San Francisco?",
-    prompt: "What's the weather in San Francisco?",
+    title: "匹配视频文件",
+    label: "智能剧集匹配",
+    prompt: matchFilesPrompt,
   },
   {
     title: "Explain React hooks",
