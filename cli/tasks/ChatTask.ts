@@ -2,17 +2,20 @@ import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 import { getDeepseekProvider, DEEPSEEK_MODEL } from '../lib/ai-provider';
 import { z } from 'zod';
 import { frontendTools } from "@assistant-ui/react-ai-sdk";
+import os from 'os';
 
 interface ChatRequest {
   messages?: UIMessage[];
   model?: string;
   tools?: any;
+  system?: string;
 }
 
 export async function handleChatRequest(request: Request): Promise<Response> {
   try {
     const body = await request.json() as ChatRequest;
-    const { messages, model, tools } = body;
+    console.log(`>>> ${JSON.stringify(body)}`)
+    const { messages, model, tools, system } = body;
     console.log('Received chat request:', { messageCount: messages?.length, model });
 
     // Convert UI messages to model messages format
@@ -23,16 +26,18 @@ export async function handleChatRequest(request: Request): Promise<Response> {
     const result = await streamText({
       model: deepseekProvider(model || DEEPSEEK_MODEL),
       messages: modelMessages,
+      system: system,
       tools: {
         ...frontendTools(tools),
-        description: {
-          description: "Get description of Simple Media Manager(SMM)",
+        os: {
+          description: "Get the OS information",
           inputSchema: z.object(),
           execute: async ({  }) => {
-            return `Simple Media Manager(SMM) is an application to manage media files and scrape matadata. 
-SMM is powered by AI. 
-SMM is a cross-platform application provided Desktop Application client and webui(which extends SMM to be server-side app and NAS app).`
-
+            return {
+              platform: os.platform(),
+              arch: os.arch(),
+              type: os.type(),
+            };
           },
         },
       },

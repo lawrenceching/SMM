@@ -2,6 +2,7 @@ import { MarkdownText } from "@/components/markdown-text";
 import { ToolFallback } from "@/components/tool-fallback";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   ActionBarPrimitive,
@@ -25,6 +26,8 @@ import {
   SquareIcon,
 } from "lucide-react";
 import type { FC } from "react";
+import { useMediaMetadata } from "./media-metadata-provider";
+import { basename } from "@/lib/path";
 
 export const Thread: FC = () => {
   return (
@@ -137,7 +140,6 @@ const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone className="aui-composer-attachment-dropzone flex w-full flex-col rounded-2xl border border-input bg-background px-1 pt-2 outline-none transition-shadow has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50">
-        <div></div>
         <ComposerPrimitive.Input
           placeholder="Send a message..."
           className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
@@ -151,10 +153,23 @@ const Composer: FC = () => {
   );
 };
 
+/**
+ * 
+ * @param path Path in platform-specific format
+ * @param maxLength 
+ */
+function short(path: string, maxLength: number) {
+  const folderName = basename(path) ?? "";
+  return folderName.slice(0, maxLength) + '...';
+}
+
 const ComposerAction: FC = () => {
+
+  const { selectedMediaMetadata } = useMediaMetadata();
+
   return (
     <div className="aui-composer-action-wrapper relative mx-2 mb-2 flex items-center justify-between">
-      <div></div>
+      <Badge variant="secondary">{short(selectedMediaMetadata?.mediaFolderPath ?? '', 8)}</Badge>
 
       <AssistantIf condition={({ thread }) => !thread.isRunning}>
         <ComposerPrimitive.Send asChild>
