@@ -6,6 +6,7 @@ import { useMediaMetadata } from "@/components/media-metadata-provider";
 import { useEffect } from "react";
 
 
+
 function ModelContext() {
     const api = useAssistantApi();
     const { selectedMediaMetadata} = useMediaMetadata();
@@ -51,10 +52,11 @@ export function Assistant() {
 
     return <AssistantRuntimeProvider runtime={runtime}>
         <ModelContext/>
-        <GetMediaFoldersTool />
+        {/* <GetMediaFoldersTool /> */}
         <GetFilesInMediaFolderTool />
         <GetMediaMetadataTool />
         <MatchEpisodeTool />
         <AssistantModal />
+
     </AssistantRuntimeProvider>
 }

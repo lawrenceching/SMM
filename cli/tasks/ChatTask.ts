@@ -1,8 +1,14 @@
-import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from 'ai';
 import { getDeepseekProvider, DEEPSEEK_MODEL } from '../lib/ai-provider';
 import { z } from 'zod';
 import { frontendTools } from "@assistant-ui/react-ai-sdk";
 import os from 'os';
+import { config } from 'dotenv';
+import { executeHelloTask } from './HelloTask';
+import { join } from 'path';
+
+config();
 
 interface ChatRequest {
   messages?: UIMessage[];
@@ -11,37 +17,49 @@ interface ChatRequest {
   system?: string;
 }
 
+const openai = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL,
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export async function handleChatRequest(request: Request): Promise<Response> {
   try {
     const body = await request.json() as ChatRequest;
-    console.log(`>>> ${JSON.stringify(body)}`)
     const { messages, model, tools, system } = body;
-    console.log('Received chat request:', { messageCount: messages?.length, model });
 
     // Convert UI messages to model messages format
-    const modelMessages = convertToModelMessages(messages || []);
+    const modelMessages = await convertToModelMessages(messages || []);
     console.log('Converted to model messages:', modelMessages.length);
 
-    const deepseekProvider = getDeepseekProvider();
     const result = await streamText({
-      model: deepseekProvider(model || DEEPSEEK_MODEL),
+      model: openai.chat(model || process.env.OPENAI_MODEL || 'deepseek-chat'),
       messages: modelMessages,
-      system: system,
+      // system: system,
       tools: {
         ...frontendTools(tools),
-        os: {
-          description: "Get the OS information",
+        isFolderExist: {
+          description: "Chekc if the folder exists in the file system",
+          inputSchema: z.object({
+            path: z.string().describe("The absolute path of the media folder in POSIX or Windows format"),
+          }),
+          execute: async ({ path }) => {
+            return true;
+          },
+        },
+        getMediaFolders: {
+          description: "Get the media folders that managed by SMM",
           inputSchema: z.object(),
           execute: async ({  }) => {
-            return {
-              platform: os.platform(),
-              arch: os.arch(),
-              type: os.type(),
-            };
+            const {userDataDir} = await executeHelloTask()
+            const obj = await Bun.file(join(userDataDir, 'smm.json')).json()
+            const folders = obj.folders
+            return folders
           },
         },
       },
+      stopWhen: stepCountIs(20)
     });
+
 
     // Use toUIMessageStreamResponse for useChat compatibility
     const response = result.toUIMessageStreamResponse();
