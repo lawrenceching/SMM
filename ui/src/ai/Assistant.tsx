@@ -1,5 +1,5 @@
 import { AssistantModal } from "@/components/assistant-modal";
-import { AssistantProvider, AssistantRuntimeProvider, useAssistantApi } from "@assistant-ui/react";
+import { AssistantRuntimeProvider, useAssistantApi } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { GetMediaFoldersTool, GetFilesInMediaFolderTool, GetMediaMetadataTool, MatchEpisodeTool } from "./tools";
 import { useMediaMetadata } from "@/components/media-metadata-provider";

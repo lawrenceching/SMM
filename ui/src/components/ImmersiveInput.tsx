@@ -49,7 +49,9 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
     e.preventDefault()
     e.stopPropagation()
     // Prevent blur from closing popover
-    e.stopImmediatePropagation?.()
+    if ('stopImmediatePropagation' in e) {
+      (e as unknown as { stopImmediatePropagation: () => void }).stopImmediatePropagation();
+    }
     // Keep focus on input when search button is clicked
     // Use requestAnimationFrame to ensure focus happens after any blur events
     requestAnimationFrame(() => {

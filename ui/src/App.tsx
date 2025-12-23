@@ -1,4 +1,4 @@
-import { ThreeColumnLayout, LeftSidebarContent, RightSidebarContent, SidebarContent } from "@/components/three-column-layout"
+import { ThreeColumnLayout, LeftSidebarContent, SidebarContent } from "@/components/three-column-layout"
 import { SearchForm } from "./components/search-form"
 import { Menu } from "./components/menu"
 import { StatusBar } from "./components/StatusBar"

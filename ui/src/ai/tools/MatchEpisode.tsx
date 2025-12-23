@@ -5,10 +5,6 @@ import { useEffect } from "react";
 import type { MediaFileMetadata, MediaMetadata } from "@core/types";
 import { Path } from "@core/path";
 
-interface ToolResponse {
-    error?: string;
-}
-
 let mediaMetadatas: MediaMetadata[] = [];
 let updateMediaMetadata: (path: string, mediaMetadata: MediaMetadata) => void = () => {};
 

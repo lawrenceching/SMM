@@ -13,7 +13,6 @@ import { Button } from "./ui/button"
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
-    onOpenMediaSearch?: () => void
 }
 
 // Helper function to format date
@@ -38,7 +37,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onOpenMediaSearch }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProps) {
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
