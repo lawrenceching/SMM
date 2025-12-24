@@ -1,9 +1,5 @@
 import type { Context } from 'hono';
-
-export interface WebSocketMessage {
-  event: string;
-  data?: any;
-}
+import { registerConnection, unregisterConnection, handleWebSocketResponse, type WebSocketMessage } from '../utils/websocketManager';
 
 /**
  * Create WebSocket handler for Hono
@@ -14,6 +10,9 @@ export function createWebSocketHandler() {
     return {
       onOpen(event: Event, ws: any) {
         console.log('[WebSocket] Connection established');
+        
+        // Register the connection
+        registerConnection(ws);
 
         // Send "hello" event immediately when connection is established
         const helloMessage: WebSocketMessage = {
@@ -34,16 +33,29 @@ export function createWebSocketHandler() {
           
           console.log('[WebSocket] Received message:', parsed);
 
+          // Check if this is a response to a pending request
+          if (parsed.requestId) {
+            handleWebSocketResponse(parsed);
+          }
+
           // Handle userAgent event
           if (parsed.event === 'userAgent' && parsed.data?.userAgent) {
             console.log('[WebSocket] Received userAgent:', parsed.data.userAgent);
             // You can add additional handling here if needed
+          }
+
+          // Handle selectedMediaMetadata event (response from frontend)
+          if (parsed.event === 'selectedMediaMetadata' && parsed.data?.selectedMediaMetadata) {
+            console.log('[WebSocket] Received selectedMediaMetadata:', JSON.stringify(parsed.data.selectedMediaMetadata, null, 2));
           }
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
         }
       },
       onClose(event: CloseEvent, ws: any) {
+        // Unregister the connection
+        unregisterConnection(ws);
+        
         if (event.code !== 1000) {
           // Non-normal closure indicates an error
           console.error(`[WebSocket] Connection closed with error - code: ${event.code}, reason: ${event.reason}`);

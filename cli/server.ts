@@ -5,6 +5,7 @@ import path from 'path';
 import { z } from 'zod';
 import type { ApiExecutePostRequestBody } from '../core/types';
 import { executeHelloTask } from './tasks/HelloTask';
+import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMetadataTask';
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
@@ -49,8 +50,8 @@ export class Server {
   private setupRoutes() {
     // Zod schema for request body validation
     const executeRequestSchema = z.object({
-      name: z.enum(['hello', 'system'], {
-        message: 'name must be one of: "hello", "system"'
+      name: z.enum(['hello', 'system', 'GetSelectedMediaMetadata'], {
+        message: 'name must be one of: "hello", "system", "GetSelectedMediaMetadata"'
       }),
       data: z.any()
     });
@@ -92,6 +93,11 @@ export class Server {
         // Execute task based on name
         if (body.name === 'hello') {
           const result = await executeHelloTask();
+          return c.json(result);
+        }
+
+        if (body.name === 'GetSelectedMediaMetadata') {
+          const result = await executeGetSelectedMediaMetadataTask();
           return c.json(result);
         }
 

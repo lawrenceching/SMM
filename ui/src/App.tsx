@@ -670,10 +670,11 @@ function WebSocketHandlers() {
 
   const send = useWebSocketSend();
 
-  useWebSocketEvent((event) => {
-    if (event === "getSelectedMediaMetadata") {
+  useWebSocketEvent((message) => {
+    if (message.event === "getSelectedMediaMetadata") {
       send({
         event: "selectedMediaMetadata",
+        requestId: message.requestId, // Echo back the requestId for correlation
         data: {
           selectedMediaMetadata,
         },

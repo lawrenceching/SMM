@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 export interface WebSocketMessage {
   event: string;
   data?: any;
+  requestId?: string; // For request/response correlation
 }
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -35,15 +36,15 @@ export function sendWebSocketMessage(message: WebSocketMessage): void {
 /**
  * Register a WebSocket event handler.
  *
- * The handler receives `(event, data?)`. You can ignore `data` if not needed.
+ * The handler receives the full message object, including event, data, and requestId.
  */
-export function useWebSocketEvent(handler: (event: string, data?: any) => void): void {
+export function useWebSocketEvent(handler: (message: WebSocketMessage) => void): void {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
   useEffect(() => {
     const listener: WebSocketEventListener = (message) => {
-      handlerRef.current(message.event, message.data);
+      handlerRef.current(message);
     };
 
     webSocketEventListeners.add(listener);
