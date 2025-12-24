@@ -38,7 +38,7 @@ import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 
 import { Assistant } from "./ai/Assistant"
-import { useWebSocket } from "./hooks/useWebSocket"
+import { useWebSocket, useWebSocketEvent, useWebSocketSend } from "./hooks/useWebSocket"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -664,6 +664,27 @@ function AppLayout() {
   )
 }
 
+function WebSocketHandlers() {
+
+  const { selectedMediaMetadata } = useMediaMetadata();
+
+  const send = useWebSocketSend();
+
+  useWebSocketEvent((event) => {
+    if (event === "getSelectedMediaMetadata") {
+      send({
+        event: "selectedMediaMetadata",
+        data: {
+          selectedMediaMetadata,
+        },
+      });
+    }
+  });
+
+  return (
+    <></>
+  )
+}
 
 function App() {
   // Establish WebSocket connection when app loads
@@ -674,6 +695,7 @@ function App() {
       
       <ConfigProvider>
       <MediaMetadataProvider>
+        <WebSocketHandlers />
         <DialogProvider>
           <AppLayout />
 

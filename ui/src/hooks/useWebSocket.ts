@@ -14,6 +14,54 @@ export interface UseWebSocketReturn {
   send: (message: WebSocketMessage) => void;
 }
 
+type WebSocketEventListener = (message: WebSocketMessage) => void;
+
+const webSocketEventListeners = new Set<WebSocketEventListener>();
+let activeWebSocket: WebSocket | null = null;
+
+export function sendWebSocketMessage(message: WebSocketMessage): void {
+  if (activeWebSocket?.readyState === WebSocket.OPEN) {
+    try {
+      activeWebSocket.send(JSON.stringify(message));
+    } catch (error) {
+      console.error('[WebSocket] Error sending message:', error);
+    }
+    return;
+  }
+
+  console.warn('[WebSocket] Cannot send message: WebSocket is not open');
+}
+
+/**
+ * Register a WebSocket event handler.
+ *
+ * The handler receives `(event, data?)`. You can ignore `data` if not needed.
+ */
+export function useWebSocketEvent(handler: (event: string, data?: any) => void): void {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    const listener: WebSocketEventListener = (message) => {
+      handlerRef.current(message.event, message.data);
+    };
+
+    webSocketEventListeners.add(listener);
+    return () => {
+      webSocketEventListeners.delete(listener);
+    };
+  }, []);
+}
+
+/**
+ * React hook that returns a stable send function for the active WebSocket.
+ */
+export function useWebSocketSend() {
+  return useCallback((message: WebSocketMessage) => {
+    sendWebSocketMessage(message);
+  }, []);
+}
+
 function createUUID(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -75,6 +123,7 @@ export function useWebSocket(): UseWebSocketReturn {
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+      activeWebSocket = ws;
 
       ws.onopen = () => {
         console.log('[WebSocket] Connected');
@@ -103,6 +152,15 @@ export function useWebSocket(): UseWebSocketReturn {
             ws.send(JSON.stringify(userAgentMessage));
             console.log('[WebSocket] Sent userAgent:', navigator.userAgent);
           }
+
+          // Fan out all events (including "hello") to subscribers
+          for (const listener of webSocketEventListeners) {
+            try {
+              listener(message);
+            } catch (error) {
+              console.error('[WebSocket] Error in event listener:', error);
+            }
+          }
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
         }
@@ -117,6 +175,9 @@ export function useWebSocket(): UseWebSocketReturn {
         console.log('[WebSocket] Connection closed', event.code, event.reason);
         setStatus('disconnected');
         wsRef.current = null;
+        if (activeWebSocket === ws) {
+          activeWebSocket = null;
+        }
 
         // Attempt to reconnect if not a normal closure
         if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -146,6 +207,9 @@ export function useWebSocket(): UseWebSocketReturn {
     // Close WebSocket connection
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual disconnect');
+      if (activeWebSocket === wsRef.current) {
+        activeWebSocket = null;
+      }
       wsRef.current = null;
     }
 
