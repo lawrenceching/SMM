@@ -7,6 +7,7 @@ import {
   getMediaFoldersTool,
   listFilesInMediaFolderTool,
   matchEpisodeTool,
+  createMatchEpisodesInBatchTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
 } from '../src/tools';
@@ -51,7 +52,8 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         getMediaMetadata: createGetMediaMetadataTool(clientId),
         getMediaFolders: getMediaFoldersTool,
         listFilesInMediaFolder: listFilesInMediaFolderTool,
-        matchEpisode: matchEpisodeTool,
+        // matchEpisode: matchEpisodeTool,
+        matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId),
         askForConfirmation: createAskForConfirmationTool(clientId),
       },
       stopWhen: stepCountIs(20)

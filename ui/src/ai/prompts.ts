@@ -60,10 +60,7 @@ S00E01 -> /path/to/file1.mp4
 S00E02 -> /path/to/file2.mp4
 ...continue the rest of files
 \`\`\`
-[ ] Call "match-episode" to update the MediaFileMetadata in SMM.
-
-If mulitple files are provided, you should match **ALL** files at once. ONE user confirmation, and multiple calls to "match-episode".
-You **MUST** get user confirmation for every match (file, season, episode) before you call "match-episode" to update them.
+[ ] Call "match-episodes-in-batch" to update the MediaFileMetadata in SMM, based on previous task output
 
 
 ## User Preferences
