@@ -20,6 +20,12 @@ The `electron` module wrap HTML files into Electron application. And implement t
 The `cli` module serves HTML as web UI and Implement the platform specific logic.
 `cli` is a Bun application written in TypeScipt, and will be build into executable for different OS and arch.
 
+### Folder Structure in CLI module
+
+* **`src/route`** The API Routes / API handlers
+* **`src/tools`** The tools for AI Agent tool calling
+* **`src/utils`** The utility code
+
 ## Unit Test
 
 This is the unit test guideline for AI Agent.
