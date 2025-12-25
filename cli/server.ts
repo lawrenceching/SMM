@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { serveStatic, upgradeWebSocket, websocket } from 'hono/bun';
+import { serveStatic } from 'hono/bun';
 import { logger } from 'hono/logger';
 import path from 'path';
 import { z } from 'zod';
@@ -19,11 +19,13 @@ import { search as handleTmdbSearch, getMovie as handleTmdbGetMovie, getTvShow a
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
-import { createWebSocketHandler } from './src/route/WebSocket';
+import { initializeSocketIO } from './src/route/WebSocket';
 import { handleDebugRequest } from './src/route/Debug';
 import { requestId } from 'hono/request-id';
 import { pinoHttp } from 'pino-http';
-const logger = pinoHttp()
+import { Server as SocketIOServer } from 'socket.io';
+import { Server as Engine } from '@socket.io/bun-engine';
+const pinoLogger = pinoHttp()
 
 export interface ServerConfig {
   port?: number;
@@ -35,33 +37,56 @@ export class Server {
   private server: ReturnType<typeof Bun.serve> | null = null;
   private port: number;
   private root: string;
+  private io: SocketIOServer;
+  private engine: Engine;
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
     
+    // Initialize Socket.IO and Bun Engine with CORS configuration
+    this.engine = new Engine({
+      cors: {
+        origin: "*", // Allow all origins (adjust in production)
+        methods: ["GET", "POST"],
+        credentials: true
+      }
+    });
+    
+    this.io = new SocketIOServer({
+      cors: {
+        origin: "*", // Allow all origins (adjust in production)
+        methods: ["GET", "POST"]
+      }
+    });
+    
+    this.io.bind(this.engine);
+    
     this.app = new Hono();
     this.app.use(requestId())
-    this.app.use(async (_c, next) => {
-      // pass hono's request-id to pino-http
-      const c = _c as any;
-      c.env.incoming.id = c.var.requestId;
+    // this.app.use(async (_c, next) => {
+    //   // pass hono's request-id to pino-http
+    //   const c = _c as any;
+    //   c.env.incoming.id = c.var.requestId;
     
-      // map express style middleware to hono
-      await new Promise<void>((resolve) => logger(c.env.incoming, c.env.outgoing, () => resolve()));
+    //   // map express style middleware to hono
+    //   await new Promise<void>((resolve) => pinoLogger(c.env.incoming, c.env.outgoing, () => resolve()));
     
-      c.set('logger', c.env.incoming.log);
+    //   c.set('logger', c.env.incoming.log);
     
-      await next();
-    });
+    //   await next();
+    // });
     this.setupMiddleware();
     this.setupRoutes();
+    
+    // Initialize Socket.IO connection handlers
+    initializeSocketIO(this.io);
   }
 
   private setupMiddleware() {
     // Add logging middleware
-    this.app.use('*', logger());
+    // this.app.use('*', logger());
   }
 
   private setupRoutes() {
@@ -276,8 +301,7 @@ export class Server {
       }
     });
 
-    // WebSocket route - must be before static file middleware
-    this.app.get('/ws', upgradeWebSocket(createWebSocketHandler()));
+    // Socket.IO is handled via engine in Bun.serve, not as a Hono route
 
     // POST /api/tmdb/search - Search TMDB for movies or TV shows
     this.app.post('/api/tmdb/search', async (c) => {
@@ -368,15 +392,28 @@ export class Server {
       return;
     }
 
+    const { websocket } = this.engine.handler();
+
     this.server = Bun.serve({
       port: this.port,
-      fetch: this.app.fetch,
+      idleTimeout: 30, // must be greater than the "pingInterval" option of the engine, which defaults to 25 seconds
+      fetch: (req, server) => {
+        const url = new URL(req.url);
+
+        // Handle Socket.IO requests
+        if (url.pathname.startsWith('/socket.io/')) {
+          return this.engine.handleRequest(req, server);
+        } else {
+          // Handle regular HTTP requests with Hono
+          return this.app.fetch(req, server);
+        }
+      },
       websocket,
     });
 
     console.log(`📁 Static file root: ${this.root}`);
     console.log(`🚀 Static file server running on http://localhost:${this.port}`);
-    console.log(`🔌 WebSocket server available at ws://localhost:${this.port}/ws`);
+    console.log(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
   }
 
   stop(): void {
@@ -392,6 +429,10 @@ export class Server {
 
   getApp(): Hono {
     return this.app;
+  }
+
+  getIO(): SocketIOServer {
+    return this.io;
   }
 
   getPort(): number {

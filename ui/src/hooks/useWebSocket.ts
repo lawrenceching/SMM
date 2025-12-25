@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 export interface WebSocketMessage {
   event: string;
   data?: any;
-  requestId?: string; // For request/response correlation
+  requestId?: string; // For backward compatibility
 }
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -18,25 +19,25 @@ export interface UseWebSocketReturn {
 type WebSocketEventListener = (message: WebSocketMessage) => void;
 
 const webSocketEventListeners = new Set<WebSocketEventListener>();
-let activeWebSocket: WebSocket | null = null;
+let activeSocket: Socket | null = null;
 
 export function sendWebSocketMessage(message: WebSocketMessage): void {
-  if (activeWebSocket?.readyState === WebSocket.OPEN) {
+  if (activeSocket?.connected) {
     try {
-      activeWebSocket.send(JSON.stringify(message));
+      activeSocket.emit(message.event, message.data);
     } catch (error) {
-      console.error('[WebSocket] Error sending message:', error);
+      console.error('[Socket.IO] Error sending message:', error);
     }
     return;
   }
 
-  console.warn('[WebSocket] Cannot send message: WebSocket is not open');
+  console.warn('[Socket.IO] Cannot send message: Socket is not connected');
 }
 
 /**
- * Register a WebSocket event handler.
+ * Register a Socket.IO event handler.
  *
- * The handler receives the full message object, including event, data, and requestId.
+ * The handler receives the full message object, including event and data.
  */
 export function useWebSocketEvent(handler: (message: WebSocketMessage) => void): void {
   const handlerRef = useRef(handler);
@@ -55,12 +56,38 @@ export function useWebSocketEvent(handler: (message: WebSocketMessage) => void):
 }
 
 /**
- * React hook that returns a stable send function for the active WebSocket.
+ * React hook that returns a stable send function for the active Socket.IO connection.
  */
 export function useWebSocketSend() {
   return useCallback((message: WebSocketMessage) => {
     sendWebSocketMessage(message);
   }, []);
+}
+
+/**
+ * Helper to send acknowledgement for Socket.IO events
+ * This should be called by event handlers that receive events with acknowledgements
+ */
+export function sendAcknowledgement(message: WebSocketMessage, response: any): void {
+  console.log('[Socket.IO][DEBUG] sendAcknowledgement called', {
+    event: message.event,
+    response,
+    hasCallback: !!(message as any)._socketCallback,
+    callbackType: typeof (message as any)._socketCallback
+  });
+  
+  const callback = (message as any)._socketCallback;
+  if (callback && typeof callback === 'function') {
+    try {
+      console.log('[Socket.IO][DEBUG] Calling callback with response:', response);
+      callback(response);
+      console.log('[Socket.IO][DEBUG] Acknowledgement sent successfully:', response);
+    } catch (error) {
+      console.error('[Socket.IO][DEBUG] Error sending acknowledgement:', error);
+    }
+  } else {
+    console.warn('[Socket.IO][DEBUG] No callback available for acknowledgement. Message:', message);
+  }
 }
 
 function createUUID(): string {
@@ -86,148 +113,155 @@ export function getOrCreateClientId(): string {
 }
 
 /**
- * React hook for managing WebSocket connection to CLI server
+ * React hook for managing Socket.IO connection to CLI server
  * Automatically connects when the hook is used
  * Listens for "hello" event and responds with userAgent
  */
 export function useWebSocket(): UseWebSocketReturn {
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+  const socketRef = useRef<Socket | null>(null);
   const clientIdRef = useRef<string>(getOrCreateClientId());
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 3000; // 3 seconds
 
-  const getWebSocketUrl = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const getSocketUrl = useCallback(() => {
+    // Socket.IO uses HTTP/HTTPS protocol, not WS/WSS
+    const protocol = window.location.protocol;
     const host = window.location.host;
-    return `${protocol}//${host}/ws`;
+    return `${protocol}//${host}`;
   }, []);
 
   const connect = useCallback(() => {
     // Don't connect if already connected or connecting
-    if (wsRef.current?.readyState === WebSocket.OPEN || status === 'connecting') {
+    if (socketRef.current?.connected || status === 'connecting') {
       return;
-    }
-
-    // Clear any pending reconnection attempts
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
     }
 
     try {
       setStatus('connecting');
-      const wsUrl = getWebSocketUrl();
-      console.log('[WebSocket] Connecting to:', wsUrl);
+      const socketUrl = getSocketUrl();
+      console.log('[Socket.IO] Connecting to:', socketUrl);
       
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-      activeWebSocket = ws;
+      // Create Socket.IO connection
+      const socket = io(socketUrl, {
+        // Socket.IO will automatically reconnect
+        reconnection: true,
+        reconnectionDelay: 3000,
+        reconnectionAttempts: 5,
+        transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+        path: '/socket.io/', // Explicit path
+        autoConnect: true,
+      });
+      
+      socketRef.current = socket;
+      activeSocket = socket;
 
-      ws.onopen = () => {
-        console.log('[WebSocket] Connected');
+      // Connection established
+      socket.on('connect', () => {
+        console.log('[Socket.IO] Connected');
         setStatus('connected');
-        reconnectAttemptsRef.current = 0;
-      };
+      });
 
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          // console.log('[WebSocket] Received message:', message);
+      // Handle "hello" event from server
+      socket.on('hello', () => {
+        console.log('[Socket.IO] Received hello event, sending userAgent');
+        
+        // Send userAgent with clientId
+        socket.emit('userAgent', {
+          userAgent: navigator.userAgent,
+          clientId: clientIdRef.current,
+        });
+        
+        console.log('[Socket.IO] Sent userAgent:', navigator.userAgent);
+      });
 
-          // Handle "hello" event
-          if (message.event === 'hello') {
-            console.log('[WebSocket] Received hello event, sending userAgent');
-            
-            // Send userAgent response
-            const userAgentMessage: WebSocketMessage = {
-              event: 'userAgent',
-              data: {
-                userAgent: navigator.userAgent,
-                clientId: clientIdRef.current,
-              }
-            };
-            
-            ws.send(JSON.stringify(userAgentMessage));
-            console.log('[WebSocket] Sent userAgent:', navigator.userAgent);
-          }
-
-          // Fan out all events (including "hello") to subscribers
-          for (const listener of webSocketEventListeners) {
-            try {
-              listener(message);
-            } catch (error) {
-              console.error('[WebSocket] Error in event listener:', error);
-            }
-          }
-        } catch (error) {
-          console.error('[WebSocket] Error parsing message:', error);
+      // Set up catch-all event listener for custom events
+      // This allows us to fan out events to all registered listeners
+      // Use onAny to catch all events
+      socket.onAny((event: string, ...args: any[]) => {
+        console.log('[Socket.IO][DEBUG] Received event:', event, 'args count:', args.length, 'args:', args);
+        
+        // Skip internal Socket.IO events
+        if (event === 'connect' || event === 'disconnect' || event === 'connect_error' || event === 'hello' || event === 'userAgent') {
+          return;
         }
-      };
 
-      ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error);
-        setStatus('error');
-      };
+        // Check if the last argument is a callback function (acknowledgement)
+        const lastArg = args[args.length - 1];
+        const hasCallback = typeof lastArg === 'function';
+        const callback = hasCallback ? lastArg : undefined;
+        const data = hasCallback ? args[0] : args[0];
 
-      ws.onclose = (event) => {
-        console.log('[WebSocket] Connection closed', event.code, event.reason);
+        console.log('[Socket.IO][DEBUG] Event details:', {
+          event,
+          hasCallback,
+          callbackType: typeof callback,
+          dataLength: args.length,
+          data
+        });
+
+        const message: WebSocketMessage = {
+          event,
+          data,
+        };
+
+        // If there's a callback, we need to handle acknowledgements
+        // Store the callback so event handlers can use it
+        if (callback) {
+          // Add callback to message for acknowledgement handling
+          (message as any)._socketCallback = callback;
+          console.log('[Socket.IO][DEBUG] Callback attached to message for event:', event);
+        }
+
+        // Fan out to all registered listeners
+        for (const listener of webSocketEventListeners) {
+          try {
+            listener(message);
+          } catch (error) {
+            console.error('[Socket.IO] Error in event listener:', error);
+          }
+        }
+      });
+
+      // Handle disconnection
+      socket.on('disconnect', (reason: string) => {
+        console.log('[Socket.IO] Disconnected:', reason);
         setStatus('disconnected');
-        wsRef.current = null;
-        if (activeWebSocket === ws) {
-          activeWebSocket = null;
-        }
+      });
 
-        // Attempt to reconnect if not a normal closure
-        if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          console.log(`[WebSocket] Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, reconnectDelay);
-        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          console.error('[WebSocket] Max reconnection attempts reached');
-        }
-      };
+      // Handle connection errors
+      socket.on('connect_error', (error: Error) => {
+        console.error('[Socket.IO] Connection error:', error);
+        setStatus('error');
+      });
+
     } catch (error) {
-      console.error('[WebSocket] Failed to create connection:', error);
+      console.error('[Socket.IO] Failed to create connection:', error);
       setStatus('error');
     }
-  }, [status, getWebSocketUrl]);
+  }, [status, getSocketUrl]);
 
   const disconnect = useCallback(() => {
-    // Clear reconnection timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    // Close WebSocket connection
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Manual disconnect');
-      if (activeWebSocket === wsRef.current) {
-        activeWebSocket = null;
+    // Close Socket.IO connection
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      if (activeSocket === socketRef.current) {
+        activeSocket = null;
       }
-      wsRef.current = null;
+      socketRef.current = null;
     }
 
     setStatus('disconnected');
-    reconnectAttemptsRef.current = 0;
   }, []);
 
   const send = useCallback((message: WebSocketMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    if (socketRef.current?.connected) {
       try {
-        wsRef.current.send(JSON.stringify(message));
-        console.log('[WebSocket] Sent message:', message);
+        socketRef.current.emit(message.event, message.data);
+        console.log('[Socket.IO] Sent message:', message);
       } catch (error) {
-        console.error('[WebSocket] Error sending message:', error);
+        console.error('[Socket.IO] Error sending message:', error);
       }
     } else {
-      console.warn('[WebSocket] Cannot send message: WebSocket is not open');
+      console.warn('[Socket.IO] Cannot send message: Socket is not connected');
     }
   }, []);
 
@@ -248,4 +282,3 @@ export function useWebSocket(): UseWebSocketReturn {
     send,
   };
 }
-

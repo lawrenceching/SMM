@@ -39,7 +39,7 @@ import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 
 import { Assistant } from "./ai/Assistant"
-import { useWebSocket, useWebSocketEvent, useWebSocketSend } from "./hooks/useWebSocket"
+import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from "./hooks/useWebSocket"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -671,19 +671,8 @@ function WebSocketHandlers() {
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
-  const send = useWebSocketSend();
-
   useWebSocketEvent((message) => {
-    if (message.event === "getSelectedMediaMetadata") {
-      send({
-        event: "selectedMediaMetadata",
-        requestId: message.requestId, // Echo back the requestId for correlation
-        data: {
-          selectedMediaMetadata,
-        },
-      });
-    }
-    
+    // Handle mediaMetadataUpdated event (no acknowledgement needed)
     if (message.event === "mediaMetadataUpdated") {
       const folderPath = message.data?.folderPath;
       if (folderPath) {
@@ -693,9 +682,14 @@ function WebSocketHandlers() {
         console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
       }
     }
-    
+
+    // Handle askForConfirmation event with Socket.IO acknowledgement
     if (message.event === "askForConfirmation") {
-      const requestId = message.requestId;
+      console.log('[WebSocketHandlers][DEBUG] askForConfirmation received', {
+        message,
+        hasCallback: !!(message as any)._socketCallback,
+        data: message.data
+      });
       
       // Support both data formats:
       // 1. message field (from server tool)
@@ -705,32 +699,25 @@ function WebSocketHandlers() {
       
       if (!confirmationMessage) {
         console.warn(`[WebSocketHandlers] askForConfirmation event missing message/body:`, message.data);
+        // Send error acknowledgement
+        sendAcknowledgement(message, { confirmed: false, error: 'Missing message' });
         return;
-      }
-      
-      // If requestId is missing, log a warning (should not happen with retrieve function)
-      if (!requestId) {
-        console.warn(`[WebSocketHandlers] askForConfirmation event missing requestId`);
       }
       
       console.log(`[WebSocketHandlers] Received askForConfirmation event: ${confirmationMessage}`);
       
-      // Handler to send response and close dialog
+      // Handler to send acknowledgement and close dialog
       const sendResponse = (confirmed: boolean) => {
-        // Always send response back (retrieve function will have requestId)
-        if (requestId) {
-          send({
-            event: "askForConfirmationResponse",
-            requestId: requestId,
-            data: {
-              confirmed: confirmed,
-              response: confirmed ? "yes" : "no",
-            },
-          });
-          console.log(`[WebSocketHandlers] Sent askForConfirmationResponse: ${confirmed ? "yes" : "no"}`);
-        } else {
-          console.warn(`[WebSocketHandlers] Cannot send response - missing requestId`);
-        }
+        console.log(`[WebSocketHandlers][DEBUG] sendResponse called with confirmed=${confirmed}`);
+        
+        // Send acknowledgement back via Socket.IO callback
+        const ackData = {
+          confirmed: confirmed,
+          response: confirmed ? "yes" : "no",
+        };
+        console.log(`[WebSocketHandlers][DEBUG] About to call sendAcknowledgement with:`, ackData);
+        sendAcknowledgement(message, ackData);
+        console.log(`[WebSocketHandlers][DEBUG] sendAcknowledgement returned`);
         closeConfirmation();
       };
       

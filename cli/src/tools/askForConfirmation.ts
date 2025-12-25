@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { sendAndWaitForResponse } from '../utils/websocketManager';
 import pino from "pino"
 const logger = pino()
+
 export const createAskForConfirmationTool = (clientId: string) => ({
   description: `Ask user for confirmation. 
   This tool accepts "message" parameter which will be shown to user.
@@ -13,7 +14,7 @@ export const createAskForConfirmationTool = (clientId: string) => ({
     logger.info(`[tool][askForConfirmation] clientId: ${clientId}, message: ${message}`);
     
     try {
-      // Send WebSocket event to frontend and wait for response
+      // Send Socket.IO event to frontend and wait for acknowledgement response
       const responseData = await sendAndWaitForResponse(
         {
           event: 'askForConfirmation',
@@ -21,13 +22,14 @@ export const createAskForConfirmationTool = (clientId: string) => ({
             message,
           },
         },
-        'askForConfirmationResponse', // Wait for this event in response
+        '', // responseEvent not needed with Socket.IO acknowledgements
         30000, // 30 second timeout
-        clientId // Send to specific client
+        clientId // Send to specific client room
       );
       
       logger.info(`[tool][askForConfirmation] responseData: ${JSON.stringify(responseData)}`);
-      // Extract the response from the data
+      
+      // Extract the response from the acknowledgement data
       const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';
       const result = confirmed ? 'yes' : 'no';
       
@@ -35,9 +37,8 @@ export const createAskForConfirmationTool = (clientId: string) => ({
       return result;
     } catch (error) {
       console.error('[tool][askForConfirmation] Error:', error);
-      // On timeout or error, default to "no" for safety
+      // On timeout or error, throw error instead of defaulting to "no"
       throw new Error(`Failed to get user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 });
-

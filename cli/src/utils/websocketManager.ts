@@ -1,288 +1,205 @@
 import pino from "pino"
+import type { Server as SocketIOServer, Socket } from 'socket.io';
+
 const logger = pino()
 
 export interface WebSocketMessage {
   event: string;
   data?: any;
-  requestId?: string; // For request/response correlation
+  requestId?: string; // For backward compatibility, though Socket.IO handles this internally
 }
 
-type WebSocketConnection = {
-  send: (data: string) => void;
-  readyState: number;
-};
-
-type PendingRequest = {
-  resolve: (value: any) => void;
-  reject: (error: Error) => void;
-  timeout: ReturnType<typeof setTimeout>;
-  responseEvent: string; // The event name we're waiting for
-};
-
-// Store active WebSocket connections
-const connections = new Set<WebSocketConnection>();
-
-// Store mapping from clientId to WebSocket connection
-const clientIdToConnection = new Map<string, WebSocketConnection>();
-
-// Store mapping from WebSocket connection to clientId (for cleanup)
-const connectionToClientId = new Map<WebSocketConnection, string>();
-
-// Store pending requests waiting for responses
-const pendingRequests = new Map<string, PendingRequest>();
-
-// Default timeout for requests (5 seconds)
-const DEFAULT_TIMEOUT = 5000;
+// Store the Socket.IO server instance
+let io: SocketIOServer | null = null;
 
 /**
- * Register a WebSocket connection
+ * Initialize the Socket.IO server instance
  */
-export function registerConnection(ws: WebSocketConnection): void {
-  connections.add(ws);
-  console.log(`[WebSocketManager] Connection registered. Total connections: ${connections.size}`);
+export function setSocketIOInstance(socketIO: SocketIOServer): void {
+  io = socketIO;
+  logger.info('Socket.IO instance initialized in websocketManager');
 }
 
 /**
- * Unregister a WebSocket connection
+ * Get the Socket.IO server instance
  */
-export function unregisterConnection(ws: WebSocketConnection): void {
-  connections.delete(ws);
-  
-  // Remove clientId mapping if it exists
-  const clientId = connectionToClientId.get(ws);
-  if (clientId) {
-    clientIdToConnection.delete(clientId);
-    connectionToClientId.delete(ws);
-    console.log(`[WebSocketManager] Removed clientId mapping: ${clientId}`);
+export function getSocketIOInstance(): SocketIOServer {
+  if (!io) {
+    throw new Error('Socket.IO instance not initialized. Call setSocketIOInstance first.');
   }
-  
-  console.log(`[WebSocketManager] Connection unregistered. Total connections: ${connections.size}`);
+  return io;
 }
 
 /**
- * Register a clientId for a WebSocket connection
- */
-export function registerClientId(ws: WebSocketConnection, clientId: string): void {
-  // Remove old mapping if this connection was already mapped
-  const oldClientId = connectionToClientId.get(ws);
-  if (oldClientId && oldClientId !== clientId) {
-    clientIdToConnection.delete(oldClientId);
-  }
-  
-  clientIdToConnection.set(clientId, ws);
-  connectionToClientId.set(ws, clientId);
-  console.log(`[WebSocketManager] Registered clientId: ${clientId}`);
-}
-
-/**
- * Get WebSocket connection by clientId
- */
-export function getConnectionByClientId(clientId: string): WebSocketConnection | null {
-  const ws = clientIdToConnection.get(clientId);
-  if (ws && ws.readyState === 1) { // WebSocket.OPEN === 1
-    return ws;
-  }
-  // Clean up stale connection if found
-  if (ws) {
-    clientIdToConnection.delete(clientId);
-    connectionToClientId.delete(ws);
-  }
-  return null;
-}
-
-/**
- * Send a message to all connected clients
+ * Send a message to all connected clients using Socket.IO broadcast
  */
 export function broadcastMessage(message: WebSocketMessage): void {
-  const messageStr = JSON.stringify(message);
-  let sentCount = 0;
-  
+  if (!io) {
+    logger.error('Socket.IO instance not initialized');
+    return;
+  }
+
   logger.info({
     event: message.event,
-    requestId: message.requestId,
     type: 'broadcast'
-  }, 'websocket message sent (broadcast)');
-  
-  for (const ws of connections) {
-    if (ws.readyState === 1) { // WebSocket.OPEN === 1
-      try {
-        ws.send(messageStr);
-        sentCount++;
-      } catch (error) {
-        logger.error({
-          error: error instanceof Error ? error.message : String(error),
-          event: message.event,
-          requestId: message.requestId
-        }, 'websocket error sending message');
-      }
-    }
-  }
-  
-  if (sentCount === 0 && connections.size > 0) {
-    logger.warn({
-      connections: connections.size
-    }, 'websocket no active connections to send message to');
-  } else {
-    logger.info({
-      sentCount,
-      totalConnections: connections.size,
-      event: message.event
-    }, 'websocket message sent to connections');
-  }
+  }, 'socket.io message broadcast');
+
+  // Emit to all connected clients
+  io.emit(message.event, message.data);
 }
 
 /**
- * Send a message and wait for a response
- * @param message The WebSocket message to send
- * @param responseEvent The event name to wait for in the response
+ * Send a message to a specific client and wait for acknowledgement
+ * @param clientId The clientId (room name) to send to
+ * @param message The message to send
  * @param timeoutMs Timeout in milliseconds (default: 5000)
- * @param clientId Optional clientId to send to a specific connection
- * @returns Promise that resolves with the response data
+ * @returns Promise that resolves with the acknowledgement data
  */
 export function sendAndWaitForResponse(
   message: WebSocketMessage,
-  responseEvent: string,
-  timeoutMs: number = DEFAULT_TIMEOUT,
+  responseEvent: string, // Kept for backward compatibility but not used with acknowledgements
+  timeoutMs: number = 5000,
   clientId?: string
 ): Promise<any> {
   return new Promise((resolve, reject) => {
-    // Generate unique request ID
-    const requestId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    
-    // Add requestId to message
-    const messageWithId: WebSocketMessage = {
-      ...message,
-      requestId,
-    };
+    if (!io) {
+      reject(new Error('Socket.IO instance not initialized'));
+      return;
+    }
 
-    // Set up timeout
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error(`WebSocket request timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    // Store pending request
-    pendingRequests.set(requestId, {
-      resolve,
-      reject,
-      timeout,
-      responseEvent,
-    });
-
-    // Send message to specific connection if clientId is provided
-    if (clientId) {
-      const ws = getConnectionByClientId(clientId);
-      if (!ws) {
-        clearTimeout(timeout);
-        pendingRequests.delete(requestId);
-        reject(new Error(`No active WebSocket connection found for clientId: ${clientId}`));
+    // If no clientId provided, use the first available connection
+    if (!clientId) {
+      const sockets = Array.from(io.sockets.sockets.values());
+      if (sockets.length === 0) {
+        reject(new Error('No active Socket.IO connections available'));
         return;
       }
-      
-      try {
-        ws.send(JSON.stringify(messageWithId));
-        logger.info({
-          requestId,
-          clientId,
-          event: message.event,
-          responseEvent,
-          timeoutMs
-        }, 'websocket message sent');
-      } catch (error) {
-        clearTimeout(timeout);
-        pendingRequests.delete(requestId);
-        logger.error({
-          requestId,
-          clientId,
-          error: error instanceof Error ? error.message : String(error)
-        }, 'websocket error sending message');
-        reject(error instanceof Error ? error : new Error('Failed to send WebSocket message'));
+      // Use the first socket's clientId
+      const firstSocket = sockets[0];
+      const rooms = Array.from(firstSocket.rooms);
+      // Find the room that's not the socket's own ID (which is auto-joined)
+      const clientRoom = rooms.find(room => room !== firstSocket.id);
+      if (!clientRoom) {
+        reject(new Error('No clientId room found for first connection'));
+        return;
       }
-      return;
+      clientId = clientRoom;
     }
 
-    // Fallback: use the first active connection if clientId is not provided
-    const firstConnection = getFirstActiveConnection();
-    if (!firstConnection) {
-      clearTimeout(timeout);
-      pendingRequests.delete(requestId);
-      reject(new Error('No active WebSocket connections available'));
-      return;
-    }
-
-    // Send message to first active connection
-    try {
-      firstConnection.send(JSON.stringify(messageWithId));
-      logger.info({
-        requestId,
-        event: message.event,
-        responseEvent,
-        timeoutMs,
-        type: 'first-active-connection'
-      }, 'websocket message sent');
-    } catch (error) {
-      clearTimeout(timeout);
-      pendingRequests.delete(requestId);
+    // Find the socket(s) in the room
+    const socketsInRoom = io.sockets.adapter.rooms.get(clientId);
+    
+    if (!socketsInRoom || socketsInRoom.size === 0) {
       logger.error({
-        requestId,
-        error: error instanceof Error ? error.message : String(error)
-      }, 'websocket error sending message');
-      reject(error instanceof Error ? error : new Error('Failed to send WebSocket message'));
+        clientId,
+        event: message.event,
+        availableRooms: Array.from(io.sockets.adapter.rooms.keys())
+      }, '[DEBUG] no sockets found in room');
+      reject(new Error(`No socket found in room: ${clientId}`));
+      return;
     }
+
+    // Get the first socket ID from the room
+    const socketId = Array.from(socketsInRoom)[0];
+    const socket = io.sockets.sockets.get(socketId);
+
+    if (!socket) {
+      logger.error({
+        clientId,
+        socketId,
+        event: message.event
+      }, '[DEBUG] socket not found by ID');
+      reject(new Error(`Socket not found: ${socketId}`));
+      return;
+    }
+
+    logger.info({
+      clientId,
+      socketId,
+      event: message.event,
+      timeoutMs,
+      data: message.data
+    }, '[DEBUG] socket.io sending message to specific socket with acknowledgement');
+
+    // Send to specific socket (not room) with timeout and acknowledgement
+    socket.timeout(timeoutMs).emit(message.event, message.data, (err: Error, response: any) => {
+      if (err) {
+        logger.error({
+          clientId,
+          socketId,
+          event: message.event,
+          error: err.message,
+          errorType: typeof err,
+          errorDetails: err
+        }, '[DEBUG] socket.io acknowledgement timeout or error');
+        reject(new Error(`Socket.IO request timed out or failed: ${err.message}`));
+      } else {
+        logger.info({
+          clientId,
+          socketId,
+          event: message.event,
+          hasResponse: !!response,
+          response: response
+        }, '[DEBUG] socket.io acknowledgement received successfully');
+        resolve(response);
+      }
+    });
   });
 }
 
 /**
- * Handle incoming WebSocket message and resolve pending requests
- * @param message The incoming WebSocket message
+ * Get the first active connection (for single-client scenarios)
+ * Returns the clientId if available
  */
-export function handleWebSocketResponse(message: WebSocketMessage): void {
-  if (!message.requestId) {
-    // Not a response to a pending request, ignore
-    return;
+export function getFirstActiveConnection(): string | null {
+  if (!io) {
+    return null;
   }
 
-  const pendingRequest = pendingRequests.get(message.requestId);
-  if (!pendingRequest) {
-    logger.warn({
-      requestId: message.requestId,
-      event: message.event
-    }, 'websocket received response for unknown request');
-    return;
+  const sockets = Array.from(io.sockets.sockets.values());
+  if (sockets.length === 0) {
+    return null;
   }
 
-  // Verify the response event matches what we're waiting for
-  if (message.event !== pendingRequest.responseEvent) {
-    logger.warn({
-      requestId: message.requestId,
-      expectedEvent: pendingRequest.responseEvent,
-      receivedEvent: message.event
-    }, 'websocket response event mismatch');
-    // Still resolve it, as requestId matching is the primary mechanism
-  }
-
-  // Clear timeout and remove from pending requests
-  clearTimeout(pendingRequest.timeout);
-  pendingRequests.delete(message.requestId);
-
-  // Resolve the promise with the message data
-  logger.info({
-    requestId: message.requestId,
-    event: message.event,
-    hasData: !!message.data
-  }, 'websocket response received');
-  pendingRequest.resolve(message.data);
+  const firstSocket = sockets[0];
+  const rooms = Array.from(firstSocket.rooms);
+  // Find the room that's not the socket's own ID
+  const clientRoom = rooms.find(room => room !== firstSocket.id);
+  return clientRoom || null;
 }
 
 /**
- * Get the first active connection (for single-client scenarios)
+ * Check if a client is connected by clientId
  */
-export function getFirstActiveConnection(): WebSocketConnection | null {
-  for (const ws of connections) {
-    if (ws.readyState === 1) { // WebSocket.OPEN === 1
-      return ws;
-    }
+export function isClientConnected(clientId: string): boolean {
+  if (!io) {
+    return false;
   }
-  return null;
+
+  // Check if any socket is in the clientId room
+  const socketsInRoom = io.sockets.adapter.rooms.get(clientId);
+  return socketsInRoom !== undefined && socketsInRoom.size > 0;
 }
 
+/**
+ * Get all connected client IDs
+ */
+export function getConnectedClientIds(): string[] {
+  if (!io) {
+    return [];
+  }
+
+  const clientIds: string[] = [];
+  const sockets = Array.from(io.sockets.sockets.values());
+
+  for (const socket of sockets) {
+    const rooms = Array.from(socket.rooms);
+    // Find the room that's not the socket's own ID
+    const clientRoom = rooms.find(room => room !== socket.id);
+    if (clientRoom) {
+      clientIds.push(clientRoom);
+    }
+  }
+
+  return clientIds;
+}

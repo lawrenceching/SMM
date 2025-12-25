@@ -1,105 +1,75 @@
-import type { Context } from 'hono';
-import { registerConnection, unregisterConnection, handleWebSocketResponse, registerClientId, type WebSocketMessage } from '../utils/websocketManager';
+import type { Server as SocketIOServer, Socket } from 'socket.io';
+import { setSocketIOInstance, type WebSocketMessage } from '../utils/websocketManager';
 import pino from 'pino';
 
 const logger = pino();
 
 /**
- * Create WebSocket handler for Hono
- * Sends "hello" event on connection and handles incoming messages
+ * Initialize Socket.IO connection handlers
+ * Sets up event listeners for connection, disconnection, and messages
  */
-export function createWebSocketHandler() {
-  return (c: Context) => {
-    return {
-      onOpen(event: Event, ws: any) {
-        logger.info('websocket connection established');
-        
-        // Register the connection
-        registerConnection(ws);
+export function initializeSocketIO(io: SocketIOServer): void {
+  // Store the Socket.IO instance in websocketManager
+  setSocketIOInstance(io);
 
-        // Send "hello" event immediately when connection is established
-        const helloMessage: WebSocketMessage = {
-          event: 'hello'
-        };
-        
-        try {
-          ws.send(JSON.stringify(helloMessage));
-          logger.info({
-            event: 'hello'
-          }, 'websocket message sent');
-        } catch (error) {
-          logger.error({
-            error: error instanceof Error ? error.message : String(error),
-            event: 'hello'
-          }, 'websocket error sending hello event');
-        }
-      },
-      onMessage(event: MessageEvent, ws: any) {
-        try {
-          const text = typeof event.data === 'string' ? event.data : event.data.toString();
-          const parsed: WebSocketMessage = JSON.parse(text);
-          
-          // Log received message
-          logger.info({
-            event: parsed.event,
-            requestId: parsed.requestId,
-            hasData: !!parsed.data
-          }, 'websocket message received');
+  io.on('connection', (socket: Socket) => {
+    logger.info({
+      socketId: socket.id,
+      rooms: Array.from(socket.rooms)
+    }, '[DEBUG] socket.io connection established');
 
-          // Check if this is a response to a pending request
-          if (parsed.requestId) {
-            handleWebSocketResponse(parsed);
-          }
+    // Send "hello" event immediately when connection is established
+    socket.emit('hello');
+    logger.info({
+      socketId: socket.id,
+      event: 'hello'
+    }, 'socket.io message sent');
 
-          // Handle userAgent event
-          if (parsed.event === 'userAgent' && parsed.data?.userAgent) {
-            logger.info({
-              userAgent: parsed.data.userAgent,
-              clientId: parsed.data?.clientId
-            }, 'websocket received userAgent');
-            
-            // Register clientId if provided
-            if (parsed.data?.clientId) {
-              registerClientId(ws, parsed.data.clientId);
-              logger.info({
-                clientId: parsed.data.clientId
-              }, 'websocket registered clientId');
-            }
-          }
+    // Handle userAgent event - client sends this with their clientId
+    socket.on('userAgent', (data: any) => {
+      const userAgent = data?.userAgent;
+      const clientId = data?.clientId;
 
-          // Handle selectedMediaMetadata event (response from frontend)
-          // if (parsed.event === 'selectedMediaMetadata' && parsed.data?.selectedMediaMetadata) {
-          //   logger.info({
-          //     event: parsed.event,
-          //     data: parsed.data.selectedMediaMetadata
-          //   }, 'websocket received selectedMediaMetadata');
-          // }
-        } catch (error) {
-          logger.error({
-            error: error instanceof Error ? error.message : String(error)
-          }, 'websocket error parsing message');
-        }
-      },
-      onClose(event: CloseEvent, ws: any) {
-        // Unregister the connection
-        unregisterConnection(ws);
-        
-        if (event.code !== 1000) {
-          // Non-normal closure indicates an error
-          logger.error({
-            code: event.code,
-            reason: event.reason
-          }, 'websocket connection closed with error');
-        } else {
-          logger.info('websocket connection closed');
-        }
-      },
-      onError(event: Event, ws: any) {
-        logger.error({
-          error: event.type
-        }, 'websocket error');
-      },
-    };
-  };
+      logger.info({
+        socketId: socket.id,
+        userAgent,
+        clientId
+      }, '[DEBUG] socket.io received userAgent');
+
+      // Join the client to a room with their clientId
+      if (clientId) {
+        socket.join(clientId);
+        const roomsAfterJoin = Array.from(socket.rooms);
+        const socketsInRoom = io.sockets.adapter.rooms.get(clientId);
+        logger.info({
+          socketId: socket.id,
+          clientId,
+          rooms: roomsAfterJoin,
+          socketsInRoom: socketsInRoom ? Array.from(socketsInRoom) : []
+        }, '[DEBUG] socket.io client joined room');
+      } else {
+        logger.warn({
+          socketId: socket.id
+        }, '[DEBUG] socket.io userAgent event missing clientId');
+      }
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', (reason: string) => {
+      logger.info({
+        socketId: socket.id,
+        reason
+      }, 'socket.io connection closed');
+    });
+
+    // Handle errors
+    socket.on('error', (error: Error) => {
+      logger.error({
+        socketId: socket.id,
+        error: error.message
+      }, 'socket.io connection error');
+    });
+  });
+
+  logger.info('Socket.IO connection handlers initialized');
 }
-

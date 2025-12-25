@@ -76,26 +76,23 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
 
       case 'retrieve': {
         try {
-          // Determine response event name based on the sent event
-          // Pattern: askForConfirmation -> askForConfirmationResponse
-          const responseEvent = `${validatedBody.event}Response`;
-          
           const message: WebSocketMessage = {
             event: validatedBody.event,
             data: validatedBody.data,
           };
           
-          console.log(`[DebugAPI] Sending retrieve request: event=${validatedBody.event}, waiting for response event=${responseEvent}`);
+          console.log(`[DebugAPI] Sending retrieve request: event=${validatedBody.event}`);
           
-          // Send and wait for response with 30 second timeout
+          // Send and wait for acknowledgement response with 30 second timeout
+          // Socket.IO handles the response via acknowledgement callback
           const responseData = await sendAndWaitForResponse(
             message,
-            responseEvent,
+            '', // responseEvent not needed with Socket.IO acknowledgements
             30000, // 30 second timeout for user interactions
             validatedBody.clientId
           );
           
-          console.log(`[DebugAPI] Received response for retrieve request:`, responseData);
+          console.log(`[DebugAPI] Received acknowledgement for retrieve request:`, responseData);
           
           return {
             success: true,
@@ -127,4 +124,3 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
     };
   }
 }
-
