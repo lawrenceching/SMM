@@ -17,6 +17,11 @@ interface MediaMetadataContextValue {
   getMediaMetadata: (path: string) => MediaMetadata | undefined
   selectedMediaMetadata: MediaMetadata | undefined
   setSelectedMediaMetadata: (index: number) => void
+  /**
+   * Refresh media metadata from the server for a given folder path
+   * @param path POSIX format folder path
+   */
+  refreshMediaMetadata: (path: string) => void
 }
 
 const MediaMetadataContext = createContext<MediaMetadataContextValue | undefined>(undefined)
@@ -114,6 +119,21 @@ export function MediaMetadataProvider({
     [mediaMetadatas]
   )
 
+  const refreshMediaMetadata = useCallback((path: string) => {
+    readMediaMetadataApi(path)
+      .then((response) => {
+        if (response.data && !response.error) {
+          _addMediaMetadata(response.data)
+          console.log(`[MediaMetadataProvider] Refreshed media metadata for folder: ${path}`)
+        } else {
+          console.warn(`[MediaMetadataProvider] Failed to refresh media metadata: ${response.error}`)
+        }
+      })
+      .catch((error) => {
+        console.error(`[MediaMetadataProvider] Error refreshing media metadata for ${path}:`, error)
+      })
+  }, [_addMediaMetadata])
+
   useEffect(() => {
     userConfig.folders.map((path) => {
       readMediaMetadataApi(path).then((response) => {
@@ -133,7 +153,8 @@ export function MediaMetadataProvider({
     removeMediaMetadata,
     getMediaMetadata,
     selectedMediaMetadata,
-    setSelectedMediaMetadata
+    setSelectedMediaMetadata,
+    refreshMediaMetadata
   }
 
   return (

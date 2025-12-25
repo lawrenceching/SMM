@@ -3,6 +3,7 @@ import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { mkdir } from 'fs/promises';
+import { broadcastMessage } from '../utils/websocketManager';
 
 function updateMediaFileMetadatas(
   mediaFiles: MediaFileMetadata[],
@@ -120,6 +121,14 @@ Please **ensure** you call "ask-for-confirmation" to get user confirmation befor
       await mkdir(mediaMetadataDir, { recursive: true });
       await Bun.write(metadataFilePath, JSON.stringify(updatedMediaMetadata, null, 2));
       console.log(`[tool][matchEpisode] Successfully updated media metadata for folder "${folderPathInPosix}"`);
+      
+      // 7. Notify all connected clients via WebSocket
+      broadcastMessage({
+        event: 'mediaMetadataUpdated',
+        data: {
+          folderPath: folderPathInPosix
+        }
+      });
     } catch (error) {
       return { error: `Error Reason: Failed to write media metadata: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }

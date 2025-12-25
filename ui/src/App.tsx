@@ -666,7 +666,7 @@ function AppLayout() {
 
 function WebSocketHandlers() {
 
-  const { selectedMediaMetadata } = useMediaMetadata();
+  const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata();
 
   const send = useWebSocketSend();
 
@@ -679,6 +679,16 @@ function WebSocketHandlers() {
           selectedMediaMetadata,
         },
       });
+    }
+    
+    if (message.event === "mediaMetadataUpdated") {
+      const folderPath = message.data?.folderPath;
+      if (folderPath) {
+        console.log(`[WebSocketHandlers] Received mediaMetadataUpdated event for folder: ${folderPath}`);
+        refreshMediaMetadata(folderPath);
+      } else {
+        console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
+      }
     }
   });
 

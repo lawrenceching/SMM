@@ -20,6 +20,7 @@ import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { createWebSocketHandler } from './src/route/WebSocket';
+import { handleDebugRequest } from './src/route/Debug';
 
 export interface ServerConfig {
   port?: number;
@@ -241,6 +242,23 @@ export class Server {
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
+
+    // POST /debug - Debug API for testing functions
+    this.app.post('/debug', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const result = await handleDebugRequest(rawBody);
+        
+        // Return 200 with success/error status
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('Debug API route error:', error);
+        return c.json({
+          success: false,
+          error: `Failed to process debug request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }, 500);
+      }
+    });
 
     // WebSocket route - must be before static file middleware
     this.app.get('/ws', upgradeWebSocket(createWebSocketHandler()));
