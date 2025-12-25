@@ -196,7 +196,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                         <div className="shrink-0">
                             <img
                                 src={posterUrl}
-                                alt={tvShow.name}
+                                alt={tvShow?.name}
                                 className="w-48 rounded-lg shadow-lg object-cover"
                             />
                         </div>
@@ -225,8 +225,8 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                             placeholder="Enter TV show name"
                                             inputClassName="text-3xl font-bold mb-2 block"
                                         />
-                                        {tvShow.original_name !== tvShow.name && (
-                                            <p className="text-muted-foreground text-lg">{tvShow.original_name}</p>
+                                        {tvShow?.original_name !== tvShow?.name && (
+                                            <p className="text-muted-foreground text-lg">{tvShow?.original_name}</p>
                                         )}
                                     </>
                                 )}
@@ -250,21 +250,21 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                 
                                 <Badge variant="secondary" className="gap-1">
                                     <Star className="size-3 fill-yellow-500 text-yellow-500" />
-                                    {tvShow.vote_average.toFixed(1)}
+                                    {tvShow?.vote_average.toFixed(1)}
                                     <span className="text-xs text-muted-foreground">
-                                        ({tvShow.vote_count.toLocaleString()})
+                                        ({tvShow?.vote_count.toLocaleString()})
                                     </span>
                                 </Badge>
                                 
                                 <Badge variant="secondary" className="gap-1">
                                     <TrendingUp className="size-3" />
-                                    {tvShow.popularity.toFixed(0)}
+                                    {tvShow?.popularity.toFixed(0)}
                                 </Badge>
                                 
-                                {tvShow.origin_country && tvShow.origin_country.length > 0 && (
+                                {tvShow?.origin_country && tvShow?.origin_country.length > 0 && (
                                     <Badge variant="outline" className="gap-1">
                                         <Globe className="size-3" />
-                                        {tvShow.origin_country.join(", ")}
+                                        {tvShow?.origin_country.join(", ")}
                                     </Badge>
                                 )}
                             </div>
@@ -278,10 +278,10 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                 <Skeleton className="h-4 w-full" />
                                 <Skeleton className="h-4 w-3/4" />
                             </div>
-                        ) : tvShow.overview && (
+                        ) : tvShow?.overview && (
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold">Overview</h2>
-                                <p className="text-muted-foreground leading-relaxed">{tvShow.overview}</p>
+                                <p className="text-muted-foreground leading-relaxed">{tvShow?.overview}</p>
                             </div>
                         )}
                         
@@ -295,11 +295,11 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                     <Skeleton className="h-6 w-18" />
                                 </div>
                             </div>
-                        ) : tvShow.genre_ids && tvShow.genre_ids.length > 0 && (
+                        ) : tvShow?.genre_ids && tvShow?.genre_ids.length > 0 && (
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold">Genres</h2>
                                 <div className="flex flex-wrap gap-2">
-                                    {tvShow.genre_ids.map((genreId) => (
+                                    {tvShow?.genre_ids.map((genreId) => (
                                         <Badge key={genreId} variant="outline">
                                             Genre {genreId}
                                         </Badge>
@@ -381,14 +381,14 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                     <Skeleton className="h-32 w-full" />
                                 </div>
                             </div>
-                        ) : tvShow.seasons && tvShow.seasons.length > 0 && (
+                        ) : tvShow?.seasons && tvShow?.seasons.length > 0 && (
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
                                     <Tv className="size-5" />
-                                    Seasons ({tvShow.number_of_seasons})
+                                    Seasons ({tvShow?.number_of_seasons})
                                 </h2>
                                 <div className="space-y-3">
-                                    {tvShow.seasons
+                                    {tvShow?.seasons
                                         .filter(season => season.season_number > 0) // Filter out specials (season 0)
                                         .map((season) => {
                                             const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")

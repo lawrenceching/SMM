@@ -667,7 +667,7 @@ function AppLayout() {
 
 function WebSocketHandlers() {
 
-  const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata();
+  const { refreshMediaMetadata } = useMediaMetadata();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
