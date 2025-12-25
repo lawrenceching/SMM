@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { broadcastMessage, type WebSocketMessage } from '../utils/websocketManager';
+import { broadcastMessage, sendAndWaitForResponse, type WebSocketMessage } from '../utils/websocketManager';
 
 interface DebugApiResponseBody {
   success: boolean;
+  data?: any;
   error?: string;
 }
 
@@ -18,9 +19,18 @@ const broadcastMessageSchema = debugRequestBaseSchema.extend({
   data: z.any().optional(),
 });
 
+// Schema for retrieve function
+const retrieveSchema = debugRequestBaseSchema.extend({
+  name: z.literal('retrieve'),
+  event: z.string().min(1, 'Event name is required for retrieve'),
+  clientId: z.string().optional(),
+  data: z.any().optional(),
+});
+
 // Union schema for all debug functions
 const debugRequestSchema = z.discriminatedUnion('name', [
   broadcastMessageSchema,
+  retrieveSchema,
   // Add more schemas here as new debug functions are added
 ]);
 
@@ -64,10 +74,48 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
         }
       }
 
+      case 'retrieve': {
+        try {
+          // Determine response event name based on the sent event
+          // Pattern: askForConfirmation -> askForConfirmationResponse
+          const responseEvent = `${validatedBody.event}Response`;
+          
+          const message: WebSocketMessage = {
+            event: validatedBody.event,
+            data: validatedBody.data,
+          };
+          
+          console.log(`[DebugAPI] Sending retrieve request: event=${validatedBody.event}, waiting for response event=${responseEvent}`);
+          
+          // Send and wait for response with 30 second timeout
+          const responseData = await sendAndWaitForResponse(
+            message,
+            responseEvent,
+            30000, // 30 second timeout for user interactions
+            validatedBody.clientId
+          );
+          
+          console.log(`[DebugAPI] Received response for retrieve request:`, responseData);
+          
+          return {
+            success: true,
+            data: responseData,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error retrieving data:`, error);
+          return {
+            success: false,
+            error: `Failed to retrieve data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
       default: {
+        // TypeScript narrowing: this should never happen with discriminated union
+        const _exhaustive: never = validatedBody;
         return {
           success: false,
-          error: `Unknown debug function: ${validatedBody.name}`,
+          error: `Unknown debug function: ${(validatedBody as any).name}`,
         };
       }
     }

@@ -1,11 +1,9 @@
 import { AssistantModal } from "@/components/assistant-modal";
-import { AssistantRuntimeProvider, tool, makeAssistantTool, useAssistantApi } from "@assistant-ui/react";
+import { AssistantRuntimeProvider, useAssistantApi } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { GetMediaFoldersTool, GetFilesInMediaFolderTool, GetMediaMetadataTool, MatchEpisodeTool } from "./tools";
 import { useMediaMetadata } from "@/components/media-metadata-provider";
 import { useEffect } from "react";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
-import { z } from "zod";
 
 
 function ModelContext() {
@@ -45,25 +43,6 @@ v1.0.5
       return <></>
 }
 
-const confirmationTool = tool({
-
-    description: `Ask user for confirmation. 
-    This tool accepts "message" parameter which will be shown to user.
-    This tool return "yes" and "no" according to user's confirmation`,
-    parameters: z.object({
-      message: z.string(),
-    }),
-    execute: async ({ message }) => {
-        const confirmed = confirm(message);
-        return confirmed ? "yes" : "no";
-    },
-  });
-
-  const ConfirmationTool = makeAssistantTool({
-    ...confirmationTool,
-    toolName: "ask-for-confirmation",
-  });
-
 export function Assistant() {
     
     const runtime = useChatRuntime({
@@ -78,7 +57,6 @@ export function Assistant() {
 
     return <AssistantRuntimeProvider runtime={runtime}>
         <ModelContext/>
-        <ConfirmationTool/>
         {/* <GetMediaFoldersTool /> */}
         {/* <GetFilesInMediaFolderTool />
         <GetMediaMetadataTool />

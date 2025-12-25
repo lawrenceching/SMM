@@ -7,6 +7,7 @@ import {
   getMediaFoldersTool,
   listFilesInMediaFolderTool,
   matchEpisodeTool,
+  createAskForConfirmationTool,
 } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
 
@@ -47,6 +48,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         getMediaFolders: getMediaFoldersTool,
         listFilesInMediaFolder: listFilesInMediaFolderTool,
         matchEpisode: matchEpisodeTool,
+        askForConfirmation: createAskForConfirmationTool(clientId),
       },
       stopWhen: stepCountIs(20)
     });

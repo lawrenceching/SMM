@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ArrowUpDown, Filter, FolderOpen, Upload } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import { MediaMetadataProvider, useMediaMetadata } from "./components/media-metadata-provider"
@@ -667,6 +668,8 @@ function AppLayout() {
 function WebSocketHandlers() {
 
   const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata();
+  const { confirmationDialog } = useDialogs();
+  const [openConfirmation, closeConfirmation] = confirmationDialog;
 
   const send = useWebSocketSend();
 
@@ -690,6 +693,73 @@ function WebSocketHandlers() {
         console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
       }
     }
+    
+    if (message.event === "askForConfirmation") {
+      const requestId = message.requestId;
+      
+      // Support both data formats:
+      // 1. message field (from server tool)
+      // 2. title and body fields (from debug API)
+      const confirmationMessage = message.data?.body || message.data?.message;
+      const dialogTitle = message.data?.title || "Confirmation";
+      
+      if (!confirmationMessage) {
+        console.warn(`[WebSocketHandlers] askForConfirmation event missing message/body:`, message.data);
+        return;
+      }
+      
+      // If requestId is missing, log a warning (should not happen with retrieve function)
+      if (!requestId) {
+        console.warn(`[WebSocketHandlers] askForConfirmation event missing requestId`);
+      }
+      
+      console.log(`[WebSocketHandlers] Received askForConfirmation event: ${confirmationMessage}`);
+      
+      // Handler to send response and close dialog
+      const sendResponse = (confirmed: boolean) => {
+        // Always send response back (retrieve function will have requestId)
+        if (requestId) {
+          send({
+            event: "askForConfirmationResponse",
+            requestId: requestId,
+            data: {
+              confirmed: confirmed,
+              response: confirmed ? "yes" : "no",
+            },
+          });
+          console.log(`[WebSocketHandlers] Sent askForConfirmationResponse: ${confirmed ? "yes" : "no"}`);
+        } else {
+          console.warn(`[WebSocketHandlers] Cannot send response - missing requestId`);
+        }
+        closeConfirmation();
+      };
+      
+      // Open confirmation dialog with Yes/No buttons
+      openConfirmation({
+        title: dialogTitle,
+        description: confirmationMessage,
+        showCloseButton: false,
+        onClose: () => {
+          // If dialog is closed without clicking Yes/No, default to "no"
+          sendResponse(false);
+        },
+        content: (
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => sendResponse(false)}
+            >
+              No
+            </Button>
+            <Button
+              onClick={() => sendResponse(true)}
+            >
+              Yes
+            </Button>
+          </div>
+        ),
+      });
+    }
   });
 
   return (
@@ -706,11 +776,12 @@ function App() {
       
       <ConfigProvider>
       <MediaMetadataProvider>
-        <WebSocketHandlers />
+        
         <DialogProvider>
           <AppLayout />
 
           <Assistant />
+          <WebSocketHandlers />
           <Toaster position="bottom-right" />
         </DialogProvider>
         </MediaMetadataProvider>

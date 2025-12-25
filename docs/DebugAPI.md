@@ -91,7 +91,7 @@ curl -X POST http://localhost:30000/debug \
     "name": "retrieve",
     "event": "askForConfirmation",
     "data": {
-      "title": "Confirmation"
+      "title": "Confirmation",
       "body": "Confirm to refresh?"
     }
   }'
