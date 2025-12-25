@@ -11,6 +11,13 @@ export const createGetSelectedMediaMetadataTool = (clientId: string) => ({
   * The name of TV Show or Movie (only available for TV Show and Movie)
   `,
   inputSchema: z.object({}),
+  outputSchema: z.object({
+    mediaFolderPath: z.string().describe("The path of the selected folder"),
+    type: z.enum(["tvshow", "movie", "music"]).describe("The type of the selected folder. Anime is a type of tvshow."),
+    tmdbId: z.number().describe("The TMDB ID of selected folder"),
+    name: z.string().describe("The name of TV Show or Movie"),
+    
+  }),
   execute: async () => {
     console.log(`[tool][getSelectedMediaMetadata] clientId: ${clientId}`);
     

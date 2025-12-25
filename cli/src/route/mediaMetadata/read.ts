@@ -75,7 +75,6 @@ export async function handleReadMediaMetadata(app: Hono) {
                 const resp: ReadMediaMetadataResponseBody = {
                     data
                 };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
                 console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
                 return c.json(resp, 200);
             } catch (error) {

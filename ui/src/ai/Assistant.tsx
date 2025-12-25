@@ -4,6 +4,7 @@ import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-s
 import { useMediaMetadata } from "@/components/media-metadata-provider";
 import { useEffect } from "react";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
+import { prompts } from "./prompts";
 
 
 function ModelContext() {
@@ -15,25 +16,7 @@ function ModelContext() {
         // Register context provider
         return api.modelContext().register({
           getModelContext: () => ({
-            system: `你是Simple Media Manager(SMM) 软件内置的AI助手, 你专门帮助用户查询媒体库中的信息和辅助用户调用 SMM 的功能
-
-你应该基于软件上下文信息回答问题, 当信息不足时,使用工具来获取信息和调用功能, 而不是凭空猜测.
-调用工具后, 你应该根据工具输出的结果来回答用户问题, 而不是直接返回工具输出. 你需要回复整理, 总结和格式化后的结果给用户.
-
-SMM 管理了多个媒体目录.
-当用户询问媒体相关信息且没有指定媒体名称或目录信息时, 你需要调用 getSelectedMediaMetadata 工具来获取用户选择的媒体目录信息.
-
-# 软件上下文
-
-软件上下文用于描述 SMM 内部的状态. 当处理用户问题时, 你需要考虑软件上下文来理解用户的问题
-例如, 当用户让你介绍电视剧信息时, 你应该从软件上下文中或者用户当前打开的媒体目录信息
-
-## 当前媒体目录路径
-${selectedMediaMetadata?.mediaFolderPath}
-
-##SMM 版本号
-v1.0.5
-`,
+            system: prompts.system,
           }),
         });
 

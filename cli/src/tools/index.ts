@@ -4,7 +4,7 @@ import { getMediaFoldersTool } from './getMediaFolders';
 import { listFilesInMediaFolderTool } from './listFilesInMediaFolder';
 import { matchEpisodeTool } from './matchEpisode';
 import { createAskForConfirmationTool } from './askForConfirmation';
-
+import { getApplicationContextTool } from './getApplicationContext';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
@@ -12,5 +12,6 @@ export {
   listFilesInMediaFolderTool,
   matchEpisodeTool,
   createAskForConfirmationTool,
+  getApplicationContextTool,
 };
 

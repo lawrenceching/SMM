@@ -8,8 +8,10 @@ import {
   listFilesInMediaFolderTool,
   matchEpisodeTool,
   createAskForConfirmationTool,
+  getApplicationContextTool,
 } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
+import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
 
 config();
 
@@ -43,8 +45,10 @@ export async function handleChatRequest(request: Request): Promise<Response> {
       system: system,
       tools: {
         ...frontendTools(tools),
+        getApplicationContext: getApplicationContextTool(clientId),
         isFolderExist: isFolderExistTool,
-        getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId),
+        // getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId),
+        getMediaMetadata: createGetMediaMetadataTool(clientId),
         getMediaFolders: getMediaFoldersTool,
         listFilesInMediaFolder: listFilesInMediaFolderTool,
         matchEpisode: matchEpisodeTool,
