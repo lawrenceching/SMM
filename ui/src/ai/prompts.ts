@@ -32,11 +32,35 @@ Order to infer the MediaFileMetadata, you may need below information:
 2. The TV Show or Movie media metadata
 3. The local files in media folder
 
-General Steps:
-1. Gather information from user and software context.
-2. Infer the MediaFileMetadata based on the information.
-3. Ask user to confirm the result
-4. Call "match-episode" to update the MediaFileMetadata in SMM.
+### Tasks
+
+Below are tasks to help user to match video files to each episode.
+
+[ ] Gather information from user and software context.
+[ ] Infer the MediaFileMetadata based on the information, using template below
+\`\`\`
+
+season: 0
+episode: 0
+path: /path/to/file1.mp4
+
+
+season: 0
+episode: 1
+path: /path/to/file2.mp4
+
+...continue the rest of files
+\`\`\`
+[ ] Ask user to confirm the result using "askForConfirmation" tool.
+    You should ask for confirmation for **ALL** files in previous task at once.
+    Confirmation message template:
+\`\`\`
+Confirm to match files:
+S00E01 -> /path/to/file1.mp4
+S00E02 -> /path/to/file2.mp4
+...continue the rest of files
+\`\`\`
+[ ] Call "match-episode" to update the MediaFileMetadata in SMM.
 
 If mulitple files are provided, you should match **ALL** files at once. ONE user confirmation, and multiple calls to "match-episode".
 You **MUST** get user confirmation for every match (file, season, episode) before you call "match-episode" to update them.

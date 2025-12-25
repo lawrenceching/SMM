@@ -11,12 +11,12 @@ export const getApplicationContextTool = (clientId: string) => ({
     }),
     execute: async ({ path }: { path: string }) => {
         try {
-            // Send WebSocket event to frontend and wait for response
+            // Send Socket.IO event to frontend and wait for acknowledgement
             const responseData = await sendAndWaitForResponse(
               {
                 event: 'getSelectedMediaMetadata',
               },
-              'selectedMediaMetadata', // Wait for this event in response
+              '', // responseEvent not needed with Socket.IO acknowledgements
               10000, // 10 second timeout
               clientId // Send to specific client, or undefined to use first connection
             );

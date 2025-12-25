@@ -1,9 +1,9 @@
 import { sendAndWaitForResponse } from '../src/utils/websocketManager';
 
 /**
- * Send "getSelectedMediaMetadata" WebSocket event to frontend and wait for response
- * The frontend will respond with "selectedMediaMetadata" event containing the data
- * @param clientId Optional clientId to identify the WebSocket connection. If not provided, uses the first active connection.
+ * Send "getSelectedMediaMetadata" Socket.IO event to frontend and wait for acknowledgement
+ * The frontend will respond with acknowledgement containing selectedMediaMetadata data
+ * @param clientId Optional clientId to identify the Socket.IO connection. If not provided, uses the first active connection.
  * @returns The selected media metadata or an error object
  */
 export async function executeGetSelectedMediaMetadataTask(clientId?: string): Promise<{ 
@@ -12,12 +12,12 @@ export async function executeGetSelectedMediaMetadataTask(clientId?: string): Pr
   error?: string;
 }> {
   try {
-    // Send WebSocket event to frontend and wait for response
+    // Send Socket.IO event to frontend and wait for acknowledgement
     const responseData = await sendAndWaitForResponse(
       {
         event: 'getSelectedMediaMetadata',
       },
-      'selectedMediaMetadata', // Wait for this event in response
+      '', // responseEvent not needed with Socket.IO acknowledgements
       10000, // 10 second timeout
       clientId // Send to specific client, or undefined to use first connection
     );

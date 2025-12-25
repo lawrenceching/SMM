@@ -7,6 +7,7 @@ export const createAskForConfirmationTool = (clientId: string) => ({
   description: `Ask user for confirmation. 
   This tool accepts "message" parameter which will be shown to user.
   This tool return "yes" and "no" according to user's confirmation`,
+  toolName: 'askForConfirmation',
   inputSchema: z.object({
     message: z.string().describe("The confirmation message to show to the user"),
   }),

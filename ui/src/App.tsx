@@ -667,11 +667,26 @@ function AppLayout() {
 
 function WebSocketHandlers() {
 
-  const { refreshMediaMetadata } = useMediaMetadata();
+  const { refreshMediaMetadata, selectedMediaMetadata } = useMediaMetadata();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
   useWebSocketEvent((message) => {
+    // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
+    if (message.event === "getSelectedMediaMetadata") {
+      console.log('[WebSocketHandlers][DEBUG] getSelectedMediaMetadata received', {
+        message,
+        hasCallback: !!(message as any)._socketCallback,
+        selectedMediaMetadata
+      });
+      
+      // Send acknowledgement with selected media metadata
+      sendAcknowledgement(message, {
+        selectedMediaMetadata: selectedMediaMetadata || null,
+      });
+      console.log('[WebSocketHandlers][DEBUG] getSelectedMediaMetadata acknowledgement sent');
+    }
+    
     // Handle mediaMetadataUpdated event (no acknowledgement needed)
     if (message.event === "mediaMetadataUpdated") {
       const folderPath = message.data?.folderPath;
