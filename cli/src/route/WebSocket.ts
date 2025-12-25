@@ -1,5 +1,8 @@
 import type { Context } from 'hono';
 import { registerConnection, unregisterConnection, handleWebSocketResponse, registerClientId, type WebSocketMessage } from '../utils/websocketManager';
+import pino from 'pino';
+
+const logger = pino();
 
 /**
  * Create WebSocket handler for Hono
@@ -9,7 +12,7 @@ export function createWebSocketHandler() {
   return (c: Context) => {
     return {
       onOpen(event: Event, ws: any) {
-        console.log('[WebSocket] Connection established');
+        logger.info('websocket connection established');
         
         // Register the connection
         registerConnection(ws);
@@ -21,9 +24,14 @@ export function createWebSocketHandler() {
         
         try {
           ws.send(JSON.stringify(helloMessage));
-          console.log('[WebSocket] Sent hello event');
+          logger.info({
+            event: 'hello'
+          }, 'websocket message sent');
         } catch (error) {
-          console.error('[WebSocket] Error sending hello event:', error);
+          logger.error({
+            error: error instanceof Error ? error.message : String(error),
+            event: 'hello'
+          }, 'websocket error sending hello event');
         }
       },
       onMessage(event: MessageEvent, ws: any) {
@@ -31,7 +39,12 @@ export function createWebSocketHandler() {
           const text = typeof event.data === 'string' ? event.data : event.data.toString();
           const parsed: WebSocketMessage = JSON.parse(text);
           
-          // console.log('[WebSocket] Received message:', parsed);
+          // Log received message
+          logger.info({
+            event: parsed.event,
+            requestId: parsed.requestId,
+            hasData: !!parsed.data
+          }, 'websocket message received');
 
           // Check if this is a response to a pending request
           if (parsed.requestId) {
@@ -40,21 +53,31 @@ export function createWebSocketHandler() {
 
           // Handle userAgent event
           if (parsed.event === 'userAgent' && parsed.data?.userAgent) {
-            console.log('[WebSocket] Received userAgent:', parsed.data.userAgent);
+            logger.info({
+              userAgent: parsed.data.userAgent,
+              clientId: parsed.data?.clientId
+            }, 'websocket received userAgent');
             
             // Register clientId if provided
             if (parsed.data?.clientId) {
               registerClientId(ws, parsed.data.clientId);
-              console.log('[WebSocket] Registered clientId:', parsed.data.clientId);
+              logger.info({
+                clientId: parsed.data.clientId
+              }, 'websocket registered clientId');
             }
           }
 
           // Handle selectedMediaMetadata event (response from frontend)
           // if (parsed.event === 'selectedMediaMetadata' && parsed.data?.selectedMediaMetadata) {
-          //   console.log('[WebSocket] Received selectedMediaMetadata:', JSON.stringify(parsed.data.selectedMediaMetadata, null, 2));
+          //   logger.info({
+          //     event: parsed.event,
+          //     data: parsed.data.selectedMediaMetadata
+          //   }, 'websocket received selectedMediaMetadata');
           // }
         } catch (error) {
-          console.error('[WebSocket] Error parsing message:', error);
+          logger.error({
+            error: error instanceof Error ? error.message : String(error)
+          }, 'websocket error parsing message');
         }
       },
       onClose(event: CloseEvent, ws: any) {
@@ -63,13 +86,18 @@ export function createWebSocketHandler() {
         
         if (event.code !== 1000) {
           // Non-normal closure indicates an error
-          console.error(`[WebSocket] Connection closed with error - code: ${event.code}, reason: ${event.reason}`);
+          logger.error({
+            code: event.code,
+            reason: event.reason
+          }, 'websocket connection closed with error');
         } else {
-          console.log('[WebSocket] Connection closed');
+          logger.info('websocket connection closed');
         }
       },
       onError(event: Event, ws: any) {
-        console.error('[WebSocket] Error:', event);
+        logger.error({
+          error: event.type
+        }, 'websocket error');
       },
     };
   };

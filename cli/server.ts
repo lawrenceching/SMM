@@ -21,6 +21,9 @@ import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFil
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { createWebSocketHandler } from './src/route/WebSocket';
 import { handleDebugRequest } from './src/route/Debug';
+import { requestId } from 'hono/request-id';
+import { pinoHttp } from 'pino-http';
+const logger = pinoHttp()
 
 export interface ServerConfig {
   port?: number;
@@ -39,6 +42,19 @@ export class Server {
     this.root = path.resolve(rootPath);
     
     this.app = new Hono();
+    this.app.use(requestId())
+    this.app.use(async (_c, next) => {
+      // pass hono's request-id to pino-http
+      const c = _c as any;
+      c.env.incoming.id = c.var.requestId;
+    
+      // map express style middleware to hono
+      await new Promise<void>((resolve) => logger(c.env.incoming, c.env.outgoing, () => resolve()));
+    
+      c.set('logger', c.env.incoming.log);
+    
+      await next();
+    });
     this.setupMiddleware();
     this.setupRoutes();
   }

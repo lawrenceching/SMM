@@ -5,7 +5,8 @@ import { Path } from "@core/path";
 import { listFiles } from "@/utils/files";
 import { metadataCacheFilePath } from "./utils";
 import { mediaMetadataToString } from "lib/log";
-import path from "node:path";
+import pino from "pino"
+const logger = pino()
 
 export async function newMediaMetadata(folderPath: Path) {
     const metadata: MediaMetadata = {
@@ -67,7 +68,7 @@ export async function handleReadMediaMetadata(app: Hono) {
         } else {
             // Cache exists, read it
             try {
-                console.log(`[ReadMediaMetadata] Reading metadata from file: ${metadataFilePath}`)
+                // console.log(`[ReadMediaMetadata] Reading metadata from file: ${metadataFilePath}`)
                 const data = await Bun.file(metadataFilePath).json() as MediaMetadata;
 
                 data.files = await listFiles(new Path(folderPath), true);
@@ -75,7 +76,7 @@ export async function handleReadMediaMetadata(app: Hono) {
                 const resp: ReadMediaMetadataResponseBody = {
                     data
                 };
-                console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
+                // console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
                 return c.json(resp, 200);
             } catch (error) {
                 console.error(`[ReadMediaMetadata] Error reading metadata from file: ${metadataFilePath}`, error)
@@ -84,8 +85,7 @@ export async function handleReadMediaMetadata(app: Hono) {
                     data: {} as MediaMetadata,
                     error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to read metadata cache'}`
                 };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
-                console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
+                // console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
                 return c.json(resp, 200);
             }
         }

@@ -1,3 +1,6 @@
+import pino from "pino"
+const logger = pino()
+
 export interface WebSocketMessage {
   event: string;
   data?: any;
@@ -94,21 +97,37 @@ export function broadcastMessage(message: WebSocketMessage): void {
   const messageStr = JSON.stringify(message);
   let sentCount = 0;
   
+  logger.info({
+    event: message.event,
+    requestId: message.requestId,
+    type: 'broadcast'
+  }, 'websocket message sent (broadcast)');
+  
   for (const ws of connections) {
     if (ws.readyState === 1) { // WebSocket.OPEN === 1
       try {
         ws.send(messageStr);
         sentCount++;
       } catch (error) {
-        console.error('[WebSocketManager] Error sending message:', error);
+        logger.error({
+          error: error instanceof Error ? error.message : String(error),
+          event: message.event,
+          requestId: message.requestId
+        }, 'websocket error sending message');
       }
     }
   }
   
   if (sentCount === 0 && connections.size > 0) {
-    console.warn('[WebSocketManager] No active connections to send message to');
+    logger.warn({
+      connections: connections.size
+    }, 'websocket no active connections to send message to');
   } else {
-    console.log(`[WebSocketManager] Message sent to ${sentCount} connection(s)`);
+    logger.info({
+      sentCount,
+      totalConnections: connections.size,
+      event: message.event
+    }, 'websocket message sent to connections');
   }
 }
 
@@ -162,10 +181,21 @@ export function sendAndWaitForResponse(
       
       try {
         ws.send(JSON.stringify(messageWithId));
-        console.log(`[WebSocketManager] Sent request with ID: ${requestId} to clientId: ${clientId}, waiting for response event: ${responseEvent}`);
+        logger.info({
+          requestId,
+          clientId,
+          event: message.event,
+          responseEvent,
+          timeoutMs
+        }, 'websocket message sent');
       } catch (error) {
         clearTimeout(timeout);
         pendingRequests.delete(requestId);
+        logger.error({
+          requestId,
+          clientId,
+          error: error instanceof Error ? error.message : String(error)
+        }, 'websocket error sending message');
         reject(error instanceof Error ? error : new Error('Failed to send WebSocket message'));
       }
       return;
@@ -183,10 +213,20 @@ export function sendAndWaitForResponse(
     // Send message to first active connection
     try {
       firstConnection.send(JSON.stringify(messageWithId));
-      console.log(`[WebSocketManager] Sent request with ID: ${requestId} to first active connection (no clientId provided), waiting for response event: ${responseEvent}`);
+      logger.info({
+        requestId,
+        event: message.event,
+        responseEvent,
+        timeoutMs,
+        type: 'first-active-connection'
+      }, 'websocket message sent');
     } catch (error) {
       clearTimeout(timeout);
       pendingRequests.delete(requestId);
+      logger.error({
+        requestId,
+        error: error instanceof Error ? error.message : String(error)
+      }, 'websocket error sending message');
       reject(error instanceof Error ? error : new Error('Failed to send WebSocket message'));
     }
   });
@@ -204,13 +244,20 @@ export function handleWebSocketResponse(message: WebSocketMessage): void {
 
   const pendingRequest = pendingRequests.get(message.requestId);
   if (!pendingRequest) {
-    console.warn(`[WebSocketManager] Received response for unknown request ID: ${message.requestId}`);
+    logger.warn({
+      requestId: message.requestId,
+      event: message.event
+    }, 'websocket received response for unknown request');
     return;
   }
 
   // Verify the response event matches what we're waiting for
   if (message.event !== pendingRequest.responseEvent) {
-    console.warn(`[WebSocketManager] Response event mismatch for request ${message.requestId}. Expected: ${pendingRequest.responseEvent}, got: ${message.event}`);
+    logger.warn({
+      requestId: message.requestId,
+      expectedEvent: pendingRequest.responseEvent,
+      receivedEvent: message.event
+    }, 'websocket response event mismatch');
     // Still resolve it, as requestId matching is the primary mechanism
   }
 
@@ -219,7 +266,11 @@ export function handleWebSocketResponse(message: WebSocketMessage): void {
   pendingRequests.delete(message.requestId);
 
   // Resolve the promise with the message data
-  console.log(`[WebSocketManager] Resolved request ${message.requestId} with event: ${message.event}`);
+  logger.info({
+    requestId: message.requestId,
+    event: message.event,
+    hasData: !!message.data
+  }, 'websocket response received');
   pendingRequest.resolve(message.data);
 }
 

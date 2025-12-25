@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { sendAndWaitForResponse } from '../utils/websocketManager';
-
+import pino from "pino"
+const logger = pino()
 export const createAskForConfirmationTool = (clientId: string) => ({
   description: `Ask user for confirmation. 
   This tool accepts "message" parameter which will be shown to user.
@@ -9,7 +10,7 @@ export const createAskForConfirmationTool = (clientId: string) => ({
     message: z.string().describe("The confirmation message to show to the user"),
   }),
   execute: async ({ message }: { message: string }) => {
-    console.log(`[tool][askForConfirmation] clientId: ${clientId}, message: ${message}`);
+    logger.info(`[tool][askForConfirmation] clientId: ${clientId}, message: ${message}`);
     
     try {
       // Send WebSocket event to frontend and wait for response
@@ -25,6 +26,7 @@ export const createAskForConfirmationTool = (clientId: string) => ({
         clientId // Send to specific client
       );
       
+      logger.info(`[tool][askForConfirmation] responseData: ${JSON.stringify(responseData)}`);
       // Extract the response from the data
       const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';
       const result = confirmed ? 'yes' : 'no';
