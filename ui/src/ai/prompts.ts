@@ -51,15 +51,7 @@ path: /path/to/file2.mp4
 
 ...continue the rest of files
 \`\`\`
-[ ] Ask user to confirm the result using "askForConfirmation" tool.
-    You should ask for confirmation for **ALL** files in previous task at once.
-    Confirmation message template:
-\`\`\`
-Confirm to match files:
-S00E01 -> /path/to/file1.mp4
-S00E02 -> /path/to/file2.mp4
-...continue the rest of files
-\`\`\`
+
 [ ] Call "match-episodes-in-batch" to update the MediaFileMetadata in SMM, based on previous task output
 
 
