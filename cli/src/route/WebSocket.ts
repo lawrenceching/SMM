@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { registerConnection, unregisterConnection, handleWebSocketResponse, type WebSocketMessage } from '../utils/websocketManager';
+import { registerConnection, unregisterConnection, handleWebSocketResponse, registerClientId, type WebSocketMessage } from '../utils/websocketManager';
 
 /**
  * Create WebSocket handler for Hono
@@ -31,7 +31,7 @@ export function createWebSocketHandler() {
           const text = typeof event.data === 'string' ? event.data : event.data.toString();
           const parsed: WebSocketMessage = JSON.parse(text);
           
-          console.log('[WebSocket] Received message:', parsed);
+          // console.log('[WebSocket] Received message:', parsed);
 
           // Check if this is a response to a pending request
           if (parsed.requestId) {
@@ -41,13 +41,18 @@ export function createWebSocketHandler() {
           // Handle userAgent event
           if (parsed.event === 'userAgent' && parsed.data?.userAgent) {
             console.log('[WebSocket] Received userAgent:', parsed.data.userAgent);
-            // You can add additional handling here if needed
+            
+            // Register clientId if provided
+            if (parsed.data?.clientId) {
+              registerClientId(ws, parsed.data.clientId);
+              console.log('[WebSocket] Registered clientId:', parsed.data.clientId);
+            }
           }
 
           // Handle selectedMediaMetadata event (response from frontend)
-          if (parsed.event === 'selectedMediaMetadata' && parsed.data?.selectedMediaMetadata) {
-            console.log('[WebSocket] Received selectedMediaMetadata:', JSON.stringify(parsed.data.selectedMediaMetadata, null, 2));
-          }
+          // if (parsed.event === 'selectedMediaMetadata' && parsed.data?.selectedMediaMetadata) {
+          //   console.log('[WebSocket] Received selectedMediaMetadata:', JSON.stringify(parsed.data.selectedMediaMetadata, null, 2));
+          // }
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
         }

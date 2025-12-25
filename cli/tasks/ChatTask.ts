@@ -1,12 +1,12 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from 'ai';
-import { getDeepseekProvider, DEEPSEEK_MODEL } from '../lib/ai-provider';
-import { z } from 'zod';
-import { frontendTools } from "@assistant-ui/react-ai-sdk";
-import os from 'os';
 import { config } from 'dotenv';
-import { executeHelloTask } from './HelloTask';
-import { join } from 'path';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import {
+  isFolderExistTool,
+  createGetSelectedMediaMetadataTool,
+  getMediaFoldersTool,
+  listFilesInMediaFolderTool,
+} from '../src/tools';
 
 config();
 
@@ -15,47 +15,35 @@ interface ChatRequest {
   model?: string;
   tools?: any;
   system?: string;
+  clientId: string;
 }
 
-const openai = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL,
-  apiKey: process.env.OPENAI_API_KEY,
+const openai = createOpenAICompatible({
+  name: 'DeepSeek',
+  baseURL: process.env.OPENAI_BASE_URL || '',
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 export async function handleChatRequest(request: Request): Promise<Response> {
   try {
     const body = await request.json() as ChatRequest;
-    const { messages, model, tools, system } = body;
+    const { messages, model, tools, system, clientId } = body;
 
+    console.log('clientId:', clientId);
     // Convert UI messages to model messages format
     const modelMessages = await convertToModelMessages(messages || []);
-    console.log('Converted to model messages:', modelMessages.length);
 
+    console.log(`baseURL: ${process.env.OPENAI_BASE_URL}, model: ${model || process.env.OPENAI_MODEL}`);
     const result = await streamText({
-      model: openai.chat(model || process.env.OPENAI_MODEL || 'deepseek-chat'),
+      model: openai.chatModel(model || process.env.OPENAI_MODEL || 'deepseek-chat'),
       messages: modelMessages,
-      // system: system,
+      system: system,
       tools: {
-        ...frontendTools(tools),
-        isFolderExist: {
-          description: "Chekc if the folder exists in the file system",
-          inputSchema: z.object({
-            path: z.string().describe("The absolute path of the media folder in POSIX or Windows format"),
-          }),
-          execute: async ({ path }) => {
-            return true;
-          },
-        },
-        getMediaFolders: {
-          description: "Get the media folders that managed by SMM",
-          inputSchema: z.object(),
-          execute: async ({  }) => {
-            const {userDataDir} = await executeHelloTask()
-            const obj = await Bun.file(join(userDataDir, 'smm.json')).json()
-            const folders = obj.folders
-            return folders
-          },
-        },
+        // ...frontendTools(tools),
+        isFolderExist: isFolderExistTool,
+        getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId),
+        getMediaFolders: getMediaFoldersTool,
+        listFilesInMediaFolder: listFilesInMediaFolderTool,
       },
       stopWhen: stepCountIs(20)
     });

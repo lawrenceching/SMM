@@ -19,6 +19,12 @@ type PendingRequest = {
 // Store active WebSocket connections
 const connections = new Set<WebSocketConnection>();
 
+// Store mapping from clientId to WebSocket connection
+const clientIdToConnection = new Map<string, WebSocketConnection>();
+
+// Store mapping from WebSocket connection to clientId (for cleanup)
+const connectionToClientId = new Map<WebSocketConnection, string>();
+
 // Store pending requests waiting for responses
 const pendingRequests = new Map<string, PendingRequest>();
 
@@ -38,7 +44,47 @@ export function registerConnection(ws: WebSocketConnection): void {
  */
 export function unregisterConnection(ws: WebSocketConnection): void {
   connections.delete(ws);
+  
+  // Remove clientId mapping if it exists
+  const clientId = connectionToClientId.get(ws);
+  if (clientId) {
+    clientIdToConnection.delete(clientId);
+    connectionToClientId.delete(ws);
+    console.log(`[WebSocketManager] Removed clientId mapping: ${clientId}`);
+  }
+  
   console.log(`[WebSocketManager] Connection unregistered. Total connections: ${connections.size}`);
+}
+
+/**
+ * Register a clientId for a WebSocket connection
+ */
+export function registerClientId(ws: WebSocketConnection, clientId: string): void {
+  // Remove old mapping if this connection was already mapped
+  const oldClientId = connectionToClientId.get(ws);
+  if (oldClientId && oldClientId !== clientId) {
+    clientIdToConnection.delete(oldClientId);
+  }
+  
+  clientIdToConnection.set(clientId, ws);
+  connectionToClientId.set(ws, clientId);
+  console.log(`[WebSocketManager] Registered clientId: ${clientId}`);
+}
+
+/**
+ * Get WebSocket connection by clientId
+ */
+export function getConnectionByClientId(clientId: string): WebSocketConnection | null {
+  const ws = clientIdToConnection.get(clientId);
+  if (ws && ws.readyState === 1) { // WebSocket.OPEN === 1
+    return ws;
+  }
+  // Clean up stale connection if found
+  if (ws) {
+    clientIdToConnection.delete(clientId);
+    connectionToClientId.delete(ws);
+  }
+  return null;
 }
 
 /**
@@ -71,12 +117,14 @@ export function broadcastMessage(message: WebSocketMessage): void {
  * @param message The WebSocket message to send
  * @param responseEvent The event name to wait for in the response
  * @param timeoutMs Timeout in milliseconds (default: 5000)
+ * @param clientId Optional clientId to send to a specific connection
  * @returns Promise that resolves with the response data
  */
 export function sendAndWaitForResponse(
   message: WebSocketMessage,
   responseEvent: string,
-  timeoutMs: number = DEFAULT_TIMEOUT
+  timeoutMs: number = DEFAULT_TIMEOUT,
+  clientId?: string
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     // Generate unique request ID
@@ -102,19 +150,40 @@ export function sendAndWaitForResponse(
       responseEvent,
     });
 
-    // Check if there are active connections before sending
-    const hasActiveConnections = Array.from(connections).some(ws => ws.readyState === 1);
-    if (!hasActiveConnections) {
+    // Send message to specific connection if clientId is provided
+    if (clientId) {
+      const ws = getConnectionByClientId(clientId);
+      if (!ws) {
+        clearTimeout(timeout);
+        pendingRequests.delete(requestId);
+        reject(new Error(`No active WebSocket connection found for clientId: ${clientId}`));
+        return;
+      }
+      
+      try {
+        ws.send(JSON.stringify(messageWithId));
+        console.log(`[WebSocketManager] Sent request with ID: ${requestId} to clientId: ${clientId}, waiting for response event: ${responseEvent}`);
+      } catch (error) {
+        clearTimeout(timeout);
+        pendingRequests.delete(requestId);
+        reject(error instanceof Error ? error : new Error('Failed to send WebSocket message'));
+      }
+      return;
+    }
+
+    // Fallback: use the first active connection if clientId is not provided
+    const firstConnection = getFirstActiveConnection();
+    if (!firstConnection) {
       clearTimeout(timeout);
       pendingRequests.delete(requestId);
       reject(new Error('No active WebSocket connections available'));
       return;
     }
 
-    // Send message
+    // Send message to first active connection
     try {
-      broadcastMessage(messageWithId);
-      console.log(`[WebSocketManager] Sent request with ID: ${requestId}, waiting for response event: ${responseEvent}`);
+      firstConnection.send(JSON.stringify(messageWithId));
+      console.log(`[WebSocketManager] Sent request with ID: ${requestId} to first active connection (no clientId provided), waiting for response event: ${responseEvent}`);
     } catch (error) {
       clearTimeout(timeout);
       pendingRequests.delete(requestId);

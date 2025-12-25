@@ -69,8 +69,8 @@ function createUUID(): string {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function getOrCreateSmmInstanceUUID(): string {
-  const key = 'smmInstanceUUID';
+export function getOrCreateClientId(): string {
+  const key = 'clientId';
   try {
     const existing = localStorage.getItem(key);
     if (existing && existing.trim().length > 0) {
@@ -95,7 +95,7 @@ export function useWebSocket(): UseWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const smmInstanceUUIDRef = useRef<string>(getOrCreateSmmInstanceUUID());
+  const clientIdRef = useRef<string>(getOrCreateClientId());
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000; // 3 seconds
 
@@ -135,7 +135,7 @@ export function useWebSocket(): UseWebSocketReturn {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('[WebSocket] Received message:', message);
+          // console.log('[WebSocket] Received message:', message);
 
           // Handle "hello" event
           if (message.event === 'hello') {
@@ -146,7 +146,7 @@ export function useWebSocket(): UseWebSocketReturn {
               event: 'userAgent',
               data: {
                 userAgent: navigator.userAgent,
-                smmInstanceUUID: smmInstanceUUIDRef.current,
+                clientId: clientIdRef.current,
               }
             };
             
