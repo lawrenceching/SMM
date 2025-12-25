@@ -6,7 +6,9 @@ import {
   createGetSelectedMediaMetadataTool,
   getMediaFoldersTool,
   listFilesInMediaFolderTool,
+  matchEpisodeTool,
 } from '../src/tools';
+import { frontendTools } from '@assistant-ui/react-ai-sdk';
 
 config();
 
@@ -39,11 +41,12 @@ export async function handleChatRequest(request: Request): Promise<Response> {
       messages: modelMessages,
       system: system,
       tools: {
-        // ...frontendTools(tools),
+        ...frontendTools(tools),
         isFolderExist: isFolderExistTool,
         getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId),
         getMediaFolders: getMediaFoldersTool,
         listFilesInMediaFolder: listFilesInMediaFolderTool,
+        matchEpisode: matchEpisodeTool,
       },
       stopWhen: stepCountIs(20)
     });

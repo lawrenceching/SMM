@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { mockMediaMetadata } from '@/utils/mock';
-// import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
+import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
+import type { MediaMetadata } from '@core/types';
 
 export const createGetSelectedMediaMetadataTool = (clientId: string) => ({
   description: `Get the user selected folder(media) in SMM.
@@ -13,21 +13,22 @@ export const createGetSelectedMediaMetadataTool = (clientId: string) => ({
   inputSchema: z.object({}),
   execute: async () => {
     console.log(`[tool][getSelectedMediaMetadata] clientId: ${clientId}`);
-    return {
-      mediaFolderPath: mockMediaMetadata.mediaFolderPath,
-      type: mockMediaMetadata.type,
-      tmdbId: mockMediaMetadata.tmdbTvShow?.id,
-      name: mockMediaMetadata.tmdbTvShow?.name,
-    };
+    
     // Use the clientId from the request body if available, otherwise use first connection as fallback
-    // const result = await executeGetSelectedMediaMetadataTask(clientId);
+    const result = await executeGetSelectedMediaMetadataTask(clientId);
     
-    // if (!result.success) {
-    //   throw new Error(result.error || 'Failed to get selected media metadata');
-    // }
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get selected media metadata');
+    }
     
-    // console.log(`[tool][getSelectedMediaMetadata] media metadata: ${result.data.mediaFolderPath}`);
-    // return result.data;
+    console.log(`[tool][getSelectedMediaMetadata] media metadata: ${result.data.mediaFolderPath}`);
+    const mm = result.data as MediaMetadata;
+    return {
+      mediaFolderPath: mm.mediaFolderPath,
+      type: mm.type,
+      tmdbId: mm.tmdbTvShow?.id,
+      name: mm.tmdbTvShow?.name,
+    };
   },
 });
 
