@@ -22,10 +22,22 @@ import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { initializeSocketIO } from './src/route/WebSocket';
 import { handleDebugRequest } from './src/route/Debug';
 import { requestId } from 'hono/request-id';
-import { pinoHttp } from 'pino-http';
+import pino from 'pino';
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as Engine } from '@socket.io/bun-engine';
-const pinoLogger = pinoHttp()
+
+// Configure pino logger
+const pinoLogger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: process.env.NODE_ENV !== 'production' ? {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'HH:MM:ss',
+      ignore: 'pid,hostname',
+    }
+  } : undefined,
+})
 
 export interface ServerConfig {
   port?: number;
@@ -65,18 +77,36 @@ export class Server {
     
     this.app = new Hono();
     this.app.use(requestId())
-    // this.app.use(async (_c, next) => {
-    //   // pass hono's request-id to pino-http
-    //   const c = _c as any;
-    //   c.env.incoming.id = c.var.requestId;
     
-    //   // map express style middleware to hono
-    //   await new Promise<void>((resolve) => pinoLogger(c.env.incoming, c.env.outgoing, () => resolve()));
+    // Pino logging middleware for Hono
+    this.app.use(async (c, next) => {
+      const reqId = c.get('requestId');
+      const method = c.req.method;
+      const path = c.req.path;
+      
+      // Skip logging for Socket.IO polling to reduce noise
+      if (path.includes('/socket.io/')) {
+        return next();
+      }
+      
+      const start = Date.now();
+      
+      pinoLogger.info({ requestId: reqId, method, path }, 'incoming request');
+      
+      await next();
+      
+      const duration = Date.now() - start;
+      const status = c.res.status;
+      
+      pinoLogger.info({
+        requestId: reqId,
+        method,
+        path,
+        status,
+        duration: `${duration}ms`
+      }, 'request completed');
+    });
     
-    //   c.set('logger', c.env.incoming.log);
-    
-    //   await next();
-    // });
     this.setupMiddleware();
     this.setupRoutes();
     
