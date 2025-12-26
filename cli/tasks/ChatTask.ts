@@ -8,6 +8,7 @@ import {
   listFilesInMediaFolderTool,
   matchEpisodeTool,
   createMatchEpisodesInBatchTool,
+  createRenameFilesInBatchTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
 } from '../src/tools';
@@ -54,6 +55,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         listFilesInMediaFolder: listFilesInMediaFolderTool,
         // matchEpisode: matchEpisodeTool,
         matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId),
+        renameFilesInBatch: createRenameFilesInBatchTool(clientId),
         askForConfirmation: createAskForConfirmationTool(clientId),
       },
       stopWhen: stepCountIs(20)

@@ -113,3 +113,51 @@ curl -X POST http://localhost:30000/debug \
     }
   }'
 ```
+
+### renameFilesInBatch
+
+The renameFilesInBatch function allows testing the batch file renaming functionality directly. It will:
+1. Validate all rename operations
+2. Ask for user confirmation (if clientId is provided and UI is connected)
+3. Perform the file renames on the filesystem
+4. Update media metadata
+
+```typescript
+interface RenameFilesInBatchDebugApiRequestBody {
+    name: "renameFilesInBatch",
+    folderPath: string,
+    files: Array<{
+        from: string,
+        to: string
+    }>,
+    clientId?: string
+}
+```
+
+#### Example: Rename files in a media folder
+
+```bash
+curl -X POST http://localhost:30000/debug \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "renameFilesInBatch",
+    "folderPath": "/path/to/media/folder",
+    "files": [
+      {
+        "from": "/path/to/media/folder/file1.txt",
+        "to": "/path/to/media/folder/file1_renamed.txt"
+      },
+      {
+        "from": "/path/to/media/folder/file2.txt",
+        "to": "/path/to/media/folder/file2_renamed.txt"
+      }
+    ],
+    "clientId": "optional-client-id"
+  }'
+```
+
+**Note:** 
+- The `folderPath` must be a folder that is currently opened in SMM (has metadata cache)
+- If `clientId` is provided and a UI client is connected, it will show a confirmation dialog
+- If `clientId` is not provided or no UI is connected, the confirmation will timeout and the operation will fail
+- The function returns validation errors if any rename operations are invalid

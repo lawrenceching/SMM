@@ -27,10 +27,22 @@ const retrieveSchema = debugRequestBaseSchema.extend({
   data: z.any().optional(),
 });
 
+// Schema for renameFilesInBatch function
+const renameFilesInBatchSchema = debugRequestBaseSchema.extend({
+  name: z.literal('renameFilesInBatch'),
+  folderPath: z.string().min(1, 'Folder path is required'),
+  files: z.array(z.object({
+    from: z.string().min(1, 'Source path is required'),
+    to: z.string().min(1, 'Destination path is required'),
+  })).min(1, 'At least one file rename operation is required'),
+  clientId: z.string().optional(),
+});
+
 // Union schema for all debug functions
 const debugRequestSchema = z.discriminatedUnion('name', [
   broadcastMessageSchema,
   retrieveSchema,
+  renameFilesInBatchSchema,
   // Add more schemas here as new debug functions are added
 ]);
 
@@ -103,6 +115,33 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
           return {
             success: false,
             error: `Failed to retrieve data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'renameFilesInBatch': {
+        try {
+          const { createRenameFilesInBatchTool } = await import('../tools/renameFilesInBatch');
+          const clientId = validatedBody.clientId || '';
+          const tool = createRenameFilesInBatchTool(clientId);
+          
+          const result = await tool.execute({
+            folderPath: validatedBody.folderPath,
+            files: validatedBody.files,
+          });
+          
+          console.log(`[DebugAPI] renameFilesInBatch completed`);
+          
+          return {
+            success: !result.error,
+            data: result,
+            error: result.error,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing renameFilesInBatch:`, error);
+          return {
+            success: false,
+            error: `Failed to execute renameFilesInBatch: ${error instanceof Error ? error.message : 'Unknown error'}`,
           };
         }
       }
