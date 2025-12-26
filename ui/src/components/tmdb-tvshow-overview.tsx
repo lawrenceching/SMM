@@ -9,6 +9,11 @@ import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { Button } from "./ui/button"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { useDialogs } from "./dialog-provider"
+import { relative, join } from "@/lib/path"
+import { renameFile } from "@/api/renameFile"
+import { toast } from "sonner"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -38,7 +43,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProps) {
-    const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+    const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
@@ -47,6 +52,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
     const [expandedSeasonId, setExpandedSeasonId] = useState<number | null>(null)
     const [expandedEpisodeId, setExpandedEpisodeId] = useState<number | null>(null)
     const { userConfig } = useConfig()
+    const { renameDialog } = useDialogs()
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
@@ -567,15 +573,84 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                                                                         <div className="pt-3 space-y-2">
                                                                                             {/* Video File */}
                                                                                             {videoFile && (
-                                                                                                <div className="p-2 rounded-md bg-background border">
-                                                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                                                        <FileVideo className="size-4 text-primary" />
-                                                                                                        <span className="text-xs font-semibold">Video File</span>
-                                                                                                    </div>
-                                                                                                    <p className="text-xs text-muted-foreground font-mono truncate">
-                                                                                                        {videoFile.absolutePath}
-                                                                                                    </p>
-                                                                                                </div>
+                                                                                                <ContextMenu>
+                                                                                                    <ContextMenuTrigger asChild>
+                                                                                                        <div className="p-2 rounded-md bg-background border">
+                                                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                                                <FileVideo className="size-4 text-primary" />
+                                                                                                                <span className="text-xs font-semibold">Video File</span>
+                                                                                                            </div>
+                                                                                                            <p className="text-xs text-muted-foreground font-mono truncate">
+                                                                                                                {videoFile.absolutePath}
+                                                                                                            </p>
+                                                                                                        </div>
+                                                                                                    </ContextMenuTrigger>
+                                                                                                    <ContextMenuContent>
+                                                                                                        <ContextMenuItem
+                                                                                                            onClick={() => {
+                                                                                                                if (!videoFile.absolutePath) return
+                                                                                                                
+                                                                                                                // Calculate relative path from media folder
+                                                                                                                const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
+                                                                                                                let relativePath: string
+                                                                                                                
+                                                                                                                if (mediaFolderPath) {
+                                                                                                                    try {
+                                                                                                                        relativePath = relative(mediaFolderPath, videoFile.absolutePath)
+                                                                                                                    } catch (error) {
+                                                                                                                        // If relative path calculation fails, use absolute path
+                                                                                                                        relativePath = videoFile.absolutePath
+                                                                                                                    }
+                                                                                                                } else {
+                                                                                                                    relativePath = videoFile.absolutePath
+                                                                                                                }
+                                                                                                                
+                                                                                                                const [openRename] = renameDialog
+                                                                                                                openRename(
+                                                                                                                    async (newRelativePath: string) => {
+                                                                                                                        if (!selectedMediaMetadata?.mediaFolderPath || !videoFile.absolutePath) {
+                                                                                                                            console.error("Missing required paths for rename")
+                                                                                                                            return
+                                                                                                                        }
+
+                                                                                                                        try {
+                                                                                                                            // Convert relative path to absolute path
+                                                                                                                            const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
+                                                                                                                            
+                                                                                                                            // Call renameFile API
+                                                                                                                            await renameFile({
+                                                                                                                                mediaFolder: selectedMediaMetadata.mediaFolderPath,
+                                                                                                                                from: videoFile.absolutePath,
+                                                                                                                                to: newAbsolutePath,
+                                                                                                                            })
+
+                                                                                                                            // Refresh media metadata to reflect the rename
+                                                                                                                            refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
+                                                                                                                            
+                                                                                                                            console.log("File renamed successfully:", videoFile.absolutePath, "->", newAbsolutePath)
+                                                                                                                            toast.success("File renamed successfully")
+                                                                                                                        } catch (error) {
+                                                                                                                            console.error("Failed to rename file:", error)
+                                                                                                                            const errorMessage = error instanceof Error ? error.message : "Failed to rename file"
+                                                                                                                            toast.error("Failed to rename file", {
+                                                                                                                                description: errorMessage
+                                                                                                                            })
+                                                                                                                            throw error // Re-throw to let dialog handle it
+                                                                                                                        }
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        initialValue: relativePath,
+                                                                                                                        title: "Rename File",
+                                                                                                                        description: "Enter the new relative path for the file"
+                                                                                                                    }
+                                                                                                                )
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            <FileEdit className="size-4 mr-2" />
+                                                                                                            Rename
+                                                                                                        </ContextMenuItem>
+                                                                                                    </ContextMenuContent>
+                                                                                                </ContextMenu>
                                                                                             )}
                                                                                             
                                                                                             {/* Subtitle Files */}

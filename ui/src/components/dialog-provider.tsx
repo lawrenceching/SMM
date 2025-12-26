@@ -466,6 +466,79 @@ function MediaSearchDialog({ isOpen, onClose, onSelect }: MediaSearchDialogProps
   )
 }
 
+interface RenameDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: (newName: string) => void
+  initialValue?: string
+  title?: string
+  description?: string
+}
+
+function RenameDialog({ isOpen, onClose, onConfirm, initialValue = "", title = "Rename", description = "Enter the new name" }: RenameDialogProps) {
+  const [newName, setNewName] = useState(initialValue)
+
+  // Reset to initial value when dialog opens or initialValue changes
+  useEffect(() => {
+    if (isOpen) {
+      setNewName(initialValue)
+    }
+  }, [isOpen, initialValue])
+
+  const handleConfirm = () => {
+    if (newName.trim()) {
+      onConfirm(newName.trim())
+      onClose()
+    }
+  }
+
+  const handleCancel = () => {
+    setNewName(initialValue)
+    onClose()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleConfirm()
+    } else if (e.key === "Escape") {
+      handleCancel()
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent showCloseButton={true} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="newName">New Name</Label>
+            <Input
+              id="newName"
+              type="text"
+              placeholder="Enter new name..."
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!newName.trim()}>
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface OpenFolderDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -600,6 +673,10 @@ interface DialogContextValue {
     openMediaSearch: (onSelect?: (tmdbId: number) => void) => void,
     closeMediaSearch: () => void
   ]
+  renameDialog: [
+    openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string }) => void,
+    closeRename: () => void
+  ]
 }
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined)
@@ -637,6 +714,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Media search dialog state
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
   const [mediaSearchOnSelect, setMediaSearchOnSelect] = useState<((tmdbId: number) => void) | null>(null)
+
+  // Rename dialog state
+  const [isRenameOpen, setIsRenameOpen] = useState(false)
+  const [renameOnConfirm, setRenameOnConfirm] = useState<((newName: string) => void) | null>(null)
+  const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string }>({})
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -747,6 +829,27 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openRename = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string }) => {
+    setRenameOnConfirm(() => onConfirm)
+    setRenameOptions(options || {})
+    setIsRenameOpen(true)
+  }, [])
+
+  const closeRename = useCallback(() => {
+    setIsRenameOpen(false)
+    setTimeout(() => {
+      setRenameOnConfirm(null)
+      setRenameOptions({})
+    }, 200)
+  }, [])
+
+  const handleRenameConfirm = useCallback((newName: string) => {
+    if (renameOnConfirm) {
+      renameOnConfirm(newName)
+    }
+    closeRename()
+  }, [renameOnConfirm, closeRename])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -755,6 +858,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     filePickerDialog: [openFilePicker, closeFilePicker],
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
+    renameDialog: [openRename, closeRename],
   }
 
   return (
@@ -796,6 +900,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isMediaSearchOpen}
         onClose={closeMediaSearch}
         onSelect={mediaSearchOnSelect || undefined}
+      />
+      <RenameDialog
+        isOpen={isRenameOpen}
+        onClose={closeRename}
+        onConfirm={handleRenameConfirm}
+        initialValue={renameOptions.initialValue}
+        title={renameOptions.title}
+        description={renameOptions.description}
       />
     </DialogContext.Provider>
   )

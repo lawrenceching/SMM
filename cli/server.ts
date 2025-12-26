@@ -9,6 +9,7 @@ import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMet
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
+import { handleRenameFile } from './src/route/RenameFile';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
 import { handleDownloadImage } from './src/route/DownloadImage';
@@ -222,6 +223,24 @@ export class Server {
           error: 'Failed to process write file request',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 500);
+      }
+    });
+
+    this.app.post('/api/renameFile', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to}`)
+        const result = await handleRenameFile(rawBody);
+        
+        // Always return 200 status code per API design guideline
+        // Business errors are returned in the "error" field
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('RenameFile route error:', error);
+        return c.json({ 
+          error: 'Unexpected Error: Failed to process rename file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 200);
       }
     });
 

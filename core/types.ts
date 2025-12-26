@@ -673,3 +673,23 @@ export interface HelloResponseBody {
    */
   appDataDir: string;
 }
+
+export interface FileRenameRequestBody {
+  /**
+   * Absolute path of media folder
+   */
+  mediaFolder: string;
+  /**
+   * Absolute path of source file
+   */
+  from: string;
+  /**
+   * Absolute path of destination
+   */
+  to: string;
+}
+
+
+export interface FileRenameResponseBody {
+  error?: string
+}
