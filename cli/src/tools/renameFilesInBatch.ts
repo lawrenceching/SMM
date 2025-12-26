@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
-import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
-import { mkdir, rename } from 'fs/promises';
-import { broadcastMessage, sendAndWaitForResponse } from '../utils/websocketManager';
+import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
+import { sendAndWaitForResponse } from '../utils/websocketManager';
 import { listFiles } from '../utils/files';
+import { executeRenameOperation, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { validateChainingConflicts } from '../validations/validateChainingConflicts';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
 import { validateNoDuplicatedSourceFile } from '../validations/validateNoDuplicatedSourceFile';
@@ -227,7 +227,7 @@ export async function validateRenameOperations(
 /**
  * Update media metadata files array and mediaFiles array after renaming
  */
-function updateMediaMetadataAfterRename(
+export function updateMediaMetadataAfterRename(
   mediaMetadata: MediaMetadata,
   renameMappings: Array<{ from: string; to: string }>
 ): MediaMetadata {
@@ -439,43 +439,18 @@ interface ToolResponse {
     const renameResults: Array<{ from: string; to: string; success: boolean; error?: string }> = [];
 
     for (const renameOp of validatedRenames) {
-      const fromPathPlatform = new Path(renameOp.from).platformAbsPath();
-      const toPathPlatform = new Path(renameOp.to).platformAbsPath();
+      const result = await executeRenameOperation(renameOp.from, renameOp.to, {
+        dryRun: false,
+        clientId,
+        logPrefix: '[tool][renameFilesInBatch]',
+      });
 
-      try {
-        // Ensure target directory exists
-        const toDir = new Path(renameOp.to).parent();
-        const toDirPlatform = toDir.platformAbsPath();
-        await mkdir(toDirPlatform, { recursive: true });
-
-        // Perform the rename
-        await rename(fromPathPlatform, toPathPlatform);
-        
-        logger.info({
-          from: renameOp.from,
-          to: renameOp.to
-        }, '[tool][renameFilesInBatch] File renamed successfully');
-
-        renameResults.push({
-          from: renameOp.from,
-          to: renameOp.to,
-          success: true
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error({
-          from: renameOp.from,
-          to: renameOp.to,
-          error: errorMessage
-        }, '[tool][renameFilesInBatch] Failed to rename file');
-
-        renameResults.push({
-          from: renameOp.from,
-          to: renameOp.to,
-          success: false,
-          error: errorMessage
-        });
-      }
+      renameResults.push({
+        from: renameOp.from,
+        to: renameOp.to,
+        success: result.success,
+        error: result.error,
+      });
     }
 
     // Check if any renames failed
@@ -489,32 +464,27 @@ interface ToolResponse {
       return { error: `Error Reason: Some rename operations failed:\n${errorMessages}` };
     }
 
-    // 7. Update media metadata with new file paths
+    // 7. Update media metadata with new file paths and broadcast
     const successfulRenames = renameResults.filter(r => r.success);
-    const updatedMediaMetadata = updateMediaMetadataAfterRename(mediaMetadata, successfulRenames);
-
-    // 8. Write updated metadata back to file
-    try {
-      await mkdir(mediaMetadataDir, { recursive: true });
-      await Bun.write(metadataFilePath, JSON.stringify(updatedMediaMetadata, null, 2));
-      logger.info({
-        folderPath: folderPathInPosix,
-        renamedFiles: successfulRenames.length
-      }, '[tool][renameFilesInBatch] Successfully updated media metadata');
-      
-      // 9. Notify all connected clients via Socket.IO
-      broadcastMessage({
-        event: 'mediaMetadataUpdated',
-        data: {
-          folderPath: folderPathInPosix
+    
+    if (successfulRenames.length > 0) {
+      const metadataUpdateResult = await updateMediaMetadataAndBroadcast(
+        folderPathInPosix,
+        successfulRenames,
+        {
+          dryRun: false,
+          clientId,
+          logPrefix: '[tool][renameFilesInBatch]',
         }
-      });
-    } catch (error) {
-      logger.error({
-        folderPath: folderPathInPosix,
-        error: error instanceof Error ? error.message : String(error)
-      }, '[tool][renameFilesInBatch] Failed to write media metadata');
-      return { error: `Error Reason: Failed to write media metadata: ${error instanceof Error ? error.message : 'Unknown error'}` };
+      );
+
+      if (!metadataUpdateResult.success) {
+        logger.error({
+          folderPath: folderPathInPosix,
+          error: metadataUpdateResult.error
+        }, '[tool][renameFilesInBatch] Failed to update media metadata');
+        return { error: `Error Reason: Failed to write media metadata: ${metadataUpdateResult.error}` };
+      }
     }
 
     logger.info({

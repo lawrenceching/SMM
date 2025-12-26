@@ -229,8 +229,9 @@ export class Server {
     this.app.post('/api/renameFile', async (c) => {
       try {
         const rawBody = await c.req.json();
-        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to}`)
-        const result = await handleRenameFile(rawBody);
+        const clientId = c.req.header('clientId');
+        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
+        const result = await handleRenameFile(rawBody, clientId);
         
         // Always return 200 status code per API design guideline
         // Business errors are returned in the "error" field
