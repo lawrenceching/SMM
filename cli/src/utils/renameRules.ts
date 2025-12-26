@@ -6,16 +6,25 @@ interface ExecutionContext {
     episodeNumber: number;
     episodeName: string;
     tvshowName: string;
-    file: string
+    file: string;
+    tmdbId: string;
+    releaseYear: string;
 }
 
+/**
+ * The JavaScript code to generate file name by Plex rename rule
+ */
 export const plex: string = `
-const season = seasonNumber.toString().padStart(2, '0')
-const episode = episodeNumber.toString().padStart(2, '0')
-const folder = type === "tv" ? \`Season \${season}\` : "Specials";
 const ext = extname(file);
-
-return \`\${folder}/\${tvshowName} - S\${season}E\${episode} - \${episodeName}\${ext}\`
+if (type === "movie") {
+  const year = releaseYear || "";
+  return \`\${episodeName}\${year ? \` (\${year})\` : ""}\${ext}\`;
+} else {
+  const season = seasonNumber.toString().padStart(2, '0');
+  const episode = episodeNumber.toString().padStart(2, '0');
+  const folder = \`Season \${season}\`;
+  return \`\${folder}/\${tvshowName} - S\${season}E\${episode} - \${episodeName}\${ext}\`;
+}
 `
 
 export function generateFileNameByJavaScript(code: string, context: ExecutionContext): string {
