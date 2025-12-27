@@ -530,7 +530,7 @@ function RenameDialog({ isOpen, onClose, onConfirm, initialValue = "", title = "
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!newName.trim()}>
+          <Button onClick={handleConfirm} disabled={!newName.trim() || newName.trim() === (initialValue || "").trim()}>
             Confirm
           </Button>
         </DialogFooter>
