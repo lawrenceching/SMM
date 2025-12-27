@@ -60,6 +60,11 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
     const { taskProgressDialog } = useDialogs()
     const [openTaskProgress, , updateTasks] = taskProgressDialog
 
+    useEffect(() => {
+        console.log(`>>> setIsPreviewMode(false)`)
+        setIsPreviewMode(false)
+    }, [selectedMediaMetadata])
+
     // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
     useEffect(() => {
         if (!ruleName) {

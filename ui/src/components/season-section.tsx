@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import { useMediaMetadata } from "./media-metadata-provider"
 import type { FileProps } from "@/lib/types"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import type { MediaMetadata } from "@core/types"
 import { newFileName } from "@/api/newFileName"
 import { extname, join, relative } from "@/lib/path"
@@ -218,8 +218,12 @@ export function SeasonSection({
             if(!selectedMediaMetadata) {
                 return [];
             }
+
+            if(selectedMediaMetadata.tmdbTvShow?.seasons === undefined) {
+                return [];
+            }
     
-            return tvShow.seasons.map(season => ({
+            return selectedMediaMetadata.tmdbTvShow.seasons.map(season => ({
                 season: season,
                 episodes: season.episodes?.map(episode => ({
                     episode: episode,
@@ -229,9 +233,9 @@ export function SeasonSection({
 
         })
         
-    }, [tvShow.seasons, selectedMediaMetadata])
+    }, [selectedMediaMetadata])
 
-    useEffect(() => {
+    const generateNewFileNames = useCallback(() => {
 
         if(!isPreviewMode) {
             return;
@@ -283,9 +287,14 @@ export function SeasonSection({
         })();
 
 
-    }, [isPreviewMode, namingRule, selectedMediaMetadata])
+    }, [selectedMediaMetadata, namingRule])
 
-    
+    useEffect(() => {
+        if(!isPreviewMode) {
+            return;
+        }
+        generateNewFileNames();
+    }, [isPreviewMode, generateNewFileNames])
 
     return (
         <div className="space-y-2">
