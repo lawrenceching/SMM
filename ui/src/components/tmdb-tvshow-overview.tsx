@@ -14,6 +14,7 @@ import { SeasonSection } from "./season-section"
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
+    onRenameClick?: () => void
 }
 
 // Helper function to format date
@@ -38,7 +39,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onRenameClick }: TMDBTVShowOverviewProps) {
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -333,8 +334,7 @@ export function TMDBTVShowOverview({ tvShow, className }: TMDBTVShowOverviewProp
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        // TODO: Implement rename functionality for all files
-                                        console.log("Rename", selectedMediaMetadata)
+                                        onRenameClick?.()
                                     }}
                                 >
                                     <FileEdit className="size-4 mr-2" />

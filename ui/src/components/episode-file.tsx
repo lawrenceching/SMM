@@ -1,4 +1,5 @@
-import { FileEdit, LucideIcon } from "lucide-react"
+import { FileEdit } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "./dialog-provider"
