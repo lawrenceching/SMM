@@ -27,6 +27,22 @@ if (type === "movie") {
 }
 `
 
+/**
+ * The JavaScript code to generate file name by Emby rename rule
+ */
+export const emby: string = `
+const ext = extname(file);
+if (type === "movie") {
+  const year = releaseYear || "";
+  return \`\${episodeName}\${year ? \` (\${year})\` : ""}\${ext}\`;
+} else {
+  const season = seasonNumber.toString().padStart(2, '0');
+  const episode = episodeNumber.toString().padStart(2, '0');
+  const folder = \`\${tvshowName}/Season \${season}\`;
+  return \`\${folder}/\${tvshowName} S\${season}E\${episode} \${episodeName}\${ext}\`;
+}
+`
+
 export function generateFileNameByJavaScript(code: string, context: ExecutionContext): string {
     const vmContext = {
         ...context,

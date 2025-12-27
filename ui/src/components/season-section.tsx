@@ -1,16 +1,14 @@
-import type { MediaFileMetadata, TMDBEpisode, TMDBSeason, TMDBTVShowDetails } from "@core/types"
+import type { TMDBTVShowDetails } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Tv, ChevronDown } from "lucide-react"
-import { cn, findAssociatedFiles } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import { useMediaMetadata } from "./media-metadata-provider"
-import type { FileProps } from "@/lib/types"
-import { useMemo, useState, useEffect, useCallback } from "react"
-import type { MediaMetadata } from "@core/types"
+import { useState, useEffect } from "react"
 import { newFileName } from "@/api/newFileName"
-import { extname, join, relative } from "@/lib/path"
-import { useLatest } from "react-use"
+import { join } from "@/lib/path"
+import type { SeasonModel } from "./TvShowPanel"
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -41,85 +39,8 @@ interface SeasonSectionProps {
     expandedEpisodeIds: Set<number>
     setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
     isPreviewMode?: boolean
-    ruleName?: "plex"
-}
-
-
-function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
-    switch(tag) {
-        case "VID":
-            return "video"
-        case "SUB":
-            return "subtitle"
-        case "AUD":
-            return "audio"
-        case "NFO":
-            return "nfo"
-        case "POSTER":
-            return "poster"
-        default:
-            return "file"
-    }
-}
-
-
-function newPath(mediaFolderPath: string, videoFilePath: string, associatedFilePath: string): string {
-    const videoFileExtension = extname(videoFilePath)
-    const associatedFileExtension = extname(associatedFilePath)
-    const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
-    const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
-    return join(mediaFolderPath, associatedRelativePath)
-}
-
-function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number): FileProps[] {
-
-    if(mm.mediaFolderPath === undefined) {
-        console.error(`Media folder path is undefined`)
-        throw new Error(`Media folder path is undefined`)
-    }
-
-    if(mm.mediaFiles === undefined) {
-        console.error(`Media files are undefined`)
-        throw new Error(`Media files are undefined`)
-    }
-
-    if(mm.files === undefined || mm.files === null) {
-        return [];
-    }
-
-    const mediaFile: MediaFileMetadata | undefined = mm.mediaFiles?.find(file => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber)
-
-    if(!mediaFile) {
-        return [];
-    }
-
-    const episodeVideoFilePath = mediaFile.absolutePath
-
-    const files = findAssociatedFiles(mm.mediaFolderPath, mm.files, episodeVideoFilePath)
-
-    const fileProps: FileProps[] = [
-        {
-            type: "video",
-            path: mediaFile.absolutePath,
-        },
-        ...files.map(file => ({
-            type: mapTagToFileType(file.tag),
-            path: file.path,
-        }))
-    ];
-
-    return fileProps;
-
-}
-
-interface EpisodeModel {
-    episode: TMDBEpisode,
-    files: FileProps[],
-}
-
-interface SeasonModel {
-    season: TMDBSeason,
-    episodes: EpisodeModel[],
+    ruleName?: "plex" | "emby"
+    seasons: SeasonModel[]
 }
 
 export function SeasonSection({
@@ -131,6 +52,7 @@ export function SeasonSection({
     setExpandedEpisodeIds,
     isPreviewMode = false,
     ruleName,
+    seasons,
 }: SeasonSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
     
@@ -206,94 +128,6 @@ export function SeasonSection({
     if (!tvShow?.seasons || tvShow.seasons.length === 0) {
         return null
     }
-
-    const [seasons, setSeasons] = useState<SeasonModel[]>([])
-    const latestSeasons = useLatest(seasons)
-
-    useEffect(() => {
-
-        setSeasons((prev) => {
-
-            if(!selectedMediaMetadata) {
-                return [];
-            }
-
-            if(selectedMediaMetadata.tmdbTvShow?.seasons === undefined) {
-                return [];
-            }
-    
-            return selectedMediaMetadata.tmdbTvShow.seasons.map(season => ({
-                season: season,
-                episodes: season.episodes?.map(episode => ({
-                    episode: episode,
-                    files: buildFileProps(selectedMediaMetadata, season.season_number, episode.episode_number)
-                })) || []
-            }))
-
-        })
-        
-    }, [selectedMediaMetadata])
-
-    const generateNewFileNames = useCallback(() => {
-
-        if(!isPreviewMode || !ruleName) {
-            return;
-        }
-
-        if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
-            return;
-        }
-
-        
-        (async () => {
-            const newSeasons = structuredClone(latestSeasons.current);
-            for(const season of newSeasons) {
-                for(const episode of season.episodes) {
-                    const videoFile = episode.files.find(file => file.type === "video");
-                    if(videoFile === undefined) {
-                        console.error(`Video file is undefined for episode ${episode.episode.episode_number} in season ${season.season.season_number}`)
-                        continue;
-                    }
-
-                    const response = await newFileName({
-                        ruleName: ruleName || "plex",
-                        type: "tv",
-                        seasonNumber: season.season.season_number,
-                        episodeNumber: episode.episode.episode_number,
-                        episodeName: episode.episode.name || "",
-                        tvshowName: tvShow.name || "",
-                        file: videoFile.path,
-                        tmdbId: tvShow.id?.toString() || "",
-                        releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
-                    })
-                    
-                    if (response.data) {
-                        const relativePath = response.data
-                        const absolutePath = join(selectedMediaMetadata.mediaFolderPath!, relativePath)
-                        videoFile.newPath = absolutePath
-                    }
-
-                    for(const file of episode.files) {
-                        if(file.type === "video") {
-                            continue;
-                        }
-                        file.newPath = newPath(selectedMediaMetadata.mediaFolderPath!, videoFile.newPath!, file.path)
-                    }
-                    
-                }
-            }
-            setSeasons(newSeasons);
-        })();
-
-
-    }, [selectedMediaMetadata, ruleName])
-
-    useEffect(() => {
-        if(!isPreviewMode) {
-            return;
-        }
-        generateNewFileNames();
-    }, [isPreviewMode, generateNewFileNames])
 
     return (
         <div className="space-y-2">

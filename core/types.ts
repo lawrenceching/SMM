@@ -707,7 +707,7 @@ export interface FileRenameResponseBody {
 
 
 export interface NewFileNameRequestBody {
-  ruleName: "plex",
+  ruleName: "plex" | "emby",
   type: "tv" | "movie";
   seasonNumber: number;
   episodeNumber: number;

@@ -13,12 +13,16 @@ import { SeasonSection } from "./season-section"
 import { useDialogs } from "./dialog-provider"
 import type { Task } from "./dialog-provider"
 import { scrapeApi } from "@/api/scrape"
+import type { SeasonModel } from "./TvShowPanel"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
     onRenameClick?: () => void
-    ruleName?: "plex"
+    ruleName?: "plex" | "emby"
+    seasons: SeasonModel[]
+    isPreviewMode: boolean
+    setIsPreviewMode: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 // Helper function to format date
@@ -43,7 +47,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName, seasons, isPreviewMode, setIsPreviewMode }: TMDBTVShowOverviewProps) {
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -52,7 +56,6 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
     const [expandedSeasonIds, setExpandedSeasonIds] = useState<Set<number>>(new Set())
     const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<number>>(new Set())
-    const [isPreviewMode, setIsPreviewMode] = useState(false)
     const savedSeasonIdsRef = useRef<Set<number> | null>(null)
     const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
     const prevPreviewModeRef = useRef(false)
@@ -61,9 +64,8 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
     const [openTaskProgress, , updateTasks] = taskProgressDialog
 
     useEffect(() => {
-        console.log(`>>> setIsPreviewMode(false)`)
         setIsPreviewMode(false)
-    }, [selectedMediaMetadata])
+    }, [selectedMediaMetadata, setIsPreviewMode])
 
     // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
     useEffect(() => {
@@ -498,6 +500,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
                     setExpandedEpisodeIds={setExpandedEpisodeIds}
                     isPreviewMode={isPreviewMode}
                     ruleName={ruleName}
+                    seasons={seasons}
                 />
             </div>
         </div>

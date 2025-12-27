@@ -10,9 +10,8 @@ Generate a new file name using a specified naming rule.
 interface NewFileNameRequestBody {
     /**
      * The name of the rename rule to use
-     * Currently only "plex" is supported
      */
-    ruleName: "plex";
+    ruleName: "plex" | "emby";
     
     /**
      * Type of media: "tv" for TV shows or "movie" for movies

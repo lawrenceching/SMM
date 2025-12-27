@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import type { NewFileNameRequestBody, GetFileNameResponseBody } from '@core/types';
-import { generateFileNameByJavaScript, plex } from '../utils/renameRules';
+import { emby, generateFileNameByJavaScript, plex } from '../utils/renameRules';
 import pino from 'pino';
 
 const logger = pino();
 
 const newFileNameRequestSchema = z.object({
-  ruleName: z.enum(['plex'], { message: 'ruleName must be "plex"' }),
+  ruleName: z.enum(['plex', 'emby'], { message: 'ruleName must be "plex" or "emby"' }),
   type: z.enum(['tv', 'movie'], { message: 'type must be "tv" or "movie"' }),
   seasonNumber: z.number().int().min(0, 'seasonNumber must be a non-negative integer'),
   episodeNumber: z.number().int().min(0, 'episodeNumber must be a non-negative integer'),
@@ -39,6 +39,8 @@ export async function handleNewFileName(body: NewFileNameRequestBody): Promise<G
     let renameRuleCode: string;
     if (ruleName === 'plex') {
       renameRuleCode = plex;
+    } else if (ruleName === 'emby') {
+      renameRuleCode = emby;
     } else {
       logger.warn({
         ruleName
