@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import { useMediaMetadata } from "./media-metadata-provider"
 import type { FileProps } from "@/lib/types"
+import React from "react"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -32,10 +33,10 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 interface SeasonSectionProps {
     tvShow?: TMDBTVShowDetails
     isUpdatingTvShow: boolean
-    expandedSeasonId: number | null
-    setExpandedSeasonId: (id: number | null) => void
-    expandedEpisodeId: number | null
-    setExpandedEpisodeId: (id: number | null) => void
+    expandedSeasonIds: Set<number>
+    setExpandedSeasonIds: React.Dispatch<React.SetStateAction<Set<number>>>
+    expandedEpisodeIds: Set<number>
+    setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
     isPreviewMode?: boolean
     ruleName?: "plex"
 }
@@ -43,10 +44,10 @@ interface SeasonSectionProps {
 export function SeasonSection({
     tvShow,
     isUpdatingTvShow,
-    expandedSeasonId,
-    setExpandedSeasonId,
-    expandedEpisodeId,
-    setExpandedEpisodeId,
+    expandedSeasonIds,
+    setExpandedSeasonIds,
+    expandedEpisodeIds,
+    setExpandedEpisodeIds,
     isPreviewMode = false,
     ruleName,
 }: SeasonSectionProps) {
@@ -80,7 +81,7 @@ export function SeasonSection({
                     .filter(season => season.season_number > 0) // Filter out specials (season 0)
                     .map((season) => {
                         const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")
-                        const isExpanded = expandedSeasonId === season.id
+                        const isExpanded = expandedSeasonIds.has(season.id)
                         const hasEpisodes = season.episodes && season.episodes.length > 0
                         
                         return (
@@ -89,7 +90,18 @@ export function SeasonSection({
                                 className="rounded-lg border bg-card overflow-hidden transition-all"
                             >
                                 <div
-                                    onClick={() => setExpandedSeasonId(isExpanded ? null : season.id)}
+                                    onClick={() => {
+                                        if (isPreviewMode) return // Don't allow collapse in preview mode
+                                        setExpandedSeasonIds(prev => {
+                                            const newSet = new Set(prev)
+                                            if (isExpanded) {
+                                                newSet.delete(season.id)
+                                            } else {
+                                                newSet.add(season.id)
+                                            }
+                                            return newSet
+                                        })
+                                    }}
                                     className="flex gap-4 p-4 hover:bg-accent/50 transition-colors cursor-pointer"
                                 >
                                     {seasonPosterUrl ? (
@@ -193,8 +205,8 @@ export function SeasonSection({
                                                         <EpisodeSection
                                                             key={episode.id}
                                                             episode={episode}
-                                                            expandedEpisodeId={expandedEpisodeId}
-                                                            setExpandedEpisodeId={setExpandedEpisodeId}
+                                                            expandedEpisodeIds={expandedEpisodeIds}
+                                                            setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
                                                             isPreviewMode={isPreviewMode}
                                                             ruleName={ruleName}

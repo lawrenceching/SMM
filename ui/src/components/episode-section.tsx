@@ -7,6 +7,7 @@ import { newFileName } from "@/api/newFileName"
 import { useEffect, useState } from "react"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { join } from "@/lib/path"
+import React from "react"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -43,8 +44,8 @@ function getFileIcon(path: string) {
 
 interface EpisodeSectionProps {
     episode: NonNullable<NonNullable<TMDBTVShowDetails['seasons']>[number]['episodes']>[number]
-    expandedEpisodeId: number | null
-    setExpandedEpisodeId: (id: number | null) => void
+    expandedEpisodeIds: Set<number>
+    setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
     /**
      * files of the episode, which holds:
      * * video file
@@ -69,8 +70,8 @@ interface EpisodeSectionProps {
 
 export function EpisodeSection({
     episode,
-    expandedEpisodeId,
-    setExpandedEpisodeId,
+    expandedEpisodeIds,
+    setExpandedEpisodeIds,
     files,
     isPreviewMode,
     ruleName,
@@ -81,7 +82,7 @@ export function EpisodeSection({
 }: EpisodeSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()    
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
-    const isEpisodeExpanded = expandedEpisodeId === episode.id
+    const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     
     // Extract files by type from files prop
     const videoFile = files.find(file => file.type === "video")
@@ -141,7 +142,18 @@ export function EpisodeSection({
     return (
         <div className="rounded-md bg-background border overflow-hidden transition-all">
             <div
-                onClick={() => setExpandedEpisodeId(isEpisodeExpanded ? null : episode.id)}
+                onClick={() => {
+                    if (isPreviewMode) return // Don't allow collapse in preview mode
+                    setExpandedEpisodeIds(prev => {
+                        const newSet = new Set(prev)
+                        if (isEpisodeExpanded) {
+                            newSet.delete(episode.id)
+                        } else {
+                            newSet.add(episode.id)
+                        }
+                        return newSet
+                    })
+                }}
                 className="flex gap-3 p-3 hover:bg-accent/50 transition-colors cursor-pointer"
             >
                 {episodeStillUrl ? (

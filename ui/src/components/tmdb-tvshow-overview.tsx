@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, Link2, FileEdit, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
-import { useCallback, useState, useEffect } from "react"
+import { useCallback, useState, useEffect, useRef } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
@@ -47,9 +47,12 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
     const [searchError, setSearchError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
-    const [expandedSeasonId, setExpandedSeasonId] = useState<number | null>(null)
-    const [expandedEpisodeId, setExpandedEpisodeId] = useState<number | null>(null)
+    const [expandedSeasonIds, setExpandedSeasonIds] = useState<Set<number>>(new Set())
+    const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<number>>(new Set())
     const [isPreviewMode, setIsPreviewMode] = useState(false)
+    const savedSeasonIdsRef = useRef<Set<number> | null>(null)
+    const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
+    const prevPreviewModeRef = useRef(false)
     const { userConfig } = useConfig()
 
     // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
@@ -58,6 +61,48 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
             setIsPreviewMode(false)
         }
     }, [ruleName])
+
+    // Expand all seasons and episodes when preview mode is entered, save current state
+    useEffect(() => {
+        const wasInPreviewMode = prevPreviewModeRef.current
+        prevPreviewModeRef.current = isPreviewMode
+
+        if (isPreviewMode && !wasInPreviewMode && tvShow?.seasons) {
+            // Entering preview mode: save current expand state before expanding all
+            // Use functional updates to get the current state values
+            setExpandedSeasonIds(currentSeasonIds => {
+                savedSeasonIdsRef.current = new Set(currentSeasonIds)
+                // Expand all seasons (filter out season 0)
+                const seasonIds = new Set(
+                    tvShow.seasons!
+                        .filter(season => season.season_number > 0)
+                        .map(season => season.id)
+                )
+                return seasonIds
+            })
+
+            setExpandedEpisodeIds(currentEpisodeIds => {
+                savedEpisodeIdsRef.current = new Set(currentEpisodeIds)
+                // Expand all episodes
+                const episodeIds = new Set<number>()
+                tvShow.seasons!.forEach(season => {
+                    if (season.episodes && season.season_number > 0) {
+                        season.episodes.forEach(episode => {
+                            episodeIds.add(episode.id)
+                        })
+                    }
+                })
+                return episodeIds
+            })
+        } else if (!isPreviewMode && wasInPreviewMode && savedSeasonIdsRef.current !== null && savedEpisodeIdsRef.current !== null) {
+            // Exiting preview mode: restore saved state
+            setExpandedSeasonIds(savedSeasonIdsRef.current)
+            setExpandedEpisodeIds(savedEpisodeIdsRef.current)
+            // Clear saved state
+            savedSeasonIdsRef.current = null
+            savedEpisodeIdsRef.current = null
+        }
+    }, [isPreviewMode, tvShow])
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
@@ -386,10 +431,10 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
                 <SeasonSection
                     tvShow={tvShow}
                     isUpdatingTvShow={isUpdatingTvShow}
-                    expandedSeasonId={expandedSeasonId}
-                    setExpandedSeasonId={setExpandedSeasonId}
-                    expandedEpisodeId={expandedEpisodeId}
-                    setExpandedEpisodeId={setExpandedEpisodeId}
+                    expandedSeasonIds={expandedSeasonIds}
+                    setExpandedSeasonIds={setExpandedSeasonIds}
+                    expandedEpisodeIds={expandedEpisodeIds}
+                    setExpandedEpisodeIds={setExpandedEpisodeIds}
                     isPreviewMode={isPreviewMode}
                     ruleName={ruleName}
                 />
