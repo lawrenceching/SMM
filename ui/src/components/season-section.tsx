@@ -37,6 +37,7 @@ interface SeasonSectionProps {
     expandedEpisodeId: number | null
     setExpandedEpisodeId: (id: number | null) => void
     isPreviewMode?: boolean
+    ruleName?: "plex"
 }
 
 export function SeasonSection({
@@ -47,6 +48,7 @@ export function SeasonSection({
     expandedEpisodeId,
     setExpandedEpisodeId,
     isPreviewMode = false,
+    ruleName,
 }: SeasonSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
 
@@ -194,7 +196,12 @@ export function SeasonSection({
                                                             expandedEpisodeId={expandedEpisodeId}
                                                             setExpandedEpisodeId={setExpandedEpisodeId}
                                                             files={files}
-                                                            isPreviewMode={true}
+                                                            isPreviewMode={isPreviewMode}
+                                                            ruleName={ruleName}
+                                                            seasonNumber={season.season_number}
+                                                            tvshowName={tvShow?.name || ""}
+                                                            tmdbId={tvShow?.id?.toString() || ""}
+                                                            releaseYear={tvShow?.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : ""}
                                                         />
                                                     )
                                                 })

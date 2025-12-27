@@ -3,6 +3,10 @@ import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
+import { newFileName } from "@/api/newFileName"
+import { useEffect, useState } from "react"
+import { useMediaMetadata } from "./media-metadata-provider"
+import { join } from "@/lib/path"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -56,6 +60,11 @@ interface EpisodeSectionProps {
      * If true, the episode section display the new path which user to preview
      */
     isPreviewMode: boolean
+    ruleName?: "plex"
+    seasonNumber: number
+    tvshowName: string
+    tmdbId: string
+    releaseYear: string
 }
 
 export function EpisodeSection({
@@ -64,7 +73,13 @@ export function EpisodeSection({
     setExpandedEpisodeId,
     files,
     isPreviewMode,
+    ruleName,
+    seasonNumber,
+    tvshowName,
+    tmdbId,
+    releaseYear,
 }: EpisodeSectionProps) {
+    const { selectedMediaMetadata } = useMediaMetadata()    
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeId === episode.id
     
@@ -72,6 +87,56 @@ export function EpisodeSection({
     const videoFile = files.find(file => file.type === "video")
     const subtitleFiles = files.filter(file => file.type === "subtitle")
     const audioFiles = files.filter(file => file.type === "audio")
+    
+    // State to store generated file names
+    const [generatedFileNames, setGeneratedFileNames] = useState<Map<string, string>>(new Map())
+    
+    // Generate new file names when isPreviewMode is enabled and ruleName is provided
+    useEffect(() => {
+        if (!isPreviewMode || !ruleName || !videoFile) {
+            setGeneratedFileNames(new Map())
+            return
+        }
+        
+        const generateFileName = async () => {
+            try {
+                const response = await newFileName({
+                    ruleName: ruleName,
+                    type: "tv",
+                    seasonNumber: seasonNumber,
+                    episodeNumber: episode.episode_number,
+                    episodeName: episode.name || "",
+                    tvshowName: tvshowName,
+                    file: videoFile.path,
+                    tmdbId: tmdbId,
+                    releaseYear: releaseYear,
+                })
+                
+                if (response.data) {
+                    const relativePath = response.data
+                    setGeneratedFileNames(new Map([[videoFile.path, join(selectedMediaMetadata!.mediaFolderPath!, relativePath)]]))
+                }
+            } catch (error) {
+                console.error("Failed to generate file name:", error)
+                setGeneratedFileNames(new Map())
+            }
+        }
+        
+        generateFileName()
+    }, [isPreviewMode, ruleName, videoFile?.path, seasonNumber, episode.episode_number, episode.name, tvshowName, tmdbId, releaseYear])
+    
+    // Update files with generated new paths
+    const filesWithNewPaths = files.map(file => {
+        if (file.type === "video" && generatedFileNames.has(file.path)) {
+            return {
+                ...file,
+                newPath: generatedFileNames.get(file.path) || file.newPath
+            }
+        }
+        return file
+    })
+    
+    const videoFileWithNewPath = filesWithNewPaths.find(file => file.type === "video")
     
     return (
         <div className="rounded-md bg-background border overflow-hidden transition-all">
@@ -149,9 +214,9 @@ export function EpisodeSection({
                 <div className="px-3 pb-3 border-t bg-muted/20">
                     <div className="pt-3 space-y-2">
                         {/* Video File */}
-                        {videoFile && (
+                        {(videoFileWithNewPath || videoFile) && (
                             <EpisodeFile
-                                file={videoFile}
+                                file={videoFileWithNewPath || videoFile!}
                                 icon={FileVideo}
                                 label="Video File"
                                 iconColor="text-primary"

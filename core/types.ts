@@ -708,6 +708,9 @@ export interface NewFileNameRequestBody {
 }
 
 export interface GetFileNameResponseBody {
+  /**
+   * The new file name, generally it's a relative path
+   */
   data: string
   error?: string
 }

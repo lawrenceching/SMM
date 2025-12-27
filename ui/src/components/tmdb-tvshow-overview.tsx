@@ -15,6 +15,7 @@ interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
     onRenameClick?: () => void
+    ruleName?: "plex"
 }
 
 // Helper function to format date
@@ -39,7 +40,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onRenameClick }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName }: TMDBTVShowOverviewProps) {
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -48,7 +49,15 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick }: TMDBTVS
     const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
     const [expandedSeasonId, setExpandedSeasonId] = useState<number | null>(null)
     const [expandedEpisodeId, setExpandedEpisodeId] = useState<number | null>(null)
+    const [isPreviewMode, setIsPreviewMode] = useState(false)
     const { userConfig } = useConfig()
+
+    // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
+    useEffect(() => {
+        if (!ruleName) {
+            setIsPreviewMode(false)
+        }
+    }, [ruleName])
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
@@ -334,6 +343,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick }: TMDBTVS
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
+                                        setIsPreviewMode(true)
                                         onRenameClick?.()
                                     }}
                                 >
@@ -380,6 +390,8 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick }: TMDBTVS
                     setExpandedSeasonId={setExpandedSeasonId}
                     expandedEpisodeId={expandedEpisodeId}
                     setExpandedEpisodeId={setExpandedEpisodeId}
+                    isPreviewMode={isPreviewMode}
+                    ruleName={ruleName}
                 />
             </div>
         </div>

@@ -32,6 +32,7 @@ function TvShowPanel() {
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
           onRenameClick={() => setIsToolbarOpen(true)}
+          ruleName={isToolbarOpen && selectedOption === "Plex" ? "plex" : undefined}
         />
       </div>
     </div>
