@@ -25,6 +25,7 @@ export interface FloatingToolbarProps {
   placeholder?: string
   className?: string
   isOpen?: boolean
+  isConfirmDisabled?: boolean
 }
 
 export function FloatingToolbar({
@@ -38,6 +39,7 @@ export function FloatingToolbar({
   placeholder = "Select...",
   className,
   isOpen = false,
+  isConfirmDisabled = false,
 }: FloatingToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [style, setStyle] = useState<{ left?: string; width?: string }>({})
@@ -99,10 +101,10 @@ export function FloatingToolbar({
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
             {cancelLabel}
           </Button>
-          <Button onClick={onConfirm}>{confirmLabel}</Button>
+          <Button onClick={onConfirm} disabled={isConfirmDisabled}>{confirmLabel}</Button>
         </div>
       </div>
     </>
