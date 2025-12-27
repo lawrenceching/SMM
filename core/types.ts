@@ -693,3 +693,21 @@ export interface FileRenameRequestBody {
 export interface FileRenameResponseBody {
   error?: string
 }
+
+
+export interface NewFileNameRequestBody {
+  ruleName: "plex",
+  type: "tv" | "movie";
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeName: string;
+  tvshowName: string;
+  file: string;
+  tmdbId: string;
+  releaseYear: string; 
+}
+
+export interface GetFileNameResponseBody {
+  data: string
+  error?: string
+}

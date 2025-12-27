@@ -12,3 +12,18 @@ If the requested resource was not found, return error in "error" field.
 
 The error message is in format "Error Reason: detail message".
 For example, `File Not Found: /path/to/folder was not found`
+
+
+## Route Handler
+
+Route handlers are managed in `cli/src/route`.
+
+Template of a handler
+```
+export async function handleXxxApi(app: Hono) {
+    app.post('/api/xxx', async (c) => {
+        
+    });
+}
+
+```
