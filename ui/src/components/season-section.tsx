@@ -6,8 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import { useMediaMetadata } from "./media-metadata-provider"
 import type { FileProps } from "@/lib/types"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import type { MediaMetadata } from "@core/types"
+import { newFileName } from "@/api/newFileName"
+import { extname, join, relative } from "@/lib/path"
+import { useLatest } from "react-use"
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -60,6 +63,14 @@ function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "
 }
 
 
+function newPath(mediaFolderPath: string, videoFilePath: string, associatedFilePath: string): string {
+    const videoFileExtension = extname(videoFilePath)
+    const associatedFileExtension = extname(associatedFilePath)
+    const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
+    const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
+    return join(mediaFolderPath, associatedRelativePath)
+}
+
 function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number): FileProps[] {
 
     if(mm.mediaFolderPath === undefined) {
@@ -94,7 +105,6 @@ function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: 
         ...files.map(file => ({
             type: mapTagToFileType(file.tag),
             path: file.path,
-            newPath: file.newPath
         }))
     ];
 
@@ -123,6 +133,63 @@ export function SeasonSection({
     ruleName,
 }: SeasonSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
+    
+    // State to store generated file names for all episodes in the season
+    const [generatedFileNames, setGeneratedFileNames] = useState<Map<string, string>>(new Map())
+    const [namingRule, setNamingRule] = useState<"plex" | undefined>("plex")
+    
+    // Generate file names for all episodes in all seasons when isPreviewMode is enabled
+    useEffect(() => {
+        if (!isPreviewMode || !ruleName || !selectedMediaMetadata || !tvShow?.seasons) {
+            setGeneratedFileNames(new Map())
+            return
+        }
+        
+        const generateFileNames = async () => {
+            const newFileNames = new Map<string, string>()
+            
+            // Generate file names for all episodes in all seasons
+            for (const season of tvShow.seasons) {
+                if (!season.episodes) continue
+                
+                for (const episode of season.episodes) {
+                    // Find the video file for this episode
+                    const mediaFile = selectedMediaMetadata.mediaFiles?.find(
+                        file => file.seasonNumber === season.season_number && 
+                                file.episodeNumber === episode.episode_number
+                    )
+                    
+                    if (!mediaFile) continue
+                    
+                    try {
+                        const response = await newFileName({
+                            ruleName: ruleName,
+                            type: "tv",
+                            seasonNumber: season.season_number,
+                            episodeNumber: episode.episode_number,
+                            episodeName: episode.name || "",
+                            tvshowName: tvShow.name || "",
+                            file: mediaFile.absolutePath,
+                            tmdbId: tvShow.id?.toString() || "",
+                            releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
+                        })
+                        
+                        if (response.data) {
+                            const relativePath = response.data
+                            const absolutePath = join(selectedMediaMetadata.mediaFolderPath!, relativePath)
+                            newFileNames.set(mediaFile.absolutePath, absolutePath)
+                        }
+                    } catch (error) {
+                        console.error(`Failed to generate file name for episode ${episode.episode_number}:`, error)
+                    }
+                }
+            }
+            
+            setGeneratedFileNames(newFileNames)
+        }
+        
+        generateFileNames()
+    }, [isPreviewMode, ruleName, selectedMediaMetadata, tvShow])
 
     if (isUpdatingTvShow) {
         return (
@@ -141,21 +208,84 @@ export function SeasonSection({
         return null
     }
 
-    const seasons: SeasonModel[] = useMemo(() => {
+    const [seasons, setSeasons] = useState<SeasonModel[]>([])
+    const latestSeasons = useLatest(seasons)
 
-        if(!selectedMediaMetadata) {
-            return [];
-        }
+    useEffect(() => {
 
-        return tvShow.seasons.map(season => ({
-            season: season,
-            episodes: season.episodes?.map(episode => ({
-                episode: episode,
-                files: buildFileProps(selectedMediaMetadata, season.season_number, episode.episode_number)
-            })) || []
-        }))
+        setSeasons((prev) => {
+
+            if(!selectedMediaMetadata) {
+                return [];
+            }
+    
+            return tvShow.seasons.map(season => ({
+                season: season,
+                episodes: season.episodes?.map(episode => ({
+                    episode: episode,
+                    files: buildFileProps(selectedMediaMetadata, season.season_number, episode.episode_number)
+                })) || []
+            }))
+
+        })
         
     }, [tvShow.seasons, selectedMediaMetadata])
+
+    useEffect(() => {
+
+        if(!isPreviewMode) {
+            return;
+        }
+
+        if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
+            return;
+        }
+
+        
+        (async () => {
+            const newSeasons = structuredClone(latestSeasons.current);
+            for(const season of newSeasons) {
+                for(const episode of season.episodes) {
+                    const videoFile = episode.files.find(file => file.type === "video");
+                    if(videoFile === undefined) {
+                        console.error(`Video file is undefined for episode ${episode.episode.episode_number} in season ${season.season.season_number}`)
+                        continue;
+                    }
+
+                    const response = await newFileName({
+                        ruleName: namingRule || "plex",
+                        type: "tv",
+                        seasonNumber: season.season.season_number,
+                        episodeNumber: episode.episode.episode_number,
+                        episodeName: episode.episode.name || "",
+                        tvshowName: tvShow.name || "",
+                        file: videoFile.path,
+                        tmdbId: tvShow.id?.toString() || "",
+                        releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
+                    })
+                    
+                    if (response.data) {
+                        const relativePath = response.data
+                        const absolutePath = join(selectedMediaMetadata.mediaFolderPath!, relativePath)
+                        videoFile.newPath = absolutePath
+                    }
+
+                    for(const file of episode.files) {
+                        if(file.type === "video") {
+                            continue;
+                        }
+                        file.newPath = newPath(selectedMediaMetadata.mediaFolderPath!, videoFile.newPath!, file.path)
+                    }
+                    
+                }
+            }
+            setSeasons(newSeasons);
+        })();
+
+
+    }, [isPreviewMode, namingRule, selectedMediaMetadata])
+
+    
 
     return (
         <div className="space-y-2">
@@ -260,11 +390,7 @@ export function SeasonSection({
                                                             setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
                                                             isPreviewMode={isPreviewMode}
-                                                            ruleName={ruleName}
-                                                            seasonNumber={season.season_number}
-                                                            tvshowName={tvShow?.name || ""}
-                                                            tmdbId={tvShow?.id?.toString() || ""}
-                                                            releaseYear={tvShow?.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : ""}
+                                                            generatedFileNames={generatedFileNames}
                                                         />
                                                     )
                                                 })
