@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
 import { newFileName } from "@/api/newFileName"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { join } from "@/lib/path"
 import React from "react"
@@ -40,9 +40,28 @@ function getFileIcon(path: string) {
     return FileVideo
 }
 
+// Helper function to get icon and label for file type
+function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, label: string, iconColor: string } {
+    switch (type) {
+        case "video":
+            return { icon: FileVideo, label: "Video File", iconColor: "text-primary" }
+        case "subtitle":
+            return { icon: FileText, label: "Subtitle Files", iconColor: "text-blue-500" }
+        case "audio":
+            return { icon: Music, label: "Audio Files", iconColor: "text-green-500" }
+        case "nfo":
+            return { icon: FileText, label: "NFO Files", iconColor: "text-muted-foreground" }
+        case "poster":
+            return { icon: ImageIcon, label: "Poster Files", iconColor: "text-muted-foreground" }
+        case "file":
+        default:
+            return { icon: FileVideo, label: "Files", iconColor: "text-muted-foreground" }
+    }
+}
 
 
-interface EpisodeSectionProps {
+
+export interface EpisodeSectionProps {
     episode: NonNullable<NonNullable<TMDBTVShowDetails['seasons']>[number]['episodes']>[number]
     expandedEpisodeIds: Set<number>
     setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
@@ -84,10 +103,8 @@ export function EpisodeSection({
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     
-    // Extract files by type from files prop
+    // Extract video file for name generation
     const videoFile = files.find(file => file.type === "video")
-    const subtitleFiles = files.filter(file => file.type === "subtitle")
-    const audioFiles = files.filter(file => file.type === "audio")
     
     // State to store generated file names
     const [generatedFileNames, setGeneratedFileNames] = useState<Map<string, string>>(new Map())
@@ -124,7 +141,7 @@ export function EpisodeSection({
         }
         
         generateFileName()
-    }, [isPreviewMode, ruleName, videoFile?.path, seasonNumber, episode.episode_number, episode.name, tvshowName, tmdbId, releaseYear])
+    }, [isPreviewMode, ruleName, videoFile?.path, seasonNumber, episode.episode_number, episode.name, tvshowName, tmdbId, releaseYear, selectedMediaMetadata])
     
     // Update files with generated new paths
     const filesWithNewPaths = files.map(file => {
@@ -137,7 +154,20 @@ export function EpisodeSection({
         return file
     })
     
-    const videoFileWithNewPath = filesWithNewPaths.find(file => file.type === "video")
+    // Group files by type
+    const filesByType = useMemo(() => {
+        const grouped = new Map<FileProps['type'], FileProps[]>()
+        filesWithNewPaths.forEach(file => {
+            const existing = grouped.get(file.type) || []
+            grouped.set(file.type, [...existing, file])
+        })
+        return grouped
+    }, [filesWithNewPaths])
+    
+    // Convert Map to array of entries for rendering
+    const filesByTypeArray = useMemo(() => {
+        return Array.from(filesByType.entries()) as Array<[FileProps['type'], FileProps[]]>
+    }, [filesByType])
     
     return (
         <div className="rounded-md bg-background border overflow-hidden transition-all">
@@ -225,68 +255,39 @@ export function EpisodeSection({
             {isEpisodeExpanded && (
                 <div className="px-3 pb-3 border-t bg-muted/20">
                     <div className="pt-3 space-y-2">
-                        {/* Video File */}
-                        {(videoFileWithNewPath || videoFile) && (
-                            <EpisodeFile
-                                file={videoFileWithNewPath || videoFile!}
-                                icon={FileVideo}
-                                label="Video File"
-                                iconColor="text-primary"
-                                isPreviewMode={isPreviewMode}
-                                showRenameMenu={true}
-                            />
-                        )}
-                        
-                        {/* Subtitle Files */}
-                        {subtitleFiles.length > 0 && (
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <FileText className="size-4 text-blue-500" />
-                                    <span className="text-xs font-semibold">Subtitle Files ({subtitleFiles.length})</span>
+                        {filesByTypeArray.map(([type, typeFiles]) => {
+                            const { icon: TypeIcon, label, iconColor } = getFileTypeConfig(type)
+                            const isVideo = type === "video"
+                            const isMultiple = typeFiles.length > 1
+                            
+                            return (
+                                <div key={type} className="space-y-1">
+                                    {isMultiple && (
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <TypeIcon className={cn("size-4", iconColor)} />
+                                            <span className="text-xs font-semibold">{label} ({typeFiles.length})</span>
+                                        </div>
+                                    )}
+                                    {typeFiles.map((file, index) => {
+                                        const Icon = isVideo ? TypeIcon : getFileIcon(file.path)
+                                        return (
+                                            <EpisodeFile
+                                                key={`${type}-${index}-${file.path}`}
+                                                file={file}
+                                                icon={Icon}
+                                                label={isVideo && !isMultiple ? label : ""}
+                                                iconColor={isVideo ? iconColor : "text-muted-foreground"}
+                                                isPreviewMode={isPreviewMode}
+                                                showRenameMenu={isVideo}
+                                            />
+                                        )
+                                    })}
                                 </div>
-                                {subtitleFiles.map((file, index) => {
-                                    const Icon = getFileIcon(file.path)
-                                    return (
-                                        <EpisodeFile
-                                            key={index}
-                                            file={file}
-                                            icon={Icon}
-                                            label=""
-                                            iconColor="text-muted-foreground"
-                                            isPreviewMode={isPreviewMode}
-                                            showRenameMenu={false}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        )}
-                        
-                        {/* Audio Files */}
-                        {audioFiles.length > 0 && (
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Music className="size-4 text-green-500" />
-                                    <span className="text-xs font-semibold">Audio Files ({audioFiles.length})</span>
-                                </div>
-                                {audioFiles.map((file, index) => {
-                                    const Icon = getFileIcon(file.path)
-                                    return (
-                                        <EpisodeFile
-                                            key={index}
-                                            file={file}
-                                            icon={Icon}
-                                            label=""
-                                            iconColor="text-muted-foreground"
-                                            isPreviewMode={isPreviewMode}
-                                            showRenameMenu={false}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        )}
+                            )
+                        })}
                         
                         {/* No files message */}
-                        {!videoFile && subtitleFiles.length === 0 && audioFiles.length === 0 && (
+                        {files.length === 0 && (
                             <div className="text-center py-4 text-xs text-muted-foreground">
                                 No files associated with this episode
                             </div>

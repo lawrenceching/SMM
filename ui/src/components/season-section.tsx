@@ -1,13 +1,13 @@
-import type { TMDBTVShowDetails } from "@core/types"
+import type { MediaFileMetadata, TMDBEpisode, TMDBSeason, TMDBTVShowDetails } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Tv, ChevronDown } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, findAssociatedFiles } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import { useMediaMetadata } from "./media-metadata-provider"
 import type { FileProps } from "@/lib/types"
-import React from "react"
-
+import { useMemo } from "react"
+import type { MediaMetadata } from "@core/types"
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -41,6 +41,77 @@ interface SeasonSectionProps {
     ruleName?: "plex"
 }
 
+
+function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
+    switch(tag) {
+        case "VID":
+            return "video"
+        case "SUB":
+            return "subtitle"
+        case "AUD":
+            return "audio"
+        case "NFO":
+            return "nfo"
+        case "POSTER":
+            return "poster"
+        default:
+            return "file"
+    }
+}
+
+
+function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number): FileProps[] {
+
+    if(mm.mediaFolderPath === undefined) {
+        console.error(`Media folder path is undefined`)
+        throw new Error(`Media folder path is undefined`)
+    }
+
+    if(mm.mediaFiles === undefined) {
+        console.error(`Media files are undefined`)
+        throw new Error(`Media files are undefined`)
+    }
+
+    if(mm.files === undefined || mm.files === null) {
+        return [];
+    }
+
+    const mediaFile: MediaFileMetadata | undefined = mm.mediaFiles?.find(file => file.seasonNumber === seasonNumber && file.episodeNumber === episodeNumber)
+
+    if(!mediaFile) {
+        return [];
+    }
+
+    const episodeVideoFilePath = mediaFile.absolutePath
+
+    const files = findAssociatedFiles(mm.mediaFolderPath, mm.files, episodeVideoFilePath)
+
+    const fileProps: FileProps[] = [
+        {
+            type: "video",
+            path: mediaFile.absolutePath,
+        },
+        ...files.map(file => ({
+            type: mapTagToFileType(file.tag),
+            path: file.path,
+            newPath: file.newPath
+        }))
+    ];
+
+    return fileProps;
+
+}
+
+interface EpisodeModel {
+    episode: TMDBEpisode,
+    files: FileProps[],
+}
+
+interface SeasonModel {
+    season: TMDBSeason,
+    episodes: EpisodeModel[],
+}
+
 export function SeasonSection({
     tvShow,
     isUpdatingTvShow,
@@ -70,6 +141,22 @@ export function SeasonSection({
         return null
     }
 
+    const seasons: SeasonModel[] = useMemo(() => {
+
+        if(!selectedMediaMetadata) {
+            return [];
+        }
+
+        return tvShow.seasons.map(season => ({
+            season: season,
+            episodes: season.episodes?.map(episode => ({
+                episode: episode,
+                files: buildFileProps(selectedMediaMetadata, season.season_number, episode.episode_number)
+            })) || []
+        }))
+        
+    }, [tvShow.seasons, selectedMediaMetadata])
+
     return (
         <div className="space-y-2">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -77,12 +164,13 @@ export function SeasonSection({
                 Seasons ({tvShow?.number_of_seasons})
             </h2>
             <div className="space-y-3">
-                {tvShow.seasons
-                    .filter(season => season.season_number > 0) // Filter out specials (season 0)
-                    .map((season) => {
+                {seasons
+                    .filter(seasonModel => seasonModel.season.season_number > 0) // Filter out specials (season 0)
+                    .map((seasonModel) => {
+                        const { season, episodes } = seasonModel
                         const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")
                         const isExpanded = expandedSeasonIds.has(season.id)
-                        const hasEpisodes = season.episodes && season.episodes.length > 0
+                        const hasEpisodes = episodes && episodes.length > 0
                         
                         return (
                             <div
@@ -161,45 +249,8 @@ export function SeasonSection({
                                     <div className="px-4 pb-4 border-t bg-muted/30">
                                         <div className="pt-4 space-y-3">
                                             {hasEpisodes ? (
-                                                season.episodes!.map((episode) => {
-                                                    // Find matching media files for this episode
-                                                    const matchingMediaFiles = selectedMediaMetadata?.mediaFiles?.filter(
-                                                        file => file.seasonNumber === season.season_number && 
-                                                                file.episodeNumber === episode.episode_number
-                                                    ) || []
-                                                    
-                                                    // Convert MediaFileMetadata to FileProps[]
-                                                    const files: FileProps[] = []
-                                                    
-                                                    // Add video file
-                                                    const videoFile = matchingMediaFiles.find(file => file.absolutePath)
-                                                    if (videoFile?.absolutePath) {
-                                                        files.push({
-                                                            type: "video",
-                                                            path: videoFile.absolutePath,
-                                                            newPath: "abc.mp3"
-                                                        })
-                                                    }
-                                                    
-                                                    // Add subtitle files
-                                                    matchingMediaFiles.forEach(file => {
-                                                        file.subtitleFilePaths?.forEach(path => {
-                                                            files.push({
-                                                                type: "subtitle",
-                                                                path: path,
-                                                            })
-                                                        })
-                                                    })
-                                                    
-                                                    // Add audio files
-                                                    matchingMediaFiles.forEach(file => {
-                                                        file.audioFilePaths?.forEach(path => {
-                                                            files.push({
-                                                                type: "audio",
-                                                                path: path,
-                                                            })
-                                                        })
-                                                    })
+                                                episodes.map((episodeModel) => {
+                                                    const { episode, files } = episodeModel
                                                     
                                                     return (
                                                         <EpisodeSection

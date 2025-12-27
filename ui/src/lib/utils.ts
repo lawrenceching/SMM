@@ -58,7 +58,7 @@ const extensions = {
  * @param filePaths 
  * @param videoFilePath 
  */
-function findAssociatedFiles(mediaFolderPath: string, filePaths: string[], videoFilePath: string): File[] {
+export function findAssociatedFiles(mediaFolderPath: string, filePaths: string[], videoFilePath: string): File[] {
 
   const filename = basename(videoFilePath)!;
   const extension = extname(filename);
