@@ -6,11 +6,13 @@ export { DownloadVideoDialog } from "./download-video-dialog"
 export { MediaSearchDialog } from "./media-search-dialog"
 export { RenameDialog } from "./rename-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
+export { TaskProgressDialog } from "./TaskProgressDialog"
 
 export type {
   DialogConfig,
   FolderType,
   FileItem,
+  Task,
   ConfirmationDialogProps,
   SpinnerDialogProps,
   ConfigDialogProps,
@@ -19,5 +21,6 @@ export type {
   MediaSearchDialogProps,
   RenameDialogProps,
   OpenFolderDialogProps,
+  TaskProgressDialogProps,
 } from "./types"
 

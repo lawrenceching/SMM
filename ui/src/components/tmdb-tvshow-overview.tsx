@@ -10,6 +10,8 @@ import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { Button } from "./ui/button"
 import { SeasonSection } from "./season-section"
+import { useDialogs } from "./dialog-provider"
+import type { Task } from "./dialog-provider"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -54,6 +56,8 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
     const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
     const prevPreviewModeRef = useRef(false)
     const { userConfig } = useConfig()
+    const { taskProgressDialog } = useDialogs()
+    const [openTaskProgress, , updateTasks] = taskProgressDialog
 
     // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
     useEffect(() => {
@@ -398,22 +402,46 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={async () => {
+                                    onClick={() => {
                                         if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
                                         
-                                        try {
-                                            const { downloadThumbnail } = await import("@/lib/utils")
-                                            const promises = selectedMediaMetadata.mediaFiles.map(mediaFile => {
-                                                return downloadThumbnail(selectedMediaMetadata, mediaFile)
-                                            })
-                                            
-                                            await Promise.all(promises)
-                                            // TODO: Show success toast
-                                            console.log("Scrape successful")
-                                        } catch (error) {
-                                            console.error("Scrape failed:", error)
-                                            // TODO: Show error toast
-                                        }
+                                        // Create initial tasks for scraping
+                                        const initialTasks: Task[] = [
+                                            {
+                                                name: "Poster",
+                                                status: "pending" as const
+                                            },
+                                            {
+                                                name: "Thumbnails",
+                                                status: "pending" as const
+                                            },
+                                            {
+                                                name: "nfo",
+                                                status: "pending" as const
+                                            }
+                                        ]
+                                        
+                                        // Open the task progress dialog with Start button
+                                        openTaskProgress(initialTasks, {
+                                            title: "Scrape Media",
+                                            description: "Download poster, thumbnails, and nfo files",
+                                            onStart: () => {
+                                                // Update all tasks to running
+                                                updateTasks(initialTasks.map(task => ({
+                                                    ...task,
+                                                    status: "running" as const
+                                                })))
+                                                
+                                                // TODO: Implement actual scraping API calls
+                                                // For now, just log that scraping started
+                                                console.log("Scrape started - API not yet implemented")
+                                                
+                                                // When API is implemented, update tasks here:
+                                                // - Set each task to "running" when it starts
+                                                // - Set each task to "completed" when it succeeds
+                                                // - Set each task to "failed" when it fails
+                                            }
+                                        })
                                     }}
                                     disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                 >

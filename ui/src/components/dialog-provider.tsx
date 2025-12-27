@@ -9,13 +9,15 @@ import {
   MediaSearchDialog,
   RenameDialog,
   OpenFolderDialog,
+  TaskProgressDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
+  type Task,
 } from "@/components/dialogs"
 
 // Re-export types for backward compatibility
-export type { FolderType, FileItem }
+export type { FolderType, FileItem, Task }
 
 interface DialogContextValue {
   confirmationDialog: [
@@ -49,6 +51,11 @@ interface DialogContextValue {
   renameDialog: [
     openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string }) => void,
     closeRename: () => void
+  ]
+  taskProgressDialog: [
+    openTaskProgress: (tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => void,
+    closeTaskProgress: () => void,
+    updateTasks: (tasks: Task[]) => void
   ]
 }
 
@@ -92,6 +99,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [renameOnConfirm, setRenameOnConfirm] = useState<((newName: string) => void) | null>(null)
   const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string }>({})
+
+  // Task progress dialog state
+  const [isTaskProgressOpen, setIsTaskProgressOpen] = useState(false)
+  const [taskProgressTasks, setTaskProgressTasks] = useState<Task[]>([])
+  const [taskProgressOptions, setTaskProgressOptions] = useState<{ title?: string; description?: string; onStart?: () => void }>({})
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -223,6 +235,24 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeRename()
   }, [renameOnConfirm, closeRename])
 
+  const openTaskProgress = useCallback((tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => {
+    setTaskProgressTasks(tasks)
+    setTaskProgressOptions(options || {})
+    setIsTaskProgressOpen(true)
+  }, [])
+
+  const closeTaskProgress = useCallback(() => {
+    setIsTaskProgressOpen(false)
+    setTimeout(() => {
+      setTaskProgressTasks([])
+      setTaskProgressOptions({})
+    }, 200)
+  }, [])
+
+  const updateTasks = useCallback((tasks: Task[]) => {
+    setTaskProgressTasks(tasks)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -232,6 +262,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
     renameDialog: [openRename, closeRename],
+    taskProgressDialog: [openTaskProgress, closeTaskProgress, updateTasks],
   }
 
   return (
@@ -281,6 +312,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
         initialValue={renameOptions.initialValue}
         title={renameOptions.title}
         description={renameOptions.description}
+      />
+      <TaskProgressDialog
+        isOpen={isTaskProgressOpen}
+        onClose={closeTaskProgress}
+        tasks={taskProgressTasks}
+        title={taskProgressOptions.title}
+        description={taskProgressOptions.description}
+        onStart={taskProgressOptions.onStart}
       />
     </DialogContext.Provider>
   )

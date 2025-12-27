@@ -70,3 +70,18 @@ export interface OpenFolderDialogProps {
   folderPath?: string
 }
 
+export interface Task {
+  name: string
+  status: "pending" | "running" | "completed" | "failed"
+  subTasks?: Task[]
+}
+
+export interface TaskProgressDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  tasks: Task[]
+  title?: string
+  description?: string
+  onStart?: () => void
+}
+
