@@ -15,6 +15,39 @@ import { relative, join } from "@/lib/path"
 import { renameFile } from "@/api/renameFile"
 import { toast } from "sonner"
 
+interface FileProps {
+    type: "file" | "video" | "subtitle" | "audio" | "nfo" | "poster"
+    /**
+     * Absolute path of the file in POSIX format
+     */
+    path: string
+    /**
+     * The absolute destination path in POSIX format, it's used to represent the destination path in renaming function
+     */
+    newPath?: string
+}
+
+interface EpisodeProps {
+    /**
+     * The url of the thumbnail image.
+     * It could be URL of internet image resource (https://)
+     * Or local file path (file://)
+     * Or base64 encoded image data (data:image/svg+xml;base64,... or data:image/svg+xml;base64,...)
+     */
+    thumbnailUrl?: string
+    videoFile: FileProps
+
+    /**
+     * The associated files of the episode, which holds:
+     * * subtitle files
+     * * audio files
+     * * nfo files
+     * * poster files
+     * * other files that may supported in the future
+     */
+    associatedFiles: FileProps[]
+}
+
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
