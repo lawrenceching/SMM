@@ -256,7 +256,7 @@ export function SeasonSection({
                     }
 
                     const response = await newFileName({
-                        ruleName: namingRule || "plex",
+                        ruleName: ruleName || "plex",
                         type: "tv",
                         seasonNumber: season.season.season_number,
                         episodeNumber: episode.episode.episode_number,
