@@ -6,15 +6,18 @@ import { useState } from "react"
 function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata } = useMediaMetadata()
   const [isToolbarOpen, setIsToolbarOpen] = useState(false)
+  const toolbarOptions = [
+    { value: "Plex", label: "Plex" },
+  ]
+  const [selectedOption, setSelectedOption] = useState(toolbarOptions[0]?.value || "")
 
   return (
     <div className='p-1 w-full h-full relative'>
       <FloatingToolbar 
         isOpen={isToolbarOpen}
-        options={[
-          { value: "option1", label: "Option 1" },
-          { value: "option2", label: "Option 2" },
-        ]}
+        options={toolbarOptions}
+        selectedValue={selectedOption}
+        onValueChange={setSelectedOption}
         onConfirm={() => {
           console.log("Confirm clicked")
           setIsToolbarOpen(false)
