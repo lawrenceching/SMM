@@ -2,9 +2,9 @@ import { stat } from 'node:fs/promises';
 import { Path } from '@core/path';
 
 /**
- * Validate that all source files exist in the filesystem.
+ * Validate that all source files or directories exist in the filesystem.
  * @param tasks Array of rename operations
- * @returns Object containing isValid flag and missing source file paths if any
+ * @returns Object containing isValid flag and missing source file/directory paths if any
  */
 export async function validateSourceFileExist(
   tasks: {
@@ -26,7 +26,8 @@ export async function validateSourceFileExist(
     try {
       const platformPath = Path.toPlatformPath(task.from);
       const stats = await stat(platformPath);
-      if (!stats.isFile()) {
+      // Accept both files and directories
+      if (!stats.isFile() && !stats.isDirectory()) {
         missingFiles.push(task.from);
       }
     } catch (error) {

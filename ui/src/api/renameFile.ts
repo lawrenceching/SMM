@@ -1,8 +1,17 @@
 import type { FileRenameRequestBody, FileRenameResponseBody } from '@core/types';
 
 export interface RenameFileParams {
+  /**
+   * Absolute path of media folder
+   */
   mediaFolder: string;
+  /**
+   * Absolute path of source file
+   */
   from: string;
+  /**
+   * Absolute path of destination file
+   */
   to: string;
 }
 

@@ -61,6 +61,7 @@ export interface RenameDialogProps {
   initialValue?: string
   title?: string
   description?: string
+  suggestions?: string[]
 }
 
 export interface OpenFolderDialogProps {

@@ -49,7 +49,7 @@ interface DialogContextValue {
     closeMediaSearch: () => void
   ]
   renameDialog: [
-    openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string }) => void,
+    openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
     closeRename: () => void
   ]
   taskProgressDialog: [
@@ -98,7 +98,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Rename dialog state
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [renameOnConfirm, setRenameOnConfirm] = useState<((newName: string) => void) | null>(null)
-  const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string }>({})
+  const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
 
   // Task progress dialog state
   const [isTaskProgressOpen, setIsTaskProgressOpen] = useState(false)
@@ -214,7 +214,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openRename = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string }) => {
+  const openRename = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => {
     setRenameOnConfirm(() => onConfirm)
     setRenameOptions(options || {})
     setIsRenameOpen(true)
@@ -312,6 +312,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         initialValue={renameOptions.initialValue}
         title={renameOptions.title}
         description={renameOptions.description}
+        suggestions={renameOptions.suggestions}
       />
       <TaskProgressDialog
         isOpen={isTaskProgressOpen}

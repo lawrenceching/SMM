@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import { basename } from "@/lib/path"
+import { basename, dirname, join } from "@/lib/path"
 import { cn } from "@/lib/utils"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
@@ -7,6 +7,7 @@ import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { useConfig } from "@/components/config-provider"
 import { useDialogs } from "@/components/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
+import { renameFile } from "@/api/renameFile"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -38,7 +39,7 @@ export interface MediaFolderListItemProps {
 
 export function MediaFolderListItem({mediaName, path, mediaType, selected, onClick}: MediaFolderListItemProps) {
 
-  const { removeMediaMetadata, updateMediaMetadata, getMediaMetadata } = useMediaMetadata()
+  const { removeMediaMetadata, updateMediaMetadata, getMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
   const { userConfig, setUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
@@ -151,36 +152,85 @@ export function MediaFolderListItem({mediaName, path, mediaType, selected, onCli
       return
     }
 
-    openRename(
-      (newName: string) => {
-        // Update the metadata with the new name
-        const updatedMetadata: typeof currentMetadata = { ...currentMetadata }
-        
-        // Update based on media type
-        if (updatedMetadata.tmdbTvShow) {
-          updatedMetadata.tmdbTvShow = {
-            ...updatedMetadata.tmdbTvShow,
-            name: newName
-          }
-        } else if (updatedMetadata.tmdbMovie) {
-          updatedMetadata.tmdbMovie = {
-            ...updatedMetadata.tmdbMovie,
-            title: newName
-          }
-        } else {
-          // Fallback to deprecated mediaName field if no TMDB data exists
-          updatedMetadata.mediaName = newName
-        }
+    // Build suggestion string if tmdbTvShow exists
+    const suggestions: string[] = []
+    if (currentMetadata.tmdbTvShow) {
+      const tvShow = currentMetadata.tmdbTvShow
+      const year = tvShow.first_air_date ? tvShow.first_air_date.split('-')[0] : ''
+      const suggestion = `${tvShow.name}${year ? ` (${year})` : ''} {tmdbid=${tvShow.id}}`
+      suggestions.push(suggestion)
+    }
 
-        updateMediaMetadata(path, updatedMetadata)
+    openRename(
+      async (newName: string) => {
+        try {
+          // Calculate the new folder path
+          const parentDir = dirname(path)
+          const newFolderPath = join(parentDir, newName)
+          
+          // Call renameFile API to rename the folder on disk
+          await renameFile({
+            mediaFolder: parentDir,
+            from: path,
+            to: newFolderPath,
+          })
+
+          // Update the metadata with the new name and path
+          const updatedMetadata: typeof currentMetadata = { 
+            ...currentMetadata,
+            mediaFolderPath: newFolderPath
+          }
+          
+          // Update based on media type
+          if (updatedMetadata.tmdbTvShow) {
+            updatedMetadata.tmdbTvShow = {
+              ...updatedMetadata.tmdbTvShow,
+              name: newName
+            }
+          } else if (updatedMetadata.tmdbMovie) {
+            updatedMetadata.tmdbMovie = {
+              ...updatedMetadata.tmdbMovie,
+              title: newName
+            }
+          } else {
+            // Fallback to deprecated mediaName field if no TMDB data exists
+            updatedMetadata.mediaName = newName
+          }
+
+          // Update user config to reflect the new folder path
+          const newUserConfig: UserConfig = {
+            ...userConfig,
+            folders: userConfig.folders.map((folder) => 
+              Path.posix(folder) === path ? newFolderPath : folder
+            ),
+          }
+          setUserConfig(newUserConfig)
+
+          // Remove old metadata entry if path changed
+          if (path !== newFolderPath) {
+            removeMediaMetadata(path)
+          }
+
+          // Update media metadata with new path
+          updateMediaMetadata(newFolderPath, updatedMetadata)
+
+          // Refresh media metadata to reflect the rename
+          await refreshMediaMetadata(newFolderPath)
+
+          console.log("Folder renamed successfully:", path, "->", newFolderPath)
+        } catch (error) {
+          console.error("Failed to rename folder:", error)
+          // You might want to show a toast notification here
+        }
       },
       {
         initialValue: mediaName,
         title: "Rename Media",
-        description: "Enter the new name for this media"
+        description: "Enter the new name for this media",
+        suggestions: suggestions.length > 0 ? suggestions : undefined
       }
     )
-  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata])
+  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setUserConfig])
 
   return (
     <div 

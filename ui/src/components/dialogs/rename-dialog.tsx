@@ -18,7 +18,8 @@ export function RenameDialog({
   onConfirm, 
   initialValue = "", 
   title = "Rename", 
-  description = "Enter the new name" 
+  description = "Enter the new name",
+  suggestions = []
 }: RenameDialogProps) {
   const [newName, setNewName] = useState(initialValue)
 
@@ -49,6 +50,10 @@ export function RenameDialog({
     }
   }
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setNewName(suggestion)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent showCloseButton={true} className="max-w-md">
@@ -69,6 +74,23 @@ export function RenameDialog({
               autoFocus
             />
           </div>
+          {suggestions && suggestions.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">Suggestions</span>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-left px-2 py-1 rounded text-xs border bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>

@@ -2,9 +2,9 @@ import { stat } from 'node:fs/promises';
 import { Path } from '@core/path';
 
 /**
- * Validate that all destination files do not exist in the filesystem.
+ * Validate that all destination files or directories do not exist in the filesystem.
  * @param tasks Array of rename operations
- * @returns Object containing isValid flag and existing destination file paths if any
+ * @returns Object containing isValid flag and existing destination file/directory paths if any
  */
 export async function validateDestFileNotExist(
   tasks: {
@@ -26,7 +26,8 @@ export async function validateDestFileNotExist(
     try {
       const platformPath = Path.toPlatformPath(task.to);
       const stats = await stat(platformPath);
-      if (stats.isFile()) {
+      // Check for both files and directories
+      if (stats.isFile() || stats.isDirectory()) {
         existingFiles.push(task.to);
       }
     } catch (error) {
