@@ -1,3 +1,4 @@
+import { logger } from 'hono/logger';
 import { extname } from 'path';
 import vm from 'vm';
 interface ExecutionContext {
@@ -36,9 +37,9 @@ if (type === "movie") {
   const year = releaseYear || "";
   return \`\${episodeName}\${year ? \` (\${year})\` : ""}\${ext}\`;
 } else {
-  const season = seasonNumber.toString().padStart(2, '0');
-  const episode = episodeNumber.toString().padStart(2, '0');
-  const folder = \`\${tvshowName}/Season \${season}\`;
+  const season = seasonNumber.toString()
+  const episode = episodeNumber.toString()
+  const folder = \`Season \${season}\`;
   return \`\${folder}/\${tvshowName} S\${season}E\${episode} \${episodeName}\${ext}\`;
 }
 `

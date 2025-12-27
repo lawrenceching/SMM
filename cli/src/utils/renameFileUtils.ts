@@ -12,6 +12,7 @@ import { renameFileInMediaMetadata } from './mediaMetadataUtils';
 // Note: This function handles multiple renames, while renameFileInMediaMetadata handles single rename
 import { updateMediaMetadataAfterRename } from '../tools/renameFilesInBatch';
 import pino from 'pino';
+import { dirname } from 'path';
 
 const logger = pino();
 
@@ -91,21 +92,8 @@ export async function executeRenameOperation(
     const fromPathPlatform = new Path(from).platformAbsPath();
     const toPathPlatform = new Path(to).platformAbsPath();
 
-    // Ensure target directory exists
+    // Ensure target directory exists before renaming
     // Handle case where file is at root level (parent() throws error)
-    let toDirPlatform: string | null = null;
-    try {
-      const toDir = new Path(to).parent();
-      toDirPlatform = toDir.platformAbsPath();
-    } catch (error) {
-      // If parent() throws "reaching parent folder is not allowed", 
-      // it means the file is at root level, so no directory creation needed
-      if (error instanceof Error && error.message === 'reaching parent folder is not allowed') {
-        toDirPlatform = null; // File is at root, no directory to create
-      } else {
-        throw error; // Re-throw if it's a different error
-      }
-    }
 
     if (dryRun) {
       logger.info({
@@ -117,9 +105,12 @@ export async function executeRenameOperation(
     }
 
     // Create directory only if not at root level
-    if (toDirPlatform !== null) {
-      await mkdir(toDirPlatform, { recursive: true });
-    }
+    // Using recursive: true ensures all parent directories are created if they don't exist
+    const destDir = dirname(to)
+    logger.info({
+      clientId
+    }, `${logPrefix} Ensuring target directory exists: ${destDir}`);
+    await mkdir(destDir, { recursive: true });
 
     // Perform the rename
     await rename(fromPathPlatform, toPathPlatform);
@@ -205,7 +196,11 @@ export async function updateMediaMetadataAndBroadcast(
     let updatedMediaMetadata: MediaMetadata;
     if (renameMappings.length === 1) {
       // Single rename - use simpler utility
-      const { from, to } = renameMappings[0];
+      const renameMapping = renameMappings[0];
+      if (!renameMapping) {
+        throw new Error('Invalid rename mapping: expected single mapping but got undefined');
+      }
+      const { from, to } = renameMapping;
       updatedMediaMetadata = renameFileInMediaMetadata(
         mediaMetadata,
         Path.posix(from),

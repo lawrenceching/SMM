@@ -69,7 +69,8 @@ function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: 
         },
         ...files.map(file => ({
             type: mapTagToFileType(file.tag),
-            path: file.path,
+            // Convert relative path to absolute path
+            path: join(mm.mediaFolderPath!, file.path),
         }))
     ];
 
