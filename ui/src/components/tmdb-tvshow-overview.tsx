@@ -12,6 +12,7 @@ import { Button } from "./ui/button"
 import { SeasonSection } from "./season-section"
 import { useDialogs } from "./dialog-provider"
 import type { Task } from "./dialog-provider"
+import { scrapeApi } from "@/api/scrape"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -43,7 +44,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName }: TMDBTVShowOverviewProps) {
-    const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+    const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
@@ -425,21 +426,48 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName 
                                         openTaskProgress(initialTasks, {
                                             title: "Scrape Media",
                                             description: "Download poster, thumbnails, and nfo files",
-                                            onStart: () => {
+                                            onStart: async () => {
+                                                if (!selectedMediaMetadata?.mediaFolderPath) {
+                                                    console.error("No media folder path available")
+                                                    return
+                                                }
+
                                                 // Update all tasks to running
                                                 updateTasks(initialTasks.map(task => ({
                                                     ...task,
                                                     status: "running" as const
                                                 })))
-                                                
-                                                // TODO: Implement actual scraping API calls
-                                                // For now, just log that scraping started
-                                                console.log("Scrape started - API not yet implemented")
-                                                
-                                                // When API is implemented, update tasks here:
-                                                // - Set each task to "running" when it starts
-                                                // - Set each task to "completed" when it succeeds
-                                                // - Set each task to "failed" when it fails
+
+                                                try {
+                                                    // Call the scrape API
+                                                    const response = await scrapeApi(selectedMediaMetadata.mediaFolderPath)
+                                                    
+                                                    if (response.error) {
+                                                        // All tasks failed
+                                                        updateTasks(initialTasks.map(task => ({
+                                                            ...task,
+                                                            status: "failed" as const
+                                                        })))
+                                                        console.error("Scrape failed:", response.error)
+                                                    } else {
+                                                        // All tasks completed successfully
+                                                        updateTasks(initialTasks.map(task => ({
+                                                            ...task,
+                                                            status: "completed" as const
+                                                        })))
+                                                        console.log("Scrape completed successfully")
+                                                        
+                                                        // Refresh media metadata after successful scrape
+                                                        refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
+                                                    }
+                                                } catch (error) {
+                                                    // All tasks failed
+                                                    updateTasks(initialTasks.map(task => ({
+                                                        ...task,
+                                                        status: "failed" as const
+                                                    })))
+                                                    console.error("Scrape error:", error)
+                                                }
                                             }
                                         })
                                     }}

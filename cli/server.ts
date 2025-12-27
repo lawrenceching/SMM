@@ -21,6 +21,7 @@ import { search as handleTmdbSearch, getMovie as handleTmdbGetMovie, getTvShow a
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
+import { handleScrapeRequest } from './src/route/Scrape';
 import { initializeSocketIO } from './src/route/WebSocket';
 import { handleDebugRequest } from './src/route/Debug';
 import { requestId } from 'hono/request-id';
@@ -353,6 +354,7 @@ export class Server {
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
+    handleScrapeRequest(this.app);
 
     // POST /debug - Debug API for testing functions
     this.app.post('/debug', async (c) => {

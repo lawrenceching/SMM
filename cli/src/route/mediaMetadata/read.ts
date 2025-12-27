@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import { listFiles } from "@/utils/files";
+import { findMediaMetadata } from "@/utils/mediaMetadata";
 import { metadataCacheFilePath } from "./utils";
 import { mediaMetadataToString } from "lib/log";
 import pino from "pino"
@@ -53,42 +54,27 @@ export async function handleReadMediaMetadata(app: Hono) {
             return c.json(resp, 200);
         }
 
-        const metadataFilePath = metadataCacheFilePath(Path.posix(folderPath));
-        const isExist = await Bun.file(metadataFilePath).exists();
+        // Use findMediaMetadata to get the metadata
+        const data = await findMediaMetadata(folderPath);
         
-        if(!isExist) {
+        if (!data) {
+            const metadataFilePath = metadataCacheFilePath(Path.posix(folderPath));
             console.error(`[ReadMediaMetadata] Media Metadata Not Found: ${metadataFilePath} was not found`)
             const resp: ReadMediaMetadataResponseBody = {
                 data: undefined,
                 error: `Media Metadata Not Found: ${metadataFilePath} was not found`
             };
-
             return c.json(resp, 200);
-
-        } else {
-            // Cache exists, read it
-            try {
-                // console.log(`[ReadMediaMetadata] Reading metadata from file: ${metadataFilePath}`)
-                const data = await Bun.file(metadataFilePath).json() as MediaMetadata;
-
-                data.files = await listFiles(new Path(folderPath), true);
-
-                const resp: ReadMediaMetadataResponseBody = {
-                    data
-                };
-                // console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
-                return c.json(resp, 200);
-            } catch (error) {
-                console.error(`[ReadMediaMetadata] Error reading metadata from file: ${metadataFilePath}`, error)
-                // Error reading cache file
-                const resp: ReadMediaMetadataResponseBody = {
-                    data: {} as MediaMetadata,
-                    error: `Media Metadata Not Found: ${error instanceof Error ? error.message : 'Failed to read metadata cache'}`
-                };
-                // console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
-                return c.json(resp, 200);
-            }
         }
+
+        // Update files list from the actual folder
+        data.files = await listFiles(new Path(folderPath), true);
+
+        const resp: ReadMediaMetadataResponseBody = {
+            data
+        };
+        // console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
+        return c.json(resp, 200);
     });
 }
 

@@ -1,12 +1,15 @@
-import tmdb from './tmdb'
+import { getPosterUrl, getBackdropUrl } from './tmdb'
 import { stat, writeFile, rename } from 'fs/promises';
 import { Nfo } from './nfo';
-
-
-
 import { basename, extname, join } from 'path';
+import { Path } from '@core/path';
+import type { TMDBMovie, TMDBTVShowDetails } from '@core/types';
+import pino from 'pino';
+import { findMediaMetadata } from './mediaMetadata';
+const log = pino()
 
-class Scraping {
+
+class Scrape {
 
     async everythingForTvShow(mediaLocalFolderPath: Path, tvShow: TMDBTVShowDetails) {
         await this.tvShowPoster(mediaLocalFolderPath, tvShow)
@@ -18,14 +21,14 @@ class Scraping {
 
     async everythingForMovie(mediaLocalFolderPath: Path, movie: TMDBMovie) {
         if(movie.poster_path !== null) {
-            const posterUrl = tmdb.getPosterUrl(movie.poster_path)
+            const posterUrl = getPosterUrl(movie.poster_path)
             if(posterUrl !== null) {
                 await this.downloadImage(posterUrl, 'poster', mediaLocalFolderPath)
             }
         }
 
         if(movie.backdrop_path !== null) {
-            const fanartUrl = tmdb.getBackdropUrl(movie.backdrop_path)    
+            const fanartUrl = getBackdropUrl(movie.backdrop_path)    
             if(fanartUrl !== null) {
                 await this.downloadImage(fanartUrl, 'fanart', mediaLocalFolderPath)
             }
@@ -105,7 +108,7 @@ class Scraping {
              * For example:
              * https://image.tmdb.org/t/p/w1280/AcSg7fq7uM8AfOae5BSB6mXTcc5.jpg
              */
-            url = tmdb.getBackdropUrl(url) || '';
+            url = getBackdropUrl(url) || '';
         }
 
         if(url === '') {
@@ -136,13 +139,13 @@ class Scraping {
     }
 
     async tvShowPoster(mediaLocalFolderPath: Path, tvShow: TMDBTVShowDetails) {
-        logDeprecated.info(`Fetching TV Show Poster: mediaLocalFolderPath=${mediaLocalFolderPath}, tvShow=${tvShow.name}`)
+        log.info(`Fetching TV Show Poster: mediaLocalFolderPath=${mediaLocalFolderPath}, tvShow=${tvShow.name}`)
         if(!tvShow.poster_path) {
             console.log(`⏭️ No poster found for TV Show: tmdbTvShowId=${tvShow.id}, name=${tvShow.name}`)
             return
         }
 
-        const posterUrl = tmdb.getPosterUrl(tvShow.poster_path)
+        const posterUrl = getPosterUrl(tvShow.poster_path)
         await this.downloadImage(posterUrl || '', 'poster', mediaLocalFolderPath)
     }
 
@@ -152,7 +155,7 @@ class Scraping {
             return
         }
 
-        const fanartUrl = tmdb.getBackdropUrl(tvShow.backdrop_path)
+        const fanartUrl = getBackdropUrl(tvShow.backdrop_path)
         await this.downloadImage(fanartUrl || '', 'fanart', mediaLocalFolderPath)
     }
 
@@ -195,7 +198,7 @@ class Scraping {
             }
 
             const seasonNumberInString = `${season.season_number.toString().padStart(2, '0')}`
-            const posterUrl = tmdb.getPosterUrl(season.poster_path)
+            const posterUrl = getPosterUrl(season.poster_path)
             await this.downloadImage(posterUrl || '', `Season${seasonNumberInString}`, folderPath)
         }
 
@@ -212,13 +215,13 @@ class Scraping {
         nfo.originalTitle = tmdbTVShowDetails.original_name
         nfo.showTitle = tmdbTVShowDetails.name
         nfo.plot = tmdbTVShowDetails.overview
-        nfo.fanart = tmdb.getBackdropUrl(tmdbTVShowDetails.backdrop_path) || undefined
+        nfo.fanart = getBackdropUrl(tmdbTVShowDetails.backdrop_path) || undefined
         nfo.tmdbid = tmdbTVShowDetails.id.toString()
         nfo.thumbs = []
 
         if(tmdbTVShowDetails.poster_path) {
             nfo.thumbs.push({
-                url: tmdb.getPosterUrl(tmdbTVShowDetails.poster_path) || '',
+                url: getPosterUrl(tmdbTVShowDetails.poster_path) || '',
                 aspect: 'poster'
             })
         }
@@ -226,7 +229,7 @@ class Scraping {
         for(const season of tmdbTVShowDetails.seasons) {
             if(season.poster_path) {
                 nfo.thumbs.push({
-                    url: tmdb.getPosterUrl(season.poster_path) || '',
+                    url: getPosterUrl(season.poster_path) || '',
                     aspect: 'poster',
                     season: season.season_number,
                     type: 'season'
@@ -235,13 +238,17 @@ class Scraping {
         }
 
         const nfoPath = mediaLocalFolderPath.join('tvshow.nfo').platformAbsPath()
-        appLog(levels.INFO, `Writing NFO file to: ${nfoPath}`)
+        log.info(`Writing NFO file to: ${nfoPath}`)
         await writeFile(nfoPath, nfo.toXML())
         console.log(`✅ NFO file written to: ${nfoPath}`)
     }
 
     async episodeThumbnails(mediaLocalFolderPath: Path, tmdbTVShowDetails: TMDBTVShowDetails) {
-        const mm = await getMediaMetadata(mediaLocalFolderPath.abs())
+        const mm = await findMediaMetadata(mediaLocalFolderPath.abs())
+        if(mm === null) {
+            log.error(`No media metadata found for media folder ${mediaLocalFolderPath}`)
+            return;
+        }
 
         const downloadThumbnailUrl = async (seasonNumber: number, episodeNumber: number) => {
             const season = tmdbTVShowDetails.seasons.find(s => s.season_number === seasonNumber)
@@ -289,7 +296,8 @@ class Scraping {
                 await rename(tmpFilePath, expectedThumbnailPath)
                 log.info(`Moved thumbnail from ${tmpFilePath} to ${expectedThumbnailPath}`)
             } catch (error) {
-                log.error(`Failed to move thumbnail from ${tmpFilePath} to ${expectedThumbnailPath}:`, error)
+                const errorMessage = error instanceof Error ? error.message : String(error)
+                log.error(`Failed to move thumbnail from ${tmpFilePath} to ${expectedThumbnailPath}: ${errorMessage}`)
             }
 
         })
@@ -298,6 +306,6 @@ class Scraping {
 
 }
 
-const scraping = new Scraping()
+const scrape = new Scrape()
 
-export default scraping
+export default scrape

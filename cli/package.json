@@ -22,6 +22,7 @@
     "pino": "^10.1.0",
     "sanitize-filename": "^1.6.3",
     "socket.io": "^4.8.3",
+    "xmlbuilder2": "^4.0.3",
     "zod": "^4.1.13"
   },
   "scripts": {

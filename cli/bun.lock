@@ -14,6 +14,7 @@
         "pino": "^10.1.0",
         "sanitize-filename": "^1.6.3",
         "socket.io": "^4.8.3",
+        "xmlbuilder2": "^4.0.3",
         "zod": "^4.1.13",
       },
       "devDependencies": {
@@ -53,6 +54,14 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.6", "https://repo.huaweicloud.com/repository/npm/@floating-ui/react-dom/-/react-dom-2.1.6.tgz", { "dependencies": { "@floating-ui/dom": "^1.7.4" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-4JX6rEatQEvlmgU80wZyq9RT96HZJa88q8hp0pBd+LrczeDI4o6uA2M+uvxngVHo4Ihr8uibXxH6+70zhAFrVw=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "https://repo.huaweicloud.com/repository/npm/@floating-ui/utils/-/utils-0.2.10.tgz", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
+
+    "@oozcitak/dom": ["@oozcitak/dom@2.0.2", "https://repo.huaweicloud.com/repository/npm/@oozcitak/dom/-/dom-2.0.2.tgz", { "dependencies": { "@oozcitak/infra": "^2.0.2", "@oozcitak/url": "^3.0.0", "@oozcitak/util": "^10.0.0" } }, "sha512-GjpKhkSYC3Mj4+lfwEyI1dqnsKTgwGy48ytZEhm4A/xnH/8z9M3ZVXKr/YGQi3uCLs1AEBS+x5T2JPiueEDW8w=="],
+
+    "@oozcitak/infra": ["@oozcitak/infra@2.0.2", "https://repo.huaweicloud.com/repository/npm/@oozcitak/infra/-/infra-2.0.2.tgz", { "dependencies": { "@oozcitak/util": "^10.0.0" } }, "sha512-2g+E7hoE2dgCz/APPOEK5s3rMhJvNxSMBrP+U+j1OWsIbtSpWxxlUjq1lU8RIsFJNYv7NMlnVsCuHcUzJW+8vA=="],
+
+    "@oozcitak/url": ["@oozcitak/url@3.0.0", "https://repo.huaweicloud.com/repository/npm/@oozcitak/url/-/url-3.0.0.tgz", { "dependencies": { "@oozcitak/infra": "^2.0.2", "@oozcitak/util": "^10.0.0" } }, "sha512-ZKfET8Ak1wsLAiLWNfFkZc/BraDccuTJKR6svTYc7sVjbR+Iu0vtXdiDMY4o6jaFl5TW2TlS7jbLl4VovtAJWQ=="],
+
+    "@oozcitak/util": ["@oozcitak/util@10.0.0", "https://repo.huaweicloud.com/repository/npm/@oozcitak/util/-/util-10.0.0.tgz", {}, "sha512-hAX0pT/73190NLqBPPWSdBVGtbY6VOhWYK3qqHqtXQ1gK7kS2yz4+ivsN07hpJ6I3aeMtKP6J6npsEKOAzuTLA=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
@@ -120,6 +129,8 @@
 
     "ai": ["ai@5.0.116", "https://repo.huaweicloud.com/repository/npm/ai/-/ai-5.0.116.tgz", { "dependencies": { "@ai-sdk/gateway": "2.0.23", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.19", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-+2hYJ80/NcDWuv9K2/MLP3cTCFgwWHmHlS1tOpFUKKcmLbErAAlE/S2knsKboc3PNAu8pQkDr2N3K/Vle7ENgQ=="],
 
+    "argparse": ["argparse@2.0.1", "https://repo.huaweicloud.com/repository/npm/argparse/-/argparse-2.0.1.tgz", {}, "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="],
+
     "aria-hidden": ["aria-hidden@1.2.6", "https://repo.huaweicloud.com/repository/npm/aria-hidden/-/aria-hidden-1.2.6.tgz", { "dependencies": { "tslib": "^2.0.0" } }, "sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA=="],
 
     "assistant-cloud": ["assistant-cloud@0.1.12", "https://repo.huaweicloud.com/repository/npm/assistant-cloud/-/assistant-cloud-0.1.12.tgz", { "dependencies": { "assistant-stream": "^0.2.46" } }, "sha512-A2tY6QIdP9+RkE8Mmpm4kAoO0NyKsKpJKYebbYFZ3bAnQKyB15Bw/PS9AovpdeziGU9At97TyiMrT36pDjCD7A=="],
@@ -167,6 +178,8 @@
     "hono": ["hono@4.10.8", "", {}, "sha512-DDT0A0r6wzhe8zCGoYOmMeuGu3dyTAE40HHjwUsWFTEy5WxK1x2WDSsBPlEXgPbRIFY6miDualuUDbasPogIww=="],
 
     "joycon": ["joycon@3.1.1", "https://repo.huaweicloud.com/repository/npm/joycon/-/joycon-3.1.1.tgz", {}, "sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw=="],
+
+    "js-yaml": ["js-yaml@4.1.1", "https://repo.huaweicloud.com/repository/npm/js-yaml/-/js-yaml-4.1.1.tgz", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA=="],
 
     "json-schema": ["json-schema@0.4.0", "", {}, "sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA=="],
 
@@ -269,6 +282,8 @@
     "wrappy": ["wrappy@1.0.2", "https://repo.huaweicloud.com/repository/npm/wrappy/-/wrappy-1.0.2.tgz", {}, "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="],
 
     "ws": ["ws@8.18.3", "https://repo.huaweicloud.com/repository/npm/ws/-/ws-8.18.3.tgz", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg=="],
+
+    "xmlbuilder2": ["xmlbuilder2@4.0.3", "https://repo.huaweicloud.com/repository/npm/xmlbuilder2/-/xmlbuilder2-4.0.3.tgz", { "dependencies": { "@oozcitak/dom": "^2.0.2", "@oozcitak/infra": "^2.0.2", "@oozcitak/util": "^10.0.0", "js-yaml": "^4.1.1" } }, "sha512-bx8Q1STctnNaaDymWnkfQLKofs0mGNN7rLLapJlGuV3VlvegD7Ls4ggMjE3aUSWItCCzU0PEv45lI87iSigiCA=="],
 
     "zod": ["zod@4.1.13", "", {}, "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="],
 

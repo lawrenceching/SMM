@@ -656,6 +656,17 @@ export interface OpenInFileManagerResponseBody {
   error?: string
 }
 
+export interface ScrapeRequestBody {
+  /**
+   * The absolute path to the media folder (in POSIX format)
+   */
+  mediaFolderPath: string;
+}
+
+export interface ScrapeResponseBody {
+  error?: string;
+}
+
 export interface HelloResponseBody {
   /**
    * application uptime in seconds
