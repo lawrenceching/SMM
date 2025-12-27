@@ -136,7 +136,6 @@ export function SeasonSection({
     
     // State to store generated file names for all episodes in the season
     const [generatedFileNames, setGeneratedFileNames] = useState<Map<string, string>>(new Map())
-    const [namingRule, setNamingRule] = useState<"plex" | undefined>("plex")
     
     // Generate file names for all episodes in all seasons when isPreviewMode is enabled
     useEffect(() => {
@@ -237,7 +236,7 @@ export function SeasonSection({
 
     const generateNewFileNames = useCallback(() => {
 
-        if(!isPreviewMode) {
+        if(!isPreviewMode || !ruleName) {
             return;
         }
 
@@ -287,7 +286,7 @@ export function SeasonSection({
         })();
 
 
-    }, [selectedMediaMetadata, namingRule])
+    }, [selectedMediaMetadata, ruleName])
 
     useEffect(() => {
         if(!isPreviewMode) {
