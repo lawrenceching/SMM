@@ -705,6 +705,29 @@ export interface FileRenameResponseBody {
   error?: string
 }
 
+export interface FileRenameInBatchRequestBody {
+  /**
+   * Absolute path of media folder
+   */
+  mediaFolder: string;
+  /**
+   * Array of file rename operations
+   */
+  files: Array<{
+    /**
+     * Absolute path of source file
+     */
+    from: string;
+    /**
+     * Absolute path of destination
+     */
+    to: string;
+  }>;
+}
+
+export interface FileRenameInBatchResponseBody {
+  error?: string;
+}
 
 export interface NewFileNameRequestBody {
   ruleName: "plex" | "emby",

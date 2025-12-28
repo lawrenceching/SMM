@@ -10,7 +10,7 @@ import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/
 import { renameFileInMediaMetadata } from './mediaMetadataUtils';
 // Import updateMediaMetadataAfterRename from renameFilesInBatch for batch operations
 // Note: This function handles multiple renames, while renameFileInMediaMetadata handles single rename
-import { updateMediaMetadataAfterRename } from '../tools/renameFilesInBatch';
+import { updateMediaMetadataAfterRename, validateRenameOperations } from '../tools/renameFilesInBatch';
 import pino from 'pino';
 import { dirname } from 'path';
 
@@ -68,6 +68,129 @@ export async function validateSingleRenameOperation(
   }
 
   return { isValid: true };
+}
+
+/**
+ * Validate multiple file rename operations in batch
+ * @param files Array of rename operations to validate
+ * @param mediaFolder Media folder path
+ * @returns Validation result with aggregated errors or success status
+ */
+export async function validateBatchRenameOperations(
+  files: Array<{ from: string; to: string }>,
+  mediaFolder: string
+): Promise<{ isValid: boolean; errors?: string[]; validatedRenames?: Array<{ from: string; to: string }> }> {
+  if (files.length === 0) {
+    return {
+      isValid: false,
+      errors: ['No files provided for batch rename'],
+    };
+  }
+
+  const mediaFolderInPosix = Path.posix(mediaFolder);
+  
+  // Reuse validateRenameOperations from tools (filesystemFiles parameter is unused, pass empty array)
+  const validationResult = await validateRenameOperations(
+    files,
+    mediaFolderInPosix,
+    []
+  );
+
+  if (validationResult.validationErrors.length > 0) {
+    return {
+      isValid: false,
+      errors: validationResult.validationErrors,
+    };
+  }
+
+  if (validationResult.validatedRenames.length === 0) {
+    return {
+      isValid: false,
+      errors: ['No valid files to rename after validation'],
+    };
+  }
+
+  return {
+    isValid: true,
+    validatedRenames: validationResult.validatedRenames,
+  };
+}
+
+/**
+ * Execute multiple file rename operations in batch
+ * @param renameMappings Array of validated rename operations
+ * @param options Execution options
+ * @returns Result with success status and aggregated errors if any operations fail
+ */
+export async function executeBatchRenameOperations(
+  renameMappings: Array<{ from: string; to: string }>,
+  options: {
+    dryRun?: boolean;
+    clientId?: string;
+    logPrefix?: string;
+  } = {}
+): Promise<{ success: boolean; errors?: string[]; successfulRenames?: Array<{ from: string; to: string }> }> {
+  const { dryRun = false, clientId, logPrefix = '[executeBatchRenameOperations]' } = options;
+
+  if (renameMappings.length === 0) {
+    return {
+      success: false,
+      errors: ['No rename operations provided'],
+    };
+  }
+
+  const errors: string[] = [];
+  const successfulRenames: Array<{ from: string; to: string }> = [];
+
+  logger.info({
+    totalOperations: renameMappings.length,
+    clientId,
+    dryRun
+  }, `${logPrefix} Starting batch rename execution`);
+
+  // Execute all rename operations sequentially
+  for (const renameMapping of renameMappings) {
+    const result = await executeRenameOperation(
+      renameMapping.from,
+      renameMapping.to,
+      {
+        dryRun,
+        clientId,
+        logPrefix,
+      }
+    );
+
+    if (result.success) {
+      successfulRenames.push(renameMapping);
+    } else {
+      errors.push(`Failed to rename "${renameMapping.from}" to "${renameMapping.to}": ${result.error || 'Unknown error'}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    logger.error({
+      totalOperations: renameMappings.length,
+      failedOperations: errors.length,
+      successfulOperations: successfulRenames.length,
+      clientId
+    }, `${logPrefix} Some rename operations failed`);
+    
+    return {
+      success: false,
+      errors,
+      successfulRenames: successfulRenames.length > 0 ? successfulRenames : undefined,
+    };
+  }
+
+  logger.info({
+    totalOperations: renameMappings.length,
+    clientId
+  }, `${logPrefix} All rename operations completed successfully`);
+
+  return {
+    success: true,
+    successfulRenames,
+  };
 }
 
 /**

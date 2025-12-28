@@ -9,7 +9,7 @@ import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMet
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
-import { handleRenameFile } from './src/route/RenameFile';
+import { handleRenameFile, handleRenameFileInBatch } from './src/route/RenameFile';
 import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
@@ -242,6 +242,26 @@ export class Server {
         console.error('RenameFile route error:', error);
         return c.json({ 
           error: 'Unexpected Error: Failed to process rename file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 200);
+      }
+    });
+
+    this.app.post('/api/renameFileInBatch', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const clientId = c.req.header('clientId');
+        const fileCount = rawBody.files?.length || 0;
+        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${fileCount} file(s) (clientId: ${clientId || 'not provided'})`)
+        const result = await handleRenameFileInBatch(rawBody, clientId);
+        
+        // Always return 200 status code per API design guideline
+        // Business errors are returned in the "error" field
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('RenameFileInBatch route error:', error);
+        return c.json({ 
+          error: 'Unexpected Error: Failed to process batch rename file request',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 200);
       }
