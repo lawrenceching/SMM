@@ -22,6 +22,10 @@ interface MediaMetadataContextValue {
    * @param path POSIX format folder path
    */
   refreshMediaMetadata: (path: string) => void
+  /**
+   * Reload all media metadata from the server for all folders in userConfig
+   */
+  reloadMediaMetadatas: () => Promise<void>
 }
 
 const MediaMetadataContext = createContext<MediaMetadataContextValue | undefined>(undefined)
@@ -134,16 +138,20 @@ export function MediaMetadataProvider({
       })
   }, [_addMediaMetadata])
 
+  const reloadMediaMetadatas = useCallback(async () => {
+    console.log('[MediaMetadataProvider] Reloading media metadata', userConfig.folders)
+    const promises = userConfig.folders.map((path) => readMediaMetadataApi(path))
+    const responses = await Promise.all(promises)
+    const mediaMetadatas: MediaMetadata[] = responses
+      .filter((response) => response.data && !response.error)
+      .map((response) => response.data!)
+
+    console.log('[MediaMetadataProvider] Reloaded media metadata', mediaMetadatas)
+    setMediaMetadatas(mediaMetadatas)
+  }, [userConfig])
+
   useEffect(() => {
-    userConfig.folders.map((path) => {
-      readMediaMetadataApi(path).then((response) => {
-        if (response.data && !response.error) {
-          _addMediaMetadata(response.data)
-        }
-      }).catch((error) => {
-        console.error("Failed to read media metadata:", error)
-      })
-    })
+    reloadMediaMetadatas()
   }, [userConfig, _addMediaMetadata])
 
   const value: MediaMetadataContextValue = {
@@ -154,7 +162,8 @@ export function MediaMetadataProvider({
     getMediaMetadata,
     selectedMediaMetadata,
     setSelectedMediaMetadata,
-    refreshMediaMetadata
+    refreshMediaMetadata,
+    reloadMediaMetadatas
   }
 
   return (

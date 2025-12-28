@@ -80,10 +80,8 @@ export async function handleRenameFolder(body: FolderRenameRequestBody, clientId
 
 
     broadcastMessage({
-      event: 'mediaMetadataUpdated',
-      data: {
-        folderPath: to
-      }
+      event: 'userConfigUpdated',
+      data: {}
     });
 
     return {}; // Success - no error

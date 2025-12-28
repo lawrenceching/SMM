@@ -1,6 +1,6 @@
 import { ThreeColumnLayout, LeftSidebarContent, SidebarContent } from "@/components/three-column-layout"
 import { StatusBar } from "./components/StatusBar"
-import { ConfigProvider } from "./components/config-provider"
+import { ConfigProvider, useConfig } from "./components/config-provider"
 import { ThemeProvider } from "./components/theme-provider"
 import { DialogProvider, useDialogs } from "./components/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
@@ -388,6 +388,7 @@ function AppLayout() {
 
 function WebSocketHandlers() {
 
+  const { reload: reloadUserConfig } = useConfig();
   const { refreshMediaMetadata, selectedMediaMetadata } = useMediaMetadata();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
@@ -416,6 +417,7 @@ function WebSocketHandlers() {
         refreshMediaMetadata(folderPath);
       } else {
         console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
+        reloadUserConfig();
       }
     }
 
@@ -482,7 +484,12 @@ function WebSocketHandlers() {
           </div>
         ),
       });
+    } else if(message.event === "userConfigUpdated") {
+      console.log('[WebSocketHandlers][DEBUG] userConfigUpdated received');
+      reloadUserConfig();      
     }
+
+
   });
 
   return (

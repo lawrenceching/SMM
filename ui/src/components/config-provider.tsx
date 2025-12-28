@@ -10,6 +10,7 @@ interface ConfigContextValue {
   isLoading: boolean
   error: Error | null
   setUserConfig: (config: UserConfig) => void
+  reload: () => void
 }
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined)
@@ -80,61 +81,61 @@ export function ConfigProvider({
   const [isLoading, setIsLoading] = useState(!initialAppConfig)
   const [error, setError] = useState<Error | null>(null)
 
+  const reload = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch("/api/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: "hello" }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch app config: ${response.statusText}`)
+      }
+
+      const data: HelloResponse = await response.json()
+      const userDataDir = data.userDataDir;
+      setAppConfig((prev) => {
+        return {
+          ...prev,
+          userDataDir: userDataDir,
+        }
+      })
+
+      const filePath = join(userDataDir, 'smm.json');
+
+      const config = await readFileApi(filePath);
+      console.log('[ConfigProvider] Reloaded user config', config)
+      setUserConfig(config);
+
+      // Map HelloResponse to AppConfig
+      setAppConfig((prev) => {
+        return {
+          ...prev,
+          version: data.version,
+        }
+      })
+    } catch (err) {
+      console.error("Failed to fetch app config:", err)
+      setError(err instanceof Error ? err : new Error("Unknown error"))
+      // Keep the fallback version
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     // Only fetch if no initial config provided
     if (initialAppConfig) {
       return
     }
 
-    const fetchAppConfig = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        
-        const response = await fetch("/api/execute", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: "hello" }),
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch app config: ${response.statusText}`)
-        }
-
-        const data: HelloResponse = await response.json()
-        const userDataDir = data.userDataDir;
-        setAppConfig((prev) => {
-          return {
-            ...prev,
-            userDataDir: userDataDir,
-          }
-        })
-
-        const filePath = join(userDataDir, 'smm.json');
-
-        const config = await readFileApi(filePath);
-
-        setUserConfig(config);
-
-        // Map HelloResponse to AppConfig
-        setAppConfig((prev) => {
-          return {
-            ...prev,
-            version: data.version,
-          }
-        })
-      } catch (err) {
-        console.error("Failed to fetch app config:", err)
-        setError(err instanceof Error ? err : new Error("Unknown error"))
-        // Keep the fallback version
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAppConfig()
+    reload()
   }, [initialAppConfig])
 
   const saveUserConfig = useCallback((config: UserConfig) => {
@@ -158,6 +159,7 @@ export function ConfigProvider({
     isLoading,
     error,
     setUserConfig: saveUserConfig,
+    reload,
   }
 
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
