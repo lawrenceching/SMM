@@ -10,6 +10,7 @@ import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFile, handleRenameFileInBatch } from './src/route/RenameFile';
+import { handleRenameFolder } from './src/route/RenameFolder';
 import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
@@ -262,6 +263,25 @@ export class Server {
         console.error('RenameFileInBatch route error:', error);
         return c.json({ 
           error: 'Unexpected Error: Failed to process batch rename file request',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, 200);
+      }
+    });
+
+    this.app.post('/api/renameFolder', async (c) => {
+      try {
+        const rawBody = await c.req.json();
+        const clientId = c.req.header('clientId');
+        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
+        const result = await handleRenameFolder(rawBody, clientId);
+        
+        // Always return 200 status code per API design guideline
+        // Business errors are returned in the "error" field
+        return c.json(result, 200);
+      } catch (error) {
+        console.error('RenameFolder route error:', error);
+        return c.json({ 
+          error: 'Unexpected Error: Failed to process rename folder request',
           details: error instanceof Error ? error.message : 'Unknown error'
         }, 200);
       }

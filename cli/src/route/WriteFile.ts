@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import path from 'path';
 import { mkdir } from 'fs/promises';
-import { getUserDataDir } from '../../tasks/HelloTask';
+import { getUserDataDir } from '@/utils/config';
 import { validatePathInUserDataDir } from './path-validator';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 

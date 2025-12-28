@@ -1,6 +1,10 @@
 import type { MediaMetadata } from "@core/types"
 import { Path } from "@core/path"
 import { metadataCacheFilePath } from "../route/mediaMetadata/utils"
+import pino from "pino"
+import { unlink } from "fs/promises"
+
+const logger = pino()
 
 /**
  * Find media metadata by the media folder path.
@@ -28,4 +32,24 @@ export async function findMediaMetadata(mediaFolderPath: string): Promise<MediaM
         console.error(`[findMediaMetadata] Error reading metadata from file: ${metadataFilePath}`, error)
         return null
     }
+}
+
+export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<void> {
+    if(!mediaMetadata.mediaFolderPath) {
+        throw new Error('Media folder path is required')
+    }
+    const metadataFilePath = metadataCacheFilePath(mediaMetadata.mediaFolderPath)
+    logger.info({
+        metadataFilePath,
+        mediaMetadata,
+    }, '[writeMediaMetadata] Writing media metadata to file');
+    await Bun.write(metadataFilePath, JSON.stringify(mediaMetadata, null, 2))
+}
+
+export async function deleteMediaMetadataFile(mediaFolderPath: string): Promise<void> {
+    const metadataFilePath = metadataCacheFilePath(mediaFolderPath)
+    logger.info({
+        metadataFilePath,
+    }, '[deleteMediaMetadataFile] Deleting media metadata file');
+    await unlink(metadataFilePath)
 }

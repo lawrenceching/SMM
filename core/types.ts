@@ -705,6 +705,21 @@ export interface FileRenameResponseBody {
   error?: string
 }
 
+export interface FolderRenameRequestBody {
+  /**
+   * Absolute path of source folder
+   */
+  from: string;
+  /**
+   * Absolute path of destination folder
+   */
+  to: string;
+}
+
+export interface FolderRenameResponseBody {
+  error?: string
+}
+
 export interface FileRenameInBatchRequestBody {
   /**
    * Absolute path of media folder

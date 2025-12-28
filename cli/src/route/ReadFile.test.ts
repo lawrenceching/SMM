@@ -8,7 +8,7 @@ import { tmpdir } from 'os';
 let currentMockUserDataDir: string;
 
 // Set up the mock before any imports
-mock.module('../../tasks/HelloTask', () => ({
+mock.module('@/utils/config', () => ({
   getUserDataDir: () => currentMockUserDataDir,
 }));
 

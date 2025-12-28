@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getUserDataDir } from '../../tasks/HelloTask';
+import { getUserDataDir } from '@/utils/config';
 import { validatePathInUserDataDir } from './path-validator';
 import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
 

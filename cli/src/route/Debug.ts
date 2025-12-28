@@ -121,6 +121,12 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
 
       case 'renameFilesInBatch': {
         try {
+          console.log(`[DebugAPI] Executing renameFilesInBatch:`, {
+            folderPath: validatedBody.folderPath,
+            fileCount: validatedBody.files.length,
+            clientId: validatedBody.clientId || 'not provided'
+          });
+          
           const { createRenameFilesInBatchTool } = await import('../tools/renameFilesInBatch');
           const clientId = validatedBody.clientId || '';
           const tool = createRenameFilesInBatchTool(clientId);
@@ -130,7 +136,11 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
             files: validatedBody.files,
           });
           
-          console.log(`[DebugAPI] renameFilesInBatch completed`);
+          if (result.error) {
+            console.log(`[DebugAPI] renameFilesInBatch completed with error:`, result.error);
+          } else {
+            console.log(`[DebugAPI] renameFilesInBatch completed successfully`);
+          }
           
           return {
             success: !result.error,

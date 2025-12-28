@@ -3,8 +3,7 @@ import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { sendAndWaitForResponse } from '../utils/websocketManager';
-import { listFiles } from '../utils/files';
-import { executeRenameOperation, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
+import { validateBatchRenameOperations, executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { validateChainingConflicts } from '../validations/validateChainingConflicts';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
 import { validateNoDuplicatedSourceFile } from '../validations/validateNoDuplicatedSourceFile';
@@ -301,6 +300,7 @@ interface ToolResponse {
 }
 \`\`\`
 `,
+  toolName: 'renameFilesInBatch',
   inputSchema: z.object({
     folderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
     files: z.array(z.object({
@@ -350,51 +350,30 @@ interface ToolResponse {
       return { error: `Error Reason: folderPath "${folderPathInPosix}" does not match metadata folder path "${mediaMetadata.mediaFolderPath}"` };
     }
 
-    // 3. List files from filesystem for validation
-    const folderPathObj = new Path(folderPathInPosix);
-    let filesystemFiles: string[];
-    try {
-      filesystemFiles = await listFiles(folderPathObj, true);
-      logger.info({
-        folderPath: folderPathInPosix,
-        filesystemFilesCount: filesystemFiles.length
-      }, '[tool][renameFilesInBatch] Listed files from filesystem');
-    } catch (error) {
-      logger.error({
-        folderPath: folderPathInPosix,
-        error: error instanceof Error ? error.message : String(error)
-      }, '[tool][renameFilesInBatch] Failed to list files from filesystem');
-      return { error: `Error Reason: Failed to list files from folder: ${error instanceof Error ? error.message : 'Unknown error'}` };
-    }
-
-    // 4. Validate all rename operations before asking for confirmation
+    // 3. Validate all rename operations before asking for confirmation
     logger.info({
       folderPath: folderPathInPosix,
-      totalFiles: files.length,
-      filesystemFilesCount: filesystemFiles.length
+      totalFiles: files.length
     }, '[tool][renameFilesInBatch] Starting validation');
 
-    const { validationErrors, validatedRenames } = await validateRenameOperations(
-      files,
-      folderPathInPosix,
-      filesystemFiles
-    );
+    const validationResult = await validateBatchRenameOperations(files, folderPath);
 
     logger.info({
       totalFiles: files.length,
-      validatedRenames: validatedRenames.length,
-      validationErrors: validationErrors.length
+      validatedRenames: validationResult.validatedRenames?.length || 0,
+      validationErrors: validationResult.errors?.length || 0
     }, '[tool][renameFilesInBatch] Validation complete');
 
     // If there are validation errors, return them
-    if (validationErrors.length > 0) {
+    if (!validationResult.isValid) {
       logger.error({
-        validationErrors,
-        totalErrors: validationErrors.length
+        validationErrors: validationResult.errors,
+        totalErrors: validationResult.errors?.length || 0
       }, '[tool][renameFilesInBatch] Validation failed');
-      return { error: `Error Reason: Validation failed:\n${validationErrors.join('\n')}` };
+      return { error: `Error Reason: Validation failed:\n${validationResult.errors?.join('\n') || 'Unknown validation error'}` };
     }
 
+    const validatedRenames = validationResult.validatedRenames || [];
     if (validatedRenames.length === 0) {
       logger.warn('[tool][renameFilesInBatch] No valid rename operations');
       return { error: `Error Reason: No valid files to rename` };
@@ -436,36 +415,36 @@ interface ToolResponse {
     }
 
     // 6. Perform rename operations on filesystem
-    const renameResults: Array<{ from: string; to: string; success: boolean; error?: string }> = [];
+    logger.info({
+      validatedCount: validatedRenames.length,
+      clientId
+    }, '[tool][renameFilesInBatch] Starting batch rename execution');
 
-    for (const renameOp of validatedRenames) {
-      const result = await executeRenameOperation(renameOp.from, renameOp.to, {
-        dryRun: false,
-        clientId,
-        logPrefix: '[tool][renameFilesInBatch]',
-      });
+    const renameResult = await executeBatchRenameOperations(validatedRenames, {
+      dryRun: false,
+      clientId,
+      logPrefix: '[tool][renameFilesInBatch]',
+    });
 
-      renameResults.push({
-        from: renameOp.from,
-        to: renameOp.to,
-        success: result.success,
-        error: result.error,
-      });
+    if (!renameResult.success) {
+      logger.error({
+        totalFiles: files.length,
+        failedCount: renameResult.errors?.length || 0,
+        successfulCount: renameResult.successfulRenames?.length || 0,
+        clientId
+      }, '[tool][renameFilesInBatch] Batch rename execution failed');
+      return { error: `Error Reason: Some rename operations failed:\n${renameResult.errors?.join('\n') || 'Unknown error'}` };
     }
 
-    // Check if any renames failed
-    const failedRenames = renameResults.filter(r => !r.success);
-    if (failedRenames.length > 0) {
-      const errorMessages = failedRenames.map(r => `Failed to rename "${r.from}" to "${r.to}": ${r.error}`).join('\n');
-      logger.error({
-        failedRenames,
-        totalFailed: failedRenames.length
-      }, '[tool][renameFilesInBatch] Some rename operations failed');
-      return { error: `Error Reason: Some rename operations failed:\n${errorMessages}` };
+    const successfulRenames = renameResult.successfulRenames || [];
+    if (successfulRenames.length === 0) {
+      logger.warn({
+        clientId
+      }, '[tool][renameFilesInBatch] No files were successfully renamed');
+      return { error: `Error Reason: No files were successfully renamed` };
     }
 
     // 7. Update media metadata with new file paths and broadcast
-    const successfulRenames = renameResults.filter(r => r.success);
     
     if (successfulRenames.length > 0) {
       const metadataUpdateResult = await updateMediaMetadataAndBroadcast(

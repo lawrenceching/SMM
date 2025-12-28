@@ -7,7 +7,7 @@ import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { useConfig } from "@/components/config-provider"
 import { useDialogs } from "@/components/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
-import { renameFile } from "@/api/renameFile"
+import { renameFolder } from "@/api/renameFolder"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -168,9 +168,8 @@ export function MediaFolderListItem({mediaName, path, mediaType, selected, onCli
           const parentDir = dirname(path)
           const newFolderPath = join(parentDir, newName)
           
-          // Call renameFile API to rename the folder on disk
-          await renameFile({
-            mediaFolder: parentDir,
+          // Call renameFolder API to rename the folder on disk
+          await renameFolder({
             from: path,
             to: newFolderPath,
           })

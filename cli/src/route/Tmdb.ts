@@ -1,5 +1,5 @@
 import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails, TMDBSeason } from "@core/types";
-import { getUserDataDir } from "../../tasks/HelloTask";
+import { getUserDataDir } from '@/utils/config';
 import path from "path";
 
 /**

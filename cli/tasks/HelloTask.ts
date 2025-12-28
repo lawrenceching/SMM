@@ -2,38 +2,7 @@ import { APP_VERSION } from '../src/version';
 import os from 'os';
 import path from 'path';
 import type { HelloResponseBody } from '@core/types';
-
-/**
- * Returns the directory path for user configuration files.
- * Follows platform-specific conventions:
- * - Windows: %APPDATA%\SMM
- * - macOS: ~/Library/Application Support/SMM
- * - Linux: ~/.config/smm or $XDG_CONFIG_HOME/smm
- */
-export function getUserDataDir(): string {
-  const dirFromEnv = process.env.USER_DATA_DIR;
-  if (!!dirFromEnv) {
-    return dirFromEnv;
-  }
-
-  const platform = os.platform();
-  const homedir = os.homedir();
-
-  switch (platform) {
-    case 'win32':
-      // Windows: %APPDATA%\SMM (for configuration files)
-      return process.env.APPDATA ? path.join(process.env.APPDATA, 'SMM') : path.join(homedir, 'AppData', 'Roaming', 'SMM');
-    case 'darwin':
-      // macOS: ~/Library/Application Support/SMM (for configuration files)
-      return path.join(homedir, 'Library', 'Application Support', 'SMM');
-    case 'linux':
-      // Linux: ~/.config/smm or $XDG_CONFIG_HOME/smm (for configuration files)
-      return process.env.XDG_CONFIG_HOME ? path.join(process.env.XDG_CONFIG_HOME, 'smm') : path.join(homedir, '.config', 'smm');
-    default:
-      // Fallback for other platforms
-      return path.join(homedir, '.config', 'smm');
-  }
-}
+import { getUserDataDir } from '@/utils/config';
 
 /**
  * Returns the directory path for application data files (e.g., metadata cache).

@@ -1,7 +1,8 @@
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
-import { executeHelloTask, getUserDataDir, getAppDataDir } from 'tasks/HelloTask';
+import { executeHelloTask, getAppDataDir } from 'tasks/HelloTask';
+import { getUserDataDir } from '@/utils/config';
 import { mkdir } from 'fs/promises';
 
 interface CommandLineArguments {
