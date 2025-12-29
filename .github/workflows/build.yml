@@ -7,6 +7,8 @@ on:
       - 'ui/**'
       - 'cli/**'
       - 'electron/**'
+      - 'Dockerfile'
+      - '.dockerignore'
       - '.github/workflows/build.yml'
   pull_request:
     branches: [ main, develop ]
@@ -14,6 +16,8 @@ on:
       - 'ui/**'
       - 'cli/**'
       - 'electron/**'
+      - 'Dockerfile'
+      - '.dockerignore'
       - '.github/workflows/build.yml'
   workflow_dispatch:
     inputs:
@@ -107,6 +111,27 @@ jobs:
           name: cli-dist
           path: cli/dist
           retention-days: 7
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: smm:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
   build-electron:
     name: Build Electron Distribution
