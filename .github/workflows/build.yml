@@ -197,10 +197,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Extract version and commit info
+        id: version-info
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+        working-directory: ./electron
+      
       - name: Upload Electron distribution artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: electron-dist-${{ matrix.platform }}
+          name: smm-v${{ steps.version-info.outputs.version }}-${{ steps.version-info.outputs.short_sha }}-${{ matrix.platform }}
           path: |
             electron/dist/*.exe
             electron/dist/*.dmg
@@ -219,7 +228,7 @@ jobs:
       - name: Download Electron artifacts (all platforms)
         uses: actions/download-artifact@v4
         with:
-          pattern: electron-dist-*
+          pattern: smm-v*
           merge-multiple: true
           path: dist
 
