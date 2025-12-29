@@ -134,9 +134,10 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick}: MenuProps) {
-  const { downloadVideoDialog } = useDialogs()
+  const { downloadVideoDialog, configDialog } = useDialogs()
 
   const [openDownloadVideo] = downloadVideoDialog
+  const [openConfig] = configDialog
 
   const template: MenuTemplate[] = [
     {
@@ -153,6 +154,15 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
               console.log(`Downloading video from ${url} to ${downloadFolder}`)
               // TODO: Implement video download logic
             })
+          }
+        },
+        {
+          type: "separator"
+        },
+        {
+          name: "Config",
+          onClick: () => {
+            openConfig()
           }
         },
         {
