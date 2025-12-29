@@ -5,6 +5,7 @@ import { listFilesInMediaFolderTool } from './listFilesInMediaFolder';
 import { matchEpisodeTool } from './matchEpisode';
 import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
 import { createRenameFilesInBatchTool } from './renameFilesInBatch';
+import { createRenameFolderTool } from './renameFolder';
 import { createAskForConfirmationTool } from './askForConfirmation';
 import { getApplicationContextTool } from './getApplicationContext';
 export {
@@ -15,6 +16,7 @@ export {
   matchEpisodeTool,
   createMatchEpisodesInBatchTool,
   createRenameFilesInBatchTool,
+  createRenameFolderTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
 };

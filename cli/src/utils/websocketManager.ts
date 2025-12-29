@@ -76,6 +76,10 @@ export function sendAndWaitForResponse(
       }
       // Use the first socket's clientId
       const firstSocket = sockets[0];
+      if (!firstSocket) {
+        reject(new Error('No active Socket.IO connections available'));
+        return;
+      }
       const rooms = Array.from(firstSocket.rooms);
       // Find the room that's not the socket's own ID (which is auto-joined)
       const clientRoom = rooms.find(room => room !== firstSocket.id);
@@ -101,6 +105,10 @@ export function sendAndWaitForResponse(
 
     // Get the first socket ID from the room
     const socketId = Array.from(socketsInRoom)[0];
+    if (!socketId) {
+      reject(new Error(`No socket ID found in room: ${clientId}`));
+      return;
+    }
     const socket = io.sockets.sockets.get(socketId);
 
     if (!socket) {
@@ -113,6 +121,7 @@ export function sendAndWaitForResponse(
       return;
     }
 
+    const startTime = performance.now();
     logger.info({
       clientId,
       socketId,
@@ -123,6 +132,7 @@ export function sendAndWaitForResponse(
 
     // Send to specific socket (not room) with timeout and acknowledgement
     socket.timeout(timeoutMs).emit(message.event, message.data, (err: Error, response: any) => {
+      const duration = performance.now() - startTime;
       if (err) {
         logger.error({
           clientId,
@@ -130,7 +140,8 @@ export function sendAndWaitForResponse(
           event: message.event,
           error: err.message,
           errorType: typeof err,
-          errorDetails: err
+          errorDetails: err,
+          durationMs: Math.round(duration)
         }, '[DEBUG] socket.io acknowledgement timeout or error');
         reject(new Error(`Socket.IO request timed out or failed: ${err.message}`));
       } else {
@@ -139,7 +150,8 @@ export function sendAndWaitForResponse(
           socketId,
           event: message.event,
           hasResponse: !!response,
-          response: response
+          response: response,
+          durationMs: Math.round(duration)
         }, '[DEBUG] socket.io acknowledgement received successfully');
         resolve(response);
       }
@@ -162,6 +174,9 @@ export function getFirstActiveConnection(): string | null {
   }
 
   const firstSocket = sockets[0];
+  if (!firstSocket) {
+    return null;
+  }
   const rooms = Array.from(firstSocket.rooms);
   // Find the room that's not the socket's own ID
   const clientRoom = rooms.find(room => room !== firstSocket.id);

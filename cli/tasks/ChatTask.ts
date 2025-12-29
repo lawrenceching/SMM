@@ -9,6 +9,7 @@ import {
   matchEpisodeTool,
   createMatchEpisodesInBatchTool,
   createRenameFilesInBatchTool,
+  createRenameFolderTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
 } from '../src/tools';
@@ -56,11 +57,11 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         // matchEpisode: matchEpisodeTool,
         matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId),
         renameFilesInBatch: createRenameFilesInBatchTool(clientId),
+        renameFolder: createRenameFolderTool(clientId),
         askForConfirmation: createAskForConfirmationTool(clientId),
       },
       stopWhen: stepCountIs(20)
     });
-
 
     // Use toUIMessageStreamResponse for useChat compatibility
     const response = result.toUIMessageStreamResponse();

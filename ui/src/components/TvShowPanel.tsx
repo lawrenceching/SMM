@@ -44,8 +44,7 @@ function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: 
     }
 
     if(mm.mediaFiles === undefined) {
-        console.error(`Media files are undefined`)
-        throw new Error(`Media files are undefined`)
+        return [];
     }
 
     if(mm.files === undefined || mm.files === null) {
