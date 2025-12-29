@@ -77,7 +77,7 @@ export interface Task {
   subTasks?: Task[]
 }
 
-export interface TaskProgressDialogProps {
+export interface ScrapeDialogProps {
   isOpen: boolean
   onClose: () => void
   tasks: Task[]

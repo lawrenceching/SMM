@@ -60,8 +60,8 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
     const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
     const prevPreviewModeRef = useRef(false)
     const { userConfig } = useConfig()
-    const { taskProgressDialog } = useDialogs()
-    const [openTaskProgress, , updateTasks] = taskProgressDialog
+    const { scrapeDialog } = useDialogs()
+    const [openScrape, , updateTasks] = scrapeDialog
 
     useEffect(() => {
         setIsPreviewMode(false)
@@ -430,7 +430,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                         ]
                                         
                                         // Open the task progress dialog with Start button
-                                        openTaskProgress(initialTasks, {
+                                        openScrape(initialTasks, {
                                             title: "Scrape Media",
                                             description: "Download poster, thumbnails, and nfo files",
                                             onStart: async () => {

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import type { TaskProgressDialogProps, Task } from "./types"
+import type { ScrapeDialogProps, Task } from "./types"
 
 function TaskItem({ task, level = 0 }: { task: Task; level?: number }) {
   const getStatusIcon = () => {
@@ -90,16 +90,25 @@ function areAllTasksPending(tasks: Task[]): boolean {
   })
 }
 
-export function TaskProgressDialog({
+export function ScrapeDialog({
   isOpen,
   onClose,
   tasks,
   title = "Task Progress",
   description = "Current task execution status",
   onStart,
-}: TaskProgressDialogProps) {
-  const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
-  const allTasksPending = useMemo(() => areAllTasksPending(tasks), [tasks])
+}: ScrapeDialogProps) {
+  // Add fanart task to the tasks list
+  const allTasks = useMemo(() => {
+    const fanartTask: Task = {
+      name: "fanart",
+      status: "pending",
+    }
+    return [fanartTask, ...tasks]
+  }, [tasks])
+
+  const allTasksDone = useMemo(() => areAllTasksDone(allTasks), [allTasks])
+  const allTasksPending = useMemo(() => areAllTasksPending(allTasks), [allTasks])
   const canClose = allTasksDone
   const showStartCancel = allTasksPending && onStart !== undefined
 
@@ -134,12 +143,12 @@ export function TaskProgressDialog({
         </DialogHeader>
         <ScrollArea className="max-h-[400px] w-full">
           <div className="space-y-1 py-4">
-            {tasks.length === 0 ? (
+            {allTasks.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                 No tasks
               </div>
             ) : (
-              tasks.map((task, index) => (
+              allTasks.map((task, index) => (
                 <TaskItem key={index} task={task} level={0} />
               ))
             )}

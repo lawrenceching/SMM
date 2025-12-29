@@ -9,7 +9,7 @@ import {
   MediaSearchDialog,
   RenameDialog,
   OpenFolderDialog,
-  TaskProgressDialog,
+  ScrapeDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
@@ -52,9 +52,9 @@ interface DialogContextValue {
     openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
     closeRename: () => void
   ]
-  taskProgressDialog: [
-    openTaskProgress: (tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => void,
-    closeTaskProgress: () => void,
+  scrapeDialog: [
+    openScrape: (tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => void,
+    closeScrape: () => void,
     updateTasks: (tasks: Task[]) => void
   ]
 }
@@ -100,10 +100,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [renameOnConfirm, setRenameOnConfirm] = useState<((newName: string) => void) | null>(null)
   const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
 
-  // Task progress dialog state
-  const [isTaskProgressOpen, setIsTaskProgressOpen] = useState(false)
-  const [taskProgressTasks, setTaskProgressTasks] = useState<Task[]>([])
-  const [taskProgressOptions, setTaskProgressOptions] = useState<{ title?: string; description?: string; onStart?: () => void }>({})
+  // Scrape dialog state
+  const [isScrapeOpen, setIsScrapeOpen] = useState(false)
+  const [scrapeTasks, setScrapeTasks] = useState<Task[]>([])
+  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; onStart?: () => void }>({})
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -235,22 +235,22 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeRename()
   }, [renameOnConfirm, closeRename])
 
-  const openTaskProgress = useCallback((tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => {
-    setTaskProgressTasks(tasks)
-    setTaskProgressOptions(options || {})
-    setIsTaskProgressOpen(true)
+  const openScrape = useCallback((tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => {
+    setScrapeTasks(tasks)
+    setScrapeOptions(options || {})
+    setIsScrapeOpen(true)
   }, [])
 
-  const closeTaskProgress = useCallback(() => {
-    setIsTaskProgressOpen(false)
+  const closeScrape = useCallback(() => {
+    setIsScrapeOpen(false)
     setTimeout(() => {
-      setTaskProgressTasks([])
-      setTaskProgressOptions({})
+      setScrapeTasks([])
+      setScrapeOptions({})
     }, 200)
   }, [])
 
   const updateTasks = useCallback((tasks: Task[]) => {
-    setTaskProgressTasks(tasks)
+    setScrapeTasks(tasks)
   }, [])
 
   const value: DialogContextValue = {
@@ -262,7 +262,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
     renameDialog: [openRename, closeRename],
-    taskProgressDialog: [openTaskProgress, closeTaskProgress, updateTasks],
+    scrapeDialog: [openScrape, closeScrape, updateTasks],
   }
 
   return (
@@ -314,13 +314,13 @@ export function DialogProvider({ children }: DialogProviderProps) {
         description={renameOptions.description}
         suggestions={renameOptions.suggestions}
       />
-      <TaskProgressDialog
-        isOpen={isTaskProgressOpen}
-        onClose={closeTaskProgress}
-        tasks={taskProgressTasks}
-        title={taskProgressOptions.title}
-        description={taskProgressOptions.description}
-        onStart={taskProgressOptions.onStart}
+      <ScrapeDialog
+        isOpen={isScrapeOpen}
+        onClose={closeScrape}
+        tasks={scrapeTasks}
+        title={scrapeOptions.title}
+        description={scrapeOptions.description}
+        onStart={scrapeOptions.onStart}
       />
     </DialogContext.Provider>
   )
