@@ -94,3 +94,14 @@ sequenceDiagram
 
 
 
+## Docker
+
+```bash
+
+docker buildx build --progress=plain --no-cache --platform linux/amd64,linux/arm64 -t lawrenceching/smm:latest .
+
+
+docker buildx build --progress=plain --no-cache --platform linux/amd64 -t lawrenceching/smm:latest .
+
+docker run -it --rm -p 30000:30000 lawrenceching/smm:latest
+```
