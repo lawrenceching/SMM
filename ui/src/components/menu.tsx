@@ -134,9 +134,9 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick}: MenuProps) {
-  const { downloadVideoDialog, configDialog } = useDialogs()
+  const { configDialog } = useDialogs()
 
-  const [openDownloadVideo] = downloadVideoDialog
+  // const [openDownloadVideo] = downloadVideoDialog
   const [openConfig] = configDialog
 
   const template: MenuTemplate[] = [
