@@ -147,15 +147,15 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
           name: "Open Folder",
           onClick: () => { onOpenFolderMenuClick?.() }
         },
-        {
-          name: "Download Video",
-          onClick: () => {
-            openDownloadVideo((url: string, downloadFolder: string) => {
-              console.log(`Downloading video from ${url} to ${downloadFolder}`)
-              // TODO: Implement video download logic
-            })
-          }
-        },
+        // {
+        //   name: "Download Video",
+        //   onClick: () => {
+        //     openDownloadVideo((url: string, downloadFolder: string) => {
+        //       console.log(`Downloading video from ${url} to ${downloadFolder}`)
+        //       // TODO: Implement video download logic
+        //     })
+        //   }
+        // },
         {
           type: "separator"
         },
