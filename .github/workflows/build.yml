@@ -136,7 +136,6 @@ jobs:
   build-electron:
     name: Build Electron Distribution
     needs: [build-ui, build-cli]
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
