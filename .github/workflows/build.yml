@@ -135,7 +135,6 @@ jobs:
 
   build-electron:
     name: Build Electron Distribution
-    needs: [build-ui, build-cli]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
