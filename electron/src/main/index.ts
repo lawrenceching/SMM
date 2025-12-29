@@ -172,8 +172,8 @@ function createWindow(): void {
     // mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(`http://localhost:${port}`)
   } else {
-    const publicFolderPath = getPublicFolderPath()
-    mainWindow.loadFile(join(publicFolderPath, 'index.html'))
+    // Load the web interface provided by cli
+    mainWindow.loadURL(`http://localhost:${port}`)    
   }
 }
 
