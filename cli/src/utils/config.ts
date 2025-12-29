@@ -35,6 +35,38 @@ export function getUserDataDir(): string {
     }
 }
 
+/**
+ * Returns the directory path for application log files.
+ * Follows platform-specific conventions:
+ * - Windows: %LOCALAPPDATA%\SMM\logs
+ * - macOS: ~/Library/Logs/SMM
+ * - Linux: ~/.local/share/smm/logs
+ */
+export function getLogDir(): string {
+    const dirFromEnv = process.env.LOG_DIR;
+    if (!!dirFromEnv) {
+      return dirFromEnv;
+    }
+  
+    const platform = os.platform();
+    const homedir = os.homedir();
+  
+    switch (platform) {
+      case 'win32':
+        // Windows: %LOCALAPPDATA%\SMM\logs
+        return process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'SMM', 'logs') : path.join(homedir, 'AppData', 'Local', 'SMM', 'logs');
+      case 'darwin':
+        // macOS: ~/Library/Logs/SMM
+        return path.join(homedir, 'Library', 'Logs', 'SMM');
+      case 'linux':
+        // Linux: ~/.local/share/smm/logs
+        return process.env.XDG_DATA_HOME ? path.join(process.env.XDG_DATA_HOME, 'smm', 'logs') : path.join(homedir, '.local', 'share', 'smm', 'logs');
+      default:
+        // Fallback for other platforms
+        return path.join(homedir, '.local', 'share', 'smm', 'logs');
+    }
+}
+
 export function getUserConfigPath(): string {
     const userDataDir = getUserDataDir();
     return path.join(userDataDir, 'smm.json');

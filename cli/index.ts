@@ -2,8 +2,9 @@ import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
 import { executeHelloTask, getAppDataDir } from 'tasks/HelloTask';
-import { getUserDataDir } from '@/utils/config';
+import { getUserDataDir, getLogDir } from '@/utils/config';
 import { mkdir } from 'fs/promises';
+import { logger } from './lib/logger';
 
 interface CommandLineArguments {
   staticDir?: string;
@@ -34,8 +35,8 @@ function parseArgs(): CommandLineArguments {
     }
   }
 
-  console.log(`staticDir: ${result.staticDir}`);
-  console.log(`port: ${result.port}`);
+  logger.info(`staticDir: ${result.staticDir}`);
+  logger.info(`port: ${result.port}`);
   
   return result;
 }
@@ -50,6 +51,22 @@ const customProvider = createOpenAICompatible({
 // Parse command line arguments
 const args = parseArgs();
 
+// Initialize directories
+const userDataDir = getUserDataDir();
+const appDataDir = getAppDataDir();
+const logDir = getLogDir();
+
+// Create directories using fs/promises (optimized in Bun, simpler than Node.js)
+await mkdir(userDataDir, { recursive: true });
+await mkdir(appDataDir, { recursive: true });
+await mkdir(logDir, { recursive: true });
+
+// Log startup information
+logger.info('=== Application Startup ===');
+logger.info(`User data directory: ${userDataDir}`);
+logger.info(`App data directory: ${appDataDir}`);
+logger.info(`Log directory: ${logDir}`);
+
 // Create and start the server
 const server = new Server({
   port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
@@ -57,14 +74,3 @@ const server = new Server({
 });
 
 server.start();
-
-// Initialize user data dir and app data dir
-const userDataDir = getUserDataDir();
-const appDataDir = getAppDataDir();
-
-// Create directories using fs/promises (optimized in Bun, simpler than Node.js)
-await mkdir(userDataDir, { recursive: true });
-await mkdir(appDataDir, { recursive: true });
-
-console.log(`User data directory initialized: ${userDataDir}`);
-console.log(`App data directory initialized: ${appDataDir}`);
