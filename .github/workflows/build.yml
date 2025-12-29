@@ -150,20 +150,17 @@ jobs:
       - name: Install dependencies for core module
         run: cd ../core/ && bun install --frozen-lockfile
       
-      - name: Download UI build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ui-dist
-          path: ui/dist
+      - name: Install dependencies for cli module
+        run: cd ../cli/ && bun install --frozen-lockfile
+
+      - name: Install dependencies for ui module
+        run: cd ../ui/ && bun install --frozen-lockfile
+
+      - name: Build cli
+        run: cd ../cli/ && bun run build
       
-      - name: Download CLI build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: cli-dist
-          path: cli/dist
-      
-      - name: Install dependencies
-        run: npm ci
+      - name: Build ui
+        run: cd ../ui/ && bun run build
       
       - name: Build Electron (${{ matrix.platform }})
         run: npm run ${{ matrix.build-command }}
