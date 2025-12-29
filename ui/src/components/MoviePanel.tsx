@@ -1,7 +1,7 @@
 import { TMDBMovieOverview } from "./tmdb-movie-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { FloatingToolbar } from "./FloatingToolbar"
-import React, { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
 import { newFileName } from "@/api/newFileName"
