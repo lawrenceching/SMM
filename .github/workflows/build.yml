@@ -117,15 +117,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
-          - os: ubuntu-latest
-            platform: linux
-            build-command: build:linux
+          # - os: ubuntu-latest
+          #   platform: linux
+          #   build-command: build:linux
           - os: windows-latest
             platform: win
             build-command: build:win
-          - os: macos-latest
-            platform: mac
-            build-command: build:mac
+          # - os: macos-latest
+          #   platform: mac
+          #   build-command: build:mac
     
     defaults:
       run:
