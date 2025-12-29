@@ -172,8 +172,7 @@ function createWindow(): void {
     // mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(`http://localhost:${port}`)
   } else {
-    // mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-    mainWindow.loadURL(`http://localhost:${port}`)
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
 
