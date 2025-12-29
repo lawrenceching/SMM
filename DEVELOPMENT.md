@@ -38,3 +38,59 @@ Following the red-green principle, you need to ensure the unit test is actually 
 4. Uncomment the production code which commented out in step 1
 
 Repeat above step to ensure all assertions are actual working.
+
+
+## Key Concepts
+
+**Media Metadata** The metadata of media folder, contains the TMDB TV Show or Movie data, and the linkage between local video files to TV Show episode.
+
+**User Config** The config changable for user
+
+**App Config** The config used by SMM
+
+## Architecture
+
+SMM contains 3 frontends(web, AI chatbox, debug API)
+
+web connects to backend(cli module) via HTTP API and socket.io API
+
+AI chatbox connects to backend via tool calling
+
+Debug API connects to backend via HTTP API
+
+### Architecture Diagram
+
+```mermaid
+sequenceDiagram
+    participant Web as Web Frontend
+    participant AI as AI Chatbox
+    participant Debug as Debug API
+    participant Backend as CLI Backend
+
+    Note over Web,Backend: Web Frontend Communication
+    Web->>Backend: HTTP API Request
+    Backend-->>Web: HTTP Response
+    Web->>Backend: Socket.io Connection
+    Backend-->>Web: Socket.io Events
+
+    Note over AI,Backend: AI Chatbox Communication
+    AI->>Backend: Tool Calling Request
+    Backend-->>AI: Tool Response
+
+    Note over Debug,Backend: Debug API Communication
+    Debug->>Backend: HTTP API Request
+    Backend-->>Debug: HTTP Response
+```
+
+
+### Web UI Architecture
+
+**Menu** The application menu
+**Sidebar** show the list of media folder, and search box and toolbar(sorting or filtering)
+**Content** show the TV Show/Movie/Music content of media folder
+**AI Chatbox** the AI chatbox
+**Status Bar** show application status
+**Config Dialog** the user config dialog
+
+
+
