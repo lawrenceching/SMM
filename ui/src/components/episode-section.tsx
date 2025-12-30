@@ -38,22 +38,28 @@ function getFileIcon(path: string) {
 }
 
 // Helper function to get icon and label for file type
-function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, label: string, iconColor: string } {
+function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, label: string, iconColor: string, bgColor: string } {
     switch (type) {
         case "video":
-            return { icon: FileVideo, label: "Video File", iconColor: "text-primary" }
+            return { icon: FileVideo, label: "Video", iconColor: "text-primary", bgColor: "bg-primary/10" }
         case "subtitle":
-            return { icon: FileText, label: "Subtitle Files", iconColor: "text-blue-500" }
+            return { icon: FileText, label: "Subtitle", iconColor: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30" }
         case "audio":
-            return { icon: Music, label: "Audio Files", iconColor: "text-green-500" }
+            return { icon: Music, label: "Audio", iconColor: "text-green-600 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-950/30" }
         case "nfo":
-            return { icon: FileText, label: "NFO Files", iconColor: "text-muted-foreground" }
+            return { icon: FileText, label: "NFO", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
         case "poster":
-            return { icon: ImageIcon, label: "Poster Files", iconColor: "text-muted-foreground" }
+            return { icon: ImageIcon, label: "Poster", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
         case "file":
         default:
-            return { icon: FileVideo, label: "Files", iconColor: "text-muted-foreground" }
+            return { icon: FileVideo, label: "File", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
     }
+}
+
+// Helper function to extract filename from path
+function getFileName(path: string): string {
+    const parts = path.split(/[/\\]/)
+    return parts[parts.length - 1] || path
 }
 
 
@@ -206,46 +212,82 @@ export function EpisodeSection({
             
             {/* Files - Expandable */}
             {isEpisodeExpanded && (
-                <div className="px-3 pb-3 border-t bg-muted/20">
-                    <div className="pt-3 space-y-2">
-                        {filesByTypeArray.map(([type, typeFiles]) => {
-                            const { icon: TypeIcon, label, iconColor } = getFileTypeConfig(type)
-                            const isVideo = type === "video"
-                            const isMultiple = typeFiles.length > 1
+                <div className="border-t bg-muted/30">
+                    {files.length === 0 ? (
+                        <div className="text-center py-6 text-xs text-muted-foreground">
+                            No files associated with this episode
+                        </div>
+                    ) : (
+                        <div className="px-3 py-2">
+                            {/* Video Files - Main (Emphasized) */}
+                            {filesByTypeArray.map(([type, typeFiles]) => {
+                                if (type !== "video") return null
+                                const { icon: TypeIcon, iconColor } = getFileTypeConfig(type)
+                                
+                                return typeFiles.map((file, index) => (
+                                    <EpisodeFile
+                                        key={`${type}-${index}-${file.path}`}
+                                        file={file}
+                                        icon={TypeIcon}
+                                        label=""
+                                        iconColor={iconColor}
+                                        isPreviewMode={isPreviewMode}
+                                        showRenameMenu={true}
+                                        compact={true}
+                                        bgColor="bg-primary/10"
+                                    />
+                                ))
+                            })}
                             
-                            return (
-                                <div key={type} className="space-y-1">
-                                    {isMultiple && (
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <TypeIcon className={cn("size-4", iconColor)} />
-                                            <span className="text-xs font-semibold">{label} ({typeFiles.length})</span>
+                            {/* Associated Files - Subtitle, Audio, NFO, Poster, etc. (Subtle) */}
+                            {filesByTypeArray.map(([type, typeFiles]) => {
+                                if (type === "video") return null
+                                const { label, iconColor } = getFileTypeConfig(type)
+                                
+                                return typeFiles.map((file, index) => {
+                                    const Icon = getFileIcon(file.path)
+                                    const fileName = getFileName(file.path)
+                                    const newFileName = file.newPath ? getFileName(file.newPath) : null
+                                    const hasPreview = isPreviewMode && file.newPath
+                                    
+                                    return (
+                                        <div
+                                            key={`${type}-${index}-${file.path}`}
+                                            className={cn(
+                                                "group flex items-center gap-2 px-2 py-1.5 text-xs transition-colors",
+                                                "hover:bg-muted/50",
+                                                hasPreview && "bg-primary/5"
+                                            )}
+                                        >
+                                            <Icon className={cn("size-3 shrink-0 opacity-60", iconColor)} />
+                                            <div className="flex-1 min-w-0">
+                                                {hasPreview ? (
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-muted-foreground/60 font-mono text-[10px] line-through truncate">
+                                                            {fileName}
+                                                        </p>
+                                                        <p className="text-muted-foreground font-mono text-[10px] truncate">
+                                                            {newFileName}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-muted-foreground font-mono text-[10px] truncate" title={file.path}>
+                                                        {fileName}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className={cn(
+                                                "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 opacity-70",
+                                                iconColor
+                                            )}>
+                                                {label}
+                                            </span>
                                         </div>
-                                    )}
-                                    {typeFiles.map((file, index) => {
-                                        const Icon = isVideo ? TypeIcon : getFileIcon(file.path)
-                                        return (
-                                            <EpisodeFile
-                                                key={`${type}-${index}-${file.path}`}
-                                                file={file}
-                                                icon={Icon}
-                                                label={isVideo && !isMultiple ? label : ""}
-                                                iconColor={isVideo ? iconColor : "text-muted-foreground"}
-                                                isPreviewMode={isPreviewMode}
-                                                showRenameMenu={isVideo}
-                                            />
-                                        )
-                                    })}
-                                </div>
-                            )
-                        })}
-                        
-                        {/* No files message */}
-                        {files.length === 0 && (
-                            <div className="text-center py-4 text-xs text-muted-foreground">
-                                No files associated with this episode
-                            </div>
-                        )}
-                    </div>
+                                    )
+                                })
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

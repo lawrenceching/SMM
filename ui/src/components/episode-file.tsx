@@ -16,6 +16,14 @@ interface EpisodeFileProps {
     iconColor?: string
     isPreviewMode: boolean
     showRenameMenu?: boolean
+    compact?: boolean
+    bgColor?: string
+}
+
+// Helper function to extract filename from path
+function getFileName(path: string): string {
+    const parts = path.split(/[/\\]/)
+    return parts[parts.length - 1] || path
 }
 
 export function EpisodeFile({
@@ -25,11 +33,44 @@ export function EpisodeFile({
     iconColor = "text-muted-foreground",
     isPreviewMode,
     showRenameMenu = false,
+    compact = false,
+    bgColor = "bg-primary/10",
 }: EpisodeFileProps) {
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const { renameDialog } = useDialogs()
 
-    const fileContent = (
+    const fileName = getFileName(file.path)
+    const newFileName = file.newPath ? getFileName(file.newPath) : null
+    const hasPreview = isPreviewMode && file.newPath
+
+    const fileContent = compact ? (
+        <div className={cn(
+            "group relative flex items-center gap-3 px-3 py-2.5 transition-colors",
+            hasPreview ? "bg-primary/10" : bgColor,
+            "hover:bg-primary/15"
+        )}>
+            <Icon className={cn("size-5 shrink-0", iconColor)} />
+            <div className="flex-1 min-w-0">
+                {hasPreview ? (
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Preview</span>
+                        </div>
+                        <p className="text-muted-foreground/70 font-mono text-xs line-through truncate">
+                            {fileName}
+                        </p>
+                        <p className="text-foreground font-mono font-semibold text-sm truncate">
+                            {newFileName}
+                        </p>
+                    </div>
+                ) : (
+                    <p className="text-foreground font-mono font-semibold text-sm truncate" title={file.path}>
+                        {fileName}
+                    </p>
+                )}
+            </div>
+        </div>
+    ) : (
         <div className={cn(
             "p-2 rounded-md border",
             isPreviewMode && file.newPath ? "bg-primary/5 border-primary/20" : "bg-background border-border"
