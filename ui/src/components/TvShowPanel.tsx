@@ -103,6 +103,12 @@ function TvShowPanel() {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
+  const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
+
+  const openToolbar = useCallback((toolbarMode: "manual" | "ai") => {
+    setToolbarMode(toolbarMode)
+    setIsToolbarOpen(true)
+  }, [setToolbarMode, setIsToolbarOpen])
 
   // Build seasons state from media metadata
   useEffect(() => {
@@ -329,8 +335,11 @@ function TvShowPanel() {
     }
   }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata])
 
+
+
   return (
     <div className='p-1 w-full h-full relative'>
+      <button onClick={() => openToolbar("ai")}>ai rename</button>
       <FloatingToolbar 
         isOpen={isToolbarOpen}
         options={toolbarOptions}
@@ -343,12 +352,13 @@ function TvShowPanel() {
         }}
         confirmLabel={isRenaming ? "Renaming..." : "Confirm"}
         isConfirmDisabled={isRenaming}
+        mode={toolbarMode}
       />
       <div className="w-full h-full">
         <TMDBTVShowOverview 
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
-          onRenameClick={() => setIsToolbarOpen(true)}
+          onRenameClick={() => openToolbar("manual")}
           ruleName={selectedNamingRule}
           seasons={seasons}
           isPreviewMode={isPreviewMode}

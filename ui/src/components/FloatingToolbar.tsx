@@ -26,6 +26,7 @@ export interface FloatingToolbarProps {
   className?: string
   isOpen?: boolean
   isConfirmDisabled?: boolean
+  mode: "manual" | "ai"
 }
 
 export function FloatingToolbar({
@@ -40,6 +41,7 @@ export function FloatingToolbar({
   className,
   isOpen = false,
   isConfirmDisabled = false,
+  mode = "manual",
 }: FloatingToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [style, setStyle] = useState<{ left?: string; width?: string }>({})
@@ -87,18 +89,28 @@ export function FloatingToolbar({
         style={style}
       >
         <div className="flex items-center gap-2">
-          <Select value={selectedValue} onValueChange={onValueChange}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {mode === "manual" ? (
+            <Select value={selectedValue} onValueChange={onValueChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={placeholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+
+          {
+            mode === "ai" ? (
+              <div>
+                AI is going to rename episodes, please review...
+              </div>
+            ) : null
+          }
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>

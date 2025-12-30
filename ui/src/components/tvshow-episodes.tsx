@@ -158,6 +158,11 @@ export interface TvShowEpisodesProps {
     isEditing: boolean;
 }
 
+/**
+ * @deprecated
+ * @param param0 
+ * @returns 
+ */
 export function TvShowEpisodes({ seasons, isEditing }: TvShowEpisodesProps) {
 
     return (
