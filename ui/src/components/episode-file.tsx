@@ -20,10 +20,21 @@ interface EpisodeFileProps {
     bgColor?: string
 }
 
-// Helper function to extract filename from path
-function getFileName(path: string): string {
-    const parts = path.split(/[/\\]/)
-    return parts[parts.length - 1] || path
+// Helper function to get relative path from media folder
+function getRelativePath(mediaFolderPath: string | undefined, filePath: string): string {
+    if (!mediaFolderPath) {
+        // Fallback to filename if media folder path is not available
+        const parts = filePath.split(/[/\\]/)
+        return parts[parts.length - 1] || filePath
+    }
+    
+    try {
+        return relative(mediaFolderPath, filePath)
+    } catch (error) {
+        // If relative path calculation fails, fallback to filename
+        const parts = filePath.split(/[/\\]/)
+        return parts[parts.length - 1] || filePath
+    }
 }
 
 export function EpisodeFile({
@@ -39,8 +50,9 @@ export function EpisodeFile({
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const { renameDialog } = useDialogs()
 
-    const fileName = getFileName(file.path)
-    const newFileName = file.newPath ? getFileName(file.newPath) : null
+    const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
+    const relativePath = getRelativePath(mediaFolderPath, file.path)
+    const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
     const hasPreview = isPreviewMode && file.newPath
 
     const fileContent = compact ? (
@@ -57,15 +69,15 @@ export function EpisodeFile({
                             <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Preview</span>
                         </div>
                         <p className="text-muted-foreground/70 font-mono text-xs line-through truncate">
-                            {fileName}
+                            {relativePath}
                         </p>
                         <p className="text-foreground font-mono font-semibold text-sm truncate">
-                            {newFileName}
+                            {newRelativePath}
                         </p>
                     </div>
                 ) : (
                     <p className="text-foreground font-mono font-semibold text-sm truncate" title={file.path}>
-                        {fileName}
+                        {relativePath}
                     </p>
                 )}
             </div>
@@ -87,15 +99,15 @@ export function EpisodeFile({
                     {isPreviewMode && file.newPath ? (
                         <div className="space-y-1">
                             <p className="text-xs text-muted-foreground font-mono truncate line-through">
-                                {file.path}
+                                {relativePath}
                             </p>
                             <p className="text-xs text-primary font-mono truncate font-medium">
-                                {file.newPath}
+                                {newRelativePath}
                             </p>
                         </div>
                     ) : (
                         <p className="text-xs text-muted-foreground font-mono truncate">
-                            {file.path}
+                            {relativePath}
                         </p>
                     )}
                 </>
@@ -105,15 +117,15 @@ export function EpisodeFile({
                     {isPreviewMode && file.newPath ? (
                         <div className="flex-1 min-w-0 space-y-1">
                             <p className="text-xs text-muted-foreground font-mono truncate line-through">
-                                {file.path}
+                                {relativePath}
                             </p>
                             <p className="text-xs text-primary font-mono truncate font-medium">
-                                {file.newPath}
+                                {newRelativePath}
                             </p>
                         </div>
                     ) : (
                         <p className="text-xs text-muted-foreground font-mono truncate flex-1">
-                            {file.path}
+                            {relativePath}
                         </p>
                     )}
                 </div>

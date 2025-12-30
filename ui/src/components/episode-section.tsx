@@ -3,6 +3,8 @@ import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
+import { useMediaMetadata } from "./media-metadata-provider"
+import { relative } from "@/lib/path"
 import { useMemo } from "react"
 import React from "react"
 
@@ -56,10 +58,21 @@ function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, l
     }
 }
 
-// Helper function to extract filename from path
-function getFileName(path: string): string {
-    const parts = path.split(/[/\\]/)
-    return parts[parts.length - 1] || path
+// Helper function to get relative path from media folder
+function getRelativePath(mediaFolderPath: string | undefined, filePath: string): string {
+    if (!mediaFolderPath) {
+        // Fallback to filename if media folder path is not available
+        const parts = filePath.split(/[/\\]/)
+        return parts[parts.length - 1] || filePath
+    }
+    
+    try {
+        return relative(mediaFolderPath, filePath)
+    } catch (error) {
+        // If relative path calculation fails, fallback to filename
+        const parts = filePath.split(/[/\\]/)
+        return parts[parts.length - 1] || filePath
+    }
 }
 
 
@@ -97,6 +110,7 @@ export function EpisodeSection({
     isPreviewMode,
     generatedFileNames = new Map(),
 }: EpisodeSectionProps) {
+    const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     
@@ -243,11 +257,12 @@ export function EpisodeSection({
                             {filesByTypeArray.map(([type, typeFiles]) => {
                                 if (type === "video") return null
                                 const { label, iconColor } = getFileTypeConfig(type)
+                                const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
                                 
                                 return typeFiles.map((file, index) => {
                                     const Icon = getFileIcon(file.path)
-                                    const fileName = getFileName(file.path)
-                                    const newFileName = file.newPath ? getFileName(file.newPath) : null
+                                    const relativePath = getRelativePath(mediaFolderPath, file.path)
+                                    const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
                                     const hasPreview = isPreviewMode && file.newPath
                                     
                                     return (
@@ -264,15 +279,15 @@ export function EpisodeSection({
                                                 {hasPreview ? (
                                                     <div className="space-y-0.5">
                                                         <p className="text-muted-foreground/60 font-mono text-[10px] line-through truncate">
-                                                            {fileName}
+                                                            {relativePath}
                                                         </p>
                                                         <p className="text-muted-foreground font-mono text-[10px] truncate">
-                                                            {newFileName}
+                                                            {newRelativePath}
                                                         </p>
                                                     </div>
                                                 ) : (
                                                     <p className="text-muted-foreground font-mono text-[10px] truncate" title={file.path}>
-                                                        {fileName}
+                                                        {relativePath}
                                                     </p>
                                                 )}
                                             </div>
