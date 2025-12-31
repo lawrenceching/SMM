@@ -58,7 +58,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId),
         renameFilesInBatch: createRenameFilesInBatchTool(clientId),
         renameFolder: createRenameFolderTool(clientId),
-        askForConfirmation: createAskForConfirmationTool(clientId),
+        // askForConfirmation: createAskForConfirmationTool(clientId),
       },
       stopWhen: stepCountIs(20)
     });

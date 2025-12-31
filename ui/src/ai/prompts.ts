@@ -32,7 +32,7 @@ Order to infer the MediaFileMetadata, you may need below information:
 2. The TV Show or Movie media metadata
 3. The local files in media folder
 
-### Tasks
+#### Tasks
 
 Below are tasks to help user to match video files to each episode.
 
@@ -54,6 +54,15 @@ path: /path/to/file2.mp4
 
 [ ] Call "match-episodes-in-batch" to update the MediaFileMetadata in SMM, based on previous task output
 
+
+### Rename Files
+
+When user ask to rename files, you should call "rename-files-in-batch" to rename the files.
+And SMM only support renaming video files.
+
+Steps 
+[ ] Call "list-files-in-media-folder" to get the files in media folder
+[ ] Call "rename-files-in-batch" to rename the files
 
 ## User Preferences
 

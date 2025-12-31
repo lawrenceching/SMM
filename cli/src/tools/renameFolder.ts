@@ -8,17 +8,11 @@ const logger = pino();
 
 export const createRenameFolderTool = (clientId: string) => ({
   description: `Rename a media folder in SMM.
-This tool accepts the source folder path and destination folder path, and will ask for user confirmation before renaming.
-Once confirmed, it will rename the folder on the filesystem, update the media metadata, and update the user configuration accordingly.
+This tool accepts the source folder path and destination folder path.
+This tool should ONLY be used to rename FOLDER, NOT FILE
+This tool will update media metadata accordingly.
 
 Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".
-This tool return JSON response with the following format:
-\`\`\`typescript
-interface ToolResponse {
-    // error message
-    error?: string;
-}
-\`\`\`
 `,
   toolName: 'renameFolder',
   inputSchema: z.object({

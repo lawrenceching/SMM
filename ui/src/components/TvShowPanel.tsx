@@ -161,7 +161,6 @@ function TvShowPanel() {
       console.log('AskForRenameFilesConfirmation received', message.data);
       const data: AskForRenameFilesConfirmation.RequestData = message.data as AskForRenameFilesConfirmation.RequestData;
       const files = data.files;
-      debugger;
       setSeasons(prev => {
         return prev.map(season => ({
           ...season,

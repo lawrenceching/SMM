@@ -294,12 +294,7 @@ Once confirmed, it will rename the files on the filesystem and update the media 
 
 Example: Rename multiple files in folder "/path/to/media/folder".
 This tool return JSON response with the following format:
-\`\`\`typescript
-interface ToolResponse {
-    // error message
-    error?: string;
-}
-\`\`\`
+
 `,
   toolName: 'renameFilesInBatch',
   inputSchema: z.object({
@@ -309,6 +304,7 @@ interface ToolResponse {
       to: z.string().describe("The new absolute path for the file, it can be POSIX format or Windows format"),
     })).describe("Array of file rename operations"),
   }),
+  timeout: 10000,
   execute: async ({ folderPath, files }: {
     folderPath: string;
     files: RenameFile[];
