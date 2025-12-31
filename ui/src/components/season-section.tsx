@@ -4,10 +4,6 @@ import { Tv, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
-import { useMediaMetadata } from "./media-metadata-provider"
-import { useState, useEffect } from "react"
-import { newFileName } from "@/api/newFileName"
-import { join } from "@/lib/path"
 import type { SeasonModel } from "./TvShowPanel"
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -54,64 +50,6 @@ export function SeasonSection({
     ruleName,
     seasons,
 }: SeasonSectionProps) {
-    const { selectedMediaMetadata } = useMediaMetadata()
-    
-    // State to store generated file names for all episodes in the season
-    const [generatedFileNames, setGeneratedFileNames] = useState<Map<string, string>>(new Map())
-    
-    // Generate file names for all episodes in all seasons when isPreviewMode is enabled
-    useEffect(() => {
-        if (!isPreviewMode || !ruleName || !selectedMediaMetadata || !tvShow?.seasons) {
-            setGeneratedFileNames(new Map())
-            return
-        }
-        
-        const generateFileNames = async () => {
-            const newFileNames = new Map<string, string>()
-            
-            // Generate file names for all episodes in all seasons
-            for (const season of tvShow.seasons) {
-                if (!season.episodes) continue
-                
-                for (const episode of season.episodes) {
-                    // Find the video file for this episode
-                    const mediaFile = selectedMediaMetadata.mediaFiles?.find(
-                        file => file.seasonNumber === season.season_number && 
-                                file.episodeNumber === episode.episode_number
-                    )
-                    
-                    if (!mediaFile) continue
-                    
-                    try {
-                        const response = await newFileName({
-                            ruleName: ruleName,
-                            type: "tv",
-                            seasonNumber: season.season_number,
-                            episodeNumber: episode.episode_number,
-                            episodeName: episode.name || "",
-                            tvshowName: tvShow.name || "",
-                            file: mediaFile.absolutePath,
-                            tmdbId: tvShow.id?.toString() || "",
-                            releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
-                        })
-                        
-                        if (response.data) {
-                            const relativePath = response.data
-                            const absolutePath = join(selectedMediaMetadata.mediaFolderPath!, relativePath)
-                            newFileNames.set(mediaFile.absolutePath, absolutePath)
-                        }
-                    } catch (error) {
-                        console.error(`Failed to generate file name for episode ${episode.episode_number}:`, error)
-                    }
-                }
-            }
-            
-            setGeneratedFileNames(newFileNames)
-        }
-        
-        generateFileNames()
-    }, [isPreviewMode, ruleName, selectedMediaMetadata, tvShow])
-
     if (isUpdatingTvShow) {
         return (
             <div className="space-y-2">
@@ -232,7 +170,6 @@ export function SeasonSection({
                                                             setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
                                                             isPreviewMode={isPreviewMode}
-                                                            generatedFileNames={generatedFileNames}
                                                         />
                                                     )
                                                 })

@@ -96,10 +96,6 @@ export interface EpisodeSectionProps {
      * If true, the episode section display the new path which user to preview
      */
     isPreviewMode: boolean
-    /**
-     * Map of file paths to their generated new paths (for preview mode)
-     */
-    generatedFileNames?: Map<string, string>
 }
 
 export function EpisodeSection({
@@ -108,34 +104,20 @@ export function EpisodeSection({
     setExpandedEpisodeIds,
     files,
     isPreviewMode,
-    generatedFileNames = new Map(),
 }: EpisodeSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     
-    // Update files with generated new paths
-    const filesWithNewPaths = useMemo(() => {
-        return files.map(file => {
-            if (file.type === "video" && generatedFileNames.has(file.path)) {
-                return {
-                    ...file,
-                    newPath: generatedFileNames.get(file.path) || file.newPath
-                }
-            }
-            return file
-        })
-    }, [files, generatedFileNames])
-    
     // Group files by type
     const filesByType = useMemo(() => {
         const grouped = new Map<FileProps['type'], FileProps[]>()
-        filesWithNewPaths.forEach(file => {
+        files.forEach(file => {
             const existing = grouped.get(file.type) || []
             grouped.set(file.type, [...existing, file])
         })
         return grouped
-    }, [filesWithNewPaths])
+    }, [files])
     
     // Convert Map to array of entries for rendering
     const filesByTypeArray = useMemo(() => {

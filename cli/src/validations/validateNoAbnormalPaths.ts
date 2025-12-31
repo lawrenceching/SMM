@@ -1,7 +1,23 @@
-import path from 'node:path'
+import { Path } from '@core/path';
+import path from 'node:path';
+import pino from 'pino';
+
+const logger = pino();
+
 function compare(p: string) {
-    const normalized = path.normalize(p);
-    return normalized === p;
+    const platform = Path.toPlatformPath(p);
+    const normalized = path.normalize(platform);
+    const ret = normalized === platform;
+
+    if(!ret) {
+        logger.warn({
+            path: p,
+            platform: platform,
+            normalized: normalized,
+        }, '[validateNoAbnormalPaths] Path is abnormal');
+    }
+
+    return ret;
 }
 
 /**

@@ -93,6 +93,19 @@ sequenceDiagram
 **Config Dialog** the user config dialog
 
 
+### AI Chatbox Tool Calling
+
+```
+   ChatTask 
+-> backend: askForConfirmation
+-> backend: sendAndWaitForResponse
+-> backend: socket.emit()
+-> ui: App.tsx:WebSocketHandlers
+-> ui: useWebSocketEvent
+```
+          
+
+
 
 ## Docker
 

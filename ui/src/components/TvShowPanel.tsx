@@ -8,9 +8,13 @@ import { findAssociatedFiles } from "@/lib/utils"
 import type { MediaMetadata } from "@core/types"
 import { newFileName } from "@/api/newFileName"
 import { renameFile } from "@/api/renameFile"
-import { extname, join } from "@/lib/path"
+import { extname, join, relative } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
+import { sendAcknowledgement, useWebSocket, useWebSocketEvent } from "@/hooks/useWebSocket"
+import { AskForRenameFilesConfirmation } from "@core/event-types"
+import { Files } from "lucide-react"
+
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -86,6 +90,43 @@ export interface SeasonModel {
     episodes: EpisodeModel[],
 }
 
+
+function renameFiles(mediaFolderPath: string, newVideoFilePath: string,files: FileProps[])
+: FileProps[] 
+ {
+  const relativeVideoFilePath = newVideoFilePath.replace(mediaFolderPath + '/', '');
+  const videoFileExtension = extname(newVideoFilePath);
+  const relativeVideoFilePathWithoutExtension = relativeVideoFilePath.replace(videoFileExtension, '');
+
+  const videoFile = files.find(file => file.type === "video");
+  if(!videoFile) {
+    return [];
+  }
+
+  const associatedFiles = 
+      files.filter(file => file.type !== "video")
+      .map(file => {
+        const associatedFileExtension = extname(file.path);
+        file.newPath = join(mediaFolderPath, relativeVideoFilePathWithoutExtension + associatedFileExtension);
+        const newObj: FileProps = {
+          type: file.type,
+          path: file.path,
+          newPath: file.newPath,
+        }
+        return newObj;
+      })
+
+  return [
+    {
+      type: "video",
+      path: videoFile.path,
+      newPath: newVideoFilePath,
+    },
+    ...(associatedFiles ?? []),
+  ]
+}
+
+
 interface ToolbarOption {
   value: "plex" | "emby",
   label: string,
@@ -104,11 +145,61 @@ function TvShowPanel() {
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
   const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
+  const [pendingConfirmationMessage, setPendingConfirmationMessage] = useState<any>(null)
+
 
   const openToolbar = useCallback((toolbarMode: "manual" | "ai") => {
     setToolbarMode(toolbarMode)
     setIsToolbarOpen(true)
   }, [setToolbarMode, setIsToolbarOpen])
+
+  useWebSocketEvent((message) => {
+
+    // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
+    if (message.event === AskForRenameFilesConfirmation.event) {
+      
+      console.log('AskForRenameFilesConfirmation received', message.data);
+      const data: AskForRenameFilesConfirmation.RequestData = message.data as AskForRenameFilesConfirmation.RequestData;
+      const files = data.files;
+      debugger;
+      setSeasons(prev => {
+        return prev.map(season => ({
+          ...season,
+          episodes: season.episodes.map(episode => 
+          {
+
+            const videoFile = episode.files.find(file => file.type === "video");
+            if(videoFile === undefined) {
+              return episode;
+            }
+
+            const newFileFromAI = files.find(f => f.from === videoFile.path);
+            if(newFileFromAI === undefined) {
+              return episode;
+            }
+
+
+            const newFiles = renameFiles(mediaMetadata!.mediaFolderPath!, newFileFromAI.to, episode.files);
+            return {
+              episode: episode.episode,
+              files: newFiles,
+            }
+           
+          }
+          ),
+        }))
+      })
+
+      // Store the message to send acknowledgement later when user confirms or cancels
+      setPendingConfirmationMessage(message);
+      openToolbar('ai');
+      setIsPreviewMode(true);
+
+    }
+    
+
+
+  });
 
   // Build seasons state from media metadata
   useEffect(() => {
@@ -200,11 +291,23 @@ function TvShowPanel() {
     if(!isPreviewMode) {
       return;
     }
-    generateNewFileNames();
+    if(toolbarMode === 'ai') {
+      return;
+    }
+    // generateNewFileNames();
   }, [isPreviewMode, selectedNamingRule, generateNewFileNames])
 
   // Handle confirm button click - rename all files
   const handleConfirm = useCallback(async () => {
+    // Send acknowledgement if there's a pending confirmation message
+    if (pendingConfirmationMessage) {
+      const respData: AskForRenameFilesConfirmation.ResponseData = {
+        confirmed: true,
+      }
+      sendAcknowledgement(pendingConfirmationMessage, respData);
+      setPendingConfirmationMessage(null);
+    }
+
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media folder path available")
       return
@@ -333,13 +436,12 @@ function TvShowPanel() {
     } finally {
       setIsRenaming(false)
     }
-  }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata])
+  }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage])
 
 
 
   return (
     <div className='p-1 w-full h-full relative'>
-      <button onClick={() => openToolbar("ai")}>ai rename</button>
       <FloatingToolbar 
         isOpen={isToolbarOpen}
         options={toolbarOptions}
@@ -347,6 +449,15 @@ function TvShowPanel() {
         onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}
         onConfirm={handleConfirm}
         onCancel={() => {
+          // Send acknowledgement if there's a pending confirmation message
+          if (pendingConfirmationMessage) {
+            const respData: AskForRenameFilesConfirmation.ResponseData = {
+              confirmed: false,
+            }
+            console.log('Sending acknowledgement for cancel', respData);
+            sendAcknowledgement(pendingConfirmationMessage, respData);
+            setPendingConfirmationMessage(null);
+          }
           setIsToolbarOpen(false)
           setIsPreviewMode(false)
         }}

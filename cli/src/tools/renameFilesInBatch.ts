@@ -13,6 +13,7 @@ import { validateSourceFileExist } from '../validations/validateSourceFileExist'
 import { validateDestFileNotExist } from '../validations/validateDestFileNotExist';
 import { validatePathWithinMediaFolder } from '../validations/validatePathWithinMediaFolder';
 import pino from 'pino';
+import { askForRenameFilesConfirmation } from '@/events/askForRenameFilesConfirmation';
 
 const logger = pino();
 
@@ -386,23 +387,14 @@ interface ToolResponse {
       return parts[parts.length - 1] || pathInPosix;
     };
     
-    const confirmationMessage = `Rename ${validatedRenames.length} file(s)?\n\n${validatedRenames.map(r => `  • ${getFilename(r.from)} → ${getFilename(r.to)}`).join('\n')}`;
-    
     try {
-      const responseData = await sendAndWaitForResponse(
-        {
-          event: 'askForConfirmation',
-          data: {
-            message: confirmationMessage,
-          },
-        },
-        '', // responseEvent not needed with Socket.IO acknowledgements
-        30000, // 30 second timeout
-        clientId // Send to specific client room
-      );
 
-      const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';
-      
+      const posixFiles = files.map(file => ({
+        from: Path.posix(file.from),
+        to: Path.posix(file.to),
+      }));
+      const confirmed = await askForRenameFilesConfirmation(clientId, posixFiles);
+
       if (!confirmed) {
         logger.info('[tool][renameFilesInBatch] User cancelled the operation');
         return { error: 'User cancelled the operation' };
