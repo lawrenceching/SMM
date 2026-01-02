@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Search } from "lucide-react"
 import { FileExplorer } from "@/components/FileExplorer"
 import {
@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import type { FileItem } from "@/components/dialogs/types"
 
@@ -20,7 +19,6 @@ export interface LocalFilePanelProps {
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
-  const [searchQuery, setSearchQuery] = useState<string>("")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
 
@@ -30,17 +28,6 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
       setCurrentPath(mediaFolderPath)
     }
   }, [mediaFolderPath])
-
-  const handleSearch = useCallback(() => {
-    // Search logic not implemented yet
-    console.log("Search:", searchQuery)
-  }, [searchQuery])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSearch()
-    }
-  }, [handleSearch])
 
   return (
     <div
@@ -81,22 +68,9 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
           </SelectContent>
         </Select>
 
-        {/* 搜索框 */}
-        <Input
-          type="text"
-          placeholder="搜索文件..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={{
-            flex: 1,
-            height: "32px",
-          }}
-        />
-
         {/* 搜索按钮 */}
         <Button
-          onClick={handleSearch}
+          
           size="sm"
           style={{
             height: "32px",

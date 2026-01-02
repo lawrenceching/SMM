@@ -67,7 +67,10 @@ export function GeneralSettings() {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="language">Application Language</Label>
-          <Select value={applicationLanguage} onValueChange={setApplicationLanguage}>
+          <Select 
+            value={applicationLanguage} 
+            onValueChange={(value) => setApplicationLanguage(value as 'zh-CN' | 'en-US')}
+          >
             <SelectTrigger id="language">
               <SelectValue placeholder="Select language" />
             </SelectTrigger>

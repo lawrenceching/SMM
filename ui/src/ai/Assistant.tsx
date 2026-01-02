@@ -41,7 +41,7 @@ export function Assistant() {
                 console.log('Request was aborted by user');
                 // Handle abort case
             } else if (options?.isError) {
-                console.error('Request finished with error:', options.error);
+                console.error('Request finished with error');
                 // Handle error case
             } else {
                 console.log('Request completed successfully');

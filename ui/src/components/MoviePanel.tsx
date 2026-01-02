@@ -308,6 +308,7 @@ function MoviePanel() {
     <div className='p-1 w-full h-full relative'>
       <FloatingToolbar 
         isOpen={isToolbarOpen}
+        mode="manual"
         options={toolbarOptions}
         selectedValue={selectedNamingRule}
         onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}

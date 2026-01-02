@@ -8,12 +8,11 @@ import { findAssociatedFiles } from "@/lib/utils"
 import type { MediaMetadata } from "@core/types"
 import { newFileName } from "@/api/newFileName"
 import { renameFile } from "@/api/renameFile"
-import { extname, join, relative } from "@/lib/path"
+import { extname, join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
-import { sendAcknowledgement, useWebSocket, useWebSocketEvent } from "@/hooks/useWebSocket"
+import { sendAcknowledgement, useWebSocketEvent } from "@/hooks/useWebSocket"
 import { AskForRenameFilesConfirmation } from "@core/event-types"
-import { Files } from "lucide-react"
 
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {

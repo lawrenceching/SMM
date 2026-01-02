@@ -108,7 +108,6 @@ export function EpisodeSection({
     setExpandedEpisodeIds,
     files,
     isPreviewMode,
-    scrollToEpisodeId,
 }: EpisodeSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")

@@ -48,7 +48,6 @@ export function SeasonSection({
     expandedEpisodeIds,
     setExpandedEpisodeIds,
     isPreviewMode = false,
-    ruleName,
     seasons,
     scrollToEpisodeId,
 }: SeasonSectionProps) {
