@@ -1,26 +1,84 @@
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
+import { Navigation } from "@/components/mobile/Navigation"
+import { useMediaMetadata } from "@/components/media-metadata-provider"
+import { basename } from "@/lib/path"
+import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
+import type { SortOrder, FilterType } from "@/components/v2/Sidebar"
+import TvShowPanel from "@/components/TvShowPanel"
 
 type Page = "list" | "detail"
 
 export default function AppNavigation() {
   const [currentPage, setCurrentPage] = useState<Page>("list")
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null)
+  const [selectedItemPath, setSelectedItemPath] = useState<string | null>(null)
 
-  const handleItemClick = (id: number) => {
-    setSelectedItemId(id)
-    setCurrentPage("detail")
-  }
+  // Sidebar state (for future use: search, sort, filter)
+  const sortOrder: SortOrder = "alphabetical"
+  const filterType: FilterType = "all"
+  const searchQuery = ""
+
+  // Media metadata
+  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+
+  // Convert mediaMetadatas to folders
+  const folders: MediaFolderListItemProps[] = useMemo(() => {
+    return mediaMetadatas.map((metadata) => {
+      return {
+        mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
+        path: metadata.mediaFolderPath,
+        mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
+      } as MediaFolderListItemProps
+    })
+  }, [mediaMetadatas])
+
+  // Filter and sort folders
+  const filteredAndSortedFolders = useMemo(() => {
+    let result = [...folders]
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter((folder) => {
+        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
+        const pathMatch = folder.path.toLowerCase().includes(query)
+        const folderName = basename(folder.path) || ""
+        const folderNameMatch = folderName.toLowerCase().includes(query)
+        return mediaNameMatch || pathMatch || folderNameMatch
+      })
+    }
+
+    // Filter by type
+    if (filterType !== "all") {
+      result = result.filter((folder) => folder.mediaType === filterType)
+    }
+
+    // Sort by alphabetical order
+    result.sort((a, b) => {
+      const comparison = a.mediaName.localeCompare(b.mediaName, undefined, { sensitivity: 'base' })
+      return sortOrder === "alphabetical" ? comparison : -comparison
+    })
+
+    return result
+  }, [folders, sortOrder, filterType, searchQuery])
+
+  const handleMediaFolderListItemClick = useCallback((path: string) => {
+    const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
+    if (index !== -1) {
+      setSelectedMediaMetadata(index)
+      setSelectedItemPath(path)
+      setCurrentPage("detail")
+    }
+  }, [mediaMetadatas, setSelectedMediaMetadata])
 
   const handleBack = () => {
     setCurrentPage("list")
   }
 
-  // 生成占位符列表数据
-  const listItems = Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    title: `列表项 ${i + 1}`,
-    subtitle: `这是列表项 ${i + 1} 的描述信息`,
-  }))
+  // Get selected media metadata
+  const selectedMediaMetadata = useMemo(() => {
+    if (!selectedItemPath) return null
+    return mediaMetadatas.find((metadata) => metadata.mediaFolderPath === selectedItemPath)
+  }, [selectedItemPath, mediaMetadatas])
 
   return (
     <>
@@ -83,69 +141,10 @@ export default function AppNavigation() {
         </div>
 
         {/* 列表内容 */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            overflowX: "hidden",
-            padding: "0",
-            scrollbarWidth: "none", // Firefox
-            msOverflowStyle: "none", // IE/Edge
-            WebkitOverflowScrolling: "touch", // iOS 惯性滚动
-            overscrollBehavior: "contain", // 防止滚动链
-          }}
-          className="hide-scrollbar"
-        >
-          {listItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleItemClick(item.id)}
-              style={{
-                backgroundColor: "transparent",
-                padding: "12px 16px",
-                marginBottom: "0",
-                border: "none",
-                borderBottom: "1px solid #e8e8e8",
-                cursor: "pointer",
-                transition: "background-color 0.2s",
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.backgroundColor = "#f0f0f0"
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
-              onTouchStart={(e) => {
-                e.currentTarget.style.backgroundColor = "#f0f0f0"
-              }}
-              onTouchEnd={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "16px",
-                  fontWeight: "500",
-                  color: "#333333",
-                  marginBottom: "2px",
-                }}
-              >
-                {item.title}
-              </div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#666666",
-                }}
-              >
-                {item.subtitle}
-              </div>
-            </div>
-          ))}
-        </div>
+        <Navigation
+          filteredAndSortedFolders={filteredAndSortedFolders}
+          handleMediaFolderListItemClick={handleMediaFolderListItemClick}
+        />
       </div>
 
       {/* 内容页 */}
@@ -217,7 +216,7 @@ export default function AppNavigation() {
               color: "#333333",
             }}
           >
-            详情
+            {selectedMediaMetadata?.tmdbTvShow?.name ?? selectedMediaMetadata?.tmdbMovie?.title ?? "详情"}
           </h2>
         </div>
 
@@ -227,59 +226,40 @@ export default function AppNavigation() {
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
-            padding: "16px",
+            padding: "0",
           }}
         >
-          <div
-            style={{
-              backgroundColor: "#f8f8f8",
-              borderRadius: "8px",
-              padding: "24px",
-              minHeight: "200px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-            }}
-          >
+          {selectedMediaMetadata?.type === "tvshow-folder" ? (
+            <TvShowPanel />
+          ) : selectedMediaMetadata ? (
             <div
               style={{
-                fontSize: "20px",
-                fontWeight: "600",
-                color: "#333333",
-              }}
-            >
-              内容页 - 项目 {selectedItemId}
-            </div>
-            <div
-              style={{
-                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                fontSize: "18px",
                 color: "#666666",
-                lineHeight: "1.6",
+                padding: "16px",
               }}
             >
-              这是内容页的占位符内容。点击返回按钮可以返回到列表页。
+              Not Yet Implemented
             </div>
+          ) : (
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                gap: "12px",
-                marginTop: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                fontSize: "18px",
+                color: "#666666",
+                padding: "16px",
               }}
             >
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: "120px",
-                    backgroundColor: "#e8e8e8",
-                    borderRadius: "6px",
-                    border: "1px solid #d0d0d0",
-                  }}
-                />
-              ))}
+              请选择一个媒体文件夹
             </div>
-          </div>
+          )}
         </div>
       </div>
       </div>
