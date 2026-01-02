@@ -14,6 +14,8 @@ import { Assistant } from "./ai/Assistant"
 import { Button } from "@/components/ui/button"
 import { StatusBar } from "./components/StatusBar"
 import { Path } from "@core/path"
+import Welcome from "./components/welcome"
+import TvShowPanel from "./components/TvShowPanel"
 
 // WebSocketHandlers component
 function WebSocketHandlers() {
@@ -447,26 +449,22 @@ export default function AppV2() {
             padding: "20px",
           }}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: "16px",
-            }}
-          >
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: "150px",
-                  backgroundColor: "#f8f8f8",
-                  borderRadius: "4px",
-                  border: "1px solid #e0e0e0",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                }}
-              />
-            ))}
-          </div>
+          {folders.length === 0 && <Welcome />}
+          {folders.length > 0 && selectedMediaMetadata?.type === "tvshow-folder" && <TvShowPanel />}
+          {folders.length > 0 && selectedMediaMetadata?.type !== "tvshow-folder" && selectedMediaMetadata && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                fontSize: "18px",
+                color: "#666666",
+              }}
+            >
+              Not Yet Implemented
+            </div>
+          )}
         </div>
 
         {/* 状态栏 */}
