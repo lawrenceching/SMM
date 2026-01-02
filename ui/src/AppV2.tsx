@@ -16,6 +16,7 @@ import { StatusBar } from "./components/StatusBar"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
+import { LocalFilePanel } from "./components/LocalFilePanel"
 
 // WebSocketHandlers component
 function WebSocketHandlers() {
@@ -445,25 +446,23 @@ export default function AppV2() {
           style={{
             gridArea: "content",
             backgroundColor: "#ffffff",
-            overflow: "auto",
-            padding: "20px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          {folders.length === 0 && <Welcome />}
-          {folders.length > 0 && selectedMediaMetadata?.type === "tvshow-folder" && <TvShowPanel />}
-          {folders.length > 0 && selectedMediaMetadata?.type !== "tvshow-folder" && selectedMediaMetadata && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                fontSize: "18px",
-                color: "#666666",
-              }}
-            >
-              Not Yet Implemented
+          {folders.length === 0 && (
+            <div style={{ padding: "20px", overflow: "auto" }}>
+              <Welcome />
             </div>
+          )}
+          {folders.length > 0 && selectedMediaMetadata?.type === "tvshow-folder" && (
+            <div style={{ padding: "20px", overflow: "auto" }}>
+              <TvShowPanel />
+            </div>
+          )}
+          {folders.length > 0 && selectedMediaMetadata?.type !== "tvshow-folder" && selectedMediaMetadata && (
+            <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
           )}
         </div>
 
