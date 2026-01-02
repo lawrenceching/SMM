@@ -12,6 +12,8 @@ import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from "./hooks/us
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { Button } from "@/components/ui/button"
+import { StatusBar } from "./components/StatusBar"
+import { Path } from "@core/path"
 
 // WebSocketHandlers component
 function WebSocketHandlers() {
@@ -142,7 +144,15 @@ export default function AppV2() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+
+  // Status bar message
+  const statusBarMessage = useMemo(() => {
+    if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
+      return ''
+    }
+    return `${Path.toPlatformPath(selectedMediaMetadata.mediaFolderPath)}`
+  }, [selectedMediaMetadata])
 
   // Check if running in Electron environment
   const isElectron = useCallback(() => {
@@ -463,21 +473,9 @@ export default function AppV2() {
         <div
           style={{
             gridArea: "statusbar",
-            backgroundColor: "#e8e8e8",
-            borderTop: "1px solid #d0d0d0",
-            padding: "4px 12px",
-            display: "flex",
-            alignItems: "center",
-            fontSize: "12px",
-            color: "#555555",
-            boxShadow: "0 -1px 2px rgba(0,0,0,0.05)",
           }}
         >
-          <span>就绪</span>
-          <div style={{ marginLeft: "auto", display: "flex", gap: "16px" }}>
-            <span>项目: {filteredAndSortedFolders.length}</span>
-            <span>总计: {folders.length}</span>
-          </div>
+          <StatusBar message={statusBarMessage} />
         </div>
       </div>
 
