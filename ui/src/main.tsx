@@ -57,7 +57,7 @@ function useIsMobile() {
 }
 
 function AppSwitcher() {
-  const [useAppV2, setUseAppV2] = useState(false)
+  const [useAppV2, setUseAppV2] = useState(true)
   const isMobile = useIsMobile()
 
   // On mobile, always use AppNavigation
