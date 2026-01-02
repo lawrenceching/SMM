@@ -5,6 +5,7 @@ import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { SortOrder, FilterType } from "@/components/v2/Sidebar"
 import TvShowPanel from "@/components/TvShowPanel"
+import { Assistant } from "@/ai/Assistant"
 
 type Page = "list" | "detail"
 
@@ -263,6 +264,8 @@ export default function AppNavigation() {
         </div>
       </div>
       </div>
+
+      <Assistant />
     </>
   )
 }
