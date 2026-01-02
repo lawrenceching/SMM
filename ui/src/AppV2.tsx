@@ -1,8 +1,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sidebar"
+import { Toolbar } from "@/components/v2/Toolbar"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
+import { useDialogs } from "@/components/dialog-provider"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
+import type { FileItem, FolderType } from "@/components/dialog-provider"
+import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 
 export default function AppV2() {
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
@@ -15,8 +19,96 @@ export default function AppV2() {
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
 
+  // Dialogs
+  const { openFolderDialog, filePickerDialog } = useDialogs()
+  const [openOpenFolder] = openFolderDialog
+  const [openFilePicker] = filePickerDialog
+
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata } = useMediaMetadata()
+
+  // Check if running in Electron environment
+  const isElectron = useCallback(() => {
+    return typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
+  }, [])
+
+  // Open native file dialog in Electron
+  const openNativeFileDialog = useCallback(async (): Promise<FileItem | null> => {
+    if (!isElectron()) {
+      return null
+    }
+
+    try {
+      const electron = (window as any).electron
+      if (electron?.dialog?.showOpenDialog) {
+        const result = await electron.dialog.showOpenDialog({
+          properties: ['openDirectory'],
+          title: 'Select Folder'
+        })
+        
+        if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+          const path = result.filePaths[0]
+          const name = path.split(/[/\\]/).pop() || path
+          return {
+            name,
+            path,
+            isDirectory: true
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to open native file dialog:', error)
+    }
+    
+    return null
+  }, [isElectron])
+
+  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
+    console.log('Folder type selected:', type, 'for path:', folderPath)
+    try {
+      const response = await readMediaMetadataApi(folderPath)
+      const metadata = response.data
+
+      if(!metadata) {
+        console.error('Failed to read media metadata')
+        return
+      }
+
+      const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
+        tvshow: "tvshow-folder",
+        movie: "movie-folder",
+        music: "music-folder"
+      }
+      metadata.type = folderTypeMap[type]
+
+      addMediaMetadata(metadata)
+    } catch (error) {
+      console.error('Failed to read media metadata:', error)
+    }
+  }, [addMediaMetadata])
+
+  const handleOpenFolderMenuClick = useCallback(() => {
+    if (isElectron()) {
+      openOpenFolder((type: FolderType) => {
+        console.log(`Selected folder type: ${type}`)
+        openNativeFileDialog().then((selectedFile) => {
+          if (selectedFile) {
+            console.log(`Selected folder: ${selectedFile.path}`)
+          }
+        })
+      })
+    } else {
+      openFilePicker((file: FileItem) => {
+        console.log(`Selected folder: ${file.path}`)
+        openOpenFolder((type: FolderType) => {
+          onFolderSelected(type, file.path)
+        }, file.path)
+      }, {
+        title: "Select Folder",
+        description: "Choose a folder to open"
+      })
+    }
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {
@@ -163,33 +255,7 @@ export default function AppV2() {
             boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
           }}
         >
-          <div
-            style={{
-              width: "32px",
-              height: "28px",
-              backgroundColor: "#e8e8e8",
-              borderRadius: "3px",
-              border: "1px solid #d0d0d0",
-            }}
-          />
-          <div
-            style={{
-              width: "32px",
-              height: "28px",
-              backgroundColor: "#e8e8e8",
-              borderRadius: "3px",
-              border: "1px solid #d0d0d0",
-            }}
-          />
-          <div
-            style={{
-              width: "32px",
-              height: "28px",
-              backgroundColor: "#e8e8e8",
-              borderRadius: "3px",
-              border: "1px solid #d0d0d0",
-            }}
-          />
+          <Toolbar onOpenFolderMenuClick={handleOpenFolderMenuClick} />
         </div>
 
         {/* 侧边栏 */}
