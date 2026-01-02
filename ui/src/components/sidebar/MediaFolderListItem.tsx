@@ -28,21 +28,25 @@ export interface MediaFolderListItemProps {
    */
   icon?: string
   /**
-   * Whether this folder is currently selected
-   */
-  selected?: boolean
-  /**
    * Click handler for the folder item
    */
   onClick?: () => void
 }
 
-export function MediaFolderListItem({mediaName, path, mediaType, selected, onClick}: MediaFolderListItemProps) {
+export function MediaFolderListItem({mediaName, path, mediaType, onClick}: MediaFolderListItemProps) {
 
-  const { removeMediaMetadata, updateMediaMetadata, getMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+  const { 
+    removeMediaMetadata, 
+    updateMediaMetadata, 
+    getMediaMetadata, 
+    refreshMediaMetadata, 
+    selectedMediaMetadata } = useMediaMetadata()
   const { userConfig, setUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
+  const selected = useMemo(() => {
+    return selectedMediaMetadata?.mediaFolderPath === path
+  }, [selectedMediaMetadata, path])
 
   const fallbackThumbnail = useMemo(() => {
     switch (mediaType) {
@@ -243,9 +247,9 @@ export function MediaFolderListItem({mediaName, path, mediaType, selected, onCli
         <ContextMenuTrigger>
           <div className="flex items-center gap-2">
             <img src={fallbackThumbnail} alt={mediaName} className="w-10 h-10 rounded-md" />
-            <div>
-              <h5 className="text-sm font-bold">{mediaName}</h5>
-              <p className="text-sm text-muted-foreground">{folderName}</p>
+            <div className="flex-1 min-w-0">
+              <h5 className="text-sm font-bold truncate">{mediaName}</h5>
+              <p className="text-xs text-muted-foreground truncate">{folderName}</p>
             </div>
           </div>
         </ContextMenuTrigger>
