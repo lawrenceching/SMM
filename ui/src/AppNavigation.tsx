@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback } from "react"
 import { Navigation } from "@/components/mobile/Navigation"
+import { Toolbox } from "@/components/mobile/Toolbox"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
-import type { SortOrder, FilterType } from "@/components/v2/Sidebar"
+import type { SortOrder, FilterType } from "@/components/shared/MediaFolderToolbar"
 import TvShowPanel from "@/components/TvShowPanel"
 import { Assistant } from "@/ai/Assistant"
+import { ChevronDown, ChevronUp } from "lucide-react"
 
 type Page = "list" | "detail"
 
@@ -13,10 +15,11 @@ export default function AppNavigation() {
   const [currentPage, setCurrentPage] = useState<Page>("list")
   const [selectedItemPath, setSelectedItemPath] = useState<string | null>(null)
 
-  // Sidebar state (for future use: search, sort, filter)
-  const sortOrder: SortOrder = "alphabetical"
-  const filterType: FilterType = "all"
-  const searchQuery = ""
+  // Sidebar state (search, sort, filter)
+  const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
+  const [filterType, setFilterType] = useState<FilterType>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
+  const [isToolboxExpanded, setIsToolboxExpanded] = useState<boolean>(false)
 
   // Media metadata
   const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
@@ -122,23 +125,75 @@ export default function AppNavigation() {
           style={{
             backgroundColor: "#ffffff",
             borderBottom: "1px solid #e0e0e0",
-            padding: "0 16px",
-            height: "48px",
             boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
             display: "flex",
-            alignItems: "center",
+            flexDirection: "column",
           }}
         >
-          <h1
+          <div
             style={{
-              margin: 0,
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#333333",
+              padding: "0 16px",
+              height: "48px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            列表
-          </h1>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "20px",
+                fontWeight: "600",
+                color: "#333333",
+              }}
+            >
+              列表
+            </h1>
+            <button
+              onClick={() => setIsToolboxExpanded(!isToolboxExpanded)}
+              style={{
+                backgroundColor: "transparent",
+                border: "none",
+                padding: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "4px",
+                transition: "background-color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#f0f0f0"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+              }}
+            >
+              {isToolboxExpanded ? (
+                <ChevronUp className="h-5 w-5" color="#333333" />
+              ) : (
+                <ChevronDown className="h-5 w-5" color="#333333" />
+              )}
+            </button>
+          </div>
+          
+          {/* Toolbox with expand/collapse animation */}
+          <div
+            style={{
+              maxHeight: isToolboxExpanded ? "200px" : "0",
+              overflow: "hidden",
+              transition: "max-height 300ms ease-out",
+            }}
+          >
+            <Toolbox
+              sortOrder={sortOrder}
+              onSortOrderChange={setSortOrder}
+              filterType={filterType}
+              onFilterTypeChange={setFilterType}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+            />
+          </div>
         </div>
 
         {/* 列表内容 */}

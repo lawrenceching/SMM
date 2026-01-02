@@ -1,21 +1,8 @@
 import { SearchForm } from "@/components/search-form"
 import { MediaFolderListItem, type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { ArrowUpDown, Filter } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
 
-export type SortOrder = "alphabetical" | "reverse-alphabetical"
-export type FilterType = "all" | "tvshow" | "movie" | "music"
+export type { SortOrder, FilterType }
 
 export interface SidebarProps {
   sortOrder: SortOrder
@@ -28,17 +15,6 @@ export interface SidebarProps {
   handleMediaFolderListItemClick: (path: string) => void
 }
 
-const sortLabels: Record<SortOrder, string> = {
-  alphabetical: "按字母顺序",
-  "reverse-alphabetical": "按字母倒序",
-}
-
-const filterLabels: Record<FilterType, string> = {
-  all: "全部类型",
-  tvshow: "电视剧",
-  movie: "电影",
-  music: "音乐",
-}
 
 export function Sidebar({
   sortOrder,
@@ -62,63 +38,17 @@ export function Sidebar({
       {/* 工具栏：排序和筛选按钮 */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
           padding: "8px 12px",
           borderBottom: "1px solid #d0d0d0",
           backgroundColor: "#ffffff",
         }}
       >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Select value={sortOrder} onValueChange={onSortOrderChange}>
-              <SelectTrigger
-                size="sm"
-                className={cn(
-                  "h-8 w-8 p-0 justify-center",
-                  "[&>svg:last-child]:hidden"
-                )}
-              >
-                <ArrowUpDown className="h-4 w-4" />
-                <span className="sr-only">排序</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="alphabetical">按字母顺序</SelectItem>
-                <SelectItem value="reverse-alphabetical">按字母倒序</SelectItem>
-              </SelectContent>
-            </Select>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>排序: {sortLabels[sortOrder]}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Select value={filterType} onValueChange={onFilterTypeChange}>
-              <SelectTrigger
-                size="sm"
-                className={cn(
-                  "h-8 w-8 p-0 justify-center",
-                  "[&>svg:last-child]:hidden"
-                )}
-              >
-                <Filter className="h-4 w-4" />
-                <span className="sr-only">筛选</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                <SelectItem value="tvshow">电视剧</SelectItem>
-                <SelectItem value="movie">电影</SelectItem>
-                <SelectItem value="music">音乐</SelectItem>
-              </SelectContent>
-            </Select>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>筛选: {filterLabels[filterType]}</p>
-          </TooltipContent>
-        </Tooltip>
+        <MediaFolderToolbar
+          sortOrder={sortOrder}
+          onSortOrderChange={onSortOrderChange}
+          filterType={filterType}
+          onFilterTypeChange={onFilterTypeChange}
+        />
       </div>
 
       {/* 搜索框 */}
