@@ -3,7 +3,7 @@ import { acknowledge } from '../utils/socketIO';
 import pino from "pino"
 const logger = pino()
 
-export const createAskForConfirmationTool = (clientId: string) => ({
+export const createAskForConfirmationTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Ask user for confirmation. 
   This tool accepts "message" parameter which will be shown to user.
   This tool return "yes" and "no" according to user's confirmation`,
@@ -12,20 +12,24 @@ export const createAskForConfirmationTool = (clientId: string) => ({
     message: z.string().describe("The confirmation message to show to the user"),
   }),
   execute: async ({ message }: { message: string }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info(`[tool][askForConfirmation] clientId: ${clientId}, message: ${message}`);
     
     try {
+      // TODO: Check abortSignal during acknowledgement wait
       // Send Socket.IO event to frontend and wait for acknowledgement response
-      const responseData = await sendAndWaitForResponse(
+      const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
           data: {
             message,
           },
+          clientId: clientId,
         },
-        '', // responseEvent not needed with Socket.IO acknowledgements
         30000, // 30 second timeout
-        clientId // Send to specific client room
       );
       
       logger.info(`[tool][askForConfirmation] responseData: ${JSON.stringify(responseData)}`);

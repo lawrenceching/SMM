@@ -1,7 +1,7 @@
 import { acknowledge } from '@/utils/socketIO';
 import { z } from 'zod';
 
-export const getApplicationContextTool = (clientId: string) => ({
+export const getApplicationContextTool = (clientId: string, abortSignal?: AbortSignal) => ({
     description: `The the application context including:
     1. what media folder user selected 
 `,
@@ -10,6 +10,10 @@ export const getApplicationContextTool = (clientId: string) => ({
       selectedFolderPath: z.string().describe("The path of the media folder that user selected in UI."),
     }),
     execute: async ({ path }: { path: string }) => {
+        // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+        if (abortSignal?.aborted) {
+            throw new Error('Request was aborted');
+        }
         try {
             // Send Socket.IO event to frontend and wait for acknowledgement
             const responseData = await acknowledge(

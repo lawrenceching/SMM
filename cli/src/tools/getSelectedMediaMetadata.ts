@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
 import type { MediaMetadata } from '@core/types';
 
-export const createGetSelectedMediaMetadataTool = (clientId: string) => ({
+export const createGetSelectedMediaMetadataTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Get the user selected folder(media) in SMM.
   This tool returns data:
   * The path of the selected folder
@@ -19,6 +19,10 @@ export const createGetSelectedMediaMetadataTool = (clientId: string) => ({
     
   }),
   execute: async () => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     console.log(`[tool][getSelectedMediaMetadata] clientId: ${clientId}`);
     
     // Use the clientId from the request body if available, otherwise use first connection as fallback

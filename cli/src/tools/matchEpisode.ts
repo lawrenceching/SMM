@@ -63,7 +63,11 @@ Please **ensure** you call "ask-for-confirmation" to get user confirmation befor
     path: string;
     seasonNumber: number;
     episodeNumber: number;
-  }) => {
+  }, abortSignal?: AbortSignal) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     console.log(`[tool][matchEpisode] Match episode ${seasonNumber} ${episodeNumber} in folder "${folderPath}" with file "${path}"`);
     const folderPathInPosix = Path.posix(folderPath);
 

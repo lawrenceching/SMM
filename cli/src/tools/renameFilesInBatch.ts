@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
-import { sendAndWaitForResponse } from '../utils/SocketService';
 import { validateBatchRenameOperations, executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { validateChainingConflicts } from '../validations/validateChainingConflicts';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
@@ -287,7 +286,7 @@ export function updateMediaMetadataAfterRename(
   };
 }
 
-export const createRenameFilesInBatchTool = (clientId: string) => ({
+export const createRenameFilesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Rename multiple files in a media folder in batch.
 This tool accepts an array of file rename operations (from/to paths) and will ask for user confirmation before renaming.
 Once confirmed, it will rename the files on the filesystem and update the media metadata accordingly.
@@ -309,6 +308,10 @@ This tool return JSON response with the following format:
     folderPath: string;
     files: RenameFile[];
   }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info({
       folderPath,
       totalFiles: files.length
@@ -376,6 +379,11 @@ This tool return JSON response with the following format:
       return { error: `Error Reason: No valid files to rename` };
     }
 
+    // TODO: Check abortSignal before asking for confirmation
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+
     // 5. Ask for user confirmation
     const getFilename = (path: string) => {
       const pathInPosix = Path.posix(path);
@@ -384,7 +392,7 @@ This tool return JSON response with the following format:
     };
     
     try {
-
+      // TODO: Check abortSignal during confirmation wait
       const posixFiles = files.map(file => ({
         from: Path.posix(file.from),
         to: Path.posix(file.to),
@@ -402,12 +410,18 @@ This tool return JSON response with the following format:
       return { error: `Error Reason: Failed to get user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
 
+    // TODO: Check abortSignal before executing rename operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+
     // 6. Perform rename operations on filesystem
     logger.info({
       validatedCount: validatedRenames.length,
       clientId
     }, '[tool][renameFilesInBatch] Starting batch rename execution');
 
+    // TODO: Check abortSignal during batch rename execution
     const renameResult = await executeBatchRenameOperations(validatedRenames, {
       dryRun: false,
       clientId,
@@ -432,9 +446,15 @@ This tool return JSON response with the following format:
       return { error: `Error Reason: No files were successfully renamed` };
     }
 
+    // TODO: Check abortSignal before updating metadata
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+
     // 7. Update media metadata with new file paths and broadcast
     
     if (successfulRenames.length > 0) {
+      // TODO: Check abortSignal during metadata update
       const metadataUpdateResult = await updateMediaMetadataAndBroadcast(
         folderPathInPosix,
         successfulRenames,

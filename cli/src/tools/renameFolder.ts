@@ -6,7 +6,7 @@ import pino from 'pino';
 
 const logger = pino();
 
-export const createRenameFolderTool = (clientId: string) => ({
+export const createRenameFolderTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Rename a media folder in SMM.
 This tool accepts the source folder path and destination folder path.
 This tool should ONLY be used to rename FOLDER, NOT FILE
@@ -23,6 +23,10 @@ Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".
     from: string;
     to: string;
   }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info({
       from,
       to,
@@ -39,6 +43,7 @@ Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".
     const confirmationMessage = `Rename folder "${getFolderName(from)}" to "${getFolderName(to)}"?\n\nThis will:\n  • Rename the folder on disk\n  • Update media metadata\n  • Update user configuration`;
     
     try {
+      // TODO: Check abortSignal during acknowledgement wait
       const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
@@ -60,6 +65,11 @@ Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".
         error: error instanceof Error ? error.message : String(error)
       }, '[tool][renameFolder] Error getting confirmation');
       return { error: `Error Reason: Failed to get user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
+
+    // TODO: Check abortSignal before performing rename
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
     }
 
     // Perform the folder rename

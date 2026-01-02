@@ -9,8 +9,13 @@ export const listFilesInMediaFolderTool = {
   inputSchema: z.object({
     path: z.string().describe("The absolute path of the media folder in POSIX or Windows format"),
   }),
-  execute: async ({ path }: { path: string }) => {
+  execute: async ({ path }: { path: string }, abortSignal?: AbortSignal) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     // TODO: validation
+    // TODO: Check abortSignal during file listing
     return listFiles(new Path(path), true);
   },
 };

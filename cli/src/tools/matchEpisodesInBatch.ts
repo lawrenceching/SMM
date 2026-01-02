@@ -49,7 +49,7 @@ function updateMediaFileMetadatas(
   }
 }
 
-export const createMatchEpisodesInBatchTool = (clientId: string) => ({
+export const createMatchEpisodesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Match multiple local files to episodes of a TV show in batch.
 This tool accepts an array of files to match and will ask for user confirmation before updating.
 Once confirmed, it will update all the files in the media metadata.
@@ -75,6 +75,10 @@ interface ToolResponse {
     folderPath: string;
     files: MatchFile[];
   }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info(`[tool][matchEpisodesInBatch] Matching ${files.length} files in folder "${folderPath}"`);
     const folderPathInPosix = Path.posix(folderPath);
 
@@ -218,6 +222,11 @@ interface ToolResponse {
       return { error: `Error Reason: No valid files to match` };
     }
 
+    // TODO: Check abortSignal before asking for confirmation
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+
     // 4. Ask for user confirmation
     const getFilename = (path: string) => {
       const pathInPosix = Path.posix(path);
@@ -228,6 +237,7 @@ interface ToolResponse {
     const confirmationMessage = `Match ${validatedFiles.length} file(s) to episodes?\n\n${validatedFiles.map(f => `  • ${getFilename(f.path)} → S${f.season}E${f.episode}`).join('\n')}`;
     
     try {
+      // TODO: Check abortSignal during acknowledgement wait
       const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
@@ -250,10 +260,19 @@ interface ToolResponse {
       return { error: `Error Reason: Failed to get user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
 
+    // TODO: Check abortSignal before updating metadata
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+
     // 5. Update media metadata for all files
     let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
 
     for (const file of validatedFiles) {
+      // TODO: Check abortSignal during loop iteration
+      if (abortSignal?.aborted) {
+        throw new Error('Request was aborted');
+      }
       const pathInPosix = Path.posix(file.path);
       updatedMediaFiles = updateMediaFileMetadatas(updatedMediaFiles, pathInPosix, file.season, file.episode);
     }

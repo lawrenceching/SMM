@@ -17,7 +17,7 @@ import { acknowledge } from '../utils/socketIO';
 const logger = pino();
 
 
-export const createBeginRenameFilesTaskTool = (clientId: string) => ({
+export const createBeginRenameFilesTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Begin a rename files task for a media folder.
 This tool creates a new task that allows you to collect multiple file rename operations before executing them all at once.
 You should call this tool first, then use addRenameFileToTask to add files to rename, and finally call endRenameFilesTask to execute all renames.
@@ -30,6 +30,10 @@ This tool returns a task ID that you must use with addRenameFileToTask and endRe
     mediaFolderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
   }),
   execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info({
       mediaFolderPath,
       clientId
@@ -72,7 +76,7 @@ This tool returns a task ID that you must use with addRenameFileToTask and endRe
   },
 });
 
-export const createAddRenameFileToTaskTool = (clientId: string) => ({
+export const createAddRenameFileToTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Add a file rename operation to an existing rename task.
 This tool adds a single file rename (from/to paths) to a task that was created with beginRenameFilesTask.
 You can call this tool multiple times to add multiple files to the same task.
@@ -90,6 +94,10 @@ Example: Add a rename operation to task "task-id-123" to rename "/path/to/old-fi
     from: string;
     to: string;
   }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info({
       taskId,
       from,
@@ -126,7 +134,7 @@ Example: Add a rename operation to task "task-id-123" to rename "/path/to/old-fi
   },
 });
 
-export const createEndRenameFilesTaskTool = (clientId: string) => ({
+export const createEndRenameFilesTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `End a rename files task and execute all collected rename operations.
 This tool validates all rename operations in the task, asks for user confirmation, and then executes all renames.
 After execution, it updates the media metadata and cleans up the task.
@@ -138,6 +146,10 @@ Example: End task "task-id-123" to execute all collected rename operations.
     taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
   }),
   execute: async ({ taskId }: { taskId: string }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     logger.info({
       taskId,
       clientId
@@ -234,8 +246,14 @@ Example: End task "task-id-123" to execute all collected rename operations.
         return { error: `Error Reason: No valid files to rename` };
       }
 
+      // TODO: Check abortSignal before asking for confirmation
+      if (abortSignal?.aborted) {
+        throw new Error('Request was aborted');
+      }
+
       // 3. Ask for user confirmation
       logger.info("[tool][endRenameFilesTask] Sending askForRenameFilesConfirmation event");
+      // TODO: Check abortSignal during acknowledgement wait
       const resp = await acknowledge(
         {
           event: AskForRenameFilesConfirmation.endEvent,
@@ -252,6 +270,11 @@ Example: End task "task-id-123" to execute all collected rename operations.
         return { error: `Error Reason: User cancelled the operation` };
       }
 
+      // TODO: Check abortSignal before executing rename operations
+      if (abortSignal?.aborted) {
+        throw new Error('Request was aborted');
+      }
+
       // 4. Execute rename operations
       logger.info({
         taskId,
@@ -259,6 +282,7 @@ Example: End task "task-id-123" to execute all collected rename operations.
         clientId
       }, '[tool][endRenameFilesTask] Starting batch rename execution');
 
+      // TODO: Check abortSignal during batch rename execution
       const renameResult = await executeBatchRenameOperations(validatedRenames, {
         dryRun: false,
         clientId,
@@ -285,8 +309,14 @@ Example: End task "task-id-123" to execute all collected rename operations.
         return { error: `Error Reason: No files were successfully renamed` };
       }
 
+      // TODO: Check abortSignal before updating metadata
+      if (abortSignal?.aborted) {
+        throw new Error('Request was aborted');
+      }
+
       // 5. Update media metadata
       if (successfulRenames.length > 0) {
+        // TODO: Check abortSignal during metadata update
         const metadataUpdateResult = await updateMediaMetadataAndBroadcast(
           folderPathInPosix,
           successfulRenames,

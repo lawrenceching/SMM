@@ -23,7 +23,7 @@ export interface GetMediaMetadataResponse {
   };
 }
 
-export const createGetMediaMetadataTool = (clientId: string) => ({
+export const createGetMediaMetadataTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Get Media Metadata for a media folder. 
   If the tool return "media metadata not found", it means SMM don't know what TV show or Movie is for this media folder.
   `,
@@ -49,6 +49,10 @@ export const createGetMediaMetadataTool = (clientId: string) => ({
     }).optional(),
   }),
   execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
+    // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     console.log(`[tool][getMediaMetadata] mediaFolderPath: ${mediaFolderPath}`);
     
     // Check if folder exists
