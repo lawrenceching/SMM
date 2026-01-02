@@ -18,6 +18,11 @@ interface MediaMetadataContextValue {
   selectedMediaMetadata: MediaMetadata | undefined
   setSelectedMediaMetadata: (index: number) => void
   /**
+   * Set selected media metadata by media folder path
+   * @param path POSIX format folder path
+   */
+  setSelectedMediaMetadataByMediaFolderPath: (path: string) => void
+  /**
    * Refresh media metadata from the server for a given folder path
    * @param path POSIX format folder path
    */
@@ -53,6 +58,16 @@ export function MediaMetadataProvider({
   const setSelectedMediaMetadata = useCallback((index: number) => {
     setSelectedIndex(index)
   }, [])
+
+  const setSelectedMediaMetadataByMediaFolderPath = useCallback((path: string) => {
+    const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === path)
+    if (index >= 0) {
+      console.log(`[MediaMetadataProvider] Set selected media metadata by media folder path: ${path}`, index)
+      setSelectedIndex(index)
+    } else {
+      console.warn(`[MediaMetadataProvider] No media metadata found for path: ${path}`)
+    }
+  }, [mediaMetadatas])
 
   /**
    * Internal function to add media metadata to the list.
@@ -162,6 +177,7 @@ export function MediaMetadataProvider({
     getMediaMetadata,
     selectedMediaMetadata,
     setSelectedMediaMetadata,
+    setSelectedMediaMetadataByMediaFolderPath,
     refreshMediaMetadata,
     reloadMediaMetadatas
   }

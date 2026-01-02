@@ -133,7 +133,7 @@ interface ToolbarOption {
 }
 
 function TvShowPanel() {
-  const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
   const [isToolbarOpen, setIsToolbarOpen] = useState(false)
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
@@ -204,6 +204,9 @@ function TvShowPanel() {
       console.log('AskForRenameFilesConfirmation.beginEvent received', message.data);
       const data: AskForRenameFilesConfirmation.BeginRequestData = message.data as AskForRenameFilesConfirmation.BeginRequestData;
       const mediaFolderPath = data.mediaFolderPath;
+
+      setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
+
       // TODO: switch to mediaFolderPath
       // assume it's current selected folder for now
       openToolbar('ai');
