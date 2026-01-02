@@ -6,6 +6,7 @@ import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { SortOrder, FilterType } from "@/components/shared/MediaFolderToolbar"
 import TvShowPanel from "@/components/TvShowPanel"
+import { LocalFilePanel } from "@/components/LocalFilePanel"
 import { Assistant } from "@/ai/Assistant"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
@@ -280,27 +281,24 @@ export default function AppNavigation() {
         <div
           style={{
             flex: 1,
-            overflowY: "auto",
-            overflowX: "hidden",
-            padding: "0",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           {selectedMediaMetadata?.type === "tvshow-folder" ? (
-            <TvShowPanel />
-          ) : selectedMediaMetadata ? (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                fontSize: "18px",
-                color: "#666666",
-                padding: "16px",
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "hidden",
+                padding: "0",
               }}
             >
-              Not Yet Implemented
+              <TvShowPanel />
             </div>
+          ) : selectedMediaMetadata ? (
+            <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
           ) : (
             <div
               style={{
