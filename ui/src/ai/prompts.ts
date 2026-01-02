@@ -62,8 +62,10 @@ And SMM only support renaming video files.
 
 Steps 
 [ ] Call "list-files-in-media-folder" to get the files in media folder
-[ ] Call "rename-files-in-batch" to rename the files
-
+[ ] Call "begin-rename-files-task" to notify AI Agent to start a rename files task
+[ ] Call "add-rename-file-to-task" to add a file to rename task, call multiple times to add multiple files
+[ ] Call "end-rename-files-task" to notify AI Agent to end the rename files task
+ 
 ## User Preferences
 
 Language: zh-CN (you should answer in user's language)

@@ -1,4 +1,4 @@
-import { sendAndWaitForResponse } from '../src/utils/websocketManager';
+import { acknowledge } from '../src/utils/socketIO';
 
 /**
  * Send "getSelectedMediaMetadata" Socket.IO event to frontend and wait for acknowledgement
@@ -13,13 +13,11 @@ export async function executeGetSelectedMediaMetadataTask(clientId?: string): Pr
 }> {
   try {
     // Send Socket.IO event to frontend and wait for acknowledgement
-    const responseData = await sendAndWaitForResponse(
+    const responseData = await acknowledge(
       {
         event: 'getSelectedMediaMetadata',
+        clientId: clientId,
       },
-      '', // responseEvent not needed with Socket.IO acknowledgements
-      10000, // 10 second timeout
-      clientId // Send to specific client, or undefined to use first connection
     );
     
     return {

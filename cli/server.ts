@@ -1,9 +1,8 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
-import { logger as honoLogger } from 'hono/logger';
 import path from 'path';
 import { z } from 'zod';
-import type { ApiExecutePostRequestBody } from '../core/types';
+import { initializeSocketIO } from './src/utils/socketIO.ts';
 import { executeHelloTask } from './tasks/HelloTask';
 import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMetadataTask';
 import { handleChatRequest } from './tasks/ChatTask';
@@ -23,7 +22,6 @@ import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleScrapeRequest } from './src/route/Scrape';
-import { initializeSocketIO } from './src/route/WebSocket';
 import { handleDebugRequest } from './src/route/Debug';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -126,7 +124,7 @@ export class Server {
         const response = await handleChatRequest(c.req.raw);
         return response;
       } catch (error) {
-        logger.error('Chat route error:', error);
+        logger.error({ error }, 'Chat route error:');
         return c.json({ 
           error: 'Failed to process chat request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -187,7 +185,7 @@ export class Server {
         }
         return c.json(result);
       } catch (error) {
-        logger.error('ReadFile route error:', error);
+        logger.error({ error }, 'ReadFile route error:');
         return c.json({ 
           error: 'Failed to process read file request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -208,7 +206,7 @@ export class Server {
         }
         return c.json(result);
       } catch (error) {
-        logger.error('WriteFile route error:', error);
+        logger.error({ error }, 'WriteFile route error:');
         return c.json({ 
           error: 'Failed to process write file request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -227,7 +225,7 @@ export class Server {
         // Business errors are returned in the "error" field
         return c.json(result, 200);
       } catch (error) {
-        logger.error('RenameFile route error:', error);
+        logger.error({ error }, 'RenameFile route error:');
         return c.json({ 
           error: 'Unexpected Error: Failed to process rename file request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -247,7 +245,7 @@ export class Server {
         // Business errors are returned in the "error" field
         return c.json(result, 200);
       } catch (error) {
-        logger.error('RenameFileInBatch route error:', error);
+        logger.error({ error }, 'RenameFileInBatch route error:');
         return c.json({ 
           error: 'Unexpected Error: Failed to process batch rename file request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -266,7 +264,7 @@ export class Server {
         // Business errors are returned in the "error" field
         return c.json(result, 200);
       } catch (error) {
-        logger.error('RenameFolder route error:', error);
+        logger.error({ error }, 'RenameFolder route error:');
         return c.json({ 
           error: 'Unexpected Error: Failed to process rename folder request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -284,7 +282,7 @@ export class Server {
         // Business errors are returned in the "error" field
         return c.json(result, 200);
       } catch (error) {
-        logger.error('NewFileName route error:', error);
+        logger.error({ error }, 'NewFileName route error:');
         return c.json({ 
           data: '',
           error: 'Unexpected Error: Failed to process new file name request',
@@ -304,7 +302,7 @@ export class Server {
         }
         return c.json(result);
       } catch (error) {
-        logger.error('ReadImage route error:', error);
+        logger.error({ error }, 'ReadImage route error:');
         return c.json({ 
           error: 'Failed to process read image request',
           details: error instanceof Error ? error.message : 'Unknown error'
@@ -326,7 +324,7 @@ export class Server {
         const imageResponse = await handleDownloadImage(url);
         return imageResponse;
       } catch (error) {
-        logger.error('DownloadImage route error:', error);
+        logger.error({ error }, 'DownloadImage route error:');
         return c.json({ 
           error: `Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`
         }, 500);
@@ -352,7 +350,7 @@ export class Server {
         const result = await handleListFiles(body);
         return c.json(result, 200);
       } catch (error) {
-        logger.error('ListFiles route error:', error);
+        logger.error({ error }, 'ListFiles route error:');
         return c.json({ 
           data: [],
           error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
@@ -367,7 +365,7 @@ export class Server {
         const result = await handleListFiles(rawBody);
         return c.json(result, 200);
       } catch (error) {
-        logger.error('ListFiles route error:', error);
+        logger.error({ error }, 'ListFiles route error:');
         return c.json({ 
           data: [],
           error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
@@ -392,7 +390,7 @@ export class Server {
         // Return 200 with success/error status
         return c.json(result, 200);
       } catch (error) {
-        logger.error('Debug API route error:', error);
+        logger.error({ error }, 'Debug API route error:');
         return c.json({
           success: false,
           error: `Failed to process debug request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -411,7 +409,7 @@ export class Server {
         // If there's an error, return 200 with error field (following the pattern)
         return c.json(result, 200);
       } catch (error) {
-        logger.error('TMDB search route error:', error);
+        logger.error({ error }, 'TMDB search route error:');
         return c.json({ 
           results: [],
           page: 0,
@@ -439,7 +437,7 @@ export class Server {
         const result = await handleTmdbGetMovie(id, language, baseURL);
         return c.json(result, 200);
       } catch (error) {
-        logger.error('TMDB get movie route error:', error);
+        logger.error({ error }, 'TMDB get movie route error:');
         return c.json({
           data: undefined,
           error: `Failed to get movie: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -464,7 +462,7 @@ export class Server {
         const result = await handleTmdbGetTvShow(id, language, baseURL);
         return c.json(result, 200);
       } catch (error) {
-        logger.error('TMDB get TV show route error:', error);
+        logger.error({ error }, 'TMDB get TV show route error:');
         return c.json({
           data: undefined,
           error: `Failed to get TV show: ${error instanceof Error ? error.message : 'Unknown error'}`

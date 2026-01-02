@@ -3,7 +3,7 @@ import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { mkdir } from 'fs/promises';
-import { broadcastMessage, sendAndWaitForResponse } from '../utils/websocketManager';
+import { acknowledge, broadcast } from '../utils/socketIO';
 import { listFiles } from '../utils/files';
 import pino from 'pino';
 
@@ -228,16 +228,14 @@ interface ToolResponse {
     const confirmationMessage = `Match ${validatedFiles.length} file(s) to episodes?\n\n${validatedFiles.map(f => `  • ${getFilename(f.path)} → S${f.season}E${f.episode}`).join('\n')}`;
     
     try {
-      const responseData = await sendAndWaitForResponse(
+      const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
           data: {
             message: confirmationMessage,
           },
+          clientId: clientId,
         },
-        '', // responseEvent not needed with Socket.IO acknowledgements
-        30000, // 30 second timeout
-        clientId // Send to specific client room
       );
 
       const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';
@@ -272,7 +270,7 @@ interface ToolResponse {
       logger.info(`[tool][matchEpisodesInBatch] Successfully updated media metadata for ${validatedFiles.length} file(s) in folder "${folderPathInPosix}"`);
       
       // 7. Notify all connected clients via Socket.IO
-      broadcastMessage({
+      broadcast({
         event: 'mediaMetadataUpdated',
         data: {
           folderPath: folderPathInPosix

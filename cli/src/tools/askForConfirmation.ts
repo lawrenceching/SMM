@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { sendAndWaitForResponse } from '../utils/websocketManager';
+import { acknowledge } from '../utils/socketIO';
 import pino from "pino"
 const logger = pino()
 

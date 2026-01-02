@@ -12,6 +12,9 @@ import {
   createRenameFolderTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
+  createBeginRenameFilesTaskTool,
+  createAddRenameFileToTaskTool,
+  createEndRenameFilesTaskTool,
 } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
 import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
@@ -56,9 +59,12 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         listFilesInMediaFolder: listFilesInMediaFolderTool,
         // matchEpisode: matchEpisodeTool,
         matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId),
-        renameFilesInBatch: createRenameFilesInBatchTool(clientId),
+        // renameFilesInBatch: createRenameFilesInBatchTool(clientId),
         renameFolder: createRenameFolderTool(clientId),
         // askForConfirmation: createAskForConfirmationTool(clientId),
+        beginRenameFilesTask: createBeginRenameFilesTaskTool(clientId),
+        addRenameFileToTask: createAddRenameFileToTaskTool(clientId),
+        endRenameFilesTask: createEndRenameFilesTaskTool(clientId),
       },
       stopWhen: stepCountIs(20)
     });

@@ -28,6 +28,7 @@ function ModelContext() {
 
 export function Assistant() {
     
+    // https://www.assistant-ui.com/docs/runtimes/ai-sdk/use-chat#usechatruntime
     const runtime = useChatRuntime({
         transport: new AssistantChatTransport({
             api: "/api/chat",
@@ -35,6 +36,18 @@ export function Assistant() {
                 clientId: getOrCreateClientId(),
             }
         }),
+        onFinish: (options) => {
+            if (options?.isAbort) {
+                console.log('Request was aborted by user');
+                // Handle abort case
+            } else if (options?.isError) {
+                console.error('Request finished with error:', options.error);
+                // Handle error case
+            } else {
+                console.log('Request completed successfully');
+                // Handle success case
+            }
+        }
     });
 
 

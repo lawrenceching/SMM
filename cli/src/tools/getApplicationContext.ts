@@ -1,4 +1,4 @@
-import { sendAndWaitForResponse } from '@/utils/websocketManager';
+import { acknowledge } from '@/utils/socketIO';
 import { z } from 'zod';
 
 export const getApplicationContextTool = (clientId: string) => ({
@@ -12,13 +12,11 @@ export const getApplicationContextTool = (clientId: string) => ({
     execute: async ({ path }: { path: string }) => {
         try {
             // Send Socket.IO event to frontend and wait for acknowledgement
-            const responseData = await sendAndWaitForResponse(
+            const responseData = await acknowledge(
               {
                 event: 'getSelectedMediaMetadata',
+                clientId: clientId,
               },
-              '', // responseEvent not needed with Socket.IO acknowledgements
-              10000, // 10 second timeout
-              clientId // Send to specific client, or undefined to use first connection
             );
             
             return {

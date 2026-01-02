@@ -8,6 +8,11 @@ import { createRenameFilesInBatchTool } from './renameFilesInBatch';
 import { createRenameFolderTool } from './renameFolder';
 import { createAskForConfirmationTool } from './askForConfirmation';
 import { getApplicationContextTool } from './getApplicationContext';
+import {
+  createBeginRenameFilesTaskTool,
+  createAddRenameFileToTaskTool,
+  createEndRenameFilesTaskTool,
+} from './renameFilesTask';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
@@ -19,5 +24,8 @@ export {
   createRenameFolderTool,
   createAskForConfirmationTool,
   getApplicationContextTool,
+  createBeginRenameFilesTaskTool,
+  createAddRenameFileToTaskTool,
+  createEndRenameFilesTaskTool,
 };
 

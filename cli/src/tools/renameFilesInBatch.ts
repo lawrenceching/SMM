@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
-import { sendAndWaitForResponse } from '../utils/websocketManager';
+import { sendAndWaitForResponse } from '../utils/SocketService';
 import { validateBatchRenameOperations, executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { validateChainingConflicts } from '../validations/validateChainingConflicts';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';

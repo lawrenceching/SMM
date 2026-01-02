@@ -1,0 +1,42 @@
+# Cursor Rules
+
+## Unit Test Guideline
+
+Unit tests should be verified using the red-green principle, which means:
+
+1. Temporarily break production code in order to let unit test fail
+2. Run unit test and check unit test failed with expected error message
+3. Recover the production code
+
+In step 2, if unit test still passed or failed with unrelated error message, 
+it means the unit test implementation was wrong and didn't test the production code as expected.
+
+## API Design Guidelines
+
+The HTTP API follows specific design principles:
+
+- **RPC Naming Style**: Endpoints use action-based names (e.g., `/readFile`, `/writeMediaMetadata`)
+- **Response Format**: Every response contains both `data` and `error` fields:
+  - `data`: Contains the response payload on success
+  - `error`: Contains error message on failure (format: "Error Reason: detail message")
+- **HTTP Status Codes**: Used only for HTTP layer status, NOT business logic:
+  - `200`: HTTP request succeeded (business logic success/error determined by `error` field)
+  - `400`: Invalid request or validation error
+  - `404`: HTTP endpoint not implemented (NOT resource not found)
+  - `500`: Server error
+  - Resource not found returns 200 with `error: "Error Reason: detail message"`
+
+## Path Handling
+
+Always use the `Path` class from `core/path.ts` for path operations:
+- Handles both Windows and POSIX paths
+- Platform-agnostic path construction
+- Validates paths are within allowed directories
+- Works in both Node.js and browser environments
+
+## Type Safety
+
+- All API responses use Zod for validation
+- Request/response types are defined in `core/types.ts`
+- Media metadata structure is comprehensive with TMDB integration
+

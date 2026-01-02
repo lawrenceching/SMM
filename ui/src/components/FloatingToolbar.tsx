@@ -26,6 +26,7 @@ export interface FloatingToolbarProps {
   className?: string
   isOpen?: boolean
   isConfirmDisabled?: boolean
+  isConfirmButtonDisabled?: boolean
   mode: "manual" | "ai"
 }
 
@@ -41,6 +42,7 @@ export function FloatingToolbar({
   className,
   isOpen = false,
   isConfirmDisabled = false,
+  isConfirmButtonDisabled = false,
   mode = "manual",
 }: FloatingToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -116,7 +118,7 @@ export function FloatingToolbar({
           <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
             {cancelLabel}
           </Button>
-          <Button onClick={onConfirm} disabled={isConfirmDisabled}>{confirmLabel}</Button>
+          <Button onClick={onConfirm} disabled={isConfirmButtonDisabled}>{confirmLabel}</Button>
         </div>
       </div>
     </>

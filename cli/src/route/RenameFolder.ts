@@ -7,7 +7,7 @@ import { executeHelloTask } from 'tasks/HelloTask';
 import { getUserConfig, renameFolderInUserConfig, writeUserConfig } from '@/utils/config';
 import { renameMediaFolderInMediaMetadata } from '@/utils/mediaMetadataUtils';
 import { deleteMediaMetadataFile, findMediaMetadata, writeMediaMetadata } from '@/utils/mediaMetadata';
-import { broadcastMessage } from '@/utils/websocketManager';
+import { broadcast } from '@/utils/socketIO';
 import { rm } from 'fs';
 import { unlink } from 'fs/promises';
 
@@ -79,7 +79,8 @@ export async function handleRenameFolder(body: FolderRenameRequestBody, clientId
     await rename(from, to);
 
 
-    broadcastMessage({
+    broadcast({
+      clientId: clientId,
       event: 'userConfigUpdated',
       data: {}
     });

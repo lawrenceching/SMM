@@ -145,6 +145,12 @@ function TvShowPanel() {
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
   const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
+  const [confirmButtonLabel, setConfirmButtonLabel] = useState("Confirm")
+  const [confirmButtonDisabled, setConfirmButtonDisabled] = useState(false)
+
+  /**
+   * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
+   */
   const [pendingConfirmationMessage, setPendingConfirmationMessage] = useState<any>(null)
 
 
@@ -194,9 +200,81 @@ function TvShowPanel() {
       openToolbar('ai');
       setIsPreviewMode(true);
 
-    }
-    
+    } else if (message.event === AskForRenameFilesConfirmation.beginEvent) {
+      console.log('AskForRenameFilesConfirmation.beginEvent received', message.data);
+      const data: AskForRenameFilesConfirmation.BeginRequestData = message.data as AskForRenameFilesConfirmation.BeginRequestData;
+      const mediaFolderPath = data.mediaFolderPath;
+      // TODO: switch to mediaFolderPath
+      // assume it's current selected folder for now
+      openToolbar('ai');
+      setIsPreviewMode(true);
+      setConfirmButtonLabel("Generating...");
+      setConfirmButtonDisabled(true);
 
+
+      setSeasons(prev => {
+        return prev.map(season => ({
+          ...season,
+          episodes: season.episodes.map(episode => ({
+            ...episode,
+            files: episode.files.map(file => ({
+              ...file,
+              newPath: undefined,
+            })),
+          })),
+        }))
+      })
+
+    } else if (message.event === AskForRenameFilesConfirmation.addFileEvent) {
+      console.log('AskForRenameFilesConfirmation.addFileEvent received', message.data);
+      const data: AskForRenameFilesConfirmation.AddFileResponseData = message.data as AskForRenameFilesConfirmation.AddFileResponseData;
+      const from = data.from;
+      const to = data.to;
+      
+
+      setSeasons(prev => {
+        return prev.map(season => ({
+          ...season,
+          episodes: season.episodes.map(episode => 
+          {
+
+            const videoFile = episode.files.find(file => file.type === "video");
+            if(videoFile === undefined) {
+              return episode;
+            }
+
+            if(videoFile.path !== from) {
+              return episode;
+            }
+
+            const newFileFromAI = {
+              from: from,
+              to: to,
+            }
+
+            if(newFileFromAI === undefined) {
+              return episode;
+            }
+
+            const newFiles = renameFiles(mediaMetadata!.mediaFolderPath!, newFileFromAI.to, episode.files);
+            return {
+              episode: episode.episode,
+              files: newFiles,
+            }
+           
+          }
+          ),
+        }))
+      })
+
+    } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
+      console.log('AskForRenameFilesConfirmation.endEvent received', message.data);
+      
+      setConfirmButtonLabel("Confirm");
+      setConfirmButtonDisabled(false);
+
+      setPendingConfirmationMessage(message);
+    }
 
   });
 
@@ -305,6 +383,9 @@ function TvShowPanel() {
       }
       sendAcknowledgement(pendingConfirmationMessage, respData);
       setPendingConfirmationMessage(null);
+      setIsToolbarOpen(false)
+      setIsPreviewMode(false)
+      return;
     }
 
     if (!mediaMetadata?.mediaFolderPath) {
@@ -460,7 +541,8 @@ function TvShowPanel() {
           setIsToolbarOpen(false)
           setIsPreviewMode(false)
         }}
-        confirmLabel={isRenaming ? "Renaming..." : "Confirm"}
+        confirmLabel={confirmButtonLabel}
+        isConfirmButtonDisabled={confirmButtonDisabled}
         isConfirmDisabled={isRenaming}
         mode={toolbarMode}
       />

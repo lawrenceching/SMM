@@ -174,3 +174,14 @@ Variables available: `SEASON`, `SEASON_P2`, `EPISODE`, `EPISODE_P2`, `NAME`, `TV
 ## API Design Guideline
 
 - API Design Guideline is in `cli/docs/ApiDesignGuideline.md`
+
+## Unit Test Guideline
+
+Unit test should be verified in red-green principle, which means:
+
+1. Temporarily break production code in order to let unit test fail
+2. Run unit test and check unit test failed with expected error message
+3. Recover the production code
+
+In step 2, if unit test still passed or failed with unrelative error message, 
+it means the unit test implementation was wrong and didn't test the production code as expected.

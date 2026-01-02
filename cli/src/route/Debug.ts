@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { broadcastMessage, sendAndWaitForResponse, type WebSocketMessage } from '../utils/websocketManager';
+import { broadcast, acknowledge, type WebSocketMessage } from '../utils/socketIO';
 
 interface DebugApiResponseBody {
   success: boolean;
@@ -38,11 +38,37 @@ const renameFilesInBatchSchema = debugRequestBaseSchema.extend({
   clientId: z.string().optional(),
 });
 
+// Schema for beginRenameFilesTask function
+const beginRenameFilesTaskSchema = debugRequestBaseSchema.extend({
+  name: z.literal('beginRenameFilesTask'),
+  mediaFolderPath: z.string().min(1, 'Media folder path is required'),
+  clientId: z.string().optional(),
+});
+
+// Schema for addRenameFileToTask function
+const addRenameFileToTaskSchema = debugRequestBaseSchema.extend({
+  name: z.literal('addRenameFileToTask'),
+  taskId: z.string().min(1, 'Task ID is required'),
+  from: z.string().min(1, 'Source path is required'),
+  to: z.string().min(1, 'Destination path is required'),
+  clientId: z.string().optional(),
+});
+
+// Schema for endRenameFilesTask function
+const endRenameFilesTaskSchema = debugRequestBaseSchema.extend({
+  name: z.literal('endRenameFilesTask'),
+  taskId: z.string().min(1, 'Task ID is required'),
+  clientId: z.string().optional(),
+});
+
 // Union schema for all debug functions
 const debugRequestSchema = z.discriminatedUnion('name', [
   broadcastMessageSchema,
   retrieveSchema,
   renameFilesInBatchSchema,
+  beginRenameFilesTaskSchema,
+  addRenameFileToTaskSchema,
+  endRenameFilesTaskSchema,
   // Add more schemas here as new debug functions are added
 ]);
 
@@ -71,7 +97,10 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
             data: validatedBody.data,
           };
           
-          broadcastMessage(message);
+          broadcast({
+            event: validatedBody.event,
+            data: validatedBody.data,
+          });
           console.log(`[DebugAPI] Successfully broadcasted message: ${validatedBody.event}`);
           
           return {
@@ -97,11 +126,12 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
           
           // Send and wait for acknowledgement response with 30 second timeout
           // Socket.IO handles the response via acknowledgement callback
-          const responseData = await sendAndWaitForResponse(
-            message,
-            '', // responseEvent not needed with Socket.IO acknowledgements
-            30000, // 30 second timeout for user interactions
-            validatedBody.clientId
+          const responseData = await acknowledge(
+            {
+              event: validatedBody.event,
+              data: validatedBody.data,
+              clientId: validatedBody.clientId,
+            },
           );
           
           console.log(`[DebugAPI] Received acknowledgement for retrieve request:`, responseData);
@@ -152,6 +182,115 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
           return {
             success: false,
             error: `Failed to execute renameFilesInBatch: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'beginRenameFilesTask': {
+        try {
+          console.log(`[DebugAPI] Executing beginRenameFilesTask:`, {
+            mediaFolderPath: validatedBody.mediaFolderPath,
+            clientId: validatedBody.clientId || 'not provided'
+          });
+          
+          const { createBeginRenameFilesTaskTool } = await import('../tools/renameFilesTask');
+          const clientId = validatedBody.clientId || '';
+          const tool = createBeginRenameFilesTaskTool(clientId);
+          
+          const result = await tool.execute({
+            mediaFolderPath: validatedBody.mediaFolderPath,
+          });
+          
+          if (result.error) {
+            console.log(`[DebugAPI] beginRenameFilesTask completed with error:`, result.error);
+          } else {
+            console.log(`[DebugAPI] beginRenameFilesTask completed successfully, taskId:`, result.taskId);
+          }
+          
+          return {
+            success: !result.error,
+            data: result,
+            error: result.error,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing beginRenameFilesTask:`, error);
+          return {
+            success: false,
+            error: `Failed to execute beginRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'addRenameFileToTask': {
+        try {
+          console.log(`[DebugAPI] Executing addRenameFileToTask:`, {
+            taskId: validatedBody.taskId,
+            from: validatedBody.from,
+            to: validatedBody.to,
+            clientId: validatedBody.clientId || 'not provided'
+          });
+          
+          const { createAddRenameFileToTaskTool } = await import('../tools/renameFilesTask');
+          const clientId = validatedBody.clientId || '';
+          const tool = createAddRenameFileToTaskTool(clientId);
+          
+          const result = await tool.execute({
+            taskId: validatedBody.taskId,
+            from: validatedBody.from,
+            to: validatedBody.to,
+          });
+          
+          if (result.error) {
+            console.log(`[DebugAPI] addRenameFileToTask completed with error:`, result.error);
+          } else {
+            console.log(`[DebugAPI] addRenameFileToTask completed successfully`);
+          }
+          
+          return {
+            success: !result.error,
+            data: result,
+            error: result.error,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing addRenameFileToTask:`, error);
+          return {
+            success: false,
+            error: `Failed to execute addRenameFileToTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'endRenameFilesTask': {
+        try {
+          console.log(`[DebugAPI] Executing endRenameFilesTask:`, {
+            taskId: validatedBody.taskId,
+            clientId: validatedBody.clientId || 'not provided'
+          });
+          
+          const { createEndRenameFilesTaskTool } = await import('../tools/renameFilesTask');
+          const clientId = validatedBody.clientId || '';
+          const tool = createEndRenameFilesTaskTool(clientId);
+          
+          const result = await tool.execute({
+            taskId: validatedBody.taskId,
+          });
+          
+          if (result.error) {
+            console.log(`[DebugAPI] endRenameFilesTask completed with error:`, result.error);
+          } else {
+            console.log(`[DebugAPI] endRenameFilesTask completed successfully`);
+          }
+          
+          return {
+            success: !result.error,
+            data: result,
+            error: result.error,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing endRenameFilesTask:`, error);
+          return {
+            success: false,
+            error: `Failed to execute endRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
           };
         }
       }

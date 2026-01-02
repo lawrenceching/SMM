@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Path } from '@core/path';
 import { handleRenameFolder } from '../route/RenameFolder';
-import { sendAndWaitForResponse } from '../utils/websocketManager';
+import { acknowledge } from '../utils/socketIO';
 import pino from 'pino';
 
 const logger = pino();
@@ -39,16 +39,14 @@ Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".
     const confirmationMessage = `Rename folder "${getFolderName(from)}" to "${getFolderName(to)}"?\n\nThis will:\n  • Rename the folder on disk\n  • Update media metadata\n  • Update user configuration`;
     
     try {
-      const responseData = await sendAndWaitForResponse(
+      const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
           data: {
             message: confirmationMessage,
           },
+          clientId: clientId,
         },
-        '', // responseEvent not needed with Socket.IO acknowledgements
-        30000, // 30 second timeout
-        clientId // Send to specific client room
       );
 
       const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';

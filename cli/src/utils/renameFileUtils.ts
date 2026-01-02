@@ -5,7 +5,7 @@ import { validatePathWithinMediaFolder } from '../validations/validatePathWithin
 import { validateSourceFileExist } from '../validations/validateSourceFileExist';
 import { validateDestFileNotExist } from '../validations/validateDestFileNotExist';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
-import { broadcastMessage } from './websocketManager';
+import { broadcast } from './socketIO';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { renameFileInMediaMetadata, renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
 // Import updateMediaMetadataAfterRename from renameFilesInBatch for batch operations
@@ -360,7 +360,8 @@ export async function updateMediaMetadataAndBroadcast(
     }, `${logPrefix} Successfully updated media metadata`);
 
     // Broadcast mediaMetadataUpdated event to all connected clients
-    broadcastMessage({
+    broadcast({
+      clientId: clientId,
       event: 'mediaMetadataUpdated',
       data: {
         folderPath: mediaFolder
@@ -499,7 +500,7 @@ export async function updateMediaMetadataAfterFolderRename(
       }
 
       // Broadcast with new folder path
-      broadcastMessage({
+      broadcast({
         event: 'mediaMetadataUpdated',
         data: {
           folderPath: toNormalized
@@ -517,7 +518,7 @@ export async function updateMediaMetadataAfterFolderRename(
       await Bun.write(metadataFilePath, JSON.stringify(updatedMediaMetadata, null, 2));
 
       // Broadcast with original media folder path
-      broadcastMessage({
+      broadcast({
         event: 'mediaMetadataUpdated',
         data: {
           folderPath: mediaFolderNormalized

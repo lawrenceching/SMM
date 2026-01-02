@@ -3,7 +3,7 @@ import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { mkdir } from 'fs/promises';
-import { broadcastMessage } from '../utils/websocketManager';
+import { broadcast } from '../utils/socketIO';
 
 function updateMediaFileMetadatas(
   mediaFiles: MediaFileMetadata[],
@@ -123,7 +123,7 @@ Please **ensure** you call "ask-for-confirmation" to get user confirmation befor
       console.log(`[tool][matchEpisode] Successfully updated media metadata for folder "${folderPathInPosix}"`);
       
       // 7. Notify all connected clients via WebSocket
-      broadcastMessage({
+      broadcast({
         event: 'mediaMetadataUpdated',
         data: {
           folderPath: folderPathInPosix
