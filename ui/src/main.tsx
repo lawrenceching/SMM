@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
+import { ThemeProvider } from './components/theme-provider'
+import { ConfigProvider } from './components/config-provider'
+import { MediaMetadataProvider } from './components/media-metadata-provider'
+import { DialogProvider } from './components/dialog-provider'
 
 // Hook to detect mobile screen
 function useIsMobile() {
@@ -101,6 +105,14 @@ function AppSwitcher() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppSwitcher />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <ConfigProvider>
+        <MediaMetadataProvider>
+          <DialogProvider>
+            <AppSwitcher />
+          </DialogProvider>
+        </MediaMetadataProvider>
+      </ConfigProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -1,10 +1,70 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sidebar"
+import { useMediaMetadata } from "@/components/media-metadata-provider"
+import { basename } from "@/lib/path"
+import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 
 export default function AppV2() {
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const resizeRef = useRef<HTMLDivElement>(null)
+
+  // Sidebar state
+  const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
+  const [filterType, setFilterType] = useState<FilterType>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
+
+  // Media metadata
+  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+
+  // Convert mediaMetadatas to folders
+  const folders: MediaFolderListItemProps[] = useMemo(() => {
+    return mediaMetadatas.map((metadata) => {
+      return {
+        mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
+        path: metadata.mediaFolderPath,
+        mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
+      } as MediaFolderListItemProps
+    })
+  }, [mediaMetadatas])
+
+  // Filter and sort folders
+  const filteredAndSortedFolders = useMemo(() => {
+    let result = [...folders]
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter((folder) => {
+        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
+        const pathMatch = folder.path.toLowerCase().includes(query)
+        const folderName = basename(folder.path) || ""
+        const folderNameMatch = folderName.toLowerCase().includes(query)
+        return mediaNameMatch || pathMatch || folderNameMatch
+      })
+    }
+
+    // Filter by type
+    if (filterType !== "all") {
+      result = result.filter((folder) => folder.mediaType === filterType)
+    }
+
+    // Sort by alphabetical order
+    result.sort((a, b) => {
+      const comparison = a.mediaName.localeCompare(b.mediaName, undefined, { sensitivity: 'base' })
+      return sortOrder === "alphabetical" ? comparison : -comparison
+    })
+
+    return result
+  }, [folders, sortOrder, filterType, searchQuery])
+
+  const handleMediaFolderListItemClick = useCallback((path: string) => {
+    const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
+    if (index !== -1) {
+      setSelectedMediaMetadata(index)
+    }
+  }, [mediaMetadatas, setSelectedMediaMetadata])
 
   // 最小和最大侧边栏宽度
   const MIN_SIDEBAR_WIDTH = 150
@@ -140,38 +200,20 @@ export default function AppV2() {
             backgroundColor: "#f5f5f5",
             borderRight: "1px solid #d0d0d0",
             position: "relative",
-            overflowY: "auto",
-            overflowX: "hidden",
+            overflow: "hidden",
             minWidth: 0,
           }}
         >
-          {/* 侧边栏内容占位 */}
-          <div
-            style={{
-              padding: "12px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              width: "100%",
-              boxSizing: "border-box",
-              minWidth: 0,
-            }}
-          >
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: "36px",
-                  backgroundColor: "#e8e8e8",
-                  borderRadius: "3px",
-                  border: "1px solid #d8d8d8",
-                  width: "100%",
-                  minWidth: 0,
-                  boxSizing: "border-box",
-                }}
-              />
-            ))}
-          </div>
+          <Sidebar
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            filterType={filterType}
+            onFilterTypeChange={setFilterType}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            filteredAndSortedFolders={filteredAndSortedFolders}
+            handleMediaFolderListItemClick={handleMediaFolderListItemClick}
+          />
 
           {/* 拖拽调整大小的手柄 */}
           <div
@@ -250,8 +292,8 @@ export default function AppV2() {
         >
           <span>就绪</span>
           <div style={{ marginLeft: "auto", display: "flex", gap: "16px" }}>
-            <span>项目: 0</span>
-            <span>已选择: 0</span>
+            <span>项目: {filteredAndSortedFolders.length}</span>
+            <span>总计: {folders.length}</span>
           </div>
         </div>
       </div>
