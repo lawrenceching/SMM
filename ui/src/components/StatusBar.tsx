@@ -5,9 +5,10 @@ import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionSt
 
 interface StatusBarProps {
     className?: string
+    message?: string
 }
 
-export function StatusBar({className}: StatusBarProps) {
+export function StatusBar({className, message}: StatusBarProps) {
     const { appConfig } = useConfig()
     const { status } = useWebSocket()
     
@@ -20,7 +21,7 @@ export function StatusBar({className}: StatusBarProps) {
     return (
         <div 
             className={cn(
-                "h-8 w-full flex items-center",
+                "h-8 w-full flex gap-2 items-center",
                 "bg-muted/50 border-t border-border",
                 "px-4 text-xs",
                 "text-muted-foreground",
@@ -30,7 +31,7 @@ export function StatusBar({className}: StatusBarProps) {
             <div className="flex items-center gap-2">
                 <ConnectionStatusIndicator status={connectionStatus} />
             </div>
-            <div className="flex-1"></div>
+            <div className="flex-1">{message}</div>
             <div className="flex items-center gap-2">
                 <span className="font-medium">{appConfig.version}</span>
             </div>

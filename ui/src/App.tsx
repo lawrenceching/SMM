@@ -18,6 +18,7 @@ import { MediaMetadataProvider, useMediaMetadata } from "./components/media-meta
 
 import { Assistant } from "./ai/Assistant"
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from "./hooks/useWebSocket"
+import { Path } from "@core/path"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -73,7 +74,15 @@ function AppLayout() {
   const dragDepthRef = useRef(0)
   const pendingFolderPathRef = useRef<string | null>(null)
 
-  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+  const statusBarMessage = useMemo(() => {
+
+    if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
+      return ''
+    }
+
+    return `${Path.toPlatformPath(selectedMediaMetadata.mediaFolderPath) }`
+  }, [selectedMediaMetadata])
 
   // Select folder when it's added to mediaMetadatas
   useEffect(() => {
@@ -377,7 +386,7 @@ function AppLayout() {
         </RightSidebarContent> */}
       </ThreeColumnLayout>
 
-      <StatusBar />
+      <StatusBar message={statusBarMessage}/>
 {/* 
       <AssistantRuntimeProvider runtime={runtime}>
       <AssistantModal />
