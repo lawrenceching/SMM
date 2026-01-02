@@ -3,12 +3,129 @@ import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sideba
 import { Toolbar } from "@/components/v2/Toolbar"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { useDialogs } from "@/components/dialog-provider"
+import { useConfig } from "@/components/config-provider"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { FileItem, FolderType } from "@/components/dialog-provider"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
+import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from "./hooks/useWebSocket"
+import { Toaster } from "./components/ui/sonner"
+import { Assistant } from "./ai/Assistant"
+import { Button } from "@/components/ui/button"
+
+// WebSocketHandlers component
+function WebSocketHandlers() {
+  const { reload: reloadUserConfig } = useConfig();
+  const { refreshMediaMetadata, selectedMediaMetadata } = useMediaMetadata();
+  const { confirmationDialog } = useDialogs();
+  const [openConfirmation, closeConfirmation] = confirmationDialog;
+
+  useWebSocketEvent((message) => {
+    // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
+    if (message.event === "getSelectedMediaMetadata") {
+      console.log('[WebSocketHandlers][DEBUG] getSelectedMediaMetadata received', {
+        message,
+        hasCallback: !!(message as any)._socketCallback,
+        selectedMediaMetadata
+      });
+      
+      // Send acknowledgement with selected media metadata
+      sendAcknowledgement(message, {
+        selectedMediaMetadata: selectedMediaMetadata || null,
+      });
+      console.log('[WebSocketHandlers][DEBUG] getSelectedMediaMetadata acknowledgement sent');
+    }
+    
+    // Handle mediaMetadataUpdated event (no acknowledgement needed)
+    if (message.event === "mediaMetadataUpdated") {
+      const folderPath = message.data?.folderPath;
+      if (folderPath) {
+        console.log(`[WebSocketHandlers] Received mediaMetadataUpdated event for folder: ${folderPath}`);
+        refreshMediaMetadata(folderPath);
+      } else {
+        console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
+        reloadUserConfig();
+      }
+    }
+
+    // Handle askForConfirmation event with Socket.IO acknowledgement
+    if (message.event === "askForConfirmation") {
+      console.log('[WebSocketHandlers][DEBUG] askForConfirmation received', {
+        message,
+        hasCallback: !!(message as any)._socketCallback,
+        data: message.data
+      });
+      
+      // Support both data formats:
+      // 1. message field (from server tool)
+      // 2. title and body fields (from debug API)
+      const confirmationMessage = message.data?.body || message.data?.message;
+      const dialogTitle = message.data?.title || "Confirmation";
+      
+      if (!confirmationMessage) {
+        console.warn(`[WebSocketHandlers] askForConfirmation event missing message/body:`, message.data);
+        // Send error acknowledgement
+        sendAcknowledgement(message, { confirmed: false, error: 'Missing message' });
+        return;
+      }
+      
+      console.log(`[WebSocketHandlers] Received askForConfirmation event: ${confirmationMessage}`);
+      
+      // Handler to send acknowledgement and close dialog
+      const sendResponse = (confirmed: boolean) => {
+        console.log(`[WebSocketHandlers][DEBUG] sendResponse called with confirmed=${confirmed}`);
+        
+        // Send acknowledgement back via Socket.IO callback
+        const ackData = {
+          confirmed: confirmed,
+          response: confirmed ? "yes" : "no",
+        };
+        console.log(`[WebSocketHandlers][DEBUG] About to call sendAcknowledgement with:`, ackData);
+        sendAcknowledgement(message, ackData);
+        console.log(`[WebSocketHandlers][DEBUG] sendAcknowledgement returned`);
+        closeConfirmation();
+      };
+      
+      // Open confirmation dialog with Yes/No buttons
+      openConfirmation({
+        title: dialogTitle,
+        description: confirmationMessage,
+        showCloseButton: false,
+        onClose: () => {
+          // If dialog is closed without clicking Yes/No, default to "no"
+          sendResponse(false);
+        },
+        content: (
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => sendResponse(false)}
+            >
+              No
+            </Button>
+            <Button
+              onClick={() => sendResponse(true)}
+            >
+              Yes
+            </Button>
+          </div>
+        ),
+      });
+    } else if(message.event === "userConfigUpdated") {
+      console.log('[WebSocketHandlers][DEBUG] userConfigUpdated received');
+      reloadUserConfig();      
+    }
+  });
+
+  return (
+    <></>
+  )
+}
 
 export default function AppV2() {
+  // Establish WebSocket connection when app loads
+  useWebSocket();
+
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -373,6 +490,10 @@ export default function AppV2() {
           }
         `}</style>
       )}
+
+      <Assistant />
+      <WebSocketHandlers />
+      <Toaster position="bottom-right" />
     </div>
   )
 }
