@@ -1,12 +1,67 @@
-import { StrictMode, useState } from 'react'
+import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
+import AppNavigation from './AppNavigation.tsx'
+
+// Hook to detect mobile screen
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    // Initial check using window width
+    if (typeof window === 'undefined') return false
+    return window.innerWidth < 768
+  })
+
+  useEffect(() => {
+    // Check window width
+    const checkWidth = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    // Check media query
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches)
+    }
+
+    // Initial check
+    checkWidth()
+
+    // Listen to window resize
+    window.addEventListener('resize', checkWidth)
+
+    // Listen to media query changes (for better accuracy)
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMediaChange)
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleMediaChange)
+    }
+
+    return () => {
+      window.removeEventListener('resize', checkWidth)
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMediaChange)
+      } else {
+        mediaQuery.removeListener(handleMediaChange)
+      }
+    }
+  }, [])
+
+  return isMobile
+}
 
 function AppSwitcher() {
   const [useAppV2, setUseAppV2] = useState(false)
+  const isMobile = useIsMobile()
 
+  // On mobile, always use AppNavigation
+  if (isMobile) {
+    return <AppNavigation />
+  }
+
+  // On desktop, show App/AppV2 switcher
   return (
     <>
       {/* 切换按钮 */}
