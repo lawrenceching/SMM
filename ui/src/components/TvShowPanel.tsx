@@ -147,6 +147,7 @@ function TvShowPanel() {
   const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
   const [confirmButtonLabel, setConfirmButtonLabel] = useState("Confirm")
   const [confirmButtonDisabled, setConfirmButtonDisabled] = useState(false)
+  const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
 
   /**
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
@@ -236,7 +237,8 @@ function TvShowPanel() {
       
 
       setSeasons(prev => {
-        return prev.map(season => ({
+        let foundEpisodeId: number | null = null;
+        const updatedSeasons = prev.map(season => ({
           ...season,
           episodes: season.episodes.map(episode => 
           {
@@ -249,6 +251,9 @@ function TvShowPanel() {
             if(videoFile.path !== from) {
               return episode;
             }
+
+            // Found the matching episode, store its ID for scrolling
+            foundEpisodeId = episode.episode.id;
 
             const newFileFromAI = {
               from: from,
@@ -267,7 +272,14 @@ function TvShowPanel() {
            
           }
           ),
-        }))
+        }));
+
+        // Set scroll target if episode was found
+        if (foundEpisodeId !== null) {
+          setScrollToEpisodeId(foundEpisodeId);
+        }
+
+        return updatedSeasons;
       })
 
     } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
@@ -301,6 +313,19 @@ function TvShowPanel() {
       }))
     })
   }, [mediaMetadata])
+
+  // Reset scrollToEpisodeId after scrolling completes
+  useEffect(() => {
+    if (scrollToEpisodeId !== null) {
+      const timeoutId = setTimeout(() => {
+        setScrollToEpisodeId(null)
+      }, 500) // Reset after scrolling animation completes (100ms delay + 400ms buffer)
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [scrollToEpisodeId])
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
@@ -558,6 +583,7 @@ function TvShowPanel() {
           seasons={seasons}
           isPreviewMode={isPreviewMode}
           setIsPreviewMode={setIsPreviewMode}
+          scrollToEpisodeId={scrollToEpisodeId}
         />
       </div>
     </div>

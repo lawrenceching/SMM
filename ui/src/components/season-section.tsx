@@ -37,6 +37,7 @@ interface SeasonSectionProps {
     isPreviewMode?: boolean
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
+    scrollToEpisodeId?: number | null
 }
 
 export function SeasonSection({
@@ -49,6 +50,7 @@ export function SeasonSection({
     isPreviewMode = false,
     ruleName,
     seasons,
+    scrollToEpisodeId,
 }: SeasonSectionProps) {
     if (isUpdatingTvShow) {
         return (
@@ -170,6 +172,7 @@ export function SeasonSection({
                                                             setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
                                                             isPreviewMode={isPreviewMode}
+                                                            scrollToEpisodeId={scrollToEpisodeId}
                                                         />
                                                     )
                                                 })

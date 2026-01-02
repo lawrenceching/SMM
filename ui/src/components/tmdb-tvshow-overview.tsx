@@ -23,6 +23,7 @@ interface TMDBTVShowOverviewProps {
     seasons: SeasonModel[]
     isPreviewMode: boolean
     setIsPreviewMode: React.Dispatch<React.SetStateAction<boolean>>
+    scrollToEpisodeId?: number | null
 }
 
 // Helper function to format date
@@ -47,7 +48,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName, seasons, isPreviewMode, setIsPreviewMode }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName, seasons, isPreviewMode, setIsPreviewMode, scrollToEpisodeId }: TMDBTVShowOverviewProps) {
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -115,6 +116,63 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
             savedEpisodeIdsRef.current = null
         }
     }, [isPreviewMode, tvShow])
+
+    // Handle scrolling to episode when scrollToEpisodeId changes
+    useEffect(() => {
+        if (scrollToEpisodeId === null || scrollToEpisodeId === undefined || !tvShow?.seasons) {
+            return
+        }
+
+        // Find the season and episode containing this episode ID
+        let targetSeasonId: number | null = null
+        for (const season of tvShow.seasons) {
+            if (season.episodes) {
+                const episode = season.episodes.find(ep => ep.id === scrollToEpisodeId)
+                if (episode) {
+                    targetSeasonId = season.id
+                    break
+                }
+            }
+        }
+
+        if (targetSeasonId === null) {
+            console.warn(`[TMDBTVShowOverview] Episode with ID ${scrollToEpisodeId} not found`)
+            return
+        }
+
+        // Expand the season
+        setExpandedSeasonIds(prev => {
+            const newSet = new Set(prev)
+            newSet.add(targetSeasonId!)
+            return newSet
+        })
+
+        // Expand the episode
+        setExpandedEpisodeIds(prev => {
+            const newSet = new Set(prev)
+            newSet.add(scrollToEpisodeId!)
+            return newSet
+        })
+
+        // Wait for DOM to update, then scroll to the episode
+        // Use setTimeout to ensure the expansion has rendered
+        const timeoutId = setTimeout(() => {
+            const episodeElement = document.querySelector(`[data-episode-id="${scrollToEpisodeId}"]`)
+            if (episodeElement) {
+                episodeElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                })
+            } else {
+                console.warn(`[TMDBTVShowOverview] Episode element with ID ${scrollToEpisodeId} not found in DOM`)
+            }
+        }, 100) // Small delay to ensure expansion has rendered
+
+        return () => {
+            clearTimeout(timeoutId)
+        }
+    }, [scrollToEpisodeId, tvShow, setExpandedSeasonIds, setExpandedEpisodeIds])
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
@@ -501,6 +559,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                     isPreviewMode={isPreviewMode}
                     ruleName={ruleName}
                     seasons={seasons}
+                    scrollToEpisodeId={scrollToEpisodeId}
                 />
             </div>
         </div>

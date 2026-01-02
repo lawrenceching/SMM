@@ -96,6 +96,10 @@ export interface EpisodeSectionProps {
      * If true, the episode section display the new path which user to preview
      */
     isPreviewMode: boolean
+    /**
+     * Optional episode ID to scroll to (for programmatic scrolling)
+     */
+    scrollToEpisodeId?: number | null
 }
 
 export function EpisodeSection({
@@ -104,6 +108,7 @@ export function EpisodeSection({
     setExpandedEpisodeIds,
     files,
     isPreviewMode,
+    scrollToEpisodeId,
 }: EpisodeSectionProps) {
     const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
@@ -125,7 +130,10 @@ export function EpisodeSection({
     }, [filesByType])
     
     return (
-        <div className="rounded-md bg-background border overflow-hidden transition-all">
+        <div 
+            data-episode-id={episode.id}
+            className="rounded-md bg-background border overflow-hidden transition-all"
+        >
             <div
                 onClick={() => {
                     if (isPreviewMode) return // Don't allow collapse in preview mode
