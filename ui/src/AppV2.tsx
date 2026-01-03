@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
+import type { ViewMode } from "@/components/v2/ViewSwitcher"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { useDialogs } from "@/components/dialog-provider"
 import { useConfig } from "@/components/config-provider"
@@ -140,6 +141,9 @@ export default function AppV2() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>("metadata")
 
   // Dialogs
   const { openFolderDialog, filePickerDialog } = useDialogs()
@@ -385,7 +389,12 @@ export default function AppV2() {
             boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
           }}
         >
-          <Toolbar onOpenFolderMenuClick={handleOpenFolderMenuClick} />
+          <Toolbar 
+            onOpenFolderMenuClick={handleOpenFolderMenuClick}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            viewSwitcherDisabled={folders.length === 0 || !selectedMediaMetadata}
+          />
         </div>
 
         {/* 侧边栏 */}
@@ -456,13 +465,30 @@ export default function AppV2() {
               <Welcome />
             </div>
           )}
-          {folders.length > 0 && selectedMediaMetadata?.type === "tvshow-folder" && (
-            <div style={{ padding: "20px", overflow: "auto" }}>
-              <TvShowPanel />
-            </div>
-          )}
-          {folders.length > 0 && selectedMediaMetadata?.type !== "tvshow-folder" && selectedMediaMetadata && (
-            <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+          {folders.length > 0 && selectedMediaMetadata && (
+            <>
+              {viewMode === "metadata" && (
+                <>
+                  {selectedMediaMetadata.type === "tvshow-folder" && (
+                    <div style={{ padding: "20px", overflow: "auto" }}>
+                      <TvShowPanel />
+                    </div>
+                  )}
+                  {selectedMediaMetadata.type === "movie-folder" && (
+                    <div style={{ padding: "20px", overflow: "auto" }}>
+                      {/* MoviePanel can be added here in the future */}
+                      <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                    </div>
+                  )}
+                  {selectedMediaMetadata.type !== "tvshow-folder" && selectedMediaMetadata.type !== "movie-folder" && (
+                    <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                  )}
+                </>
+              )}
+              {viewMode === "files" && (
+                <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+              )}
+            </>
           )}
         </div>
 
