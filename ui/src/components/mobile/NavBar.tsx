@@ -63,6 +63,10 @@ export function NavBar({ title, onBack, children }: NavBarProps) {
           fontWeight: "600",
           color: "#333333",
           flex: 1,
+          minWidth: 0,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {title}
