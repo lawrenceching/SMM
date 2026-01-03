@@ -70,6 +70,7 @@ function AppSwitcher() {
     <>
       {/* 切换按钮 */}
       <button
+        hidden
         onClick={() => setUseAppV2(!useAppV2)}
         style={{
           position: 'fixed',
