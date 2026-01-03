@@ -470,7 +470,7 @@ export default function AppV2() {
               {viewMode === "metadata" && (
                 <>
                   {selectedMediaMetadata.type === "tvshow-folder" && (
-                    <div style={{ padding: "20px", overflow: "auto" }}>
+                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                       <TvShowPanel />
                     </div>
                   )}
