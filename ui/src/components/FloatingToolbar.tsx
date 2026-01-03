@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
-import { useLayoutEffect, useRef, useState } from "react"
 
 export interface FloatingToolbarOption {
   value: string
@@ -48,53 +47,63 @@ export function FloatingToolbar({
   mode = "manual",
   status,
 }: FloatingToolbarProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [style, setStyle] = useState<{ left?: string; width?: string }>({})
-
-  useLayoutEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    const updatePosition = () => {
-      if (containerRef.current) {
-        const parent = containerRef.current.parentElement
-        if (parent) {
-          const rect = parent.getBoundingClientRect()
-          // Use the parent's full width (offsetWidth includes padding)
-          const parentWidth = parent.offsetWidth
-          setStyle({
-            left: `${rect.left}px`,
-            width: `${parentWidth}px`,
-          })
-        }
-      }
-    }
-
-    updatePosition()
-    
-    window.addEventListener("resize", updatePosition)
-    window.addEventListener("scroll", updatePosition, true)
-
-    return () => {
-      window.removeEventListener("resize", updatePosition)
-      window.removeEventListener("scroll", updatePosition, true)
-    }
-  }, [isOpen])
-
   if (!isOpen) {
     return null
   }
 
+  const showAnimatedShadow = mode === "ai" && status === "running"
+
   return (
-    <div
+    <>
+      <style>{`
+        @keyframes flowing-shadow {
+          0% {
+            box-shadow: 
+              0 3px 12px rgba(59, 130, 246, 0.6),
+              0 6px 20px rgba(139, 92, 246, 0.5),
+              0 9px 30px rgba(236, 72, 153, 0.4),
+              0 12px 40px rgba(59, 130, 246, 0.25);
+          }
+          25% {
+            box-shadow: 
+              0 3px 12px rgba(139, 92, 246, 0.6),
+              0 6px 20px rgba(236, 72, 153, 0.5),
+              0 9px 30px rgba(245, 158, 11, 0.4),
+              0 12px 40px rgba(139, 92, 246, 0.25);
+          }
+          50% {
+            box-shadow: 
+              0 3px 12px rgba(236, 72, 153, 0.6),
+              0 6px 20px rgba(245, 158, 11, 0.5),
+              0 9px 30px rgba(16, 185, 129, 0.4),
+              0 12px 40px rgba(236, 72, 153, 0.25);
+          }
+          75% {
+            box-shadow: 
+              0 3px 12px rgba(245, 158, 11, 0.6),
+              0 6px 20px rgba(16, 185, 129, 0.5),
+              0 9px 30px rgba(59, 130, 246, 0.4),
+              0 12px 40px rgba(245, 158, 11, 0.25);
+          }
+          100% {
+            box-shadow: 
+              0 3px 12px rgba(59, 130, 246, 0.6),
+              0 6px 20px rgba(139, 92, 246, 0.5),
+              0 9px 30px rgba(236, 72, 153, 0.4),
+              0 12px 40px rgba(59, 130, 246, 0.25);
+          }
+        }
+        .floating-toolbar-with-shadow {
+          animation: flowing-shadow 4s ease-in-out infinite;
+        }
+      `}</style>
+      <div
         className={cn(
-          "z-50 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-2 shadow-sm",
+          "z-50 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b px-4 py-2 shadow-sm",
           "animate-in slide-in-from-top duration-300 fade-in-0",
-          mode === "ai" && status === "running" && "relative",
+          showAnimatedShadow && "relative floating-toolbar-with-shadow",
           className
         )}
-        style={style}
       >
         <div className="flex items-center gap-2">
           {mode === "manual" ? (
@@ -144,6 +153,8 @@ export function FloatingToolbar({
           </Button>
         </div>
       </div>
+
+    </>
   )
 }
 
