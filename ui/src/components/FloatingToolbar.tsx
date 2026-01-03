@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { Loader2 } from "lucide-react"
 import { useLayoutEffect, useRef, useState } from "react"
 
 export interface FloatingToolbarOption {
@@ -28,6 +29,7 @@ export interface FloatingToolbarProps {
   isConfirmDisabled?: boolean
   isConfirmButtonDisabled?: boolean
   mode: "manual" | "ai"
+  status?: "running" | "wait-for-ack"
 }
 
 export function FloatingToolbar({
@@ -44,11 +46,16 @@ export function FloatingToolbar({
   isConfirmDisabled = false,
   isConfirmButtonDisabled = false,
   mode = "manual",
+  status,
 }: FloatingToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [style, setStyle] = useState<{ left?: string; width?: string }>({})
 
   useLayoutEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
     const updatePosition = () => {
       if (containerRef.current) {
         const parent = containerRef.current.parentElement
@@ -80,12 +87,11 @@ export function FloatingToolbar({
   }
 
   return (
-    <>
-      <div ref={containerRef} className="absolute top-0 left-0 w-0 h-0 pointer-events-none" aria-hidden="true" />
-      <div
+    <div
         className={cn(
-          "fixed top-0 z-50 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-2 shadow-sm",
+          "z-50 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-2 shadow-sm",
           "animate-in slide-in-from-top duration-300 fade-in-0",
+          mode === "ai" && status === "running" && "relative",
           className
         )}
         style={style}
@@ -108,8 +114,15 @@ export function FloatingToolbar({
 
           {
             mode === "ai" ? (
-              <div>
-                AI is going to rename episodes, please review...
+              <div className="flex items-center gap-2">
+                {status === "running" && (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                )}
+                <span>
+                  {status === "running"
+                    ? "AI is renaming episodes, please wait..."
+                    : "AI is going to rename episodes, please review..."}
+                </span>
               </div>
             ) : null
           }
@@ -118,10 +131,19 @@ export function FloatingToolbar({
           <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
             {cancelLabel}
           </Button>
-          <Button onClick={onConfirm} disabled={isConfirmButtonDisabled}>{confirmLabel}</Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isConfirmButtonDisabled}
+            className={cn(
+              mode === "ai" &&
+                status === "wait-for-ack" &&
+                "animate-pulse ring-2 ring-primary/50 ring-offset-2"
+            )}
+          >
+            {confirmLabel}
+          </Button>
         </div>
       </div>
-    </>
   )
 }
 
