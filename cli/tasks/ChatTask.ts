@@ -85,7 +85,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
         addRenameFileToTask: createAddRenameFileToTaskTool(clientId, abortSignal),
         endRenameFilesTask: createEndRenameFilesTaskTool(clientId, abortSignal),
       },
-      stopWhen: stepCountIs(20)
+      stopWhen: stepCountIs(100)
     });
 
     // Check again before creating response

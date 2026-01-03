@@ -71,6 +71,25 @@ Steps
 Language: zh-CN (you should answer in user's language)
 TimeZone: Asia/Shanghai (you should use user's time zone to answer user's question)
 
+## Background Knowledge
+
+### Naming Rules
+
+Naming rules are file naming conventions for media server (such as Plex, Jellyfin, etc.) to recognize the media files.
+Below are naming rules for different media servers:
+
+**Plex**
+
+{FolderName}/{TVShowName} - S{SeasonNumber}E{EpisodeNumber} - {EpisodeName}.{Extension}
+
+FolderName: The season folder name, such as "Specials", "Season 1", "Season 2", "Season 3", ...
+TVShowName: The TV show name
+SeasonNumber: The season number padded to 2 digits, such as "01", "02", "03", ...
+EpisodeNumber: The episode number padded to 2 digits, such as "01", "02", "03", ...
+EpisodeName: The episode name
+Extension: The file extension, such as "mp4", "mkv", "avi", ...
+
+
     `
 
 }
