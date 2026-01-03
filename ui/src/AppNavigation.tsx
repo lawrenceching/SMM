@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react"
 import { Navigation } from "@/components/mobile/Navigation"
 import { Toolbox } from "@/components/mobile/Toolbox"
+import { NavBar } from "@/components/mobile/NavBar"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
@@ -9,6 +10,7 @@ import TvShowPanel from "@/components/TvShowPanel"
 import { LocalFilePanel } from "@/components/LocalFilePanel"
 import { Assistant } from "@/ai/Assistant"
 import { ChevronDown, ChevronUp } from "lucide-react"
+import { ViewSwitcher, type ViewMode } from "@/components/v2/ViewSwitcher"
 
 type Page = "list" | "detail"
 
@@ -21,6 +23,9 @@ export default function AppNavigation() {
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [isToolboxExpanded, setIsToolboxExpanded] = useState<boolean>(false)
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>("metadata")
 
   // Media metadata
   const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
@@ -121,80 +126,52 @@ export default function AppNavigation() {
           flexDirection: "column",
         }}
       >
-        {/* 列表页标题栏 */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            borderBottom: "1px solid #e0e0e0",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div
+        {/* 列表页导航栏 */}
+        <NavBar title="列表">
+          <button
+            onClick={() => setIsToolboxExpanded(!isToolboxExpanded)}
             style={{
-              padding: "0 16px",
-              height: "48px",
+              backgroundColor: "transparent",
+              border: "none",
+              padding: "8px",
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent: "center",
+              borderRadius: "4px",
+              transition: "background-color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f0f0f0"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent"
             }}
           >
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "20px",
-                fontWeight: "600",
-                color: "#333333",
-              }}
-            >
-              列表
-            </h1>
-            <button
-              onClick={() => setIsToolboxExpanded(!isToolboxExpanded)}
-              style={{
-                backgroundColor: "transparent",
-                border: "none",
-                padding: "8px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "4px",
-                transition: "background-color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#f0f0f0"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
-            >
-              {isToolboxExpanded ? (
-                <ChevronUp className="h-5 w-5" color="#333333" />
-              ) : (
-                <ChevronDown className="h-5 w-5" color="#333333" />
-              )}
-            </button>
-          </div>
-          
-          {/* Toolbox with expand/collapse animation */}
-          <div
-            style={{
-              maxHeight: isToolboxExpanded ? "200px" : "0",
-              overflow: "hidden",
-              transition: "max-height 300ms ease-out",
-            }}
-          >
-            <Toolbox
-              sortOrder={sortOrder}
-              onSortOrderChange={setSortOrder}
-              filterType={filterType}
-              onFilterTypeChange={setFilterType}
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-            />
-          </div>
+            {isToolboxExpanded ? (
+              <ChevronUp className="h-5 w-5" color="#333333" />
+            ) : (
+              <ChevronDown className="h-5 w-5" color="#333333" />
+            )}
+          </button>
+        </NavBar>
+
+        {/* Toolbox with expand/collapse animation */}
+        <div
+          style={{
+            maxHeight: isToolboxExpanded ? "200px" : "0",
+            overflow: "hidden",
+            transition: "max-height 300ms ease-out",
+          }}
+        >
+          <Toolbox
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            filterType={filterType}
+            onFilterTypeChange={setFilterType}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+          />
         </div>
 
         {/* 列表内容 */}
@@ -220,62 +197,16 @@ export default function AppNavigation() {
         }}
       >
         {/* 内容页导航栏 */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            borderBottom: "1px solid #e0e0e0",
-            padding: "0 16px",
-            height: "48px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          }}
+        <NavBar 
+          title={selectedMediaMetadata?.tmdbTvShow?.name ?? selectedMediaMetadata?.tmdbMovie?.title ?? "详情"}
+          onBack={handleBack}
         >
-          <button
-            onClick={handleBack}
-            style={{
-              backgroundColor: "transparent",
-              border: "none",
-              padding: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "4px",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f0f0f0"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent"
-            }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "18px",
-              fontWeight: "600",
-              color: "#333333",
-            }}
-          >
-            {selectedMediaMetadata?.tmdbTvShow?.name ?? selectedMediaMetadata?.tmdbMovie?.title ?? "详情"}
-          </h2>
-        </div>
+          <ViewSwitcher 
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            disabled={!selectedMediaMetadata}
+          />
+        </NavBar>
 
         {/* 内容区域 */}
         <div
@@ -286,20 +217,7 @@ export default function AppNavigation() {
             flexDirection: "column",
           }}
         >
-          {selectedMediaMetadata?.type === "tvshow-folder" ? (
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                overflowX: "hidden",
-                padding: "0",
-              }}
-            >
-              <TvShowPanel />
-            </div>
-          ) : selectedMediaMetadata ? (
-            <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
-          ) : (
+          {!selectedMediaMetadata ? (
             <div
               style={{
                 display: "flex",
@@ -313,6 +231,30 @@ export default function AppNavigation() {
             >
               请选择一个媒体文件夹
             </div>
+          ) : (
+            <>
+              {viewMode === "metadata" && (
+                <>
+                  {selectedMediaMetadata.type === "tvshow-folder" ? (
+                    <div
+                      style={{
+                        flex: 1,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        padding: "0",
+                      }}
+                    >
+                      <TvShowPanel />
+                    </div>
+                  ) : (
+                    <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                  )}
+                </>
+              )}
+              {viewMode === "files" && (
+                <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+              )}
+            </>
           )}
         </div>
       </div>
