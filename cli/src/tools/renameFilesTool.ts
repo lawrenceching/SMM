@@ -24,7 +24,7 @@ export function beginRenameFilesTask(mediaFolderPath: string): string {
     };
 
 
-    const data: AskForRenameFilesConfirmation.BeginRequestData = {
+    const data: AskForRenameFilesConfirmationBeginRequestData = {
         mediaFolderPath,
     }
 
@@ -50,7 +50,7 @@ export function addRenameFileToTask(id: string, from: string, to: string) {
     }
     cache[id].files.push({ from, to });
 
-    const data: AskForRenameFilesConfirmation.AddFileResponseData = {
+    const data: AskForRenameFilesConfirmationAddFileResponseData = {
         from,
         to,
     }
@@ -80,11 +80,13 @@ export function endRenameFilesTask(id: string) {
         throw new Error(`Task with id ${id} not found`);
     }
     
+    const mediaFolderPath = cache[id].mediaFolderPath;
+    
     // Remove task from cache
     delete cache[id];
     
-    const data: AskForRenameFilesConfirmation.EndRequestData = {
-        
+    const data: AskForRenameFilesConfirmationEndRequestData = {
+        mediaFolderPath,
     }
 
     broadcast({

@@ -13,6 +13,12 @@ import { useLatest } from "react-use"
 import { toast } from "sonner"
 import { sendAcknowledgement, useWebSocketEvent } from "@/hooks/useWebSocket"
 import { AskForRenameFilesConfirmation } from "@core/event-types"
+import type { 
+  AskForRenameFilesConfirmationRequestData,
+  AskForRenameFilesConfirmationResponseData,
+  AskForRenameFilesConfirmationBeginRequestData,
+  AskForRenameFilesConfirmationAddFileResponseData,
+} from "@core/event-types"
 
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -165,7 +171,7 @@ function TvShowPanel() {
     if (message.event === AskForRenameFilesConfirmation.event) {
       
       console.log('AskForRenameFilesConfirmation received', message.data);
-      const data: AskForRenameFilesConfirmation.RequestData = message.data as AskForRenameFilesConfirmation.RequestData;
+      const data: AskForRenameFilesConfirmationRequestData = message.data as AskForRenameFilesConfirmationRequestData;
       const files = data.files;
       setSeasons(prev => {
         return prev.map(season => ({
@@ -202,7 +208,7 @@ function TvShowPanel() {
 
     } else if (message.event === AskForRenameFilesConfirmation.beginEvent) {
       console.log('AskForRenameFilesConfirmation.beginEvent received', message.data);
-      const data: AskForRenameFilesConfirmation.BeginRequestData = message.data as AskForRenameFilesConfirmation.BeginRequestData;
+      const data: AskForRenameFilesConfirmationBeginRequestData = message.data as AskForRenameFilesConfirmationBeginRequestData;
       const mediaFolderPath = data.mediaFolderPath;
 
       setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
@@ -230,7 +236,7 @@ function TvShowPanel() {
 
     } else if (message.event === AskForRenameFilesConfirmation.addFileEvent) {
       console.log('AskForRenameFilesConfirmation.addFileEvent received', message.data);
-      const data: AskForRenameFilesConfirmation.AddFileResponseData = message.data as AskForRenameFilesConfirmation.AddFileResponseData;
+      const data: AskForRenameFilesConfirmationAddFileResponseData = message.data as AskForRenameFilesConfirmationAddFileResponseData;
       const from = data.from;
       const to = data.to;
       
@@ -405,7 +411,7 @@ function TvShowPanel() {
   const handleConfirm = useCallback(async () => {
     // Send acknowledgement if there's a pending confirmation message
     if (pendingConfirmationMessage) {
-      const respData: AskForRenameFilesConfirmation.ResponseData = {
+      const respData: AskForRenameFilesConfirmationResponseData = {
         confirmed: true,
       }
       sendAcknowledgement(pendingConfirmationMessage, respData);
@@ -558,7 +564,7 @@ function TvShowPanel() {
         onCancel={() => {
           // Send acknowledgement if there's a pending confirmation message
           if (pendingConfirmationMessage) {
-            const respData: AskForRenameFilesConfirmation.ResponseData = {
+            const respData: AskForRenameFilesConfirmationResponseData = {
               confirmed: false,
             }
             console.log('Sending acknowledgement for cancel', respData);

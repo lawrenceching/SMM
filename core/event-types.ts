@@ -1,35 +1,13 @@
 
-export namespace AskForRenameFilesConfirmation {
-  export const event = 'askForRenameFilesConfirmation';
-  export interface RequestData {
-    files: {
-      /**
-       * Absolute path in POSIX format
-       */
-      from: string,
-      /**
-       * Absolute path in POSIX format
-       */
-      to: string,
-    }[],
-  }
-  export interface ResponseData {
-    confirmed: boolean,
-  }
+export const AskForRenameFilesConfirmation = {
+  event: 'askForRenameFilesConfirmation',
+  beginEvent: 'askForRenameFilesConfirmation_begin',
+  endEvent: 'askForRenameFilesConfirmation_end',
+  addFileEvent: 'askForRenameFilesConfirmation_addFile',
+} as const;
 
-
-  export const beginEvent = 'askForRenameFilesConfirmation_begin';
-  export const endEvent = 'askForRenameFilesConfirmation_end';
-  export const addFileEvent = 'askForRenameFilesConfirmation_addFile';
-
-
-  export interface BeginRequestData {
-    mediaFolderPath: string,
-  }
-  export interface EndRequestData {
-    
-  }
-  export interface AddFileResponseData {
+export interface AskForRenameFilesConfirmationRequestData {
+  files: {
     /**
      * Absolute path in POSIX format
      */
@@ -38,6 +16,28 @@ export namespace AskForRenameFilesConfirmation {
      * Absolute path in POSIX format
      */
     to: string,
-  }
+  }[],
 }
 
+export interface AskForRenameFilesConfirmationResponseData {
+  confirmed: boolean,
+}
+
+export interface AskForRenameFilesConfirmationBeginRequestData {
+  mediaFolderPath: string,
+}
+
+export interface AskForRenameFilesConfirmationEndRequestData {
+  mediaFolderPath: string,
+}
+
+export interface AskForRenameFilesConfirmationAddFileResponseData {
+  /**
+   * Absolute path in POSIX format
+   */
+  from: string,
+  /**
+   * Absolute path in POSIX format
+   */
+  to: string,
+}

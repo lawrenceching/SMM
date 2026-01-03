@@ -1,11 +1,15 @@
 import { acknowledge } from "../utils/socketIO";
-import { AskForRenameFilesConfirmation } from "@core/event-types";
+import { 
+  AskForRenameFilesConfirmation,
+  AskForRenameFilesConfirmationRequestData,
+  AskForRenameFilesConfirmationResponseData,
+} from "@core/event-types";
 
 export async function askForRenameFilesConfirmation(
   clientId: string,
   files: { from: string, to: string }[]): Promise<boolean> {
 
-  const data: AskForRenameFilesConfirmation.RequestData = {
+  const data: AskForRenameFilesConfirmationRequestData = {
     files: files
   }
 
@@ -16,6 +20,6 @@ export async function askForRenameFilesConfirmation(
   },
   );
 
-  const respData = resp.data as AskForRenameFilesConfirmation.ResponseData;
+  const respData = resp.data as AskForRenameFilesConfirmationResponseData;
   return respData.confirmed;
 }
