@@ -82,6 +82,7 @@ This tool adds a single file rename (from/to paths) to a task that was created w
 You can call this tool multiple times to add multiple files to the same task.
 
 Example: Add a rename operation to task "task-id-123" to rename "/path/to/old-file.mp4" to "/path/to/new-file.mp4".
+Note: you don't need to rename the corresponding thumbnail, subtitle and nfo files. They will be renamed automatically when the main video file is renamed.
 `,
   toolName: 'addRenameFileToTask',
   inputSchema: z.object({
