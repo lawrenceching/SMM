@@ -212,11 +212,9 @@ function TvShowPanel() {
       const mediaFolderPath = data.mediaFolderPath;
 
       setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
-
-      // TODO: switch to mediaFolderPath
-      // assume it's current selected folder for now
       openToolbar('ai');
       setIsPreviewMode(true);
+      setIsRenaming(true)
       setConfirmButtonLabel("Generating...");
       setConfirmButtonDisabled(true);
 
@@ -290,10 +288,12 @@ function TvShowPanel() {
     } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
       console.log('AskForRenameFilesConfirmation.endEvent received', message.data);
       
+      setPendingConfirmationMessage(message);
+      openToolbar('ai');
+      setIsPreviewMode(true);
+      setIsRenaming(false)
       setConfirmButtonLabel("Confirm");
       setConfirmButtonDisabled(false);
-
-      setPendingConfirmationMessage(message);
     }
 
   });
@@ -557,7 +557,7 @@ function TvShowPanel() {
     <div className='p-1 w-full h-full relative'>
       <div className="absolute top-0 left-0 w-full h-[80px] z-10">
       <FloatingToolbar 
-              isOpen={true}
+              isOpen={isToolbarOpen}
               options={toolbarOptions}
               selectedValue={selectedNamingRule}
               onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}
