@@ -104,7 +104,9 @@ const SUGGESTIONS = [
   {
     title: "整理文件名",
     label: "按Plex规则重命名文件",
-    prompt: "Rename media files in current folder, in Plex convention",
+    prompt: `按 Plex 规则整理当前媒体文件夹
+Plex 规则为:
+{季目录名}/{电视剧/动画名} - S{季数}E{集数} - {标题}.{文件后缀名}`,
   },
 ] as const;
 
