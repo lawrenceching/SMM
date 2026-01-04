@@ -1,5 +1,5 @@
 import { SearchForm } from "@/components/search-form"
-import { MediaFolderListItem, type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
+import { type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
 import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
 
@@ -28,22 +28,9 @@ export function Sidebar({
   handleMediaFolderListItemClick,
 }: SidebarProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        width: "100%",
-      }}
-    >
+    <div className="flex flex-col h-full w-full">
       {/* 工具栏：排序和筛选按钮 */}
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #d0d0d0",
-          backgroundColor: "#ffffff",
-        }}
-      >
+      <div className="py-2 px-3 border-b border-border bg-background">
         <MediaFolderToolbar
           sortOrder={sortOrder}
           onSortOrderChange={onSortOrderChange}
@@ -53,13 +40,7 @@ export function Sidebar({
       </div>
 
       {/* 搜索框 */}
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #e0e0e0",
-          backgroundColor: "#ffffff",
-        }}
-      >
+      <div className="py-2 px-3 border-b border-border bg-background">
         <SearchForm
           value={searchQuery}
           onValueChange={onSearchQueryChange}
@@ -68,39 +49,20 @@ export function Sidebar({
       </div>
 
       {/* 列表 */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: "8px",
-        }}
-      >
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {filteredAndSortedFolders.length === 0 ? (
-          <div
-            style={{
-              padding: "16px",
-              textAlign: "center",
-              color: "#666666",
-              fontSize: "14px",
-            }}
-          >
+          <div className="p-4 text-center text-muted-foreground text-sm">
             没有找到媒体文件夹
           </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-            }}
-          >
+          <div className="flex flex-col">
             {filteredAndSortedFolders.map((folder) => (
-              <MediaFolderListItemV2
-                key={folder.path}
-                {...folder}
-                onClick={() => handleMediaFolderListItemClick(folder.path)}
-              />
+              <div key={folder.path} className="border-b border-border">
+                <MediaFolderListItemV2
+                  {...folder}
+                  onClick={() => handleMediaFolderListItemClick(folder.path)}
+                />
+              </div>
             ))}
           </div>
         )}

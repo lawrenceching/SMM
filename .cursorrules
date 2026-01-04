@@ -1,5 +1,60 @@
 # Cursor Rules
 
+## Tech Stack
+
+This is an Electron-based desktop application with the following tech stack:
+
+### UI Module (`./ui`)
+
+**Core Framework & Build**
+- React 19.2.0 - UI library with latest React features
+- Vite 7.2.4 - Build tool and dev server
+- TypeScript 5.9.3 - Type safety
+
+**Styling**
+- Tailwind CSS 4.1.17 - Utility-first CSS framework (latest v4)
+- shadcn/ui (New York style) - Component library based on Radix UI
+- Radix UI - Accessible UI primitives (accordion, dialog, dropdown, tooltip, etc.)
+- class-variance-authority (CVA) - Component variants management
+- Lucide React - Icon library
+
+**State Management**
+- Zustand 5.0.9 - State management
+- React Context API - Config, theme, media metadata providers
+
+**Real-time Communication**
+- socket.io-client 4.8.3 - WebSocket for server communication
+
+**AI & Chat Features**
+- Vercel AI SDK (@ai-sdk/openai, @ai-sdk/react) - AI integration
+- @assistant-ui/react - Assistant UI components for chat interfaces
+
+**UI Components & Features**
+- @tanstack/react-table - Data tables
+- react-resizable-panels - Resizable layouts
+- embla-carousel-react - Carousel/slider
+- cmdk - Command palette
+- sonner - Toast notifications
+
+**Content Rendering**
+- react-markdown - Markdown rendering with GitHub Flavored Markdown support
+- react-syntax-highlighter + shiki - Code syntax highlighting
+- katex + remark-math + rehype-katex - Math formula rendering
+
+**Development Tools**
+- babel-plugin-react-compiler - React Compiler for optimizations
+- ESLint - Code linting
+- TypeScript - Type checking
+
+### Backend/CLI Module (`./cli`)
+- Bun - JavaScript runtime and package manager
+- Express.js - HTTP server
+- Socket.IO - Real-time bidirectional communication
+
+### Electron Module (`./electron`)
+- Electron - Desktop application framework
+- electron-builder - Application packaging
+
 ## Unit Test Guideline
 
 Unit tests should be verified using the red-green principle, which means:

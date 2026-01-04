@@ -1,7 +1,7 @@
-import { MediaFolderListItem, type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
+import { MediaFolderListItemV2, type MediaFolderListItemV2Props } from "@/components/sidebar/MediaFolderListItemV2"
 
 export interface NavigationProps {
-  filteredAndSortedFolders: MediaFolderListItemProps[]
+  filteredAndSortedFolders: MediaFolderListItemV2Props[]
   handleMediaFolderListItemClick: (path: string) => void
 }
 
@@ -53,16 +53,11 @@ export function Navigation({
                 borderBottom: "1px solid #e8e8e8",
               }}
             >
-              <div
-                style={{
-                  padding: "12px 16px",
-                }}
-              >
-                <MediaFolderListItem
-                  {...folder}
+              <MediaFolderListItemV2
+                  mediaName={folder.mediaName}
+                  path={folder.path}
                   onClick={() => handleMediaFolderListItemClick(folder.path)}
                 />
-              </div>
             </div>
           ))
         )}

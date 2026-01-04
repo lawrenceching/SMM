@@ -27,7 +27,7 @@ export interface MediaFolderListItemV2Props {
   onClick?: () => void
 }
 
-export function MediaFolderListItemV2({mediaName, path, mediaType, onClick}: MediaFolderListItemV2Props) {
+export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderListItemV2Props) {
 
   const {
     removeMediaMetadata,
@@ -161,10 +161,10 @@ export function MediaFolderListItemV2({mediaName, path, mediaType, onClick}: Med
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ease-out",
+            "group relative flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all duration-200 ease-out",
             selected
-              ? "bg-white border-l-2 border-sidebar-primary shadow-sm"
-              : "bg-white hover:bg-gray-50 hover:shadow-sm border-l-2 border-transparent"
+              ? "bg-white border-l-4 border-l-sidebar-primary"
+              : "bg-white hover:bg-gray-100"
           )}
           onClick={onClick}
         >
@@ -172,7 +172,7 @@ export function MediaFolderListItemV2({mediaName, path, mediaType, onClick}: Med
           <div className="flex-1 min-w-0">
             <h5 className={cn(
               "text-sm font-medium truncate",
-              selected ? "text-sidebar-foreground" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+              selected ? "text-sidebar-foreground font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
             )}>
               {mediaName}
             </h5>
