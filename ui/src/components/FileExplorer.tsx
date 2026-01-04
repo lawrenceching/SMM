@@ -15,6 +15,7 @@ export interface FileExplorerProps {
   initialPath?: string
   className?: string
   showPathBar?: boolean
+  onlyFolders?: boolean
 }
 
 export function FileExplorer({
@@ -26,6 +27,7 @@ export function FileExplorer({
   initialPath = "~",
   className,
   showPathBar = true,
+  onlyFolders = false,
 }: FileExplorerProps) {
   const [files, setFiles] = useState<FileItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -36,49 +38,31 @@ export function FileExplorer({
     setIsLoading(true)
     setError(null)
     try {
-      // Make two API calls: one for folders, one for files
-      const [foldersResponse, filesResponse] = await Promise.all([
-        listFilesApi(path, {
-          onlyFolders: true,
-          includeHiddenFiles: false,
-        }),
-        listFilesApi(path, {
-          onlyFiles: true,
-          includeHiddenFiles: false,
-        }),
-      ])
+      const response = await listFilesApi(path, {
+        onlyFolders,
+        includeHiddenFiles: false,
+      })
       
-      if (foldersResponse.error || filesResponse.error) {
-        setError(foldersResponse.error || filesResponse.error || 'Failed to load files')
+      if (response.error) {
+        setError(response.error || 'Failed to load files')
         setFiles([])
       } else {
-        // Convert folders to FileItem format
-        const folders: FileItem[] = foldersResponse.data.map((filePath) => {
+        // Convert to FileItem format
+        const items: FileItem[] = response.data.map((filePath) => {
           const pathParts = filePath.split(/[/\\]/)
           const name = pathParts[pathParts.length - 1] || filePath
+          // Determine if it's a directory by checking if there's a file extension
+          const isDirectory = !name.includes('.') || name.endsWith('/')
           return {
             name,
             path: filePath,
-            isDirectory: true,
+            isDirectory,
           }
         })
 
-        // Convert files to FileItem format
-        const files: FileItem[] = filesResponse.data.map((filePath) => {
-          const pathParts = filePath.split(/[/\\]/)
-          const name = pathParts[pathParts.length - 1] || filePath
-          return {
-            name,
-            path: filePath,
-            isDirectory: false,
-          }
-        })
-
-        // Sort: folders first, then files, both alphabetically
-        const sortedFolders = folders.sort((a, b) => a.name.localeCompare(b.name))
-        const sortedFiles = files.sort((a, b) => a.name.localeCompare(b.name))
-        
-        setFiles([...sortedFolders, ...sortedFiles])
+        // Sort alphabetically
+        const sortedItems = items.sort((a, b) => a.name.localeCompare(b.name))
+        setFiles(sortedItems)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load files')
@@ -86,7 +70,7 @@ export function FileExplorer({
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [onlyFolders])
 
   // Load files when path changes
   useEffect(() => {

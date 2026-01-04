@@ -2,6 +2,7 @@ import { z } from 'zod';
 import os from 'os';
 import { readdir, stat } from 'node:fs/promises';
 import path from 'path';
+import { Path } from '@core/path';
 import type { ListFilesRequestBody, ListFilesResponseBody } from '@core/types';
 
 const listFilesRequestSchema = z.object({
@@ -34,6 +35,28 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
         // Handle "~/path/to/something"
         folderPath = path.join(homeDir, folderPath.slice(2));
       }
+    }
+    
+    // Normalize path using Path class to handle POSIX-style Windows paths
+    // Convert to platform-specific format (e.g., /C/Users/... -> C:\Users\... on Windows)
+    try {
+      // Check if it's a POSIX-style path (starts with /)
+      if (folderPath.startsWith('/') && Path.isWindows()) {
+        // Normalize /C:/Users/... to /C/Users/... format (Path.win expects /C/Users/...)
+        const normalizedPosixPath = folderPath.replace(/^\/([A-Za-z]):\//, '/$1/');
+        // Use Path.win() to convert POSIX path to Windows format
+        folderPath = Path.win(normalizedPosixPath);
+      } else if (/^[A-Za-z]:/.test(folderPath) && !Path.isWindows()) {
+        // If it's a Windows path on non-Windows, convert to POSIX
+        const pathObj = new Path(folderPath);
+        folderPath = pathObj.abs('posix');
+      } else {
+        // Try to use Path.toPlatformPath() for other cases
+        folderPath = Path.toPlatformPath(folderPath);
+      }
+    } catch (error) {
+      // If Path operations fail (e.g., relative path, invalid format), 
+      // use path.resolve directly - it handles relative paths and other edge cases
     }
     
     // Resolve to absolute path (no validation - all paths are allowed)
@@ -69,10 +92,18 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
           const isDirectory = itemStats.isDirectory();
 
           // Filter based on onlyFiles/onlyFolders
-          if (onlyFiles && !isFile) continue;
-          if (onlyFolders && !isDirectory) continue;
           // If both are true, onlyFiles takes precedence (per doc)
-          if (onlyFiles && onlyFolders && !isFile) continue;
+          if (onlyFiles && onlyFolders) {
+            // Both are true: onlyFiles takes precedence, so only return files
+            if (!isFile) continue;
+          } else {
+            // Handle onlyFiles filter
+            if (onlyFiles === true && !isFile) continue;
+            // Handle onlyFolders filter
+            // Note: onlyFolders: false means "don't filter to only folders" (return both)
+            // onlyFolders: true means "only return folders"
+            if (onlyFolders === true && !isDirectory) continue;
+          }
 
           // Filter hidden files if not including them
           if (!includeHiddenFiles) {
