@@ -1,6 +1,7 @@
 import { SearchForm } from "@/components/search-form"
 import { MediaFolderListItem, type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
+import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
 
 export type { SortOrder, FilterType }
 
@@ -95,7 +96,7 @@ export function Sidebar({
             }}
           >
             {filteredAndSortedFolders.map((folder) => (
-              <MediaFolderListItem
+              <MediaFolderListItemV2
                 key={folder.path}
                 {...folder}
                 onClick={() => handleMediaFolderListItemClick(folder.path)}
