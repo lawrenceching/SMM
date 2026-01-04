@@ -555,30 +555,35 @@ function TvShowPanel() {
 
   return (
     <div className='p-1 w-full h-full relative'>
+      <div className="absolute top-0 left-0 w-full h-[80px] z-10">
       <FloatingToolbar 
-        isOpen={isToolbarOpen}
-        options={toolbarOptions}
-        selectedValue={selectedNamingRule}
-        onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}
-        onConfirm={handleConfirm}
-        onCancel={() => {
-          // Send acknowledgement if there's a pending confirmation message
-          if (pendingConfirmationMessage) {
-            const respData: AskForRenameFilesConfirmationResponseData = {
-              confirmed: false,
-            }
-            console.log('Sending acknowledgement for cancel', respData);
-            sendAcknowledgement(pendingConfirmationMessage, respData);
-            setPendingConfirmationMessage(null);
-          }
-          setIsToolbarOpen(false)
-          setIsPreviewMode(false)
-        }}
-        confirmLabel={confirmButtonLabel}
-        isConfirmButtonDisabled={confirmButtonDisabled}
-        isConfirmDisabled={isRenaming}
-        mode={toolbarMode}
-      />
+              isOpen={true}
+              options={toolbarOptions}
+              selectedValue={selectedNamingRule}
+              onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}
+              onConfirm={handleConfirm}
+              onCancel={() => {
+                // Send acknowledgement if there's a pending confirmation message
+                if (pendingConfirmationMessage) {
+                  const respData: AskForRenameFilesConfirmationResponseData = {
+                    confirmed: false,
+                  }
+                  console.log('Sending acknowledgement for cancel', respData);
+                  sendAcknowledgement(pendingConfirmationMessage, respData);
+                  setPendingConfirmationMessage(null);
+                }
+                setIsToolbarOpen(false)
+                setIsPreviewMode(false)
+              }}
+              confirmLabel={confirmButtonLabel}
+              isConfirmButtonDisabled={confirmButtonDisabled}
+              isConfirmDisabled={isRenaming}
+              mode={toolbarMode}
+              status={isRenaming ? "running" : "wait-for-ack"}
+            />
+      </div>
+
+      
       <div className="w-full h-full">
         <TMDBTVShowOverview 
           tvShow={mediaMetadata?.tmdbTvShow} 

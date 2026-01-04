@@ -102,9 +102,9 @@ const SUGGESTIONS = [
     prompt: matchFilesPrompt,
   },
   {
-    title: "Explain React hooks",
-    label: "like useState and useEffect",
-    prompt: "Explain React hooks like useState and useEffect",
+    title: "整理文件名",
+    label: "按Plex规则重命名文件",
+    prompt: "Rename media files in current folder, in Plex convention",
   },
 ] as const;
 
