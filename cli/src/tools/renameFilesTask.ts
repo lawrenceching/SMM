@@ -82,12 +82,12 @@ This tool adds a single file rename (from/to paths) to a task that was created w
 You can call this tool multiple times to add multiple files to the same task.
 
 Example: Add a rename operation to task "task-id-123" to rename "/path/to/old-file.mp4" to "/path/to/new-file.mp4".
-Note: you don't need to rename the corresponding thumbnail, subtitle and nfo files. They will be renamed automatically when the main video file is renamed.
+Note: you **DO NOT** need to rename the corresponding thumbnail, subtitle and nfo files. They will be renamed automatically when the main video file is renamed.
 `,
   toolName: 'addRenameFileToTask',
   inputSchema: z.object({
     taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
-    from: z.string().describe("The current absolute path of the file to rename, it can be POSIX format or Windows format"),
+    from: z.string().describe("The current absolute path of the file to rename, it can be POSIX format or Windows format. ONLY accept video file."),
     to: z.string().describe("The new absolute path for the file, it can be POSIX format or Windows format"),
   }),
   execute: async ({ taskId, from, to }: {
@@ -352,12 +352,13 @@ Example: End task "task-id-123" to execute all collected rename operations.
         error: undefined
       };
     } catch (error) {
-      logger.error({
+      const resp = { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` };
+      logger.info({
         taskId,
-        error: error instanceof Error ? error.message : String(error),
-        clientId
-      }, '[tool][endRenameFilesTask] Failed to end task');
-      return { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` };
+        clientId,
+        response: resp,
+      }, '[tool][endRenameFilesTask] End task with unxpected error');
+      return resp;
     } finally {
       logger.info({
         taskId,

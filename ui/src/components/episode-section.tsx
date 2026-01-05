@@ -1,5 +1,5 @@
 import type { TMDBTVShowDetails } from "@core/types"
-import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star } from "lucide-react"
+import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
@@ -125,8 +125,35 @@ export function EpisodeSection({
     
     // Convert Map to array of entries for rendering
     const filesByTypeArray = useMemo(() => {
-        return Array.from(filesByType.entries()) as Array<[FileProps['type'], FileProps[]]>
-    }, [filesByType])
+
+        if(selectedMediaMetadata === undefined 
+            || selectedMediaMetadata.mediaFiles === undefined 
+            || selectedMediaMetadata.files === undefined) {
+            return [];
+        }
+
+        const localFiles = selectedMediaMetadata.files;
+        
+        // Create a Set for fast lookup of existing files
+        const localFilesSet = new Set(localFiles);
+
+        // Convert Map to array and mark files as deleted if they don't exist in localFiles
+        const result = Array.from(filesByType.entries()).map(([type, typeFiles]) => {
+            const markedFiles = typeFiles.map(file => {
+                // Check if file path exists in localFiles
+                if (!localFilesSet.has(file.path)) {
+                    return {
+                        ...file,
+                        isDeleted: true
+                    };
+                }
+                return file;
+            });
+            return [type, markedFiles] as [FileProps['type'], FileProps[]];
+        });
+
+        return result;
+    }, [filesByType, selectedMediaMetadata])
     
     return (
         <div 
@@ -253,6 +280,7 @@ export function EpisodeSection({
                                     const relativePath = getRelativePath(mediaFolderPath, file.path)
                                     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
                                     const hasPreview = isPreviewMode && file.newPath
+                                    const isDeleted = file.isDeleted ?? false
                                     
                                     return (
                                         <div
@@ -260,10 +288,11 @@ export function EpisodeSection({
                                             className={cn(
                                                 "group flex items-center gap-2 px-2 py-1.5 text-xs transition-colors",
                                                 "hover:bg-muted/50",
-                                                hasPreview && "bg-primary/5"
+                                                hasPreview && "bg-primary/5",
+                                                isDeleted && "opacity-50"
                                             )}
                                         >
-                                            <Icon className={cn("size-3 shrink-0 opacity-60", iconColor)} />
+                                            <Icon className={cn("size-3 shrink-0 opacity-60", iconColor, isDeleted && "opacity-30")} />
                                             <div className="flex-1 min-w-0">
                                                 {hasPreview ? (
                                                     <div className="space-y-0.5">
@@ -275,17 +304,32 @@ export function EpisodeSection({
                                                         </p>
                                                     </div>
                                                 ) : (
-                                                    <p className="text-muted-foreground font-mono text-[10px] truncate" title={file.path}>
-                                                        {relativePath}
-                                                    </p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className={cn(
+                                                            "font-mono text-[10px] truncate",
+                                                            isDeleted ? "text-muted-foreground/50 line-through" : "text-muted-foreground"
+                                                        )} title={file.path}>
+                                                            {relativePath}
+                                                        </p>
+                                                        {isDeleted && (
+                                                            <XCircle className="size-3 shrink-0 text-destructive/70" />
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
-                                            <span className={cn(
-                                                "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 opacity-70",
-                                                iconColor
-                                            )}>
-                                                {label}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className={cn(
+                                                    "px-1.5 py-0.5 rounded text-[10px] font-medium opacity-70",
+                                                    iconColor
+                                                )}>
+                                                    {label}
+                                                </span>
+                                                {isDeleted && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium text-destructive/80 bg-destructive/10">
+                                                        Deleted
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     )
                                 })

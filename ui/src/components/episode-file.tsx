@@ -1,4 +1,4 @@
-import { FileEdit } from "lucide-react"
+import { FileEdit, XCircle } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -54,19 +54,24 @@ export function EpisodeFile({
     const relativePath = getRelativePath(mediaFolderPath, file.path)
     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
     const hasPreview = isPreviewMode && file.newPath
+    const isDeleted = file.isDeleted ?? false
 
     const fileContent = compact ? (
         <div className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 transition-colors",
             hasPreview ? "bg-primary/10" : bgColor,
-            "hover:bg-primary/15"
+            "hover:bg-primary/15",
+            isDeleted && "opacity-50"
         )}>
-            <Icon className={cn("size-5 shrink-0", iconColor)} />
+            <Icon className={cn("size-5 shrink-0", iconColor, isDeleted && "opacity-50")} />
             <div className="flex-1 min-w-0">
                 {hasPreview ? (
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Preview</span>
+                            {isDeleted && (
+                                <span className="text-[10px] font-medium text-destructive">Deleted</span>
+                            )}
                         </div>
                         <p className="text-muted-foreground/70 font-mono text-xs line-through truncate">
                             {relativePath}
@@ -76,24 +81,36 @@ export function EpisodeFile({
                         </p>
                     </div>
                 ) : (
-                    <p className="text-foreground font-mono font-semibold text-sm truncate" title={file.path}>
-                        {relativePath}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className={cn(
+                            "font-mono font-semibold text-sm truncate",
+                            isDeleted ? "text-muted-foreground line-through" : "text-foreground"
+                        )} title={file.path}>
+                            {relativePath}
+                        </p>
+                        {isDeleted && (
+                            <XCircle className="size-4 shrink-0 text-destructive/70" />
+                        )}
+                    </div>
                 )}
             </div>
         </div>
     ) : (
         <div className={cn(
             "p-2 rounded-md border",
-            isPreviewMode && file.newPath ? "bg-primary/5 border-primary/20" : "bg-background border-border"
+            isPreviewMode && file.newPath ? "bg-primary/5 border-primary/20" : "bg-background border-border",
+            isDeleted && "opacity-50"
         )}>
             {label ? (
                 <>
                     <div className="flex items-center gap-2 mb-1">
-                        <Icon className={cn("size-4", iconColor)} />
+                        <Icon className={cn("size-4", iconColor, isDeleted && "opacity-50")} />
                         <span className="text-xs font-semibold">{label}</span>
                         {isPreviewMode && file.newPath && (
                             <span className="text-xs text-primary font-medium">(Preview)</span>
+                        )}
+                        {isDeleted && (
+                            <span className="text-xs text-destructive font-medium">(Deleted)</span>
                         )}
                     </div>
                     {isPreviewMode && file.newPath ? (
@@ -106,14 +123,22 @@ export function EpisodeFile({
                             </p>
                         </div>
                     ) : (
-                        <p className="text-xs text-muted-foreground font-mono truncate">
-                            {relativePath}
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <p className={cn(
+                                "text-xs font-mono truncate",
+                                isDeleted ? "text-muted-foreground line-through" : "text-muted-foreground"
+                            )}>
+                                {relativePath}
+                            </p>
+                            {isDeleted && (
+                                <XCircle className="size-3 shrink-0 text-destructive/70" />
+                            )}
+                        </div>
                     )}
                 </>
             ) : (
                 <div className="flex items-center gap-2">
-                    <Icon className={cn("size-3", iconColor)} />
+                    <Icon className={cn("size-3", iconColor, isDeleted && "opacity-50")} />
                     {isPreviewMode && file.newPath ? (
                         <div className="flex-1 min-w-0 space-y-1">
                             <p className="text-xs text-muted-foreground font-mono truncate line-through">
@@ -124,9 +149,17 @@ export function EpisodeFile({
                             </p>
                         </div>
                     ) : (
-                        <p className="text-xs text-muted-foreground font-mono truncate flex-1">
-                            {relativePath}
-                        </p>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <p className={cn(
+                                "text-xs font-mono truncate",
+                                isDeleted ? "text-muted-foreground line-through" : "text-muted-foreground"
+                            )}>
+                                {relativePath}
+                            </p>
+                            {isDeleted && (
+                                <XCircle className="size-3 shrink-0 text-destructive/70" />
+                            )}
+                        </div>
                     )}
                 </div>
             )}
@@ -142,7 +175,7 @@ export function EpisodeFile({
                 <ContextMenuContent>
                     <ContextMenuItem
                         onClick={() => {
-                            if (!file.path) return
+                            if (!file.path || file.isDeleted) return
                             
                             // Calculate relative path from media folder
                             const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath

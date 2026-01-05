@@ -5,6 +5,7 @@ export const getApplicationContextTool = (clientId: string, abortSignal?: AbortS
     description: `The the application context including:
     1. what media folder user selected 
 `,
+    toolName: 'get-app-context',
     inputSchema: z.object({}),
     outputSchema: z.object({
       selectedFolderPath: z.string().describe("The path of the media folder that user selected in UI."),

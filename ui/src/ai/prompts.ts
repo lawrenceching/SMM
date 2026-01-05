@@ -57,8 +57,11 @@ path: /path/to/file2.mp4
 
 ### Rename Files
 
-When user ask to rename files, you should call "rename-files-in-batch" to rename the files.
-And SMM only support renaming video files.
+When user ask to rename files, you need to understand below information:
+1. Which media folder user is asking for. If user don't tell the media folder, you should call "get-app-context" to get the selected media folder in UI.
+2. The naming rules. If user don't tell the naming rules, you should ask user if he wants follow the Plex naming rules.
+
+You ONLY need to rename the video file. For image files, subtitle files, nfo files that link to video file, those files will be renamed implicitly when the video name got changed.
 
 Steps 
 [ ] Call "list-files-in-media-folder" to get the files in media folder

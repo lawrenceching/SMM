@@ -8,4 +8,8 @@ export interface FileProps {
      * The absolute destination path in POSIX format, it's used to represent the destination path in renaming function
      */
     newPath?: string
+    /**
+     * If true, the file is deleted
+     */
+    isDeleted?: boolean
 }

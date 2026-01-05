@@ -1,5 +1,5 @@
 import { broadcast } from "../utils/socketIO";
-import { AskForRenameFilesConfirmation } from "@core/event-types";
+import { AskForRenameFilesConfirmation, type AskForRenameFilesConfirmationAddFileResponseData, type AskForRenameFilesConfirmationBeginRequestData, type AskForRenameFilesConfirmationEndRequestData } from "@core/event-types";
 
 export interface Task {
     mediaFolderPath: string;
@@ -48,6 +48,7 @@ export function addRenameFileToTask(id: string, from: string, to: string) {
     if (!cache[id]) {
         throw new Error(`Task with id ${id} not found`);
     }
+    
     cache[id].files.push({ from, to });
 
     const data: AskForRenameFilesConfirmationAddFileResponseData = {

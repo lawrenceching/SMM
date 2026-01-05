@@ -30,7 +30,6 @@ export async function newMediaMetadata(folderPath: Path) {
 export async function handleReadMediaMetadata(app: Hono) {
     app.post('/api/readMediaMetadata', async (c) => {
         const raw = await c.req.json() as ReadMediaMetadataRequestBody;
-        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${JSON.stringify(raw)}`)
         const folderPath = raw.path;
 
         // Check if folder exists
@@ -41,7 +40,6 @@ export async function handleReadMediaMetadata(app: Hono) {
                     data: {} as MediaMetadata,
                     error: `Folder Not Found: ${folderPath} is not a directory`
                 };
-                console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
                 return c.json(resp, 200);
             }
         } catch (error) {
@@ -69,6 +67,10 @@ export async function handleReadMediaMetadata(app: Hono) {
 
         // Update files list from the actual folder
         data.files = await listFiles(new Path(folderPath), true);
+        logger.info({
+            folderPath,
+            files: data.files
+        }, `[ReadMediaMetadata] updated files in media metadata`);
 
         const resp: ReadMediaMetadataResponseBody = {
             data
