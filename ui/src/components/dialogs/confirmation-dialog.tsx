@@ -18,11 +18,13 @@ export function ConfirmationDialog({ isOpen, config, onClose }: ConfirmationDial
           <DialogHeader>
             <DialogTitle>{config.title}</DialogTitle>
             {config.description && (
-              <DialogDescription>{config.description}</DialogDescription>
+              <DialogDescription className="max-h-[50vh] overflow-y-auto">{config.description}</DialogDescription>
             )}
           </DialogHeader>
         )}
-        {config?.content}
+        <div className="max-h-[50vh] overflow-y-auto">
+            {config?.content}
+        </div>
       </DialogContent>
     </Dialog>
   )
