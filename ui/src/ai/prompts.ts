@@ -37,22 +37,7 @@ Order to infer the MediaFileMetadata, you may need below information:
 Below are tasks to help user to match video files to each episode.
 
 [ ] Gather information from user and software context.
-[ ] Infer the MediaFileMetadata based on the information, using template below
-\`\`\`
-
-season: 0
-episode: 0
-path: /path/to/file1.mp4
-
-
-season: 0
-episode: 1
-path: /path/to/file2.mp4
-
-...continue the rest of files
-\`\`\`
-
-[ ] Call "match-episodes-in-batch" to update the MediaFileMetadata in SMM, based on previous task output
+[ ] Call "match-episodes-in-batch" to update the MediaFileMetadata
 
 
 ### Rename Files
