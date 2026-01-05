@@ -15,38 +15,30 @@ interface MatchFile {
   path: string;
 }
 
-function updateMediaFileMetadatas(
-  mediaFiles: MediaFileMetadata[],
+export function updateMediaFileMetadatas(
+  _mediaFiles: MediaFileMetadata[],
   videoFilePath: string,
   seasonNumber: number,
   episodeNumber: number
 ): MediaFileMetadata[] {
-  // Check if videoFilePath already exists
-  const existingIndex = mediaFiles.findIndex(file => file.absolutePath === videoFilePath);
 
-  if (existingIndex !== -1) {
-    // Update existing entry
-    const existingFile = mediaFiles[existingIndex]!;
-    logger.info(`Update media file "${videoFilePath}" from season ${existingFile.seasonNumber ?? '?'} episode ${existingFile.episodeNumber ?? '?'} to season ${seasonNumber} episode ${episodeNumber}`);
-    const updatedFiles = [...mediaFiles];
-    updatedFiles[existingIndex] = {
-      ...updatedFiles[existingIndex]!,
+  let mediaFiles = _mediaFiles;
+
+  // remove all media files for given season and episode
+  mediaFiles = mediaFiles.filter(file => file.seasonNumber !== seasonNumber || file.episodeNumber !== episodeNumber);
+
+  // remove all media files for given path
+  mediaFiles = mediaFiles.filter(file => file.absolutePath !== videoFilePath);
+
+  logger.info(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`);
+  return [
+    ...mediaFiles,
+    {
+      absolutePath: videoFilePath,
       seasonNumber,
       episodeNumber
-    };
-    return updatedFiles;
-  } else {
-    // Add new entry
-    logger.info(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`);
-    return [
-      ...mediaFiles,
-      {
-        absolutePath: videoFilePath,
-        seasonNumber,
-        episodeNumber
-      }
-    ];
-  }
+    }
+  ];
 }
 
 export const createMatchEpisodesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
@@ -222,10 +214,6 @@ interface ToolResponse {
       return { error: `Error Reason: No valid files to match` };
     }
 
-    // TODO: Check abortSignal before asking for confirmation
-    if (abortSignal?.aborted) {
-      throw new Error('Request was aborted');
-    }
 
     // 4. Ask for user confirmation
     const getFilename = (path: string) => {
@@ -237,7 +225,11 @@ interface ToolResponse {
     const confirmationMessage = `Match ${validatedFiles.length} file(s) to episodes?\n\n${validatedFiles.map(f => `  • ${getFilename(f.path)} → S${f.season}E${f.episode}`).join('\n')}`;
     
     try {
-      // TODO: Check abortSignal during acknowledgement wait
+      
+      logger.info({
+        clientId,
+        confirmationMessage,
+      }, '[tool][matchEpisodesInBatch] Sending askForConfirmation event');
       const responseData = await acknowledge(
         {
           event: 'askForConfirmation',
@@ -247,6 +239,10 @@ interface ToolResponse {
           clientId: clientId,
         },
       );
+
+      logger.info({
+        responseData,
+      }, '[tool][matchEpisodesInBatch] User confirmation received');
 
       const confirmed = responseData?.confirmed ?? responseData?.response === 'yes';
       
@@ -260,19 +256,10 @@ interface ToolResponse {
       return { error: `Error Reason: Failed to get user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
 
-    // TODO: Check abortSignal before updating metadata
-    if (abortSignal?.aborted) {
-      throw new Error('Request was aborted');
-    }
-
     // 5. Update media metadata for all files
     let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
 
     for (const file of validatedFiles) {
-      // TODO: Check abortSignal during loop iteration
-      if (abortSignal?.aborted) {
-        throw new Error('Request was aborted');
-      }
       const pathInPosix = Path.posix(file.path);
       updatedMediaFiles = updateMediaFileMetadatas(updatedMediaFiles, pathInPosix, file.season, file.episode);
     }

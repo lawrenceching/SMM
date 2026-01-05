@@ -350,7 +350,6 @@ export interface MediaFileMetadata {
   absolutePath: string,
   seasonNumber?: number,
   episodeNumber?: number,
-  episodeName?: string,
   /**
    * Absolute paths of subtitle files in POSIX format
    */
