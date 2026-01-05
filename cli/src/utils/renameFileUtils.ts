@@ -211,12 +211,11 @@ export async function executeRenameOperation(
 ): Promise<{ success: boolean; error?: string }> {
   const { dryRun = false, clientId, logPrefix = '[executeRenameOperation]' } = options;
 
-  try {
-    const fromPathPlatform = new Path(from).platformAbsPath();
-    const toPathPlatform = new Path(to).platformAbsPath();
+  const fromPathPlatform = new Path(from).platformAbsPath();
+  const toPathPlatform = new Path(to).platformAbsPath();
 
-    // Ensure target directory exists before renaming
-    // Handle case where file is at root level (parent() throws error)
+  try {
+
 
     if (dryRun) {
       logger.info({
@@ -247,12 +246,35 @@ export async function executeRenameOperation(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     logger.error({
       from,
       to,
       error: errorMessage,
       clientId
     }, `${logPrefix} Failed to rename file`);
+
+    if(errorMessage.includes('ENOENT: no such file or directory')) {
+      const isExists = await Bun.file(fromPathPlatform).exists();
+      if(!isExists) {
+        logger.error({
+          from: fromPathPlatform,
+          clientId
+        }, `${logPrefix} Double check and confirm that the source file does not exist`);
+      } else {
+        logger.error({
+          from: fromPathPlatform,
+          to: toPathPlatform,
+          clientId
+        }, `${logPrefix} Double check and confirm that the source file exists`);
+        return {
+          success: false,
+          error: `The destination file name is illegal in file system. Please consider to use file name without special characters.`,
+        }
+      }
+    }
+
+    
 
     return {
       success: false,
