@@ -7,10 +7,41 @@
     "title": "Settings"
   },
   "rename": {
-    "title": "Rename File"
+    "title": "Rename File",
+    "defaultTitle": "Rename",
+    "defaultDescription": "Enter the new name",
+    "newNameLabel": "New Name",
+    "placeholder": "Enter new name...",
+    "suggestions": "Suggestions"
+  },
+  "filePicker": {
+    "defaultTitle": "Select File or Folder",
+    "defaultDescription": "Choose a file or folder from the list"
+  },
+  "downloadVideo": {
+    "title": "Download Video",
+    "description": "Enter the video URL and select the download folder",
+    "urlLabel": "Video URL",
+    "folderLabel": "Download Folder",
+    "folderPlaceholder": "Select download folder...",
+    "downloading": "Downloading...",
+    "start": "Start"
   },
   "scrape": {
-    "title": "Scrape Metadata"
+    "title": "Scrape Metadata",
+    "defaultTitle": "Task Progress",
+    "defaultDescription": "Current task execution status",
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "noTasks": "No tasks",
+    "start": "Start"
+  },
+  "errors": {
+    "providerError": "useDialogs must be used within a DialogProvider"
   }
 }
 

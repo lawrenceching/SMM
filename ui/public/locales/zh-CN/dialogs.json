@@ -7,10 +7,41 @@
     "title": "设置"
   },
   "rename": {
-    "title": "重命名文件"
+    "title": "重命名文件",
+    "defaultTitle": "重命名",
+    "defaultDescription": "请输入新名称",
+    "newNameLabel": "新名称",
+    "placeholder": "请输入新名称...",
+    "suggestions": "建议"
+  },
+  "filePicker": {
+    "defaultTitle": "选择文件或文件夹",
+    "defaultDescription": "从列表中选择文件或文件夹"
+  },
+  "downloadVideo": {
+    "title": "下载视频",
+    "description": "输入视频 URL 并选择下载文件夹",
+    "urlLabel": "视频 URL",
+    "folderLabel": "下载文件夹",
+    "folderPlaceholder": "选择下载文件夹...",
+    "downloading": "下载中...",
+    "start": "开始"
   },
   "scrape": {
-    "title": "抓取元数据"
+    "title": "抓取元数据",
+    "defaultTitle": "任务进度",
+    "defaultDescription": "当前任务执行状态",
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "pending": "等待中"
+    },
+    "noTasks": "没有任务",
+    "start": "开始"
+  },
+  "errors": {
+    "providerError": "useDialogs 必须在 DialogProvider 内使用"
   }
 }
 

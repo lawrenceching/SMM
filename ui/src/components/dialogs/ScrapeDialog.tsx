@@ -11,8 +11,11 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import type { ScrapeDialogProps, Task } from "./types"
+import { useTranslation } from "@/lib/i18n"
 
 function TaskItem({ task, level = 0 }: { task: Task; level?: number }) {
+  const { t } = useTranslation('dialogs')
+  
   const getStatusIcon = () => {
     switch (task.status) {
       case "running":
@@ -30,14 +33,14 @@ function TaskItem({ task, level = 0 }: { task: Task; level?: number }) {
   const getStatusText = () => {
     switch (task.status) {
       case "running":
-        return "Running"
+        return t('scrape.status.running')
       case "completed":
-        return "Completed"
+        return t('scrape.status.completed')
       case "failed":
-        return "Failed"
+        return t('scrape.status.failed')
       case "pending":
       default:
-        return "Pending"
+        return t('scrape.status.pending')
     }
   }
 
@@ -94,10 +97,14 @@ export function ScrapeDialog({
   isOpen,
   onClose,
   tasks,
-  title = "Task Progress",
-  description = "Current task execution status",
+  title,
+  description,
   onStart,
 }: ScrapeDialogProps) {
+  const { t } = useTranslation(['dialogs', 'common'])
+  const defaultTitle = title || t('scrape.defaultTitle')
+  const defaultDescription = description || t('scrape.defaultDescription')
+  
   // Add fanart task to the tasks list
   const allTasks = useMemo(() => {
     const fanartTask: Task = {
@@ -138,14 +145,14 @@ export function ScrapeDialog({
         className="max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{defaultTitle}</DialogTitle>
+          <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[400px] w-full">
           <div className="space-y-1 py-4">
             {allTasks.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                No tasks
+                {t('scrape.noTasks')}
               </div>
             ) : (
               allTasks.map((task, index) => (
@@ -157,16 +164,16 @@ export function ScrapeDialog({
         {showStartCancel && (
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('cancel', { ns: 'common' })}
             </Button>
             <Button onClick={handleStart}>
-              Start
+              {t('scrape.start')}
             </Button>
           </div>
         )}
         {canClose && !showStartCancel && (
           <div className="flex justify-end gap-2 pt-4">
-            <Button onClick={handleClose}>Close</Button>
+            <Button onClick={handleClose}>{t('close', { ns: 'common' })}</Button>
           </div>
         )}
       </DialogContent>

@@ -9,14 +9,18 @@ import {
 import { Button } from "@/components/ui/button"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FilePickerDialogProps, FileItem } from "./types"
+import { useTranslation } from "@/lib/i18n"
 
 export function FilePickerDialog({ 
   isOpen, 
   onClose, 
   onSelect, 
-  title = "Select File or Folder", 
-  description = "Choose a file or folder from the list" 
+  title, 
+  description
 }: FilePickerDialogProps) {
+  const { t } = useTranslation(['dialogs', 'common'])
+  const defaultTitle = title || t('filePicker.defaultTitle')
+  const defaultDescription = description || t('filePicker.defaultDescription')
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
   const [currentPath, setCurrentPath] = useState<string>("~")
 
@@ -45,8 +49,8 @@ export function FilePickerDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent showCloseButton={true} className="max-w-2xl overflow-hidden">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{defaultTitle}</DialogTitle>
+          <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 overflow-hidden">
           <div className="h-[400px] w-full overflow-hidden">
@@ -62,10 +66,10 @@ export function FilePickerDialog({
           {selectedFile && (
             <div className="flex justify-end gap-2 pt-2 shrink-0">
               <Button variant="outline" onClick={handleCancel}>
-                Cancel
+                {t('cancel', { ns: 'common' })}
               </Button>
               <Button onClick={handleConfirm}>
-                Confirm
+                {t('confirm', { ns: 'common' })}
               </Button>
             </div>
           )}

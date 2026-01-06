@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "@/lib/i18n"
 import {
   ConfirmationDialog,
   SpinnerDialog,
@@ -327,9 +328,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
 }
 
 export function useDialogs(): DialogContextValue {
+  const { t } = useTranslation('dialogs')
   const context = useContext(DialogContext)
   if (context === undefined) {
-    throw new Error("useDialogs must be used within a DialogProvider")
+    throw new Error(t('errors.providerError'))
   }
   return context
 }

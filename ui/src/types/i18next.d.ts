@@ -63,9 +63,40 @@ interface DialogsResources {
   }
   rename: {
     title: string
+    defaultTitle: string
+    defaultDescription: string
+    newNameLabel: string
+    placeholder: string
+    suggestions: string
+  }
+  filePicker: {
+    defaultTitle: string
+    defaultDescription: string
+  }
+  downloadVideo: {
+    title: string
+    description: string
+    urlLabel: string
+    folderLabel: string
+    folderPlaceholder: string
+    downloading: string
+    start: string
   }
   scrape: {
     title: string
+    defaultTitle: string
+    defaultDescription: string
+    status: {
+      running: string
+      completed: string
+      failed: string
+      pending: string
+    }
+    noTasks: string
+    start: string
+  }
+  errors: {
+    providerError: string
   }
 }
 

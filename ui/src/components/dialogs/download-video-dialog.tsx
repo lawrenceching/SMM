@@ -12,8 +12,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import type { DownloadVideoDialogProps, FileItem } from "./types"
+import { useTranslation } from "@/lib/i18n"
 
 export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: DownloadVideoDialogProps) {
+  const { t } = useTranslation(['dialogs', 'common'])
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
   const [progress, setProgress] = useState(0)
@@ -46,14 +48,14 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent showCloseButton={true} className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Download Video</DialogTitle>
+          <DialogTitle>{t('downloadVideo.title')}</DialogTitle>
           <DialogDescription>
-            Enter the video URL and select the download folder
+            {t('downloadVideo.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="url">Video URL</Label>
+            <Label htmlFor="url">{t('downloadVideo.urlLabel')}</Label>
             <Input
               id="url"
               type="url"
@@ -64,12 +66,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="downloadFolder">Download Folder</Label>
+            <Label htmlFor="downloadFolder">{t('downloadVideo.folderLabel')}</Label>
             <div className="flex gap-2">
               <Input
                 id="downloadFolder"
                 type="text"
-                placeholder="Select download folder..."
+                placeholder={t('downloadVideo.folderPlaceholder')}
                 value={downloadFolder}
                 onChange={(e) => setDownloadFolder(e.target.value)}
                 disabled={isDownloading}
@@ -88,7 +90,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
           {isDownloading && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Downloading...</span>
+                <span className="text-muted-foreground">{t('downloadVideo.downloading')}</span>
                 <span className="text-muted-foreground">{progress}%</span>
               </div>
               <Progress value={progress} />
@@ -97,10 +99,10 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={handleCancel} disabled={isDownloading}>
-            Cancel
+            {t('cancel', { ns: 'common' })}
           </Button>
           <Button onClick={handleStart} disabled={!url.trim() || !downloadFolder.trim() || isDownloading}>
-            {isDownloading ? "Downloading..." : "Start"}
+            {isDownloading ? t('downloadVideo.downloading') : t('downloadVideo.start')}
           </Button>
         </div>
       </DialogContent>

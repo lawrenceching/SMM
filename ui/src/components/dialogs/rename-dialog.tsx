@@ -11,16 +11,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RenameDialogProps } from "./types"
+import { useTranslation } from "@/lib/i18n"
 
 export function RenameDialog({ 
   isOpen, 
   onClose, 
   onConfirm, 
   initialValue = "", 
-  title = "Rename", 
-  description = "Enter the new name",
+  title, 
+  description,
   suggestions = []
 }: RenameDialogProps) {
+  const { t } = useTranslation(['dialogs', 'common'])
+  const defaultTitle = title || t('rename.defaultTitle')
+  const defaultDescription = description || t('rename.defaultDescription')
   const [newName, setNewName] = useState(initialValue)
 
   // Reset to initial value when dialog opens or initialValue changes
@@ -58,16 +62,16 @@ export function RenameDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent showCloseButton={true} className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{defaultTitle}</DialogTitle>
+          <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="newName">New Name</Label>
+            <Label htmlFor="newName">{t('rename.newNameLabel')}</Label>
             <Input
               id="newName"
               type="text"
-              placeholder="Enter new name..."
+              placeholder={t('rename.placeholder')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -76,7 +80,7 @@ export function RenameDialog({
           </div>
           {suggestions && suggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">Suggestions</span>
+              <span className="text-xs text-muted-foreground">{t('rename.suggestions')}</span>
               <div className="flex flex-wrap gap-1.5">
                 {suggestions.map((suggestion, index) => (
                   <button
@@ -94,10 +98,10 @@ export function RenameDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            {t('cancel', { ns: 'common' })}
           </Button>
           <Button onClick={handleConfirm} disabled={!newName.trim() || newName.trim() === (initialValue || "").trim()}>
-            Confirm
+            {t('confirm', { ns: 'common' })}
           </Button>
         </DialogFooter>
       </DialogContent>
