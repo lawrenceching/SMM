@@ -1,4 +1,3 @@
-export const matchFilesPrompt = `Help me to match video files to each episode.`
 
 export const prompts = {
 
@@ -78,6 +77,7 @@ EpisodeName: The episode name
 Extension: The file extension, such as "mp4", "mkv", "avi", ...
 
 
-    `
+    `,
 
+    findVdeoFileForEpisode: `帮我匹配每一集对应的视频文件`
 }

@@ -28,7 +28,7 @@ import {
 import type { FC } from "react";
 import { useMediaMetadata } from "./media-metadata-provider";
 import { basename } from "@/lib/path";
-import { matchFilesPrompt } from "@/ai/prompts";
+import { matchFilesPrompt, prompts } from "@/ai/prompts";
 
 export const Thread: FC = () => {
   return (
@@ -99,7 +99,7 @@ const SUGGESTIONS = [
   {
     title: "匹配视频文件",
     label: "智能剧集匹配",
-    prompt: matchFilesPrompt,
+    prompt: prompts.findVdeoFileForEpisode,
   },
   {
     title: "整理文件名",
