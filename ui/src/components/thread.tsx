@@ -28,7 +28,7 @@ import {
 import type { FC } from "react";
 import { useMediaMetadata } from "./media-metadata-provider";
 import { basename } from "@/lib/path";
-import { matchFilesPrompt, prompts } from "@/ai/prompts";
+import { prompts } from "@/ai/prompts";
 
 export const Thread: FC = () => {
   return (

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Navigation } from "@/components/mobile/Navigation"
 import { Toolbox } from "@/components/mobile/Toolbox"
 import { NavBar } from "@/components/mobile/NavBar"
@@ -28,7 +28,7 @@ export default function AppNavigation() {
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata: globalSelectedMediaMetadata } = useMediaMetadata()
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {
@@ -84,11 +84,27 @@ export default function AppNavigation() {
     setCurrentPage("list")
   }
 
-  // Get selected media metadata
+  // Sync with global selected media metadata when switching to mobile view
+  useEffect(() => {
+    if (globalSelectedMediaMetadata?.mediaFolderPath) {
+      // If there's a globally selected media metadata, show detail view
+      setSelectedItemPath(globalSelectedMediaMetadata.mediaFolderPath)
+      setCurrentPage("detail")
+    } else {
+      // If no media metadata is selected, show list view
+      setSelectedItemPath(null)
+      setCurrentPage("list")
+    }
+  }, [globalSelectedMediaMetadata])
+
+  // Get selected media metadata (prefer local state, fallback to global)
   const selectedMediaMetadata = useMemo(() => {
-    if (!selectedItemPath) return null
-    return mediaMetadatas.find((metadata) => metadata.mediaFolderPath === selectedItemPath)
-  }, [selectedItemPath, mediaMetadatas])
+    if (selectedItemPath) {
+      return mediaMetadatas.find((metadata) => metadata.mediaFolderPath === selectedItemPath)
+    }
+    // Fallback to global selected media metadata if local state is not set
+    return globalSelectedMediaMetadata ?? null
+  }, [selectedItemPath, mediaMetadatas, globalSelectedMediaMetadata])
 
   return (
     <>
