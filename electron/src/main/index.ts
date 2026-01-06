@@ -90,12 +90,14 @@ async function startCLI(): Promise<void> {
 
   const CLI_EXECUTABLE = getCLIExecutablePath()
   const PUBLIC_FOLDER = getPublicFolderPath()
+  const cliArgs = ['--staticDir', PUBLIC_FOLDER, '--port', cliPort.toString()]
   console.log(`Starting CLI from: ${CLI_EXECUTABLE}`)
   console.log(`Public folder path: ${PUBLIC_FOLDER}`)
   console.log(`CLI port: ${cliPort}`)
+  console.log(`CLI command: ${CLI_EXECUTABLE} ${cliArgs.join(' ')}`)
 
   try {
-    cliProcess = spawn(CLI_EXECUTABLE, ['--staticDir', PUBLIC_FOLDER, '--port', cliPort.toString()], {
+    cliProcess = spawn(CLI_EXECUTABLE, cliArgs, {
       stdio: 'pipe', // Pipe stdio to prevent console window from appearing on Windows
       detached: false,
       windowsHide: true, // Hide the console window on Windows

@@ -8,25 +8,17 @@ const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
 
 /**
  * Creates a Pino logger instance with appropriate configuration for the current environment.
- * - Development: Logs to console with pretty formatting
+ * - Development: Logs to console (JSON format)
  * - Production: Logs to rotating file with size and time-based rotation
  */
 async function createLogger() {
   if (isDevelopment) {
-    // Development mode: pretty console logging
+    // Development mode: console logging (JSON format)
     const logDir = getLogDir();
     console.log(`📝 Log directory: ${logDir} (logs printed to console in development mode)`);
     
     return pino({
       level: logLevel,
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname',
-        }
-      },
     });
   } else {
     // Production mode: file logging with rotation
