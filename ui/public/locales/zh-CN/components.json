@@ -13,6 +13,14 @@
     "mediaFolders": "媒体文件夹",
     "addFolder": "添加文件夹"
   },
+  "mediaFolder": {
+    "rename": "重命名",
+    "openInExplorer": "在资源管理器中打开",
+    "delete": "删除",
+    "deleteWarning": "不会从磁盘删除",
+    "renameTitle": "重命名媒体",
+    "renameDescription": "输入此媒体的新名称"
+  },
   "toolbar": {
     "refresh": "刷新",
     "settings": "设置"

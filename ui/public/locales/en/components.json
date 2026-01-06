@@ -13,6 +13,14 @@
     "mediaFolders": "Media Folders",
     "addFolder": "Add Folder"
   },
+  "mediaFolder": {
+    "rename": "Rename",
+    "openInExplorer": "Open in Explorer",
+    "delete": "Delete",
+    "deleteWarning": "will NOT delete from disk",
+    "renameTitle": "Rename Media",
+    "renameDescription": "Enter the new name for this media"
+  },
   "toolbar": {
     "refresh": "Refresh",
     "settings": "Settings"

@@ -51,6 +51,14 @@ interface ComponentsResources {
     refresh: string
     settings: string
   }
+  mediaFolder: {
+    rename: string
+    openInExplorer: string
+    delete: string
+    deleteWarning: string
+    renameTitle: string
+    renameDescription: string
+  }
 }
 
 interface DialogsResources {

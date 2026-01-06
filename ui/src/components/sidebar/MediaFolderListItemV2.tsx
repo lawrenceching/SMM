@@ -14,6 +14,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { useTranslation } from "@/lib/i18n"
 
 export interface MediaFolderListItemV2Props {
   mediaName: string,
@@ -28,6 +29,7 @@ export interface MediaFolderListItemV2Props {
 }
 
 export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderListItemV2Props) {
+  const { t } = useTranslation(['components', 'dialogs'])
 
   const {
     removeMediaMetadata,
@@ -149,8 +151,8 @@ export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderLis
       },
       {
         initialValue: mediaName,
-        title: "Rename Media",
-        description: "Enter the new name for this media",
+        title: t('mediaFolder.renameTitle'),
+        description: t('mediaFolder.renameDescription'),
         suggestions: suggestions.length > 0 ? suggestions : undefined
       }
     )
@@ -186,12 +188,12 @@ export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderLis
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={handleRenameButtonClick}>Rename</ContextMenuItem>
-        <ContextMenuItem onClick={handleOpenInExplorerButtonClick}>Open in Explorer</ContextMenuItem>
+        <ContextMenuItem onClick={handleRenameButtonClick}>{t('mediaFolder.rename')}</ContextMenuItem>
+        <ContextMenuItem onClick={handleOpenInExplorerButtonClick}>{t('mediaFolder.openInExplorer')}</ContextMenuItem>
         <ContextMenuItem onClick={handleDeleteButtonClick}>
           <div className="flex items-center gap-4">
-            <span>Delete</span>
-            <span className="text-xs text-muted-foreground">will NOT delete from disk</span>
+            <span>{t('mediaFolder.delete')}</span>
+            <span className="text-xs text-muted-foreground">{t('mediaFolder.deleteWarning')}</span>
           </div>
         </ContextMenuItem>
       </ContextMenuContent>
