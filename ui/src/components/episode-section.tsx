@@ -264,7 +264,6 @@ export function EpisodeSection({
                                         isPreviewMode={isPreviewMode}
                                         showRenameMenu={true}
                                         compact={true}
-                                        bgColor="bg-primary/10"
                                     />
                                 ))
                             })}

@@ -17,7 +17,6 @@ interface EpisodeFileProps {
     isPreviewMode: boolean
     showRenameMenu?: boolean
     compact?: boolean
-    bgColor?: string
 }
 
 // Helper function to get relative path from media folder
@@ -45,7 +44,6 @@ export function EpisodeFile({
     isPreviewMode,
     showRenameMenu = false,
     compact = false,
-    bgColor = "bg-primary/10",
 }: EpisodeFileProps) {
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const { renameDialog } = useDialogs()
@@ -58,38 +56,38 @@ export function EpisodeFile({
 
     const fileContent = compact ? (
         <div className={cn(
-            "group relative flex items-center gap-3 px-3 py-2.5 transition-colors",
-            hasPreview ? "bg-primary/10" : bgColor,
-            "hover:bg-primary/15",
+            "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
+            hasPreview ? "bg-primary/5 border border-primary/20" : "bg-muted/30 border border-transparent",
+            "hover:bg-muted/50",
             isDeleted && "opacity-50"
         )}>
-            <Icon className={cn("size-5 shrink-0", iconColor, isDeleted && "opacity-50")} />
+            <Icon className={cn("size-4 shrink-0", iconColor, isDeleted && "opacity-50")} />
             <div className="flex-1 min-w-0">
                 {hasPreview ? (
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Preview</span>
+                            <span className="text-[10px] font-medium text-primary/80 uppercase tracking-wide">Preview</span>
                             {isDeleted && (
-                                <span className="text-[10px] font-medium text-destructive">Deleted</span>
+                                <span className="text-[10px] font-medium text-destructive/80">Deleted</span>
                             )}
                         </div>
-                        <p className="text-muted-foreground/70 font-mono text-xs line-through truncate">
+                        <p className="text-muted-foreground/60 font-mono text-xs line-through truncate">
                             {relativePath}
                         </p>
-                        <p className="text-foreground font-mono font-semibold text-sm truncate">
+                        <p className="text-foreground font-mono font-medium text-sm truncate">
                             {newRelativePath}
                         </p>
                     </div>
                 ) : (
                     <div className="flex items-center gap-2">
                         <p className={cn(
-                            "font-mono font-semibold text-sm truncate",
-                            isDeleted ? "text-muted-foreground line-through" : "text-foreground"
+                            "font-mono font-medium text-sm truncate",
+                            isDeleted ? "text-muted-foreground/60 line-through" : "text-foreground"
                         )} title={file.path}>
                             {relativePath}
                         </p>
                         {isDeleted && (
-                            <XCircle className="size-4 shrink-0 text-destructive/70" />
+                            <XCircle className="size-3.5 shrink-0 text-destructive/70" />
                         )}
                     </div>
                 )}
@@ -97,28 +95,29 @@ export function EpisodeFile({
         </div>
     ) : (
         <div className={cn(
-            "p-2 rounded-md border",
+            "p-2.5 rounded-md border transition-colors",
             isPreviewMode && file.newPath ? "bg-primary/5 border-primary/20" : "bg-background border-border",
+            "hover:bg-muted/30",
             isDeleted && "opacity-50"
         )}>
             {label ? (
                 <>
-                    <div className="flex items-center gap-2 mb-1">
-                        <Icon className={cn("size-4", iconColor, isDeleted && "opacity-50")} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <Icon className={cn("size-3.5", iconColor, isDeleted && "opacity-50")} />
                         <span className="text-xs font-semibold">{label}</span>
                         {isPreviewMode && file.newPath && (
-                            <span className="text-xs text-primary font-medium">(Preview)</span>
+                            <span className="text-[10px] text-primary/80 font-medium uppercase tracking-wide">Preview</span>
                         )}
                         {isDeleted && (
-                            <span className="text-xs text-destructive font-medium">(Deleted)</span>
+                            <span className="text-[10px] text-destructive/80 font-medium">Deleted</span>
                         )}
                     </div>
                     {isPreviewMode && file.newPath ? (
                         <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground font-mono truncate line-through">
+                            <p className="text-xs text-muted-foreground/60 font-mono truncate line-through">
                                 {relativePath}
                             </p>
-                            <p className="text-xs text-primary font-mono truncate font-medium">
+                            <p className="text-xs text-foreground font-mono truncate font-medium">
                                 {newRelativePath}
                             </p>
                         </div>
@@ -126,7 +125,7 @@ export function EpisodeFile({
                         <div className="flex items-center gap-2">
                             <p className={cn(
                                 "text-xs font-mono truncate",
-                                isDeleted ? "text-muted-foreground line-through" : "text-muted-foreground"
+                                isDeleted ? "text-muted-foreground/60 line-through" : "text-muted-foreground"
                             )}>
                                 {relativePath}
                             </p>
@@ -138,13 +137,13 @@ export function EpisodeFile({
                 </>
             ) : (
                 <div className="flex items-center gap-2">
-                    <Icon className={cn("size-3", iconColor, isDeleted && "opacity-50")} />
+                    <Icon className={cn("size-3.5", iconColor, isDeleted && "opacity-50")} />
                     {isPreviewMode && file.newPath ? (
                         <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-xs text-muted-foreground font-mono truncate line-through">
+                            <p className="text-xs text-muted-foreground/60 font-mono truncate line-through">
                                 {relativePath}
                             </p>
-                            <p className="text-xs text-primary font-mono truncate font-medium">
+                            <p className="text-xs text-foreground font-mono truncate font-medium">
                                 {newRelativePath}
                             </p>
                         </div>
@@ -152,7 +151,7 @@ export function EpisodeFile({
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                             <p className={cn(
                                 "text-xs font-mono truncate",
-                                isDeleted ? "text-muted-foreground line-through" : "text-muted-foreground"
+                                isDeleted ? "text-muted-foreground/60 line-through" : "text-muted-foreground"
                             )}>
                                 {relativePath}
                             </p>
