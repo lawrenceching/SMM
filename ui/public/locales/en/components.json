@@ -1,0 +1,21 @@
+{
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "help": "Help",
+    "openFolder": "Open Folder",
+    "config": "Config",
+    "exit": "Exit",
+    "downloadVideo": "Download Video"
+  },
+  "sidebar": {
+    "mediaFolders": "Media Folders",
+    "addFolder": "Add Folder"
+  },
+  "toolbar": {
+    "refresh": "Refresh",
+    "settings": "Settings"
+  }
+}
+

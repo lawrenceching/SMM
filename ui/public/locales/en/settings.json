@@ -1,0 +1,15 @@
+{
+  "title": "Settings",
+  "general": {
+    "title": "General",
+    "language": "Language",
+    "languageDescription": "Select the display language for the application"
+  },
+  "ai": {
+    "title": "AI Settings"
+  },
+  "renameRules": {
+    "title": "Rename Rules"
+  }
+}
+

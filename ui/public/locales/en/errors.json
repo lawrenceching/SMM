@@ -1,0 +1,9 @@
+{
+  "generic": "An error occurred",
+  "networkError": "Network error, please check your connection",
+  "fileNotFound": "File not found",
+  "permissionDenied": "Permission denied",
+  "invalidInput": "Invalid input",
+  "operationFailed": "Operation failed"
+}
+

@@ -1,0 +1,15 @@
+{
+  "title": "设置",
+  "general": {
+    "title": "常规",
+    "language": "语言",
+    "languageDescription": "选择应用程序的显示语言"
+  },
+  "ai": {
+    "title": "AI 设置"
+  },
+  "renameRules": {
+    "title": "重命名规则"
+  }
+}
+

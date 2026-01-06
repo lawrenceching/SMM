@@ -1,6 +1,7 @@
 import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './lib/i18n' // Initialize i18n
 import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'

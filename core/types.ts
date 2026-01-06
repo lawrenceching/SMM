@@ -7,7 +7,7 @@ export interface AppConfig {
 }
 
 
-export type LanguageCode = 'zh-CN' | 'en-US'
+export type LanguageCode = 'zh-CN' | 'zh-HK' | 'zh-TW' | 'en'
 
 export interface TMDBConfig {
   host?: string

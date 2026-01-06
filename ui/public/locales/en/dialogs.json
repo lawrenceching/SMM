@@ -1,0 +1,16 @@
+{
+  "confirmation": {
+    "title": "Confirmation",
+    "defaultMessage": "Are you sure you want to perform this action?"
+  },
+  "settings": {
+    "title": "Settings"
+  },
+  "rename": {
+    "title": "Rename File"
+  },
+  "scrape": {
+    "title": "Scrape Metadata"
+  }
+}
+

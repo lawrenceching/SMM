@@ -15,6 +15,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/components/dialog-provider"
+import { useTranslation } from "@/lib/i18n"
 
 export interface MenuItem {
   name: string
@@ -135,6 +136,7 @@ interface MenuProps {
 
 export function Menu({onOpenFolderMenuClick}: MenuProps) {
   const { configDialog } = useDialogs()
+  const { t } = useTranslation('components')
 
   // const [openDownloadVideo] = downloadVideoDialog
   const [openConfig] = configDialog
@@ -144,11 +146,11 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
       label: 'SMM',
       submenu: [
         {
-          name: "Open Folder",
+          name: t('menu.openFolder'),
           onClick: () => { onOpenFolderMenuClick?.() }
         },
         // {
-        //   name: "Download Video",
+        //   name: t('menu.downloadVideo'),
         //   onClick: () => {
         //     openDownloadVideo((url: string, downloadFolder: string) => {
         //       console.log(`Downloading video from ${url} to ${downloadFolder}`)
@@ -160,7 +162,7 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
           type: "separator"
         },
         {
-          name: "Config",
+          name: t('menu.config'),
           onClick: () => {
             openConfig()
           }
@@ -169,7 +171,7 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
           type: "separator"
         },
         {
-          name: "Exit",
+          name: t('menu.exit'),
           onClick: () => {
             console.log("Exit")
           }

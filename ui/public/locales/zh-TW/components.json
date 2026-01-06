@@ -1,0 +1,21 @@
+{
+  "menu": {
+    "file": "檔案",
+    "edit": "編輯",
+    "view": "檢視",
+    "help": "說明",
+    "openFolder": "開啟資料夾",
+    "config": "設定",
+    "exit": "結束",
+    "downloadVideo": "下載影片"
+  },
+  "sidebar": {
+    "mediaFolders": "媒體資料夾",
+    "addFolder": "新增資料夾"
+  },
+  "toolbar": {
+    "refresh": "重新整理",
+    "settings": "設定"
+  }
+}
+

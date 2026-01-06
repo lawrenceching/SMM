@@ -4,9 +4,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
+import { useTranslation } from "@/lib/i18n"
 
 export function GeneralSettings() {
   const { userConfig, setUserConfig } = useConfig()
+  const { t } = useTranslation(['settings', 'common'])
   
   // Track initial values
   const initialValues = useMemo(() => ({
@@ -17,7 +20,7 @@ export function GeneralSettings() {
   }), [userConfig])
 
   // Track current form values
-  const [applicationLanguage, setApplicationLanguage] = useState(initialValues.applicationLanguage)
+  const [applicationLanguage, setApplicationLanguage] = useState<SupportedLanguage>(initialValues.applicationLanguage as SupportedLanguage)
   const [tmdbHost, setTmdbHost] = useState(initialValues.tmdbHost)
   const [tmdbApiKey, setTmdbApiKey] = useState(initialValues.tmdbApiKey)
   const [tmdbProxy, setTmdbProxy] = useState(initialValues.tmdbProxy)
@@ -41,10 +44,15 @@ export function GeneralSettings() {
   }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, initialValues])
 
   // Handle save
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Change i18n language if language changed
+    if (applicationLanguage !== userConfig.applicationLanguage) {
+      await changeLanguage(applicationLanguage)
+    }
+    
     const updatedConfig = {
       ...userConfig,
-      applicationLanguage: applicationLanguage as 'zh-CN' | 'en-US',
+      applicationLanguage: applicationLanguage,
       tmdb: {
         ...userConfig.tmdb,
         host: tmdbHost || undefined,
@@ -58,27 +66,31 @@ export function GeneralSettings() {
   return (
     <div className="space-y-6 p-6 relative">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">General Settings</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('title')}</h2>
         <p className="text-muted-foreground mb-6">
-          Configure general application settings
+          {t('general.title')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="language">Application Language</Label>
+          <Label htmlFor="language">{t('general.language')}</Label>
           <Select 
             value={applicationLanguage} 
-            onValueChange={(value) => setApplicationLanguage(value as 'zh-CN' | 'en-US')}
+            onValueChange={(value) => setApplicationLanguage(value as SupportedLanguage)}
           >
             <SelectTrigger id="language">
-              <SelectValue placeholder="Select language" />
+              <SelectValue placeholder={t('general.languageDescription')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="zh-CN">中文 (简体)</SelectItem>
-              <SelectItem value="en-US">English</SelectItem>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>
+                  {lang.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-sm text-muted-foreground">{t('general.languageDescription')}</p>
         </div>
 
         <div className="space-y-2">
@@ -116,7 +128,7 @@ export function GeneralSettings() {
       {hasChanges && (
         <div className="fixed bottom-4 right-4 z-50">
           <Button onClick={handleSave}>
-            Save
+            {t('save', { ns: 'common' })}
           </Button>
         </div>
       )}

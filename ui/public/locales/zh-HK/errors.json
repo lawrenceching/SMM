@@ -1,0 +1,9 @@
+{
+  "generic": "發生錯誤",
+  "networkError": "網路錯誤，請檢查您的連線",
+  "fileNotFound": "找不到檔案",
+  "permissionDenied": "權限被拒絕",
+  "invalidInput": "輸入無效",
+  "operationFailed": "操作失敗"
+}
+

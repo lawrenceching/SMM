@@ -1,0 +1,16 @@
+{
+  "confirmation": {
+    "title": "確認",
+    "defaultMessage": "確定要執行此操作嗎？"
+  },
+  "settings": {
+    "title": "設定"
+  },
+  "rename": {
+    "title": "重新命名檔案"
+  },
+  "scrape": {
+    "title": "擷取元資料"
+  }
+}
+

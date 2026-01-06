@@ -1,0 +1,21 @@
+{
+  "menu": {
+    "file": "文件",
+    "edit": "编辑",
+    "view": "视图",
+    "help": "帮助",
+    "openFolder": "打开文件夹",
+    "config": "设置",
+    "exit": "退出",
+    "downloadVideo": "下载视频"
+  },
+  "sidebar": {
+    "mediaFolders": "媒体文件夹",
+    "addFolder": "添加文件夹"
+  },
+  "toolbar": {
+    "refresh": "刷新",
+    "settings": "设置"
+  }
+}
+

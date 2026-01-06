@@ -3,6 +3,7 @@ import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
+import { changeLanguage } from "@/lib/i18n"
 
 interface ConfigContextValue {
   appConfig: AppConfig
@@ -112,6 +113,11 @@ export function ConfigProvider({
       const config = await readFileApi(filePath);
       console.log('[ConfigProvider] Reloaded user config', config)
       setUserConfig(config);
+      
+      // Sync i18n language with config
+      if (config.applicationLanguage) {
+        await changeLanguage(config.applicationLanguage);
+      }
 
       // Map HelloResponse to AppConfig
       setAppConfig((prev) => {
@@ -138,10 +144,16 @@ export function ConfigProvider({
     reload()
   }, [initialAppConfig])
 
-  const saveUserConfig = useCallback((config: UserConfig) => {
+  const saveUserConfig = useCallback(async (config: UserConfig) => {
     if(!appConfig.userDataDir) {
       throw new Error("User data directory not found")
     }
+    
+    // Sync i18n language if language changed
+    if (config.applicationLanguage !== userConfig.applicationLanguage) {
+      await changeLanguage(config.applicationLanguage);
+    }
+    
     writeFile(join(appConfig.userDataDir, 'smm.json'), JSON.stringify(config))
     .then(() => {
       console.log("User config written successfully")
@@ -151,7 +163,14 @@ export function ConfigProvider({
       console.error("Failed to write user config:", err)
       setError(err instanceof Error ? err : new Error("Unknown error"))
     })
-  }, [appConfig.userDataDir])
+  }, [appConfig.userDataDir, userConfig.applicationLanguage])
+  
+  // Sync i18n language on initial load
+  useEffect(() => {
+    if (userConfig.applicationLanguage) {
+      changeLanguage(userConfig.applicationLanguage).catch(console.error)
+    }
+  }, []) // Only run on mount
 
   const value: ConfigContextValue = {
     appConfig,
