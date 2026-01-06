@@ -5,6 +5,7 @@ import { GeneralSettings } from "./settings/GeneralSettings"
 import { AiSettings } from "./settings/AiSettings"
 import { RenameRuleSettings } from "./settings/RenameRuleSettings"
 import { Feedback } from "./settings/Feedback"
+import { useTranslation } from "@/lib/i18n"
 
 type SettingsTab = "general" | "ai" | "rename-rules" | "feedback"
 
@@ -14,11 +15,13 @@ interface ConfigPanelSidebarProps {
 }
 
 function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps) {
+  const { t } = useTranslation('settings')
+  
   const menuItems: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
-    { id: "general", label: "General", icon: <Settings className="h-4 w-4" /> },
-    { id: "ai", label: "AI", icon: <Bot className="h-4 w-4" /> },
-    { id: "rename-rules", label: "Rename Rules", icon: <FileText className="h-4 w-4" /> },
-    { id: "feedback", label: "Feedback", icon: <MessageSquare className="h-4 w-4" /> },
+    { id: "general", label: t('sidebar.general'), icon: <Settings className="h-4 w-4" /> },
+    { id: "ai", label: t('sidebar.ai'), icon: <Bot className="h-4 w-4" /> },
+    { id: "rename-rules", label: t('sidebar.renameRules'), icon: <FileText className="h-4 w-4" /> },
+    { id: "feedback", label: t('sidebar.feedback'), icon: <MessageSquare className="h-4 w-4" /> },
   ]
 
   return (
@@ -26,7 +29,7 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
       <SidebarHeader />
       <SidebarContent className="flex-1">
         <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('sidebar.title')}</SidebarGroupLabel>
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>

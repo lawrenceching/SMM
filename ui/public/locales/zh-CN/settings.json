@@ -3,13 +3,57 @@
   "general": {
     "title": "常规",
     "language": "语言",
-    "languageDescription": "选择应用程序的显示语言"
+    "languageDescription": "选择应用程序的显示语言",
+    "tmdbHost": "TMDB 主机",
+    "tmdbHostPlaceholder": "https://api.themoviedb.org/3",
+    "tmdbApiKey": "TMDB API 密钥",
+    "tmdbApiKeyPlaceholder": "请输入您的 TMDB API 密钥",
+    "httpProxy": "HTTP 代理",
+    "httpProxyPlaceholder": "http://proxy.example.com:8080"
   },
   "ai": {
-    "title": "AI 设置"
+    "title": "AI 设置",
+    "description": "配置用于媒体元数据处理的 AI 提供商设置",
+    "selectProvider": "选择 AI 提供商",
+    "selectProviderPlaceholder": "选择 AI 提供商...",
+    "searchPlaceholder": "搜索 AI 提供商...",
+    "noProviderFound": "未找到 AI 提供商。",
+    "configuration": "{{provider}} 配置",
+    "baseUrl": "基础 URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "apiKey": "API 密钥",
+    "apiKeyPlaceholder": "请输入您的 API 密钥",
+    "model": "模型",
+    "modelPlaceholder": "模型名称"
+  },
+  "feedback": {
+    "title": "反馈",
+    "description": "分享您的反馈、报告错误或建议新功能",
+    "type": "类型",
+    "typeBug": "错误报告",
+    "typeFeature": "功能请求",
+    "typeImprovement": "改进建议",
+    "typeOther": "其他",
+    "message": "消息",
+    "messagePlaceholder": "请详细描述您的反馈...",
+    "send": "发送反馈"
   },
   "renameRules": {
-    "title": "重命名规则"
+    "title": "重命名规则",
+    "description": "配置媒体文件的重命名规则",
+    "addRule": "添加规则",
+    "selectedRule": "选中的重命名规则",
+    "selectPlaceholder": "选择重命名规则",
+    "noRulesAvailable": "没有可用的规则",
+    "availableRules": "可用规则",
+    "emptyState": "未配置重命名规则。点击“添加规则”创建一个。"
+  },
+  "sidebar": {
+    "title": "设置",
+    "general": "常规",
+    "ai": "AI",
+    "renameRules": "重命名规则",
+    "feedback": "反馈"
   }
 }
 

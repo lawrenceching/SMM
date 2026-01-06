@@ -3,31 +3,33 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 export function RenameRuleSettings() {
   const { userConfig } = useConfig()
+  const { t } = useTranslation('settings')
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Rename Rules</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t('renameRules.title')}</h2>
           <p className="text-muted-foreground mb-6">
-            Configure file renaming rules for media files
+            {t('renameRules.description')}
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add Rule
+          {t('renameRules.addRule')}
         </Button>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="selected-rename-rule">Selected Rename Rule</Label>
+          <Label htmlFor="selected-rename-rule">{t('renameRules.selectedRule')}</Label>
           <Select defaultValue={userConfig.selectedRenameRule || ''}>
             <SelectTrigger id="selected-rename-rule">
-              <SelectValue placeholder="Select a rename rule" />
+              <SelectValue placeholder={t('renameRules.selectPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {userConfig.renameRules?.map((rule) => (
@@ -35,7 +37,7 @@ export function RenameRuleSettings() {
                   {rule.name}
                 </SelectItem>
               )) || (
-                <SelectItem value="none">No rules available</SelectItem>
+                <SelectItem value="none">{t('renameRules.noRulesAvailable')}</SelectItem>
               )}
             </SelectContent>
           </Select>
@@ -44,7 +46,7 @@ export function RenameRuleSettings() {
         <div className="space-y-4">
           {userConfig.renameRules && userConfig.renameRules.length > 0 ? (
             <div className="space-y-2">
-              <Label>Available Rules</Label>
+              <Label>{t('renameRules.availableRules')}</Label>
               <div className="space-y-2">
                 {userConfig.renameRules.map((rule) => (
                   <div
@@ -63,7 +65,7 @@ export function RenameRuleSettings() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No rename rules configured. Click "Add Rule" to create one.
+              {t('renameRules.emptyState')}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Button } from "@/components/ui/button"
 import type { AI } from "@core/types"
+import { useTranslation } from "@/lib/i18n"
 
 const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
 
@@ -23,6 +24,7 @@ const providerKeyMap: Record<AI, keyof NonNullable<import("@core/types").AIConfi
 
 export function AiSettings() {
   const { userConfig, setUserConfig } = useConfig()
+  const { t } = useTranslation(['settings', 'common'])
   
   // Get initial values
   const initialSelectedProvider = (userConfig.selectedAI as AI) || "DeepSeek"
@@ -139,58 +141,58 @@ export function AiSettings() {
   return (
     <div className="space-y-6 p-6 relative">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">AI Settings</h2>
+        <h2 className="text-2xl font-semibold mb-4">{t('ai.title')}</h2>
         <p className="text-muted-foreground mb-6">
-          Configure AI provider settings for media metadata processing
+          {t('ai.description')}
         </p>
       </div>
 
       <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="selected-ai">Select AI Provider</Label>
+          <Label htmlFor="selected-ai">{t('ai.selectProvider')}</Label>
           <Combobox
             options={aiProviderOptions}
             value={selectedProvider}
             onValueChange={(value) => handleProviderChange(value as AI)}
-            placeholder="Select AI provider..."
-            searchPlaceholder="Search AI providers..."
-            emptyText="No AI provider found."
+            placeholder={t('ai.selectProviderPlaceholder')}
+            searchPlaceholder={t('ai.searchPlaceholder')}
+            emptyText={t('ai.noProviderFound')}
             className="w-full"
           />
         </div>
 
         <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-semibold text-lg">{selectedProvider} Configuration</h3>
+          <h3 className="font-semibold text-lg">{t('ai.configuration', { provider: selectedProvider })}</h3>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-baseurl`}>Base URL</Label>
+              <Label htmlFor={`${providerKey}-baseurl`}>{t('ai.baseUrl')}</Label>
               <Input
                 id={`${providerKey}-baseurl`}
                 value={currentConfig.baseURL}
                 onChange={(e) => updateConfig(selectedProvider, 'baseURL', e.target.value)}
-                placeholder="https://api.example.com/v1"
+                placeholder={t('ai.baseUrlPlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-apikey`}>API Key</Label>
+              <Label htmlFor={`${providerKey}-apikey`}>{t('ai.apiKey')}</Label>
               <Input
                 id={`${providerKey}-apikey`}
                 type="password"
                 value={currentConfig.apiKey}
                 onChange={(e) => updateConfig(selectedProvider, 'apiKey', e.target.value)}
-                placeholder="Enter your API key"
+                placeholder={t('ai.apiKeyPlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-model`}>Model</Label>
+              <Label htmlFor={`${providerKey}-model`}>{t('ai.model')}</Label>
               <Input
                 id={`${providerKey}-model`}
                 value={currentConfig.model}
                 onChange={(e) => updateConfig(selectedProvider, 'model', e.target.value)}
-                placeholder="model-name"
+                placeholder={t('ai.modelPlaceholder')}
               />
             </div>
           </div>
@@ -200,7 +202,7 @@ export function AiSettings() {
       {hasChanges && (
         <div className="fixed bottom-4 right-4 z-50">
           <Button onClick={handleSave}>
-            Save
+            {t('save', { ns: 'common' })}
           </Button>
         </div>
       )}

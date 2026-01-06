@@ -75,12 +75,56 @@ interface SettingsResources {
     title: string
     language: string
     languageDescription: string
+    tmdbHost: string
+    tmdbHostPlaceholder: string
+    tmdbApiKey: string
+    tmdbApiKeyPlaceholder: string
+    httpProxy: string
+    httpProxyPlaceholder: string
   }
   ai: {
     title: string
+    description: string
+    selectProvider: string
+    selectProviderPlaceholder: string
+    searchPlaceholder: string
+    noProviderFound: string
+    configuration: string
+    baseUrl: string
+    baseUrlPlaceholder: string
+    apiKey: string
+    apiKeyPlaceholder: string
+    model: string
+    modelPlaceholder: string
+  }
+  feedback: {
+    title: string
+    description: string
+    type: string
+    typeBug: string
+    typeFeature: string
+    typeImprovement: string
+    typeOther: string
+    message: string
+    messagePlaceholder: string
+    send: string
   }
   renameRules: {
     title: string
+    description: string
+    addRule: string
+    selectedRule: string
+    selectPlaceholder: string
+    noRulesAvailable: string
+    availableRules: string
+    emptyState: string
+  }
+  sidebar: {
+    title: string
+    general: string
+    ai: string
+    renameRules: string
+    feedback: string
   }
 }
 

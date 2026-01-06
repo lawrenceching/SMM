@@ -3,13 +3,57 @@
   "general": {
     "title": "General",
     "language": "Language",
-    "languageDescription": "Select the display language for the application"
+    "languageDescription": "Select the display language for the application",
+    "tmdbHost": "TMDB Host",
+    "tmdbHostPlaceholder": "https://api.themoviedb.org/3",
+    "tmdbApiKey": "TMDB API Key",
+    "tmdbApiKeyPlaceholder": "Enter your TMDB API key",
+    "httpProxy": "HTTP Proxy",
+    "httpProxyPlaceholder": "http://proxy.example.com:8080"
   },
   "ai": {
-    "title": "AI Settings"
+    "title": "AI Settings",
+    "description": "Configure AI provider settings for media metadata processing",
+    "selectProvider": "Select AI Provider",
+    "selectProviderPlaceholder": "Select AI provider...",
+    "searchPlaceholder": "Search AI providers...",
+    "noProviderFound": "No AI provider found.",
+    "configuration": "{{provider}} Configuration",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "model": "Model",
+    "modelPlaceholder": "model-name"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "description": "Share your feedback, report bugs, or suggest new features",
+    "type": "Type",
+    "typeBug": "Bug Report",
+    "typeFeature": "Feature Request",
+    "typeImprovement": "Improvement",
+    "typeOther": "Other",
+    "message": "Message",
+    "messagePlaceholder": "Please describe your feedback in detail...",
+    "send": "Send Feedback"
   },
   "renameRules": {
-    "title": "Rename Rules"
+    "title": "Rename Rules",
+    "description": "Configure file renaming rules for media files",
+    "addRule": "Add Rule",
+    "selectedRule": "Selected Rename Rule",
+    "selectPlaceholder": "Select a rename rule",
+    "noRulesAvailable": "No rules available",
+    "availableRules": "Available Rules",
+    "emptyState": "No rename rules configured. Click \"Add Rule\" to create one."
+  },
+  "sidebar": {
+    "title": "Settings",
+    "general": "General",
+    "ai": "AI",
+    "renameRules": "Rename Rules",
+    "feedback": "Feedback"
   }
 }
 

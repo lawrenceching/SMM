@@ -94,33 +94,33 @@ export function GeneralSettings() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tmdb-host">TMDB Host</Label>
+          <Label htmlFor="tmdb-host">{t('general.tmdbHost')}</Label>
           <Input
             id="tmdb-host"
             value={tmdbHost}
             onChange={(e) => setTmdbHost(e.target.value)}
-            placeholder="https://api.themoviedb.org/3"
+            placeholder={t('general.tmdbHostPlaceholder')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tmdb-api-key">TMDB API Key</Label>
+          <Label htmlFor="tmdb-api-key">{t('general.tmdbApiKey')}</Label>
           <Input
             id="tmdb-api-key"
             type="password"
             value={tmdbApiKey}
             onChange={(e) => setTmdbApiKey(e.target.value)}
-            placeholder="Enter your TMDB API key"
+            placeholder={t('general.tmdbApiKeyPlaceholder')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tmdb-proxy">HTTP Proxy</Label>
+          <Label htmlFor="tmdb-proxy">{t('general.httpProxy')}</Label>
           <Input
             id="tmdb-proxy"
             value={tmdbProxy}
             onChange={(e) => setTmdbProxy(e.target.value)}
-            placeholder="http://proxy.example.com:8080"
+            placeholder={t('general.httpProxyPlaceholder')}
           />
         </div>
       </div>

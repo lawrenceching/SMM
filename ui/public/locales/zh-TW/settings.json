@@ -3,13 +3,57 @@
   "general": {
     "title": "一般",
     "language": "語言",
-    "languageDescription": "選擇應用程式的顯示語言"
+    "languageDescription": "選擇應用程式的顯示語言",
+    "tmdbHost": "TMDB 主機",
+    "tmdbHostPlaceholder": "https://api.themoviedb.org/3",
+    "tmdbApiKey": "TMDB API 金鑰",
+    "tmdbApiKeyPlaceholder": "請輸入您的 TMDB API 金鑰",
+    "httpProxy": "HTTP 代理伺服器",
+    "httpProxyPlaceholder": "http://proxy.example.com:8080"
   },
   "ai": {
-    "title": "AI 設定"
+    "title": "AI 設定",
+    "description": "設定用於媒體元資料處理的 AI 提供商設定",
+    "selectProvider": "選擇 AI 提供商",
+    "selectProviderPlaceholder": "選擇 AI 提供商...",
+    "searchPlaceholder": "搜尋 AI 提供商...",
+    "noProviderFound": "找不到 AI 提供商。",
+    "configuration": "{{provider}} 設定",
+    "baseUrl": "基礎 URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "apiKey": "API 金鑰",
+    "apiKeyPlaceholder": "請輸入您的 API 金鑰",
+    "model": "模型",
+    "modelPlaceholder": "模型名稱"
+  },
+  "feedback": {
+    "title": "意見回饋",
+    "description": "分享您的意見、回報錯誤或建議新功能",
+    "type": "類型",
+    "typeBug": "錯誤回報",
+    "typeFeature": "功能請求",
+    "typeImprovement": "改進建議",
+    "typeOther": "其他",
+    "message": "訊息",
+    "messagePlaceholder": "請詳細描述您的意見...",
+    "send": "傳送意見回饋"
   },
   "renameRules": {
-    "title": "重新命名規則"
+    "title": "重新命名規則",
+    "description": "設定媒體檔案的重新命名規則",
+    "addRule": "新增規則",
+    "selectedRule": "選中的重新命名規則",
+    "selectPlaceholder": "選擇重新命名規則",
+    "noRulesAvailable": "沒有可用的規則",
+    "availableRules": "可用規則",
+    "emptyState": "未設定重新命名規則。點擊「新增規則」建立一個。"
+  },
+  "sidebar": {
+    "title": "設定",
+    "general": "一般",
+    "ai": "AI",
+    "renameRules": "重新命名規則",
+    "feedback": "意見回饋"
   }
 }
 
