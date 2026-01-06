@@ -60,6 +60,17 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
     onSearch?.()
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Call existing onKeyDown handler if provided
+    props.onKeyDown?.(e)
+    
+    // Trigger search on Enter key press
+    if (e.key === "Enter" && onSearch) {
+      e.preventDefault()
+      onSearch()
+    }
+  }
+
   const showSearchButton = shouldShowFocused && onSearch
 
   return (
@@ -71,6 +82,7 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
         {...inputProps}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         className={cn(
           // Base styles - always applied
           "w-full min-w-0 outline-none transition-all",
