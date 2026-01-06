@@ -15,9 +15,17 @@ interface API {
   getPathForFile: (file: File) => string | null
 }
 
+interface DialogAPI {
+  showOpenDialog: (options: Electron.OpenDialogOptions) => Promise<Electron.OpenDialogReturnValue>
+}
+
+interface EnhancedElectronAPI extends ElectronAPI {
+  dialog: DialogAPI
+}
+
 declare global {
   interface Window {
-    electron: ElectronAPI
+    electron: EnhancedElectronAPI
     api: API
   }
 }

@@ -31,21 +31,35 @@ const api = {
   }
 }
 
+// Dialog API exposed via IPC
+const dialogAPI = {
+  showOpenDialog: (options: Electron.OpenDialogOptions): Promise<Electron.OpenDialogReturnValue> => {
+    console.log('[Preload] dialog.showOpenDialog called with options:', options)
+    return ipcRenderer.invoke('dialog:showOpenDialog', options)
+  }
+}
+
 console.log('[Preload] API object created:', { hasGetPathForFile: typeof api.getPathForFile === 'function' })
+
+// Merge electronAPI with dialog API
+const enhancedElectronAPI = {
+  ...electronAPI,
+  dialog: dialogAPI
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
+    contextBridge.exposeInMainWorld('electron', enhancedElectronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
     console.error(error)
   }
 } else {
   // @ts-ignore (define in dts)
-  window.electron = electronAPI
+  window.electron = enhancedElectronAPI
   // @ts-ignore (define in dts)
   window.api = api
 }
