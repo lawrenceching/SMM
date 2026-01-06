@@ -216,7 +216,16 @@ export const NameVariable: RenameRuleVariable = {
   description: 'The name of episode',
   example: 'The Long Episode, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
-    return mediaFileMetadata?.episodeName || mediaMetadata.tmdbMovie?.title || '';
+    // Get episode name from TMDB data if available
+    if (mediaFileMetadata?.seasonNumber !== undefined && mediaFileMetadata?.episodeNumber !== undefined) {
+      const season = mediaMetadata.tmdbTvShow?.seasons?.find(s => s.season_number === mediaFileMetadata.seasonNumber)
+      const episode = season?.episodes?.find(e => e.episode_number === mediaFileMetadata.episodeNumber)
+      if (episode?.name) {
+        return episode.name
+      }
+    }
+    // Fallback to movie title if it's a movie
+    return mediaMetadata.tmdbMovie?.title || '';
   }
 }
 

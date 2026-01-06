@@ -1,8 +1,34 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type MediaMetadata, type MediaFileMetadata, RenameRuleVariables, type RenameRule } from "@core/types"
-import type { TvShowEpisodesProps, Episode, File } from "@/components/tvshow-episodes"
 import { basename, extname, relative } from "@/lib/path"
+
+// Local type definitions for buildTvShowEpisodesPropsFromMediaMetadata
+interface File {
+  path: string
+  tag: "SUB" | "AUD" | "NFO" | "POSTER" | "VID"
+  newPath: string
+}
+
+interface Episode {
+  name: string
+  seasonNumber: number
+  episodeNumber: number
+  thumbnail?: string
+  videoFilePath?: File
+  associatedFiles: File[]
+}
+
+interface Season {
+  name: string
+  seasonNumber: number
+  episodes: Episode[]
+}
+
+interface TvShowEpisodesProps {
+  seasons: Season[]
+  isEditing: boolean
+}
 import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
 import { downloadImageApi } from "@/api/downloadImage"

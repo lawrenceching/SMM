@@ -183,17 +183,7 @@ You need to match the local files to each episodes and return the result in JSON
  * @param files File paths in POSIX format
  * @param matches 
  */
-export function generateMediaFileMetadatas(tvshow: TMDBTVShowDetails, files: string[], matches: MediaFileMatchResult[]) {
-
-    const findEpisodeName = (seasonNumber: number, episodeNumber: number) => {
-        const season = tvshow.seasons.find(season => season.season_number === seasonNumber)
-        if(!season) {
-            return undefined;
-        }
-        const episode = season.episodes?.find(episode => episode.episode_number === episodeNumber)
-        return episode?.name;
-    }
-
+export function generateMediaFileMetadatas(files: string[], matches: MediaFileMatchResult[]) {
     const mediaFiles: MediaFileMetadata[] = []
 
     matches.forEach(match => {
@@ -208,7 +198,6 @@ export function generateMediaFileMetadatas(tvshow: TMDBTVShowDetails, files: str
             absolutePath: file,
             seasonNumber: parseInt(match.seasonNumber),
             episodeNumber: parseInt(match.episodeNumber),
-            episodeName: findEpisodeName(parseInt(match.seasonNumber), parseInt(match.episodeNumber)),
         }
 
         mediaFiles.push(mediaFile)
