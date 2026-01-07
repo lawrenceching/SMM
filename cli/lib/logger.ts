@@ -6,14 +6,18 @@ import { mkdir } from 'fs/promises';
 /**
  * Creates a Pino logger instance with appropriate configuration.
  * - console: Logs to console (JSON format)
- * - file: Logs to rotating file with size and time-based rotation
+ * - file: Logs to file using synchronous destination (compatible with Bun compiled executables)
+ * 
+ * Note: We use pino.destination() instead of pino.transport() because transports
+ * use worker threads which don't work in Bun's compiled executables.
  */
 async function createLogger() {
   const logTarget = process.env.LOG_TARGET?.toLowerCase().trim() || 'console';
   const logLevel = process.env.LOG_LEVEL || 'info';
   
   if (logTarget === 'file') {
-    // File logging with rotation
+    // File logging using synchronous destination
+    // This works in Bun compiled executables unlike pino.transport()
     const logDir = getLogDir();
     
     // Ensure log directory exists
@@ -25,21 +29,17 @@ async function createLogger() {
     console.log(`📝 Log directory: ${logDir}`);
     console.log(`📄 Log file: ${logFilePath}`);
     
+    // Use pino.destination() for synchronous file writing
+    // This is compatible with Bun compiled executables
+    const destination = pino.destination({
+      dest: logFilePath,
+      append: true,
+      sync: false, // Use async writing for better performance
+    });
+    
     return pino({
       level: logLevel,
-      transport: {
-        target: 'pino-roll',
-        options: {
-          file: logFilePath,
-          frequency: 'daily',         // Rotate daily at midnight
-          size: '10m',                 // Max 10MB per file
-          limit: {
-            count: 10                  // Keep last 10 files (~100MB total)
-          },
-          mkdir: true,                 // Create directory if needed
-        }
-      },
-    });
+    }, destination);
   } else {
     // Console logging (default)
     return pino({
