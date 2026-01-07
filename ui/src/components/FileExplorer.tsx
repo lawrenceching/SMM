@@ -96,6 +96,7 @@ export interface FileExplorerProps {
   className?: string
   showPathBar?: boolean
   onlyFolders?: boolean
+  restrictToInitialPath?: boolean
 }
 
 export function FileExplorer({
@@ -108,6 +109,7 @@ export function FileExplorer({
   className,
   showPathBar = true,
   onlyFolders = false,
+  restrictToInitialPath = true,
 }: FileExplorerProps) {
   const { t } = useTranslation('components')
   const [files, setFiles] = useState<FileItem[]>([])
@@ -199,12 +201,77 @@ export function FileExplorer({
     return normalized
   }, [])
   
-  // Parse current path into breadcrumb segments (only show relative to initialPath)
+  // Parse current path into breadcrumb segments
   const breadcrumbs = useMemo(() => {
     try {
       const normalizedInitial = normalizeToPosix(initialPath)
       const normalizedCurrent = normalizeToPosix(currentPath)
       
+      // If restriction is disabled, show full path breadcrumbs
+      if (!restrictToInitialPath) {
+        const crumbs: Array<{ label: string; path: string; isRoot?: boolean }> = []
+        const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
+        const separator = isWindowsPath ? '\\' : '/'
+        
+        // Handle Windows drive letter path (C:\Users\...)
+        if (isWindowsPath) {
+          const driveMatch = currentPath.match(/^([A-Za-z]):/)
+          if (driveMatch) {
+            const drive = driveMatch[1]
+            // Remove drive letter and split the rest
+            const pathWithoutDrive = currentPath.substring(2) // Remove "C:"
+            const pathParts = pathWithoutDrive.split(/[/\\]/).filter(Boolean)
+            
+            // Add drive root
+            crumbs.push({
+              label: `${drive}:`,
+              path: `${drive}:\\`,
+              isRoot: true
+            })
+            
+            // Build accumulated path for remaining parts
+            let accumulated = `${drive}:\\`
+            for (let i = 0; i < pathParts.length; i++) {
+              accumulated += (i > 0 ? separator : '') + pathParts[i]
+              crumbs.push({
+                label: pathParts[i],
+                path: accumulated,
+                isRoot: false
+              })
+            }
+          } else if (currentPath.startsWith('\\\\')) {
+            // UNC path (\\server\share\...)
+            const pathWithoutPrefix = currentPath.substring(2) // Remove "\\"
+            const pathParts = pathWithoutPrefix.split(/[/\\]/).filter(Boolean)
+            
+            let accumulated = '\\\\'
+            for (let i = 0; i < pathParts.length; i++) {
+              accumulated += (i > 0 ? separator : '') + pathParts[i]
+              crumbs.push({
+                label: pathParts[i],
+                path: accumulated,
+                isRoot: i < 2
+              })
+            }
+          }
+        } else {
+          // POSIX path
+          const pathParts = currentPath.split('/').filter(Boolean)
+          let accumulated = '/'
+          for (let i = 0; i < pathParts.length; i++) {
+            accumulated += (i > 0 ? '/' : '') + pathParts[i]
+            crumbs.push({
+              label: pathParts[i],
+              path: accumulated,
+              isRoot: i === 0
+            })
+          }
+        }
+        
+        return crumbs.length > 0 ? crumbs : [{ label: currentPath, path: currentPath, isRoot: true }]
+      }
+      
+      // Restricted mode: only show relative to initialPath
       // If current path is the same as initial, show root only
       if (normalizedCurrent === normalizedInitial) {
         const folderName = initialPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.root')
@@ -263,7 +330,7 @@ export function FileExplorer({
       const folderName = currentPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.current')
       return [{ label: folderName, path: currentPath, isRoot: true }]
     }
-  }, [currentPath, initialPath, normalizeToPosix])
+  }, [currentPath, initialPath, normalizeToPosix, restrictToInitialPath, t])
 
   // Load files when path changes
   useEffect(() => {
@@ -285,18 +352,26 @@ export function FileExplorer({
   const handleItemDoubleClick = (file: FileItem) => {
     // Double-click: navigate into folder
     if (file.isDirectory) {
-      // Verify the target path is under initialPath
-      const normalizedTarget = normalizeToPosix(file.path)
-      const normalizedInitial = normalizeToPosix(initialPath)
-      
-      // Only allow if target is exactly initialPath or under it
-      if (normalizedTarget === normalizedInitial || normalizedTarget.startsWith(normalizedInitial + '/')) {
+      if (restrictToInitialPath) {
+        // Verify the target path is under initialPath
+        const normalizedTarget = normalizeToPosix(file.path)
+        const normalizedInitial = normalizeToPosix(initialPath)
+        
+        // Only allow if target is exactly initialPath or under it
+        if (normalizedTarget === normalizedInitial || normalizedTarget.startsWith(normalizedInitial + '/')) {
+          const newHistory = [...pathHistory, currentPath]
+          setPathHistory(newHistory)
+          onPathChange(file.path)
+          onFileSelect(null)
+        } else {
+          console.warn('Cannot navigate outside initialPath:', { targetPath: file.path, initialPath, normalizedTarget, normalizedInitial })
+        }
+      } else {
+        // Unrestricted mode: allow navigation to any path
         const newHistory = [...pathHistory, currentPath]
         setPathHistory(newHistory)
         onPathChange(file.path)
         onFileSelect(null)
-      } else {
-        console.warn('Cannot navigate outside initialPath:', { targetPath: file.path, initialPath, normalizedTarget, normalizedInitial })
       }
     }
     // Call optional double click handler
@@ -309,30 +384,39 @@ export function FileExplorer({
       newHistory.pop() // Remove current path
       const previousPath = newHistory[newHistory.length - 1]
       
-      // Prevent going beyond initialPath
-      const normalizedPrevious = normalizeToPosix(previousPath)
-      const normalizedInitial = normalizeToPosix(initialPath)
-      
-      // Allow if it's exactly initialPath or starts with initialPath + '/'
-      if (normalizedPrevious === normalizedInitial || normalizedPrevious.startsWith(normalizedInitial + '/')) {
+      if (restrictToInitialPath) {
+        // Prevent going beyond initialPath
+        const normalizedPrevious = normalizeToPosix(previousPath)
+        const normalizedInitial = normalizeToPosix(initialPath)
+        
+        // Allow if it's exactly initialPath or starts with initialPath + '/'
+        if (normalizedPrevious === normalizedInitial || normalizedPrevious.startsWith(normalizedInitial + '/')) {
+          setPathHistory(newHistory)
+          onPathChange(previousPath)
+          onFileSelect(null)
+        } else {
+          console.warn('Cannot navigate beyond initialPath:', { previousPath, initialPath, normalizedPrevious, normalizedInitial })
+        }
+      } else {
+        // Unrestricted mode: allow going back to any path
         setPathHistory(newHistory)
         onPathChange(previousPath)
         onFileSelect(null)
-      } else {
-        console.warn('Cannot navigate beyond initialPath:', { previousPath, initialPath, normalizedPrevious, normalizedInitial })
       }
     }
   }
   
   const handleBreadcrumbClick = (path: string) => {
-    // Prevent navigation outside of initialPath
-    const normalizedPath = normalizeToPosix(path)
-    const normalizedInitial = normalizeToPosix(initialPath)
-    
-    // Only allow navigation if path is initialPath or under it (exact match or starts with initialPath + '/')
-    if (normalizedPath !== normalizedInitial && !normalizedPath.startsWith(normalizedInitial + '/')) {
-      console.warn('Cannot navigate outside initialPath:', { path, initialPath, normalizedPath, normalizedInitial })
-      return
+    if (restrictToInitialPath) {
+      // Prevent navigation outside of initialPath
+      const normalizedPath = normalizeToPosix(path)
+      const normalizedInitial = normalizeToPosix(initialPath)
+      
+      // Only allow navigation if path is initialPath or under it (exact match or starts with initialPath + '/')
+      if (normalizedPath !== normalizedInitial && !normalizedPath.startsWith(normalizedInitial + '/')) {
+        console.warn('Cannot navigate outside initialPath:', { path, initialPath, normalizedPath, normalizedInitial })
+        return
+      }
     }
     
     // Find this path in history or add it
@@ -397,8 +481,12 @@ export function FileExplorer({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-1 min-w-0 flex-wrap">
             {(() => {
-              // Check if we can go back (not at initialPath)
-              const canGoBack = pathHistory.length > 1 && normalizeToPosix(currentPath) !== normalizeToPosix(initialPath)
+              // Check if we can go back
+              const canGoBack = pathHistory.length > 1 && (
+                restrictToInitialPath 
+                  ? normalizeToPosix(currentPath) !== normalizeToPosix(initialPath)
+                  : true // In unrestricted mode, can always go back if history exists
+              )
               return canGoBack && (
                 <Button
                   variant="ghost"

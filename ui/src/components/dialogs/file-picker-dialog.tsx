@@ -61,6 +61,7 @@ export function FilePickerDialog({
               onFileSelect={setSelectedFile}
               initialPath="~"
               showPathBar={true}
+              restrictToInitialPath={false}
             />
           </div>
           {selectedFile && (
