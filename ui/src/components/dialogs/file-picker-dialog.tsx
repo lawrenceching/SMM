@@ -53,7 +53,7 @@ export function FilePickerDialog({
           <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 overflow-hidden">
-          <div className="h-[400px] w-full overflow-hidden">
+          <div className="h-[400px] w-full flex flex-col min-h-0">
             <FileExplorer
               currentPath={currentPath}
               onPathChange={setCurrentPath}

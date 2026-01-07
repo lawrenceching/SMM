@@ -472,7 +472,7 @@ export function FileExplorer({
 
   return (
     <div 
-      className={cn("flex flex-col gap-3 overflow-hidden", className)}
+      className={cn("flex flex-col gap-3 overflow-hidden h-full", className)}
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
