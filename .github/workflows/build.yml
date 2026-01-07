@@ -199,6 +199,7 @@ jobs:
       
       - name: Extract version and commit info
         id: version-info
+        shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
