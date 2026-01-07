@@ -3,25 +3,17 @@ import { getLogDir } from '@/utils/config';
 import path from 'path';
 import { mkdir } from 'fs/promises';
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
-
 /**
- * Creates a Pino logger instance with appropriate configuration for the current environment.
- * - Development: Logs to console (JSON format)
- * - Production: Logs to rotating file with size and time-based rotation
+ * Creates a Pino logger instance with appropriate configuration.
+ * - console: Logs to console (JSON format)
+ * - file: Logs to rotating file with size and time-based rotation
  */
 async function createLogger() {
-  if (isDevelopment) {
-    // Development mode: console logging (JSON format)
-    const logDir = getLogDir();
-    console.log(`📝 Log directory: ${logDir} (logs printed to console in development mode)`);
-    
-    return pino({
-      level: logLevel,
-    });
-  } else {
-    // Production mode: file logging with rotation
+  const logTarget = process.env.LOG_TARGET?.toLowerCase().trim() || 'console';
+  const logLevel = process.env.LOG_LEVEL || 'info';
+  
+  if (logTarget === 'file') {
+    // File logging with rotation
     const logDir = getLogDir();
     
     // Ensure log directory exists
@@ -47,6 +39,11 @@ async function createLogger() {
           mkdir: true,                 // Create directory if needed
         }
       },
+    });
+  } else {
+    // Console logging (default)
+    return pino({
+      level: logLevel,
     });
   }
 }

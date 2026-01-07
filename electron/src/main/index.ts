@@ -103,8 +103,7 @@ async function startCLI(): Promise<void> {
       windowsHide: true, // Hide the console window on Windows
       env: {
         ...process.env,
-        NODE_ENV: 'production',
-        USER_DATA_DIR: app.getPath('userData')
+        LOG_TARGET: 'file'
       }
     })
 
