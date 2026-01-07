@@ -4,6 +4,8 @@
   "fileNotFound": "文件未找到",
   "permissionDenied": "权限被拒绝",
   "invalidInput": "输入无效",
-  "operationFailed": "操作失败"
+  "operationFailed": "操作失败",
+  "searchNoResults": "未找到结果",
+  "searchFailed": "搜索TMDB失败"
 }
 

@@ -1,6 +1,6 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe, Link2, FileEdit, Download } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe, FileEdit, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect, useRef } from "react"
@@ -14,6 +14,7 @@ import { useDialogs } from "./dialog-provider"
 import type { Task } from "./dialog-provider"
 import { scrapeApi } from "@/api/scrape"
 import type { SeasonModel } from "./TvShowPanel"
+import { useTranslation } from "@/lib/i18n"
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -49,6 +50,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName, seasons, isPreviewMode, setIsPreviewMode, scrollToEpisodeId }: TMDBTVShowOverviewProps) {
+    const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -176,7 +178,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
-    const formattedDate = tvShow ? formatDate(tvShow.first_air_date) : "N/A"
+    const formattedDate = tvShow ? formatDate(tvShow.first_air_date) : t('tvShow.notAvailable', { ns: 'components' })
 
     // Update search query when tvShow name changes
     useEffect(() => {
@@ -217,11 +219,11 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
             setSearchResults(tvShows)
 
             if (tvShows.length === 0) {
-                setSearchError('No results found')
+                setSearchError(t('errors:searchNoResults'))
             }
         } catch (error) {
             console.error('Search failed:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Failed to search TMDB'
+            const errorMessage = error instanceof Error ? error.message : t('errors:searchFailed')
             setSearchError(errorMessage)
             setSearchResults([])
         } finally {
@@ -290,7 +292,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                 searchResults={searchResults}
                                 isSearching={isSearching}
                                 searchError={searchError}
-                                placeholder="未识别媒体库, 请在此处输入并搜索电视剧/动画"
+                                placeholder={t('tvShow.searchPlaceholderUnrecognized', { ns: 'components' })}
                                 inputClassName="text-3xl font-bold mb-2 block"
                             />
                         </div>
@@ -348,7 +350,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                             searchResults={searchResults}
                                             isSearching={isSearching}
                                             searchError={searchError}
-                                            placeholder="Enter TV show name"
+                                            placeholder={t('tvShow.searchPlaceholder', { ns: 'components' })}
                                             inputClassName="text-3xl font-bold mb-2 block"
                                         />
                                         {tvShow?.original_name !== tvShow?.name && (
@@ -406,7 +408,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                             </div>
                         ) : tvShow?.overview && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">Overview</h2>
+                                <h2 className="text-lg font-semibold">{t('tvShow.overview', { ns: 'components' })}</h2>
                                 <p className="text-muted-foreground leading-relaxed">{tvShow?.overview}</p>
                             </div>
                         )}
@@ -423,11 +425,11 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                             </div>
                         ) : tvShow?.genre_ids && tvShow?.genre_ids.length > 0 && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">Genres</h2>
+                                <h2 className="text-lg font-semibold">{t('tvShow.genres', { ns: 'components' })}</h2>
                                 <div className="flex flex-wrap gap-2">
                                     {tvShow?.genre_ids.map((genreId) => (
                                         <Badge key={genreId} variant="outline">
-                                            Genre {genreId}
+                                            {t('tvShow.genreLabel', { ns: 'components', genreId })}
                                         </Badge>
                                     ))}
                                 </div>
@@ -447,23 +449,12 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        // TODO: Implement match episode functionality for all episodes
-                                        console.log("Match Episodes", tvShow)
-                                    }}
-                                >
-                                    <Link2 className="size-4 mr-2" />
-                                    Match Episodes
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
                                         setIsPreviewMode(true)
                                         onRenameClick?.()
                                     }}
                                 >
                                     <FileEdit className="size-4 mr-2" />
-                                    Rename
+                                    {t('tvShow.rename', { ns: 'components' })}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -474,23 +465,23 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                         // Create initial tasks for scraping
                                         const initialTasks: Task[] = [
                                             {
-                                                name: "Poster",
+                                                name: t('scrape.tasks.poster', { ns: 'dialogs' }),
                                                 status: "pending" as const
                                             },
                                             {
-                                                name: "Thumbnails",
+                                                name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
                                                 status: "pending" as const
                                             },
                                             {
-                                                name: "nfo",
+                                                name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
                                                 status: "pending" as const
                                             }
                                         ]
                                         
                                         // Open the task progress dialog with Start button
                                         openScrape(initialTasks, {
-                                            title: "Scrape Media",
-                                            description: "Download poster, thumbnails, and nfo files",
+                                            title: t('scrape.mediaTitle', { ns: 'dialogs' }),
+                                            description: t('scrape.mediaDescription', { ns: 'dialogs' }),
                                             onStart: async () => {
                                                 if (!selectedMediaMetadata?.mediaFolderPath) {
                                                     console.error("No media folder path available")
@@ -539,7 +530,7 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                     disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                 >
                                     <Download className="size-4 mr-2" />
-                                    Scrape
+                                    {t('tvShow.scrape', { ns: 'components' })}
                                 </Button>
                             </div>
                         )}

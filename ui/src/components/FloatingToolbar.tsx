@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 export interface FloatingToolbarOption {
   value: string
@@ -37,9 +38,9 @@ export function FloatingToolbar({
   onValueChange,
   onConfirm,
   onCancel,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  placeholder = "Select...",
+  confirmLabel,
+  cancelLabel,
+  placeholder,
   className,
   isOpen = false,
   isConfirmDisabled = false,
@@ -47,6 +48,11 @@ export function FloatingToolbar({
   mode = "manual",
   status,
 }: FloatingToolbarProps) {
+  const { t } = useTranslation('components')
+  const defaultConfirmLabel = confirmLabel ?? t('toolbar.confirm')
+  const defaultCancelLabel = cancelLabel ?? t('toolbar.cancel')
+  const defaultPlaceholder = placeholder ?? t('toolbar.selectPlaceholder')
+  
   if (!isOpen) {
     return null
   }
@@ -109,7 +115,7 @@ export function FloatingToolbar({
           {mode === "manual" ? (
             <Select value={selectedValue} onValueChange={onValueChange}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder={placeholder} />
+                <SelectValue placeholder={defaultPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {options.map((option) => (
@@ -129,8 +135,8 @@ export function FloatingToolbar({
                 )}
                 <span>
                   {status === "running"
-                    ? "AI is renaming episodes, please wait..."
-                    : "AI is going to rename episodes, please review..."}
+                    ? t('toolbar.aiRenaming')
+                    : t('toolbar.aiReview')}
                 </span>
               </div>
             ) : null
@@ -138,7 +144,7 @@ export function FloatingToolbar({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
-            {cancelLabel}
+            {defaultCancelLabel}
           </Button>
           <Button
             onClick={onConfirm}
@@ -149,7 +155,7 @@ export function FloatingToolbar({
                 "animate-pulse ring-2 ring-primary/50 ring-offset-2"
             )}
           >
-            {confirmLabel}
+            {defaultConfirmLabel}
           </Button>
         </div>
       </div>

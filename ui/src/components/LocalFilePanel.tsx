@@ -96,7 +96,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
         backgroundColor: "#ffffff",
       }}
     >
-      {/* 警告栏 - 仅在媒体类型为 unknown 时显示 */}
+      {/* Warning bar - only shown when media type is unknown */}
       {mediaType === "unknown" && (
         <UnknownMediaTypeWarning
           mediaType={mediaType}
@@ -106,7 +106,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
         />
       )}
 
-      {/* 文件列表 */}
+      {/* File list */}
       <div
         style={{
           flex: 1,

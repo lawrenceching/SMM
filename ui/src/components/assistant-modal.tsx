@@ -6,6 +6,7 @@ import { AssistantModalPrimitive } from "@assistant-ui/react";
 
 import { Thread } from "@/components/thread";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { useTranslation } from "@/lib/i18n";
 
 export const AssistantModal: FC = () => {
   return (
@@ -31,7 +32,8 @@ const AssistantModalButton = forwardRef<
   HTMLButtonElement,
   AssistantModalButtonProps
 >(({ "data-state": state, ...rest }, ref) => {
-  const tooltip = state === "open" ? "Close Assistant" : "Open Assistant";
+  const { t } = useTranslation('components');
+  const tooltip = state === "open" ? t('assistant.close') : t('assistant.open');
 
   return (
     <TooltipIconButton

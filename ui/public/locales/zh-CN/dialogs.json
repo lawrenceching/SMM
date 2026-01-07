@@ -10,6 +10,7 @@
     "title": "重命名文件",
     "defaultTitle": "重命名",
     "defaultDescription": "请输入新名称",
+    "fileDescription": "请输入文件的新相对路径",
     "newNameLabel": "新名称",
     "placeholder": "请输入新名称...",
     "suggestions": "建议"
@@ -31,6 +32,13 @@
     "title": "抓取元数据",
     "defaultTitle": "任务进度",
     "defaultDescription": "当前任务执行状态",
+    "mediaTitle": "抓取媒体",
+    "mediaDescription": "下载海报、缩略图和nfo文件",
+    "tasks": {
+      "poster": "海报",
+      "thumbnails": "缩略图",
+      "nfo": "nfo"
+    },
     "status": {
       "running": "运行中",
       "completed": "已完成",

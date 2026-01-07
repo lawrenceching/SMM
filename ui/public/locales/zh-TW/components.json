@@ -23,7 +23,52 @@
   },
   "toolbar": {
     "refresh": "重新整理",
-    "settings": "設定"
+    "settings": "設定",
+    "plex": "Plex",
+    "emby": "Emby",
+    "confirm": "確認",
+    "cancel": "取消",
+    "selectPlaceholder": "選擇...",
+    "generating": "生成中...",
+    "aiRenaming": "AI正在重新命名劇集，請稍候...",
+    "aiReview": "AI將重新命名劇集，請查看..."
+  },
+  "assistant": {
+    "open": "開啟助手",
+    "close": "關閉助手"
+  },
+  "tvShow": {
+    "searchPlaceholder": "輸入電視劇名稱",
+    "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電視劇/動畫",
+    "overview": "概述",
+    "genres": "類型",
+    "genreLabel": "類型 {{genreId}}",
+    "rename": "重新命名",
+    "scrape": "抓取",
+    "notAvailable": "不可用"
+  },
+  "episodeFile": {
+    "rename": "重新命名",
+    "renameSuccess": "檔案重新命名成功",
+    "renameFailed": "檔案重新命名失敗"
+  },
+  "viewSwitcher": {
+    "metadataView": "元資料檢視",
+    "filesView": "檔案檢視"
+  },
+  "fileExplorer": {
+    "root": "根目錄",
+    "current": "目前",
+    "searchPlaceholder": "搜尋檔案和資料夾...",
+    "loading": "載入中...",
+    "loadFailed": "載入檔案失敗",
+    "errorTitle": "載入檔案時發生錯誤",
+    "noMatches": "未找到符合項目",
+    "emptyDirectory": "空目錄",
+    "noMatchesDescription": "沒有檔案符合 \"{{query}}\"",
+    "emptyDirectoryDescription": "此資料夾不包含任何檔案",
+    "statusBar": "{{folders}} 個資料夾, {{files}} 個檔案",
+    "searchStatus": "顯示 {{showing}} / {{total}} 項"
   }
 }
 

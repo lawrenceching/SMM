@@ -23,7 +23,52 @@
   },
   "toolbar": {
     "refresh": "刷新",
-    "settings": "设置"
+    "settings": "设置",
+    "plex": "Plex",
+    "emby": "Emby",
+    "confirm": "确认",
+    "cancel": "取消",
+    "selectPlaceholder": "选择...",
+    "generating": "生成中...",
+    "aiRenaming": "AI正在重命名剧集，请稍候...",
+    "aiReview": "AI将重命名剧集，请查看..."
+  },
+  "assistant": {
+    "open": "打开助手",
+    "close": "关闭助手"
+  },
+  "tvShow": {
+    "searchPlaceholder": "输入电视剧名称",
+    "searchPlaceholderUnrecognized": "未识别媒体库, 请在此处输入并搜索电视剧/动画",
+    "overview": "概述",
+    "genres": "类型",
+    "genreLabel": "类型 {{genreId}}",
+    "rename": "重命名",
+    "scrape": "抓取",
+    "notAvailable": "不可用"
+  },
+  "episodeFile": {
+    "rename": "重命名",
+    "renameSuccess": "文件重命名成功",
+    "renameFailed": "文件重命名失败"
+  },
+  "viewSwitcher": {
+    "metadataView": "元数据视图",
+    "filesView": "文件视图"
+  },
+  "fileExplorer": {
+    "root": "根目录",
+    "current": "当前",
+    "searchPlaceholder": "搜索文件和文件夹...",
+    "loading": "加载中...",
+    "loadFailed": "加载文件失败",
+    "errorTitle": "加载文件时出错",
+    "noMatches": "未找到匹配项",
+    "emptyDirectory": "空目录",
+    "noMatchesDescription": "没有文件匹配 \"{{query}}\"",
+    "emptyDirectoryDescription": "此文件夹不包含任何文件",
+    "statusBar": "{{folders}} 个文件夹, {{files}} 个文件",
+    "searchStatus": "显示 {{showing}} / {{total}} 项"
   }
 }
 

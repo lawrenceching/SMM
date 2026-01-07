@@ -19,6 +19,7 @@ import type {
   AskForRenameFilesConfirmationBeginRequestData,
   AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
+import { useTranslation } from "@/lib/i18n"
 
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -138,11 +139,12 @@ interface ToolbarOption {
 }
 
 function TvShowPanel() {
+  const { t } = useTranslation('components')
   const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
   const [isToolbarOpen, setIsToolbarOpen] = useState(false)
   const toolbarOptions: ToolbarOption[] = [
-    { value: "plex", label: "Plex" } as ToolbarOption,
-    { value: "emby", label: "Emby" } as ToolbarOption,
+    { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
+    { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
   const [seasons, setSeasons] = useState<SeasonModel[]>([])
@@ -150,7 +152,7 @@ function TvShowPanel() {
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
   const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
-  const [confirmButtonLabel, setConfirmButtonLabel] = useState("Confirm")
+  const [confirmButtonLabel, setConfirmButtonLabel] = useState(t('toolbar.confirm'))
   const [confirmButtonDisabled, setConfirmButtonDisabled] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
 
@@ -215,7 +217,7 @@ function TvShowPanel() {
       openToolbar('ai');
       setIsPreviewMode(true);
       setIsRenaming(true)
-      setConfirmButtonLabel("Generating...");
+      setConfirmButtonLabel(t('toolbar.generating'));
       setConfirmButtonDisabled(true);
 
 
@@ -292,7 +294,7 @@ function TvShowPanel() {
       openToolbar('ai');
       setIsPreviewMode(true);
       setIsRenaming(false)
-      setConfirmButtonLabel("Confirm");
+      setConfirmButtonLabel(t('toolbar.confirm'));
       setConfirmButtonDisabled(false);
     }
 

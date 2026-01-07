@@ -8,6 +8,7 @@ import { relative, join } from "@/lib/path"
 import { renameFile } from "@/api/renameFile"
 import { toast } from "sonner"
 import type { FileProps } from "@/lib/types"
+import { useTranslation } from "@/lib/i18n"
 
 interface EpisodeFileProps {
     file: FileProps
@@ -45,6 +46,7 @@ export function EpisodeFile({
     showRenameMenu = false,
     compact = false,
 }: EpisodeFileProps) {
+    const { t } = useTranslation(['components', 'dialogs'])
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const { renameDialog } = useDialogs()
 
@@ -214,11 +216,11 @@ export function EpisodeFile({
                                         refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
                                         
                                         console.log("File renamed successfully:", file.path, "->", newAbsolutePath)
-                                        toast.success("File renamed successfully")
+                                        toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
                                     } catch (error) {
                                         console.error("Failed to rename file:", error)
-                                        const errorMessage = error instanceof Error ? error.message : "Failed to rename file"
-                                        toast.error("Failed to rename file", {
+                                        const errorMessage = error instanceof Error ? error.message : t('episodeFile.renameFailed', { ns: 'components' })
+                                        toast.error(t('episodeFile.renameFailed', { ns: 'components' }), {
                                             description: errorMessage
                                         })
                                         throw error // Re-throw to let dialog handle it
@@ -226,14 +228,14 @@ export function EpisodeFile({
                                 },
                                 {
                                     initialValue: relativePath,
-                                    title: "Rename File",
-                                    description: "Enter the new relative path for the file"
+                                    title: t('dialogs:rename.title'),
+                                    description: t('dialogs:rename.fileDescription')
                                 }
                             )
                         }}
                     >
                         <FileEdit className="size-4 mr-2" />
-                        Rename
+                        {t('episodeFile.rename', { ns: 'components' })}
                     </ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>

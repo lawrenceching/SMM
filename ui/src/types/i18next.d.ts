@@ -50,6 +50,14 @@ interface ComponentsResources {
   toolbar: {
     refresh: string
     settings: string
+    plex: string
+    emby: string
+    confirm: string
+    cancel: string
+    selectPlaceholder: string
+    generating: string
+    aiRenaming: string
+    aiReview: string
   }
   mediaFolder: {
     rename: string
@@ -58,6 +66,43 @@ interface ComponentsResources {
     deleteWarning: string
     renameTitle: string
     renameDescription: string
+  }
+  assistant: {
+    open: string
+    close: string
+  }
+  tvShow: {
+    searchPlaceholder: string
+    searchPlaceholderUnrecognized: string
+    overview: string
+    genres: string
+    genreLabel: string
+    rename: string
+    scrape: string
+    notAvailable: string
+  }
+  episodeFile: {
+    rename: string
+    renameSuccess: string
+    renameFailed: string
+  }
+  viewSwitcher: {
+    metadataView: string
+    filesView: string
+  }
+  fileExplorer: {
+    root: string
+    current: string
+    searchPlaceholder: string
+    loading: string
+    loadFailed: string
+    errorTitle: string
+    noMatches: string
+    emptyDirectory: string
+    noMatchesDescription: string
+    emptyDirectoryDescription: string
+    statusBar: string
+    searchStatus: string
   }
 }
 
@@ -73,6 +118,7 @@ interface DialogsResources {
     title: string
     defaultTitle: string
     defaultDescription: string
+    fileDescription: string
     newNameLabel: string
     placeholder: string
     suggestions: string
@@ -94,6 +140,13 @@ interface DialogsResources {
     title: string
     defaultTitle: string
     defaultDescription: string
+    mediaTitle: string
+    mediaDescription: string
+    tasks: {
+      poster: string
+      thumbnails: string
+      nfo: string
+    }
     status: {
       running: string
       completed: string
@@ -174,6 +227,8 @@ interface ErrorsResources {
   permissionDenied: string
   invalidInput: string
   operationFailed: string
+  searchNoResults: string
+  searchFailed: string
 }
 
 interface ValidationResources {

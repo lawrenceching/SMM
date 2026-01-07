@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { listFilesApi } from "@/api/listFiles"
 import type { FileItem } from "@/components/dialogs/types"
+import { useTranslation } from "@/lib/i18n"
 
 // Helper function to get file extension
 function getFileExtension(filename: string): string {
@@ -108,6 +109,7 @@ export function FileExplorer({
   showPathBar = true,
   onlyFolders = false,
 }: FileExplorerProps) {
+  const { t } = useTranslation('components')
   const [files, setFiles] = useState<FileItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -127,7 +129,7 @@ export function FileExplorer({
       })
       
       if (response.error) {
-        setError(response.error || 'Failed to load files')
+        setError(response.error || t('fileExplorer.loadFailed'))
         setFiles([])
       } else {
         // Convert to FileItem format
@@ -152,7 +154,7 @@ export function FileExplorer({
         setFiles(sortedItems)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load files')
+      setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
       setFiles([])
     } finally {
       setIsLoading(false)
@@ -205,7 +207,7 @@ export function FileExplorer({
       
       // If current path is the same as initial, show root only
       if (normalizedCurrent === normalizedInitial) {
-        const folderName = initialPath.split(/[/\\]/).filter(Boolean).pop() || 'Root'
+        const folderName = initialPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.root')
         return [{ label: folderName, path: initialPath, isRoot: true }]
       }
       
@@ -213,7 +215,7 @@ export function FileExplorer({
       if (!normalizedCurrent.startsWith(normalizedInitial + '/') && normalizedCurrent !== normalizedInitial) {
         // Current path is outside initial path - prevent navigation
         console.warn('Current path is outside initial path, showing only current')
-        const folderName = currentPath.split(/[/\\]/).filter(Boolean).pop() || 'Root'
+        const folderName = currentPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.root')
         return [{ label: folderName, path: currentPath, isRoot: true }]
       }
       
@@ -221,7 +223,7 @@ export function FileExplorer({
       const crumbs: Array<{ label: string; path: string; isRoot?: boolean }> = []
       
       // Add root breadcrumb (initialPath)
-      const rootName = initialPath.split(/[/\\]/).filter(Boolean).pop() || 'Root'
+      const rootName = initialPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.root')
       crumbs.push({ label: rootName, path: initialPath, isRoot: true })
       
       // Get relative path from initial to current
@@ -258,7 +260,7 @@ export function FileExplorer({
     } catch (error) {
       // Fallback: just show current path name
       console.error('Error parsing path for breadcrumbs:', error)
-      const folderName = currentPath.split(/[/\\]/).filter(Boolean).pop() || 'Current'
+      const folderName = currentPath.split(/[/\\]/).filter(Boolean).pop() || t('fileExplorer.current')
       return [{ label: folderName, path: currentPath, isRoot: true }]
     }
   }, [currentPath, initialPath, normalizeToPosix])
@@ -440,7 +442,7 @@ export function FileExplorer({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search files and folders..."
+              placeholder={t('fileExplorer.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               disabled={isLoading}
@@ -481,7 +483,7 @@ export function FileExplorer({
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Loading...</p>
+                <p className="text-sm text-muted-foreground">{t('fileExplorer.loading')}</p>
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -489,7 +491,7 @@ export function FileExplorer({
                   <X className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="text-center max-w-md">
-                  <p className="text-sm font-medium text-destructive mb-1">Error loading files</p>
+                  <p className="text-sm font-medium text-destructive mb-1">{t('fileExplorer.errorTitle')}</p>
                   <p className="text-xs text-muted-foreground">{error}</p>
                 </div>
               </div>
@@ -500,10 +502,10 @@ export function FileExplorer({
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-foreground mb-1">
-                    {searchQuery ? 'No matches found' : 'Empty directory'}
+                    {searchQuery ? t('fileExplorer.noMatches') : t('fileExplorer.emptyDirectory')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {searchQuery ? `No files match "${searchQuery}"` : 'This folder contains no files'}
+                    {searchQuery ? t('fileExplorer.noMatchesDescription', { query: searchQuery }) : t('fileExplorer.emptyDirectoryDescription')}
                   </p>
                 </div>
               </div>
@@ -570,11 +572,17 @@ export function FileExplorer({
       {!isLoading && !error && filteredFiles.length > 0 && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
           <span>
-            {filteredFiles.filter(f => f.isDirectory).length} folders, {filteredFiles.filter(f => !f.isDirectory).length} files
+            {t('fileExplorer.statusBar', {
+              folders: filteredFiles.filter(f => f.isDirectory).length,
+              files: filteredFiles.filter(f => !f.isDirectory).length
+            })}
           </span>
           {searchQuery && (
             <span>
-              Showing {filteredFiles.length} of {files.length} items
+              {t('fileExplorer.searchStatus', {
+                showing: filteredFiles.length,
+                total: files.length
+              })}
             </span>
           )}
         </div>

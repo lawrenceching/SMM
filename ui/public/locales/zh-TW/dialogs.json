@@ -10,6 +10,7 @@
     "title": "重新命名檔案",
     "defaultTitle": "重新命名",
     "defaultDescription": "請輸入新名稱",
+    "fileDescription": "請輸入檔案的新相對路徑",
     "newNameLabel": "新名稱",
     "placeholder": "請輸入新名稱...",
     "suggestions": "建議"
@@ -31,6 +32,13 @@
     "title": "擷取元資料",
     "defaultTitle": "任務進度",
     "defaultDescription": "目前任務執行狀態",
+    "mediaTitle": "擷取媒體",
+    "mediaDescription": "下載海報、縮圖和nfo檔案",
+    "tasks": {
+      "poster": "海報",
+      "thumbnails": "縮圖",
+      "nfo": "nfo"
+    },
     "status": {
       "running": "執行中",
       "completed": "已完成",

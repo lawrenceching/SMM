@@ -23,7 +23,52 @@
   },
   "toolbar": {
     "refresh": "Refresh",
-    "settings": "Settings"
+    "settings": "Settings",
+    "plex": "Plex",
+    "emby": "Emby",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "selectPlaceholder": "Select...",
+    "generating": "Generating...",
+    "aiRenaming": "AI is renaming episodes, please wait...",
+    "aiReview": "AI is going to rename episodes, please review..."
+  },
+  "assistant": {
+    "open": "Open Assistant",
+    "close": "Close Assistant"
+  },
+  "tvShow": {
+    "searchPlaceholder": "Enter TV show name",
+    "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for TV shows/anime here",
+    "overview": "Overview",
+    "genres": "Genres",
+    "genreLabel": "Genre {{genreId}}",
+    "rename": "Rename",
+    "scrape": "Scrape",
+    "notAvailable": "N/A"
+  },
+  "episodeFile": {
+    "rename": "Rename",
+    "renameSuccess": "File renamed successfully",
+    "renameFailed": "Failed to rename file"
+  },
+  "viewSwitcher": {
+    "metadataView": "Metadata View",
+    "filesView": "Files View"
+  },
+  "fileExplorer": {
+    "root": "Root",
+    "current": "Current",
+    "searchPlaceholder": "Search files and folders...",
+    "loading": "Loading...",
+    "loadFailed": "Failed to load files",
+    "errorTitle": "Error loading files",
+    "noMatches": "No matches found",
+    "emptyDirectory": "Empty directory",
+    "noMatchesDescription": "No files match \"{{query}}\"",
+    "emptyDirectoryDescription": "This folder contains no files",
+    "statusBar": "{{folders}} folders, {{files}} files",
+    "searchStatus": "Showing {{showing}} of {{total}} items"
   }
 }
 

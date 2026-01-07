@@ -4,6 +4,8 @@
   "fileNotFound": "File not found",
   "permissionDenied": "Permission denied",
   "invalidInput": "Invalid input",
-  "operationFailed": "Operation failed"
+  "operationFailed": "Operation failed",
+  "searchNoResults": "No results found",
+  "searchFailed": "Failed to search TMDB"
 }
 

@@ -10,6 +10,7 @@
     "title": "Rename File",
     "defaultTitle": "Rename",
     "defaultDescription": "Enter the new name",
+    "fileDescription": "Enter the new relative path for the file",
     "newNameLabel": "New Name",
     "placeholder": "Enter new name...",
     "suggestions": "Suggestions"
@@ -31,6 +32,13 @@
     "title": "Scrape Metadata",
     "defaultTitle": "Task Progress",
     "defaultDescription": "Current task execution status",
+    "mediaTitle": "Scrape Media",
+    "mediaDescription": "Download poster, thumbnails, and nfo files",
+    "tasks": {
+      "poster": "Poster",
+      "thumbnails": "Thumbnails",
+      "nfo": "nfo"
+    },
     "status": {
       "running": "Running",
       "completed": "Completed",
