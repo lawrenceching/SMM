@@ -48,6 +48,25 @@
     "noTasks": "沒有任務",
     "start": "開始"
   },
+  "openFolder": {
+    "title": "選擇資料夾類型",
+    "description": "選擇要開啟的媒體資料夾類型",
+    "folderPathLabel": "資料夾路徑",
+    "types": {
+      "tvshow": {
+        "label": "電視劇 / 動漫",
+        "description": "適用於電視劇和動漫"
+      },
+      "movie": {
+        "label": "電影",
+        "description": "適用於電影和影片"
+      },
+      "music": {
+        "label": "音樂",
+        "description": "適用於音樂專輯和曲目"
+      }
+    }
+  },
   "errors": {
     "providerError": "useDialogs 必須在 DialogProvider 內使用"
   }

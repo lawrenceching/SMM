@@ -11,9 +11,11 @@ import { useConfig } from "@/components/config-provider"
 import { useMediaMetadata } from "@/components/media-metadata-provider"
 import { Path } from "@core/path"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
+import { useTranslation } from "@/lib/i18n"
 import type { OpenFolderDialogProps, FolderType } from "./types"
 
 export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderDialogProps) {
+  const { t } = useTranslation('dialogs')
   const { userConfig, setUserConfig } = useConfig()
   const { addMediaMetadata } = useMediaMetadata()
 
@@ -59,16 +61,16 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent showCloseButton={true}>
         <DialogHeader>
-          <DialogTitle>Select Folder Type</DialogTitle>
+          <DialogTitle>{t('openFolder.title')}</DialogTitle>
           <DialogDescription>
-            Choose the type of media folder you want to open
+            {t('openFolder.description')}
           </DialogDescription>
         </DialogHeader>
         {folderPath && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-muted border">
             <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-xs font-medium text-muted-foreground">Folder Path</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('openFolder.folderPathLabel')}</span>
               <span className="text-sm truncate">{folderPath}</span>
             </div>
           </div>
@@ -80,8 +82,8 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
             onClick={() => handleSelect("tvshow")}
           >
             <div className="flex flex-col items-start gap-1">
-              <span className="font-semibold">Tv Show / Anime</span>
-              <span className="text-xs text-muted-foreground">For television series and anime</span>
+              <span className="font-semibold">{t('openFolder.types.tvshow.label')}</span>
+              <span className="text-xs text-muted-foreground">{t('openFolder.types.tvshow.description')}</span>
             </div>
           </Button>
           <Button
@@ -90,8 +92,8 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
             onClick={() => handleSelect("movie")}
           >
             <div className="flex flex-col items-start gap-1">
-              <span className="font-semibold">Movie</span>
-              <span className="text-xs text-muted-foreground">For movies and films</span>
+              <span className="font-semibold">{t('openFolder.types.movie.label')}</span>
+              <span className="text-xs text-muted-foreground">{t('openFolder.types.movie.description')}</span>
             </div>
           </Button>
           <Button
@@ -100,8 +102,8 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
             onClick={() => handleSelect("music")}
           >
             <div className="flex flex-col items-start gap-1">
-              <span className="font-semibold">Music</span>
-              <span className="text-xs text-muted-foreground">For music albums and tracks</span>
+              <span className="font-semibold">{t('openFolder.types.music.label')}</span>
+              <span className="text-xs text-muted-foreground">{t('openFolder.types.music.description')}</span>
             </div>
           </Button>
         </div>

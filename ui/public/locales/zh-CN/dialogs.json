@@ -48,6 +48,25 @@
     "noTasks": "没有任务",
     "start": "开始"
   },
+  "openFolder": {
+    "title": "选择文件夹类型",
+    "description": "选择要打开的媒体文件夹类型",
+    "folderPathLabel": "文件夹路径",
+    "types": {
+      "tvshow": {
+        "label": "电视剧 / 动漫",
+        "description": "适用于电视剧和动漫"
+      },
+      "movie": {
+        "label": "电影",
+        "description": "适用于电影和影片"
+      },
+      "music": {
+        "label": "音乐",
+        "description": "适用于音乐专辑和曲目"
+      }
+    }
+  },
   "errors": {
     "providerError": "useDialogs 必须在 DialogProvider 内使用"
   }

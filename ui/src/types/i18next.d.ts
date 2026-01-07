@@ -156,6 +156,25 @@ interface DialogsResources {
     noTasks: string
     start: string
   }
+  openFolder: {
+    title: string
+    description: string
+    folderPathLabel: string
+    types: {
+      tvshow: {
+        label: string
+        description: string
+      }
+      movie: {
+        label: string
+        description: string
+      }
+      music: {
+        label: string
+        description: string
+      }
+    }
+  }
   errors: {
     providerError: string
   }

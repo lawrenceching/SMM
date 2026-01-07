@@ -48,6 +48,25 @@
     "noTasks": "No tasks",
     "start": "Start"
   },
+  "openFolder": {
+    "title": "Select Folder Type",
+    "description": "Choose the type of media folder you want to open",
+    "folderPathLabel": "Folder Path",
+    "types": {
+      "tvshow": {
+        "label": "Tv Show / Anime",
+        "description": "For television series and anime"
+      },
+      "movie": {
+        "label": "Movie",
+        "description": "For movies and films"
+      },
+      "music": {
+        "label": "Music",
+        "description": "For music albums and tracks"
+      }
+    }
+  },
   "errors": {
     "providerError": "useDialogs must be used within a DialogProvider"
   }
