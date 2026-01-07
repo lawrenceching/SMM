@@ -1,16 +1,11 @@
 import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from 'ai';
 import { config } from 'dotenv';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   isFolderExistTool,
-  createGetSelectedMediaMetadataTool,
   getMediaFoldersTool,
   listFilesInMediaFolderTool,
-  matchEpisodeTool,
   createMatchEpisodesInBatchTool,
-  createRenameFilesInBatchTool,
   createRenameFolderTool,
-  createAskForConfirmationTool,
   getApplicationContextTool,
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
@@ -18,6 +13,9 @@ import {
 } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
 import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
+import { logger } from '../lib/logger';
+import { getUserConfig } from '@/utils/config';
+import { createAIProvider } from '../lib/ai-provider';
 
 config();
 
@@ -29,17 +27,34 @@ interface ChatRequest {
   clientId: string;
 }
 
-const openai = createOpenAICompatible({
-  name: 'DeepSeek',
-  baseURL: process.env.OPENAI_BASE_URL || '',
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
-
 export async function handleChatRequest(request: Request): Promise<Response> {
+
+  const userConfig = await getUserConfig();
+  if(userConfig.selectedAI === undefined) {
+    return new Response(
+      JSON.stringify({ error: 'No AI selected' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  let aiProvider;
+  let defaultModel;
+  try {
+    const { provider, model } = createAIProvider(userConfig);
+    aiProvider = provider;
+    defaultModel = model;
+  } catch (error) {
+    logger.error({ error }, 'Failed to create AI provider');
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to create AI provider' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     // Check if request is already aborted
     if (request.signal?.aborted) {
-      console.log('Request was already aborted');
+      logger.info('Request was already aborted');
       return new Response(
         JSON.stringify({ error: 'Request was aborted' }),
         { status: 499, headers: { 'Content-Type': 'application/json' } }
@@ -51,20 +66,25 @@ export async function handleChatRequest(request: Request): Promise<Response> {
 
     // Listen for abort event
     abortSignal?.addEventListener('abort', () => {
-      console.log('Request was aborted by client');
+      logger.info('Request was aborted by client');
       // All tools will be notified via their abortSignal parameter
     });
 
     const body = await request.json() as ChatRequest;
     const { messages, model, tools, system, clientId } = body;
 
-    console.log('clientId:', clientId);
+
+    logger.info({
+      body,
+    }, "Received chat request with body")
+
+    logger.debug({ clientId }, 'Processing chat request');
     // Convert UI messages to model messages format
     const modelMessages = await convertToModelMessages(messages || []);
 
-    console.log(`baseURL: ${process.env.OPENAI_BASE_URL}, model: ${model || process.env.OPENAI_MODEL}`);
+    logger.debug({ selectedAI: userConfig.selectedAI, model: model || defaultModel }, 'Using AI model configuration');
     const result = await streamText({
-      model: openai.chatModel(model || process.env.OPENAI_MODEL || 'deepseek-chat'),
+      model: aiProvider.chatModel(model || defaultModel),
       messages: modelMessages,
       system: system,
       abortSignal: abortSignal,
@@ -90,25 +110,25 @@ export async function handleChatRequest(request: Request): Promise<Response> {
 
     // Check again before creating response
     if (abortSignal?.aborted) {
-      console.log('Request aborted before response creation');
+      logger.info('Request aborted before response creation');
       throw new Error('Request aborted');
     }
 
     // Use toUIMessageStreamResponse for useChat compatibility
     const response = result.toUIMessageStreamResponse();
-    console.log('Streaming response created');
+    logger.debug('Streaming response created');
     return response;
   } catch (error) {
     // Check if error is due to abort
     if (error instanceof Error && (error.name === 'AbortError' || error.message === 'Request aborted')) {
-      console.log('Request was aborted during processing');
+      logger.info('Request was aborted during processing');
       return new Response(
         JSON.stringify({ error: 'Request was aborted' }),
         { status: 499, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    console.error('Chat API error:', error);
+    logger.error({ error }, 'Chat API error');
     return new Response(
       JSON.stringify({ error: 'Failed to process chat request', details: error instanceof Error ? error.message : String(error) }),
       {

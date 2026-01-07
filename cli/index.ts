@@ -70,7 +70,7 @@ logger.info(`Log directory: ${logDir}`);
 // Create and start the server
 const server = new Server({
   port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
-  root: args.staticDir ?? './public',
+  root: args.staticDir ?? '../ui/dist',
 });
 
 server.start();
