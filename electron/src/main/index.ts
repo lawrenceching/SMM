@@ -11,6 +11,9 @@ let cliPort: number | null = null
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
 
+// Control whether to start dev dependencies (CLI and UI dev processes) on startup
+const startUpDependencies: boolean = false
+
 // Get the CLI executable path - works in both dev and production
 function getCLIExecutablePath(): string {
   if (is.dev) {
@@ -350,15 +353,20 @@ app.whenReady().then(() => {
 
   // Start services and then create window
   if (is.dev) {
-    // Development mode: Start CLI and UI dev processes
-    console.log('Development mode: Starting CLI and UI dev processes')
-    startCLIDev()
-    startUIDev()
-    // Give dev processes a moment to start, then create window
-    // Vite dev server typically starts quickly, but we don't wait for it
-    setTimeout(() => {
+    // Development mode: Start CLI and UI dev processes if enabled
+    if (startUpDependencies) {
+      console.log('Development mode: Starting CLI and UI dev processes')
+      startCLIDev()
+      startUIDev()
+      // Give dev processes a moment to start, then create window
+      // Vite dev server typically starts quickly, but we don't wait for it
+      setTimeout(() => {
+        createWindow()
+      }, 1000)
+    } else {
+      console.log('Development mode: Skipping CLI and UI dev processes (startUpDependencies is false)')
       createWindow()
-    }, 1000)
+    }
   } else {
     // Production mode: Start CLI then create window
     startCLI().then(() => {
