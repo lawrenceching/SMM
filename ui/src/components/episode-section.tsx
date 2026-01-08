@@ -7,10 +7,12 @@ import { useMediaMetadata } from "./media-metadata-provider"
 import { relative } from "@/lib/path"
 import { useMemo } from "react"
 import React from "react"
+import { useTranslation } from "@/lib/i18n"
+import type { TFunction } from "i18next"
 
 // Helper function to format date
-function formatDate(dateString: string): string {
-    if (!dateString) return "N/A"
+function formatDate(dateString: string, t: TFunction<readonly ["components"], undefined>): string {
+    if (!dateString) return t("episodeSection.notAvailable")
     try {
         const date = new Date(dateString)
         return date.toLocaleDateString("en-US", {
@@ -40,21 +42,21 @@ function getFileIcon(path: string) {
 }
 
 // Helper function to get icon and label for file type
-function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, label: string, iconColor: string, bgColor: string } {
+function getFileTypeConfig(type: FileProps['type'], t: TFunction<readonly ["components"], undefined>): { icon: typeof FileVideo, label: string, iconColor: string, bgColor: string } {
     switch (type) {
         case "video":
-            return { icon: FileVideo, label: "Video", iconColor: "text-primary", bgColor: "bg-primary/10" }
+            return { icon: FileVideo, label: t("episodeSection.fileTypes.video"), iconColor: "text-primary", bgColor: "bg-primary/10" }
         case "subtitle":
-            return { icon: FileText, label: "Subtitle", iconColor: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30" }
+            return { icon: FileText, label: t("episodeSection.fileTypes.subtitle"), iconColor: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30" }
         case "audio":
-            return { icon: Music, label: "Audio", iconColor: "text-green-600 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-950/30" }
+            return { icon: Music, label: t("episodeSection.fileTypes.audio"), iconColor: "text-green-600 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-950/30" }
         case "nfo":
-            return { icon: FileText, label: "NFO", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
+            return { icon: FileText, label: t("episodeSection.fileTypes.nfo"), iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
         case "poster":
-            return { icon: ImageIcon, label: "Poster", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
+            return { icon: ImageIcon, label: t("episodeSection.fileTypes.poster"), iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
         case "file":
         default:
-            return { icon: FileVideo, label: "File", iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
+            return { icon: FileVideo, label: t("episodeSection.fileTypes.file"), iconColor: "text-muted-foreground", bgColor: "bg-muted/50" }
     }
 }
 
@@ -109,6 +111,7 @@ export function EpisodeSection({
     files,
     isPreviewMode,
 }: EpisodeSectionProps) {
+    const { t } = useTranslation(['components'])
     const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
@@ -221,12 +224,12 @@ export function EpisodeSection({
                     </div>
                     {episode.air_date && (
                         <p className="text-xs text-muted-foreground mb-1">
-                            {formatDate(episode.air_date)}
+                            {formatDate(episode.air_date, t)}
                         </p>
                     )}
                     {episode.runtime > 0 && (
                         <p className="text-xs text-muted-foreground mb-2">
-                            {episode.runtime} min
+                            {episode.runtime} {t("episodeSection.minutes")}
                         </p>
                     )}
                     {episode.overview && (
@@ -245,14 +248,14 @@ export function EpisodeSection({
                 <div className="border-t bg-muted/30">
                     {files.length === 0 ? (
                         <div className="text-center py-6 text-xs text-muted-foreground">
-                            No files associated with this episode
+                            {t("episodeSection.noFiles")}
                         </div>
                     ) : (
                         <div className="px-3 py-2">
                             {/* Video Files - Main (Emphasized) */}
                             {filesByTypeArray.map(([type, typeFiles]) => {
                                 if (type !== "video") return null
-                                const { icon: TypeIcon, iconColor } = getFileTypeConfig(type)
+                                const { icon: TypeIcon, iconColor } = getFileTypeConfig(type, t)
                                 
                                 return typeFiles.map((file, index) => (
                                     <EpisodeFile
@@ -271,7 +274,7 @@ export function EpisodeSection({
                             {/* Associated Files - Subtitle, Audio, NFO, Poster, etc. (Subtle) */}
                             {filesByTypeArray.map(([type, typeFiles]) => {
                                 if (type === "video") return null
-                                const { label, iconColor } = getFileTypeConfig(type)
+                                const { label, iconColor } = getFileTypeConfig(type, t)
                                 const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
                                 
                                 return typeFiles.map((file, index) => {
@@ -325,7 +328,7 @@ export function EpisodeSection({
                                                 </span>
                                                 {isDeleted && (
                                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium text-destructive/80 bg-destructive/10">
-                                                        Deleted
+                                                        {t("episodeSection.deleted")}
                                                     </span>
                                                 )}
                                             </div>

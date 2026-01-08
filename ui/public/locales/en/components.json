@@ -69,6 +69,20 @@
     "emptyDirectoryDescription": "This folder contains no files",
     "statusBar": "{{folders}} folders, {{files}} files",
     "searchStatus": "Showing {{showing}} of {{total}} items"
+  },
+  "episodeSection": {
+    "notAvailable": "N/A",
+    "minutes": "min",
+    "noFiles": "No files associated with this episode",
+    "deleted": "Deleted",
+    "fileTypes": {
+      "video": "Video",
+      "subtitle": "Subtitle",
+      "audio": "Audio",
+      "nfo": "NFO",
+      "poster": "Poster",
+      "file": "File"
+    }
   }
 }
 

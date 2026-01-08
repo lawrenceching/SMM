@@ -104,6 +104,20 @@ interface ComponentsResources {
     statusBar: string
     searchStatus: string
   }
+  episodeSection: {
+    notAvailable: string
+    minutes: string
+    noFiles: string
+    deleted: string
+    fileTypes: {
+      video: string
+      subtitle: string
+      audio: string
+      nfo: string
+      poster: string
+      file: string
+    }
+  }
 }
 
 interface DialogsResources {

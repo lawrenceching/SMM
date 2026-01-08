@@ -69,6 +69,20 @@
     "emptyDirectoryDescription": "此資料夾不包含任何檔案",
     "statusBar": "{{folders}} 個資料夾, {{files}} 個檔案",
     "searchStatus": "顯示 {{showing}} / {{total}} 項"
+  },
+  "episodeSection": {
+    "notAvailable": "不可用",
+    "minutes": "分鐘",
+    "noFiles": "此劇集沒有關聯檔案",
+    "deleted": "已刪除",
+    "fileTypes": {
+      "video": "影片",
+      "subtitle": "字幕",
+      "audio": "音訊",
+      "nfo": "NFO",
+      "poster": "海報",
+      "file": "檔案"
+    }
   }
 }
 

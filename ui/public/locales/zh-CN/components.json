@@ -69,6 +69,20 @@
     "emptyDirectoryDescription": "此文件夹不包含任何文件",
     "statusBar": "{{folders}} 个文件夹, {{files}} 个文件",
     "searchStatus": "显示 {{showing}} / {{total}} 项"
+  },
+  "episodeSection": {
+    "notAvailable": "不可用",
+    "minutes": "分钟",
+    "noFiles": "此剧集没有关联文件",
+    "deleted": "已删除",
+    "fileTypes": {
+      "video": "视频",
+      "subtitle": "字幕",
+      "audio": "音频",
+      "nfo": "NFO",
+      "poster": "海报",
+      "file": "文件"
+    }
   }
 }
 
