@@ -8,6 +8,8 @@ import { channelRoute } from './ChannelRoute'
 
 let cliProcess: ChildProcess | null = null
 let cliPort: number | null = null
+let cliDevProcess: ChildProcess | null = null
+let uiDevProcess: ChildProcess | null = null
 
 // Get the CLI executable path - works in both dev and production
 function getCLIExecutablePath(): string {
@@ -145,6 +147,126 @@ function stopCLI(): void {
   }
 }
 
+/**
+ * Start CLI module in development mode by running `bun run dev`
+ */
+function startCLIDev(): void {
+  if (cliDevProcess) {
+    console.log('CLI dev process is already running')
+    return
+  }
+
+  const cliDir = join(__dirname, '../../../cli')
+  console.log(`Starting CLI dev process in: ${cliDir}`)
+
+  try {
+    cliDevProcess = spawn('bun', ['run', 'dev'], {
+      cwd: cliDir,
+      stdio: 'pipe',
+      shell: true,
+      env: {
+        ...process.env
+      }
+    })
+
+    // Capture stdout from CLI dev
+    if (cliDevProcess.stdout) {
+      cliDevProcess.stdout.on('data', (data) => {
+        console.log(`[cli-dev] ${data.toString().trim()}`)
+      })
+    }
+
+    // Capture stderr from CLI dev
+    if (cliDevProcess.stderr) {
+      cliDevProcess.stderr.on('data', (data) => {
+        console.error(`[cli-dev] ${data.toString().trim()}`)
+      })
+    }
+
+    cliDevProcess.on('error', (error) => {
+      console.error('Failed to start CLI dev process:', error)
+      cliDevProcess = null
+    })
+
+    cliDevProcess.on('exit', (code, signal) => {
+      console.log(`CLI dev process exited with code ${code} and signal ${signal}`)
+      cliDevProcess = null
+    })
+
+    console.log('CLI dev process started')
+  } catch (error) {
+    console.error('Error starting CLI dev process:', error)
+  }
+}
+
+/**
+ * Start UI module in development mode by running `bun run dev`
+ */
+function startUIDev(): void {
+  if (uiDevProcess) {
+    console.log('UI dev process is already running')
+    return
+  }
+
+  const uiDir = join(__dirname, '../../../ui')
+  console.log(`Starting UI dev process in: ${uiDir}`)
+
+  try {
+    uiDevProcess = spawn('bun', ['run', 'dev'], {
+      cwd: uiDir,
+      stdio: 'pipe',
+      shell: true,
+      env: {
+        ...process.env
+      }
+    })
+
+    // Capture stdout from UI dev
+    if (uiDevProcess.stdout) {
+      uiDevProcess.stdout.on('data', (data) => {
+        console.log(`[ui-dev] ${data.toString().trim()}`)
+      })
+    }
+
+    // Capture stderr from UI dev
+    if (uiDevProcess.stderr) {
+      uiDevProcess.stderr.on('data', (data) => {
+        console.error(`[ui-dev] ${data.toString().trim()}`)
+      })
+    }
+
+    uiDevProcess.on('error', (error) => {
+      console.error('Failed to start UI dev process:', error)
+      uiDevProcess = null
+    })
+
+    uiDevProcess.on('exit', (code, signal) => {
+      console.log(`UI dev process exited with code ${code} and signal ${signal}`)
+      uiDevProcess = null
+    })
+
+    console.log('UI dev process started')
+  } catch (error) {
+    console.error('Error starting UI dev process:', error)
+  }
+}
+
+/**
+ * Stop CLI and UI dev processes
+ */
+function stopDevProcesses(): void {
+  if (cliDevProcess) {
+    cliDevProcess.kill()
+    cliDevProcess = null
+    console.log('CLI dev process stopped')
+  }
+  if (uiDevProcess) {
+    uiDevProcess.kill()
+    uiDevProcess = null
+    console.log('UI dev process stopped')
+  }
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -168,15 +290,16 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  const port = cliPort || 5173;
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    // mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.loadURL(`http://localhost:${port}`)
+  // Load the appropriate URL based on execution mode
+  if (is.dev) {
+    // Development mode: Connect to Vite dev server
+    mainWindow.loadURL('http://localhost:5173')
   } else {
-    // Load the web interface provided by cli
-    mainWindow.loadURL(`http://localhost:${port}`)    
+    // Production mode: Connect to bundled CLI server
+    if (cliPort === null) {
+      console.error('Production mode: CLI port not allocated. Window may not load correctly.')
+    }
+    mainWindow.loadURL(`http://localhost:${cliPort || 5173}`)
   }
 }
 
@@ -225,14 +348,27 @@ app.whenReady().then(() => {
     return channelRoute(request);
   })
 
-  // Start the CLI executable and then create window
-  startCLI().then(() => {
-    createWindow()
-  }).catch((error) => {
-    console.error('Failed to start CLI:', error)
-    // Still create window even if CLI fails to start
-    createWindow()
-  })
+  // Start services and then create window
+  if (is.dev) {
+    // Development mode: Start CLI and UI dev processes
+    console.log('Development mode: Starting CLI and UI dev processes')
+    startCLIDev()
+    startUIDev()
+    // Give dev processes a moment to start, then create window
+    // Vite dev server typically starts quickly, but we don't wait for it
+    setTimeout(() => {
+      createWindow()
+    }, 1000)
+  } else {
+    // Production mode: Start CLI then create window
+    startCLI().then(() => {
+      createWindow()
+    }).catch((error) => {
+      console.error('Failed to start CLI:', error)
+      // Still create window even if CLI fails to start
+      createWindow()
+    })
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -250,9 +386,13 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Clean up CLI process when app quits
+// Clean up processes when app quits
 app.on('before-quit', () => {
-  stopCLI()
+  if (is.dev) {
+    stopDevProcesses()
+  } else {
+    stopCLI()
+  }
 })
 
 // In this file you can include the rest of your app's specific main process

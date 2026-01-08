@@ -1,34 +1,20 @@
-# electron
+# Electron Wrapper for SMM
 
-A minimal Electron application with TypeScript
+This is an electron wrapper for SMM.
 
-## Recommended IDE Setup
+The main backend logic is in `cli` module, and the frontend is in `ui` module.
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+This project implements function that require Electron capabilites.
 
-## Project Setup
 
-### Install
+When start electron wrapper in development mode:
 
-```bash
-$ npm install
-```
+1. Start `cli` module by running `bun run dev` in `cli` folder.
+2. Start `ui` module by running `bun run dev` in `ui` folder.
+3. Main window loads URL `http://localhost:5173`
 
-### Development
 
-```bash
-$ npm run dev
-```
+When start electron wrapper in production mode:
 
-### Build
-
-```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
-```
+1. Start `cli` module by running cli executable bundled in Electron package. cli process serves frontend resource at `cliPort` that runtime allocated.
+2. Main window loads URL `http://localhost:{cliPort}`

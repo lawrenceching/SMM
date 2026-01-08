@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(cat /c/Users/lawrence/workspace/smm-mono/cli/package.json)",
-      "Bash(cat /c/Users/lawrence/workspace/smm-mono/ui/package.json)"
+      "Bash(cat /c/Users/lawrence/workspace/smm-mono/ui/package.json)",
+      "Bash(bun test:*)"
     ],
     "deny": [],
     "ask": []

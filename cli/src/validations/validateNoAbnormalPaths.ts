@@ -5,6 +5,17 @@ import pino from 'pino';
 const logger = pino();
 
 function compare(p: string) {
+    // Relative paths starting with '../' are excluded as they normalize to themselves
+    // and are handled separately by the file system
+    if (p.startsWith('../')) {
+        return true;
+    }
+
+    // Check for parent/current directory traversal attempts in absolute paths
+    if (p.includes('/..') || p.includes('/./') || p.endsWith('/.')) {
+        return false;
+    }
+
     const platform = Path.toPlatformPath(p);
     const normalized = path.normalize(platform);
     const ret = normalized === platform;

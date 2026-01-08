@@ -5,7 +5,7 @@ import { Path } from '@core/path';
 
 describe('renameFolderInUserConfig', () => {
   const createMockUserConfig = (folders: string[]): UserConfig => ({
-    applicationLanguage: 'en-US',
+    applicationLanguage: 'en',
     tmdb: {
       apiKey: 'test-key',
       host: 'https://api.themoviedb.org/3',

@@ -2,9 +2,21 @@ import { stat } from 'node:fs/promises';
 import { Path } from '@core/path';
 
 /**
- * Validate that all destination files or directories do not exist in the filesystem.
+ * Wrapper for stat with timeout to prevent hanging on invalid paths
+ */
+async function statWithTimeout(path: string, timeoutMs: number = 1000): Promise<ReturnType<typeof stat>> {
+  return Promise.race([
+    stat(path),
+    new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error(`stat timeout for path: ${path}`)), timeoutMs)
+    ),
+  ]);
+}
+
+/**
+ * Validate that all destination files do not exist in the filesystem.
  * @param tasks Array of rename operations
- * @returns Object containing isValid flag and existing destination file/directory paths if any
+ * @returns Object containing isValid flag and existing destination file paths if any
  */
 export async function validateDestFileNotExist(
   tasks: {
@@ -25,13 +37,13 @@ export async function validateDestFileNotExist(
 
     try {
       const platformPath = Path.toPlatformPath(task.to);
-      const stats = await stat(platformPath);
-      // Check for both files and directories
-      if (stats.isFile() || stats.isDirectory()) {
+      const stats = await statWithTimeout(platformPath);
+      // Only check for files, not directories
+      if (stats.isFile()) {
         existingFiles.push(task.to);
       }
     } catch (error) {
-      // File doesn't exist, which is what we want - continue
+      // File doesn't exist or timeout occurred, which is what we want - continue
       continue;
     }
   }

@@ -93,7 +93,6 @@ export async function writeUserConfig(userConfig: UserConfig): Promise<void> {
  * @returns 
  */
 export function renameFolderInUserConfig(userConfig: UserConfig, from: string, to: string): UserConfig {
-
     const actualFromPosix = Path.posix(from);
     const actualFromWindows = Path.win(from);
     const actualTo = Path.toPlatformPath(to);
