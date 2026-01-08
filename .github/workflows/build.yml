@@ -103,7 +103,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run tests
-        run: bun run test
+        run: bun test
       
       - name: Build CLI
         run: bun run build
