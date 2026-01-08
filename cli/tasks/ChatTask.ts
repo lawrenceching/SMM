@@ -74,7 +74,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
     const { messages, model, tools, system, clientId } = body;
 
 
-    logger.info({
+    logger.debug({
       body,
     }, "Received chat request with body")
 

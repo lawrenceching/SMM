@@ -235,14 +235,14 @@ export async function acknowledge(
     }
 
     const duration = performance.now() - startTime;
-    logger.info({
+    logger.debug({
       clientId,
       socketId: socket.id,
       event: message.event,
       hasResponse: !!response,
       response: response,
       durationMs: Math.round(duration)
-    }, '[DEBUG] socket.io acknowledgement received successfully');
+    }, 'socket.io acknowledgement received successfully');
 
     return response;
   } catch (error) {

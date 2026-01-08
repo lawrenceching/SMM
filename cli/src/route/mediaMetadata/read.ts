@@ -48,8 +48,13 @@ export async function handleReadMediaMetadata(app: Hono) {
                 data: {} as MediaMetadata,
                 error: `Folder Not Found: ${folderPath} was not found`
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
-            return c.json(resp, 200);
+            logger.error({
+                method: c.req.method,
+                url: c.req.url,
+                requestBody: raw,
+                error: error instanceof Error ? error.message : String(error),
+            }, "media folder not found")
+            return c.json(resp, 500);
         }
 
         // Use findMediaMetadata to get the metadata
@@ -67,7 +72,7 @@ export async function handleReadMediaMetadata(app: Hono) {
 
         // Update files list from the actual folder
         data.files = await listFiles(new Path(folderPath), true);
-        logger.info({
+        logger.debug({
             folderPath,
             files: data.files
         }, `[ReadMediaMetadata] updated files in media metadata`);

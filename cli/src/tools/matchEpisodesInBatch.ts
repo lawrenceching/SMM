@@ -15,6 +15,17 @@ interface MatchFile {
   path: string;
 }
 
+interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+interface FileValidationResult {
+  isValid: boolean;
+  error?: string;
+  validatedFile?: MatchFile;
+}
+
 export function updateMediaFileMetadatas(
   _mediaFiles: MediaFileMetadata[],
   videoFilePath: string,
@@ -39,6 +50,239 @@ export function updateMediaFileMetadatas(
       episodeNumber
     }
   ];
+}
+
+/**
+ * Validates that the metadata file exists
+ */
+export async function validateMetadataExists(folderPath: string): Promise<ValidationResult> {
+  const folderPathInPosix = Path.posix(folderPath);
+  const metadataFilePath = metadataCacheFilePath(folderPathInPosix);
+  const metadataExists = await Bun.file(metadataFilePath).exists();
+
+  if (!metadataExists) {
+    return {
+      isValid: false,
+      error: `Error Reason: folderPath "${folderPathInPosix}" is not opened in SMM`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates and loads media metadata from cache file
+ */
+export async function validateAndLoadMetadata(folderPath: string): Promise<ValidationResult & { metadata?: MediaMetadata }> {
+  const folderPathInPosix = Path.posix(folderPath);
+  const metadataFilePath = metadataCacheFilePath(folderPathInPosix);
+
+  try {
+    const metadata = await Bun.file(metadataFilePath).json() as MediaMetadata;
+    return { isValid: true, metadata };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: `Error Reason: Failed to read media metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
+ * Validates that the folder path matches the metadata folder path
+ */
+export function validateFolderPathMatch(folderPath: string, mediaMetadata: MediaMetadata): ValidationResult {
+  const folderPathInPosix = Path.posix(folderPath);
+
+  if (mediaMetadata.mediaFolderPath !== folderPathInPosix) {
+    return {
+      isValid: false,
+      error: `Error Reason: folderPath "${folderPathInPosix}" does not match metadata folder path "${mediaMetadata.mediaFolderPath}"`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates that TMDB TV show data exists in metadata
+ */
+export function validateTmdbTvShowExists(mediaMetadata: MediaMetadata): ValidationResult {
+  if (!mediaMetadata.tmdbTvShow) {
+    return {
+      isValid: false,
+      error: `Error Reason: TMDB TV show data is not available for this media folder`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates that a file exists in the filesystem
+ */
+export function validateFileExists(filePath: string, filesystemFiles: string[]): ValidationResult {
+  const pathInPosix = Path.posix(filePath);
+  
+  const fileExists = filesystemFiles.some(f => {
+    const normalizedFile = Path.posix(f);
+    logger.info({
+      normalizedFile,
+      pathInPosix,
+      f,
+    })
+    return normalizedFile === pathInPosix || f === pathInPosix;
+  });
+
+
+  if (!fileExists) {
+    return {
+      isValid: false,
+      error: `Path "${pathInPosix}" is not a file in the media folder`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates that a season exists in TMDB TV show data
+ */
+export function validateSeasonExists(
+  seasonNumber: number,
+  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>,
+  filePath: string
+): ValidationResult {
+  const season = tmdbTvShow.seasons?.find(s => s.season_number === seasonNumber);
+  
+  if (!season) {
+    return {
+      isValid: false,
+      error: `Season ${seasonNumber} does not exist in TMDB TV show for file "${Path.posix(filePath)}"`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates that an episode exists in a season
+ */
+export function validateEpisodeExists(
+  seasonNumber: number,
+  episodeNumber: number,
+  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>,
+  filePath: string
+): ValidationResult {
+  const season = tmdbTvShow.seasons?.find(s => s.season_number === seasonNumber);
+  
+  if (!season) {
+    return {
+      isValid: false,
+      error: `Season ${seasonNumber} does not exist in TMDB TV show for file "${Path.posix(filePath)}"`
+    };
+  }
+
+  const episode = season.episodes?.find(e => e.episode_number === episodeNumber);
+  
+  if (!episode) {
+    return {
+      isValid: false,
+      error: `Episode ${episodeNumber} does not exist in season ${seasonNumber} for file "${Path.posix(filePath)}"`
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates a single file against filesystem and TMDB data
+ */
+export function validateFile(
+  file: MatchFile,
+  filesystemFiles: string[],
+  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>
+): FileValidationResult {
+  const pathInPosix = Path.posix(file.path);
+
+  // Validate file exists in filesystem
+  const fileExistsResult = validateFileExists(file.path, filesystemFiles);
+  if (!fileExistsResult.isValid) {
+    logger.warn({
+      path: pathInPosix,
+      totalFilesInMediaFolder: filesystemFiles.length,
+      sampleFiles: filesystemFiles.slice(0, 3)
+    }, '[tool][matchEpisodesInBatch] File not found in media folder');
+    return { isValid: false, error: fileExistsResult.error };
+  }
+
+  // Validate season exists
+  const seasonResult = validateSeasonExists(file.season, tmdbTvShow, file.path);
+  if (!seasonResult.isValid) {
+    logger.warn({
+      path: pathInPosix,
+      season: file.season,
+      availableSeasons: tmdbTvShow.seasons?.map(s => s.season_number) ?? []
+    }, '[tool][matchEpisodesInBatch] Season not found in TMDB');
+    return { isValid: false, error: seasonResult.error };
+  }
+
+  // Validate episode exists
+  const episodeResult = validateEpisodeExists(file.season, file.episode, tmdbTvShow, file.path);
+  if (!episodeResult.isValid) {
+    const season = tmdbTvShow.seasons?.find(s => s.season_number === file.season);
+    logger.warn({
+      path: pathInPosix,
+      season: file.season,
+      episode: file.episode,
+      availableEpisodes: season?.episodes?.map(e => e.episode_number) ?? []
+    }, '[tool][matchEpisodesInBatch] Episode not found in season');
+    return { isValid: false, error: episodeResult.error };
+  }
+
+  logger.debug({
+    path: pathInPosix,
+    season: file.season,
+    episode: file.episode
+  }, '[tool][matchEpisodesInBatch] File validation passed');
+
+  return { isValid: true, validatedFile: file };
+}
+
+/**
+ * Validates all files and returns validated files and errors
+ */
+export function validateAllFiles(
+  files: MatchFile[],
+  filesystemFiles: string[],
+  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>
+): { validatedFiles: MatchFile[]; validationErrors: string[] } {
+  const validationErrors: string[] = [];
+  const validatedFiles: MatchFile[] = [];
+
+  for (const file of files) {
+    const pathInPosix = Path.posix(file.path);
+    
+    logger.debug({
+      originalPath: file.path,
+      normalizedPath: pathInPosix,
+      season: file.season,
+      episode: file.episode
+    }, '[tool][matchEpisodesInBatch] Validating file');
+
+    const result = validateFile(file, filesystemFiles, tmdbTvShow);
+    
+    if (!result.isValid) {
+      validationErrors.push(result.error!);
+      continue;
+    }
+
+    if (result.validatedFile) {
+      validatedFiles.push(result.validatedFile);
+    }
+  }
+
+  return { validatedFiles, validationErrors };
 }
 
 export const createMatchEpisodesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
@@ -73,34 +317,35 @@ interface ToolResponse {
     }
     logger.info(`[tool][matchEpisodesInBatch] Matching ${files.length} files in folder "${folderPath}"`);
     const folderPathInPosix = Path.posix(folderPath);
-
-    // 1. Read media metadata from cache file
     const metadataFilePath = metadataCacheFilePath(folderPathInPosix);
-    const metadataExists = await Bun.file(metadataFilePath).exists();
 
-    if (!metadataExists) {
-      return { error: `Error Reason: folderPath "${folderPathInPosix}" is not opened in SMM` };
+    // 1. Validate metadata exists
+    const metadataExistsResult = await validateMetadataExists(folderPath);
+    if (!metadataExistsResult.isValid) {
+      return { error: metadataExistsResult.error };
     }
 
-    let mediaMetadata: MediaMetadata;
-    try {
-      mediaMetadata = await Bun.file(metadataFilePath).json() as MediaMetadata;
-    } catch (error) {
-      return { error: `Error Reason: Failed to read media metadata: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    // 2. Validate and load media metadata
+    const metadataLoadResult = await validateAndLoadMetadata(folderPath);
+    if (!metadataLoadResult.isValid || !metadataLoadResult.metadata) {
+      return { error: metadataLoadResult.error };
+    }
+    const mediaMetadata = metadataLoadResult.metadata;
+
+    // 3. Validate folder path matches
+    const folderPathMatchResult = validateFolderPathMatch(folderPath, mediaMetadata);
+    if (!folderPathMatchResult.isValid) {
+      return { error: folderPathMatchResult.error };
     }
 
-    // 2. Check if folderPathInPosix matches
-    if (mediaMetadata.mediaFolderPath !== folderPathInPosix) {
-      return { error: `Error Reason: folderPath "${folderPathInPosix}" does not match metadata folder path "${mediaMetadata.mediaFolderPath}"` };
+    // 4. Validate TMDB TV show exists
+    const tmdbTvShowResult = validateTmdbTvShowExists(mediaMetadata);
+    if (!tmdbTvShowResult.isValid) {
+      return { error: tmdbTvShowResult.error };
     }
+    const tmdbTvShow = mediaMetadata.tmdbTvShow!;
 
-    // 3. Validate all files before asking for confirmation
-    const tmdbTvShow = mediaMetadata.tmdbTvShow;
-    if (!tmdbTvShow) {
-      return { error: `Error Reason: TMDB TV show data is not available for this media folder` };
-    }
-
-    // List files from filesystem instead of using mediaMetadata.files
+    // 5. List files from filesystem
     const folderPathObj = new Path(folderPathInPosix);
     let filesystemFiles: string[];
     try {
@@ -117,82 +362,14 @@ interface ToolResponse {
       return { error: `Error Reason: Failed to list files from folder: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
 
-    const validationErrors: string[] = [];
-    const validatedFiles: MatchFile[] = [];
-
+    // 6. Validate all files
     logger.info({
       folderPath: folderPathInPosix,
       totalFiles: files.length,
       filesystemFilesCount: filesystemFiles.length
     }, '[tool][matchEpisodesInBatch] Starting validation');
 
-    for (const file of files) {
-      // Normalize the input path to POSIX format
-      const pathInPosix = Path.posix(file.path);
-      
-      logger.debug({
-        originalPath: file.path,
-        normalizedPath: pathInPosix,
-        season: file.season,
-        episode: file.episode
-      }, '[tool][matchEpisodesInBatch] Validating file');
-      
-      // Check if path exists in filesystem files
-      // Normalize filesystem files for comparison to handle any edge cases
-      const fileExists = filesystemFiles.some(f => {
-        const normalizedFile = Path.posix(f);
-        return normalizedFile === pathInPosix || f === pathInPosix;
-      });
-      
-      if (!fileExists) {
-        logger.warn({
-          path: pathInPosix,
-          totalFilesInMediaFolder: filesystemFiles.length,
-          sampleFiles: filesystemFiles.slice(0, 3)
-        }, '[tool][matchEpisodesInBatch] File not found in media folder');
-        validationErrors.push(`Path "${pathInPosix}" is not a file in the media folder`);
-        continue;
-      }
-
-      logger.debug({
-        path: pathInPosix,
-        season: file.season,
-        episode: file.episode
-      }, '[tool][matchEpisodesInBatch] File exists, validating season/episode');
-
-      // Check season and episode validity
-      const season = tmdbTvShow.seasons?.find(s => s.season_number === file.season);
-      if (!season) {
-        logger.warn({
-          path: pathInPosix,
-          season: file.season,
-          availableSeasons: tmdbTvShow.seasons?.map(s => s.season_number) ?? []
-        }, '[tool][matchEpisodesInBatch] Season not found in TMDB');
-        validationErrors.push(`Season ${file.season} does not exist in TMDB TV show for file "${pathInPosix}"`);
-        continue;
-      }
-
-      const episode = season.episodes?.find(e => e.episode_number === file.episode);
-      if (!episode) {
-        logger.warn({
-          path: pathInPosix,
-          season: file.season,
-          episode: file.episode,
-          availableEpisodes: season.episodes?.map(e => e.episode_number) ?? []
-        }, '[tool][matchEpisodesInBatch] Episode not found in season');
-        validationErrors.push(`Episode ${file.episode} does not exist in season ${file.season} for file "${pathInPosix}"`);
-        continue;
-      }
-
-      logger.debug({
-        path: pathInPosix,
-        season: file.season,
-        episode: file.episode,
-        episodeName: episode.name
-      }, '[tool][matchEpisodesInBatch] File validation passed');
-
-      validatedFiles.push(file);
-    }
+    const { validatedFiles, validationErrors } = validateAllFiles(files, filesystemFiles, tmdbTvShow);
 
     logger.info({
       totalFiles: files.length,
