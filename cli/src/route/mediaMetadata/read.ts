@@ -54,7 +54,7 @@ export async function handleReadMediaMetadata(app: Hono) {
                 requestBody: raw,
                 error: error instanceof Error ? error.message : String(error),
             }, "media folder not found")
-            return c.json(resp, 500);
+            return c.json(resp, 200);
         }
 
         // Use findMediaMetadata to get the metadata

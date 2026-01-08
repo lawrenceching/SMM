@@ -406,7 +406,7 @@ function TvShowPanel() {
     if(toolbarMode === 'ai') {
       return;
     }
-    // generateNewFileNames();
+    generateNewFileNames();
   }, [isPreviewMode, selectedNamingRule, generateNewFileNames])
 
   // Handle confirm button click - rename all files
@@ -492,6 +492,11 @@ function TvShowPanel() {
       
       for (const { from, to, type } of filteredVideoFiles) {
         try {
+          // TODO:
+          // the renameFile API in backend will trigger mediaMetadataUpdated event
+          // so mulitple readMediaMetadata API calls was triggered 
+          // 1. Consider to create renameFileInBatch API
+          // 2. Consider not to trigger mediaMetadataUpdated for frontend API call (still need to trigger it for AI Agent rename file)
           await renameFile({
             mediaFolder: mediaMetadata.mediaFolderPath,
             from,

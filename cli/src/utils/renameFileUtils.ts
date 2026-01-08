@@ -228,7 +228,7 @@ export async function executeRenameOperation(
 
     // Create directory only if not at root level
     // Using recursive: true ensures all parent directories are created if they don't exist
-    const destDir = dirname(to)
+    const destDir = dirname(toPathPlatform)
     logger.info({
       clientId
     }, `${logPrefix} Ensuring target directory exists: ${destDir}`);
