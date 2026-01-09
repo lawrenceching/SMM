@@ -4,6 +4,8 @@ import { mkdir } from 'fs/promises';
 import { getUserDataDir } from '@/utils/config';
 import { validatePathInUserDataDir } from './path-validator';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 
 const writeFileRequestSchema = z.object({
@@ -11,7 +13,7 @@ const writeFileRequestSchema = z.object({
   data: z.string(),
 });
 
-export async function handleWriteFile(body: WriteFileRequestBody): Promise<WriteFileResponseBody> {
+export async function processWriteFile(body: WriteFileRequestBody): Promise<WriteFileResponseBody> {
   try {
     // Validate request body
     const validationResult = writeFileRequestSchema.safeParse(body);
@@ -58,5 +60,27 @@ export async function handleWriteFile(body: WriteFileRequestBody): Promise<Write
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleWriteFile(app: Hono) {
+  app.post('/api/writeFile', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.path}`)
+      const result = await processWriteFile(rawBody);
+      
+      // If there's an error, return 400, otherwise 200
+      if (result.error) {
+        return c.json(result, 400);
+      }
+      return c.json(result);
+    } catch (error) {
+      logger.error({ error }, 'WriteFile route error:');
+      return c.json({ 
+        error: 'Failed to process write file request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 500);
+    }
+  });
 }
 

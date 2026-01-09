@@ -1,6 +1,8 @@
 import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { getUserDataDir } from '@/utils/config';
 import path from "path";
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 /**
  * Reads user config from smm.json file
@@ -367,4 +369,76 @@ export async function getTvShow(
   return {
     data: fullData as TMDBTVShowDetails
   };
+}
+
+export function handleTmdb(app: Hono) {
+  // POST /api/tmdb/search - Search TMDB for movies or TV shows
+  app.post('/api/tmdb/search', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const result = await search(rawBody);
+      
+      // If there's an error, return 200 with error field (following the pattern)
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'TMDB search route error:');
+      return c.json({ 
+        results: [],
+        page: 0,
+        total_pages: 0,
+        total_results: 0,
+        error: `Failed to process TMDB search request: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }, 200);
+    }
+  });
+
+  // GET /api/tmdb/movie/:id - Get movie by TMDB ID
+  app.get('/api/tmdb/movie/:id', async (c) => {
+    try {
+      const id = parseInt(c.req.param('id'));
+      const language = c.req.query('language') as 'zh-CN' | 'en-US' | 'ja-JP' | undefined;
+      const baseURL = c.req.query('baseURL');
+      
+      if (isNaN(id)) {
+        return c.json({
+          data: undefined,
+          error: 'Invalid movie ID'
+        }, 200);
+      }
+
+      const result = await getMovie(id, language, baseURL);
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'TMDB get movie route error:');
+      return c.json({
+        data: undefined,
+        error: `Failed to get movie: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }, 200);
+    }
+  });
+
+  // GET /api/tmdb/tv/:id - Get TV show by TMDB ID
+  app.get('/api/tmdb/tv/:id', async (c) => {
+    try {
+      const id = parseInt(c.req.param('id'));
+      const language = c.req.query('language') as 'zh-CN' | 'en-US' | 'ja-JP' | undefined;
+      const baseURL = c.req.query('baseURL');
+      
+      if (isNaN(id)) {
+        return c.json({
+          data: undefined,
+          error: 'Invalid TV show ID'
+        }, 200);
+      }
+
+      const result = await getTvShow(id, language, baseURL);
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'TMDB get TV show route error:');
+      return c.json({
+        data: undefined,
+        error: `Failed to get TV show: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }, 200);
+    }
+  });
 }

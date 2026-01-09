@@ -2,13 +2,15 @@ import { z } from 'zod';
 import { getUserDataDir } from '@/utils/config';
 import { validatePathInUserDataDir } from './path-validator';
 import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 
 const readFileRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
 });
 
-export async function handleReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
+export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
   try {
     // Validate request body
     const validationResult = readFileRequestSchema.safeParse(body);
@@ -59,5 +61,26 @@ export async function handleReadFile(body: ReadFileRequestBody): Promise<ReadFil
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleReadFile(app: Hono) {
+  app.post('/api/readFile', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const result = await processReadFile(rawBody);
+      
+      // If there's an error, return 400, otherwise 200
+      if (result.error) {
+        return c.json(result, 400);
+      }
+      return c.json(result);
+    } catch (error) {
+      logger.error({ error }, 'ReadFile route error:');
+      return c.json({ 
+        error: 'Failed to process read file request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 500);
+    }
+  });
 }
 

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { broadcast, acknowledge, type WebSocketMessage } from '../utils/socketIO';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 interface DebugApiResponseBody {
   success: boolean;
@@ -72,7 +74,7 @@ const debugRequestSchema = z.discriminatedUnion('name', [
   // Add more schemas here as new debug functions are added
 ]);
 
-export async function handleDebugRequest(body: any): Promise<DebugApiResponseBody> {
+export async function processDebugRequest(body: any): Promise<DebugApiResponseBody> {
   try {
     console.log(`[DebugAPI] Received debug request:`, body);
 
@@ -311,4 +313,23 @@ export async function handleDebugRequest(body: any): Promise<DebugApiResponseBod
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleDebugRequest(app: Hono) {
+  // POST /debug - Debug API for testing functions
+  app.post('/debug', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const result = await processDebugRequest(rawBody);
+      
+      // Return 200 with success/error status
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'Debug API route error:');
+      return c.json({
+        success: false,
+        error: `Failed to process debug request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      }, 500);
+    }
+  });
 }

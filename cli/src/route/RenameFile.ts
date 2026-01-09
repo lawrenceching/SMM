@@ -3,6 +3,8 @@ import { Path } from '@core/path';
 import type { FileRenameRequestBody, FileRenameResponseBody, FileRenameInBatchRequestBody, FileRenameInBatchResponseBody } from '@core/types';
 import { validateSingleRenameOperation, executeRenameOperation, updateMediaMetadataAndBroadcast, validateBatchRenameOperations, executeBatchRenameOperations } from '../utils/renameFileUtils';
 import pino from 'pino';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 const logger = pino();
 
@@ -14,7 +16,7 @@ const renameFileRequestSchema = z.object({
   to: z.string().min(1, 'Destination file path is required'),
 });
 
-export async function handleRenameFile(body: FileRenameRequestBody, clientId?: string): Promise<FileRenameResponseBody> {
+export async function processRenameFile(body: FileRenameRequestBody, clientId?: string): Promise<FileRenameResponseBody> {
   try {
     // Validate request body
     const validationResult = renameFileRequestSchema.safeParse(body);
@@ -101,7 +103,7 @@ const renameFileInBatchRequestSchema = z.object({
   })).min(1, 'At least one file rename operation is required'),
 });
 
-export async function handleRenameFileInBatch(body: FileRenameInBatchRequestBody, clientId?: string): Promise<FileRenameInBatchResponseBody> {
+export async function processRenameFileInBatch(body: FileRenameInBatchRequestBody, clientId?: string): Promise<FileRenameInBatchResponseBody> {
   try {
     // Validate request body
     const validationResult = renameFileInBatchRequestSchema.safeParse(body);
@@ -219,5 +221,46 @@ export async function handleRenameFileInBatch(body: FileRenameInBatchRequestBody
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleRenameFile(app: Hono) {
+  app.post('/api/renameFile', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const clientId = c.req.header('clientId');
+      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
+      const result = await processRenameFile(rawBody, clientId);
+      
+      // Always return 200 status code per API design guideline
+      // Business errors are returned in the "error" field
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'RenameFile route error:');
+      return c.json({ 
+        error: 'Unexpected Error: Failed to process rename file request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 200);
+    }
+  });
+
+  app.post('/api/renameFileInBatch', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const clientId = c.req.header('clientId');
+      const fileCount = rawBody.files?.length || 0;
+      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${fileCount} file(s) (clientId: ${clientId || 'not provided'})`)
+      const result = await processRenameFileInBatch(rawBody, clientId);
+      
+      // Always return 200 status code per API design guideline
+      // Business errors are returned in the "error" field
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'RenameFileInBatch route error:');
+      return c.json({ 
+        error: 'Unexpected Error: Failed to process batch rename file request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 200);
+    }
+  });
 }
 

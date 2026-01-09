@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { NewFileNameRequestBody, GetFileNameResponseBody } from '@core/types';
 import { emby, generateFileNameByJavaScript, plex } from '../utils/renameRules';
 import pino from 'pino';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 const logger = pino();
 
@@ -17,7 +19,7 @@ const newFileNameRequestSchema = z.object({
   releaseYear: z.string(),
 });
 
-export async function handleNewFileName(body: NewFileNameRequestBody): Promise<GetFileNameResponseBody> {
+export async function processNewFileName(body: NewFileNameRequestBody): Promise<GetFileNameResponseBody> {
   try {
     // Validate request body
     const validationResult = newFileNameRequestSchema.safeParse(body);
@@ -97,5 +99,26 @@ export async function handleNewFileName(body: NewFileNameRequestBody): Promise<G
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleNewFileName(app: Hono) {
+  app.post('/api/newFileName', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ruleName: ${rawBody.ruleName}, type: ${rawBody.type}`)
+      const result = await processNewFileName(rawBody);
+      
+      // Always return 200 status code per API design guideline
+      // Business errors are returned in the "error" field
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'NewFileName route error:');
+      return c.json({ 
+        data: '',
+        error: 'Unexpected Error: Failed to process new file name request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 200);
+    }
+  });
 }
 

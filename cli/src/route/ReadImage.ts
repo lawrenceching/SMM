@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import path from 'path';
 import type { ReadImageRequestBody, ReadImageResponseBody } from '@core/types';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 const readImageRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
@@ -51,7 +53,7 @@ function getImageMimeType(filePath: string): string {
   return mimeTypes[ext] || 'image/jpeg'; // Default to jpeg if unknown
 }
 
-export async function handleReadImage(body: ReadImageRequestBody): Promise<ReadImageResponseBody> {
+export async function processReadImage(body: ReadImageRequestBody): Promise<ReadImageResponseBody> {
   try {
     // Validate request body
     const validationResult = readImageRequestSchema.safeParse(body);
@@ -110,5 +112,26 @@ export async function handleReadImage(body: ReadImageRequestBody): Promise<ReadI
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleReadImage(app: Hono) {
+  app.post('/api/readImage', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const result = await processReadImage(rawBody);
+      
+      // If there's an error, return 400, otherwise 200
+      if (result.error) {
+        return c.json(result, 400);
+      }
+      return c.json(result);
+    } catch (error) {
+      logger.error({ error }, 'ReadImage route error:');
+      return c.json({ 
+        error: 'Failed to process read image request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 500);
+    }
+  });
 }
 

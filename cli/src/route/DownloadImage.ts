@@ -1,9 +1,12 @@
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
+
 /**
  * Downloads an image from an HTTP/HTTPS URL and returns it as an HTTP response
  * @param url The image URL (can be http://, https://, or protocol-relative //)
  * @returns Promise<Response> The image as an HTTP response with proper content-type
  */
-export async function handleDownloadImage(url: string): Promise<Response> {
+export async function processDownloadImage(url: string): Promise<Response> {
   // Handle protocol-relative URLs (starting with //)
   let normalizedUrl = url;
   if (url.startsWith("//")) {
@@ -57,4 +60,27 @@ export async function handleDownloadImage(url: string): Promise<Response> {
     console.error(`[DownloadImage] Error downloading image from ${normalizedUrl}:`, error);
     throw error;
   }
+}
+
+export function handleDownloadImage(app: Hono) {
+  // GET /api/image?url=xxxx - Download and return image from URL
+  app.get('/api/image', async (c) => {
+    try {
+      const url = c.req.query('url');
+      
+      if (!url) {
+        return c.json({ 
+          error: 'Missing required query parameter: url'
+        }, 400);
+      }
+
+      const imageResponse = await processDownloadImage(url);
+      return imageResponse;
+    } catch (error) {
+      logger.error({ error }, 'DownloadImage route error:');
+      return c.json({ 
+        error: `Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }, 500);
+    }
+  });
 }

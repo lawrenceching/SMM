@@ -4,6 +4,8 @@ import { readdir, stat } from 'node:fs/promises';
 import path from 'path';
 import { Path } from '@core/path';
 import type { ListFilesRequestBody, ListFilesResponseBody } from '@core/types';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 const listFilesRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
@@ -12,7 +14,7 @@ const listFilesRequestSchema = z.object({
   includeHiddenFiles: z.boolean().optional(),
 });
 
-export async function handleListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
+export async function processListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
   try {
     // Validate request body
     const validationResult = listFilesRequestSchema.safeParse(body);
@@ -155,5 +157,55 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleListFiles(app: Hono) {
+  // GET /api/listFiles - supports query parameters
+  app.get('/api/listFiles', async (c) => {
+    try {
+      const query = c.req.query();
+      const body: any = {
+        path: query.path || '',
+      };
+      if (query.onlyFiles !== undefined) {
+        body.onlyFiles = query.onlyFiles === 'true';
+      }
+      if (query.onlyFolders !== undefined) {
+        body.onlyFolders = query.onlyFolders === 'true';
+      }
+      if (query.includeHiddenFiles !== undefined) {
+        body.includeHiddenFiles = query.includeHiddenFiles === 'true';
+      }
+      const result = await processListFiles(body);
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'ListFiles route error:');
+      return c.json({ 
+        data: {
+          path: '',
+          items: [],
+        },
+        error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
+      }, 200);
+    }
+  });
+
+  // POST /api/listFiles - supports request body
+  app.post('/api/listFiles', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const result = await processListFiles(rawBody);
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'ListFiles route error:');
+      return c.json({ 
+        data: {
+          path: '',
+          items: [],
+        },
+        error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
+      }, 200);
+    }
+  });
 }
 

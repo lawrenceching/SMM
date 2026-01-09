@@ -16,6 +16,7 @@ import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
 import { logger } from '../lib/logger';
 import { getUserConfig } from '@/utils/config';
 import { createAIProvider } from '../lib/ai-provider';
+import type { Hono } from 'hono';
 
 config();
 
@@ -27,7 +28,7 @@ interface ChatRequest {
   clientId: string;
 }
 
-export async function handleChatRequest(request: Request): Promise<Response> {
+export async function processChatRequest(request: Request): Promise<Response> {
 
   const userConfig = await getUserConfig();
   if(userConfig.selectedAI === undefined) {
@@ -137,5 +138,21 @@ export async function handleChatRequest(request: Request): Promise<Response> {
       }
     );
   }
+}
+
+export function handleChatRequest(app: Hono) {
+  app.post('/api/chat', async (c) => {
+    try {
+      // Use Hono's native request object
+      const response = await processChatRequest(c.req.raw);
+      return response;
+    } catch (error) {
+      logger.error({ error }, 'Chat route error:');
+      return c.json({ 
+        error: 'Failed to process chat request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 500);
+    }
+  });
 }
 

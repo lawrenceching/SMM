@@ -8,7 +8,7 @@ import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMet
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
-import { handleRenameFile, handleRenameFileInBatch } from './src/route/RenameFile';
+import { handleRenameFile } from './src/route/RenameFile';
 import { handleRenameFolder } from './src/route/RenameFolder';
 import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
@@ -18,7 +18,7 @@ import { handleDownloadImage } from './src/route/DownloadImage';
 import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
-import { search as handleTmdbSearch, getMovie as handleTmdbGetMovie, getTvShow as handleTmdbGetTvShow } from './src/route/Tmdb';
+import { handleTmdb } from './src/route/Tmdb';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
@@ -118,21 +118,28 @@ export class Server {
       data: z.any()
     });
 
-    // API routes
-    this.app.post('/api/chat', async (c) => {
-      try {
-        // Use Hono's native request object
-        const response = await handleChatRequest(c.req.raw);
-        return response;
-      } catch (error) {
-        logger.error({ error }, 'Chat route error:');
-        return c.json({ 
-          error: 'Failed to process chat request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500);
-      }
-    });
+    // Register route handlers
+    handleChatRequest(this.app);
+    handleReadFile(this.app);
+    handleWriteFile(this.app);
+    handleRenameFile(this.app);
+    handleRenameFolder(this.app);
+    handleNewFileName(this.app);
+    handleReadImage(this.app);
+    handleDownloadImage(this.app);
+    handleListFiles(this.app);
+    handleListDrives(this.app);
+    handleReadMediaMetadata(this.app);
+    handleWriteMediaMetadata(this.app);
+    handleDeleteMediaMetadata(this.app);
+    handleMatchMediaFilesToEpisodeRequest(this.app);
+    handleDownloadImageAsFileRequest(this.app);
+    handleOpenInFileManagerRequest(this.app);
+    handleScrapeRequest(this.app);
+    handleDebugRequest(this.app);
+    handleTmdb(this.app);
 
+    // POST /api/execute - Special orchestration route for multiple tasks
     this.app.post('/api/execute', async (c) => {
       try {
         const rawBody = await c.req.json();
@@ -175,302 +182,7 @@ export class Server {
       }
     });
 
-    this.app.post('/api/readFile', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const result = await handleReadFile(rawBody);
-        
-        // If there's an error, return 400, otherwise 200
-        if (result.error) {
-          return c.json(result, 400);
-        }
-        return c.json(result);
-      } catch (error) {
-        logger.error({ error }, 'ReadFile route error:');
-        return c.json({ 
-          error: 'Failed to process read file request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500);
-      }
-    });
-
-    this.app.post('/api/writeFile', async (c) => {
-      
-      try {
-        const rawBody = await c.req.json();
-        logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.path}`)
-        const result = await handleWriteFile(rawBody);
-        
-        // If there's an error, return 400, otherwise 200
-        if (result.error) {
-          return c.json(result, 400);
-        }
-        return c.json(result);
-      } catch (error) {
-        logger.error({ error }, 'WriteFile route error:');
-        return c.json({ 
-          error: 'Failed to process write file request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500);
-      }
-    });
-
-    this.app.post('/api/renameFile', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const clientId = c.req.header('clientId');
-        logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
-        const result = await handleRenameFile(rawBody, clientId);
-        
-        // Always return 200 status code per API design guideline
-        // Business errors are returned in the "error" field
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'RenameFile route error:');
-        return c.json({ 
-          error: 'Unexpected Error: Failed to process rename file request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 200);
-      }
-    });
-
-    this.app.post('/api/renameFileInBatch', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const clientId = c.req.header('clientId');
-        const fileCount = rawBody.files?.length || 0;
-        logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${fileCount} file(s) (clientId: ${clientId || 'not provided'})`)
-        const result = await handleRenameFileInBatch(rawBody, clientId);
-        
-        // Always return 200 status code per API design guideline
-        // Business errors are returned in the "error" field
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'RenameFileInBatch route error:');
-        return c.json({ 
-          error: 'Unexpected Error: Failed to process batch rename file request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 200);
-      }
-    });
-
-    this.app.post('/api/renameFolder', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const clientId = c.req.header('clientId');
-        logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
-        const result = await handleRenameFolder(rawBody, clientId);
-        
-        // Always return 200 status code per API design guideline
-        // Business errors are returned in the "error" field
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'RenameFolder route error:');
-        return c.json({ 
-          error: 'Unexpected Error: Failed to process rename folder request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 200);
-      }
-    });
-
-    this.app.post('/api/newFileName', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ruleName: ${rawBody.ruleName}, type: ${rawBody.type}`)
-        const result = await handleNewFileName(rawBody);
-        
-        // Always return 200 status code per API design guideline
-        // Business errors are returned in the "error" field
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'NewFileName route error:');
-        return c.json({ 
-          data: '',
-          error: 'Unexpected Error: Failed to process new file name request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 200);
-      }
-    });
-
-    this.app.post('/api/readImage', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const result = await handleReadImage(rawBody);
-        
-        // If there's an error, return 400, otherwise 200
-        if (result.error) {
-          return c.json(result, 400);
-        }
-        return c.json(result);
-      } catch (error) {
-        logger.error({ error }, 'ReadImage route error:');
-        return c.json({ 
-          error: 'Failed to process read image request',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500);
-      }
-    });
-
-    // GET /api/image?url=xxxx - Download and return image from URL
-    this.app.get('/api/image', async (c) => {
-      try {
-        const url = c.req.query('url');
-        
-        if (!url) {
-          return c.json({ 
-            error: 'Missing required query parameter: url'
-          }, 400);
-        }
-
-        const imageResponse = await handleDownloadImage(url);
-        return imageResponse;
-      } catch (error) {
-        logger.error({ error }, 'DownloadImage route error:');
-        return c.json({ 
-          error: `Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }, 500);
-      }
-    });
-
-    // GET /api/listFiles - supports query parameters
-    this.app.get('/api/listFiles', async (c) => {
-      try {
-        const query = c.req.query();
-        const body: any = {
-          path: query.path || '',
-        };
-        if (query.onlyFiles !== undefined) {
-          body.onlyFiles = query.onlyFiles === 'true';
-        }
-        if (query.onlyFolders !== undefined) {
-          body.onlyFolders = query.onlyFolders === 'true';
-        }
-        if (query.includeHiddenFiles !== undefined) {
-          body.includeHiddenFiles = query.includeHiddenFiles === 'true';
-        }
-        const result = await handleListFiles(body);
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'ListFiles route error:');
-        return c.json({ 
-          data: [],
-          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
-        }, 200);
-      }
-    });
-
-    // POST /api/listFiles - supports request body
-    this.app.post('/api/listFiles', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const result = await handleListFiles(rawBody);
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'ListFiles route error:');
-        return c.json({ 
-          data: [],
-          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
-        }, 200);
-      }
-    });
-
-    handleListDrives(this.app);
-    handleReadMediaMetadata(this.app);
-    handleWriteMediaMetadata(this.app);
-    handleDeleteMediaMetadata(this.app);
-    handleMatchMediaFilesToEpisodeRequest(this.app);
-    handleDownloadImageAsFileRequest(this.app);
-    handleOpenInFileManagerRequest(this.app);
-    handleScrapeRequest(this.app);
-
-    // POST /debug - Debug API for testing functions
-    this.app.post('/debug', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const result = await handleDebugRequest(rawBody);
-        
-        // Return 200 with success/error status
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'Debug API route error:');
-        return c.json({
-          success: false,
-          error: `Failed to process debug request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        }, 500);
-      }
-    });
-
     // Socket.IO is handled via engine in Bun.serve, not as a Hono route
-
-    // POST /api/tmdb/search - Search TMDB for movies or TV shows
-    this.app.post('/api/tmdb/search', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        const result = await handleTmdbSearch(rawBody);
-        
-        // If there's an error, return 200 with error field (following the pattern)
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'TMDB search route error:');
-        return c.json({ 
-          results: [],
-          page: 0,
-          total_pages: 0,
-          total_results: 0,
-          error: `Failed to process TMDB search request: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }, 200);
-      }
-    });
-
-    // GET /api/tmdb/movie/:id - Get movie by TMDB ID
-    this.app.get('/api/tmdb/movie/:id', async (c) => {
-      try {
-        const id = parseInt(c.req.param('id'));
-        const language = c.req.query('language') as 'zh-CN' | 'en-US' | 'ja-JP' | undefined;
-        const baseURL = c.req.query('baseURL');
-        
-        if (isNaN(id)) {
-          return c.json({
-            data: undefined,
-            error: 'Invalid movie ID'
-          }, 200);
-        }
-
-        const result = await handleTmdbGetMovie(id, language, baseURL);
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'TMDB get movie route error:');
-        return c.json({
-          data: undefined,
-          error: `Failed to get movie: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }, 200);
-      }
-    });
-
-    // GET /api/tmdb/tv/:id - Get TV show by TMDB ID
-    this.app.get('/api/tmdb/tv/:id', async (c) => {
-      try {
-        const id = parseInt(c.req.param('id'));
-        const language = c.req.query('language') as 'zh-CN' | 'en-US' | 'ja-JP' | undefined;
-        const baseURL = c.req.query('baseURL');
-        
-        if (isNaN(id)) {
-          return c.json({
-            data: undefined,
-            error: 'Invalid TV show ID'
-          }, 200);
-        }
-
-        const result = await handleTmdbGetTvShow(id, language, baseURL);
-        return c.json(result, 200);
-      } catch (error) {
-        logger.error({ error }, 'TMDB get TV show route error:');
-        return c.json({
-          data: undefined,
-          error: `Failed to get TV show: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }, 200);
-      }
-    });
 
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)

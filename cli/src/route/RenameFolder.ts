@@ -10,6 +10,8 @@ import { deleteMediaMetadataFile, findMediaMetadata, writeMediaMetadata } from '
 import { broadcast } from '@/utils/socketIO';
 import { rm } from 'fs';
 import { unlink } from 'fs/promises';
+import type { Hono } from 'hono';
+import { logger } from '../../lib/logger';
 
 const logger = pino();
 
@@ -20,7 +22,7 @@ const renameFolderRequestSchema = z.object({
   to: z.string().min(1, 'Destination folder path is required'),
 });
 
-export async function handleRenameFolder(body: FolderRenameRequestBody, clientId?: string): Promise<FolderRenameResponseBody> {
+export async function processRenameFolder(body: FolderRenameRequestBody, clientId?: string): Promise<FolderRenameResponseBody> {
   try {
     const userConfig = await getUserConfig();
     
@@ -91,5 +93,26 @@ export async function handleRenameFolder(body: FolderRenameRequestBody, clientId
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
+}
+
+export function handleRenameFolder(app: Hono) {
+  app.post('/api/renameFolder', async (c) => {
+    try {
+      const rawBody = await c.req.json();
+      const clientId = c.req.header('clientId');
+      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
+      const result = await processRenameFolder(rawBody, clientId);
+      
+      // Always return 200 status code per API design guideline
+      // Business errors are returned in the "error" field
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, 'RenameFolder route error:');
+      return c.json({ 
+        error: 'Unexpected Error: Failed to process rename folder request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 200);
+    }
+  });
 }
 
