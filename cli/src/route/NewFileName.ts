@@ -12,11 +12,12 @@ const newFileNameRequestSchema = z.object({
   type: z.enum(['tv', 'movie'], { message: 'type must be "tv" or "movie"' }),
   seasonNumber: z.number().int().min(0, 'seasonNumber must be a non-negative integer'),
   episodeNumber: z.number().int().min(0, 'episodeNumber must be a non-negative integer'),
-  episodeName: z.string().min(1, 'episodeName is required'),
-  tvshowName: z.string().min(1, 'tvshowName is required'),
+  episodeName: z.string().optional(),
+  tvshowName: z.string().optional(),
   file: z.string().min(1, 'file path is required'),
   tmdbId: z.string().min(1, 'tmdbId is required'),
   releaseYear: z.string(),
+  movieName: z.string().optional(),
 });
 
 export async function processNewFileName(body: NewFileNameRequestBody): Promise<GetFileNameResponseBody> {
@@ -35,7 +36,10 @@ export async function processNewFileName(body: NewFileNameRequestBody): Promise<
       };
     }
 
-    const { ruleName, type, seasonNumber, episodeNumber, episodeName, tvshowName, file, tmdbId, releaseYear } = validationResult.data;
+    const { 
+      ruleName, type, seasonNumber, 
+      episodeNumber, episodeName, tvshowName, 
+      file, tmdbId, releaseYear, movieName } = validationResult.data;
 
     // Get the rename rule code based on ruleName
     let renameRuleCode: string;
@@ -64,6 +68,7 @@ export async function processNewFileName(body: NewFileNameRequestBody): Promise<
         file,
         tmdbId,
         releaseYear,
+        movieName
       });
 
       logger.info({

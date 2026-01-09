@@ -24,7 +24,7 @@ interface TMDBMovieOverviewProps {
     ruleName?: "plex" | "emby"
     movieFiles: MovieFileModel
     isPreviewMode: boolean
-    setIsPreviewMode: React.Dispatch<React.SetStateAction<boolean>>
+    
 }
 
 // Helper function to format date
@@ -49,7 +49,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, movieFiles, isPreviewMode, setIsPreviewMode }: TMDBMovieOverviewProps) {
+export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, movieFiles, isPreviewMode }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
     const { t: tDialogs } = useTranslation('dialogs')
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
@@ -62,16 +62,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
     const { scrapeDialog } = useDialogs()
     const [openScrape, , updateTasks] = scrapeDialog
 
-    useEffect(() => {
-        setIsPreviewMode(false)
-    }, [selectedMediaMetadata, setIsPreviewMode])
-
-    // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
-    useEffect(() => {
-        if (!ruleName) {
-            setIsPreviewMode(false)
-        }
-    }, [ruleName])
+    
 
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
@@ -320,7 +311,6 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setIsPreviewMode(true)
                                         onRenameClick?.()
                                     }}
                                 >

@@ -772,6 +772,7 @@ export interface NewFileNameRequestBody {
   file: string;
   tmdbId: string;
   releaseYear: string; 
+  movieName?: string;
 }
 
 export interface GetFileNameResponseBody {

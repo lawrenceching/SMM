@@ -5,11 +5,13 @@ interface ExecutionContext {
     type: "tv" | "movie";
     seasonNumber: number;
     episodeNumber: number;
-    episodeName: string;
-    tvshowName: string;
+    episodeName?: string;
+    tvshowName?: string;
+    movieName?: string;
     file: string;
     tmdbId: string;
     releaseYear: string;
+
 }
 
 /**
@@ -19,7 +21,7 @@ export const plex: string = `
 const ext = extname(file);
 if (type === "movie") {
   const year = releaseYear || "";
-  return \`\${episodeName}\${year ? \` (\${year})\` : ""}\${ext}\`;
+  return \`\${movieName}\${year ? \` (\${year})\` : ""}\${ext}\`;
 } else {
   const season = seasonNumber.toString().padStart(2, '0');
   const episode = episodeNumber.toString().padStart(2, '0');
@@ -35,7 +37,7 @@ export const emby: string = `
 const ext = extname(file);
 if (type === "movie") {
   const year = releaseYear || "";
-  return \`\${episodeName}\${year ? \` (\${year})\` : ""}\${ext}\`;
+  return \`\${movieName}\${year ? \` (\${year})\` : ""}\${ext}\`;
 } else {
   const season = seasonNumber.toString()
   const episode = episodeNumber.toString()
