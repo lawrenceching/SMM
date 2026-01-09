@@ -52,6 +52,19 @@
     "scrape": "Scrape",
     "notAvailable": "N/A"
   },
+  "movie": {
+    "searchPlaceholder": "Enter movie name",
+    "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for movies here",
+    "overview": "Overview",
+    "genres": "Genres",
+    "genreLabel": "Genre {{genreId}}",
+    "rename": "Rename",
+    "scrape": "Scrape",
+    "notAvailable": "N/A",
+    "searchNoResults": "No results found",
+    "searchFailed": "Failed to search TMDB",
+    "noMediaPathError": "No media folder path available"
+  },
   "episodeFile": {
     "rename": "Rename",
     "renameSuccess": "File renamed successfully",

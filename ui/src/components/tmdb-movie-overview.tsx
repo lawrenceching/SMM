@@ -14,6 +14,8 @@ import type { Task } from "./dialog-provider"
 import { scrapeApi } from "@/api/scrape"
 import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"
+import { useTranslation } from "@/lib/i18n"
+import type { TFunction } from "i18next"
 
 interface TMDBMovieOverviewProps {
     movie?: TMDBMovie
@@ -26,8 +28,8 @@ interface TMDBMovieOverviewProps {
 }
 
 // Helper function to format date
-function formatDate(dateString: string): string {
-    if (!dateString) return "N/A"
+function formatDate(dateString: string, t: TFunction<readonly ["components"], undefined>): string {
+    if (!dateString) return t("movie.notAvailable" as any)
     try {
         const date = new Date(dateString)
         return date.toLocaleDateString("en-US", {
@@ -48,6 +50,8 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, movieFiles, isPreviewMode, setIsPreviewMode }: TMDBMovieOverviewProps) {
+    const { t } = useTranslation('components')
+    const { t: tDialogs } = useTranslation('dialogs')
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])
     const [isSearching, setIsSearching] = useState(false)
@@ -71,7 +75,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
 
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
-    const formattedDate = movie ? formatDate(movie.release_date) : "N/A"
+    const formattedDate = movie ? formatDate(movie.release_date, t) : (t("movie.notAvailable" as any) as string)
 
     // Update search query when movie title changes
     useEffect(() => {
@@ -112,17 +116,17 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
             setSearchResults(movies)
 
             if (movies.length === 0) {
-                setSearchError('No results found')
+                setSearchError(t("movie.searchNoResults" as any) as string)
             }
         } catch (error) {
             console.error('Search failed:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Failed to search TMDB'
+            const errorMessage = error instanceof Error ? error.message : (t("movie.searchFailed" as any) as string)
             setSearchError(errorMessage)
             setSearchResults([])
         } finally {
             setIsSearching(false)
         }
-    }, [searchQuery, userConfig])
+    }, [searchQuery, userConfig, t])
 
     const handleSelectResult = useCallback(async (result: TMDBMovie) => {
         if(selectedMediaMetadata?.tmdbMovie?.id === result.id) {
@@ -151,7 +155,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
             console.error("Failed to update media metadata:", error)
             setIsUpdatingMovie(false)
         }
-    }, [selectedMediaMetadata, updateMediaMetadata])
+    }, [selectedMediaMetadata, updateMediaMetadata, t])
     
     // When movie is undefined, show only ImmersiveMovieSearchbox
     if (!movie && !isUpdatingMovie) {
@@ -168,7 +172,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                 searchResults={searchResults}
                                 isSearching={isSearching}
                                 searchError={searchError}
-                                placeholder="未识别媒体库, 请在此处输入并搜索电影"
+                                placeholder={t("movie.searchPlaceholderUnrecognized" as any) as string}
                                 inputClassName="text-3xl font-bold mb-2 block"
                             />
                         </div>
@@ -226,7 +230,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                             searchResults={searchResults}
                                             isSearching={isSearching}
                                             searchError={searchError}
-                                            placeholder="Enter movie name"
+                                            placeholder={t("movie.searchPlaceholder" as any) as string}
                                             inputClassName="text-3xl font-bold mb-2 block"
                                         />
                                         {movie?.original_title !== movie?.title && (
@@ -276,7 +280,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                             </div>
                         ) : movie?.overview && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">Overview</h2>
+                                <h2 className="text-lg font-semibold">{t("movie.overview" as any) as string}</h2>
                                 <p className="text-muted-foreground leading-relaxed">{movie?.overview}</p>
                             </div>
                         )}
@@ -293,11 +297,11 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                             </div>
                         ) : movie?.genre_ids && movie?.genre_ids.length > 0 && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">Genres</h2>
+                                <h2 className="text-lg font-semibold">{t("movie.genres" as any) as string}</h2>
                                 <div className="flex flex-wrap gap-2">
                                     {movie?.genre_ids.map((genreId) => (
                                         <Badge key={genreId} variant="outline">
-                                            Genre {genreId}
+                                            {t("movie.genreLabel" as any, { genreId } as any) as string}
                                         </Badge>
                                     ))}
                                 </div>
@@ -321,7 +325,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                     }}
                                 >
                                     <FileEdit className="size-4 mr-2" />
-                                    Rename
+                                    {t("movie.rename" as any) as string}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -332,26 +336,26 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                         // Create initial tasks for scraping
                                         const initialTasks: Task[] = [
                                             {
-                                                name: "Poster",
+                                                name: tDialogs("scrape.tasks.poster"),
                                                 status: "pending" as const
                                             },
                                             {
-                                                name: "Thumbnails",
+                                                name: tDialogs("scrape.tasks.thumbnails"),
                                                 status: "pending" as const
                                             },
                                             {
-                                                name: "nfo",
+                                                name: tDialogs("scrape.tasks.nfo"),
                                                 status: "pending" as const
                                             }
                                         ]
                                         
                                         // Open the task progress dialog with Start button
                                         openScrape(initialTasks, {
-                                            title: "Scrape Media",
-                                            description: "Download poster, thumbnails, and nfo files",
+                                            title: tDialogs("scrape.mediaTitle"),
+                                            description: tDialogs("scrape.mediaDescription"),
                                             onStart: async () => {
                                                 if (!selectedMediaMetadata?.mediaFolderPath) {
-                                                    console.error("No media folder path available")
+                                                    console.error(t("movie.noMediaPathError" as any) as string)
                                                     return
                                                 }
 
@@ -397,7 +401,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, m
                                     disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                 >
                                     <Download className="size-4 mr-2" />
-                                    Scrape
+                                    {t("movie.scrape" as any) as string}
                                 </Button>
                             </div>
                         )}

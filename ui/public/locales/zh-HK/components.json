@@ -52,6 +52,19 @@
     "scrape": "抓取",
     "notAvailable": "不可用"
   },
+  "movie": {
+    "searchPlaceholder": "輸入電影名稱",
+    "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電影",
+    "overview": "概述",
+    "genres": "類型",
+    "genreLabel": "類型 {{genreId}}",
+    "rename": "重新命名",
+    "scrape": "抓取",
+    "notAvailable": "不可用",
+    "searchNoResults": "未找到結果",
+    "searchFailed": "搜尋TMDB失敗",
+    "noMediaPathError": "媒體資料夾路徑不可用"
+  },
   "episodeFile": {
     "rename": "重新命名",
     "renameSuccess": "檔案重新命名成功",
