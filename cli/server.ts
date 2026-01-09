@@ -13,6 +13,7 @@ import { handleRenameFolder } from './src/route/RenameFolder';
 import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
+import { handleListDrives } from './src/route/ListDrives';
 import { handleDownloadImage } from './src/route/DownloadImage';
 import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
@@ -373,6 +374,7 @@ export class Server {
       }
     });
 
+    handleListDrives(this.app);
     handleReadMediaMetadata(this.app);
     handleWriteMediaMetadata(this.app);
     handleDeleteMediaMetadata(this.app);
