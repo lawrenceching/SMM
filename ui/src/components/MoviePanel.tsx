@@ -7,20 +7,11 @@ import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { newFileName } from "@/api/newFileName"
-import { renameFile } from "@/api/renameFile"
-import { extname, join } from "@/lib/path"
+import { join } from "@/lib/path"
 import { useLatest } from "react-use"
-import { toast } from "sonner"
+
 import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
 import type { MediaMetadata } from "@core/types"
-
-function newPath(mediaFolderPath: string, videoFilePath: string, associatedFilePath: string): string {
-    const videoFileExtension = extname(videoFilePath)
-    const associatedFileExtension = extname(associatedFilePath)
-    const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
-    const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
-    return join(mediaFolderPath, associatedRelativePath)
-}
 
 export interface MovieFileModel {
     files: FileProps[]
@@ -32,13 +23,13 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
-  const { selectedMediaMetadata: rawMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadata()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [isRenaming, setIsRenaming] = useState(false)
+  const [isRenaming] = useState(false)
 
   // Prompt states
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)

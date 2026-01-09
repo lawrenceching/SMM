@@ -49,7 +49,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBMovieOverview({ movie, className, onRenameClick, ruleName, movieFiles, isPreviewMode }: TMDBMovieOverviewProps) {
+export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewMode }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
     const { t: tDialogs } = useTranslation('dialogs')
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
