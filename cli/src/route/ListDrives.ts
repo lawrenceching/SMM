@@ -169,12 +169,46 @@ function _parseNetUseOutput(output: string): string[] {
  */
 function networkDrives(): string[] {
   try {
-    const output = shell.exec('net use', { silent: true, timeout: 1000 });
-    return _parseNetUseOutput(output)
-    .filter(drive => drive !== undefined && drive !== null)
-    .filter(drive => !isAdministrativeShare(drive));
+    const output = shell.exec('net use', { 
+      silent: true, 
+      timeout: 5000, // Increased timeout from 1000ms to 5000ms
+    });
+
+    // Check exit code - non-zero means command failed
+    if (output.code !== 0) {
+      logger.warn({ 
+        code: output.code, 
+        stderr: output.stderr,
+        stdout: output.stdout 
+      }, '[ListDrives] networkDrives command failed');
+      return [];
+    }
+
+    // Use stdout if available, otherwise fall back to toString()
+    const str = output.stdout || output.toString();
+
+    // Log for debugging
+    logger.info({ 
+      output: str, 
+      code: output.code,
+      hasStdout: !!output.stdout,
+      hasStderr: !!output.stderr 
+    }, '[ListDrives] networkDrives output');
+
+    // If output is empty, log a warning
+    if (!str || str.trim().length === 0) {
+      logger.warn({ 
+        code: output.code,
+        stderr: output.stderr 
+      }, '[ListDrives] networkDrives returned empty output');
+      return [];
+    }
+
+    return _parseNetUseOutput(str)
+      .filter(drive => drive !== undefined && drive !== null)
+      .filter(drive => !isAdministrativeShare(drive));
   } catch (error) {
-    logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in netUse');
+    logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in networkDrives');
     return [];
   }
   
@@ -201,14 +235,42 @@ export function _parseLocalDrivesOutput(output: string): string[] {
 function localDrives(): string[] {
 
   try {
-    const output = shell.exec('powershell -Command "(Get-PSDrive -PSProvider FileSystem).Root"', {
+    // Use -NoProfile to speed up PowerShell startup (skips loading profile, faster execution)
+    const command = 'powershell -NoProfile -Command "(Get-PSDrive -PSProvider FileSystem).Root"';
+    const output = shell.exec(command, {
         silent: true,
-        timeout: 1000,
+        timeout: 5000, // Increased timeout from 1000ms to 5000ms
     });
 
-    const str = output.toString();
+    // Check exit code - non-zero means command failed
+    if (output.code !== 0) {
+      logger.warn({ 
+        code: output.code, 
+        stderr: output.stderr,
+        stdout: output.stdout 
+      }, '[ListDrives] localDrives command failed');
+      return [];
+    }
 
-    logger.info({ output: str }, '[ListDrives] localDrives output');
+    // Use stdout if available, otherwise fall back to toString()
+    const str = output.stdout || output.toString();
+
+    // Log for debugging
+    logger.info({ 
+      output: str, 
+      code: output.code,
+      hasStdout: !!output.stdout,
+      hasStderr: !!output.stderr 
+    }, '[ListDrives] localDrives output');
+
+    // If output is empty, log a warning
+    if (!str || str.trim().length === 0) {
+      logger.warn({ 
+        code: output.code,
+        stderr: output.stderr 
+      }, '[ListDrives] localDrives returned empty output');
+      return [];
+    }
 
     return _parseLocalDrivesOutput(str);
   } catch (error) {
