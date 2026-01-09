@@ -73,7 +73,8 @@
     "noMatchesDescription": "没有文件匹配 \"{{query}}\"",
     "emptyDirectoryDescription": "此文件夹不包含任何文件",
     "statusBar": "{{folders}} 个文件夹, {{files}} 个文件",
-    "searchStatus": "显示 {{showing}} / {{total}} 项"
+    "searchStatus": "显示 {{showing}} / {{total}} 项",
+    "goToParent": "转到上级文件夹"
   },
   "episodeSection": {
     "notAvailable": "不可用",

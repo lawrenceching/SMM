@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { 
-  Loader2, 
-  File, 
-  FolderOpen, 
-  Home, 
-  ChevronRight, 
+import {
+  Loader2,
+  File,
+  FolderOpen,
+  Home,
+  ChevronRight,
+  ChevronUp,
   Search,
   X,
   FileText,
@@ -383,12 +384,12 @@ export function FileExplorer({
       const newHistory = [...pathHistory]
       newHistory.pop() // Remove current path
       const previousPath = newHistory[newHistory.length - 1]
-      
+
       if (restrictToInitialPath) {
         // Prevent going beyond initialPath
         const normalizedPrevious = normalizeToPosix(previousPath)
         const normalizedInitial = normalizeToPosix(initialPath)
-        
+
         // Allow if it's exactly initialPath or starts with initialPath + '/'
         if (normalizedPrevious === normalizedInitial || normalizedPrevious.startsWith(normalizedInitial + '/')) {
           setPathHistory(newHistory)
@@ -404,6 +405,81 @@ export function FileExplorer({
         onFileSelect(null)
       }
     }
+  }
+
+  const handleGoToParent = () => {
+    // Determine separator from current path
+    const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
+    const separator = isWindowsPath ? '\\' : '/'
+
+    // Calculate parent path
+    let parentPath: string
+
+    if (isWindowsPath) {
+      // Handle Windows paths
+      const driveMatch = currentPath.match(/^([A-Za-z]):/)
+      if (driveMatch) {
+        const drive = driveMatch[1]
+        const pathWithoutDrive = currentPath.substring(2)
+
+        if (!pathWithoutDrive || pathWithoutDrive === separator) {
+          // Already at drive root, stay there
+          return
+        }
+
+        // Find the last separator
+        const lastSeparatorIndex = pathWithoutDrive.lastIndexOf(separator)
+
+        if (lastSeparatorIndex <= 0) {
+          // No more separators (or only at position 0), go to drive root with trailing backslash
+          parentPath = `${drive}:\\`
+        } else {
+          parentPath = `${drive}:${pathWithoutDrive.substring(0, lastSeparatorIndex)}`
+        }
+      } else if (currentPath.startsWith('\\\\')) {
+        // UNC path
+        const pathParts = currentPath.split(/[\\]/).filter(Boolean)
+        if (pathParts.length <= 2) {
+          // At server/share level, stay there
+          return
+        }
+        parentPath = '\\\\' + pathParts.slice(0, -1).join('\\')
+      } else {
+        parentPath = currentPath
+      }
+    } else {
+      // POSIX path
+      if (currentPath === '/' || currentPath === '') {
+        // Already at root
+        return
+      }
+
+      const pathParts = currentPath.split('/').filter(Boolean)
+      if (pathParts.length <= 1) {
+        // Go to root
+        parentPath = '/'
+      } else {
+        pathParts.pop()
+        parentPath = '/' + pathParts.join('/')
+      }
+    }
+
+    // Check restrictions
+    if (restrictToInitialPath) {
+      const normalizedParent = normalizeToPosix(parentPath)
+      const normalizedInitial = normalizeToPosix(initialPath)
+
+      if (normalizedParent !== normalizedInitial && !normalizedParent.startsWith(normalizedInitial + '/')) {
+        console.warn('Cannot navigate outside initialPath:', { parentPath, initialPath, normalizedParent, normalizedInitial })
+        return
+      }
+    }
+
+    // Navigate to parent
+    const newHistory = [...pathHistory, currentPath]
+    setPathHistory(newHistory)
+    onPathChange(parentPath)
+    onFileSelect(null)
   }
   
   const handleBreadcrumbClick = (path: string) => {
@@ -481,21 +557,47 @@ export function FileExplorer({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-1 min-w-0 flex-wrap">
             {(() => {
-              // Check if we can go back
-              const canGoBack = pathHistory.length > 1 && (
-                restrictToInitialPath 
-                  ? normalizeToPosix(currentPath) !== normalizeToPosix(initialPath)
-                  : true // In unrestricted mode, can always go back if history exists
-              )
-              return canGoBack && (
+              // Check if we can go to parent folder
+              const canGoToParent = (() => {
+                // Can't go to parent if at initial path (restricted mode)
+                if (restrictToInitialPath && normalizeToPosix(currentPath) === normalizeToPosix(initialPath)) {
+                  return false
+                }
+
+                // Check if at root level for various path types
+                const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
+
+                if (isWindowsPath) {
+                  const driveMatch = currentPath.match(/^([A-Za-z]):/)
+                  if (driveMatch) {
+                    const pathWithoutDrive = currentPath.substring(2)
+                    return pathWithoutDrive && pathWithoutDrive !== '\\' && pathWithoutDrive !== '/'
+                  }
+                  if (currentPath.startsWith('\\\\')) {
+                    const pathParts = currentPath.split(/[\\]/).filter(Boolean)
+                    return pathParts.length > 2
+                  }
+                  return false
+                }
+
+                // POSIX path
+                if (currentPath === '/' || currentPath === '') {
+                  return false
+                }
+                const pathParts = currentPath.split('/').filter(Boolean)
+                return pathParts.length > 1 || (pathParts.length === 1 && currentPath.startsWith('/'))
+              })()
+
+              return canGoToParent && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleGoBack}
+                  onClick={handleGoToParent}
                   disabled={isLoading}
                   className="shrink-0 h-8 px-2"
+                  title={t('fileExplorer.goToParent')}
                 >
-                  <ChevronRight className="h-4 w-4 rotate-180" />
+                  <ChevronUp className="h-4 w-4" />
                 </Button>
               )
             })()}

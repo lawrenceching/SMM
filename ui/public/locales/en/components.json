@@ -73,7 +73,8 @@
     "noMatchesDescription": "No files match \"{{query}}\"",
     "emptyDirectoryDescription": "This folder contains no files",
     "statusBar": "{{folders}} folders, {{files}} files",
-    "searchStatus": "Showing {{showing}} of {{total}} items"
+    "searchStatus": "Showing {{showing}} of {{total}} items",
+    "goToParent": "Go to parent folder"
   },
   "episodeSection": {
     "notAvailable": "N/A",
