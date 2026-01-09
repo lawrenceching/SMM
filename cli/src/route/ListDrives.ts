@@ -1,8 +1,9 @@
 import { stat } from 'node:fs/promises';
-import { exec } from 'child_process';
 import os from 'os';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const shell = require('shelljs');
 
 export interface ListDrivesResponseBody {
   data: string[];
@@ -46,138 +47,17 @@ function isAdministrativeShare(path: string): boolean {
   return shareName.endsWith('$') || shareName === 'PRINT$';
 }
 
-/**
- * Execute a command with a timeout
- */
-function execWithTimeout(command: string, timeoutMs: number = 3000): Promise<string> {
-  logger.debug({ command, timeoutMs }, '[ListDrives] Executing command with timeout');
-  const startTime = Date.now();
-  
-  return new Promise((resolve, reject) => {
-    let timeoutCleared = false;
-    let processKilled = false;
-    let timeoutId: NodeJS.Timeout | null = null;
-    
-    const childProcess = exec(command, (error, stdout, stderr) => {
-      if (timeoutCleared) return; // Already handled by timeout
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      timeoutCleared = true;
-      
-      const duration = Date.now() - startTime;
-      
-      if (error) {
-        logger.debug({ command, error: error.message, stderr, duration }, '[ListDrives] Command failed');
-        reject(error);
-        return;
-      }
-      
-      logger.debug({ command, stdoutLength: stdout.length, duration }, '[ListDrives] Command succeeded');
-      if (stdout) {
-        logger.debug({ command, stdout }, '[ListDrives] Command output');
-      }
-      if (stderr) {
-        logger.debug({ command, stderr }, '[ListDrives] Command stderr');
-      }
-      resolve(stdout);
-    });
-    
-    // Handle spawn errors (command not found, permission denied, etc.)
-    childProcess.on('error', (error) => {
-      if (timeoutCleared) return;
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      timeoutCleared = true;
-      
-      const duration = Date.now() - startTime;
-      logger.debug({ command, error: error.message, duration }, '[ListDrives] Command spawn error');
-      reject(error);
-    });
-    
-    // Set timeout to kill the process if it takes too long
-    timeoutId = setTimeout(() => {
-      if (timeoutCleared) return;
-      timeoutCleared = true;
-      
-      const duration = Date.now() - startTime;
-      logger.warn({ command, timeoutMs, duration }, '[ListDrives] Command timeout, killing process');
-      
-      try {
-        if (!processKilled && !childProcess.killed) {
-          processKilled = true;
-          childProcess.kill();
-        }
-      } catch (killError) {
-        // Ignore errors when killing already-dead process
-        logger.debug({ command, killError }, '[ListDrives] Error killing process (may already be dead)');
-      }
-      
-      reject(new Error(`Command timeout after ${timeoutMs}ms`));
-    }, timeoutMs);
-    
-    // Clear timeout if command completes successfully
-    childProcess.on('exit', (code, signal) => {
-      if (!timeoutCleared && timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutCleared = true;
-      }
-      const duration = Date.now() - startTime;
-      logger.debug({ command, exitCode: code, signal, duration }, '[ListDrives] Command exited');
-    });
-  });
-}
-
-/**
- * Get mapped network drives using 'net use' command
- */
-async function getMappedNetworkDrives(): Promise<string[]> {
-  // Early return if not Windows
-  if (os.platform() !== 'win32') {
-    logger.debug('[ListDrives] getMappedNetworkDrives skipped - not Windows');
-    return [];
-  }
-  
-  logger.info('[ListDrives] Starting getMappedNetworkDrives');
+function _parseNetUseOutput(output: string): string[] {
   try {
-    let stdout: string;
-    try {
-      stdout = await execWithTimeout('net use', 3000);
-    } catch (execError) {
-      // Handle specific error types
-      if (execError instanceof Error) {
-        if (execError.message.includes('timeout')) {
-          logger.info({ error: execError.message }, '[ListDrives] net use command timed out');
-        } else if (execError.message.includes('ENOENT') || execError.message.includes('not found')) {
-          logger.info({ error: execError.message }, '[ListDrives] net use command not found');
-        } else if (execError.message.includes('EACCES') || execError.message.includes('permission')) {
-          logger.info({ error: execError.message }, '[ListDrives] net use command permission denied');
-        } else {
-          logger.info({ error: execError.message }, '[ListDrives] net use command failed');
-        }
-      } else {
-        logger.info({ error: String(execError) }, '[ListDrives] net use command failed with unknown error');
-      }
-      return [];
-    }
-    
     const drives: string[] = [];
-    
-    logger.info({ stdoutLength: stdout.length, lineCount: stdout.split('\n').length, stdout }, '[ListDrives] Parsing net use output - RAW OUTPUT');
     
     // Parse the output - lines look like:
     // OK           Z:        \\server\share
-    const lines = stdout.split('\n');
-    logger.info({ totalLines: lines.length, lines }, '[ListDrives] Processing lines from net use');
+    const lines = output.split('\n');
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line === undefined || line === null) continue;
-      
-      logger.info({ lineNumber: i + 1, line, lineLength: line.length }, '[ListDrives] Processing line');
       
       // Parse the net use output format:
       // Format 1: "OK           Z:        \\server\share               Microsoft Windows Network"
@@ -219,7 +99,6 @@ async function getMappedNetworkDrives(): Promise<string[]> {
       // When Local is empty: parts = ["OK", "\\server\share", "Microsoft Windows Network"]
       // When Local has value: parts = ["OK", "Z:", "\\server\share", "Microsoft Windows Network"]
       const parts = trimmed.split(/\s{2,}/);
-      logger.info({ trimmed, parts, partsLength: parts.length }, '[ListDrives] Parsing net use line');
       
       if (parts.length >= 2) {
         // parts[0] = "OK" (Status)
@@ -273,183 +152,98 @@ async function getMappedNetworkDrives(): Promise<string[]> {
       }
     }
     
-    logger.info({ driveCount: drives.length, drives }, '[ListDrives] getMappedNetworkDrives completed');
+    logger.info({ driveCount: drives.length, drives }, '[ListDrives] _parseNetUseOutput completed');
     return drives;
   } catch (error) {
-    // Catch any unexpected errors during parsing
     logger.info({ 
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
-    }, '[ListDrives] Unexpected error in getMappedNetworkDrives');
+    }, '[ListDrives] Unexpected error in _parseNetUseOutput');
     return [];
   }
 }
 
 /**
- * Get available network shares using 'net view' command
+ * Always assume it's in Windows
+ * @returns return the drive paths. If the command fail or timeout, return an empty array.
  */
-async function getNetworkShares(): Promise<string[]> {
-  // Early return if not Windows
-  if (os.platform() !== 'win32') {
-    logger.debug('[ListDrives] getNetworkShares skipped - not Windows');
+function networkDrives(): string[] {
+  try {
+    const output = shell.exec('net use', { silent: true, timeout: 1000 });
+    return _parseNetUseOutput(output)
+    .filter(drive => drive !== undefined && drive !== null)
+    .filter(drive => !isAdministrativeShare(drive));
+  } catch (error) {
+    logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in netUse');
     return [];
   }
   
-  logger.info('[ListDrives] Starting getNetworkShares');
+}
+
+
+export function _parseLocalDrivesOutput(output: string): string[] {
+  /**
+   * Example output:
+   * C:\
+   * D:\
+   * E:\
+   */
+  return output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+}
+
+/**
+ * Always assume it's in Windows
+ * @returns return the drive paths. If the command fail or timeout, return an empty array.
+ */
+function localDrives(): string[] {
+
   try {
-    let stdout: string;
-    try {
-      // Reduce timeout since net view often hangs on network discovery
-      stdout = await execWithTimeout('net view', 2000);
-    } catch (execError) {
-      // Handle specific error types
-      if (execError instanceof Error) {
-        if (execError.message.includes('timeout')) {
-          logger.info({ error: execError.message }, '[ListDrives] net view command timed out');
-        } else if (execError.message.includes('ENOENT') || execError.message.includes('not found')) {
-          logger.info({ error: execError.message }, '[ListDrives] net view command not found');
-        } else if (execError.message.includes('EACCES') || execError.message.includes('permission')) {
-          logger.info({ error: execError.message }, '[ListDrives] net view command permission denied');
-        } else {
-          logger.info({ error: execError.message }, '[ListDrives] net view command failed');
-        }
-      } else {
-        logger.info({ error: String(execError) }, '[ListDrives] net view command failed with unknown error');
-      }
-      return [];
-    }
-    
-    const shares: string[] = [];
-    
-    logger.debug({ stdoutLength: stdout.length, lineCount: stdout.split('\n').length }, '[ListDrives] Parsing net view output');
-    
-    // Parse the output - lines look like:
-    // \\COMPUTERNAME
-    const lines = stdout.split('\n');
-    logger.debug({ totalLines: lines.length }, '[ListDrives] Processing lines from net view');
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line === undefined || line === null) continue;
-      
-      const trimmed = line.trim();
-      logger.debug({ lineNumber: i + 1, line, trimmed }, '[ListDrives] Processing net view line');
-      
-      // Match UNC path pattern (\\computername or \\server\share)
-      if (trimmed.startsWith('\\\\') && !trimmed.includes('The command completed')) {
-        // Filter out administrative shares
-        if (!isAdministrativeShare(trimmed)) {
-          logger.debug({ share: trimmed }, '[ListDrives] Found network share');
-          shares.push(trimmed);
-        } else {
-          logger.debug({ share: trimmed }, '[ListDrives] Skipping administrative share from net view');
-        }
-      }
-    }
-    
-    logger.info({ shareCount: shares.length, shares }, '[ListDrives] getNetworkShares completed');
-    return shares;
+    const output = shell.exec('powershell -Command "(Get-PSDrive -PSProvider FileSystem).Root"', {
+        silent: true,
+        timeout: 1000,
+    });
+
+    const str = output.toString();
+
+    logger.info({ output: str }, '[ListDrives] localDrives output');
+
+    return _parseLocalDrivesOutput(str);
   } catch (error) {
-    // Catch any unexpected errors during parsing
-    logger.info({ 
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    }, '[ListDrives] Unexpected error in getNetworkShares');
+    logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in localDrives');
     return [];
   }
+ 
 }
 
 export function handleListDrives(app: Hono) {
   app.get('/api/listDrives', async (c) => {
-    const startTime = Date.now();
-    logger.debug('[ListDrives] Starting listDrives request');
     
     try {
+
+      let drives: string[] = [];
+
       // Only list drives on Windows
-      if (os.platform() !== 'win32') {
-        logger.debug({ platform: os.platform() }, '[ListDrives] Not Windows platform');
-        const response: ListDrivesResponseBody = {
-          data: [],
-          error: 'This endpoint is only available on Windows',
-        };
-        return c.json(response, 200);
+      if (os.platform() === 'win32') {
+        drives = drives.concat(localDrives());
+        drives = drives.concat(networkDrives());
       }
 
-      const drives: Set<string> = new Set();
+      return c.json({
+        data: drives,
+        error: undefined,
+      }, 200);
 
-      // 1. List local drives (A-Z)
-      logger.debug('[ListDrives] Starting local drive enumeration');
-      const localDrivesStart = Date.now();
-      for (let i = 65; i <= 90; i++) {
-        const driveLetter = String.fromCharCode(i);
-        const drivePath = `${driveLetter}:\\`;
-
-        try {
-          // Check if the drive exists by trying to stat it
-          await stat(drivePath);
-          logger.debug({ drivePath }, '[ListDrives] Found local drive');
-          drives.add(drivePath);
-        } catch (error) {
-          // Drive doesn't exist or is not accessible, skip it
-          continue;
-        }
-      }
-      const localDrivesDuration = Date.now() - localDrivesStart;
-      logger.debug({ localDriveCount: drives.size, duration: `${localDrivesDuration}ms` }, '[ListDrives] Local drive enumeration completed');
-
-      // 2. Get mapped network drives and network shares in parallel with timeout
-      // Run both operations in parallel so they don't block each other
-      logger.info('[ListDrives] Starting network drive and share discovery');
-      const networkStart = Date.now();
-      const [networkDrives, networkShares] = await Promise.allSettled([
-        getMappedNetworkDrives(),
-        getNetworkShares(),
-      ]);
-      const networkDuration = Date.now() - networkStart;
-      logger.info({ 
-        networkDrivesStatus: networkDrives.status, 
-        networkSharesStatus: networkShares.status,
-        networkDrivesRejected: networkDrives.status === 'rejected' ? networkDrives.reason : undefined,
-        networkSharesRejected: networkShares.status === 'rejected' ? networkShares.reason : undefined,
-        duration: `${networkDuration}ms`
-      }, '[ListDrives] Network discovery completed');
-
-      // Add network drives if successful
-      if (networkDrives.status === 'fulfilled') {
-        logger.info({ networkDriveCount: networkDrives.value.length, networkDrives: networkDrives.value }, '[ListDrives] Adding network drives');
-        networkDrives.value.forEach(drive => drives.add(drive));
-      } else {
-        logger.info({ reason: networkDrives.reason instanceof Error ? networkDrives.reason.message : String(networkDrives.reason) }, '[ListDrives] Network drives promise rejected');
-      }
-
-      // Add network shares if successful
-      if (networkShares.status === 'fulfilled') {
-        logger.info({ networkShareCount: networkShares.value.length, networkShares: networkShares.value }, '[ListDrives] Adding network shares');
-        networkShares.value.forEach(share => drives.add(share));
-      } else {
-        logger.info({ reason: networkShares.reason instanceof Error ? networkShares.reason.message : String(networkShares.reason) }, '[ListDrives] Network shares promise rejected');
-      }
-
-      const totalDuration = Date.now() - startTime;
-      const finalDrives = Array.from(drives).sort();
-      logger.info({ 
-        totalDriveCount: finalDrives.length, 
-        drives: finalDrives,
-        totalDuration: `${totalDuration}ms`
-      }, '[ListDrives] Request completed successfully');
-
-      const response: ListDrivesResponseBody = {
-        data: finalDrives,
-      };
-      return c.json(response, 200);
     } catch (error) {
-      const totalDuration = Date.now() - startTime;
-      logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined, duration: `${totalDuration}ms` }, '[ListDrives] Route error');
+      logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in listDrives');
       const response: ListDrivesResponseBody = {
         data: [],
-        error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: 'Unexpected error',
       };
-      return c.json(response, 200);
+      return c.json(response, 500);
     }
+      
   });
 }
