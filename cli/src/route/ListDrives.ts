@@ -232,7 +232,7 @@ export function _parseLocalDrivesOutput(output: string): string[] {
  * Always assume it's in Windows
  * @returns return the drive paths. If the command fail or timeout, return an empty array.
  */
-function localDrives(): string[] {
+export function localDrives(): string[] {
 
   try {
     // Use -NoProfile to speed up PowerShell startup (skips loading profile, faster execution)

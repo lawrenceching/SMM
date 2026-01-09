@@ -15,7 +15,8 @@ import {
   FileCode,
   FileArchive,
   Layers,
-  HardDrive
+  HardDrive,
+  RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -592,6 +593,39 @@ export function FileExplorer({
     onPathChange(path)
     onFileSelect(null)
   }
+
+  const handleRefresh = () => {
+    // Refresh files for the current path
+    if (currentPath === DRIVES_VIEW_PATH) {
+      // If in drives view, reload drives
+      setIsLoading(true)
+      setError(null)
+      listDrivesApi()
+        .then((response) => {
+          if (response.error) {
+            setError(response.error)
+            setFiles([])
+          } else {
+            const driveItems: FileItem[] = response.data.map((drivePath) => ({
+              name: drivePath,
+              path: drivePath,
+              isDirectory: true,
+            }))
+            setFiles(driveItems)
+          }
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
+          setFiles([])
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+    } else {
+      // Refresh regular files
+      loadFiles(currentPath)
+    }
+  }
   
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -694,6 +728,16 @@ export function FileExplorer({
                 </Button>
               )
             })()}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="shrink-0 h-8 px-2"
+              title="Refresh"
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            </Button>
             <div className="flex items-center gap-1 min-w-0 flex-1 flex-wrap">
               {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.path} className="flex items-center gap-1 min-w-0">
