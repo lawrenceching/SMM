@@ -147,7 +147,11 @@ let seasonsBackup: SeasonModel[] = []
 
 function TvShowPanel() {
   const { t } = useTranslation('components')
-  const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
+  const { 
+    selectedMediaMetadata: mediaMetadata, 
+    updateMediaMetadata,
+    refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath
+   } = useMediaMetadata()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
@@ -640,10 +644,14 @@ function TvShowPanel() {
             isOpen={isRuleBasedRecognizePromptOpen}
             onConfirm={() => {
               setIsRuleBasedRecognizePromptOpen(false)
-              recognizeEpisodes(seasons);
               setSeasons(seasonsBackup)
               seasonsBackup = []
               console.log(`[TvShowPanel] seasons state restored because of user confirm`)
+              if (mediaMetadata) {
+                console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
+                recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
+              }
+              
             }}
             onCancel={() => {
               setIsRuleBasedRecognizePromptOpen(false)
