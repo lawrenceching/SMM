@@ -392,21 +392,10 @@ function TvShowPanel() {
     return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen || isRuleBasedRecognizePromptOpen
   }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen, isRuleBasedRecognizePromptOpen])
 
-  // Handle confirm button click - rename all files
-  const handleAiBasedRenamePromptConfirm = useCallback(async () => {
-    // Send acknowledgement if there's a pending confirmation message
-    if (pendingConfirmationMessage) {
-      const respData: AskForRenameFilesConfirmationResponseData = {
-        confirmed: true,
-      }
-      sendAcknowledgement(pendingConfirmationMessage, respData);
-      setIsAiBasedRenameFilePromptOpen(false)
-      return;
-    }
 
-    if (!mediaMetadata?.mediaFolderPath) {
-      toast.error("No media folder path available")
-      return
+  const startToRenameFiles = useCallback(async () => {
+    if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
+      return;
     }
 
     // Collect all files that need to be renamed, separating video files from associated files
@@ -523,9 +512,34 @@ function TvShowPanel() {
     } catch (error) {
       console.error("Unexpected error during rename operation:", error)
       toast.error("An unexpected error occurred during rename operation")
+    }
+  }, [mediaMetadata])
+
+  // Handle confirm button click - rename all files
+  const handleAiBasedRenamePromptConfirm = useCallback(async () => {
+    // Send acknowledgement if there's a pending confirmation message
+    if (pendingConfirmationMessage) {
+      const respData: AskForRenameFilesConfirmationResponseData = {
+        confirmed: true,
+      }
+      sendAcknowledgement(pendingConfirmationMessage, respData);
+      setIsAiBasedRenameFilePromptOpen(false)
+      return;
+    }
+
+    if (!mediaMetadata?.mediaFolderPath) {
+      toast.error("No media folder path available")
+      return
+    }
+
+    try {
+      await startToRenameFiles();
+    } catch (error) {
+      console.error('Error starting to rename files', error);
     } finally {
       setIsAiBasedRenameFilePromptOpen(false)
     }
+    
   }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage])
 
 
@@ -621,7 +635,10 @@ function TvShowPanel() {
             onNamingRuleChange={(value) => {
               setSelectedNamingRule(value as "plex" | "emby")
             }}
-            onConfirm={handleAiBasedRenamePromptConfirm}
+            onConfirm={() => {
+              setIsRuleBasedRenameFilePromptOpen(false)
+              startToRenameFiles();
+            }}
             onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
           />
 
