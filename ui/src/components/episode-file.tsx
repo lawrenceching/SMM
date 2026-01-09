@@ -17,7 +17,6 @@ interface EpisodeFileProps {
     iconColor?: string
     isPreviewMode: boolean
     showRenameMenu?: boolean
-    compact?: boolean
 }
 
 // Helper function to get relative path from media folder
@@ -44,7 +43,6 @@ export function EpisodeFile({
     iconColor = "text-muted-foreground",
     isPreviewMode,
     showRenameMenu = false,
-    compact = false,
 }: EpisodeFileProps) {
     const { t } = useTranslation(['components', 'dialogs'])
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
@@ -66,7 +64,7 @@ export function EpisodeFile({
       })
     }
 
-    const fileContent = compact ? (
+    const fileContent = (
         <div className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
             hasPreview ? "bg-primary/5 border border-primary/20" : "bg-muted/30 border border-transparent",
@@ -104,76 +102,6 @@ export function EpisodeFile({
                     </div>
                 )}
             </div>
-        </div>
-    ) : (
-        <div className={cn(
-            "p-2.5 rounded-md border transition-colors",
-            isPreviewMode && file.newPath ? "bg-primary/5 border-primary/20" : "bg-background border-border",
-            "hover:bg-muted/30",
-            isDeleted && "opacity-50"
-        )}>
-            {label ? (
-                <>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <Icon className={cn("size-3.5", iconColor, isDeleted && "opacity-50")} />
-                        <span className="text-xs font-semibold">{label}</span>
-                        {isPreviewMode && file.newPath && (
-                            <span className="text-[10px] text-primary/80 font-medium uppercase tracking-wide">Preview</span>
-                        )}
-                        {isDeleted && (
-                            <span className="text-[10px] text-destructive/80 font-medium">Deleted</span>
-                        )}
-                    </div>
-                    {isPreviewMode && file.newPath ? (
-                        <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground/60 font-mono truncate line-through">
-                                {relativePath}
-                            </p>
-                            <p className="text-xs text-foreground font-mono truncate font-medium">
-                                {newRelativePath}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <p className={cn(
-                                "text-xs font-mono truncate",
-                                isDeleted ? "text-muted-foreground/60 line-through" : "text-muted-foreground"
-                            )}>
-                                {relativePath}
-                            </p>
-                            {isDeleted && (
-                                <XCircle className="size-3 shrink-0 text-destructive/70" />
-                            )}
-                        </div>
-                    )}
-                </>
-            ) : (
-                <div className="flex items-center gap-2">
-                    <Icon className={cn("size-3.5", iconColor, isDeleted && "opacity-50")} />
-                    {isPreviewMode && file.newPath ? (
-                        <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-xs text-muted-foreground/60 font-mono truncate line-through">
-                                {relativePath}
-                            </p>
-                            <p className="text-xs text-foreground font-mono truncate font-medium">
-                                {newRelativePath}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <p className={cn(
-                                "text-xs font-mono truncate",
-                                isDeleted ? "text-muted-foreground/60 line-through" : "text-muted-foreground"
-                            )}>
-                                {relativePath}
-                            </p>
-                            {isDeleted && (
-                                <XCircle className="size-3 shrink-0 text-destructive/70" />
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     )
 

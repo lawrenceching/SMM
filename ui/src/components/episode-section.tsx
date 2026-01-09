@@ -268,7 +268,6 @@ export function EpisodeSection({
                                         iconColor={iconColor}
                                         isPreviewMode={isPreviewMode}
                                         showRenameMenu={true}
-                                        compact={true}
                                     />
                                 ))
                             })}
