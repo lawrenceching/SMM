@@ -347,15 +347,23 @@ function TvShowPanel() {
             const relativePath = response.data
             const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath)
             videoFile.newPath = absolutePath
+            if(videoFile.path === videoFile.newPath) {
+              videoFile.newPath = undefined;
+            } else {
+              // Generate new paths for all associated files (subtitles, audio, nfo, poster, etc.)
+              for(const file of episode.files) {
+                if(file.type === "video") {
+                  continue;
+                }
+                // Only set newPath for associated files if video file has a newPath
+                file.newPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
 
-            // Generate new paths for all associated files (subtitles, audio, nfo, poster, etc.)
-            for(const file of episode.files) {
-              if(file.type === "video") {
-                continue;
+                if(file.path === file.newPath) {
+                  file.newPath = undefined;
+                }
               }
-              // Only set newPath for associated files if video file has a newPath
-              file.newPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
             }
+
           } else {
             // If video file rename failed, clear newPath for associated files
             for(const file of episode.files) {
