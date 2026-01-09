@@ -49,7 +49,7 @@
     "genreLabel": "類型 {{genreId}}",
     "rename": "重新命名",
     "recognize": "識別",
-    "scrape": "抓取",
+    "scrape": "刮削",
     "notAvailable": "不可用"
   },
   "movie": {
@@ -59,7 +59,7 @@
     "genres": "類型",
     "genreLabel": "類型 {{genreId}}",
     "rename": "重新命名",
-    "scrape": "抓取",
+    "scrape": "刮削",
     "notAvailable": "不可用",
     "searchNoResults": "未找到結果",
     "searchFailed": "搜尋TMDB失敗",

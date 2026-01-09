@@ -29,10 +29,10 @@
     "start": "开始"
   },
   "scrape": {
-    "title": "抓取元数据",
+    "title": "刮削元数据",
     "defaultTitle": "任务进度",
     "defaultDescription": "当前任务执行状态",
-    "mediaTitle": "抓取媒体",
+    "mediaTitle": "刮削媒体",
     "mediaDescription": "下载海报、缩略图和nfo文件",
     "tasks": {
       "poster": "海报",
