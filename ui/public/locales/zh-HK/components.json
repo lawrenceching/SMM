@@ -88,6 +88,24 @@
       "poster": "海報",
       "file": "檔案"
     }
+  },
+  "thread": {
+    "welcome": {
+      "title": "你好！",
+      "subtitle": "今天我能為您做些甚麼？"
+    },
+    "suggestions": {
+      "recognizeVideoFiles": {
+        "title": "識別影片檔案",
+        "label": "智能識別和匹配劇集",
+        "prompt": "幫我匹配每一集對應的影片檔案"
+      },
+      "organizeFiles": {
+        "title": "整理檔案名稱",
+        "label": "按Plex規則重新命名檔案",
+        "prompt": "按 Plex 規則整理當前媒體資料夾\nPlex 規則為:\n{季目錄名}/{電視劇/動畫名} - S{季數}E{集數} - {標題}.{檔案後綴名}"
+      }
+    }
   }
 }
 

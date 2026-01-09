@@ -88,6 +88,24 @@
       "poster": "Poster",
       "file": "File"
     }
+  },
+  "thread": {
+    "welcome": {
+      "title": "Hello there!",
+      "subtitle": "How can I help you today?"
+    },
+    "suggestions": {
+      "recognizeVideoFiles": {
+        "title": "Recognize Video Files",
+        "label": "Intelligently recognize and match episodes",
+        "prompt": "Help me match each episode to its corresponding video file"
+      },
+      "organizeFiles": {
+        "title": "Organize File Names",
+        "label": "Rename files according to Plex rules",
+        "prompt": "Organize the current media folder according to Plex rules\nPlex rules are:\n{SeasonFolder}/{TV Show/Anime Name} - S{Season}E{Episode} - {Title}.{Extension}"
+      }
+    }
   }
 }
 

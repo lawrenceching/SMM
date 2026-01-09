@@ -88,6 +88,24 @@
       "poster": "海报",
       "file": "文件"
     }
+  },
+  "thread": {
+    "welcome": {
+      "title": "你好！",
+      "subtitle": "今天我能为您做些什么？"
+    },
+    "suggestions": {
+      "recognizeVideoFiles": {
+        "title": "识别视频文件",
+        "label": "智能识别和匹配剧集",
+        "prompt": "帮我匹配每一集对应的视频文件"
+      },
+      "organizeFiles": {
+        "title": "整理文件名",
+        "label": "按Plex规则重命名文件",
+        "prompt": "按 Plex 规则整理当前媒体文件夹\nPlex 规则为:\n{季目录名}/{电视剧/动画名} - S{季数}E{集数} - {标题}.{文件后缀名}"
+      }
+    }
   }
 }
 

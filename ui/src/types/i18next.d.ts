@@ -61,6 +61,7 @@ interface ComponentsResources {
     aiReview: string
     aiRecognizing: string
     aiReviewEpisodes: string
+    reviewRecognizeEpisodes: string
   }
   mediaFolder: {
     rename: string
@@ -81,6 +82,7 @@ interface ComponentsResources {
     genres: string
     genreLabel: string
     rename: string
+    recognize: string
     scrape: string
     notAvailable: string
   }
@@ -119,6 +121,24 @@ interface ComponentsResources {
       nfo: string
       poster: string
       file: string
+    }
+  }
+  thread: {
+    welcome: {
+      title: string
+      subtitle: string
+    }
+    suggestions: {
+      recognizeVideoFiles: {
+        title: string
+        label: string
+        prompt: string
+      }
+      organizeFiles: {
+        title: string
+        label: string
+        prompt: string
+      }
     }
   }
 }

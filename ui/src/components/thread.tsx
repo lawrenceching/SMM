@@ -28,7 +28,7 @@ import {
 import type { FC } from "react";
 import { useMediaMetadata } from "./media-metadata-provider";
 import { basename } from "@/lib/path";
-import { prompts } from "@/ai/prompts";
+import { useTranslation } from "@/lib/i18n";
 
 export const Thread: FC = () => {
   return (
@@ -78,15 +78,17 @@ const ThreadScrollToBottom: FC = () => {
 };
 
 const ThreadWelcome: FC = () => {
+  const { t } = useTranslation('components');
+  
   return (
     <div className="aui-thread-welcome-root mx-auto my-auto flex w-full max-w-(--thread-max-width) grow flex-col">
       <div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
         <div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
           <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in font-semibold text-2xl duration-200">
-            Hello there!
+            {t('thread.welcome.title' as any) as string}
           </h1>
           <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
-            How can I help you today?
+            {t('thread.welcome.subtitle' as any) as string}
           </p>
         </div>
       </div>
@@ -95,25 +97,31 @@ const ThreadWelcome: FC = () => {
   );
 };
 
-const SUGGESTIONS = [
-  {
-    title: "匹配视频文件",
-    label: "智能剧集匹配",
-    prompt: prompts.findVdeoFileForEpisode,
-  },
-  {
-    title: "整理文件名",
-    label: "按Plex规则重命名文件",
-    prompt: `按 Plex 规则整理当前媒体文件夹
-Plex 规则为:
-{季目录名}/{电视剧/动画名} - S{季数}E{集数} - {标题}.{文件后缀名}`,
-  },
-] as const;
+interface Suggestion {
+  title: string
+  label: string
+  prompt: string
+}
 
 const ThreadSuggestions: FC = () => {
+  const { t } = useTranslation('components');
+  
+  const suggestions: Suggestion[] = [
+    {
+      title: t('thread.suggestions.recognizeVideoFiles.title' as any) as string,
+      label: t('thread.suggestions.recognizeVideoFiles.label' as any) as string,
+      prompt: t('thread.suggestions.recognizeVideoFiles.prompt' as any) as string,
+    },
+    {
+      title: t('thread.suggestions.organizeFiles.title' as any) as string,
+      label: t('thread.suggestions.organizeFiles.label' as any) as string,
+      prompt: t('thread.suggestions.organizeFiles.prompt' as any) as string,
+    },
+  ];
+  
   return (
     <div className="aui-thread-welcome-suggestions grid w-full @md:grid-cols-2 gap-2 pb-4">
-      {SUGGESTIONS.map((suggestion, index) => (
+      {suggestions.map((suggestion, index) => (
         <div
           key={suggestion.prompt}
           className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 @md:nth-[n+3]:block nth-[n+3]:hidden animate-in fill-mode-both duration-200"
