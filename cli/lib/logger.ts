@@ -2,6 +2,7 @@ import pino from 'pino';
 import { getLogDir } from '@/utils/config';
 import path from 'path';
 import { mkdir } from 'fs/promises';
+import type { Context } from 'hono';
 
 /**
  * Creates a Pino logger instance with appropriate configuration.
@@ -48,9 +49,54 @@ async function createLogger() {
   }
 }
 
+
+/**
+ * Logs incoming HTTP request.
+ * In debug mode, includes the request body; otherwise only logs method and URL.
+ */
+export function logHttpIn(c: Context, body?: unknown) {
+  if (logger.isLevelEnabled('debug')) {
+    logger.debug({
+      method: c.req.method,
+      url: c.req.url,
+      body
+    }, 'HTTP request received');
+  } else {
+    logger.info({
+      method: c.req.method,
+      url: c.req.url,
+    }, 'HTTP request received');
+  }
+}
+
+/**
+ * Logs outgoing HTTP response.
+ * In debug mode, includes the response body; otherwise only logs method, URL, and status code.
+ * Automatically determines error state by checking for 'error' property in body or status code >= 400.
+ */
+export function logHttpOut(c: Context, body: unknown, statusCode: number = 200) {
+  // Check if response is an error
+  const isError = statusCode >= 400 || (typeof body === 'object' && body !== null && 'error' in body);
+  
+  const logData: Record<string, unknown> = {
+    method: c.req.method,
+    url: c.req.url,
+    statusCode,
+  };
+
+  if (logger.isLevelEnabled('debug')) {
+    logData.body = body;
+  }
+
+  if (isError) {
+    logger.error(logData, 'HTTP response sent');
+  } else {
+    logger.info(logData, 'HTTP response sent');
+  }
+}
+
 // Create and export the logger instance
 export const logger = await createLogger();
 
 // Export a default as well for convenience
 export default logger;
-
