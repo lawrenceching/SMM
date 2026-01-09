@@ -14,6 +14,7 @@ import { StatusBar } from "./components/StatusBar"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
+import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
@@ -459,9 +460,8 @@ export default function AppV2() {
                     </div>
                   )}
                   {selectedMediaMetadata.type === "movie-folder" && (
-                    <div style={{ padding: "20px", overflow: "auto" }}>
-                      {/* MoviePanel can be added here in the future */}
-                      <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                      <MoviePanel />
                     </div>
                   )}
                   {selectedMediaMetadata.type !== "tvshow-folder" && selectedMediaMetadata.type !== "movie-folder" && (
