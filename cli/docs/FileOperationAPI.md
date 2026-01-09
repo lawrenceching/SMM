@@ -79,3 +79,70 @@ interface ListFilesResponseBody {
 }
 
 ```
+
+--
+
+## GET /api/listDrives
+
+List available drives and network paths on Windows. This endpoint is only available on Windows systems.
+
+**Request:** No request body required.
+
+Response body:
+```typescript
+interface ListDrivesResponseBody {
+  /**
+   * Array of available drive paths including:
+   * - Local drives (e.g., "C:\\", "D:\\", "E:\\")
+   * - Mapped network drives (e.g., "Z:\\")
+   * - UNC network paths (e.g., "\\\\server\\share")
+   * - Network computer names (e.g., "\\\\computername")
+   */
+  data: string[];
+  /**
+   * Error message if the operation fails or if called on a non-Windows system
+   */
+  error?: string;
+}
+```
+
+### Behavior
+
+- **Windows:** Returns an array containing:
+  1. All available local drive letters (A-Z) that exist and are accessible
+  2. Mapped network drives (both drive letter and UNC path if available)
+  3. Available network shares discovered via `net view` command
+- **Non-Windows:** Returns an empty array with an error message indicating the endpoint is only available on Windows
+
+### Notes
+
+- Network drive detection uses Windows `net use` command to find mapped network drives
+- Network share discovery uses Windows `net view` command to find available network computers
+- Network operations may fail silently if the user doesn't have permissions or if network discovery is disabled
+- Results are sorted alphabetically and deduplicated
+
+### Example Response
+
+**Success (Windows):**
+```json
+{
+  "data": [
+    "C:\\",
+    "D:\\",
+    "E:\\",
+    "\\\\NAS-SERVER",
+    "\\\\NAS-SERVER\\Media",
+    "Z:\\"
+  ]
+}
+```
+
+**Error (Non-Windows):**
+```json
+{
+  "data": [],
+  "error": "This endpoint is only available on Windows"
+}
+```
+
+```
