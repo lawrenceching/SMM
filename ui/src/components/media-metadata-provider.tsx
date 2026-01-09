@@ -4,6 +4,7 @@ import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useConfig } from "./config-provider"
 import { writeMediaMetadata } from "@/api/writeMediaMatadata"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
+import localStorages from "@/lib/localStorages"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: MediaMetadata[]
@@ -57,6 +58,7 @@ export function MediaMetadataProvider({
 
   const setSelectedMediaMetadata = useCallback((index: number) => {
     setSelectedIndex(index)
+    localStorages.selectedFolderIndex = index
   }, [])
 
   const setSelectedMediaMetadataByMediaFolderPath = useCallback((path: string) => {

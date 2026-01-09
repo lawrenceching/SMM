@@ -11,6 +11,7 @@ import { MediaMetadataProvider, useMediaMetadata } from './components/media-meta
 import { DialogProvider, useDialogs } from './components/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
+import { AppInitializer } from './AppInitializer'
 
 // Hook to detect mobile screen
 function useIsMobile() {
@@ -231,6 +232,7 @@ createRoot(document.getElementById('root')!).render(
       <ConfigProvider>
         <MediaMetadataProvider>
           <DialogProvider>
+            <AppInitializer />
             <AppSwitcher />
           </DialogProvider>
         </MediaMetadataProvider>
