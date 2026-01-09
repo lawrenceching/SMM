@@ -99,7 +99,18 @@ export interface ListFilesRequestBody {
 }
 
 export interface ListFilesResponseBody {
-  data: string[];
+  data: {
+    /**
+     * The resolved path of path parameter in ListFilesRequestBody
+     * For example, if user request files in path "~"
+     * This field will be "C:\Users\<username>"
+     */
+    path: string;
+    /**
+     * List of files and folders in the folder
+     */
+    items: string[];
+  };
   error?: string;
 }
 

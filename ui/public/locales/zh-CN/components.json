@@ -74,7 +74,9 @@
     "emptyDirectoryDescription": "此文件夹不包含任何文件",
     "statusBar": "{{folders}} 个文件夹, {{files}} 个文件",
     "searchStatus": "显示 {{showing}} / {{total}} 项",
-    "goToParent": "转到上级文件夹"
+    "goToParent": "转到上级文件夹",
+    "drives": "驱动器",
+    "drivesStatus": "{{count}} 个驱动器"
   },
   "episodeSection": {
     "notAvailable": "不可用",

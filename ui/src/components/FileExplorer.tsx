@@ -14,15 +14,20 @@ import {
   FileImage,
   FileCode,
   FileArchive,
-  Layers
+  Layers,
+  HardDrive
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { listFilesApi } from "@/api/listFiles"
+import { listDrivesApi } from "@/api/listDrives"
 import type { FileItem } from "@/components/dialogs/types"
 import { useTranslation } from "@/lib/i18n"
+
+// Special path constant for drives view
+const DRIVES_VIEW_PATH = '__DRIVES__'
 
 // Helper function to get file extension
 function getFileExtension(filename: string): string {
@@ -31,7 +36,10 @@ function getFileExtension(filename: string): string {
 }
 
 // Helper function to get file icon based on extension
-function getFileIcon(filename: string, isDirectory: boolean) {
+function getFileIcon(filename: string, isDirectory: boolean, isDrive: boolean = false) {
+  if (isDrive) {
+    return <HardDrive className="h-5 w-5 text-emerald-500" />
+  }
   if (isDirectory) {
     return <FolderOpen className="h-5 w-5 text-blue-500" />
   }
@@ -119,8 +127,15 @@ export function FileExplorer({
   const [pathHistory, setPathHistory] = useState<string[]>([initialPath])
   const [searchQuery, setSearchQuery] = useState("")
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
+  const [showDrives, setShowDrives] = useState(false)
 
   const loadFiles = useCallback(async (path: string) => {
+    // Skip loading if we're in drives view (drives are loaded separately)
+    if (path === DRIVES_VIEW_PATH) {
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSearchQuery("") // Clear search when loading new directory
@@ -135,8 +150,15 @@ export function FileExplorer({
         setError(response.error || t('fileExplorer.loadFailed'))
         setFiles([])
       } else {
+        // Update path to the resolved path from API (e.g., "~" -> "C:\Users\<username>")
+        const resolvedPath = response.data.path
+        if (resolvedPath && resolvedPath !== path) {
+          // Update the path to the resolved path
+          onPathChange(resolvedPath)
+        }
+
         // Convert to FileItem format
-        const items: FileItem[] = response.data.map((filePath) => {
+        const items: FileItem[] = response.data.items.map((filePath) => {
           const pathParts = filePath.split(/[/\\]/)
           const name = pathParts[pathParts.length - 1] || filePath
           // Determine if it's a directory by checking if there's a file extension
@@ -207,7 +229,12 @@ export function FileExplorer({
     try {
       const normalizedInitial = normalizeToPosix(initialPath)
       const normalizedCurrent = normalizeToPosix(currentPath)
-      
+
+      // Show "Drives" breadcrumb when in drives view
+      if (currentPath === DRIVES_VIEW_PATH) {
+        return [{ label: String((t as any)('fileExplorer.drives')), path: DRIVES_VIEW_PATH, isRoot: true }]
+      }
+
       // If restriction is disabled, show full path breadcrumbs
       if (!restrictToInitialPath) {
         const crumbs: Array<{ label: string; path: string; isRoot?: boolean }> = []
@@ -353,11 +380,23 @@ export function FileExplorer({
   const handleItemDoubleClick = (file: FileItem) => {
     // Double-click: navigate into folder
     if (file.isDirectory) {
+      // Check if we're in drives view - if so, navigate to the selected drive
+      if (showDrives) {
+        setShowDrives(false)
+        // Remove DRIVES_VIEW_PATH from history and navigate to the drive
+        const newHistory = pathHistory.filter(p => p !== DRIVES_VIEW_PATH)
+        newHistory.push(file.path)
+        setPathHistory(newHistory)
+        onPathChange(file.path)
+        onFileSelect(null)
+        return
+      }
+
       if (restrictToInitialPath) {
         // Verify the target path is under initialPath
         const normalizedTarget = normalizeToPosix(file.path)
         const normalizedInitial = normalizeToPosix(initialPath)
-        
+
         // Only allow if target is exactly initialPath or under it
         if (normalizedTarget === normalizedInitial || normalizedTarget.startsWith(normalizedInitial + '/')) {
           const newHistory = [...pathHistory, currentPath]
@@ -385,6 +424,11 @@ export function FileExplorer({
       newHistory.pop() // Remove current path
       const previousPath = newHistory[newHistory.length - 1]
 
+      // If going back from drives view, clear the showDrives flag
+      if (currentPath === DRIVES_VIEW_PATH) {
+        setShowDrives(false)
+      }
+
       if (restrictToInitialPath) {
         // Prevent going beyond initialPath
         const normalizedPrevious = normalizeToPosix(previousPath)
@@ -407,7 +451,7 @@ export function FileExplorer({
     }
   }
 
-  const handleGoToParent = () => {
+  const handleGoToParent = async () => {
     // Determine separator from current path
     const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
     const separator = isWindowsPath ? '\\' : '/'
@@ -423,7 +467,35 @@ export function FileExplorer({
         const pathWithoutDrive = currentPath.substring(2)
 
         if (!pathWithoutDrive || pathWithoutDrive === separator) {
-          // Already at drive root, stay there
+          // Already at drive root - show drives list
+          setIsLoading(true)
+          setError(null)
+          try {
+            const response = await listDrivesApi()
+            if (response.error) {
+              setError(response.error)
+              setFiles([])
+            } else {
+              // Convert drives to FileItem format
+              const driveItems: FileItem[] = response.data.map((drivePath) => ({
+                name: drivePath,
+                path: drivePath,
+                isDirectory: true,
+              }))
+              setFiles(driveItems)
+              setShowDrives(true)
+              // Add current path to history for going back
+              const newHistory = [...pathHistory, currentPath]
+              setPathHistory(newHistory)
+              onPathChange(DRIVES_VIEW_PATH)
+              onFileSelect(null)
+            }
+          } catch (err) {
+            setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
+            setFiles([])
+          } finally {
+            setIsLoading(false)
+          }
           return
         }
 
@@ -469,7 +541,10 @@ export function FileExplorer({
       const normalizedParent = normalizeToPosix(parentPath)
       const normalizedInitial = normalizeToPosix(initialPath)
 
-      if (normalizedParent !== normalizedInitial && !normalizedParent.startsWith(normalizedInitial + '/')) {
+      // Allow navigating to "/" when initial path is "~" (home directory)
+      if (normalizedInitial === '~' && normalizedParent === '/') {
+        // Allowed - navigating from home to root
+      } else if (normalizedParent !== normalizedInitial && !normalizedParent.startsWith(normalizedInitial + '/')) {
         console.warn('Cannot navigate outside initialPath:', { parentPath, initialPath, normalizedParent, normalizedInitial })
         return
       }
@@ -483,11 +558,17 @@ export function FileExplorer({
   }
   
   const handleBreadcrumbClick = (path: string) => {
+    // Handle clicking on "Drives" breadcrumb - show drives view
+    if (path === DRIVES_VIEW_PATH) {
+      handleGoToParent()
+      return
+    }
+
     if (restrictToInitialPath) {
       // Prevent navigation outside of initialPath
       const normalizedPath = normalizeToPosix(path)
       const normalizedInitial = normalizeToPosix(initialPath)
-      
+
       // Only allow navigation if path is initialPath or under it (exact match or starts with initialPath + '/')
       if (normalizedPath !== normalizedInitial && !normalizedPath.startsWith(normalizedInitial + '/')) {
         console.warn('Cannot navigate outside initialPath:', { path, initialPath, normalizedPath, normalizedInitial })
@@ -503,6 +584,10 @@ export function FileExplorer({
     } else {
       // Add to history
       setPathHistory([...pathHistory, path])
+    }
+    // Clear drives view flag when navigating to a regular path
+    if (showDrives) {
+      setShowDrives(false)
     }
     onPathChange(path)
     onFileSelect(null)
@@ -559,20 +644,21 @@ export function FileExplorer({
             {(() => {
               // Check if we can go to parent folder
               const canGoToParent = (() => {
-                // Can't go to parent if at initial path (restricted mode)
-                if (restrictToInitialPath && normalizeToPosix(currentPath) === normalizeToPosix(initialPath)) {
-                  return false
-                }
-
-                // Check if at root level for various path types
                 const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
 
+                // Check if at Windows drive root (e.g., C:\)
                 if (isWindowsPath) {
                   const driveMatch = currentPath.match(/^([A-Za-z]):/)
                   if (driveMatch) {
                     const pathWithoutDrive = currentPath.substring(2)
-                    return pathWithoutDrive && pathWithoutDrive !== '\\' && pathWithoutDrive !== '/'
+                    // At drive root (C:\), allow going up to show drives
+                    if (!pathWithoutDrive || pathWithoutDrive === '\\' || pathWithoutDrive === '/') {
+                      return true
+                    }
+                    // At subdirectory, allow going up
+                    return true
                   }
+                  // UNC path
                   if (currentPath.startsWith('\\\\')) {
                     const pathParts = currentPath.split(/[\\]/).filter(Boolean)
                     return pathParts.length > 2
@@ -580,10 +666,17 @@ export function FileExplorer({
                   return false
                 }
 
-                // POSIX path
+                // POSIX path - can't go above root "/"
                 if (currentPath === '/' || currentPath === '') {
                   return false
                 }
+
+                // For home directory "~" or paths starting with "~"
+                if (currentPath === '~' || currentPath.startsWith('~/')) {
+                  return true
+                }
+
+                // For other paths
                 const pathParts = currentPath.split('/').filter(Boolean)
                 return pathParts.length > 1 || (pathParts.length === 1 && currentPath.startsWith('/'))
               })()
@@ -595,7 +688,7 @@ export function FileExplorer({
                   onClick={handleGoToParent}
                   disabled={isLoading}
                   className="shrink-0 h-8 px-2"
-                  title={t('fileExplorer.goToParent')}
+                  title={String((t as any)('fileExplorer.goToParent'))}
                 >
                   <ChevronUp className="h-4 w-4" />
                 </Button>
@@ -611,12 +704,14 @@ export function FileExplorer({
                     disabled={isLoading || index === breadcrumbs.length - 1}
                     className={cn(
                       "h-8 px-2 text-sm font-medium transition-colors",
-                      index === breadcrumbs.length - 1 
-                        ? "text-foreground cursor-default" 
+                      index === breadcrumbs.length - 1
+                        ? "text-foreground cursor-default"
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {index === 0 && <Home className="h-4 w-4 mr-1" />}
+                    {index === 0 && (crumb.path === DRIVES_VIEW_PATH
+                      ? <HardDrive className="h-4 w-4 mr-1" />
+                      : <Home className="h-4 w-4 mr-1" />)}
                     <span className="truncate max-w-[200px]">{crumb.label}</span>
                   </Button>
                   {index < breadcrumbs.length - 1 && (
@@ -705,7 +800,9 @@ export function FileExplorer({
                   const badge = getFileTypeBadge(file.name, file.isDirectory ?? false)
                   const isFocused = index === focusedIndex
                   const isSelected = selectedFile?.path === file.path
-                  
+                  // Check if this item is a drive (Windows drive path like "C:\")
+                  const isDrive = showDrives && /^[A-Za-z]:\\$/.test(file.path)
+
                   return (
                     <div
                       key={file.path}
@@ -719,7 +816,7 @@ export function FileExplorer({
                       )}
                     >
                       <div className="shrink-0">
-                        {getFileIcon(file.name, file.isDirectory ?? false)}
+                        {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
                       </div>
                       
                       <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -762,17 +859,19 @@ export function FileExplorer({
       {!isLoading && !error && filteredFiles.length > 0 && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
           <span>
-            {t('fileExplorer.statusBar', {
-              folders: filteredFiles.filter(f => f.isDirectory).length,
-              files: filteredFiles.filter(f => !f.isDirectory).length
-            })}
+            {showDrives
+              ? String((t as any)('fileExplorer.drivesStatus', { count: filteredFiles.length }))
+              : String((t as any)('fileExplorer.statusBar', {
+                  folders: filteredFiles.filter(f => f.isDirectory).length,
+                  files: filteredFiles.filter(f => !f.isDirectory).length
+                }))}
           </span>
           {searchQuery && (
             <span>
-              {t('fileExplorer.searchStatus', {
+              {String((t as any)('fileExplorer.searchStatus', {
                 showing: filteredFiles.length,
                 total: files.length
-              })}
+              }))}
             </span>
           )}
         </div>

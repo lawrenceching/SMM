@@ -19,7 +19,10 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
     
     if (!validationResult.success) {
       return {
-        data: [],
+        data: {
+          path: '',
+          items: [],
+        },
         error: `Validation Failed: ${validationResult.error.issues.map(i => i.message).join(', ')}`,
       };
     }
@@ -67,13 +70,19 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
       const stats = await stat(validatedPath);
       if (!stats.isDirectory()) {
         return {
-          data: [],
+          data: {
+            path: validatedPath,
+            items: [],
+          },
           error: `Path Not Directory: ${folderPath} is not a directory`,
         };
       }
     } catch (error) {
       return {
-        data: [],
+        data: {
+          path: validatedPath,
+          items: [],
+        },
         error: `Directory Not Found: ${folderPath} was not found`,
       };
     }
@@ -123,17 +132,26 @@ export async function handleListFiles(body: ListFilesRequestBody): Promise<ListF
       }
 
       return {
-        data: results,
+        data: {
+          path: validatedPath,
+          items: results,
+        },
       };
     } catch (error) {
       return {
-        data: [],
+        data: {
+          path: validatedPath,
+          items: [],
+        },
         error: `List Directory Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   } catch (error) {
     return {
-      data: [],
+      data: {
+        path: '',
+        items: [],
+      },
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }

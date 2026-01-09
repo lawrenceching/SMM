@@ -74,7 +74,9 @@
     "emptyDirectoryDescription": "This folder contains no files",
     "statusBar": "{{folders}} folders, {{files}} files",
     "searchStatus": "Showing {{showing}} of {{total}} items",
-    "goToParent": "Go to parent folder"
+    "goToParent": "Go to parent folder",
+    "drives": "Drives",
+    "drivesStatus": "{{count}} drives"
   },
   "episodeSection": {
     "notAvailable": "N/A",

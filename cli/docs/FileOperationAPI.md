@@ -68,17 +68,36 @@ interface ListFilesRequestBody {
   onlyFolders?: boolean;
 
   /**
-   * List hidden files. Defualt is false
+   * List hidden files. Default is false
    */ 
-  includeHiddenFiles?: boolean
+  includeHiddenFiles?: boolean;
 }
 
 interface ListFilesResponseBody {
-  data: string[],
-  error?: string
+  data: {
+    /**
+     * The resolved path of path parameter in ListFilesRequestBody
+     * For example, if user request files in path "~"
+     * This field will be "C:\Users\<username>"
+     */
+    path: string;
+    /**
+     * List of files and folders in the folder
+     */
+    items: string[];
+  };
+  error?: string;
 }
 
 ```
+
+### Path Resolution
+
+The API resolves special path patterns:
+- **"~"** is resolved to the user's home directory (e.g., `C:\Users\<username>` on Windows)
+- **"~/"** paths are resolved relative to the home directory (e.g., `~/Documents` → `C:\Users\<username>\Documents`)
+- **POSIX-style paths** (starting with "/") are converted to platform-specific format on Windows
+- The resolved absolute path is returned in the `data.path` property
 
 --
 
