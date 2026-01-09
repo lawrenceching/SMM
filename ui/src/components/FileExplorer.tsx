@@ -419,39 +419,6 @@ export function FileExplorer({
     onFileDoubleClick?.(file)
   }
 
-  const handleGoBack = () => {
-    if (pathHistory.length > 1) {
-      const newHistory = [...pathHistory]
-      newHistory.pop() // Remove current path
-      const previousPath = newHistory[newHistory.length - 1]
-
-      // If going back from drives view, clear the showDrives flag
-      if (currentPath === DRIVES_VIEW_PATH) {
-        setShowDrives(false)
-      }
-
-      if (restrictToInitialPath) {
-        // Prevent going beyond initialPath
-        const normalizedPrevious = normalizeToPosix(previousPath)
-        const normalizedInitial = normalizeToPosix(initialPath)
-
-        // Allow if it's exactly initialPath or starts with initialPath + '/'
-        if (normalizedPrevious === normalizedInitial || normalizedPrevious.startsWith(normalizedInitial + '/')) {
-          setPathHistory(newHistory)
-          onPathChange(previousPath)
-          onFileSelect(null)
-        } else {
-          console.warn('Cannot navigate beyond initialPath:', { previousPath, initialPath, normalizedPrevious, normalizedInitial })
-        }
-      } else {
-        // Unrestricted mode: allow going back to any path
-        setPathHistory(newHistory)
-        onPathChange(previousPath)
-        onFileSelect(null)
-      }
-    }
-  }
-
   const handleGoToParent = async () => {
     // Determine separator from current path
     const isWindowsPath = /^[A-Za-z]:/.test(currentPath) || currentPath.startsWith('\\\\')
