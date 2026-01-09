@@ -39,7 +39,6 @@ function getRelativePath(mediaFolderPath: string | undefined, filePath: string):
 export function EpisodeFile({
     file,
     icon: Icon,
-    label,
     iconColor = "text-muted-foreground",
     isPreviewMode,
     showRenameMenu = false,

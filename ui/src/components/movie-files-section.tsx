@@ -96,20 +96,24 @@ export function MovieFilesSection({
                                 return (
                                     <div key={type} className="space-y-1">
                                         {isMultiple && (
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex items-center gap-2 mb-1 px-1">
                                                 <TypeIcon className={cn("size-4", iconColor)} />
                                                 <span className="text-xs font-semibold">{label} ({typeFiles.length})</span>
                                             </div>
                                         )}
                                         {typeFiles.map((file, index) => {
+                                            // Use TypeIcon for video files, or getFileIcon for others based on extension
                                             const Icon = isVideo ? TypeIcon : getFileIcon(file.path)
+                                            // Use the type-specific iconColor for video, or muted for others
+                                            const fileIconColor = isVideo ? iconColor : "text-muted-foreground"
+                                            
                                             return (
                                                 <EpisodeFile
                                                     key={`${type}-${index}-${file.path}`}
                                                     file={file}
                                                     icon={Icon}
                                                     label={isVideo && !isMultiple ? label : ""}
-                                                    iconColor={isVideo ? iconColor : "text-muted-foreground"}
+                                                    iconColor={fileIconColor}
                                                     isPreviewMode={isPreviewMode}
                                                     showRenameMenu={isVideo}
                                                 />

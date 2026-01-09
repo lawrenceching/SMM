@@ -1,7 +1,7 @@
 import { TMDBMovieOverview } from "./tmdb-movie-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { FloatingPrompt } from "./FloatingPrompt"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
 import { newFileName } from "@/api/newFileName"
@@ -9,6 +9,8 @@ import { renameFile } from "@/api/renameFile"
 import { extname, join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
+import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
+import type { MediaMetadata } from "@core/types"
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -35,40 +37,6 @@ function newPath(mediaFolderPath: string, videoFilePath: string, associatedFileP
     return join(mediaFolderPath, associatedRelativePath)
 }
 
-function buildFileProps(mediaMetadata: import("@core/types").MediaMetadata): FileProps[] {
-    if(mediaMetadata.mediaFolderPath === undefined) {
-        console.error(`Media folder path is undefined`)
-        return []
-    }
-
-    if(mediaMetadata.mediaFiles === undefined || mediaMetadata.mediaFiles.length === 0) {
-        return []
-    }
-
-    if(mediaMetadata.files === undefined || mediaMetadata.files === null) {
-        return []
-    }
-
-    // For movies, we typically have a single video file
-    const mediaFile = mediaMetadata.mediaFiles[0]
-    const videoFilePath = mediaFile.absolutePath
-
-    const files = findAssociatedFiles(mediaMetadata.mediaFolderPath, mediaMetadata.files, videoFilePath)
-
-    const fileProps: FileProps[] = [
-        {
-            type: "video",
-            path: mediaFile.absolutePath,
-        },
-        ...files.map(file => ({
-            type: mapTagToFileType(file.tag),
-            path: join(mediaMetadata.mediaFolderPath!, file.path),
-        }))
-    ]
-
-    return fileProps
-}
-
 export interface MovieFileModel {
     files: FileProps[]
 }
@@ -79,33 +47,53 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
-  const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata: rawMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
   const [isToolbarOpen, setIsToolbarOpen] = useState(false)
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
-  const latestMovieFiles = useLatest(movieFiles)
+  const [previewFileModifications, setPreviewFileModifications] = useState<Map<string, { newPath?: string }>>(new Map())
 
-  // Build movie files state from media metadata
-  const updateMovieFiles = useCallback(() => {
-    if(!mediaMetadata) {
-      setMovieFiles({ files: [] })
-      return
+  /**
+   * The rawMediaMetadata comes from backend
+   * The mediaMetadata is the processed media metadata by frontend.
+   * Frontend will adjust or alter the media metadata for its own requirement.
+   * And those change should not persist to backend.
+   */
+  const mediaMetadata: MediaMetadata | undefined = useMemo(() => {
+    if(!rawMediaMetadata) {
+      return undefined
     }
 
-    const files = buildFileProps(mediaMetadata)
-    setMovieFiles({ files })
+    const clone: MediaMetadata = structuredClone(rawMediaMetadata)
+    return findMediaFilesForMovieMediaMetadata(clone)
+  }, [rawMediaMetadata])
+
+  // Merge base files with preview modifications
+  const movieFiles = useMemo<MovieFileModel>(() => {
+    if(!mediaMetadata) {
+      return { files: [] }
+    }
+
+    const model: MovieFileModel = {
+      files: []
+    }
+
+    for(const file of mediaMetadata.mediaFiles || []) {
+      model.files.push({
+        type: "video",
+        path: file.absolutePath,
+      })
+    }
+
+    return model    
   }, [mediaMetadata])
 
-  // Update files when media metadata changes
-  useEffect(() => {
-    updateMovieFiles()
-  }, [updateMovieFiles])
+  const latestMovieFiles = useLatest(movieFiles)
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
@@ -123,8 +111,7 @@ function MoviePanel() {
     }
 
     (async () => {
-      const newMovieFiles = structuredClone(latestMovieFiles.current)
-      const videoFile = newMovieFiles.files.find(file => file.type === "video")
+      const videoFile = movieFiles.files.find(file => file.type === "video")
       
       if(videoFile === undefined) {
         console.error(`Video file is undefined for movie`)
@@ -143,35 +130,35 @@ function MoviePanel() {
         releaseYear: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
       })
       
+      const modifications = new Map<string, { newPath?: string }>()
+      
       if (response.data) {
         const relativePath = response.data
         const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath)
-        videoFile.newPath = absolutePath
+        modifications.set(videoFile.path, { newPath: absolutePath })
 
         // Generate new paths for all associated files (subtitles, audio, nfo, poster, etc.)
-        for(const file of newMovieFiles.files) {
+        for(const file of movieFiles.files) {
           if(file.type === "video") {
             continue
           }
           // Only set newPath for associated files if video file has a newPath
-          file.newPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
+          const associatedNewPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
+          modifications.set(file.path, { newPath: associatedNewPath })
         }
       } else {
         // If video file rename failed, clear newPath for associated files
-        for(const file of newMovieFiles.files) {
-          if(file.type !== "video") {
-            file.newPath = undefined
-          }
-        }
+        // Don't add modifications, which means they'll use base files without newPath
       }
       
-      setMovieFiles(newMovieFiles)
+      setPreviewFileModifications(modifications)
     })()
-  }, [mediaMetadata, selectedNamingRule, isPreviewMode, latestMovieFiles])
+  }, [mediaMetadata, selectedNamingRule, isPreviewMode, movieFiles])
 
   // Trigger file name generation when preview mode is enabled
   useEffect(() => {
     if(!isPreviewMode) {
+      setPreviewFileModifications(new Map())
       return
     }
     generateNewFileNames()
@@ -296,6 +283,7 @@ function MoviePanel() {
       // Close toolbar and exit preview mode
       setIsToolbarOpen(false)
       setIsPreviewMode(false)
+      setPreviewFileModifications(new Map())
     } catch (error) {
       console.error("Unexpected error during rename operation:", error)
       toast.error("An unexpected error occurred during rename operation")
@@ -316,6 +304,7 @@ function MoviePanel() {
         onCancel={() => {
           setIsToolbarOpen(false)
           setIsPreviewMode(false)
+          setPreviewFileModifications(new Map())
         }}
         confirmLabel={isRenaming ? "Renaming..." : "Confirm"}
         isConfirmDisabled={isRenaming}

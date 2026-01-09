@@ -365,19 +365,18 @@ export interface TvShowSeasonMetadata {
   */
 export interface MediaFileMetadata {
   /**
-   * POSIX format path
+   * POSIX format path for video file of TV Show episode or Movie
    */
   absolutePath: string,
+  /**
+   * Only available for TV Show media files
+   */
   seasonNumber?: number,
+
+  /**
+   * Only available for TV Show media files
+   */
   episodeNumber?: number,
-  /**
-   * Absolute paths of subtitle files in POSIX format
-   */
-  subtitleFilePaths?: string[],
-  /**
-   * Absolute paths of audio files in POSIX format
-   */
-  audioFilePaths?: string[],
 }
 
 export type TMDBMediaType = 'movie' | 'tv'
