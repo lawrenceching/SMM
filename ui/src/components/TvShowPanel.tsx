@@ -1,6 +1,5 @@
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
-import { FloatingPrompt } from "./FloatingPrompt"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { useState, useEffect, useCallback, useMemo } from "react"
@@ -22,7 +21,6 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { Button } from "./ui/button"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { recognizeEpisodes } from "./TvShowPanelUtils"
@@ -160,14 +158,14 @@ function TvShowPanel() {
   const [seasons, setSeasons] = useState<SeasonModel[]>([])
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
-  const [confirmButtonLabel, setConfirmButtonLabel] = useState(t('toolbar.confirm'))
-  const [confirmButtonDisabled, setConfirmButtonDisabled] = useState(false)
+  const [confirmButtonLabel] = useState(t('toolbar.confirm'))
+  const [confirmButtonDisabled] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
 
   /**
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
    */
-  const [pendingConfirmationMessage, setPendingConfirmationMessage] = useState<any>(null)
+  const [pendingConfirmationMessage] = useState<any>(null)
 
   // AiBasedRecognizePrompt state
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
@@ -176,7 +174,7 @@ function TvShowPanel() {
   const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
 
   const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
-  const [aiRecognizeStatus, setAiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
+  const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
 
   const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
 
