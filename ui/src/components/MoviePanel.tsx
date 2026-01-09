@@ -146,6 +146,11 @@ function MoviePanel() {
       const generatedFileRelativePath = response.data;
       const generatedFilePath = join(mediaMetadata.mediaFolderPath!, generatedFileRelativePath);
 
+      if(videoFile.path === generatedFilePath) {
+        console.log(`[MoviePanel] the current file has been named follow the ${selectedNamingRule} rule, don't need to regenerate`)
+        return;
+      }
+
       setMovieFiles(prev => {
         return {
           ...prev,

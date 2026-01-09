@@ -3,7 +3,6 @@ import type { NewFileNameRequestBody, GetFileNameResponseBody } from '@core/type
 import { emby, generateFileNameByJavaScript, plex } from '../utils/renameRules';
 import pino from 'pino';
 import type { Hono } from 'hono';
-import { logger } from '../../lib/logger';
 
 const logger = pino();
 
