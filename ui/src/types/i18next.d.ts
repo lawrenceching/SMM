@@ -56,8 +56,11 @@ interface ComponentsResources {
     cancel: string
     selectPlaceholder: string
     generating: string
+    aiGenerating: string
     aiRenaming: string
     aiReview: string
+    aiRecognizing: string
+    aiReviewEpisodes: string
   }
   mediaFolder: {
     rename: string

@@ -30,8 +30,12 @@
     "cancel": "取消",
     "selectPlaceholder": "選擇...",
     "generating": "生成中...",
+    "aiGenerating": "AI正在生成檔案名稱...",
     "aiRenaming": "AI正在重新命名劇集，請稍候...",
-    "aiReview": "AI將重新命名劇集，請查看..."
+    "aiReview": "AI將重新命名劇集，請查看...",
+    "aiRecognizing": "AI正在識別劇集...",
+    "aiReviewEpisodes": "檢視已識別的劇集",
+    "reviewRecognizeEpisodes": "檢視並確認已識別的劇集..."
   },
   "assistant": {
     "open": "開啟助手",
@@ -44,6 +48,7 @@
     "genres": "類型",
     "genreLabel": "類型 {{genreId}}",
     "rename": "重新命名",
+    "recognize": "識別",
     "scrape": "抓取",
     "notAvailable": "不可用"
   },

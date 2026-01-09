@@ -78,6 +78,8 @@ const extensions = {
   musicFileExtensions: ['.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.ape', '.mka', '.wma', '.aac', '.m4a', '.ogg', '.wav', '.flac', '.ape']
 }
 
+export const videoFileExtensions = extensions.videoFileExtensions;
+
 
 /**
  * Find the associated files (subtitle, audio, nfo etc) of the video file

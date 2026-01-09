@@ -10,13 +10,13 @@ import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 
-export interface FloatingToolbarOption {
+export interface FloatingPromptOption {
   value: string
   label: string
 }
 
-export interface FloatingToolbarProps {
-  options?: FloatingToolbarOption[]
+export interface FloatingPromptProps {
+  options?: FloatingPromptOption[]
   selectedValue?: string
   onValueChange?: (value: string) => void
   onConfirm?: () => void
@@ -30,9 +30,13 @@ export interface FloatingToolbarProps {
   isConfirmButtonDisabled?: boolean
   mode: "manual" | "ai"
   status?: "running" | "wait-for-ack"
+  /**
+   * Custom content to render in the prompt (replaces default content)
+   */
+  children?: React.ReactNode
 }
 
-export function FloatingToolbar({
+export function FloatingPrompt({
   options = [],
   selectedValue,
   onValueChange,
@@ -47,7 +51,8 @@ export function FloatingToolbar({
   isConfirmButtonDisabled = false,
   mode = "manual",
   status,
-}: FloatingToolbarProps) {
+  children,
+}: FloatingPromptProps) {
   const { t } = useTranslation('components')
   const defaultConfirmLabel = confirmLabel ?? t('toolbar.confirm')
   const defaultCancelLabel = cancelLabel ?? t('toolbar.cancel')
@@ -99,7 +104,7 @@ export function FloatingToolbar({
               0 12px 40px rgba(59, 130, 246, 0.25);
           }
         }
-        .floating-toolbar-with-shadow {
+        .floating-prompt-with-shadow {
           animation: flowing-shadow 4s ease-in-out infinite;
         }
       `}</style>
@@ -107,60 +112,85 @@ export function FloatingToolbar({
         className={cn(
           "z-50 flex items-center justify-between gap-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b px-4 py-2 shadow-sm",
           "animate-in slide-in-from-top duration-300 fade-in-0",
-          showAnimatedShadow && "relative floating-toolbar-with-shadow",
+          showAnimatedShadow && "relative floating-prompt-with-shadow",
           className
         )}
       >
-        <div className="flex items-center gap-2">
-          {mode === "manual" ? (
-            <Select value={selectedValue} onValueChange={onValueChange}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder={defaultPlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : null}
-
-          {
-            mode === "ai" ? (
-              <div className="flex items-center gap-2">
-                {status === "running" && (
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        {children ? (
+          <>
+            <div className="flex-1">
+              {children}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
+                {defaultCancelLabel}
+              </Button>
+              <Button
+                onClick={onConfirm}
+                disabled={isConfirmButtonDisabled}
+                className={cn(
+                  mode === "ai" &&
+                    status === "wait-for-ack" &&
+                    "animate-pulse ring-2 ring-primary/50 ring-offset-2"
                 )}
-                <span>
-                  {status === "running"
-                    ? t('toolbar.aiRenaming')
-                    : t('toolbar.aiReview')}
-                </span>
-              </div>
-            ) : null
-          }
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
-            {defaultCancelLabel}
-          </Button>
-          <Button
-            onClick={onConfirm}
-            disabled={isConfirmButtonDisabled}
-            className={cn(
-              mode === "ai" &&
-                status === "wait-for-ack" &&
-                "animate-pulse ring-2 ring-primary/50 ring-offset-2"
-            )}
-          >
-            {defaultConfirmLabel}
-          </Button>
-        </div>
+              >
+                {defaultConfirmLabel}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              {mode === "manual" ? (
+                <Select value={selectedValue} onValueChange={onValueChange}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={defaultPlaceholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+
+              {
+                mode === "ai" ? (
+                  <div className="flex items-center gap-2">
+                    {status === "running" && (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    )}
+                    <span>
+                      {status === "running"
+                        ? t('toolbar.aiRenaming')
+                        : t('toolbar.aiReview')}
+                    </span>
+                  </div>
+                ) : null
+              }
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
+                {defaultCancelLabel}
+              </Button>
+              <Button
+                onClick={onConfirm}
+                disabled={isConfirmButtonDisabled}
+                className={cn(
+                  mode === "ai" &&
+                    status === "wait-for-ack" &&
+                    "animate-pulse ring-2 ring-primary/50 ring-offset-2"
+                )}
+              >
+                {defaultConfirmLabel}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
     </>
   )
 }
-

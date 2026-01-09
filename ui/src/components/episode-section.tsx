@@ -129,8 +129,10 @@ export function EpisodeSection({
     // Convert Map to array of entries for rendering
     const filesByTypeArray = useMemo(() => {
 
+        // TODO: unable to calculate in preview match episode mode
+
         if(selectedMediaMetadata === undefined 
-            || selectedMediaMetadata.mediaFiles === undefined 
+            // || selectedMediaMetadata.mediaFiles === undefined 
             || selectedMediaMetadata.files === undefined) {
             return [];
         }

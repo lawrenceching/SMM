@@ -55,6 +55,16 @@ export function EpisodeFile({
     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
     const hasPreview = isPreviewMode && file.newPath
     const isDeleted = file.isDeleted ?? false
+    
+    // Debug logging
+    if (!relativePath || relativePath === file.path) {
+      console.log('[EpisodeFile] Path calculation issue:', {
+        filePath: file.path,
+        mediaFolderPath,
+        relativePath,
+        calculated: getRelativePath(mediaFolderPath, file.path)
+      })
+    }
 
     const fileContent = compact ? (
         <div className={cn(

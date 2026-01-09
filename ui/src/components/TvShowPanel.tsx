@@ -1,7 +1,9 @@
 import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
-import { FloatingToolbar } from "./FloatingToolbar"
-import { useState, useEffect, useCallback } from "react"
+import { FloatingPrompt } from "./FloatingPrompt"
+import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
+import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { MediaFileMetadata, TMDBEpisode } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
@@ -14,13 +16,16 @@ import { toast } from "sonner"
 import { sendAcknowledgement, useWebSocketEvent } from "@/hooks/useWebSocket"
 import { AskForRenameFilesConfirmation } from "@core/event-types"
 import type { 
-  AskForRenameFilesConfirmationRequestData,
   AskForRenameFilesConfirmationResponseData,
   AskForRenameFilesConfirmationBeginRequestData,
   AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
-
+import { lookup } from "@/lib/lookup"
+import { Button } from "./ui/button"
+import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
+import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
+import { recognizeEpisodes } from "./TvShowPanelUtils"
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -138,20 +143,19 @@ interface ToolbarOption {
   label: string,
 }
 
+let seasonsBackup: SeasonModel[] = [] 
+
 function TvShowPanel() {
   const { t } = useTranslation('components')
   const { selectedMediaMetadata: mediaMetadata, refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
-  const [isToolbarOpen, setIsToolbarOpen] = useState(false)
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
   const [seasons, setSeasons] = useState<SeasonModel[]>([])
-  const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
   const latestSeasons = useLatest(seasons)
-  const [toolbarMode, setToolbarMode] = useState<"manual" | "ai">("manual")
   const [confirmButtonLabel, setConfirmButtonLabel] = useState(t('toolbar.confirm'))
   const [confirmButtonDisabled, setConfirmButtonDisabled] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
@@ -161,52 +165,23 @@ function TvShowPanel() {
    */
   const [pendingConfirmationMessage, setPendingConfirmationMessage] = useState<any>(null)
 
+  // AiBasedRecognizePrompt state
+  const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
 
-  const openToolbar = useCallback((toolbarMode: "manual" | "ai") => {
-    setToolbarMode(toolbarMode)
-    setIsToolbarOpen(true)
-  }, [setToolbarMode, setIsToolbarOpen])
+  const [isAiBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen] = useState(false)
+  const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
+
+  const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
+  const [aiRecognizeStatus, setAiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
+
+  const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
 
   useWebSocketEvent((message) => {
 
     // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
     if (message.event === AskForRenameFilesConfirmation.event) {
       
-      console.log('AskForRenameFilesConfirmation received', message.data);
-      const data: AskForRenameFilesConfirmationRequestData = message.data as AskForRenameFilesConfirmationRequestData;
-      const files = data.files;
-      setSeasons(prev => {
-        return prev.map(season => ({
-          ...season,
-          episodes: season.episodes.map(episode => 
-          {
-
-            const videoFile = episode.files.find(file => file.type === "video");
-            if(videoFile === undefined) {
-              return episode;
-            }
-
-            const newFileFromAI = files.find(f => f.from === videoFile.path);
-            if(newFileFromAI === undefined) {
-              return episode;
-            }
-
-
-            const newFiles = renameFiles(mediaMetadata!.mediaFolderPath!, newFileFromAI.to, episode.files);
-            return {
-              episode: episode.episode,
-              files: newFiles,
-            }
-           
-          }
-          ),
-        }))
-      })
-
-      // Store the message to send acknowledgement later when user confirms or cancels
-      setPendingConfirmationMessage(message);
-      openToolbar('ai');
-      setIsPreviewMode(true);
+      console.error(`socket event "${AskForRenameFilesConfirmation.event}" is not supported anymore`)
 
     } else if (message.event === AskForRenameFilesConfirmation.beginEvent) {
       console.log('AskForRenameFilesConfirmation.beginEvent received', message.data);
@@ -214,11 +189,8 @@ function TvShowPanel() {
       const mediaFolderPath = data.mediaFolderPath;
 
       setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
-      openToolbar('ai');
-      setIsPreviewMode(true);
-      setIsRenaming(true)
-      setConfirmButtonLabel(t('toolbar.generating'));
-      setConfirmButtonDisabled(true);
+      setIsAiBasedRenameFilePromptOpen(true)
+      setAiBasedRenameFileStatus("generating")
 
 
       setSeasons(prev => {
@@ -289,19 +261,14 @@ function TvShowPanel() {
 
     } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
       console.log('AskForRenameFilesConfirmation.endEvent received', message.data);
-      
-      setPendingConfirmationMessage(message);
-      openToolbar('ai');
-      setIsPreviewMode(true);
-      setIsRenaming(false)
-      setConfirmButtonLabel(t('toolbar.confirm'));
-      setConfirmButtonDisabled(false);
+      setAiBasedRenameFileStatus("wait-for-ack")
     }
 
   });
 
   // Build seasons state from media metadata
   useEffect(() => {
+
     setSeasons(() => {
       if(!mediaMetadata) {
         return [];
@@ -311,6 +278,8 @@ function TvShowPanel() {
         return [];
       }
 
+      console.log(`[TvShowPanel] building seasons state from media metadata`)
+
       return mediaMetadata.tmdbTvShow.seasons.map(season => ({
         season: season,
         episodes: season.episodes?.map(episode => ({
@@ -319,6 +288,7 @@ function TvShowPanel() {
         })) || []
       }))
     })
+
   }, [mediaMetadata])
 
   // Reset scrollToEpisodeId after scrolling completes
@@ -335,8 +305,8 @@ function TvShowPanel() {
   }, [scrollToEpisodeId])
 
   // Generate new file names for preview mode
-  const generateNewFileNames = useCallback(() => {
-    if(!isPreviewMode || !selectedNamingRule) {
+  const generateNewFileNames = useCallback((selectedNamingRule: "plex" | "emby") => {
+    if(!selectedNamingRule) {
       return;
     }
 
@@ -396,40 +366,36 @@ function TvShowPanel() {
       }
       setSeasons(newSeasons);
     })();
-  }, [mediaMetadata, selectedNamingRule, isPreviewMode, latestSeasons])
+  }, [mediaMetadata, latestSeasons])
 
   // Trigger file name generation when preview mode is enabled
   useEffect(() => {
-    if(!isPreviewMode) {
+
+    if(!isRuleBasedRenameFilePromptOpen) {
       return;
     }
-    if(toolbarMode === 'ai') {
-      return;
-    }
-    generateNewFileNames();
-  }, [isPreviewMode, selectedNamingRule, generateNewFileNames])
+    
+    generateNewFileNames(selectedNamingRule);
+  }, [isRuleBasedRenameFilePromptOpen, selectedNamingRule, generateNewFileNames])
+
+  const isPreviewMode = useMemo(() => {
+    return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen || isRuleBasedRecognizePromptOpen
+  }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen, isRuleBasedRecognizePromptOpen])
 
   // Handle confirm button click - rename all files
-  const handleConfirm = useCallback(async () => {
+  const handleAiBasedRenamePromptConfirm = useCallback(async () => {
     // Send acknowledgement if there's a pending confirmation message
     if (pendingConfirmationMessage) {
       const respData: AskForRenameFilesConfirmationResponseData = {
         confirmed: true,
       }
       sendAcknowledgement(pendingConfirmationMessage, respData);
-      setPendingConfirmationMessage(null);
-      setIsToolbarOpen(false)
-      setIsPreviewMode(false)
+      setIsAiBasedRenameFilePromptOpen(false)
       return;
     }
 
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media folder path available")
-      return
-    }
-
-    if (!isPreviewMode) {
-      setIsToolbarOpen(false)
       return
     }
 
@@ -458,8 +424,6 @@ function TvShowPanel() {
       }
     }
 
-    setIsRenaming(true)
-
     try {
       // Rename files sequentially: video files first, then associated files
       // This ensures video files are renamed before associated files that depend on them
@@ -481,8 +445,6 @@ function TvShowPanel() {
         } else {
           toast.info("No files to rename")
         }
-        setIsToolbarOpen(false)
-        setIsPreviewMode(false)
         setIsRenaming(false)
         return
       }
@@ -547,61 +509,163 @@ function TvShowPanel() {
         console.error("All rename operations failed:", errors)
       }
 
-      // Close toolbar and exit preview mode
-      setIsToolbarOpen(false)
-      setIsPreviewMode(false)
+
     } catch (error) {
       console.error("Unexpected error during rename operation:", error)
       toast.error("An unexpected error occurred during rename operation")
     } finally {
-      setIsRenaming(false)
+      setIsAiBasedRenameFilePromptOpen(false)
     }
   }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage])
 
 
+  useEffect(() => {
+
+    if(!mediaMetadata) {
+      return;
+    }
+
+    if(!isRuleBasedRecognizePromptOpen) {
+      return;
+    }
+
+
+    try {
+
+      const seasonsForPreview: SeasonModel[] = structuredClone(latestSeasons.current);
+      const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
+        // Find the matching season and episode
+        const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber);
+        if (!season) {
+          return;
+        }
+
+        const episode = season.episodes.find(ep => ep.episode.episode_number === episodeNumber);
+        if (!episode) {
+          return;
+        }
+
+        // Check that mediaMetadata has required properties
+        if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
+          return;
+        }
+
+        // Find associated files (subtitles, audio, nfo, poster)
+        const associatedFiles = findAssociatedFiles(mediaMetadata.mediaFolderPath, mediaMetadata.files, videoFilePath);
+
+        // Build the new files array
+        const newFiles: FileProps[] = [
+          {
+            type: "video",
+            path: videoFilePath,
+          },
+          ...associatedFiles.map(file => ({
+            type: mapTagToFileType(file.tag),
+            // Convert relative path to absolute path
+            path: join(mediaMetadata.mediaFolderPath!, file.path),
+          }))
+        ];
+
+        // Update the episode's files
+        episode.files = newFiles;
+      }
+
+      mediaMetadata.tmdbTvShow?.seasons.forEach(season => {
+        season.episodes?.forEach(episode => {
+
+          const mediaFile = mediaMetadata.mediaFiles?.find(file => file.seasonNumber === season.season_number && file.episodeNumber === episode.episode_number)
+          if(!mediaFile) {
+            const videoFilePath = lookup(mediaMetadata.files!, season.season_number, episode.episode_number);
+            console.log(`[TvShowPanel] video file path for season ${season.season_number} episode ${episode.episode_number} is ${videoFilePath}`);
+
+            if(videoFilePath !== null) {
+              updateSeasonsForPreview(season.season_number, episode.episode_number, videoFilePath);
+            }
+            
+
+          }
+        })
+      })
+
+      seasonsBackup = latestSeasons.current;
+      console.log(`[TvShowPanel] backed up the seasons state`)
+      setSeasons(seasonsForPreview);
+      console.log(`[TvShowPanel] set the seasons state for preview`)
+    
+    } catch (error) {
+      console.error('Error building seasons state from media metadata', error);
+    }
+
+    // seasons state will be restored on cancel button click
+
+  }, [mediaMetadata, isRuleBasedRecognizePromptOpen])
 
   return (
     <div className='p-1 w-full h-full relative'>
-      {isToolbarOpen && (
-        <div className="absolute top-0 left-0 w-full h-[80px] z-10">
-          <FloatingToolbar 
-            isOpen={isToolbarOpen}
-            options={toolbarOptions}
-            selectedValue={selectedNamingRule}
-            onValueChange={(value) => {setSelectedNamingRule(value as "plex" | "emby")}}
-            onConfirm={handleConfirm}
-            onCancel={() => {
-              // Send acknowledgement if there's a pending confirmation message
-              if (pendingConfirmationMessage) {
-                const respData: AskForRenameFilesConfirmationResponseData = {
-                  confirmed: false,
-                }
-                console.log('Sending acknowledgement for cancel', respData);
-                sendAcknowledgement(pendingConfirmationMessage, respData);
-                setPendingConfirmationMessage(null);
-              }
-              setIsToolbarOpen(false)
-              setIsPreviewMode(false)
+      <div className="absolute top-0 left-0 w-full z-20">
+
+          <RuleBasedRenameFilePrompt
+            isOpen={isRuleBasedRenameFilePromptOpen}
+            namingRuleOptions={toolbarOptions}
+            selectedNamingRule={selectedNamingRule}
+            onNamingRuleChange={(value) => {
+              setSelectedNamingRule(value as "plex" | "emby")
             }}
-            confirmLabel={confirmButtonLabel}
-            isConfirmButtonDisabled={confirmButtonDisabled}
-            isConfirmDisabled={isRenaming}
-            mode={toolbarMode}
-            status={isRenaming ? "running" : "wait-for-ack"}
+            onConfirm={handleAiBasedRenamePromptConfirm}
+            onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
           />
-        </div>
-      )}
+
+          <AiBasedRenameFilePrompt
+            isOpen={isAiBasedRenameFilePromptOpen}
+            status={aiBasedRenameFileStatus}
+            onConfirm={handleAiBasedRenamePromptConfirm}
+            onCancel={() => setIsAiBasedRenameFilePromptOpen(false)}
+          />
+
+          <AiBasedRecognizePrompt
+              isOpen={isAiRecognizePromptOpen}
+              status={aiRecognizeStatus}
+              onConfirm={() => {
+                setIsAiRecognizePromptOpen(false)
+              }}
+              onCancel={() => {
+                setIsAiRecognizePromptOpen(false)
+              }}
+              confirmLabel={confirmButtonLabel}
+              isConfirmButtonDisabled={confirmButtonDisabled}
+              isConfirmDisabled={isRenaming}
+            />
+
+          <RuleBasedRecognizePrompt
+            isOpen={isRuleBasedRecognizePromptOpen}
+            onConfirm={() => {
+              setIsRuleBasedRecognizePromptOpen(false)
+              recognizeEpisodes(seasons);
+              setSeasons(seasonsBackup)
+              seasonsBackup = []
+              console.log(`[TvShowPanel] seasons state restored because of user confirm`)
+            }}
+            onCancel={() => {
+              setIsRuleBasedRecognizePromptOpen(false)
+              setSeasons(seasonsBackup)
+              seasonsBackup = []
+              console.log(`[TvShowPanel] seasons state restored because of user cancel`)
+            }}
+          />
+
+          
+      </div>
 
       
       <div className="w-full h-full">
         <TMDBTVShowOverview 
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
-          onRenameClick={() => openToolbar("manual")}
+          onRenameClick={() => {setIsRuleBasedRenameFilePromptOpen(true)}}
+          onRecognizeButtonClick={() => {setIsRuleBasedRecognizePromptOpen(true)}}
           ruleName={selectedNamingRule}
           seasons={seasons}
           isPreviewMode={isPreviewMode}
-          setIsPreviewMode={setIsPreviewMode}
           scrollToEpisodeId={scrollToEpisodeId}
         />
       </div>

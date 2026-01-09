@@ -1,6 +1,6 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Star, TrendingUp, Globe, FileEdit, Download } from "lucide-react"
+import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect, useRef } from "react"
@@ -20,10 +20,10 @@ interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
     className?: string
     onRenameClick?: () => void
+    onRecognizeButtonClick?: () => void
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
     isPreviewMode: boolean
-    setIsPreviewMode: React.Dispatch<React.SetStateAction<boolean>>
     scrollToEpisodeId?: number | null
 }
 
@@ -49,7 +49,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName, seasons, isPreviewMode, setIsPreviewMode, scrollToEpisodeId }: TMDBTVShowOverviewProps) {
+export function TMDBTVShowOverview({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, seasons, isPreviewMode, scrollToEpisodeId }: TMDBTVShowOverviewProps) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
@@ -65,17 +65,6 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
     const { userConfig } = useConfig()
     const { scrapeDialog } = useDialogs()
     const [openScrape, , updateTasks] = scrapeDialog
-
-    useEffect(() => {
-        setIsPreviewMode(false)
-    }, [selectedMediaMetadata, setIsPreviewMode])
-
-    // Exit preview mode when ruleName becomes undefined (toolbar closed/canceled)
-    useEffect(() => {
-        if (!ruleName) {
-            setIsPreviewMode(false)
-        }
-    }, [ruleName])
 
     // Expand all seasons and episodes when preview mode is entered, save current state
     useEffect(() => {
@@ -449,7 +438,16 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, ruleName,
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setIsPreviewMode(true)
+                                        onRecognizeButtonClick?.()
+                                    }}
+                                >
+                                    <Scan className="size-4 mr-2" />
+                                    {t('tvShow.recognize', { ns: 'components', defaultValue: 'Recognize' })}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
                                         onRenameClick?.()
                                     }}
                                 >

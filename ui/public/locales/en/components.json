@@ -30,8 +30,12 @@
     "cancel": "Cancel",
     "selectPlaceholder": "Select...",
     "generating": "Generating...",
+    "aiGenerating": "AI is generating file names...",
     "aiRenaming": "AI is renaming episodes, please wait...",
-    "aiReview": "AI is going to rename episodes, please review..."
+    "aiReview": "AI is going to rename episodes, please review...",
+    "aiRecognizing": "AI is recognizing episodes...",
+    "aiReviewEpisodes": "Review recognized episodes",
+    "reviewRecognizeEpisodes": "Review and confirm the recognize episodes..."
   },
   "assistant": {
     "open": "Open Assistant",
@@ -44,6 +48,7 @@
     "genres": "Genres",
     "genreLabel": "Genre {{genreId}}",
     "rename": "Rename",
+    "recognize": "Recognize",
     "scrape": "Scrape",
     "notAvailable": "N/A"
   },

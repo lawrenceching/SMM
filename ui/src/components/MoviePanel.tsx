@@ -1,6 +1,6 @@
 import { TMDBMovieOverview } from "./tmdb-movie-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
-import { FloatingToolbar } from "./FloatingToolbar"
+import { FloatingPrompt } from "./FloatingPrompt"
 import { useState, useEffect, useCallback } from "react"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
@@ -306,7 +306,7 @@ function MoviePanel() {
 
   return (
     <div className='p-1 w-full h-full relative'>
-      <FloatingToolbar 
+      <FloatingPrompt 
         isOpen={isToolbarOpen}
         mode="manual"
         options={toolbarOptions}
