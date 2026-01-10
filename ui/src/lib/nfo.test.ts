@@ -1,0 +1,293 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { Nfo, type NfoThumb } from './nfo'
+
+describe('Nfo', () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>
+
+  describe('constructor', () => {
+    it('should create an empty Nfo instance', () => {
+      const nfo = new Nfo()
+      
+      expect(nfo.id).toBeUndefined()
+      expect(nfo.title).toBeUndefined()
+      expect(nfo.originalTitle).toBeUndefined()
+      expect(nfo.showTitle).toBeUndefined()
+      expect(nfo.plot).toBeUndefined()
+      expect(nfo.thumbs).toBeUndefined()
+      expect(nfo.fanart).toBeUndefined()
+      expect(nfo.tmdbid).toBeUndefined()
+    })
+  })
+
+  describe('toXML', () => {
+    it('should generate XML with only tvshow root element when all fields are empty', () => {
+      const nfo = new Nfo()
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
+      // XMLSerializer creates self-closing tag when element is empty
+      expect(xml).toMatch(/<tvshow\s*\/?>/)
+      expect(consoleSpy).toHaveBeenCalledWith(xml)
+    })
+
+    it('should include all basic fields when populated', () => {
+      const nfo = new Nfo()
+      nfo.id = '12345'
+      nfo.title = 'Test Show'
+      nfo.originalTitle = 'Original Test Show'
+      nfo.showTitle = 'Test Show Title'
+      nfo.plot = 'This is a test plot'
+      nfo.fanart = 'https://example.com/fanart.jpg'
+      nfo.tmdbid = '67890'
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<id>12345</id>')
+      expect(xml).toContain('<title>Test Show</title>')
+      expect(xml).toContain('<originaltitle>Original Test Show</originaltitle>')
+      expect(xml).toContain('<showtitle>Test Show Title</showtitle>')
+      expect(xml).toContain('<plot>This is a test plot</plot>')
+      expect(xml).toContain('<fanart>https://example.com/fanart.jpg</fanart>')
+      expect(xml).toContain('<tmdbid>67890</tmdbid>')
+    })
+
+    it('should include only populated fields', () => {
+      const nfo = new Nfo()
+      nfo.title = 'Test Show'
+      nfo.plot = 'Test plot'
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<title>Test Show</title>')
+      expect(xml).toContain('<plot>Test plot</plot>')
+      expect(xml).not.toContain('<id>')
+      expect(xml).not.toContain('<originaltitle>')
+      expect(xml).not.toContain('<showtitle>')
+      expect(xml).not.toContain('<fanart>')
+      expect(xml).not.toContain('<tmdbid>')
+    })
+
+    it('should include thumb elements with url only', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb1.jpg', aspect: null }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb>https://example.com/thumb1.jpg</thumb>')
+    })
+
+    it('should include thumb elements with aspect attribute', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/poster.jpg', aspect: 'poster' },
+        { url: 'https://example.com/logo.png', aspect: 'clearlogo' }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster">https://example.com/poster.jpg</thumb>')
+      expect(xml).toContain('<thumb aspect="clearlogo">https://example.com/logo.png</thumb>')
+    })
+
+    it('should include thumb elements with season attribute', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/season1.jpg', aspect: 'poster', season: 1 },
+        { url: 'https://example.com/season2.jpg', aspect: 'poster', season: 2 }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster" season="1">https://example.com/season1.jpg</thumb>')
+      expect(xml).toContain('<thumb aspect="poster" season="2">https://example.com/season2.jpg</thumb>')
+    })
+
+    it('should include thumb elements with type attribute', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb.jpg', aspect: 'poster', type: 'season' }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster" type="season">https://example.com/thumb.jpg</thumb>')
+    })
+
+    it('should include thumb elements with all attributes', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { 
+          url: 'https://example.com/thumb.jpg', 
+          aspect: 'poster', 
+          season: 1, 
+          type: 'season' 
+        }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster" season="1" type="season">https://example.com/thumb.jpg</thumb>')
+    })
+
+    it('should handle multiple thumb elements', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb1.jpg', aspect: 'poster' },
+        { url: 'https://example.com/thumb2.jpg', aspect: 'clearlogo' },
+        { url: 'https://example.com/thumb3.jpg', aspect: null, season: 1 }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster">https://example.com/thumb1.jpg</thumb>')
+      expect(xml).toContain('<thumb aspect="clearlogo">https://example.com/thumb2.jpg</thumb>')
+      expect(xml).toContain('<thumb season="1">https://example.com/thumb3.jpg</thumb>')
+    })
+
+    it('should skip thumb elements without url', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb1.jpg', aspect: 'poster' },
+        { url: '', aspect: 'clearlogo' }, // Empty URL should be skipped
+        { url: 'https://example.com/thumb3.jpg', aspect: null }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster">https://example.com/thumb1.jpg</thumb>')
+      expect(xml).toContain('<thumb>https://example.com/thumb3.jpg</thumb>')
+      // Should not contain the empty URL thumb
+      const thumbMatches = xml.match(/<thumb[^>]*>/g) || []
+      expect(thumbMatches.length).toBe(2)
+    })
+
+    it('should handle empty thumbs array', () => {
+      const nfo = new Nfo()
+      nfo.title = 'Test Show'
+      nfo.thumbs = []
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<title>Test Show</title>')
+      expect(xml).not.toContain('<thumb>')
+    })
+
+    it('should handle thumb with season 0', () => {
+      const nfo = new Nfo()
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb.jpg', aspect: 'poster', season: 0 }
+      ]
+
+      const xml = nfo.toXML()
+
+      expect(xml).toContain('<thumb aspect="poster" season="0">https://example.com/thumb.jpg</thumb>')
+    })
+
+    it('should generate properly formatted XML with indentation', () => {
+      const nfo = new Nfo()
+      nfo.title = 'Test Show'
+      nfo.plot = 'Test plot'
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb.jpg', aspect: 'poster' }
+      ]
+
+      const xml = nfo.toXML()
+
+      // Check that XML has proper line breaks and indentation
+      expect(xml).toContain('\n')
+      // Check that child elements are indented
+      const lines = xml.split('\n')
+      const tvshowLine = lines.find(line => line.includes('<tvshow>'))
+      const titleLine = lines.find(line => line.includes('<title>'))
+      
+      expect(tvshowLine).toBeDefined()
+      expect(titleLine).toBeDefined()
+      // Title should be indented (starts with spaces)
+      expect(titleLine?.startsWith('  ')).toBe(true)
+    })
+
+    it('should include XML declaration at the start', () => {
+      const nfo = new Nfo()
+      const xml = nfo.toXML()
+
+      expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')).toBe(true)
+    })
+
+    it('should generate valid XML structure', () => {
+      const nfo = new Nfo()
+      nfo.id = '123'
+      nfo.title = 'Test Show'
+      nfo.plot = 'Test plot'
+      nfo.thumbs = [
+        { url: 'https://example.com/thumb.jpg', aspect: 'poster', season: 1 }
+      ]
+
+      const xml = nfo.toXML()
+
+      // Parse the XML to verify it's valid
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(xml, 'text/xml')
+      
+      // Check for parsing errors
+      const parseError = doc.querySelector('parsererror')
+      expect(parseError).toBeNull()
+
+      // Verify structure
+      const tvshow = doc.querySelector('tvshow')
+      expect(tvshow).not.toBeNull()
+      expect(tvshow?.querySelector('id')?.textContent).toBe('123')
+      expect(tvshow?.querySelector('title')?.textContent).toBe('Test Show')
+      expect(tvshow?.querySelector('plot')?.textContent).toBe('Test plot')
+      
+      const thumb = tvshow?.querySelector('thumb')
+      expect(thumb).not.toBeNull()
+      expect(thumb?.textContent).toBe('https://example.com/thumb.jpg')
+      expect(thumb?.getAttribute('aspect')).toBe('poster')
+      expect(thumb?.getAttribute('season')).toBe('1')
+    })
+
+    it('should handle special characters in text content', () => {
+      const nfo = new Nfo()
+      nfo.title = 'Show & Title <with> "quotes"'
+      nfo.plot = 'Plot with &amp; entities'
+
+      const xml = nfo.toXML()
+
+      // XMLSerializer escapes &, <, > in text content, but not quotes (quotes are only escaped in attributes)
+      expect(xml).toContain('Show &amp; Title &lt;with&gt; "quotes"')
+      // The &amp; in the input becomes &amp;amp; when serialized
+      expect(xml).toContain('Plot with &amp;amp; entities')
+    })
+
+    it('should maintain element order', () => {
+      const nfo = new Nfo()
+      nfo.id = '1'
+      nfo.title = 'Title'
+      nfo.originalTitle = 'Original'
+      nfo.showTitle = 'Show'
+      nfo.plot = 'Plot'
+      nfo.fanart = 'Fanart'
+      nfo.tmdbid = '123'
+
+      const xml = nfo.toXML()
+
+      // Verify elements appear in the correct order
+      const idIndex = xml.indexOf('<id>')
+      const titleIndex = xml.indexOf('<title>')
+      const originalTitleIndex = xml.indexOf('<originaltitle>')
+      const showTitleIndex = xml.indexOf('<showtitle>')
+      const plotIndex = xml.indexOf('<plot>')
+      const fanartIndex = xml.indexOf('<fanart>')
+      const tmdbidIndex = xml.indexOf('<tmdbid>')
+
+      expect(idIndex).toBeLessThan(titleIndex)
+      expect(titleIndex).toBeLessThan(originalTitleIndex)
+      expect(originalTitleIndex).toBeLessThan(showTitleIndex)
+      expect(showTitleIndex).toBeLessThan(plotIndex)
+      expect(plotIndex).toBeLessThan(fanartIndex)
+      expect(fanartIndex).toBeLessThan(tmdbidIndex)
+    })
+  })
+})
