@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { getUserDataDir } from '@/utils/config';
-import { validatePathInUserDataDir } from './path-validator';
+import path from 'path';
+import { validatePathIsInAllowlist } from './path-validator';
+import { Path } from '@core/path';
 import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
@@ -22,19 +23,20 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
     }
 
     const { path: filePath } = validationResult.data;
-    const userDataDir = getUserDataDir();
-    console.log(`userDataDir: ${userDataDir}`)
     
-    // Validate path is within user data dir
-    let validatedPath: string;
-    try {
-      validatedPath = validatePathInUserDataDir(filePath, userDataDir);
-    } catch (error) {
-      console.log(`invalid path: ${filePath}`)
+    // Convert path to POSIX format for validation
+    const posixPath = Path.posix(filePath);
+    
+    // Validate path is in allowlist
+    const isAllowed = await validatePathIsInAllowlist(posixPath);
+    if (!isAllowed) {
       return {
-        error: error instanceof Error ? error.message : 'Path validation failed',
+        error: `Path "${filePath}" is not in the allowlist`,
       };
     }
+    
+    // Resolve to absolute path for file operations
+    const validatedPath = path.resolve(filePath);
 
     // Read file using Bun's file API
     try {

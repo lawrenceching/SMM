@@ -77,12 +77,11 @@ export interface Task {
   subTasks?: Task[]
 }
 
+import type { MediaMetadata } from "@core/types"
+
 export interface ScrapeDialogProps {
   isOpen: boolean
   onClose: () => void
-  tasks: Task[]
-  title?: string
-  description?: string
-  onStart?: () => void
+  mediaMetadata?: MediaMetadata
 }
 

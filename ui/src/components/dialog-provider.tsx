@@ -54,9 +54,8 @@ interface DialogContextValue {
     closeRename: () => void
   ]
   scrapeDialog: [
-    openScrape: (tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => void,
-    closeScrape: () => void,
-    updateTasks: (tasks: Task[]) => void
+    openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => void,
+    closeScrape: () => void
   ]
 }
 
@@ -103,8 +102,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   // Scrape dialog state
   const [isScrapeOpen, setIsScrapeOpen] = useState(false)
-  const [scrapeTasks, setScrapeTasks] = useState<Task[]>([])
-  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; onStart?: () => void }>({})
+  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }>({})
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -236,8 +234,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeRename()
   }, [renameOnConfirm, closeRename])
 
-  const openScrape = useCallback((tasks: Task[], options?: { title?: string; description?: string; onStart?: () => void }) => {
-    setScrapeTasks(tasks)
+  const openScrape = useCallback((options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => {
     setScrapeOptions(options || {})
     setIsScrapeOpen(true)
   }, [])
@@ -245,13 +242,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const closeScrape = useCallback(() => {
     setIsScrapeOpen(false)
     setTimeout(() => {
-      setScrapeTasks([])
       setScrapeOptions({})
     }, 200)
-  }, [])
-
-  const updateTasks = useCallback((tasks: Task[]) => {
-    setScrapeTasks(tasks)
   }, [])
 
   const value: DialogContextValue = {
@@ -263,7 +255,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
     renameDialog: [openRename, closeRename],
-    scrapeDialog: [openScrape, closeScrape, updateTasks],
+    scrapeDialog: [openScrape, closeScrape],
   }
 
   return (
@@ -318,10 +310,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <ScrapeDialog
         isOpen={isScrapeOpen}
         onClose={closeScrape}
-        tasks={scrapeTasks}
-        title={scrapeOptions.title}
-        description={scrapeOptions.description}
-        onStart={scrapeOptions.onStart}
+        mediaMetadata={scrapeOptions.mediaMetadata}
       />
     </DialogContext.Provider>
   )

@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Loader2, CheckCircle2, XCircle, Circle } from "lucide-react"
 import {
   Dialog,
@@ -9,11 +9,17 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
-import type { ScrapeDialogProps, Task } from "./types"
+import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
+import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
 
-function TaskItem({ task, level = 0 }: { task: Task; level?: number }) {
+interface Task {
+  name: string;
+  status: "pending" | "running" | "completed" | "failed";
+  execute: () => Promise<void>;
+}
+
+function TaskItem({ task }: { task: Task }) {
   const { t } = useTranslation('dialogs')
   
   const getStatusIcon = () => {
@@ -45,103 +51,126 @@ function TaskItem({ task, level = 0 }: { task: Task; level?: number }) {
   }
 
   return (
-    <div className="flex flex-col">
-      <div
-        className={cn(
-          "flex items-center gap-3 py-2",
-          level > 0 && "ml-6 border-l-2 border-muted pl-4"
-        )}
-      >
-        {getStatusIcon()}
-        <div className="flex-1">
-          <span className="text-sm font-medium">{task.name}</span>
-          <span className="ml-2 text-xs text-muted-foreground">
-            ({getStatusText()})
-          </span>
-        </div>
+    <div className="flex items-center gap-3 py-2">
+      {getStatusIcon()}
+      <div className="flex-1">
+        <span className="text-sm font-medium">{task.name}</span>
+        <span className="ml-2 text-xs text-muted-foreground">
+          ({getStatusText()})
+        </span>
       </div>
-      {task.subTasks && task.subTasks.length > 0 && (
-        <div className="ml-6 space-y-1">
-          {task.subTasks.map((subTask, index) => (
-            <TaskItem key={index} task={subTask} level={level + 1} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
 
 function areAllTasksDone(tasks: Task[]): boolean {
   return tasks.every((task) => {
-    const isDone = task.status === "completed" || task.status === "failed"
-    const subTasksDone =
-      !task.subTasks || task.subTasks.length === 0
-        ? true
-        : areAllTasksDone(task.subTasks)
-    return isDone && subTasksDone
-  })
-}
-
-function areAllTasksPending(tasks: Task[]): boolean {
-  return tasks.every((task) => {
-    const isPending = task.status === "pending"
-    const subTasksPending =
-      !task.subTasks || task.subTasks.length === 0
-        ? true
-        : areAllTasksPending(task.subTasks)
-    return isPending && subTasksPending
+    return task.status === "completed" || task.status === "failed"
   })
 }
 
 export function ScrapeDialog({
   isOpen,
   onClose,
-  tasks,
-  title,
-  description,
-  onStart,
+  mediaMetadata,
 }: ScrapeDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
-  const defaultTitle = title || t('scrape.defaultTitle')
-  const defaultDescription = description || t('scrape.defaultDescription')
-  
-  // Add fanart task to the tasks list
-  const allTasks = useMemo(() => {
-    const fanartTask: Task = {
-      name: "fanart",
-      status: "pending",
-    }
-    return [fanartTask, ...tasks]
-  }, [tasks])
+  const defaultTitle = t('scrape.defaultTitle')
+  const defaultDescription = t('scrape.defaultDescription')
+  const handleScrapeStart = useHandleScrapeStart()
 
-  const allTasksDone = useMemo(() => areAllTasksDone(allTasks), [allTasks])
-  const allTasksPending = useMemo(() => areAllTasksPending(allTasks), [allTasks])
+  const [tasks, setTasks] = useState<Task[]>([])
+
+  // Initialize tasks when dialog opens or mediaMetadata changes
+  useEffect(() => {
+    if (isOpen && mediaMetadata) {
+      setTasks([
+        {
+          name: t('scrape.tasks.poster', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            console.error('not yet implemented')
+          }
+        },
+        {
+          name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            console.error('not yet implemented')
+          }
+        },
+        {
+          name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handleScrapeStart(mediaMetadata)
+          }
+        },
+      ])
+    }
+  }, [isOpen, mediaMetadata, t, handleScrapeStart])
+
+  const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
   const canClose = allTasksDone
-  const showStartCancel = allTasksPending && onStart !== undefined
+  const showButtons = mediaMetadata !== undefined
 
   const handleClose = () => {
-    if (canClose || showStartCancel) {
-      onClose()
-    }
+    onClose()
   }
 
-  const handleStart = () => {
-    if (onStart) {
-      onStart()
+  const handleStart = async () => {
+    if (allTasksDone) {
+      // If all tasks are done, just close the dialog
+      onClose()
+    } else if (mediaMetadata) {
+      // Execute tasks sequentially
+      const currentTasks = [...tasks]
+      for (let i = 0; i < currentTasks.length; i++) {
+        // Update task status to running
+        setTasks(prevTasks => {
+          const updated = [...prevTasks]
+          updated[i] = { ...updated[i], status: "running" }
+          return updated
+        })
+
+        try {
+          // Execute the task using the original execute function
+          await currentTasks[i].execute()
+          
+          // Update task status to completed
+          setTasks(prevTasks => {
+            const updated = [...prevTasks]
+            updated[i] = { ...updated[i], status: "completed" }
+            return updated
+          })
+        } catch (error) {
+          // Update task status to failed
+          setTasks(prevTasks => {
+            const updated = [...prevTasks]
+            updated[i] = { ...updated[i], status: "failed" }
+            return updated
+          })
+          console.error(`Task "${currentTasks[i].name}" failed:`, error)
+        }
+      }
     }
   }
 
   return (
-    <Dialog
+      <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open && (canClose || showStartCancel)) {
+        if (!open && canClose) {
           handleClose()
         }
       }}
     >
       <DialogContent
-        showCloseButton={canClose || showStartCancel}
+        showCloseButton={canClose}
         className="max-w-2xl"
       >
         <DialogHeader>
@@ -150,30 +179,25 @@ export function ScrapeDialog({
         </DialogHeader>
         <ScrollArea className="max-h-[400px] w-full">
           <div className="space-y-1 py-4">
-            {allTasks.length === 0 ? (
+            {tasks.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                 {t('scrape.noTasks')}
               </div>
             ) : (
-              allTasks.map((task, index) => (
-                <TaskItem key={index} task={task} level={0} />
+              tasks.map((task, index) => (
+                <TaskItem key={index} task={task} />
               ))
             )}
           </div>
         </ScrollArea>
-        {showStartCancel && (
+        {showButtons && (
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={handleClose}>
               {t('cancel', { ns: 'common' })}
             </Button>
-            <Button onClick={handleStart}>
-              {t('scrape.start')}
+            <Button onClick={handleStart} disabled={allTasksDone}>
+              {allTasksDone ? (t as any)('scrape.done') : t('scrape.start')}
             </Button>
-          </div>
-        )}
-        {canClose && !showStartCancel && (
-          <div className="flex justify-end gap-2 pt-4">
-            <Button onClick={handleClose}>{t('close', { ns: 'common' })}</Button>
           </div>
         )}
       </DialogContent>

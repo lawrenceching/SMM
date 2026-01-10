@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import path from 'path';
 import { mkdir } from 'fs/promises';
-import { getUserDataDir } from '@/utils/config';
-import { validatePathInUserDataDir } from './path-validator';
+import { validatePathIsInAllowlist } from './path-validator';
+import { Path } from '@core/path';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
-import { logger } from '../../lib/logger';
+import { logger, logHttpIn, logHttpOut } from '../../lib/logger';
 
 
 const writeFileRequestSchema = z.object({
@@ -25,17 +25,20 @@ export async function processWriteFile(body: WriteFileRequestBody): Promise<Writ
     }
 
     const { path: filePath, data } = validationResult.data;
-    const userDataDir = getUserDataDir();
     
-    // Validate path is within user data dir
-    let validatedPath: string;
-    try {
-      validatedPath = validatePathInUserDataDir(filePath, userDataDir);
-    } catch (error) {
+    // Convert path to POSIX format for validation
+    const posixPath = Path.posix(filePath);
+    
+    // Validate path is in allowlist
+    const isAllowed = await validatePathIsInAllowlist(posixPath);
+    if (!isAllowed) {
       return {
-        error: error instanceof Error ? error.message : 'Path validation failed',
+        error: `Path "${filePath}" is not in the allowlist`,
       };
     }
+    
+    // Resolve to absolute path for file operations
+    const validatedPath = path.resolve(filePath);
 
     // Ensure parent directory exists
     const parentDir = path.dirname(validatedPath);
@@ -66,20 +69,22 @@ export function handleWriteFile(app: Hono) {
   app.post('/api/writeFile', async (c) => {
     try {
       const rawBody = await c.req.json();
-      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.path}`)
+      logHttpIn(c, rawBody);
       const result = await processWriteFile(rawBody);
       
       // If there's an error, return 400, otherwise 200
       if (result.error) {
+        logHttpOut(c, result, 400);
         return c.json(result, 400);
       }
       return c.json(result);
     } catch (error) {
-      logger.error({ error }, 'WriteFile route error:');
-      return c.json({ 
+      const respBody = { 
         error: 'Failed to process write file request',
         details: error instanceof Error ? error.message : 'Unknown error'
-      }, 500);
+      };
+      logHttpOut(c, respBody, 500);
+      return c.json(respBody, 500);
     }
   });
 }

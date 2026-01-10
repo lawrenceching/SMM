@@ -46,7 +46,8 @@
       "pending": "Pending"
     },
     "noTasks": "No tasks",
-    "start": "Start"
+    "start": "Start",
+    "done": "Done"
   },
   "openFolder": {
     "title": "Select Folder Type",

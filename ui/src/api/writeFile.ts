@@ -1,5 +1,10 @@
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 
+/**
+ * 
+ * @param path The absolute path in platform-specific format
+ * @param content 
+ */
 async function writeFile(path: string, content: string): Promise<void> {
 
   const req: WriteFileRequestBody = {

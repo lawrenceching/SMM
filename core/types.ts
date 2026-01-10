@@ -68,7 +68,13 @@ export interface ReadFileResponseBody {
 }
 
 export interface WriteFileRequestBody {
+  /**
+   * The absolute path in platform-specific format
+   */
   path: string;
+  /**
+   * The content to write to the file
+   */
   data: string;
 }
 

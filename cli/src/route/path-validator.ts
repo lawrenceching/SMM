@@ -1,10 +1,35 @@
+import { getUserConfig, getUserDataDir } from '@/utils/config';
+import { Path } from '@core/path';
 import path from 'path';
+
+/**
+ * 
+ * @param filePath path in POSIX format
+ */
+export async function validatePathIsInAllowlist(filePath: string): Promise<boolean> {
+  /**
+   * The allowlist of paths that are allowed to be accessed.
+   * All paths are in POSIX format.
+   */
+  const allowlist = [];
+
+  const userDataDir = getUserDataDir();
+  allowlist.push(Path.posix(userDataDir));
+
+  const userConfig = await getUserConfig();
+  const folders = userConfig.folders;
+  for (const folder of folders) {
+    allowlist.push(Path.posix(folder));
+  }
+
+  return allowlist.some(allowlistItem => filePath.startsWith(allowlistItem));
+}
 
 /**
  * Validates that a file path is within the allowed user data directory.
  * Prevents directory traversal attacks by ensuring the resolved path
  * is contained within the base directory.
- * 
+ * @deprecated use validatePathIsInAllowlist instead
  * @param filePath - The file path to validate (can be relative or absolute)
  * @param userDataDir - The base user data directory
  * @returns The validated absolute path

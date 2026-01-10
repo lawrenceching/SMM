@@ -46,7 +46,8 @@
       "pending": "等待中"
     },
     "noTasks": "没有任务",
-    "start": "开始"
+    "start": "开始",
+    "done": "完成"
   },
   "openFolder": {
     "title": "选择文件夹类型",
