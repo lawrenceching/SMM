@@ -24,8 +24,6 @@ import { lookup } from "@/lib/lookup"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { recognizeEpisodes } from "./TvShowPanelUtils"
-import { Nfo } from "@/lib/nfo"
-import { getTMDBImageUrl } from "@/api/tmdb"
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {

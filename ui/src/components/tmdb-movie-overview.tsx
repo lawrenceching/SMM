@@ -10,8 +10,6 @@ import { useConfig } from "./config-provider"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { Button } from "./ui/button"
 import { useDialogs } from "./dialog-provider"
-import type { Task } from "./dialog-provider"
-import { scrapeApi } from "@/api/scrape"
 import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"
 import { useTranslation } from "@/lib/i18n"
@@ -51,19 +49,15 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 
 export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewMode }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
-    const { t: tDialogs } = useTranslation('dialogs')
-    const { updateMediaMetadata, selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+    const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+    const { scrapeDialog } = useDialogs()
+    const [openScrape] = scrapeDialog
     const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [isUpdatingMovie, setIsUpdatingMovie] = useState(false)
     const { userConfig } = useConfig()
-    const { scrapeDialog } = useDialogs()
-    const [openScrape, , updateTasks] = scrapeDialog
-
-    
-
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
     const formattedDate = movie ? formatDate(movie.release_date, t) : (t("movie.notAvailable" as any) as string)
@@ -322,70 +316,8 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                     size="sm"
                                     onClick={() => {
                                         if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbMovie) return
-                                        
-                                        // Create initial tasks for scraping
-                                        const initialTasks: Task[] = [
-                                            {
-                                                name: tDialogs("scrape.tasks.poster"),
-                                                status: "pending" as const
-                                            },
-                                            {
-                                                name: tDialogs("scrape.tasks.thumbnails"),
-                                                status: "pending" as const
-                                            },
-                                            {
-                                                name: tDialogs("scrape.tasks.nfo"),
-                                                status: "pending" as const
-                                            }
-                                        ]
-                                        
-                                        // Open the task progress dialog with Start button
-                                        openScrape(initialTasks, {
-                                            title: tDialogs("scrape.mediaTitle"),
-                                            description: tDialogs("scrape.mediaDescription"),
-                                            onStart: async () => {
-                                                if (!selectedMediaMetadata?.mediaFolderPath) {
-                                                    console.error(t("movie.noMediaPathError" as any) as string)
-                                                    return
-                                                }
-
-                                                // Update all tasks to running
-                                                updateTasks(initialTasks.map(task => ({
-                                                    ...task,
-                                                    status: "running" as const
-                                                })))
-
-                                                try {
-                                                    // Call the scrape API
-                                                    const response = await scrapeApi(selectedMediaMetadata.mediaFolderPath)
-                                                    
-                                                    if (response.error) {
-                                                        // All tasks failed
-                                                        updateTasks(initialTasks.map(task => ({
-                                                            ...task,
-                                                            status: "failed" as const
-                                                        })))
-                                                        console.error("Scrape failed:", response.error)
-                                                    } else {
-                                                        // All tasks completed successfully
-                                                        updateTasks(initialTasks.map(task => ({
-                                                            ...task,
-                                                            status: "completed" as const
-                                                        })))
-                                                        console.log("Scrape completed successfully")
-                                                        
-                                                        // Refresh media metadata after successful scrape
-                                                        refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
-                                                    }
-                                                } catch (error) {
-                                                    // All tasks failed
-                                                    updateTasks(initialTasks.map(task => ({
-                                                        ...task,
-                                                        status: "failed" as const
-                                                    })))
-                                                    console.error("Scrape error:", error)
-                                                }
-                                            }
+                                        openScrape({
+                                            mediaMetadata: selectedMediaMetadata
                                         })
                                     }}
                                     disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}

@@ -127,8 +127,6 @@ export function useHandleScrapeStart() {
             // }
         } catch (error) {
             console.error("Scrape start error:", error)
-            // On error, still call done to mark tasks as completed (or could mark as failed)
-            done()
         }
     }, [])
 

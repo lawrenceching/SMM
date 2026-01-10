@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Nfo, type NfoThumb } from './nfo'
+import { describe, it, expect } from 'vitest'
+import { Nfo } from './nfo'
 
 describe('Nfo', () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>
 
   describe('constructor', () => {
     it('should create an empty Nfo instance', () => {
@@ -27,7 +26,6 @@ describe('Nfo', () => {
       expect(xml).toContain('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
       // XMLSerializer creates self-closing tag when element is empty
       expect(xml).toMatch(/<tvshow\s*\/?>/)
-      expect(consoleSpy).toHaveBeenCalledWith(xml)
     })
 
     it('should include all basic fields when populated', () => {
