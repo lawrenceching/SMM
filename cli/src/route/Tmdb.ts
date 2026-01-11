@@ -60,7 +60,7 @@ export async function search({ keyword, type, baseURL, language }: TmdbSearchReq
     // Get TMDB configuration
     const tmdbConfig = userConfig.tmdb;
     const apiKey = tmdbConfig?.apiKey;
-    let host = baseURL || tmdbConfig?.host || 'https://api.themoviedb.org/3';
+    let host = baseURL || tmdbConfig?.host || 'https://tmdb.imlc.me';
     const httpProxy = tmdbConfig?.httpProxy;
     console.log(`[Tmdb.search] apiKey: ${apiKey}, host: ${host}, httpProxy: ${httpProxy}`);
 
