@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { Nfo } from './nfo'
 
 describe('Nfo', () => {
@@ -286,6 +288,42 @@ describe('Nfo', () => {
       expect(showTitleIndex).toBeLessThan(plotIndex)
       expect(plotIndex).toBeLessThan(fanartIndex)
       expect(fanartIndex).toBeLessThan(tmdbidIndex)
+    })
+  })
+
+  describe('fromXml', () => {
+    it('should parse XML file and create Nfo instance with all fields', async () => {
+      // Read the test NFO file (path relative to project root)
+      const testFilePath = join(process.cwd(), '../test/media/古见同学有交流障碍症/tvshow.nfo')
+      const xmlContent = readFileSync(testFilePath, 'utf-8')
+      
+      // Parse the XML
+      const nfo = await Nfo.fromXml(xmlContent)
+      
+      // Verify all fields are correctly parsed
+      expect(nfo.id).toBe('123876')
+      expect(nfo.title).toBe('古见同学有交流障碍症')
+      expect(nfo.originalTitle).toBe('古見さんは、コミュ症です。')
+      expect(nfo.showTitle).toBe('古见同学有交流障碍症')
+      expect(nfo.plot).toBe('万人迷的美少女古见同学患有社交恐惧症。她极不擅长与人沟通，总是苦恼着「该如何开口跟人交谈？」「交谈之后又该怎么办？」只野同学和患有这种症状的古见同学变成了朋友，两人的心灵逐渐相通并且做了某项约定。从此之后，只野会不知不觉地傻笑，但偶尔，胸口也会隐隐刺痛。让人一看就中毒的社交恐惧症女主角喜剧在此揭开序幕！')
+      expect(nfo.fanart).toBe('https://image.tmdb.org/t/p/w1280/2bHGk7j4OD21qeXRRDYrKVhxzRc.jpg')
+      expect(nfo.tmdbid).toBe('123876')
+      
+      // Verify thumbs array
+      expect(nfo.thumbs).toBeDefined()
+      expect(nfo.thumbs?.length).toBe(2)
+      
+      // Verify first thumb (poster only)
+      expect(nfo.thumbs?.[0].url).toBe('https://image.tmdb.org/t/p/w500/cJzKPkkr2rQczoT8gcdvV44Uh4Y.jpg')
+      expect(nfo.thumbs?.[0].aspect).toBe('poster')
+      expect(nfo.thumbs?.[0].season).toBeUndefined()
+      expect(nfo.thumbs?.[0].type).toBeUndefined()
+      
+      // Verify second thumb (poster with season and type)
+      expect(nfo.thumbs?.[1].url).toBe('https://image.tmdb.org/t/p/w500/hLtPx2WgRGhpoHgrGonSNpkJBmB.jpg')
+      expect(nfo.thumbs?.[1].aspect).toBe('poster')
+      expect(nfo.thumbs?.[1].season).toBe(1)
+      expect(nfo.thumbs?.[1].type).toBe('season')
     })
   })
 })

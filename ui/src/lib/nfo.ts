@@ -101,6 +101,72 @@ export class Nfo {
         return formatted.trim();
     }
 
+    static async fromXml(xml: string): Promise<Nfo> {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(xml, 'text/xml')
+        
+        // Check for parsing errors
+        const parseError = doc.querySelector('parsererror')
+        if (parseError) {
+            throw new Error(`Failed to parse XML: ${parseError.textContent}`)
+        }
+        
+        const tvshow = doc.querySelector('tvshow')
+        if (!tvshow) {
+            throw new Error('XML does not contain a tvshow root element')
+        }
+        
+        const nfo = new Nfo()
+        
+        // Helper function to get text content from an element
+        const getTextContent = (selector: string): string | undefined => {
+            const element = tvshow.querySelector(selector)
+            return element?.textContent?.trim() || undefined
+        }
+        
+        // Extract simple text elements
+        nfo.id = getTextContent('id')
+        nfo.title = getTextContent('title')
+        nfo.originalTitle = getTextContent('originaltitle')
+        nfo.showTitle = getTextContent('showtitle')
+        nfo.plot = getTextContent('plot')
+        nfo.fanart = getTextContent('fanart')
+        nfo.tmdbid = getTextContent('tmdbid')
+        
+        // Extract thumb elements
+        const thumbElements = tvshow.querySelectorAll('thumb')
+        if (thumbElements.length > 0) {
+            nfo.thumbs = Array.from(thumbElements)
+                .map(thumbEl => {
+                    const url = thumbEl.textContent?.trim()
+                    if (!url) return null
+                    
+                    const thumb: NfoThumb = {
+                        url,
+                        aspect: (thumbEl.getAttribute('aspect') as ThumbAspect) || null
+                    }
+                    
+                    const seasonAttr = thumbEl.getAttribute('season')
+                    if (seasonAttr !== null) {
+                        const season = parseInt(seasonAttr, 10)
+                        if (!isNaN(season)) {
+                            thumb.season = season
+                        }
+                    }
+                    
+                    const typeAttr = thumbEl.getAttribute('type')
+                    if (typeAttr) {
+                        thumb.type = typeAttr
+                    }
+                    
+                    return thumb
+                })
+                .filter((thumb): thumb is NfoThumb => thumb !== null)
+        }
+        
+        return nfo
+    }
+
 }
 
 export default Nfo
