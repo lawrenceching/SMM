@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import type { MediaMetadata } from "@core/types"
-import { downloadThumbnail } from "@/lib/utils"
+import { downloadThumbnail, downloadSeasonPoster } from "@/lib/utils"
 import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
@@ -37,7 +37,27 @@ async function startToDownloadThumbnails(mediaMetadata: MediaMetadata, getTransl
             processedCount++
         }
 
-        console.log(`✅ Thumbnail download completed: ${processedCount} processed, ${skippedCount} skipped`)
+        console.log(`✅ Episode thumbnail download completed: ${processedCount} processed, ${skippedCount} skipped`)
+
+        // Download season posters after episode thumbnails
+        let seasonPosterCount = 0
+        let seasonPosterSkippedCount = 0
+
+        if (mediaMetadata.tmdbTvShow?.seasons) {
+            for (const season of mediaMetadata.tmdbTvShow.seasons) {
+                // downloadSeasonPoster handles errors internally (logs and returns early)
+                // It doesn't throw, so we just await it
+                if (season.poster_path) {
+                    await downloadSeasonPoster(mediaMetadata, season)
+                    seasonPosterCount++
+                } else {
+                    seasonPosterSkippedCount++
+                }
+            }
+        }
+
+        console.log(`✅ Season poster download completed: ${seasonPosterCount} processed, ${seasonPosterSkippedCount} skipped`)
+        console.log(`✅ Total thumbnail download completed: ${processedCount} episode thumbnails, ${seasonPosterCount} season posters`)
     } catch (error) {
         console.error("Failed to download thumbnails:", error)
         const errorMessage = error instanceof Error ? error.message : "Failed to download thumbnails"

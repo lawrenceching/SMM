@@ -184,6 +184,83 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       }
     }
 
+    // Check for season posters
+    // Season posters are named "Season{number}.{extension}" in season folders
+    if (thumbnailsCompleted && mediaMetadata.tmdbTvShow?.seasons) {
+      try {
+        // Get all folders in the media folder
+        const foldersResponse = await listFilesApi(Path.toPlatformPath(mediaMetadata.mediaFolderPath), {
+          onlyFolders: true,
+        })
+
+        if (foldersResponse.data?.items) {
+          const folders = foldersResponse.data.items
+
+          // Check each season that has poster_path
+          for (const season of mediaMetadata.tmdbTvShow.seasons) {
+            if (!season.poster_path) {
+              // Skip seasons without poster_path
+              continue
+            }
+
+            // Find the season folder
+            const possibleFolderNames: string[] = []
+            if (season.season_number === 0) {
+              possibleFolderNames.push('Specials')
+            } else {
+              possibleFolderNames.push(`Season ${season.season_number}`)
+              possibleFolderNames.push(`Season ${season.season_number.toString().padStart(2, '0')}`)
+            }
+
+            const seasonFolder = folders.find((folder) => {
+              const folderBasename = basename(folder)
+              return folderBasename !== undefined && possibleFolderNames.includes(folderBasename)
+            })
+
+            if (!seasonFolder) {
+              // If season folder doesn't exist, we can't check for season poster
+              // This is acceptable - the season poster won't be downloaded if folder doesn't exist
+              continue
+            }
+
+            // Get files in the season folder
+            const seasonFolderFilesResponse = await listFilesApi(Path.toPlatformPath(seasonFolder), {
+              onlyFiles: true,
+            })
+
+            if (!seasonFolderFilesResponse.data?.items) {
+              // If we can't get files, skip this season
+              continue
+            }
+
+            const seasonFolderFiles = seasonFolderFilesResponse.data.items
+
+            // Check if Season{number}.{extension} exists in the season folder
+            const seasonNumberPadded = season.season_number.toString().padStart(2, '0')
+            const seasonPosterFileNamePrefix = `Season${seasonNumberPadded}.`
+
+            const hasSeasonPoster = seasonFolderFiles.some((file) => {
+              const fileName = basename(file)
+              if (!fileName) return false
+              return (
+                fileName.startsWith(seasonPosterFileNamePrefix) &&
+                imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+              )
+            })
+
+            if (!hasSeasonPoster) {
+              thumbnailsCompleted = false
+              break
+            }
+          }
+        }
+      } catch (error) {
+        // If there's an error checking season posters, log it but don't fail the check
+        // This allows episode thumbnails to still be marked as complete if they exist
+        console.error('[checkTaskCompletion] Error checking season posters:', error)
+      }
+    }
+
     return {
       poster: posterCompleted,
       fanart: fanartCompleted,
