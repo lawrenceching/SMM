@@ -12,6 +12,7 @@ const listFilesRequestSchema = z.object({
   onlyFiles: z.boolean().optional(),
   onlyFolders: z.boolean().optional(),
   includeHiddenFiles: z.boolean().optional(),
+  recursively: z.boolean().optional(),
 });
 
 export async function processListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
@@ -29,7 +30,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
       };
     }
 
-    let { path: folderPath, onlyFiles, onlyFolders, includeHiddenFiles = false } = validationResult.data;
+    let { path: folderPath, onlyFiles, onlyFolders, includeHiddenFiles = false, recursively = false } = validationResult.data;
     
     // Resolve "~" to user home directory
     if (folderPath === '~' || folderPath.startsWith('~/')) {
@@ -91,47 +92,65 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
 
     // List directory contents
     try {
-      const items = await readdir(validatedPath);
       const results: string[] = [];
 
-      for (const item of items) {
-        const fullPath = path.join(validatedPath, item);
-        
-        try {
-          const itemStats = await stat(fullPath);
-          const isFile = itemStats.isFile();
-          const isDirectory = itemStats.isDirectory();
+      async function scanDirectory(dirPath: string): Promise<void> {
+        const items = await readdir(dirPath);
 
-          // Filter based on onlyFiles/onlyFolders
-          // If both are true, onlyFiles takes precedence (per doc)
-          if (onlyFiles && onlyFolders) {
-            // Both are true: onlyFiles takes precedence, so only return files
-            if (!isFile) continue;
-          } else {
-            // Handle onlyFiles filter
-            if (onlyFiles === true && !isFile) continue;
-            // Handle onlyFolders filter
-            // Note: onlyFolders: false means "don't filter to only folders" (return both)
-            // onlyFolders: true means "only return folders"
-            if (onlyFolders === true && !isDirectory) continue;
+        for (const item of items) {
+          const fullPath = path.join(dirPath, item);
+
+          try {
+            const itemStats = await stat(fullPath);
+            const isFile = itemStats.isFile();
+            const isDirectory = itemStats.isDirectory();
+
+            // Filter hidden files/directories if not including them
+            if (!includeHiddenFiles) {
+              const filename = path.basename(item);
+              // Unix/Linux/macOS hidden files (starting with .)
+              if (filename.startsWith('.')) continue;
+              // Windows system files
+              if (filename === 'Thumbs.db' || filename === 'desktop.ini') continue;
+            }
+
+            // Filter based on onlyFiles/onlyFolders to determine if we add to results
+            // If both are true, onlyFiles takes precedence (per doc)
+            let shouldAddToResults = true;
+            if (onlyFiles && onlyFolders) {
+              // Both are true: onlyFiles takes precedence, so only return files
+              shouldAddToResults = isFile;
+            } else {
+              // Handle onlyFiles filter
+              if (onlyFiles === true && !isFile) {
+                shouldAddToResults = false;
+              }
+              // Handle onlyFolders filter
+              // Note: onlyFolders: false means "don't filter to only folders" (return both)
+              // onlyFolders: true means "only return folders"
+              if (onlyFolders === true && !isDirectory) {
+                shouldAddToResults = false;
+              }
+            }
+
+            // Add to results if it passes the filters (use absolute path)
+            if (shouldAddToResults) {
+              results.push(fullPath);
+            }
+
+            // If it's a directory and recursively is true, scan it recursively
+            // (even if we filtered it out from results)
+            if (isDirectory && recursively) {
+              await scanDirectory(fullPath);
+            }
+          } catch (error) {
+            // Skip items we can't stat (permissions, etc.)
+            continue;
           }
-
-          // Filter hidden files if not including them
-          if (!includeHiddenFiles) {
-            const filename = path.basename(item);
-            // Unix/Linux/macOS hidden files (starting with .)
-            if (filename.startsWith('.')) continue;
-            // Windows system files
-            if (filename === 'Thumbs.db' || filename === 'desktop.ini') continue;
-          }
-
-          // Add to results (use absolute path)
-          results.push(fullPath);
-        } catch (error) {
-          // Skip items we can't stat (permissions, etc.)
-          continue;
         }
       }
+
+      await scanDirectory(validatedPath);
 
       return {
         data: {
@@ -175,6 +194,9 @@ export function handleListFiles(app: Hono) {
       }
       if (query.includeHiddenFiles !== undefined) {
         body.includeHiddenFiles = query.includeHiddenFiles === 'true';
+      }
+      if (query.recursively !== undefined) {
+        body.recursively = query.recursively === 'true';
       }
       const result = await processListFiles(body);
       return c.json(result, 200);

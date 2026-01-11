@@ -101,6 +101,11 @@ export interface ListFilesRequestBody {
    * List hidden files. Default is false
    */
   includeHiddenFiles?: boolean;
+
+  /**
+   * List all files and folders recursively. Default is false
+   */
+  recursively?: boolean;
 }
 
 export interface ListFilesResponseBody {
@@ -435,6 +440,9 @@ export interface MediaMetadata {
    * Stores the recognised media files
    */
   mediaFiles?: MediaFileMetadata[],
+  /**
+   * @deprecated
+   */
   tmdbMediaType?: TMDBMediaType,
   type?: "music-folder" | "tvshow-folder" | "movie-folder"
 

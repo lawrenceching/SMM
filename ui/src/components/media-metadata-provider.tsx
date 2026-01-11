@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useMemo } from "react"
 import type { MediaMetadata } from "@core/types"
-import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useConfig } from "./config-provider"
 import { writeMediaMetadata } from "@/api/writeMediaMatadata"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 import localStorages from "@/lib/localStorages"
+import { readMediaMetadataV2 } from "@/api/readMediaMetadataV2"
+import { Path } from "@core/path"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: MediaMetadata[]
@@ -40,6 +41,8 @@ interface MediaMetadataProviderProps {
   children: ReactNode
   initialMediaMetadatas?: MediaMetadata[]
 }
+
+
 
 export function MediaMetadataProvider({
   children,
@@ -141,14 +144,9 @@ export function MediaMetadataProvider({
   )
 
   const refreshMediaMetadata = useCallback((path: string) => {
-    readMediaMetadataApi(path)
+    readMediaMetadataV2(path)
       .then((response) => {
-        if (response.data && !response.error) {
-          _addMediaMetadata(response.data)
-          console.log(`[MediaMetadataProvider] Refreshed media metadata for folder: ${path}`)
-        } else {
-          console.warn(`[MediaMetadataProvider] Failed to refresh media metadata: ${response.error}`)
-        }
+        _addMediaMetadata(response)
       })
       .catch((error) => {
         console.error(`[MediaMetadataProvider] Error refreshing media metadata for ${path}:`, error)
@@ -157,11 +155,9 @@ export function MediaMetadataProvider({
 
   const reloadMediaMetadatas = useCallback(async () => {
     console.log('[MediaMetadataProvider] Reloading media metadata', userConfig.folders)
-    const promises = userConfig.folders.map((path) => readMediaMetadataApi(path))
+    const promises = userConfig.folders.map((path) => readMediaMetadataV2(Path.posix(path)))
     const responses = await Promise.all(promises)
     const mediaMetadatas: MediaMetadata[] = responses
-      .filter((response) => response.data && !response.error)
-      .map((response) => response.data!)
 
     console.log('[MediaMetadataProvider] Reloaded media metadata', mediaMetadatas)
     setMediaMetadatas(mediaMetadatas)

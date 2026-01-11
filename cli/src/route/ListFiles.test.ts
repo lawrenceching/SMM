@@ -365,6 +365,204 @@ describe('processListFiles', () => {
     });
   });
 
+  describe('recursive listing', () => {
+    beforeEach(async () => {
+      // Create a nested directory structure
+      // testDir/
+      //   file1.txt
+      //   folder1/
+      //     file2.txt
+      //     subfolder1/
+      //       file3.txt
+      //   folder2/
+      //     file4.txt
+      await writeFile(join(testDir, 'file1.txt'), 'content1', 'utf-8');
+      const folder1 = join(testDir, 'folder1');
+      await mkdir(folder1, { recursive: true });
+      await writeFile(join(folder1, 'file2.txt'), 'content2', 'utf-8');
+      const subfolder1 = join(folder1, 'subfolder1');
+      await mkdir(subfolder1, { recursive: true });
+      await writeFile(join(subfolder1, 'file3.txt'), 'content3', 'utf-8');
+      const folder2 = join(testDir, 'folder2');
+      await mkdir(folder2, { recursive: true });
+      await writeFile(join(folder2, 'file4.txt'), 'content4', 'utf-8');
+    });
+
+    it('should list only immediate children when recursively is false (default)', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: false,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items.length).toBe(3); // file1.txt, folder1, folder2
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
+      // Should not include nested files
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'file2.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'subfolder1', 'file3.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder2', 'file4.txt'));
+    });
+
+    it('should list all files and folders recursively when recursively is true', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items.length).toBe(7); // file1.txt, folder1, folder1/file2.txt, folder1/subfolder1, folder1/subfolder1/file3.txt, folder2, folder2/file4.txt
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'file2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'subfolder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'subfolder1', 'file3.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
+      expect(result.data.items).toContain(join(testDir, 'folder2', 'file4.txt'));
+    });
+
+    it('should recursively list only files when onlyFiles is true', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        onlyFiles: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items.length).toBe(4); // All 4 files
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'file2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'subfolder1', 'file3.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder2', 'file4.txt'));
+      // Should not include folders
+      expect(result.data.items).not.toContain(join(testDir, 'folder1'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'subfolder1'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder2'));
+    });
+
+    it('should recursively list only folders when onlyFolders is true', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        onlyFolders: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items.length).toBe(3); // folder1, folder1/subfolder1, folder2
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'subfolder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
+      // Should not include files
+      expect(result.data.items).not.toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'file2.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'subfolder1', 'file3.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder2', 'file4.txt'));
+    });
+
+    it('should skip hidden directories when recursively scanning and includeHiddenFiles is false', async () => {
+      // Create hidden directory with files inside
+      const hiddenDir = join(testDir, '.hiddenDir');
+      await mkdir(hiddenDir, { recursive: true });
+      await writeFile(join(hiddenDir, 'file-in-hidden.txt'), 'content', 'utf-8');
+      await writeFile(join(testDir, 'visible-file.txt'), 'content', 'utf-8');
+
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        includeHiddenFiles: false,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items).toContain(join(testDir, 'visible-file.txt'));
+      expect(result.data.items).not.toContain(hiddenDir);
+      expect(result.data.items).not.toContain(join(hiddenDir, 'file-in-hidden.txt'));
+    });
+
+    it('should include hidden directories when recursively scanning and includeHiddenFiles is true', async () => {
+      // Create hidden directory with files inside
+      const hiddenDir = join(testDir, '.hiddenDir');
+      await mkdir(hiddenDir, { recursive: true });
+      await writeFile(join(hiddenDir, 'file-in-hidden.txt'), 'content', 'utf-8');
+      await writeFile(join(testDir, 'visible-file.txt'), 'content', 'utf-8');
+
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        includeHiddenFiles: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items).toContain(join(testDir, 'visible-file.txt'));
+      expect(result.data.items).toContain(hiddenDir);
+      expect(result.data.items).toContain(join(hiddenDir, 'file-in-hidden.txt'));
+    });
+
+    it('should recursively scan directories even when they are filtered out by onlyFiles', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        onlyFiles: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      // Should find all files in nested directories, even though folders are filtered out
+      expect(result.data.items.length).toBe(4);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'file2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1', 'subfolder1', 'file3.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder2', 'file4.txt'));
+    });
+
+    it('should handle deeply nested directory structures', async () => {
+      // Create a deeply nested structure
+      const level1 = join(testDir, 'level1');
+      const level2 = join(level1, 'level2');
+      const level3 = join(level2, 'level3');
+      await mkdir(level3, { recursive: true });
+      await writeFile(join(level3, 'deep-file.txt'), 'content', 'utf-8');
+
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        recursively: true,
+        onlyFiles: true,
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      expect(result.data.items).toContain(join(level3, 'deep-file.txt'));
+    });
+
+    it('should default to recursively false when not specified', async () => {
+      const request: ListFilesRequestBody = {
+        path: testDir,
+        // recursively not specified
+      };
+
+      const result = await processListFiles(request);
+
+      expect(result.error).toBeUndefined();
+      // Should only list immediate children
+      expect(result.data.items.length).toBe(3);
+      expect(result.data.items).not.toContain(join(testDir, 'folder1', 'file2.txt'));
+    });
+  });
+
   describe('filter combinations', () => {
     beforeEach(async () => {
       await writeFile(join(testDir, 'file1.txt'), 'content', 'utf-8');

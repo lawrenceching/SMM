@@ -18,7 +18,7 @@ export async function readMediaMetadataApi(path: string): Promise<ReadMediaMetad
   });
 
   if (!resp.ok) {
-    throw new Error(`Failed to read media metadata: ${resp.statusText}`);
+    throw new Error(`HTTP layer error: ${resp.status} ${resp.statusText}`);
   }
 
   const data: ReadMediaMetadataResponseBody = await resp.json();

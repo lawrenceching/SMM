@@ -2,6 +2,7 @@ import { z } from 'zod';
 import path from 'path';
 import { validatePathIsInAllowlist } from './path-validator';
 import { Path } from '@core/path';
+import { fileNotFoundError, isError, FileNotFoundError } from '@core/errors';
 import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
@@ -46,7 +47,7 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
       
       if (!exists) {
         return {
-          error: `File not found: ${filePath}`,
+          error: fileNotFoundError(validatedPath),
         };
       }
 
@@ -71,11 +72,6 @@ export function handleReadFile(app: Hono) {
     try {
       const rawBody = await c.req.json();
       const result = await processReadFile(rawBody);
-      
-      // If there's an error, return 400, otherwise 200
-      if (result.error) {
-        return c.json(result, 400);
-      }
       return c.json(result);
     } catch (error) {
       logger.error({ error }, 'ReadFile route error:');
