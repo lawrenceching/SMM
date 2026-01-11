@@ -48,7 +48,7 @@ When user ask to rename files, you need to understand below information:
 You ONLY need to rename the video file. For image files, subtitle files, nfo files that link to video file, those files will be renamed implicitly when the video name got changed.
 
 Steps 
-[ ] Call "list-files-in-media-folder" to get the files in media folder
+[ ] Call "get-media-metadata" to get the video files needs to rename
 [ ] Call "begin-rename-files-task" to notify AI Agent to start a rename files task
 [ ] Call "add-rename-file-to-task" to add a file to rename task, call multiple times to add multiple files
 [ ] Call "end-rename-files-task" to notify AI Agent to end the rename files task
