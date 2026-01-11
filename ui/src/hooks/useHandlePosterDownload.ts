@@ -6,6 +6,7 @@ import { join } from "@/lib/path"
 import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
+import { checkFileExists } from "@/lib/utils"
 
 async function startToDownloadPoster(mediaMetadata: MediaMetadata, getTranslation: () => string) {
     // Download poster image from media metadata
@@ -37,7 +38,16 @@ async function startToDownloadPoster(mediaMetadata: MediaMetadata, getTranslatio
         // Build destination path
         const posterPath = join(mediaMetadata.mediaFolderPath, `poster.${extension}`)
 
+        // Check if file already exists
+        console.log(`[startToDownloadPoster] Checking if poster exists: ${posterPath}`)
+        const fileExists = await checkFileExists(posterPath)
+        if (fileExists) {
+            console.log(`[startToDownloadPoster] Poster already exists, skipping download: ${posterPath}`)
+            return
+        }
+
         // Download the image
+        console.log(`[startToDownloadPoster] Downloading poster to ${posterPath}`)
         const response = await downloadImageApi(posterUrl, posterPath)
 
         // Check for errors in response

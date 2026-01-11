@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type MediaMetadata, type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@core/types"
-import { basename, extname, relative, join } from "@/lib/path"
+import { basename, extname, relative, join, dirname } from "@/lib/path"
 import { Path } from "@core/path"
 import { listFilesApi } from "@/api/listFiles"
 
@@ -81,6 +81,7 @@ const extensions = {
 }
 
 export const videoFileExtensions = extensions.videoFileExtensions;
+export const imageFileExtensions = extensions.imageFileExtensions;
 
 
 /**
@@ -246,6 +247,47 @@ export function generateNameByRenameRule(
 }
 
 
+/**
+ * Check if a file exists by listing files in its directory
+ * @param filePath The file path in POSIX format
+ * @returns true if file exists, false otherwise
+ */
+export async function checkFileExists(filePath: string): Promise<boolean> {
+  try {
+    const directoryPath = dirname(filePath)
+    const fileName = basename(filePath)
+    
+    if (!fileName) {
+      console.error(`[checkFileExists] Invalid file path: ${filePath}`)
+      return false
+    }
+
+    // Get all files in the directory
+    const response = await listFilesApi(Path.toPlatformPath(directoryPath), {
+      onlyFiles: true,
+    })
+
+    if (!response.data?.items) {
+      console.error(`[checkFileExists] Failed to get files from directory: ${directoryPath}`)
+      return false
+    }
+
+    const files = response.data.items
+
+    // Check if the filename exists in the file list (case-sensitive match)
+    const fileExists = files.some((file) => {
+      const fileBasename = basename(file)
+      return fileBasename === fileName
+    })
+
+    return fileExists
+  } catch (error) {
+    console.error(`[checkFileExists] Error checking file existence for ${filePath}:`, error)
+    // Return false on error to allow download to proceed (graceful degradation)
+    return false
+  }
+}
+
 export async function downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
   return await limit(() => _downloadThumbnail(mediaMetadata, mediaFileMetadata));
 }
@@ -278,8 +320,15 @@ export async function _downloadThumbnail(mediaMetadata: MediaMetadata, mediaFile
 
   const thumbnailFileName = `${videoFileNameWithoutExt}.${thumbnailExt}`;
   const thumbnailFilePath = mediaFileMetadata.absolutePath.replace(videoFileName, thumbnailFileName);
-  console.log(`[downloadThumbnail] Downloading thumbnail to ${thumbnailFilePath}`);
+  console.log(`[downloadThumbnail] Checking if thumbnail exists: ${thumbnailFilePath}`);
 
+  const fileExists = await checkFileExists(thumbnailFilePath);
+  if (fileExists) {
+    console.log(`[downloadThumbnail] Thumbnail already exists, skipping download: ${thumbnailFilePath}`);
+    return;
+  }
+
+  console.log(`[downloadThumbnail] Downloading thumbnail to ${thumbnailFilePath}`);
   const resp = await downloadImageApi(thumbnailUrl, thumbnailFilePath);
   if(resp.error) {
     if(isError(resp.error, ExistedFileError)) {
@@ -349,9 +398,11 @@ export async function downloadSeasonPoster(
   mediaMetadata: MediaMetadata,
   season: TMDBSeason
 ): Promise<void> {
+  console.log(`[downloadSeasonPoster] Starting download for season ${season.season_number}`)
+  
   // Check if season has poster_path
   if (!season.poster_path) {
-    console.log(`⏭️ No poster found for season ${season.season_number}`)
+    console.log(`[downloadSeasonPoster] ⏭️ No poster found for season ${season.season_number}`)
     return
   }
 
@@ -361,13 +412,17 @@ export async function downloadSeasonPoster(
     return
   }
 
+  console.log(`[downloadSeasonPoster] Looking for season folder for season ${season.season_number} in ${mediaMetadata.mediaFolderPath}`)
+
   // Find the season folder
   const seasonFolderPath = await findSeasonFolder(mediaMetadata.mediaFolderPath, season.season_number)
   
   if (!seasonFolderPath) {
-    console.log(`⏭️ No folder found for season ${season.season_number}`)
+    console.log(`[downloadSeasonPoster] ⏭️ No folder found for season ${season.season_number}, skipping download`)
     return
   }
+
+  console.log(`[downloadSeasonPoster] Found season folder: ${seasonFolderPath}`)
 
   try {
     // Get the season poster URL
@@ -384,10 +439,18 @@ export async function downloadSeasonPoster(
       return
     }
 
-    // Build filename: Season{number}.{extension} (e.g., Season01.jpg, Season00.jpg for Specials)
+    // Build filename: season{number}-poster.{extension} (e.g., season01-poster.jpg, season00-poster.jpg for Specials)
     const seasonNumberPadded = season.season_number.toString().padStart(2, '0')
-    const seasonPosterFileName = `Season${seasonNumberPadded}.${thumbnailExt}`
+    const seasonPosterFileName = `season${seasonNumberPadded}-poster.${thumbnailExt}`
     const seasonPosterPath = join(seasonFolderPath, seasonPosterFileName)
+
+    console.log(`[downloadSeasonPoster] Checking if season poster exists: ${seasonPosterPath}`)
+
+    const fileExists = await checkFileExists(seasonPosterPath)
+    if (fileExists) {
+      console.log(`[downloadSeasonPoster] Season poster already exists, skipping download: ${seasonPosterPath}`)
+      return
+    }
 
     console.log(`[downloadSeasonPoster] Downloading season poster for season ${season.season_number} to ${seasonPosterPath}`)
 

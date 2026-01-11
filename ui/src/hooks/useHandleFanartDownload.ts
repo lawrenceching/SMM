@@ -6,6 +6,7 @@ import { join } from "@/lib/path"
 import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
+import { checkFileExists } from "@/lib/utils"
 
 async function startToDownloadFanart(mediaMetadata: MediaMetadata, getTranslation: () => string) {
     // Download fanart image from media metadata
@@ -37,7 +38,16 @@ async function startToDownloadFanart(mediaMetadata: MediaMetadata, getTranslatio
         // Build destination path
         const fanartPath = join(mediaMetadata.mediaFolderPath, `fanart.${extension}`)
 
+        // Check if file already exists
+        console.log(`[startToDownloadFanart] Checking if fanart exists: ${fanartPath}`)
+        const fileExists = await checkFileExists(fanartPath)
+        if (fileExists) {
+            console.log(`[startToDownloadFanart] Fanart already exists, skipping download: ${fanartPath}`)
+            return
+        }
+
         // Download the image
+        console.log(`[startToDownloadFanart] Downloading fanart to ${fanartPath}`)
         const response = await downloadImageApi(fanartUrl, fanartPath)
 
         // Check for errors in response
