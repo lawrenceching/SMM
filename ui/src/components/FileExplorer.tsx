@@ -39,61 +39,51 @@ function getFileExtension(filename: string): string {
 // Helper function to get file icon based on extension
 function getFileIcon(filename: string, isDirectory: boolean, isDrive: boolean = false) {
   if (isDrive) {
-    return <HardDrive className="h-5 w-5 text-emerald-500" />
+    return <HardDrive className="h-4 w-4 text-emerald-500" />
   }
   if (isDirectory) {
-    return <FolderOpen className="h-5 w-5 text-blue-500" />
+    return <FolderOpen className="h-4 w-4 text-blue-500" />
   }
   
   const ext = getFileExtension(filename)
   
   // Video files
   if (['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'mpg', 'mpeg'].includes(ext)) {
-    return <FileVideo className="h-5 w-5 text-purple-500" />
+    return <FileVideo className="h-4 w-4 text-purple-500" />
   }
   
   // Audio files
   if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus'].includes(ext)) {
-    return <FileAudio className="h-5 w-5 text-green-500" />
+    return <FileAudio className="h-4 w-4 text-green-500" />
   }
   
   // Image files
   if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico', 'tiff'].includes(ext)) {
-    return <FileImage className="h-5 w-5 text-pink-500" />
+    return <FileImage className="h-4 w-4 text-pink-500" />
   }
   
   // Code files
   if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'cs', 'go', 'rs', 'php', 'rb', 'swift'].includes(ext)) {
-    return <FileCode className="h-5 w-5 text-yellow-500" />
+    return <FileCode className="h-4 w-4 text-yellow-500" />
   }
   
   // Archive files
   if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'].includes(ext)) {
-    return <FileArchive className="h-5 w-5 text-orange-500" />
+    return <FileArchive className="h-4 w-4 text-orange-500" />
   }
   
   // Text/Document files
   if (['txt', 'md', 'pdf', 'doc', 'docx', 'rtf', 'odt'].includes(ext)) {
-    return <FileText className="h-5 w-5 text-blue-400" />
+    return <FileText className="h-4 w-4 text-blue-400" />
   }
   
   // Subtitle files
   if (['srt', 'ass', 'ssa', 'sub', 'vtt'].includes(ext)) {
-    return <Layers className="h-5 w-5 text-cyan-500" />
+    return <Layers className="h-4 w-4 text-cyan-500" />
   }
   
   // Default
-  return <File className="h-5 w-5 text-gray-400" />
-}
-
-// Helper function to get file type badge color
-function getFileTypeBadge(filename: string, isDirectory: boolean): { label: string; color: string } | null {
-  if (isDirectory) return null
-  
-  const ext = getFileExtension(filename)
-  if (!ext) return null
-  
-  return { label: ext.toUpperCase(), color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }
+  return <File className="h-4 w-4 text-gray-400" />
 }
 
 export interface FileExplorerProps {
@@ -815,9 +805,8 @@ export function FileExplorer({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-0">
                 {filteredFiles.map((file, index) => {
-                  const badge = getFileTypeBadge(file.name, file.isDirectory ?? false)
                   const isFocused = index === focusedIndex
                   const isSelected = selectedFile?.path === file.path
                   // Check if this item is a drive (Windows drive path like "C:\")
@@ -829,7 +818,7 @@ export function FileExplorer({
                       onClick={() => handleItemClick(file)}
                       onDoubleClick={() => handleItemDoubleClick(file)}
                       className={cn(
-                        "file-item flex items-center gap-3 p-3 rounded-lg cursor-pointer group",
+                        "file-item flex items-center gap-2 p-1.5 rounded-md cursor-pointer group",
                         "hover:bg-accent/50 active:bg-accent",
                         isSelected && "bg-primary/10 hover:bg-primary/15",
                         isFocused && "ring-2 ring-primary ring-inset"
@@ -839,31 +828,20 @@ export function FileExplorer({
                         {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
                       </div>
                       
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <div className="flex-1 min-w-0 flex items-center gap-1.5">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span className={cn(
-                              "font-medium truncate block",
+                              "text-sm font-medium truncate block",
                               file.isDirectory ? "text-foreground" : "text-foreground/90"
                             )}>
                               {file.name}
                             </span>
-                            {badge && (
-                              <span className={cn(
-                                "text-[10px] font-semibold px-1.5 py-0.5 rounded",
-                                badge.color
-                              )}>
-                                {badge.label}
-                              </span>
-                            )}
                           </div>
-                          <span className="text-xs text-muted-foreground truncate block mt-0.5">
-                            {file.path}
-                          </span>
                         </div>
                         
                         {file.isDirectory && (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                         )}
                       </div>
                     </div>
