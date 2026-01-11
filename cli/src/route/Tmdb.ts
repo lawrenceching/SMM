@@ -38,60 +38,70 @@ function mapLanguageToTmdb(language: 'zh-CN' | 'en-US' | 'ja-JP'): string {
 }
 
 /**
- * Searches TMDB for movies or TV shows
+ * Helper function to get TMDB configuration with validation
+ * @param baseURL - Optional base URL override
+ * @returns Configuration object or error string
  */
-export async function search({ keyword, type, baseURL, language }: TmdbSearchRequestBody): Promise<TmdbSearchResponseBody> {
-  console.log(`[Tmdb.search] keyword: ${keyword}, type: ${type}, baseURL: ${baseURL}, language: ${language}`);
+async function getTmdbConfig(baseURL?: string): Promise<{
+  host: string;
+  apiKey?: string;
+  httpProxy?: string;
+  isOfficialHost: boolean;
+  error?: string;
+}> {
+  // Get user config to retrieve TMDB settings
+  const userConfig = await getUserConfig();
+  
+  if (!userConfig) {
+    console.error('User config not found. Please configure TMDB settings.');
+    return {
+      host: '',
+      isOfficialHost: false,
+      error: 'User config not found. Please configure TMDB settings.'
+    };
+  }
+
+  // Get TMDB configuration
+  const tmdbConfig = userConfig.tmdb;
+  const apiKey = tmdbConfig?.apiKey;
+  let host = baseURL || tmdbConfig?.host || 'https://tmdb.imlc.me';
+  const httpProxy = tmdbConfig?.httpProxy;
+
+  // Normalize host URL (remove trailing slash if present)
+  host = host.replace(/\/+$/, '');
+
+  // Check if this is the official TMDB host
+  const officialTmdbHost = 'https://api.themoviedb.org/3';
+  const isOfficialHost = host === officialTmdbHost;
+
+  // Only require API key for official TMDB host
+  if (isOfficialHost && !apiKey) {
+    return {
+      host: '',
+      isOfficialHost: false,
+      error: 'TMDB API key is not configured. Please set your API key in settings.'
+    };
+  }
+
+  return {
+    host,
+    apiKey,
+    httpProxy,
+    isOfficialHost
+  };
+}
+
+/**
+ * Helper function to execute TMDB HTTP requests with shared error handling
+ * @param url - Full URL to request (must be built by caller)
+ * @param httpProxy - Optional HTTP proxy setting (for logging)
+ * @returns Promise with Response object or error string
+ */
+async function executeTmdbRequest(
+  url: string,
+  httpProxy?: string
+): Promise<{ response: Response; error?: string }> {
   try {
-    // Get user config to retrieve TMDB settings
-    const userConfig = await getUserConfig();
-    
-    if (!userConfig) {
-        console.error('User config not found. Please configure TMDB settings.');
-      return {
-        results: [],
-        page: 0,
-        total_pages: 0,
-        total_results: 0,
-        error: 'User config not found. Please configure TMDB settings.'
-      };
-    }
-
-    // Get TMDB configuration
-    const tmdbConfig = userConfig.tmdb;
-    const apiKey = tmdbConfig?.apiKey;
-    let host = baseURL || tmdbConfig?.host || 'https://tmdb.imlc.me';
-    const httpProxy = tmdbConfig?.httpProxy;
-    console.log(`[Tmdb.search] apiKey: ${apiKey}, host: ${host}, httpProxy: ${httpProxy}`);
-
-    // Normalize host URL (remove trailing slash if present)
-    host = host.replace(/\/+$/, '');
-
-    // Check if this is the official TMDB host
-    const officialTmdbHost = 'https://api.themoviedb.org/3';
-    const isOfficialHost = host === officialTmdbHost;
-
-    // Only require API key for official TMDB host
-    if (isOfficialHost && !apiKey) {
-      return {
-        results: [],
-        page: 0,
-        total_pages: 0,
-        total_results: 0,
-        error: 'TMDB API key is not configured. Please set your API key in settings.'
-      };
-    }
-
-    // Build the search URL
-    const searchType = type === 'movie' ? 'movie' : 'tv';
-    const tmdbLanguage = mapLanguageToTmdb(language);
-    const encodedKeyword = encodeURIComponent(keyword);
-    
-    // Include api_key parameter only for official TMDB host
-    // For custom hosts, the API key is embedded in the 3rd party server
-    const apiKeyParam = isOfficialHost && apiKey ? `api_key=${apiKey}&` : '';
-    const url = `${host}/search/${searchType}?${apiKeyParam}query=${encodedKeyword}&language=${tmdbLanguage}`;
-
     // Prepare fetch options
     const fetchOptions: RequestInit = {
       method: 'GET',
@@ -114,7 +124,62 @@ export async function search({ keyword, type, baseURL, language }: TmdbSearchReq
     // Make the API request
     const response = await fetch(url, fetchOptions);
     console.log(`[HTTP_IN] ${fetchOptions.method} ${url} ${response.status} ${response.statusText}`);
+
+    return { response };
+  } catch (error) {
+    console.error('TMDB request error:', error);
+    return {
+      response: new Response(null, { status: 500 }),
+      error: `Failed to fetch from TMDB: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
+ * Searches TMDB for movies or TV shows
+ */
+export async function search({ keyword, type, baseURL, language }: TmdbSearchRequestBody): Promise<TmdbSearchResponseBody> {
+  console.log(`[Tmdb.search] keyword: ${keyword}, type: ${type}, baseURL: ${baseURL}, language: ${language}`);
+  try {
+    // Get TMDB configuration
+    const config = await getTmdbConfig(baseURL);
     
+    if (config.error) {
+      return {
+        results: [],
+        page: 0,
+        total_pages: 0,
+        total_results: 0,
+        error: config.error
+      };
+    }
+
+    console.log(`[Tmdb.search] apiKey: ${config.apiKey}, host: ${config.host}, httpProxy: ${config.httpProxy}`);
+
+    // Build the search URL
+    const searchType = type === 'movie' ? 'movie' : 'tv';
+    const tmdbLanguage = mapLanguageToTmdb(language);
+    const encodedKeyword = encodeURIComponent(keyword);
+    
+    // Include api_key parameter only for official TMDB host
+    // For custom hosts, the API key is embedded in the 3rd party server
+    const apiKeyParam = config.isOfficialHost && config.apiKey ? `api_key=${config.apiKey}&` : '';
+    const url = `${config.host}/search/${searchType}?${apiKeyParam}query=${encodedKeyword}&language=${tmdbLanguage}`;
+
+    // Execute the HTTP request
+    const requestResult = await executeTmdbRequest(url, config.httpProxy);
+    
+    if (requestResult.error) {
+      return {
+        results: [],
+        page: 0,
+        total_pages: 0,
+        total_results: 0,
+        error: requestResult.error
+      };
+    }
+
+    const response = requestResult.response;
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -162,45 +227,24 @@ async function makeTmdbRequest(
   appendToResponse?: string
 ): Promise<{ data: any; error?: string }> {
   try {
-    // Get user config to retrieve TMDB settings
-    const userConfig = await getUserConfig();
-    
-    if (!userConfig) {
-      console.error('User config not found. Please configure TMDB settings.');
-      return {
-        data: null,
-        error: 'User config not found. Please configure TMDB settings.'
-      };
-    }
-
     // Get TMDB configuration
-    const tmdbConfig = userConfig.tmdb;
-    const apiKey = tmdbConfig?.apiKey;
-    let host = baseURL || tmdbConfig?.host || 'https://api.themoviedb.org/3';
-    const httpProxy = tmdbConfig?.httpProxy;
-    console.log(`[Tmdb.request] apiKey: ${apiKey}, host: ${host}, httpProxy: ${httpProxy}, endpoint: ${endpoint}`);
-
-    // Normalize host URL (remove trailing slash if present)
-    host = host.replace(/\/+$/, '');
-
-    // Check if this is the official TMDB host
-    const officialTmdbHost = 'https://api.themoviedb.org/3';
-    const isOfficialHost = host === officialTmdbHost;
-
-    // Only require API key for official TMDB host
-    if (isOfficialHost && !apiKey) {
+    const config = await getTmdbConfig(baseURL);
+    
+    if (config.error) {
       return {
         data: null,
-        error: 'TMDB API key is not configured. Please set your API key in settings.'
+        error: config.error
       };
     }
+
+    console.log(`[Tmdb.request] apiKey: ${config.apiKey}, host: ${config.host}, httpProxy: ${config.httpProxy}, endpoint: ${endpoint}`);
 
     // Build the URL
     const tmdbLanguage = language ? mapLanguageToTmdb(language) : 'en-US';
     const queryParams: string[] = [];
     
-    if (isOfficialHost && apiKey) {
-      queryParams.push(`api_key=${apiKey}`);
+    if (config.isOfficialHost && config.apiKey) {
+      queryParams.push(`api_key=${config.apiKey}`);
     }
     if (language) {
       queryParams.push(`language=${tmdbLanguage}`);
@@ -210,25 +254,19 @@ async function makeTmdbRequest(
     }
     
     const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
-    const url = `${host}${endpoint}${queryString}`;
+    const url = `${config.host}${endpoint}${queryString}`;
 
-    // Prepare fetch options
-    const fetchOptions: RequestInit = {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    };
-
-    // Configure proxy if provided
-    if (httpProxy) {
-      console.log(`Using proxy: ${httpProxy}`);
+    // Execute the HTTP request
+    const requestResult = await executeTmdbRequest(url, config.httpProxy);
+    
+    if (requestResult.error) {
+      return {
+        data: null,
+        error: requestResult.error
+      };
     }
 
-    console.log(`[HTTP_OUT] ${fetchOptions.method} ${url}`);
-    // Make the API request
-    const response = await fetch(url, fetchOptions);
-    console.log(`[HTTP_IN] ${fetchOptions.method} ${url} ${response.status} ${response.statusText}`);
+    const response = requestResult.response;
 
     if (!response.ok) {
       const errorText = await response.text();
