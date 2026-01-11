@@ -3,7 +3,6 @@ import { Settings, Bot, FileText, MessageSquare } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarProvider, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./sidebar"
 import { GeneralSettings } from "./settings/GeneralSettings"
 import { AiSettings } from "./settings/AiSettings"
-import { RenameRuleSettings } from "./settings/RenameRuleSettings"
 import { Feedback } from "./settings/Feedback"
 import { useTranslation } from "@/lib/i18n"
 
@@ -59,8 +58,6 @@ function ConfigPanel() {
         return <GeneralSettings />
       case "ai":
         return <AiSettings />
-      case "rename-rules":
-        return <RenameRuleSettings />
       case "feedback":
         return <Feedback />
       default:

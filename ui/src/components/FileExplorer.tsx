@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { listFilesApi } from "@/api/listFiles"
+import { listFiles } from "@/api/listFiles"
 import { listDrivesApi } from "@/api/listDrives"
 import type { FileItem } from "@/components/dialogs/types"
 import { useTranslation } from "@/lib/i18n"
@@ -142,7 +142,8 @@ export function FileExplorer({
     setSearchQuery("") // Clear search when loading new directory
     setFocusedIndex(-1) // Reset focus
     try {
-      const response = await listFilesApi(path, {
+      const response = await listFiles({
+        path: path,
         onlyFolders,
         includeHiddenFiles: false,
       })
@@ -151,33 +152,41 @@ export function FileExplorer({
         setError(response.error || t('fileExplorer.loadFailed'))
         setFiles([])
       } else {
-        // Update path to the resolved path from API (e.g., "~" -> "C:\Users\<username>")
-        const resolvedPath = response.data.path
-        if (resolvedPath && resolvedPath !== path) {
-          // Update the path to the resolved path
-          onPathChange(resolvedPath)
+
+        if(!response.data) {
+          console.error('[FileExplorer] unexpected response body: no data', response)
+          setFiles([])
+        } else {
+          // Update path to the resolved path from API (e.g., "~" -> "C:\Users\<username>")
+          const resolvedPath = response.data.path
+          if (resolvedPath && resolvedPath !== path) {
+            // Update the path to the resolved path
+            onPathChange(resolvedPath)
+          }
+
+          // Convert to FileItem format
+          const items: FileItem[] = response.data.items.map((filePath) => {
+            const pathParts = filePath.split(/[/\\]/)
+            const name = pathParts[pathParts.length - 1] || filePath
+            // Determine if it's a directory by checking if there's a file extension
+            const isDirectory = !name.includes('.') || name.endsWith('/')
+            return {
+              name,
+              path: filePath,
+              isDirectory,
+            }
+          })
+
+          // Sort: folders first, then files, both alphabetically
+          const sortedItems = items.sort((a, b) => {
+            if (a.isDirectory && !b.isDirectory) return -1
+            if (!a.isDirectory && b.isDirectory) return 1
+            return a.name.localeCompare(b.name)
+          })
+          setFiles(sortedItems)
         }
 
-        // Convert to FileItem format
-        const items: FileItem[] = response.data.items.map((filePath) => {
-          const pathParts = filePath.split(/[/\\]/)
-          const name = pathParts[pathParts.length - 1] || filePath
-          // Determine if it's a directory by checking if there's a file extension
-          const isDirectory = !name.includes('.') || name.endsWith('/')
-          return {
-            name,
-            path: filePath,
-            isDirectory,
-          }
-        })
-
-        // Sort: folders first, then files, both alphabetically
-        const sortedItems = items.sort((a, b) => {
-          if (a.isDirectory && !b.isDirectory) return -1
-          if (!a.isDirectory && b.isDirectory) return 1
-          return a.name.localeCompare(b.name)
-        })
-        setFiles(sortedItems)
+        
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))

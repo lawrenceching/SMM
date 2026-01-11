@@ -151,7 +151,6 @@ describe('readMediaMetadataV2', () => {
       error: `${FileNotFoundError}: /app/data/metadata/test_media_folder.json`,
     })
 
-    // Mock listFiles() to return error (data is undefined)
     vi.mocked(listFiles).mockResolvedValue({
       data: undefined,
       error: 'Some error occurred',

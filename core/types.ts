@@ -109,7 +109,7 @@ export interface ListFilesRequestBody {
 }
 
 export interface ListFilesResponseBody {
-  data: {
+  data?: {
     /**
      * The resolved path of path parameter in ListFilesRequestBody
      * For example, if user request files in path "~"
