@@ -6,8 +6,6 @@ import { FileNotFoundError, isError } from "@core/errors";
 import { listFiles } from "./listFiles";
 import { Path } from "@core/path";
 
-
-
 export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: string) {
     const filename = folderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
     return join(appDataDir, `metadata`,  `${filename}.json`)
@@ -46,9 +44,6 @@ export async function readMediaMetadataV2(pathPosix: string): Promise<MediaMetad
     } else {
         console.error(`[readMediaMetadataV2] unexpected response body: no data`);
     }
-
-
-// TODO: 2. call ListFiles API to list all files in the media folder
 
     const listFilesResponseBody = await listFiles({
         path: pathPosix,
