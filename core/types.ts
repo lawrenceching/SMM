@@ -72,6 +72,7 @@ export interface WriteFileRequestBody {
    * The absolute path in platform-specific format
    */
   path: string;
+  mode: 'overwrite' | 'append' | 'create';
   /**
    * The content to write to the file
    */

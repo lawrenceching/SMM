@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
+import { useHandlePosterDownload } from "@/hooks/useHandlePosterDownload"
 
 interface Task {
   name: string;
@@ -78,6 +79,7 @@ export function ScrapeDialog({
   const defaultTitle = t('scrape.defaultTitle')
   const defaultDescription = t('scrape.defaultDescription')
   const handleScrapeStart = useHandleScrapeStart()
+  const handlePosterDownload = useHandlePosterDownload()
 
   const [tasks, setTasks] = useState<Task[]>([])
 
@@ -89,7 +91,11 @@ export function ScrapeDialog({
           name: t('scrape.tasks.poster', { ns: 'dialogs' }),
           status: "pending",
           execute: async () => {
-            console.error('not yet implemented')
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handlePosterDownload(mediaMetadata)
           }
         },
         {
@@ -112,7 +118,7 @@ export function ScrapeDialog({
         },
       ])
     }
-  }, [isOpen, mediaMetadata, t, handleScrapeStart])
+  }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload])
 
   const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
   const canClose = allTasksDone

@@ -3,9 +3,9 @@ import type { ListFilesRequestBody } from '@core/types';
 import { mkdir, writeFile, rm, stat } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { handleListFiles } from './ListFiles';
+import { processListFiles } from './ListFiles';
 
-describe('handleListFiles', () => {
+describe('processListFiles', () => {
   let testDir: string;
 
   beforeEach(async () => {
@@ -29,9 +29,10 @@ describe('handleListFiles', () => {
         path: '',
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
+      expect(result.error).toBeDefined();
       expect(result.error).toContain('Validation Failed');
       expect(result.error).toContain('Path is required');
     });
@@ -39,9 +40,10 @@ describe('handleListFiles', () => {
     it('should return error when path is missing', async () => {
       const request = {} as ListFilesRequestBody;
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
+      expect(result.error).toBeDefined();
       expect(result.error).toContain('Validation Failed');
     });
   });
@@ -59,10 +61,10 @@ describe('handleListFiles', () => {
           path: '~',
         };
 
-        const result = await handleListFiles(request);
+        const result = await processListFiles(request);
 
         expect(result.error).toBeUndefined();
-        expect(result.data).toContain(testFile);
+        expect(result.data.items).toContain(testFile);
       } finally {
         // Clean up
         try {
@@ -87,10 +89,10 @@ describe('handleListFiles', () => {
           path: '~/smm-test-listfiles',
         };
 
-        const result = await handleListFiles(request);
+        const result = await processListFiles(request);
 
         expect(result.error).toBeUndefined();
-        expect(result.data).toContain(testFile);
+        expect(result.data.items).toContain(testFile);
       } finally {
         // Clean up
         try {
@@ -108,9 +110,10 @@ describe('handleListFiles', () => {
         path: join(testDir, 'nonexistent'),
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
+      expect(result.error).toBeDefined();
       expect(result.error).toContain('Directory Not Found');
     });
 
@@ -122,9 +125,10 @@ describe('handleListFiles', () => {
         path: testFile,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
+      expect(result.error).toBeDefined();
       expect(result.error).toContain('Path Not Directory');
     });
   });
@@ -143,14 +147,14 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(4);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).toContain(join(testDir, 'file2.txt'));
-      expect(result.data).toContain(join(testDir, 'folder1'));
-      expect(result.data).toContain(join(testDir, 'folder2'));
+      expect(result.data.items.length).toBe(4);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
     });
 
     it('should return absolute paths', async () => {
@@ -158,10 +162,10 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      result.data.forEach(path => {
+      result.data.items.forEach(path => {
         expect(path).toMatch(/^[A-Z]:\\|^\/|^\\\\/); // Windows drive, Unix root, or UNC
       });
     });
@@ -172,14 +176,14 @@ describe('handleListFiles', () => {
         onlyFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(2);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).toContain(join(testDir, 'file2.txt'));
-      expect(result.data).not.toContain(join(testDir, 'folder1'));
-      expect(result.data).not.toContain(join(testDir, 'folder2'));
+      expect(result.data.items.length).toBe(2);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file2.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder2'));
     });
 
     it('should list only folders when onlyFolders is true', async () => {
@@ -188,14 +192,14 @@ describe('handleListFiles', () => {
         onlyFolders: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(2);
-      expect(result.data).toContain(join(testDir, 'folder1'));
-      expect(result.data).toContain(join(testDir, 'folder2'));
-      expect(result.data).not.toContain(join(testDir, 'file1.txt'));
-      expect(result.data).not.toContain(join(testDir, 'file2.txt'));
+      expect(result.data.items.length).toBe(2);
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
+      expect(result.data.items).not.toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'file2.txt'));
     });
 
     it('should prioritize onlyFiles when both onlyFiles and onlyFolders are true', async () => {
@@ -205,14 +209,14 @@ describe('handleListFiles', () => {
         onlyFolders: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(2);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).toContain(join(testDir, 'file2.txt'));
-      expect(result.data).not.toContain(join(testDir, 'folder1'));
-      expect(result.data).not.toContain(join(testDir, 'folder2'));
+      expect(result.data.items.length).toBe(2);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file2.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder1'));
+      expect(result.data.items).not.toContain(join(testDir, 'folder2'));
     });
   });
 
@@ -231,14 +235,14 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data).toContain(join(testDir, 'visible.txt'));
-      expect(result.data).toContain(join(testDir, 'visibleDir'));
-      expect(result.data).not.toContain(join(testDir, '.hidden'));
-      expect(result.data).not.toContain(join(testDir, '.hidden.txt'));
-      expect(result.data).not.toContain(join(testDir, '.hiddenDir'));
+      expect(result.data.items).toContain(join(testDir, 'visible.txt'));
+      expect(result.data.items).toContain(join(testDir, 'visibleDir'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden.txt'));
+      expect(result.data.items).not.toContain(join(testDir, '.hiddenDir'));
     });
 
     it('should include hidden files when includeHiddenFiles is true', async () => {
@@ -247,15 +251,15 @@ describe('handleListFiles', () => {
         includeHiddenFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBeGreaterThanOrEqual(5);
-      expect(result.data).toContain(join(testDir, 'visible.txt'));
-      expect(result.data).toContain(join(testDir, '.hidden'));
-      expect(result.data).toContain(join(testDir, '.hidden.txt'));
-      expect(result.data).toContain(join(testDir, '.hiddenDir'));
-      expect(result.data).toContain(join(testDir, 'visibleDir'));
+      expect(result.data.items.length).toBeGreaterThanOrEqual(5);
+      expect(result.data.items).toContain(join(testDir, 'visible.txt'));
+      expect(result.data.items).toContain(join(testDir, '.hidden'));
+      expect(result.data.items).toContain(join(testDir, '.hidden.txt'));
+      expect(result.data.items).toContain(join(testDir, '.hiddenDir'));
+      expect(result.data.items).toContain(join(testDir, 'visibleDir'));
     });
 
     it('should filter Windows system files (Thumbs.db, desktop.ini) by default', async () => {
@@ -268,12 +272,12 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data).toContain(join(testDir, 'normal.txt'));
-      expect(result.data).not.toContain(join(testDir, 'Thumbs.db'));
-      expect(result.data).not.toContain(join(testDir, 'desktop.ini'));
+      expect(result.data.items).toContain(join(testDir, 'normal.txt'));
+      expect(result.data.items).not.toContain(join(testDir, 'Thumbs.db'));
+      expect(result.data.items).not.toContain(join(testDir, 'desktop.ini'));
     });
 
     it('should include Windows system files when includeHiddenFiles is true', async () => {
@@ -287,12 +291,12 @@ describe('handleListFiles', () => {
         includeHiddenFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data).toContain(join(testDir, 'normal.txt'));
-      expect(result.data).toContain(join(testDir, 'Thumbs.db'));
-      expect(result.data).toContain(join(testDir, 'desktop.ini'));
+      expect(result.data.items).toContain(join(testDir, 'normal.txt'));
+      expect(result.data.items).toContain(join(testDir, 'Thumbs.db'));
+      expect(result.data.items).toContain(join(testDir, 'desktop.ini'));
     });
   });
 
@@ -302,10 +306,10 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
     });
 
     it('should handle files with special characters in names', async () => {
@@ -318,13 +322,13 @@ describe('handleListFiles', () => {
         onlyFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(3);
-      expect(result.data).toContain(join(testDir, 'file with spaces.txt'));
-      expect(result.data).toContain(join(testDir, 'file-with-dashes.txt'));
-      expect(result.data).toContain(join(testDir, 'file_with_underscores.txt'));
+      expect(result.data.items.length).toBe(3);
+      expect(result.data.items).toContain(join(testDir, 'file with spaces.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file-with-dashes.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file_with_underscores.txt'));
     });
 
     it('should skip items that cannot be stat\'d (permissions, etc.)', async () => {
@@ -335,11 +339,11 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       // Should at least return the accessible file
       expect(result.error).toBeUndefined();
-      expect(result.data).toContain(join(testDir, 'accessible.txt'));
+      expect(result.data.items).toContain(join(testDir, 'accessible.txt'));
       // Note: We can't easily test permission errors in a cross-platform way,
       // but the code should handle them gracefully
     });
@@ -353,11 +357,11 @@ describe('handleListFiles', () => {
         path: testDir,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data).toContain(nestedDir);
-      expect(result.data).not.toContain(join(nestedDir, 'nested-file.txt')); // Only direct children
+      expect(result.data.items).toContain(nestedDir);
+      expect(result.data.items).not.toContain(join(nestedDir, 'nested-file.txt')); // Only direct children
     });
   });
 
@@ -376,12 +380,12 @@ describe('handleListFiles', () => {
         includeHiddenFiles: false,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(1);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).not.toContain(join(testDir, '.hidden-file'));
+      expect(result.data.items.length).toBe(1);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden-file'));
     });
 
     it('should filter folders only with hidden folders excluded', async () => {
@@ -391,12 +395,12 @@ describe('handleListFiles', () => {
         includeHiddenFiles: false,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(1);
-      expect(result.data).toContain(join(testDir, 'folder1'));
-      expect(result.data).not.toContain(join(testDir, '.hidden-folder'));
+      expect(result.data.items.length).toBe(1);
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden-folder'));
     });
 
     it('should filter files only with hidden files included', async () => {
@@ -406,12 +410,12 @@ describe('handleListFiles', () => {
         includeHiddenFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(2);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).toContain(join(testDir, '.hidden-file'));
+      expect(result.data.items.length).toBe(2);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, '.hidden-file'));
     });
 
     it('should filter folders only with hidden folders included', async () => {
@@ -421,12 +425,12 @@ describe('handleListFiles', () => {
         includeHiddenFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBe(2);
-      expect(result.data).toContain(join(testDir, 'folder1'));
-      expect(result.data).toContain(join(testDir, '.hidden-folder'));
+      expect(result.data.items.length).toBe(2);
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, '.hidden-folder'));
     });
 
     it('should return both files and folders when onlyFolders is explicitly false', async () => {
@@ -439,17 +443,17 @@ describe('handleListFiles', () => {
         includeHiddenFiles: false,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
       // Should include both files and folders (excluding hidden)
-      expect(result.data.length).toBeGreaterThanOrEqual(3);
-      expect(result.data).toContain(join(testDir, 'file1.txt'));
-      expect(result.data).toContain(join(testDir, 'file2.txt'));
-      expect(result.data).toContain(join(testDir, 'folder1'));
-      expect(result.data).toContain(join(testDir, 'folder2'));
-      expect(result.data).not.toContain(join(testDir, '.hidden-file'));
-      expect(result.data).not.toContain(join(testDir, '.hidden-folder'));
+      expect(result.data.items.length).toBeGreaterThanOrEqual(3);
+      expect(result.data.items).toContain(join(testDir, 'file1.txt'));
+      expect(result.data.items).toContain(join(testDir, 'file2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'folder1'));
+      expect(result.data.items).toContain(join(testDir, 'folder2'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden-file'));
+      expect(result.data.items).not.toContain(join(testDir, '.hidden-folder'));
     });
   });
 
@@ -471,17 +475,17 @@ describe('handleListFiles', () => {
         path: posixPath,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBeGreaterThanOrEqual(2);
+      expect(result.data.items.length).toBeGreaterThanOrEqual(2);
       // Verify paths are in Windows format (backslashes)
-      result.data.forEach(p => {
+      result.data.items.forEach(p => {
         expect(p).toContain('\\');
         expect(p).not.toMatch(/^\/[A-Za-z]:/); // Should not start with /C:
       });
-      expect(result.data).toContain(join(testDir, 'test.txt'));
-      expect(result.data).toContain(join(testDir, 'test-folder'));
+      expect(result.data.items).toContain(join(testDir, 'test.txt'));
+      expect(result.data.items).toContain(join(testDir, 'test-folder'));
     });
 
     (isWindows ? it : it.skip)('should convert POSIX-style Windows path /C:/Users/... to C:\\Users\\...', async () => {
@@ -496,16 +500,16 @@ describe('handleListFiles', () => {
         path: posixPath,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBeGreaterThanOrEqual(1);
+      expect(result.data.items.length).toBeGreaterThanOrEqual(1);
       // Verify paths are in Windows format
-      result.data.forEach(p => {
+      result.data.items.forEach(p => {
         expect(p).toContain('\\');
         expect(p).toMatch(/^[A-Za-z]:\\/); // Should start with C:\
       });
-      expect(result.data).toContain(join(testDir, 'test2.txt'));
+      expect(result.data.items).toContain(join(testDir, 'test2.txt'));
     });
 
     (isWindows ? it : it.skip)('should return paths in Windows format on Windows', async () => {
@@ -516,12 +520,12 @@ describe('handleListFiles', () => {
         onlyFiles: true,
       };
 
-      const result = await handleListFiles(request);
+      const result = await processListFiles(request);
 
       expect(result.error).toBeUndefined();
-      expect(result.data.length).toBeGreaterThanOrEqual(1);
+      expect(result.data.items.length).toBeGreaterThanOrEqual(1);
       // All paths should be in Windows format (backslashes, drive letter format)
-      result.data.forEach(p => {
+      result.data.items.forEach(p => {
         expect(p).toMatch(/^[A-Za-z]:\\/); // Should start with C:\ or similar
         expect(p).toContain('\\'); // Should use backslashes
         expect(p).not.toContain('/'); // Should not contain forward slashes (except maybe in filename)

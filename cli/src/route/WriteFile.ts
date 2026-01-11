@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import path from 'path';
-import { mkdir } from 'fs/promises';
+import { mkdir, appendFile } from 'fs/promises';
 import { validatePathIsInAllowlist } from './path-validator';
 import { Path } from '@core/path';
 import { existedFileError, isError, ExistedFileError } from '@core/errors';
@@ -11,6 +11,7 @@ import { logger, logHttpIn, logHttpOut } from '../../lib/logger';
 
 const writeFileRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
+  mode: z.enum(['overwrite', 'append', 'create']),
   data: z.string(),
 });
 
@@ -25,7 +26,7 @@ export async function doWriteFile(body: WriteFileRequestBody): Promise<WriteFile
       };
     }
 
-    const { path: filePath, data } = validationResult.data;
+    const { path: filePath, mode, data } = validationResult.data;
 
     // Resolve to absolute path first, then convert to POSIX format for validation
     const resolvedPath = path.resolve(filePath);
@@ -42,15 +43,6 @@ export async function doWriteFile(body: WriteFileRequestBody): Promise<WriteFile
     // Use the resolved path for file operations
     const validatedPath = resolvedPath;
 
-    // Check if file already exists
-    const file = Bun.file(validatedPath);
-    const exists = await file.exists();
-    if (exists) {
-      return {
-        error: existedFileError(validatedPath),
-      };
-    }
-
     // Ensure parent directory exists
     const parentDir = path.dirname(validatedPath);
     try {
@@ -60,13 +52,50 @@ export async function doWriteFile(body: WriteFileRequestBody): Promise<WriteFile
       // If it's a different error, we'll catch it during write
     }
 
-    // Write file using Bun's file API
-    try {
-      await Bun.write(validatedPath, data);
-      return {}; // Success - no error
-    } catch (error) {
+    // Handle different modes
+    if (mode === 'create') {
+      // Check if file already exists
+      const file = Bun.file(validatedPath);
+      const exists = await file.exists();
+      if (exists) {
+        return {
+          error: existedFileError(validatedPath),
+        };
+      }
+
+      // Write file using Bun's file API
+      try {
+        await Bun.write(validatedPath, data);
+        return {}; // Success - no error
+      } catch (error) {
+        return {
+          error: `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+      }
+    } else if (mode === 'overwrite') {
+      // Write file using Bun's file API (overwrites if exists)
+      try {
+        await Bun.write(validatedPath, data);
+        return {}; // Success - no error
+      } catch (error) {
+        return {
+          error: `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+      }
+    } else if (mode === 'append') {
+      // Append to file using fs.appendFile
+      try {
+        await appendFile(validatedPath, data, 'utf-8');
+        return {}; // Success - no error
+      } catch (error) {
+        return {
+          error: `Failed to append to file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+      }
+    } else {
+      // This should never happen due to schema validation, but handle it anyway
       return {
-        error: `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: `Invalid mode: ${mode}`,
       };
     }
   } catch (error) {

@@ -10,12 +10,16 @@ let currentMockUserDataDir: string;
 // Set up the mock before any imports
 mock.module('@/utils/config', () => ({
   getUserDataDir: () => currentMockUserDataDir,
+  getUserConfig: async () => ({ folders: [] }),
+  getLogDir: () => join(currentMockUserDataDir, 'logs'),
+  getUserConfigPath: () => join(currentMockUserDataDir, 'smm.json'),
+  writeUserConfig: async () => {},
 }));
 
 // Import after mock is set up
-const { handleReadFile } = await import('./ReadFile');
+const { processReadFile } = await import('./ReadFile');
 
-describe('handleReadFile', () => {
+describe('processReadFile', () => {
   let mockUserDataDir: string;
   let testFilePath: string;
   let testFileContent: string;
@@ -45,10 +49,10 @@ describe('handleReadFile', () => {
 
   it('should successfully read a file within user data dir', async () => {
     const request: ReadFileRequestBody = {
-      path: 'test.txt',
+      path: testFilePath,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.error).toBeUndefined();
     expect(result.data).toBe(testFileContent);
@@ -63,24 +67,25 @@ describe('handleReadFile', () => {
     await writeFile(nestedFile, nestedContent, 'utf-8');
 
     const request: ReadFileRequestBody = {
-      path: 'nested/nested.txt',
+      path: nestedFile,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.error).toBeUndefined();
     expect(result.data).toBe(nestedContent);
   });
 
   it('should return error when file does not exist', async () => {
+    const nonexistentPath = join(mockUserDataDir, 'nonexistent.txt');
     const request: ReadFileRequestBody = {
-      path: 'nonexistent.txt',
+      path: nonexistentPath,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.data).toBeUndefined();
-    expect(result.error).toBe('File not found: nonexistent.txt');
+    expect(result.error).toBe(`File not found: ${nonexistentPath}`);
   });
 
   it('should return error when path is empty', async () => {
@@ -88,7 +93,7 @@ describe('handleReadFile', () => {
       path: '',
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.data).toBeUndefined();
     expect(result.error).toContain('Validation failed');
@@ -98,21 +103,25 @@ describe('handleReadFile', () => {
   it('should return error when path is missing', async () => {
     const request = {} as ReadFileRequestBody;
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.data).toBeUndefined();
     expect(result.error).toContain('Validation failed');
   });
 
   it('should return error when path is outside user data dir', async () => {
+    // Use a path that's definitely outside the user data dir
+    const outsidePath = process.platform === 'win32' 
+      ? 'C:\\Windows\\System32\\config\\sam'
+      : '/etc/passwd';
     const request: ReadFileRequestBody = {
-      path: '../../../etc/passwd',
+      path: outsidePath,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.data).toBeUndefined();
-    expect(result.error).toContain('outside the allowed user data directory');
+    expect(result.error).toContain('not in the allowlist');
   });
 
   it('should handle absolute path within user data dir', async () => {
@@ -126,7 +135,7 @@ describe('handleReadFile', () => {
       path: anotherFile,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.error).toBeUndefined();
     expect(result.data).toBe(anotherContent);
@@ -138,10 +147,10 @@ describe('handleReadFile', () => {
     await writeFile(specialFile, specialContent, 'utf-8');
 
     const request: ReadFileRequestBody = {
-      path: 'special.txt',
+      path: specialFile,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.error).toBeUndefined();
     expect(result.data).toBe(specialContent);
@@ -152,10 +161,10 @@ describe('handleReadFile', () => {
     await writeFile(emptyFile, '', 'utf-8');
 
     const request: ReadFileRequestBody = {
-      path: 'empty.txt',
+      path: emptyFile,
     };
 
-    const result = await handleReadFile(request);
+    const result = await processReadFile(request);
 
     expect(result.error).toBeUndefined();
     expect(result.data).toBe('');

@@ -28,6 +28,7 @@ describe('generateFileNameByJavaScript', () => {
       episodeNumber: 0,
       episodeName: 'The Dark Knight',
       tvshowName: 'The Dark Knight',
+      movieName: 'The Dark Knight',
       file: 'The Dark Knight [1080P].mp4',
       tmdbId: '155',
       releaseYear: '2008',
