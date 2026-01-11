@@ -10,6 +10,7 @@ async function writeFile(path: string, content: string): Promise<void> {
   const req: WriteFileRequestBody = {
     path: path,
     data: content,
+    mode: 'overwrite',
   }
 
   const resp = await fetch('/api/writeFile', {
