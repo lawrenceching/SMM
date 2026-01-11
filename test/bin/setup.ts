@@ -90,11 +90,12 @@ console.log(`Prepare smm.json: ` + JSON.stringify(userConfig, null, 4))
 
 
 // 4. Write media metadata to cache
+const testFolderPathInPosix = Path.posix(testFolderPath)
 const mediaMetadata = {
-    mediaFolderPath: testFolderPath,
+    mediaFolderPath: testFolderPathInPosix,
     type: "tvshow-folder",
 }
-const testFolderPathInPosix = Path.posix(testFolderPath)
+
 const mediaMetadataFileName = testFolderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
 const mediaMetadataFilePath = path.join(appDataDir, 'metadata', mediaMetadataFileName + '.json')
 await Bun.write(mediaMetadataFilePath, JSON.stringify(mediaMetadata, null, 4))

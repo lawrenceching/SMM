@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useMemo } from "react"
 import type { MediaMetadata } from "@core/types"
 import { useConfig } from "./config-provider"
-import { writeMediaMetadata } from "@/api/writeMediaMatadata"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 import localStorages from "@/lib/localStorages"
 import { readMediaMetadataV2 } from "@/api/readMediaMetadataV2"
 import { Path } from "@core/path"
+import { writeMediaMetadata } from "@/api/writeMediaMetadata"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: MediaMetadata[]
