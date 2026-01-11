@@ -35,7 +35,6 @@ export interface AIConfig {
 export interface UserConfig {
   applicationLanguage: LanguageCode;
   tmdb: TMDBConfig;
-  renameRules: RenameRule[];
   /**
    * The opened media folder paths in SMM. Path is in Platform-specific format.
    */
@@ -43,7 +42,6 @@ export interface UserConfig {
   ai?: AIConfig
   selectedAI?: AI
   selectedTMDBIntance?: TMDBInstance
-  dryRun: boolean,
   /**
    * The name of rename rule
    */
