@@ -47,6 +47,7 @@ export async function listFiles(req: ListFilesRequestBody): Promise<ListFilesRes
 
 /**
  * List files and folders in a directory
+ * @deprecated
  * @param path platform-specific path (supports "~" for home directory)
  * @param options optional filters
  */

@@ -15,9 +15,9 @@ import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
 import { useHandlePosterDownload } from "@/hooks/useHandlePosterDownload"
 import { useHandleFanartDownload } from "@/hooks/useHandleFanartDownload"
 import { useHandleThumbnailDownload } from "@/hooks/useHandleThumbnailDownload"
-import { listFilesApi } from "@/api/listFiles"
+import { listFiles } from "@/api/listFiles"
 import { Path } from "@core/path"
-import { basename, extname } from "@/lib/path"
+import { basename, extname, dirname } from "@/lib/path"
 import type { MediaMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 
@@ -102,16 +102,18 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
 
   try {
     // Get all files in the media folder
-    const response = await listFilesApi(Path.toPlatformPath(mediaMetadata.mediaFolderPath), {
+    const response = await listFiles({
+      path: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
       onlyFiles: true,
+      recursively: true,
     })
 
     if (!response.data?.items) {
-      console.error('[checkTaskCompletion] Failed to get files from listFilesApi')
+      console.error('[checkTaskCompletion] Failed to get files from listFiles')
       return defaultCompletion
     }
 
-    const files = response.data.items
+    const files = response.data.items.map(p => Path.posix(p))
 
     // Check for poster file
     // Poster files are named "poster.{extension}" where extension is an image extension
@@ -144,46 +146,90 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
 
     // Check for thumbnails
     // Thumbnails are named based on the video file name: "{videoFileNameWithoutExt}.{imageExtension}"
+    console.log('[checkTaskCompletion] Starting thumbnail check')
     let thumbnailsCompleted = true
 
     // If there are no media files, thumbnails are considered complete (nothing to download)
     if (!mediaMetadata.mediaFiles || mediaMetadata.mediaFiles.length === 0) {
+      console.log('[checkTaskCompletion] No media files found, thumbnails considered complete')
       thumbnailsCompleted = true
     } else {
+      console.log(`[checkTaskCompletion] Checking ${mediaMetadata.mediaFiles.length} media files for thumbnails`)
+      console.log(`[checkTaskCompletion] All files in media folder:`, files.map(f => basename(f)))
+      
       // Check each media file that has season and episode numbers
       for (const mediaFile of mediaMetadata.mediaFiles) {
+        console.log(`[checkTaskCompletion] Checking media file: ${mediaFile.absolutePath}`)
+        console.log(`[checkTaskCompletion]   - seasonNumber: ${mediaFile.seasonNumber}, episodeNumber: ${mediaFile.episodeNumber}`)
+        
         // Skip files without season/episode numbers
         if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) {
+          console.log(`[checkTaskCompletion]   - Skipping (no season/episode numbers)`)
           continue
         }
 
         // Get the video file's base name (without extension)
         const videoFileName = basename(mediaFile.absolutePath)
         if (!videoFileName) {
+          console.log(`[checkTaskCompletion]   - ERROR: Could not get basename from ${mediaFile.absolutePath}`)
           thumbnailsCompleted = false
           break
         }
 
+        console.log(`[checkTaskCompletion]   - videoFileName: ${videoFileName}`)
         const videoFileExt = extname(videoFileName)
         const videoFileNameWithoutExt = videoFileName.replace(videoFileExt, '')
+        console.log(`[checkTaskCompletion]   - videoFileNameWithoutExt: ${videoFileNameWithoutExt}`)
+        
+        // Get the directory where the video file is located
+        const videoFileDir = dirname(mediaFile.absolutePath)
+        console.log(`[checkTaskCompletion]   - videoFileDir: ${videoFileDir}`)
+        console.log(`[checkTaskCompletion]   - Looking for thumbnail files starting with: ${videoFileNameWithoutExt}. in directory: ${videoFileDir}`)
+
+        // Filter files to only those in the same directory as the video file
+        const filesInSameDir = files.filter((file) => {
+          const fileDir = dirname(file)
+          return fileDir === videoFileDir
+        })
+        console.log(`[checkTaskCompletion]   - Files in same directory (${filesInSameDir.length}):`, filesInSameDir.map(f => basename(f)))
 
         // Check if a thumbnail file exists with the same base name but with an image extension
-        const hasThumbnail = files.some((file) => {
+        const matchingFiles = filesInSameDir.filter((file) => {
+          const fileName = basename(file)
+          if (!fileName) return false
+          return fileName.startsWith(videoFileNameWithoutExt + '.')
+        })
+        console.log(`[checkTaskCompletion]   - Files starting with "${videoFileNameWithoutExt}.":`, matchingFiles.map(f => basename(f)))
+
+        const hasThumbnail = filesInSameDir.some((file) => {
           const fileName = basename(file)
           if (!fileName) return false
 
           // Check if file starts with video base name and ends with an image extension
-          return (
-            fileName.startsWith(videoFileNameWithoutExt + '.') &&
-            imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-          )
+          const startsWith = fileName.startsWith(videoFileNameWithoutExt + '.')
+          const endsWithImageExt = imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+          const matches = startsWith && endsWithImageExt
+          
+          if (matches) {
+            console.log(`[checkTaskCompletion]   - ✓ Found matching thumbnail: ${fileName} in ${videoFileDir}`)
+          }
+          
+          return matches
         })
 
         if (!hasThumbnail) {
+          console.log(`[checkTaskCompletion]   - ✗ Thumbnail NOT found for ${videoFileName}`)
+          console.log(`[checkTaskCompletion]   - Expected: ${videoFileNameWithoutExt}.{${imageFileExtensions.join('|')}}`)
+          console.log(`[checkTaskCompletion]   - Expected location: ${videoFileDir}`)
+          console.log(`[checkTaskCompletion]   - Available files in same directory:`, filesInSameDir.map(f => basename(f)))
           thumbnailsCompleted = false
           break
+        } else {
+          console.log(`[checkTaskCompletion]   - ✓ Thumbnail found for ${videoFileName} in ${videoFileDir}`)
         }
       }
+      
+      console.log(`[checkTaskCompletion] Thumbnail check completed. thumbnailsCompleted: ${thumbnailsCompleted}`)
     }
 
     // Check for season posters
@@ -192,15 +238,16 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       console.log('[checkTaskCompletion] Starting season poster check')
       try {
         // Get all folders in the media folder
-        const foldersResponse = await listFilesApi(Path.toPlatformPath(mediaMetadata.mediaFolderPath), {
+        const foldersResponse = await listFiles({
+          path: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
           onlyFolders: true,
         })
 
         if (!foldersResponse.data?.items) {
           console.log('[checkTaskCompletion] No folders found in media folder, skipping season poster check')
         } else {
-          const folders = foldersResponse.data.items
-          console.log(`[checkTaskCompletion] Found ${folders.length} folders in media folder:`, folders.map(f => basename(f)))
+          const folders = foldersResponse.data.items.map((p: string) => Path.posix(p))
+          console.log(`[checkTaskCompletion] Found ${folders.length} folders in media folder:`, folders.map((f: string) => basename(f)))
 
           // Check each season that has poster_path
           const seasonsToCheck = mediaMetadata.tmdbTvShow.seasons.filter(s => s.poster_path)
@@ -220,7 +267,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
 
             console.log(`[checkTaskCompletion] Looking for season folder with names:`, possibleFolderNames)
 
-            const seasonFolder = folders.find((folder) => {
+            const seasonFolder = folders.find((folder: string) => {
               const folderBasename = basename(folder)
               return folderBasename !== undefined && possibleFolderNames.includes(folderBasename)
             })
@@ -235,7 +282,8 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
             console.log(`[checkTaskCompletion] Found season folder for season ${season.season_number}: ${seasonFolder}`)
 
             // Get files in the season folder
-            const seasonFolderFilesResponse = await listFilesApi(Path.toPlatformPath(seasonFolder), {
+            const seasonFolderFilesResponse = await listFiles({
+              path: Path.toPlatformPath(seasonFolder),
               onlyFiles: true,
             })
 
@@ -245,15 +293,15 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
               continue
             }
 
-            const seasonFolderFiles = seasonFolderFilesResponse.data.items
-            console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map(f => basename(f)))
+            const seasonFolderFiles = seasonFolderFilesResponse.data.items.map((p: string) => Path.posix(p))
+            console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map((f: string) => basename(f)))
 
             // Check if season{number}-poster.{extension} exists in the season folder
             const seasonNumberPadded = season.season_number.toString().padStart(2, '0')
             const seasonPosterFileNamePrefix = `season${seasonNumberPadded}-poster.`
             console.log(`[checkTaskCompletion] Looking for season poster with prefix: ${seasonPosterFileNamePrefix}`)
 
-            const hasSeasonPoster = seasonFolderFiles.some((file) => {
+            const hasSeasonPoster = seasonFolderFiles.some((file: string) => {
               const fileName = basename(file)
               if (!fileName) return false
               const matches = fileName.startsWith(seasonPosterFileNamePrefix) &&
@@ -287,12 +335,15 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       }
     }
 
-    return {
+    const completion = {
       poster: posterCompleted,
       fanart: fanartCompleted,
       thumbnails: thumbnailsCompleted,
       nfo: nfoCompleted,
     }
+    
+    console.log('[checkTaskCompletion] Final completion status:', completion)
+    return completion
   } catch (error) {
     console.error('[checkTaskCompletion] Error checking task completion:', error)
     // If there's an error, assume tasks are not completed
