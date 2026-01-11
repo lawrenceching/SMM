@@ -33,9 +33,10 @@
     "defaultTitle": "Task Progress",
     "defaultDescription": "Current task execution status",
     "mediaTitle": "Scrape Media",
-    "mediaDescription": "Download poster, thumbnails, and nfo files",
+    "mediaDescription": "Download poster, fanart, thumbnails, and nfo files",
     "tasks": {
       "poster": "Poster",
+      "fanart": "Fanart",
       "thumbnails": "Episode Thumbnails",
       "nfo": "nfo"
     },

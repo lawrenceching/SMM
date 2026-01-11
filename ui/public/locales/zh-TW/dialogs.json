@@ -33,9 +33,10 @@
     "defaultTitle": "任務進度",
     "defaultDescription": "目前任務執行狀態",
     "mediaTitle": "擷取媒體",
-    "mediaDescription": "下載海報、縮圖和nfo檔案",
+    "mediaDescription": "下載海報、背景圖、縮圖和nfo檔案",
     "tasks": {
       "poster": "海報",
+      "fanart": "背景圖",
       "thumbnails": "每集封面",
       "nfo": "nfo"
     },

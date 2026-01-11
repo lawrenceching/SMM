@@ -13,6 +13,7 @@ import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
 import { useHandlePosterDownload } from "@/hooks/useHandlePosterDownload"
+import { useHandleFanartDownload } from "@/hooks/useHandleFanartDownload"
 import { useHandleThumbnailDownload } from "@/hooks/useHandleThumbnailDownload"
 import { listFilesApi } from "@/api/listFiles"
 import { Path } from "@core/path"
@@ -80,11 +81,13 @@ function areAllTasksDone(tasks: Task[]): boolean {
 
 async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
   poster: boolean
+  fanart: boolean
   thumbnails: boolean
   nfo: boolean
 }> {
   const defaultCompletion = {
     poster: false,
+    fanart: false,
     thumbnails: false,
     nfo: false,
   }
@@ -115,6 +118,17 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       if (!fileName) return false
       return (
         fileName.startsWith('poster.') &&
+        imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+      )
+    })
+
+    // Check for fanart file
+    // Fanart files are named "fanart.{extension}" where extension is an image extension
+    const fanartCompleted = files.some((file) => {
+      const fileName = basename(file)
+      if (!fileName) return false
+      return (
+        fileName.startsWith('fanart.') &&
         imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
       )
     })
@@ -172,6 +186,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
 
     return {
       poster: posterCompleted,
+      fanart: fanartCompleted,
       thumbnails: thumbnailsCompleted,
       nfo: nfoCompleted,
     }
@@ -192,6 +207,7 @@ export function ScrapeDialog({
   const defaultDescription = t('scrape.defaultDescription')
   const handleScrapeStart = useHandleScrapeStart()
   const handlePosterDownload = useHandlePosterDownload()
+  const handleFanartDownload = useHandleFanartDownload()
   const handleThumbnailDownload = useHandleThumbnailDownload()
 
   const [tasks, setTasks] = useState<Task[]>([])
@@ -213,6 +229,17 @@ export function ScrapeDialog({
                 throw new Error('mediaMetadata is undefined')
               }
               await handlePosterDownload(mediaMetadata)
+            }
+          },
+          {
+            name: t('scrape.tasks.fanart', { ns: 'dialogs' }),
+            status: completion.fanart ? "completed" : "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleFanartDownload(mediaMetadata)
             }
           },
           {
@@ -256,6 +283,17 @@ export function ScrapeDialog({
             }
           },
           {
+            name: t('scrape.tasks.fanart', { ns: 'dialogs' }),
+            status: "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleFanartDownload(mediaMetadata)
+            }
+          },
+          {
             name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
             status: "pending",
             execute: async () => {
@@ -280,7 +318,7 @@ export function ScrapeDialog({
         ])
       })
     }
-  }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload, handleThumbnailDownload])
+  }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload, handleFanartDownload, handleThumbnailDownload])
 
   const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
   const canClose = allTasksDone
