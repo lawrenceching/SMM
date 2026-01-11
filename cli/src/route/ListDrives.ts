@@ -47,6 +47,87 @@ function isAdministrativeShare(path: string): boolean {
   return shareName.endsWith('$') || shareName === 'PRINT$';
 }
 
+/**
+ * Parse the output of `net view \\SERVER` command
+ * Extracts share names from the output
+ * 
+ * Example output format:
+ * Shared resources at \\FNOS
+ * fnOS server (Samba TRIM)
+ * 
+ * Share name  Type  Used as  Comment
+ * -------------------------------------------------------------------------------
+ * docker      Disk
+ * Documents   Disk
+ * Downloads   Disk
+ * Files       Disk
+ * Media       Disk
+ * Photos      Disk
+ */
+export function _parseNetViewOutput(output: string): string[] {
+  try {
+    const shares: string[] = [];
+    const lines = output.split('\n');
+    
+    let inShareList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line === undefined || line === null) continue;
+      
+      const trimmed = line.trim();
+      
+      // Skip empty lines
+      if (trimmed.length === 0) {
+        continue;
+      }
+      
+      // Look for the header line that starts with "Share name"
+      if (/^Share name/i.test(trimmed)) {
+        inShareList = true;
+        continue;
+      }
+      
+      // Skip separator lines (---)
+      if (trimmed.startsWith('---')) {
+        continue;
+      }
+      
+      // Skip informational messages
+      if (trimmed.toLowerCase().includes('shared resources at') ||
+          trimmed.toLowerCase().includes('system error') ||
+          trimmed.toLowerCase().includes('command completed')) {
+        continue;
+      }
+      
+      // Parse share lines (only after we've seen the header)
+      if (inShareList) {
+        // Share lines have format: "ShareName    Type    Used as    Comment"
+        // Split by multiple spaces to get columns
+        const parts = trimmed.split(/\s{2,}/);
+        if (parts.length > 0) {
+          const shareName = parts[0]?.trim();
+          if (shareName && shareName.length > 0) {
+            // Filter out administrative shares (ending with $)
+            if (!shareName.endsWith('$')) {
+              shares.push(shareName);
+            }
+          }
+        }
+      }
+    }
+    
+    logger.info({ shareCount: shares.length, shares }, '[ListDrives] _parseNetViewOutput completed');
+    return shares;
+  } catch (error) {
+    logger.info({ 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }, '[ListDrives] Unexpected error in _parseNetViewOutput');
+    return [];
+  }
+}
+
 function _parseNetUseOutput(output: string): string[] {
   try {
     const drives: string[] = [];
@@ -164,6 +245,52 @@ function _parseNetUseOutput(output: string): string[] {
 }
 
 /**
+ * Get available shares for a network server using `net view \\SERVER`
+ * @param serverName Server name in format \\SERVER
+ * @returns Array of share names for the server, or empty array if command fails
+ */
+function getServerShares(serverName: string): string[] {
+  try {
+    // Ensure server name starts with \\
+    const server = serverName.startsWith('\\\\') ? serverName : `\\\\${serverName}`;
+    
+    const output = shell.exec(`net view "${server}"`, {
+      silent: true,
+      timeout: 5000,
+    });
+
+    // Check exit code - non-zero means command failed (e.g., System error 53)
+    if (output.code !== 0) {
+      logger.warn({
+        code: output.code,
+        serverName: server,
+        stderr: output.stderr,
+        stdout: output.stdout
+      }, '[ListDrives] getServerShares command failed for server');
+      return [];
+    }
+
+    // Use stdout if available, otherwise fall back to toString()
+    const str = output.stdout || output.toString();
+
+    // If output is empty, return empty array
+    if (!str || str.trim().length === 0) {
+      logger.warn({ serverName: server }, '[ListDrives] getServerShares returned empty output');
+      return [];
+    }
+
+    return _parseNetViewOutput(str);
+  } catch (error) {
+    logger.error({
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      serverName
+    }, '[ListDrives] Unexpected error in getServerShares');
+    return [];
+  }
+}
+
+/**
  * Always assume it's in Windows
  * @returns return the drive paths. If the command fail or timeout, return an empty array.
  */
@@ -204,9 +331,58 @@ function networkDrives(): string[] {
       return [];
     }
 
-    return _parseNetUseOutput(str)
+    // Parse net use output to get initial drives and server names
+    const initialDrives = _parseNetUseOutput(str)
       .filter(drive => drive !== undefined && drive !== null)
       .filter(drive => !isAdministrativeShare(drive));
+
+    // Extract unique server names from the initial results
+    const serverNames = new Set<string>();
+    const result: string[] = [];
+
+    for (const drive of initialDrives) {
+      if (drive.endsWith(':\\')) {
+        // Keep drive letters (e.g., "Z:\")
+        result.push(drive);
+      } else if (drive.startsWith('\\\\')) {
+        const serverName = extractServerName(drive);
+        if (serverName && serverName === drive) {
+          // This is just a server name (e.g., "\\FNOS"), collect it for net view
+          serverNames.add(serverName);
+        } else {
+          // This is a full UNC path (e.g., "\\FNOS\Media"), keep it
+          result.push(drive);
+          // Also extract server name for discovering additional shares
+          if (serverName) {
+            serverNames.add(serverName);
+          }
+        }
+      } else {
+        // Keep other paths as-is
+        result.push(drive);
+      }
+    }
+
+    // For each unique server, use net view to discover all shares
+    for (const serverName of serverNames) {
+      const shares = getServerShares(serverName);
+      for (const share of shares) {
+        const sharePath = `${serverName}\\${share}`;
+        // Only add if not already in result (avoid duplicates)
+        if (!result.includes(sharePath)) {
+          result.push(sharePath);
+        }
+      }
+    }
+
+    logger.info({ 
+      serverCount: serverNames.size,
+      servers: Array.from(serverNames),
+      resultCount: result.length,
+      result 
+    }, '[ListDrives] networkDrives completed');
+
+    return result;
   } catch (error) {
     logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in networkDrives');
     return [];
