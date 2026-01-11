@@ -36,7 +36,7 @@
     "mediaDescription": "Download poster, thumbnails, and nfo files",
     "tasks": {
       "poster": "Poster",
-      "thumbnails": "Thumbnails",
+      "thumbnails": "Episode Thumbnails",
       "nfo": "nfo"
     },
     "status": {

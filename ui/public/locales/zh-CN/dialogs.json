@@ -36,7 +36,7 @@
     "mediaDescription": "下载海报、缩略图和nfo文件",
     "tasks": {
       "poster": "海报",
-      "thumbnails": "缩略图",
+      "thumbnails": "每集封面",
       "nfo": "nfo"
     },
     "status": {

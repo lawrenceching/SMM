@@ -36,7 +36,7 @@
     "mediaDescription": "下載海報、縮圖和nfo檔案",
     "tasks": {
       "poster": "海報",
-      "thumbnails": "縮圖",
+      "thumbnails": "每集封面",
       "nfo": "nfo"
     },
     "status": {

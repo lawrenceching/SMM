@@ -13,6 +13,14 @@ import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
 import { useHandlePosterDownload } from "@/hooks/useHandlePosterDownload"
+import { useHandleThumbnailDownload } from "@/hooks/useHandleThumbnailDownload"
+import { listFilesApi } from "@/api/listFiles"
+import { Path } from "@core/path"
+import { basename, extname } from "@/lib/path"
+import type { MediaMetadata } from "@core/types"
+
+// Image file extensions that can be used for posters and thumbnails
+const imageFileExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.svg']
 
 interface Task {
   name: string;
@@ -70,6 +78,110 @@ function areAllTasksDone(tasks: Task[]): boolean {
   })
 }
 
+async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
+  poster: boolean
+  thumbnails: boolean
+  nfo: boolean
+}> {
+  const defaultCompletion = {
+    poster: false,
+    thumbnails: false,
+    nfo: false,
+  }
+
+  // Validate media folder path exists
+  if (!mediaMetadata?.mediaFolderPath) {
+    console.error('[checkTaskCompletion] mediaFolderPath is undefined')
+    return defaultCompletion
+  }
+
+  try {
+    // Get all files in the media folder
+    const response = await listFilesApi(Path.toPlatformPath(mediaMetadata.mediaFolderPath), {
+      onlyFiles: true,
+    })
+
+    if (!response.data?.items) {
+      console.error('[checkTaskCompletion] Failed to get files from listFilesApi')
+      return defaultCompletion
+    }
+
+    const files = response.data.items
+
+    // Check for poster file
+    // Poster files are named "poster.{extension}" where extension is an image extension
+    const posterCompleted = files.some((file) => {
+      const fileName = basename(file)
+      if (!fileName) return false
+      return (
+        fileName.startsWith('poster.') &&
+        imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+      )
+    })
+
+    // Check for NFO file
+    // NFO file is named "tvshow.nfo"
+    const nfoCompleted = files.some((file) => {
+      const fileName = basename(file)
+      return fileName === 'tvshow.nfo'
+    })
+
+    // Check for thumbnails
+    // Thumbnails are named based on the video file name: "{videoFileNameWithoutExt}.{imageExtension}"
+    let thumbnailsCompleted = true
+
+    // If there are no media files, thumbnails are considered complete (nothing to download)
+    if (!mediaMetadata.mediaFiles || mediaMetadata.mediaFiles.length === 0) {
+      thumbnailsCompleted = true
+    } else {
+      // Check each media file that has season and episode numbers
+      for (const mediaFile of mediaMetadata.mediaFiles) {
+        // Skip files without season/episode numbers
+        if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) {
+          continue
+        }
+
+        // Get the video file's base name (without extension)
+        const videoFileName = basename(mediaFile.absolutePath)
+        if (!videoFileName) {
+          thumbnailsCompleted = false
+          break
+        }
+
+        const videoFileExt = extname(videoFileName)
+        const videoFileNameWithoutExt = videoFileName.replace(videoFileExt, '')
+
+        // Check if a thumbnail file exists with the same base name but with an image extension
+        const hasThumbnail = files.some((file) => {
+          const fileName = basename(file)
+          if (!fileName) return false
+
+          // Check if file starts with video base name and ends with an image extension
+          return (
+            fileName.startsWith(videoFileNameWithoutExt + '.') &&
+            imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+          )
+        })
+
+        if (!hasThumbnail) {
+          thumbnailsCompleted = false
+          break
+        }
+      }
+    }
+
+    return {
+      poster: posterCompleted,
+      thumbnails: thumbnailsCompleted,
+      nfo: nfoCompleted,
+    }
+  } catch (error) {
+    console.error('[checkTaskCompletion] Error checking task completion:', error)
+    // If there's an error, assume tasks are not completed
+    return defaultCompletion
+  }
+}
+
 export function ScrapeDialog({
   isOpen,
   onClose,
@@ -80,45 +192,95 @@ export function ScrapeDialog({
   const defaultDescription = t('scrape.defaultDescription')
   const handleScrapeStart = useHandleScrapeStart()
   const handlePosterDownload = useHandlePosterDownload()
+  const handleThumbnailDownload = useHandleThumbnailDownload()
 
   const [tasks, setTasks] = useState<Task[]>([])
 
   // Initialize tasks when dialog opens or mediaMetadata changes
   useEffect(() => {
     if (isOpen && mediaMetadata) {
-      setTasks([
-        {
-          name: t('scrape.tasks.poster', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
+      const initializeTasks = async () => {
+        // Check if tasks are already completed by checking for existing files
+        const completion = await checkTaskCompletion(mediaMetadata)
+
+        setTasks([
+          {
+            name: t('scrape.tasks.poster', { ns: 'dialogs' }),
+            status: completion.poster ? "completed" : "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handlePosterDownload(mediaMetadata)
             }
-            await handlePosterDownload(mediaMetadata)
-          }
-        },
-        {
-          name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            console.error('not yet implemented')
-          }
-        },
-        {
-          name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
+          },
+          {
+            name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
+            status: completion.thumbnails ? "completed" : "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleThumbnailDownload(mediaMetadata)
             }
-            await handleScrapeStart(mediaMetadata)
-          }
-        },
-      ])
+          },
+          {
+            name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
+            status: completion.nfo ? "completed" : "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleScrapeStart(mediaMetadata)
+            }
+          },
+        ])
+      }
+
+      initializeTasks().catch((error) => {
+        console.error('[ScrapeDialog] Error initializing tasks:', error)
+        // Fallback to pending status if initialization fails
+        setTasks([
+          {
+            name: t('scrape.tasks.poster', { ns: 'dialogs' }),
+            status: "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handlePosterDownload(mediaMetadata)
+            }
+          },
+          {
+            name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
+            status: "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleThumbnailDownload(mediaMetadata)
+            }
+          },
+          {
+            name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
+            status: "pending",
+            execute: async () => {
+              if (!mediaMetadata) {
+                console.error('[ScrapeDialog] mediaMetadata is undefined')
+                throw new Error('mediaMetadata is undefined')
+              }
+              await handleScrapeStart(mediaMetadata)
+            }
+          },
+        ])
+      })
     }
-  }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload])
+  }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload, handleThumbnailDownload])
 
   const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
   const canClose = allTasksDone
@@ -136,6 +298,11 @@ export function ScrapeDialog({
       // Execute tasks sequentially
       const currentTasks = [...tasks]
       for (let i = 0; i < currentTasks.length; i++) {
+        // Skip tasks that are already completed or failed
+        if (currentTasks[i].status === "completed" || currentTasks[i].status === "failed") {
+          continue
+        }
+
         // Update task status to running
         setTasks(prevTasks => {
           const updated = [...prevTasks]
