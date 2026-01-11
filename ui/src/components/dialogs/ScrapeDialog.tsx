@@ -22,6 +22,10 @@ import type { MediaMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 
 interface Task {
+  id: string;
+  /**
+   * The i18n name
+   */
   name: string;
   status: "pending" | "running" | "completed" | "failed";
   execute: () => Promise<void>;
@@ -314,107 +318,77 @@ export function ScrapeDialog({
   // Initialize tasks when dialog opens or mediaMetadata changes
   useEffect(() => {
     if (isOpen && mediaMetadata) {
+
+      let tasks: Task[] = [
+        {
+          id: 'poster',
+          name: t('scrape.tasks.poster', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handlePosterDownload(mediaMetadata)
+          }
+        },
+        {
+          id: 'fanart',
+          name: t('scrape.tasks.fanart' as any, { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handleFanartDownload(mediaMetadata)
+          }
+        },
+        {
+          id: 'thumbnails',
+          name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handleThumbnailDownload(mediaMetadata)
+          }
+        },
+        {
+          id: 'nfo',
+          name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
+          status: "pending",
+          execute: async () => {
+            if (!mediaMetadata) {
+              console.error('[ScrapeDialog] mediaMetadata is undefined')
+              throw new Error('mediaMetadata is undefined')
+            }
+            await handleScrapeStart(mediaMetadata)
+          }
+        },
+      ]
+
+      setTasks(tasks)
+
       const initializeTasks = async () => {
         // Check if tasks are already completed by checking for existing files
         const completion = await checkTaskCompletion(mediaMetadata)
+        console.log('[ScrapeDialog] completion:', completion)
 
-        setTasks([
-          {
-            name: t('scrape.tasks.poster', { ns: 'dialogs' }),
-            status: completion.poster ? "completed" : "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handlePosterDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.fanart' as any, { ns: 'dialogs' }),
-            status: completion.fanart ? "completed" : "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleFanartDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
-            status: completion.thumbnails ? "completed" : "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleThumbnailDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
-            status: completion.nfo ? "completed" : "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleScrapeStart(mediaMetadata)
-            }
-          },
-        ])
+        tasks = tasks.map(task => {
+          return {
+            ...task,
+            status: completion[task.id as keyof typeof completion] ? "completed" : "pending",
+          }
+        })
+
+        setTasks(tasks)
       }
 
       initializeTasks().catch((error) => {
         console.error('[ScrapeDialog] Error initializing tasks:', error)
-        // Fallback to pending status if initialization fails
-        setTasks([
-          {
-            name: t('scrape.tasks.poster', { ns: 'dialogs' }),
-            status: "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handlePosterDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.fanart' as any, { ns: 'dialogs' }),
-            status: "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleFanartDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
-            status: "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleThumbnailDownload(mediaMetadata)
-            }
-          },
-          {
-            name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
-            status: "pending",
-            execute: async () => {
-              if (!mediaMetadata) {
-                console.error('[ScrapeDialog] mediaMetadata is undefined')
-                throw new Error('mediaMetadata is undefined')
-              }
-              await handleScrapeStart(mediaMetadata)
-            }
-          },
-        ])
       })
     }
   }, [isOpen, mediaMetadata, t, handleScrapeStart, handlePosterDownload, handleFanartDownload, handleThumbnailDownload])
