@@ -3,6 +3,7 @@ import path from 'path';
 import { mkdir } from 'fs/promises';
 import { validatePathIsInAllowlist } from './path-validator';
 import { Path } from '@core/path';
+import { existedFileError, isError, ExistedFileError } from '@core/errors';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
 import { logger, logHttpIn, logHttpOut } from '../../lib/logger';
@@ -13,7 +14,7 @@ const writeFileRequestSchema = z.object({
   data: z.string(),
 });
 
-export async function processWriteFile(body: WriteFileRequestBody): Promise<WriteFileResponseBody> {
+export async function doWriteFile(body: WriteFileRequestBody): Promise<WriteFileResponseBody> {
   try {
     // Validate request body
     const validationResult = writeFileRequestSchema.safeParse(body);
@@ -25,10 +26,11 @@ export async function processWriteFile(body: WriteFileRequestBody): Promise<Writ
     }
 
     const { path: filePath, data } = validationResult.data;
-    
-    // Convert path to POSIX format for validation
-    const posixPath = Path.posix(filePath);
-    
+
+    // Resolve to absolute path first, then convert to POSIX format for validation
+    const resolvedPath = path.resolve(filePath);
+    const posixPath = Path.posix(resolvedPath);
+
     // Validate path is in allowlist
     const isAllowed = await validatePathIsInAllowlist(posixPath);
     if (!isAllowed) {
@@ -36,9 +38,18 @@ export async function processWriteFile(body: WriteFileRequestBody): Promise<Writ
         error: `Path "${filePath}" is not in the allowlist`,
       };
     }
-    
-    // Resolve to absolute path for file operations
-    const validatedPath = path.resolve(filePath);
+
+    // Use the resolved path for file operations
+    const validatedPath = resolvedPath;
+
+    // Check if file already exists
+    const file = Bun.file(validatedPath);
+    const exists = await file.exists();
+    if (exists) {
+      return {
+        error: existedFileError(validatedPath),
+      };
+    }
 
     // Ensure parent directory exists
     const parentDir = path.dirname(validatedPath);
@@ -70,10 +81,15 @@ export function handleWriteFile(app: Hono) {
     try {
       const rawBody = await c.req.json();
       logHttpIn(c, rawBody);
-      const result = await processWriteFile(rawBody);
+      const result = await doWriteFile(rawBody);
       
-      // If there's an error, return 400, otherwise 200
+      // If there's an error, check if it's a "file already exists" error
       if (result.error) {
+        // Return 200 status if file already exists, otherwise 400
+        if (isError(result.error, ExistedFileError)) {
+          logHttpOut(c, result, 200);
+          return c.json(result, 200);
+        }
         logHttpOut(c, result, 400);
         return c.json(result, 400);
       }

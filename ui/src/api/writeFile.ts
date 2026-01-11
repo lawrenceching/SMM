@@ -20,13 +20,16 @@ async function writeFile(path: string, content: string): Promise<void> {
     body: JSON.stringify(req),
   })
 
-  if (!resp.ok) {
-    throw new Error(`Failed to read file: ${resp.statusText}`);
+  const data: WriteFileResponseBody = await resp.json();
+  
+  // Check for error in response body (works for both 200 and 400 status codes)
+  if (data.error) {
+    throw new Error(data.error);
   }
 
-  const data: WriteFileResponseBody = await resp.json();
-  if (data.error) {
-    throw new Error(`Failed to read file: ${data.error}`);
+  // Fallback check for non-OK status codes (like 500)
+  if (!resp.ok) {
+    throw new Error(`Failed to write file: ${resp.statusText}`);
   }
 
 }

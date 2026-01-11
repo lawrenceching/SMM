@@ -155,6 +155,7 @@ export function ScrapeDialog({
             return updated
           })
           console.error(`Task "${currentTasks[i].name}" failed:`, error)
+          // Error toast is shown by the hook/API layer with more specific error messages
         }
       }
     }

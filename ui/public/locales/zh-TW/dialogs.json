@@ -69,7 +69,8 @@
     }
   },
   "errors": {
-    "providerError": "useDialogs 必須在 DialogProvider 內使用"
+    "providerError": "useDialogs 必須在 DialogProvider 內使用",
+    "fileAlreadyExists": "檔案已存在"
   }
 }
 

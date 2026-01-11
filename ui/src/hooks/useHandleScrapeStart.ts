@@ -5,8 +5,11 @@ import { writeFile } from "@/api/writeFile"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { join } from "@/lib/path"
 import { Path } from "@core/path"
+import { toast } from "sonner"
+import { isError, ExistedFileError } from "@core/errors"
+import { useTranslation } from "@/lib/i18n"
 
-async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata) {
+async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata, getTranslation: () => string) {
     // Generate NFO file from media metadata
     if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
         console.error("Cannot generate NFO: Missing TV show data or media folder path")
@@ -72,13 +75,29 @@ async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata) {
         console.log(`✅ NFO file written to: ${nfoPath}`)
     } catch (error) {
         console.error("Failed to generate NFO file:", error)
+        const errorMessage = error instanceof Error ? error.message : "Failed to generate NFO file"
+        
+        // Check if error is "File Already Existed"
+        if (isError(errorMessage, ExistedFileError)) {
+            toast.error(getTranslation(), {
+                description: errorMessage
+            })
+        } else {
+            toast.error("Failed to write NFO file", {
+                description: errorMessage
+            })
+        }
+        
+        throw error // Re-throw to let the task handler mark it as failed
     }
 }
 
 export function useHandleScrapeStart() {
+    const { t } = useTranslation('dialogs')
     const handleScrapeStart = useCallback(async (mediaMetadata: MediaMetadata) => {
+        const fileAlreadyExistsMessage = t('errors.fileAlreadyExists' as any)
         try {
-            await startToGenerateTvShowNfo(mediaMetadata)
+            await startToGenerateTvShowNfo(mediaMetadata, () => fileAlreadyExistsMessage)
             
             // Call done callback to mark all tasks as completed
 
@@ -127,8 +146,9 @@ export function useHandleScrapeStart() {
             // }
         } catch (error) {
             console.error("Scrape start error:", error)
+            throw error // Re-throw so the task handler can mark the task as failed
         }
-    }, [])
+    }, [t])
 
     return handleScrapeStart
 }

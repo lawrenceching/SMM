@@ -23,10 +23,11 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
     }
 
     const { path: filePath } = validationResult.data;
-    
-    // Convert path to POSIX format for validation
-    const posixPath = Path.posix(filePath);
-    
+
+    // Resolve to absolute path first, then convert to POSIX format for validation
+    const resolvedPath = path.resolve(filePath);
+    const posixPath = Path.posix(resolvedPath);
+
     // Validate path is in allowlist
     const isAllowed = await validatePathIsInAllowlist(posixPath);
     if (!isAllowed) {
