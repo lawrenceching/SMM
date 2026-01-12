@@ -757,11 +757,11 @@ export interface FileRenameResponseBody {
 
 export interface FolderRenameRequestBody {
   /**
-   * Absolute path of source folder
+   * Absolute path of source folder, in POSIX format
    */
   from: string;
   /**
-   * Absolute path of destination folder
+   * Absolute path of destination folder, in POSIX format
    */
   to: string;
 }

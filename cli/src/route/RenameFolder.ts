@@ -2,31 +2,23 @@ import { z } from 'zod';
 import { Path } from '@core/path';
 import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types';
 import { rename } from 'fs/promises';
-import pino from 'pino';
-import { executeHelloTask } from 'tasks/HelloTask';
 import { getUserConfig, renameFolderInUserConfig, writeUserConfig } from '@/utils/config';
 import { renameMediaFolderInMediaMetadata } from '@/utils/mediaMetadataUtils';
 import { deleteMediaMetadataFile, findMediaMetadata, writeMediaMetadata } from '@/utils/mediaMetadata';
 import { broadcast } from '@/utils/socketIO';
-import { rm } from 'fs';
-import { unlink } from 'fs/promises';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 
-const logger = pino();
-
-const dryRun: boolean = false;
-
 const renameFolderRequestSchema = z.object({
-  from: z.string().min(1, 'Source folder path is required'),
-  to: z.string().min(1, 'Destination folder path is required'),
+  from: z.string().min(1, 'Source folder path is required, in POSIX format'),
+  to: z.string().min(1, 'Destination folder path is required, in POSIX format'),
 });
 
-export async function processRenameFolder(body: FolderRenameRequestBody, clientId?: string): Promise<FolderRenameResponseBody> {
+export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: string): Promise<FolderRenameResponseBody> {
   try {
     const userConfig = await getUserConfig();
     
-    if (!userConfig.folders.includes(body.from)) {
+    if (!userConfig.folders.includes(Path.toPlatformPath(body.from))) {
       logger.error({
         from: body.from,
         to: body.to,
@@ -78,7 +70,7 @@ export async function processRenameFolder(body: FolderRenameRequestBody, clientI
     }, '[handleRenameFolder] Renamed folder in user config');
     await writeUserConfig(newUserConfig);
     
-    await rename(from, to);
+    await rename(Path.toPlatformPath(from), Path.toPlatformPath(to));
 
 
     broadcast({
@@ -101,7 +93,7 @@ export function handleRenameFolder(app: Hono) {
       const rawBody = await c.req.json();
       const clientId = c.req.header('clientId');
       logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
-      const result = await processRenameFolder(rawBody, clientId);
+      const result = await doRenameFolder(rawBody, clientId);
       
       // Always return 200 status code per API design guideline
       // Business errors are returned in the "error" field
