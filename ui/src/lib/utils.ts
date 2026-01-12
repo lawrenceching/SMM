@@ -276,7 +276,7 @@ export async function checkFileExists(filePath: string): Promise<boolean> {
 
     // Check if the filename exists in the file list (case-sensitive match)
     const fileExists = files.some((file) => {
-      const fileBasename = basename(file)
+      const fileBasename = basename(file.path)
       return fileBasename === fileName
     })
 
@@ -373,12 +373,12 @@ async function findSeasonFolder(mediaFolderPath: string, seasonNumber: number): 
     // Check each possible folder name
     for (const folderName of possibleFolderNames) {
       const matchingFolder = folders.find((folder) => {
-        const folderBasename = basename(folder)
+        const folderBasename = basename(folder.path)
         return folderBasename === folderName
       })
 
       if (matchingFolder) {
-        return matchingFolder
+        return matchingFolder.path
       }
     }
 

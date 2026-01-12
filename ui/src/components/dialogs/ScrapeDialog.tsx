@@ -113,7 +113,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       return defaultCompletion
     }
 
-    const files = response.data.items.map(p => Path.posix(p))
+    const files = response.data.items.map(p => Path.posix(p.path))
 
     // Check for poster file
     // Poster files are named "poster.{extension}" where extension is an image extension
@@ -246,7 +246,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
         if (!foldersResponse.data?.items) {
           console.log('[checkTaskCompletion] No folders found in media folder, skipping season poster check')
         } else {
-          const folders = foldersResponse.data.items.map((p: string) => Path.posix(p))
+          const folders = foldersResponse.data.items.map(p => Path.posix(p.path))
           console.log(`[checkTaskCompletion] Found ${folders.length} folders in media folder:`, folders.map((f: string) => basename(f)))
 
           // Check each season that has poster_path
@@ -293,7 +293,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
               continue
             }
 
-            const seasonFolderFiles = seasonFolderFilesResponse.data.items.map((p: string) => Path.posix(p))
+            const seasonFolderFiles = seasonFolderFilesResponse.data.items.map(p => Path.posix(p.path))
             console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map((f: string) => basename(f)))
 
             // Check if season{number}-poster.{extension} exists in the season folder
