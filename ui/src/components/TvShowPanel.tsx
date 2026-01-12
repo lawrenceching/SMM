@@ -4,7 +4,7 @@ import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { UseNfoPrompt } from "./UseNfoPrompt"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import type { MediaFileMetadata, TMDBEpisode, TMDBTVShow } from "@core/types"
+import type { MediaFileMetadata, TMDBEpisode, TMDBTVShow, TMDBTVShowDetails } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
 import type { MediaMetadata } from "@core/types"
@@ -181,6 +181,7 @@ function TvShowPanel() {
   const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
 
   const [isUseNfoPromptOpen, setIsUseNfoPromptOpen] = useState(false)
+  const [loadedNfoData, setLoadedNfoData] = useState<TMDBTVShowDetails | undefined>(undefined)
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
 
@@ -284,7 +285,13 @@ function TvShowPanel() {
     if(mediaMetadata.tmdbTvShow === undefined) {
       console.log(`[TvShowPanel] trying to infer to media type`);
       if(mediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
-        setIsUseNfoPromptOpen(true)
+        // Read NFO file before opening prompt
+        loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
+          if (tmdbTvShowDetails !== undefined) {
+            setLoadedNfoData(tmdbTvShowDetails)
+            setIsUseNfoPromptOpen(true)
+          }
+        })
       }
     }
 
@@ -647,39 +654,40 @@ function TvShowPanel() {
 
           <UseNfoPrompt
             isOpen={isUseNfoPromptOpen}
+            mediaName={loadedNfoData?.name}
+            tmdbid={loadedNfoData?.id}
             onConfirm={() => {
               setIsUseNfoPromptOpen(false)
-              if (mediaMetadata) {
-                loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
-                  
-                  if (tmdbTvShowDetails !== undefined) {
-                    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShowDetails.id}`);
-                    
-                    // Create a minimal TMDBTVShow object with just the ID
-                    // handleSelectResult will fetch the full details
-                    const minimalTvShow: TMDBTVShow = {
-                      id: tmdbTvShowDetails.id,
-                      name: '',
-                      original_name: '',
-                      overview: '',
-                      poster_path: null,
-                      backdrop_path: null,
-                      first_air_date: '',
-                      vote_average: 0,
-                      vote_count: 0,
-                      popularity: 0,
-                      genre_ids: [],
-                      origin_country: [],
-                      media_type: 'tv'
-                    }
-                    
-                    // Call handleSelectResult via ref to fetch and set the TV show
-                    tmdbTvShowOverviewRef.current?.handleSelectResult(minimalTvShow)
-                  }
-                })
+              if (loadedNfoData) {
+                console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${loadedNfoData.id}`);
+                
+                // Create a minimal TMDBTVShow object with just the ID
+                // handleSelectResult will fetch the full details
+                const minimalTvShow: TMDBTVShow = {
+                  id: loadedNfoData.id,
+                  name: '',
+                  original_name: '',
+                  overview: '',
+                  poster_path: null,
+                  backdrop_path: null,
+                  first_air_date: '',
+                  vote_average: 0,
+                  vote_count: 0,
+                  popularity: 0,
+                  genre_ids: [],
+                  origin_country: [],
+                  media_type: 'tv'
+                }
+                
+                // Call handleSelectResult via ref to fetch and set the TV show
+                tmdbTvShowOverviewRef.current?.handleSelectResult(minimalTvShow)
               }
+              setLoadedNfoData(undefined)
             }}
-            onCancel={() => setIsUseNfoPromptOpen(false)}
+            onCancel={() => {
+              setIsUseNfoPromptOpen(false)
+              setLoadedNfoData(undefined)
+            }}
           />
 
           <RuleBasedRenameFilePrompt
