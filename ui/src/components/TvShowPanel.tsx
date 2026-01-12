@@ -1,8 +1,5 @@
 import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
-import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
-import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
-import { UseNfoPrompt } from "./UseNfoPrompt"
 import { useState, useEffect, useCallback, useRef } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
@@ -16,9 +13,8 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
-import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { recognizeEpisodes, mapTagToFileType } from "./TvShowPanelUtils"
+import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
@@ -146,6 +142,35 @@ function TvShowPanel() {
     
   }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage, startToRenameFiles, setIsAiBasedRenameFilePromptOpen])
 
+  // Callback handlers for prompts
+  const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
+
+  const handleRuleBasedRenameConfirm = useCallback(() => {
+    setIsRuleBasedRenameFilePromptOpen(false)
+    startToRenameFiles()
+  }, [setIsRuleBasedRenameFilePromptOpen, startToRenameFiles])
+
+  const handleRuleBasedRecognizeConfirm = useCallback(() => {
+    setIsRuleBasedRecognizePromptOpen(false)
+    setSeasons(seasonsBackup.current)
+    seasonsBackup.current = []
+    console.log(`[TvShowPanel] seasons state restored because of user confirm`)
+    if (mediaMetadata) {
+      console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
+      recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
+    }
+  }, [setIsRuleBasedRecognizePromptOpen, setSeasons, seasonsBackup, mediaMetadata, seasons, updateMediaMetadata])
+
+  const handleRuleBasedRecognizeCancel = useCallback(() => {
+    setIsRuleBasedRecognizePromptOpen(false)
+    setSeasons(seasonsBackup.current)
+    seasonsBackup.current = []
+    console.log(`[TvShowPanel] seasons state restored because of user cancel`)
+  }, [setIsRuleBasedRecognizePromptOpen, setSeasons, seasonsBackup])
+
 
   useEffect(() => {
 
@@ -230,104 +255,32 @@ function TvShowPanel() {
 
   return (
     <div className='p-1 w-full h-full relative'>
-      <div className="absolute top-0 left-0 w-full z-20">
-
-          <UseNfoPrompt
-            isOpen={isUseNfoPromptOpen}
-            mediaName={loadedNfoData?.name}
-            tmdbid={loadedNfoData?.id}
-            onConfirm={() => {
-              setIsUseNfoPromptOpen(false)
-              if (loadedNfoData) {
-                console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${loadedNfoData.id}`);
-                
-                // Create a minimal TMDBTVShow object with just the ID
-                // handleSelectResult will fetch the full details
-                const minimalTvShow: TMDBTVShow = {
-                  id: loadedNfoData.id,
-                  name: '',
-                  original_name: '',
-                  overview: '',
-                  poster_path: null,
-                  backdrop_path: null,
-                  first_air_date: '',
-                  vote_average: 0,
-                  vote_count: 0,
-                  popularity: 0,
-                  genre_ids: [],
-                  origin_country: [],
-                  media_type: 'tv'
-                }
-                
-                // Call handleSelectResult via ref to fetch and set the TV show
-                tmdbTvShowOverviewRef.current?.handleSelectResult(minimalTvShow)
-              }
-              setLoadedNfoData(undefined)
-            }}
-            onCancel={() => {
-              setIsUseNfoPromptOpen(false)
-              setLoadedNfoData(undefined)
-            }}
-          />
-
-          <RuleBasedRenameFilePrompt
-            isOpen={isRuleBasedRenameFilePromptOpen}
-            namingRuleOptions={toolbarOptions}
-            selectedNamingRule={selectedNamingRule}
-            onNamingRuleChange={(value) => {
-              setSelectedNamingRule(value as "plex" | "emby")
-            }}
-            onConfirm={() => {
-              setIsRuleBasedRenameFilePromptOpen(false)
-              startToRenameFiles();
-            }}
-            onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
-          />
-
-          <AiBasedRenameFilePrompt
-            isOpen={isAiBasedRenameFilePromptOpen}
-            status={aiBasedRenameFileStatus}
-            onConfirm={handleAiBasedRenamePromptConfirm}
-            onCancel={() => setIsAiBasedRenameFilePromptOpen(false)}
-          />
-
-          <AiBasedRecognizePrompt
-              isOpen={isAiRecognizePromptOpen}
-              status={aiRecognizeStatus}
-              onConfirm={() => {
-                setIsAiRecognizePromptOpen(false)
-              }}
-              onCancel={() => {
-                setIsAiRecognizePromptOpen(false)
-              }}
-              confirmLabel={confirmButtonLabel}
-              isConfirmButtonDisabled={confirmButtonDisabled}
-              isConfirmDisabled={isRenaming}
-            />
-
-          <RuleBasedRecognizePrompt
-            isOpen={isRuleBasedRecognizePromptOpen}
-            onConfirm={() => {
-              setIsRuleBasedRecognizePromptOpen(false)
-              setSeasons(seasonsBackup.current)
-              seasonsBackup.current = []
-              console.log(`[TvShowPanel] seasons state restored because of user confirm`)
-              if (mediaMetadata) {
-                console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
-                recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
-              }
-              
-            }}
-            onCancel={() => {
-              setIsRuleBasedRecognizePromptOpen(false)
-              setSeasons(seasonsBackup.current)
-              seasonsBackup.current = []
-              console.log(`[TvShowPanel] seasons state restored because of user cancel`)
-            }}
-          />
-
-          
-      </div>
+      <TvShowPanelPrompts
+        isUseNfoPromptOpen={isUseNfoPromptOpen}
+        setIsUseNfoPromptOpen={setIsUseNfoPromptOpen}
+        loadedNfoData={loadedNfoData}
+        setLoadedNfoData={setLoadedNfoData}
+        onUseNfoConfirm={handleUseNfoConfirm}
+        isRuleBasedRenameFilePromptOpen={isRuleBasedRenameFilePromptOpen}
+        setIsRuleBasedRenameFilePromptOpen={setIsRuleBasedRenameFilePromptOpen}
+        toolbarOptions={toolbarOptions}
+        selectedNamingRule={selectedNamingRule}
+        setSelectedNamingRule={setSelectedNamingRule}
+        onRuleBasedRenameConfirm={handleRuleBasedRenameConfirm}
+        isAiBasedRenameFilePromptOpen={isAiBasedRenameFilePromptOpen}
+        setIsAiBasedRenameFilePromptOpen={setIsAiBasedRenameFilePromptOpen}
+        aiBasedRenameFileStatus={aiBasedRenameFileStatus}
+        onAiBasedRenameConfirm={handleAiBasedRenamePromptConfirm}
+        isAiRecognizePromptOpen={isAiRecognizePromptOpen}
+        setIsAiRecognizePromptOpen={setIsAiRecognizePromptOpen}
+        aiRecognizeStatus={aiRecognizeStatus}
+        confirmButtonLabel={confirmButtonLabel}
+        confirmButtonDisabled={confirmButtonDisabled}
+        isRenaming={isRenaming}
+        isRuleBasedRecognizePromptOpen={isRuleBasedRecognizePromptOpen}
+        onRuleBasedRecognizeConfirm={handleRuleBasedRecognizeConfirm}
+        onRuleBasedRecognizeCancel={handleRuleBasedRecognizeCancel}
+      />
 
       
       <div className="w-full h-full">
