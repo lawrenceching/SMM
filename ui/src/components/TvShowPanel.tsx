@@ -184,6 +184,22 @@ function TvShowPanel() {
   const [loadedNfoData, setLoadedNfoData] = useState<TMDBTVShowDetails | undefined>(undefined)
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+  const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
+
+  // Close UseNfoPrompt when mediaMetadata instance changes (different media folder selected)
+  useEffect(() => {
+    const currentPath = mediaMetadata?.mediaFolderPath
+    const prevPath = prevMediaFolderPathRef.current
+    
+    // If the path changed (different instance), close the prompt
+    if (prevPath !== undefined && currentPath !== prevPath) {
+      setIsUseNfoPromptOpen(false)
+      setLoadedNfoData(undefined)
+    }
+    
+    // Update the ref with the current path
+    prevMediaFolderPathRef.current = currentPath
+  }, [mediaMetadata?.mediaFolderPath])
 
   useWebSocketEvent((message) => {
 
