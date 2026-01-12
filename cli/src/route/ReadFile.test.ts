@@ -85,7 +85,7 @@ describe('processReadFile', () => {
     const result = await processReadFile(request);
 
     expect(result.data).toBeUndefined();
-    expect(result.error).toBe(`File not found: ${nonexistentPath}`);
+    expect(result.error).toBe(`File Not Found: ${nonexistentPath}`);
   });
 
   it('should return error when path is empty', async () => {
