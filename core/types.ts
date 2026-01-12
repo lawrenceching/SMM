@@ -692,6 +692,20 @@ export interface OpenInFileManagerResponseBody {
   error?: string
 }
 
+export interface OpenFileRequestBody {
+  /**
+   * The absolute path to the file to open in platform-specific format
+   */
+  path: string
+}
+
+export interface OpenFileResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}
+
 export interface ScrapeRequestBody {
   /**
    * The absolute path to the media folder (in POSIX format)

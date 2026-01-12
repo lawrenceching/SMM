@@ -72,7 +72,12 @@ describe('readMediaMetadataV2', () => {
     vi.mocked(listFiles).mockResolvedValue({
       data: {
         path: pathPosix,
-        items: mockFiles,
+        items: mockFiles.map(path => ({
+          path,
+          size: 0,
+          mtime: 0,
+          isDirectory: false,
+        })),
       },
       error: undefined,
     })
@@ -114,7 +119,12 @@ describe('readMediaMetadataV2', () => {
     vi.mocked(listFiles).mockResolvedValue({
       data: {
         path: pathPosix,
-        items: ['/test/media/folder/video1.mp4'],
+        items: [{
+          path: '/test/media/folder/video1.mp4',
+          size: 0,
+          mtime: 0,
+          isDirectory: false,
+        }],
       },
       error: undefined,
     })
@@ -193,7 +203,12 @@ describe('readMediaMetadataV2', () => {
     vi.mocked(listFiles).mockResolvedValue({
       data: {
         path: pathPosix,
-        items: ['/test/media/folder/video1.mp4'],
+        items: [{
+          path: '/test/media/folder/video1.mp4',
+          size: 0,
+          mtime: 0,
+          isDirectory: false,
+        }],
       },
       error: undefined,
     })
@@ -243,7 +258,12 @@ describe('readMediaMetadataV2', () => {
     vi.mocked(listFiles).mockResolvedValue({
       data: {
         path: pathPosix,
-        items: ['/test/media/folder/video1.mp4'],
+        items: [{
+          path: '/test/media/folder/video1.mp4',
+          size: 0,
+          mtime: 0,
+          isDirectory: false,
+        }],
       },
       error: undefined,
     })
@@ -288,7 +308,12 @@ describe('readMediaMetadataV2', () => {
     vi.mocked(listFiles).mockResolvedValue({
       data: {
         path: pathPosix,
-        items: ['/test/media/folder/video1.mp4'],
+        items: [{
+          path: '/test/media/folder/video1.mp4',
+          size: 0,
+          mtime: 0,
+          isDirectory: false,
+        }],
       },
       error: undefined,
     })

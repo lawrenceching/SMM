@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { listFiles } from "@/api/listFiles"
 import { listDrivesApi } from "@/api/listDrives"
+import { openFile } from "@/api/openFile"
 import type { FileItem } from "@/components/dialogs/types"
 import { useTranslation } from "@/lib/i18n"
 
@@ -36,6 +37,13 @@ const DRIVES_VIEW_PATH = '__DRIVES__'
 function getFileExtension(filename: string): string {
   const parts = filename.split('.')
   return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
+}
+
+// Helper function to check if a file is an image
+function isImageFile(filename: string): boolean {
+  const ext = getFileExtension(filename)
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico', 'tiff']
+  return imageExtensions.includes(ext)
 }
 
 // Helper function to get file icon based on extension
@@ -477,7 +485,20 @@ export function FileExplorer({
     onFileSelect(file)
   }
 
-  const handleItemDoubleClick = (file: FileItem) => {
+  const handleItemDoubleClick = async (file: FileItem) => {
+    // Double-click: open image files or navigate into folder
+    if (!file.isDirectory && isImageFile(file.name)) {
+      // Open image file with system default application
+      try {
+        await openFile(file.path)
+      } catch (error) {
+        console.error('[FileExplorer] Failed to open image file:', error)
+      }
+      // Call optional double click handler
+      onFileDoubleClick?.(file)
+      return
+    }
+
     // Double-click: navigate into folder
     if (file.isDirectory) {
       // Check if we're in drives view - if so, navigate to the selected drive

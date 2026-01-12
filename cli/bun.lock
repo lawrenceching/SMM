@@ -9,6 +9,7 @@
         "@ai-sdk/openai-compatible": "^1.0.0",
         "@assistant-ui/react-ai-sdk": "^1.1.20",
         "@socket.io/bun-engine": "^0.1.0",
+        "@types/shelljs": "^0.10.0",
         "ai": "5.0.116",
         "dotenv": "^17.2.3",
         "es-toolkit": "^1.43.0",
@@ -132,6 +133,8 @@
     "@types/cors": ["@types/cors@2.8.19", "https://repo.huaweicloud.com/repository/npm/@types/cors/-/cors-2.8.19.tgz", { "dependencies": { "@types/node": "*" } }, "sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg=="],
 
     "@types/node": ["@types/node@24.10.2", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA=="],
+
+    "@types/shelljs": ["@types/shelljs@0.10.0", "", { "dependencies": { "@types/node": "*", "fast-glob": "^3.3.2" } }, "sha512-OEfyhE5Ox+FeoHbhrEDwm0kXxntO6nsyMRCFvNsIBHPZu5rV1w2OjPcLclaC/IZ1TlzZPgbeMfwAZEi5N238yQ=="],
 
     "@vercel/oidc": ["@vercel/oidc@3.0.5", "", {}, "sha512-fnYhv671l+eTTp48gB4zEsTW/YtRgRPnkI2nT7x6qw5rkI1Lq2hTmQIpHPgyThI0znLK+vX2n9XxKdXZ7BUbbw=="],
 

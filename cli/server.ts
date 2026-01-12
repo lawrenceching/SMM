@@ -22,6 +22,7 @@ import { handleTmdb } from './src/route/Tmdb';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
+import { handleOpenFile } from './src/route/OpenFile';
 import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { requestId } from 'hono/request-id';
@@ -135,6 +136,7 @@ export class Server {
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
+    handleOpenFile(this.app);
     handleScrapeRequest(this.app);
     handleDebugRequest(this.app);
     handleTmdb(this.app);
