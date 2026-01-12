@@ -16,7 +16,9 @@ import {
   FileArchive,
   Layers,
   HardDrive,
-  RefreshCw
+  RefreshCw,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -86,6 +88,48 @@ function getFileIcon(filename: string, isDirectory: boolean, isDrive: boolean = 
   return <File className="h-4 w-4 text-gray-400" />
 }
 
+// Helper function to format file size
+function formatFileSize(size: number): string {
+  if (size < 1024) {
+    return `${size} B`
+  } else if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(0)} KB`
+  } else if (size < 1024 * 1024 * 1024) {
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  } else {
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  }
+}
+
+// Helper function to format relative date
+function formatRelativeDate(mtime: number): string {
+  const now = Date.now()
+  const diff = now - mtime
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (seconds < 60) {
+    return "Just now"
+  } else if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
+  } else if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+  } else if (days === 0) {
+    const date = new Date(mtime)
+    return `Today at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+  } else if (days === 1) {
+    const date = new Date(mtime)
+    return `Yesterday at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+  } else if (days < 7) {
+    return `${days} days ago`
+  } else {
+    const date = new Date(mtime)
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  }
+}
+
 export interface FileExplorerProps {
   currentPath: string
   onPathChange: (path: string) => void
@@ -119,6 +163,8 @@ export function FileExplorer({
   const [searchQuery, setSearchQuery] = useState("")
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
   const [showDrives, setShowDrives] = useState(false)
+  const [sortColumn, setSortColumn] = useState<'name' | 'size' | 'date'>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const loadFiles = useCallback(async (path: string) => {
     // Skip loading if we're in drives view (drives are loaded separately)
@@ -155,25 +201,51 @@ export function FileExplorer({
           }
 
           // Convert to FileItem format
-          const items: FileItem[] = response.data.items.map((filePath) => {
-            const pathParts = filePath.split(/[/\\]/)
-            const name = pathParts[pathParts.length - 1] || filePath
-            // Determine if it's a directory by checking if there's a file extension
-            const isDirectory = !name.includes('.') || name.endsWith('/')
-            return {
-              name,
-              path: filePath,
-              isDirectory,
-            }
-          })
+          // Handle both old format (strings) and new format (objects) for backward compatibility
+          const items: FileItem[] = response.data.items
+            .map((item) => {
+              // Check if item is a string (old format) or object (new format)
+              let path: string
+              let isDirectory: boolean | undefined
+              let size: number | undefined
+              let mtime: number | undefined
 
-          // Sort: folders first, then files, both alphabetically
-          const sortedItems = items.sort((a, b) => {
-            if (a.isDirectory && !b.isDirectory) return -1
-            if (!a.isDirectory && b.isDirectory) return 1
-            return a.name.localeCompare(b.name)
-          })
-          setFiles(sortedItems)
+              if (typeof item === 'string') {
+                // Old format: item is a string path
+                path = item
+                const pathParts = path.split(/[/\\]/)
+                const name = pathParts[pathParts.length - 1] || path
+                // Determine if it's a directory by checking if there's a file extension
+                isDirectory = !name.includes('.') || name.endsWith('/')
+                size = undefined
+                mtime = undefined
+              } else {
+                // New format: item is an object with metadata
+                path = item.path || ''
+                if (!path) {
+                  console.warn('[FileExplorer] item has no path:', item)
+                  return null
+                }
+                isDirectory = item.isDirectory
+                size = item.size
+                mtime = item.mtime
+              }
+
+              const pathParts = path.split(/[/\\]/)
+              const name = pathParts[pathParts.length - 1] || path
+
+              const fileItem: FileItem = {
+                name,
+                path,
+                isDirectory,
+                size,
+                mtime,
+              }
+              return fileItem
+            })
+            .filter((item): item is FileItem => item !== null)
+
+          setFiles(items)
         }
 
         
@@ -195,6 +267,34 @@ export function FileExplorer({
       file.name.toLowerCase().includes(query)
     )
   }, [files, searchQuery])
+  
+  // Sort files based on sortColumn and sortDirection
+  const sortedFiles = useMemo(() => {
+    const filesToSort = [...filteredFiles]
+    
+    return filesToSort.sort((a, b) => {
+      // Always put folders first
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      
+      // Both are folders or both are files, sort by selected column
+      let comparison = 0
+      
+      if (sortColumn === 'name') {
+        comparison = a.name.localeCompare(b.name)
+      } else if (sortColumn === 'size') {
+        const sizeA = a.size ?? 0
+        const sizeB = b.size ?? 0
+        comparison = sizeA - sizeB
+      } else if (sortColumn === 'date') {
+        const dateA = a.mtime ?? 0
+        const dateB = b.mtime ?? 0
+        comparison = dateA - dateB
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }, [filteredFiles, sortColumn, sortDirection])
   
   // Helper function to normalize paths to POSIX format for comparison
   const normalizeToPosix = useCallback((p: string): string => {
@@ -593,15 +693,27 @@ export function FileExplorer({
     }
   }
   
+  // Handle column header click for sorting
+  const handleColumnHeaderClick = (column: 'name' | 'size' | 'date') => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Set new column with ascending direction
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+  
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (filteredFiles.length === 0) return
+    if (sortedFiles.length === 0) return
     
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
         setFocusedIndex(prev => 
-          prev < filteredFiles.length - 1 ? prev + 1 : prev
+          prev < sortedFiles.length - 1 ? prev + 1 : prev
         )
         break
       case 'ArrowUp':
@@ -610,8 +722,8 @@ export function FileExplorer({
         break
       case 'Enter':
         e.preventDefault()
-        if (focusedIndex >= 0 && focusedIndex < filteredFiles.length) {
-          const file = filteredFiles[focusedIndex]
+        if (focusedIndex >= 0 && focusedIndex < sortedFiles.length) {
+          const file = sortedFiles[focusedIndex]
           handleItemDoubleClick(file)
         }
         break
@@ -621,15 +733,15 @@ export function FileExplorer({
         setFocusedIndex(-1)
         break
     }
-  }, [filteredFiles, focusedIndex])
+  }, [sortedFiles, focusedIndex])
   
   // Update focused item when clicking
   useEffect(() => {
     if (selectedFile) {
-      const index = filteredFiles.findIndex(f => f.path === selectedFile.path)
+      const index = sortedFiles.findIndex(f => f.path === selectedFile.path)
       setFocusedIndex(index)
     }
-  }, [selectedFile, filteredFiles])
+  }, [selectedFile, sortedFiles])
 
   return (
     <div 
@@ -767,10 +879,7 @@ export function FileExplorer({
             min-width: 0 !important;
           }
           .file-item {
-            transition: all 0.15s ease-in-out;
-          }
-          .file-item:hover {
-            transform: translateX(4px);
+            transition: background-color 0.15s ease-in-out;
           }
         `}</style>
         <ScrollArea className="h-full w-full file-explorer-scroll-container">
@@ -790,7 +899,7 @@ export function FileExplorer({
                   <p className="text-xs text-muted-foreground">{error}</p>
                 </div>
               </div>
-            ) : filteredFiles.length === 0 ? (
+            ) : sortedFiles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <div className="rounded-full bg-muted p-3">
                   <File className="h-6 w-6 text-muted-foreground" />
@@ -806,7 +915,38 @@ export function FileExplorer({
               </div>
             ) : (
               <div className="flex flex-col gap-0">
-                {filteredFiles.map((file, index) => {
+                {/* Column Headers */}
+                <div className="grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground sticky top-0 z-10">
+                  <button
+                    onClick={() => handleColumnHeaderClick('name')}
+                    className="flex items-center gap-1.5 text-left hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                  >
+                    <span>Name</span>
+                    {sortColumn === 'name' && (
+                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleColumnHeaderClick('size')}
+                    className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                  >
+                    <span>Size</span>
+                    {sortColumn === 'size' && (
+                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleColumnHeaderClick('date')}
+                    className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                  >
+                    <span>Date Modified</span>
+                    {sortColumn === 'date' && (
+                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+                {/* File Rows */}
+                {sortedFiles.map((file, index) => {
                   const isFocused = index === focusedIndex
                   const isSelected = selectedFile?.path === file.path
                   // Check if this item is a drive (Windows drive path like "C:\")
@@ -818,31 +958,36 @@ export function FileExplorer({
                       onClick={() => handleItemClick(file)}
                       onDoubleClick={() => handleItemDoubleClick(file)}
                       className={cn(
-                        "file-item flex items-center gap-2 p-1.5 rounded-md cursor-pointer group",
+                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center",
                         "hover:bg-accent/50 active:bg-accent",
                         isSelected && "bg-primary/10 hover:bg-primary/15",
                         isFocused && "ring-2 ring-primary ring-inset"
                       )}
                     >
-                      <div className="shrink-0">
-                        {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={cn(
-                              "text-sm font-medium truncate block",
-                              file.isDirectory ? "text-foreground" : "text-foreground/90"
-                            )}>
-                              {file.name}
-                            </span>
-                          </div>
+                      {/* Name Column */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="shrink-0">
+                          {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
                         </div>
-                        
+                        <span className={cn(
+                          "text-sm font-medium truncate",
+                          file.isDirectory ? "text-foreground" : "text-foreground/90"
+                        )}>
+                          {file.name}
+                        </span>
                         {file.isDirectory && (
                           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                         )}
+                      </div>
+                      
+                      {/* Size Column */}
+                      <div className="text-sm text-muted-foreground text-right truncate">
+                        {file.isDirectory ? '--' : (file.size !== undefined ? formatFileSize(file.size) : '--')}
+                      </div>
+                      
+                      {/* Date Column */}
+                      <div className="text-sm text-muted-foreground text-right truncate">
+                        {file.mtime !== undefined ? formatRelativeDate(file.mtime) : '--'}
                       </div>
                     </div>
                   )
@@ -854,20 +999,20 @@ export function FileExplorer({
       </div>
       
       {/* Status Bar */}
-      {!isLoading && !error && filteredFiles.length > 0 && (
+      {!isLoading && !error && sortedFiles.length > 0 && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
           <span>
             {showDrives
-              ? String((t as any)('fileExplorer.drivesStatus', { count: filteredFiles.length }))
+              ? String((t as any)('fileExplorer.drivesStatus', { count: sortedFiles.length }))
               : String((t as any)('fileExplorer.statusBar', {
-                  folders: filteredFiles.filter(f => f.isDirectory).length,
-                  files: filteredFiles.filter(f => !f.isDirectory).length
+                  folders: sortedFiles.filter(f => f.isDirectory).length,
+                  files: sortedFiles.filter(f => !f.isDirectory).length
                 }))}
           </span>
           {searchQuery && (
             <span>
               {String((t as any)('fileExplorer.searchStatus', {
-                showing: filteredFiles.length,
+                showing: sortedFiles.length,
                 total: files.length
               }))}
             </span>

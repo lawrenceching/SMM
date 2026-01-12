@@ -92,7 +92,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
 
     // List directory contents
     try {
-      const results: string[] = [];
+      const results: Array<{ path: string; size: number; mtime: number; isDirectory: boolean }> = [];
 
       async function scanDirectory(dirPath: string): Promise<void> {
         const items = await readdir(dirPath);
@@ -135,7 +135,12 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
 
             // Add to results if it passes the filters (use absolute path)
             if (shouldAddToResults) {
-              results.push(fullPath);
+              results.push({
+                path: fullPath,
+                size: itemStats.size,
+                mtime: itemStats.mtimeMs,
+                isDirectory: isDirectory,
+              });
             }
 
             // If it's a directory and recursively is true, scan it recursively

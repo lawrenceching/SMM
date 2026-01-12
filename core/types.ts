@@ -117,9 +117,14 @@ export interface ListFilesResponseBody {
      */
     path: string;
     /**
-     * List of files and folders in the folder
+     * List of files and folders in the folder with metadata
      */
-    items: string[];
+    items: Array<{
+      path: string;
+      size: number;
+      mtime: number;
+      isDirectory: boolean;
+    }>;
   };
   error?: string;
 }

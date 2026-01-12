@@ -52,7 +52,11 @@ export async function readMediaMetadataV2(pathPosix: string): Promise<MediaMetad
     });
 
     if(listFilesResponseBody.data !== undefined ) {
-        mediaMetadata.files = listFilesResponseBody.data.items.map(i => Path.posix(i));
+        // Handle both old format (strings) and new format (objects with path property)
+        mediaMetadata.files = listFilesResponseBody.data.items.map(i => {
+            const path = typeof i === 'string' ? i : i.path;
+            return Path.posix(path);
+        });
     }
 
     console.log(`[readMediaMetadataV2] read media metadata: ${pathPosix}`, mediaMetadata);

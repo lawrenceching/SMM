@@ -15,6 +15,8 @@ export interface FileItem {
   name: string
   path: string
   isDirectory?: boolean
+  size?: number
+  mtime?: number
 }
 
 export interface ConfirmationDialogProps {
