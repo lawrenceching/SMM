@@ -34,9 +34,7 @@ export async function readFile(path: string): Promise<ReadFileResponseBody> {
       request: req,
       response: data,
     });
-  }
-
-  if(!data.data) {
+  } else if(!data.data) {
     console.error(`[readFile] unexpected response body: no data`, {
       url: resp.url,
       status: resp.status,
