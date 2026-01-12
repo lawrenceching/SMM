@@ -16,6 +16,7 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
+import { loadNfo } from "./helpers/loadNfo"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -42,7 +43,7 @@ export default function AppV2() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata, selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -69,6 +70,28 @@ export default function AppV2() {
     
     return hasWindow && hasElectron
   }, [])
+
+
+  useEffect(() => {
+    if(selectedMediaMetadata === undefined) {
+      return;
+    }
+
+    if(selectedMediaMetadata.tmdbTvShow !== undefined) {
+      return;
+    }
+
+    if(selectedMediaMetadata.type === undefined) {
+      if(selectedMediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
+        console.log(`[AppV2] found tvshow.info, indicating this folder is a TV show`);  
+        updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, {
+          ...selectedMediaMetadata,
+          type: "tvshow-folder",
+        })
+      }
+    }
+
+  }, [selectedMediaMetadata])
 
   // Open native file dialog in Electron
   const openNativeFileDialog = useCallback(async (): Promise<FileItem | null> => {

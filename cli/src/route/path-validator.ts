@@ -1,6 +1,7 @@
 import { getUserConfig, getUserDataDir } from '@/utils/config';
 import { Path } from '@core/path';
 import path from 'path';
+import logger from '../../lib/logger';
 
 /**
  * 
@@ -21,6 +22,11 @@ export async function validatePathIsInAllowlist(filePath: string): Promise<boole
   for (const folder of folders) {
     allowlist.push(Path.posix(folder));
   }
+
+  logger.info({
+    allowlist,
+    filePath,
+  }, `Validating path is in allowlist: ${filePath}`);
 
   return allowlist.some(allowlistItem => filePath.startsWith(allowlistItem));
 }

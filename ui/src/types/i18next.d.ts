@@ -62,6 +62,7 @@ interface ComponentsResources {
     aiRecognizing: string
     aiReviewEpisodes: string
     reviewRecognizeEpisodes: string
+    useNfoMetadata: string
   }
   mediaFolder: {
     rename: string

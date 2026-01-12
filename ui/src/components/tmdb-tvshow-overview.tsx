@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
-import { useCallback, useState, useEffect, useRef } from "react"
+import { useCallback, useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
@@ -13,6 +13,10 @@ import { SeasonSection } from "./season-section"
 import { useDialogs } from "./dialog-provider"
 import type { SeasonModel } from "./TvShowPanel"
 import { useTranslation } from "@/lib/i18n"
+
+export interface TMDBTVShowOverviewRef {
+    handleSelectResult: (result: TMDBTVShow) => Promise<void>
+}
 
 interface TMDBTVShowOverviewProps {
     tvShow?: TMDBTVShowDetails
@@ -47,7 +51,8 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBTVShowOverview({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, seasons, isPreviewMode, scrollToEpisodeId }: TMDBTVShowOverviewProps) {
+export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
+    ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, seasons, isPreviewMode, scrollToEpisodeId }, ref) => {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
@@ -263,6 +268,11 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, onRecogni
             setIsUpdatingTvShow(false)
         }
     }, [selectedMediaMetadata, userConfig, updateMediaMetadata])
+
+    // Expose handleSelectResult via ref
+    useImperativeHandle(ref, () => ({
+        handleSelectResult
+    }), [handleSelectResult])
     
     // When tvShow is undefined, show only ImmersiveSearchbox
     if (!tvShow && !isUpdatingTvShow) {
@@ -491,4 +501,6 @@ export function TMDBTVShowOverview({ tvShow, className, onRenameClick, onRecogni
             </div>
         </div>
     )
-}
+})
+
+TMDBTVShowOverview.displayName = 'TMDBTVShowOverview'

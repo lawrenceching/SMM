@@ -35,7 +35,8 @@
     "aiReview": "AI is going to rename episodes, please review...",
     "aiRecognizing": "AI is recognizing episodes...",
     "aiReviewEpisodes": "Review recognized episodes",
-    "reviewRecognizeEpisodes": "Review and confirm the recognize episodes..."
+    "reviewRecognizeEpisodes": "Review and confirm the recognize episodes...",
+    "useNfoMetadata": "Use media metadata from NFO file?"
   },
   "assistant": {
     "open": "Open Assistant",

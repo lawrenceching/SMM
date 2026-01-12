@@ -57,6 +57,9 @@ export interface ApiExecutePostRequestBody {
 }
 
 export interface ReadFileRequestBody {
+  /**
+   * Absolute path of file, it could be POSIX path or Windows path
+   */
   path: string;
 }
 

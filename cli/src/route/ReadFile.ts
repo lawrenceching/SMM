@@ -13,6 +13,7 @@ const readFileRequestSchema = z.object({
 });
 
 export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
+
   try {
     // Validate request body
     const validationResult = readFileRequestSchema.safeParse(body);
@@ -26,11 +27,12 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
     const { path: filePath } = validationResult.data;
 
     // Resolve to absolute path first, then convert to POSIX format for validation
-    const resolvedPath = path.resolve(filePath);
-    const posixPath = Path.posix(resolvedPath);
+    const posixPath = Path.posix(filePath);
+    const resolvedPath = path.posix.resolve(posixPath);
+    
 
     // Validate path is in allowlist
-    const isAllowed = await validatePathIsInAllowlist(posixPath);
+    const isAllowed = await validatePathIsInAllowlist(resolvedPath);
     if (!isAllowed) {
       return {
         error: `Path "${filePath}" is not in the allowlist`,
@@ -38,16 +40,16 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
     }
     
     // Resolve to absolute path for file operations
-    const validatedPath = path.resolve(filePath);
+    const platformPath = Path.toPlatformPath(resolvedPath);
 
     // Read file using Bun's file API
     try {
-      const file = Bun.file(validatedPath);
+      const file = Bun.file(platformPath);
       const exists = await file.exists();
       
       if (!exists) {
         return {
-          error: fileNotFoundError(validatedPath),
+          error: fileNotFoundError(filePath),
         };
       }
 

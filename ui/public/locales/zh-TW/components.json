@@ -35,7 +35,8 @@
     "aiReview": "AI將重新命名劇集，請查看...",
     "aiRecognizing": "AI正在識別劇集...",
     "aiReviewEpisodes": "檢視已識別的劇集",
-    "reviewRecognizeEpisodes": "檢視並確認已識別的劇集..."
+    "reviewRecognizeEpisodes": "檢視並確認已識別的劇集...",
+    "useNfoMetadata": "使用NFO檔案中的媒體元資料？"
   },
   "assistant": {
     "open": "開啟助手",

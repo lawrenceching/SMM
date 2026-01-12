@@ -1,9 +1,10 @@
-import { TMDBTVShowOverview } from "./tmdb-tvshow-overview"
+import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
-import { useState, useEffect, useCallback, useMemo } from "react"
-import type { MediaFileMetadata, TMDBEpisode } from "@core/types"
+import { UseNfoPrompt } from "./UseNfoPrompt"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import type { MediaFileMetadata, TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
 import type { MediaMetadata } from "@core/types"
@@ -24,6 +25,7 @@ import { lookup } from "@/lib/lookup"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { recognizeEpisodes } from "./TvShowPanelUtils"
+import { loadNfo } from "@/helpers/loadNfo"
 
 function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -178,6 +180,10 @@ function TvShowPanel() {
 
   const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
 
+  const [isUseNfoPromptOpen, setIsUseNfoPromptOpen] = useState(false)
+
+  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+
   useWebSocketEvent((message) => {
 
     // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
@@ -270,6 +276,17 @@ function TvShowPanel() {
 
   // Build seasons state from media metadata
   useEffect(() => {
+
+    if(mediaMetadata === undefined) {
+      return;
+    }
+
+    if(mediaMetadata.tmdbTvShow === undefined) {
+      console.log(`[TvShowPanel] trying to infer to media type`);
+      if(mediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
+        setIsUseNfoPromptOpen(true)
+      }
+    }
 
     setSeasons(() => {
       if(!mediaMetadata) {
@@ -628,6 +645,43 @@ function TvShowPanel() {
     <div className='p-1 w-full h-full relative'>
       <div className="absolute top-0 left-0 w-full z-20">
 
+          <UseNfoPrompt
+            isOpen={isUseNfoPromptOpen}
+            onConfirm={() => {
+              setIsUseNfoPromptOpen(false)
+              if (mediaMetadata) {
+                loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
+                  
+                  if (tmdbTvShowDetails !== undefined) {
+                    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShowDetails.id}`);
+                    
+                    // Create a minimal TMDBTVShow object with just the ID
+                    // handleSelectResult will fetch the full details
+                    const minimalTvShow: TMDBTVShow = {
+                      id: tmdbTvShowDetails.id,
+                      name: '',
+                      original_name: '',
+                      overview: '',
+                      poster_path: null,
+                      backdrop_path: null,
+                      first_air_date: '',
+                      vote_average: 0,
+                      vote_count: 0,
+                      popularity: 0,
+                      genre_ids: [],
+                      origin_country: [],
+                      media_type: 'tv'
+                    }
+                    
+                    // Call handleSelectResult via ref to fetch and set the TV show
+                    tmdbTvShowOverviewRef.current?.handleSelectResult(minimalTvShow)
+                  }
+                })
+              }
+            }}
+            onCancel={() => setIsUseNfoPromptOpen(false)}
+          />
+
           <RuleBasedRenameFilePrompt
             isOpen={isRuleBasedRenameFilePromptOpen}
             namingRuleOptions={toolbarOptions}
@@ -690,6 +744,7 @@ function TvShowPanel() {
       
       <div className="w-full h-full">
         <TMDBTVShowOverview 
+          ref={tmdbTvShowOverviewRef}
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
           onRenameClick={() => {setIsRuleBasedRenameFilePromptOpen(true)}}
