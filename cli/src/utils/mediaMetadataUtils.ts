@@ -48,7 +48,11 @@ export function renameMediaFolderInMediaMetadata(mediaMetadata: MediaMetadata, f
     }
     
     // Update files array
-    clone.files = clone.files?.map(file => replaceFolderPrefix(file));
+    if (clone.files === null) {
+        clone.files = null;
+    } else if (clone.files !== undefined) {
+        clone.files = clone.files.map(file => replaceFolderPrefix(file));
+    }
     
     // Update mediaFiles array
     clone.mediaFiles = clone.mediaFiles?.map(mediaFile => {
@@ -96,12 +100,16 @@ export function renameFileInMediaMetadata(mediaMetadata: MediaMetadata, from: st
     }, `Renaming file in media metadata: ${from} to ${to}`);
     const clone = structuredClone(mediaMetadata);
     
-    clone.files = clone.files?.map(file => {
-        if (file === from) {
-            return to;
-        }
-        return file;
-    });
+    if (clone.files === null) {
+        clone.files = null;
+    } else if (clone.files !== undefined) {
+        clone.files = clone.files.map(file => {
+            if (file === from) {
+                return to;
+            }
+            return file;
+        });
+    }
 
     clone.mediaFiles = clone.mediaFiles?.map(mediaFile => {
         if (mediaFile.absolutePath === from) {

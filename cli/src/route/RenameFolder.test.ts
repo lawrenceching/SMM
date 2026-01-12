@@ -1,6 +1,21 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, mock } from 'bun:test';
 import type { FolderRenameRequestBody, UserConfig, MediaMetadata } from '@core/types';
 import { Path } from '@core/path';
+
+// IMPORTANT: Import real implementations BEFORE setting up mocks to avoid circular dependencies
+// Use static imports to capture real function references before any mocks are set up
+import * as configModule from '@/utils/config';
+import * as mediaMetadataModule from '@/utils/mediaMetadata';
+import * as mediaMetadataUtilsModule from '@/utils/mediaMetadataUtils';
+import * as socketIOModule from '@/utils/socketIO';
+import * as fsPromisesModule from 'fs/promises';
+
+// Create spread objects with real function references
+const realConfigModule = { ...configModule };
+const realMediaMetadataModule = { ...mediaMetadataModule };
+const realMediaMetadataUtilsModule = { ...mediaMetadataUtilsModule };
+const realSocketIOModule = { ...socketIOModule };
+const realFsPromises = { ...fsPromisesModule };
 
 // Mock variables that can be controlled in tests
 let mockGetUserConfigReturn: UserConfig;
@@ -21,89 +36,168 @@ let deleteMediaMetadataFileCalledWith: string | null = null;
 let renameCalledWith: { from: string; to: string } | null = null;
 let broadcastCalledWith: { clientId?: string; event: string; data: any } | null = null;
 
-// Import real implementation to use in mock
-const realConfigModule = await import('@/utils/config');
+// Module to test - will be imported in beforeAll
+let doRenameFolder: any;
 
-// Set up the mocks before importing the handler
-mock.module('@/utils/config', () => ({
-  getUserDataDir: () => '/mock/user/data/dir',
-  getLogDir: () => '/mock/user/data/dir/logs',
-  getUserConfigPath: () => '/mock/user/data/dir/smm.json',
-  getUserConfig: async () => {
-    getUserConfigCalled = true;
-    if (mockGetUserConfigShouldThrow !== null) {
-      throw mockGetUserConfigShouldThrow;
-    }
-    return mockGetUserConfigReturn;
-  },
-  renameFolderInUserConfig: (userConfig: UserConfig, from: string, to: string) => {
-    console.log('[TEST MOCK] renameFolderInUserConfig called', { from, to });
-    renameFolderInUserConfigCalledWith = { userConfig, from, to };
-    // Implement the logic directly to avoid circular dependency
-    const actualFromPosix = Path.posix(from);
-    const actualFromWindows = Path.win(from);
-    const actualTo = Path.toPlatformPath(to);
-    const result: UserConfig = {
-      ...userConfig,
-      folders: userConfig.folders
-        .map(folder => folder === actualFromPosix ? actualTo : folder)
-        .map(folder => folder === actualFromWindows ? actualTo : folder),
-    };
-    console.log('[TEST MOCK] renameFolderInUserConfig returning');
-    return result;
-  },
-  writeUserConfig: async (userConfig: UserConfig) => {
-    writeUserConfigCalledWith = userConfig;
-  },
-}));
+// Wrap all tests in a top-level describe to ensure afterAll hook executes
+describe('RenameFolder tests', () => {
+  // Set up all module mocks before importing the handler
+  beforeAll(async () => {
+    // Set up the mocks before importing the handler
+    mock.module('@/utils/config', () => ({
+      getUserDataDir: () => '/mock/user/data/dir',
+      getLogDir: () => '/mock/user/data/dir/logs',
+      getUserConfigPath: () => '/mock/user/data/dir/smm.json',
+      getUserConfig: async () => {
+        getUserConfigCalled = true;
+        if (mockGetUserConfigShouldThrow !== null) {
+          throw mockGetUserConfigShouldThrow;
+        }
+        return mockGetUserConfigReturn;
+      },
+      renameFolderInUserConfig: (userConfig: UserConfig, from: string, to: string) => {
+        console.log('[TEST MOCK] renameFolderInUserConfig called', { from, to });
+        renameFolderInUserConfigCalledWith = { userConfig, from, to };
+        // Implement the logic directly to avoid circular dependency
+        const actualFromPosix = Path.posix(from);
+        const actualFromWindows = Path.win(from);
+        const actualTo = Path.toPlatformPath(to);
+        const result: UserConfig = {
+          ...userConfig,
+          folders: userConfig.folders
+            .map(folder => folder === actualFromPosix ? actualTo : folder)
+            .map(folder => folder === actualFromWindows ? actualTo : folder),
+        };
+        console.log('[TEST MOCK] renameFolderInUserConfig returning');
+        return result;
+      },
+      writeUserConfig: async (userConfig: UserConfig) => {
+        writeUserConfigCalledWith = userConfig;
+      },
+    }));
 
-mock.module('@/utils/mediaMetadata', () => ({
-  findMediaMetadata: async (path: string) => {
-    findMediaMetadataCalledWith = path;
-    if (mockFindMediaMetadataShouldThrow) {
-      throw mockFindMediaMetadataShouldThrow;
-    }
-    return mockFindMediaMetadataReturn;
-  },
-  writeMediaMetadata: async (mediaMetadata: MediaMetadata) => {
-    writeMediaMetadataCalledWith = mediaMetadata;
-  },
-  deleteMediaMetadataFile: async (path: string) => {
-    deleteMediaMetadataFileCalledWith = path;
-  },
-}));
+    mock.module('@/utils/mediaMetadata', () => ({
+      findMediaMetadata: async (path: string) => {
+        findMediaMetadataCalledWith = path;
+        if (mockFindMediaMetadataShouldThrow) {
+          throw mockFindMediaMetadataShouldThrow;
+        }
+        return mockFindMediaMetadataReturn;
+      },
+      writeMediaMetadata: async (mediaMetadata: MediaMetadata) => {
+        writeMediaMetadataCalledWith = mediaMetadata;
+      },
+      deleteMediaMetadataFile: async (path: string) => {
+        deleteMediaMetadataFileCalledWith = path;
+      },
+    }));
 
-mock.module('@/utils/mediaMetadataUtils', () => ({
-  renameMediaFolderInMediaMetadata: (mediaMetadata: MediaMetadata, from: string, to: string) => {
-    renameMediaFolderInMediaMetadataCalledWith = { mediaMetadata, from, to };
-    return mockRenameMediaFolderInMediaMetadataReturn;
-  },
-}));
+    mock.module('@/utils/mediaMetadataUtils', () => ({
+      renameMediaFolderInMediaMetadata: (mediaMetadata: MediaMetadata, from: string, to: string) => {
+        renameMediaFolderInMediaMetadataCalledWith = { mediaMetadata, from, to };
+        return mockRenameMediaFolderInMediaMetadataReturn;
+      },
+      renameFileInMediaMetadata: (mediaMetadata: MediaMetadata, from: string, to: string) => {
+        // Mock implementation for renameFileInMediaMetadata
+        const clone = structuredClone(mediaMetadata);
+        if (clone.files) {
+          clone.files = clone.files.map(file => file === from ? to : file);
+        }
+        if (clone.mediaFiles) {
+          clone.mediaFiles = clone.mediaFiles.map(file => ({
+            ...file,
+            absolutePath: file.absolutePath === from ? to : file.absolutePath
+          }));
+        }
+        return clone;
+      },
+    }));
 
-// Mock only rename from fs/promises, don't mock the entire module
-// Import the real module first to preserve other functions
-const realFsPromises = await import('fs/promises');
+    // Mock only rename from fs/promises, don't mock the entire module
+    mock.module('fs/promises', () => ({
+      ...realFsPromises,
+      rename: async (from: string, to: string) => {
+        renameCalledWith = { from, to };
+        if (mockRenameShouldThrow) {
+          throw mockRenameShouldThrow;
+        }
+        // Call the real rename for actual file system operation if needed
+        // But for tests, we just track the call
+      },
+    }));
 
-mock.module('fs/promises', () => ({
-  ...realFsPromises,
-  rename: async (from: string, to: string) => {
-    renameCalledWith = { from, to };
-    if (mockRenameShouldThrow) {
-      throw mockRenameShouldThrow;
-    }
-    // Call the real rename for actual file system operation if needed
-    // But for tests, we just track the call
-  },
-}));
+    mock.module('@/utils/socketIO', () => ({
+      broadcast: (options: { clientId?: string; event: string; data: any }) => {
+        broadcastCalledWith = options;
+      },
+      acknowledge: async (message: any, timeoutMs?: number) => {
+        // Mock acknowledge function for tests that might need it
+        return {};
+      },
+      setSocketIOInstance: (socketIO: any) => {
+        // Mock setSocketIOInstance function for tests that might need it
+      },
+      getSocketIOInstance: () => {
+        // Mock getSocketIOInstance function for tests that might need it
+        throw new Error('Socket.IO instance not initialized in test');
+      },
+      findSocketByClientId: (clientId?: string) => {
+        // Mock findSocketByClientId function for tests that might need it
+        throw new Error('Socket.IO instance not initialized in test');
+      },
+      getFirstActiveConnection: () => {
+        // Mock getFirstActiveConnection function for tests that might need it
+        return null;
+      },
+      isClientConnected: (clientId: string) => {
+        // Mock isClientConnected function for tests that might need it
+        return false;
+      },
+      getConnectedClientIds: () => {
+        // Mock getConnectedClientIds function for tests that might need it
+        return [];
+      },
+      initializeSocketIO: (io: any) => {
+        // Mock initializeSocketIO function for tests that might need it
+      },
+    }));
 
-mock.module('@/utils/socketIO', () => ({
-  broadcast: (options: { clientId?: string; event: string; data: any }) => {
-    broadcastCalledWith = options;
-  },
-}));
+    // Import after mocks are set up
+    const module = await import('./RenameFolder');
+    doRenameFolder = module.doRenameFolder;
+  });
 
-// Import after mocks are set up
-const { doRenameFolder } = await import('./RenameFolder');
+  // Ensure mocks are restored after all tests in this file complete
+  // This is critical to prevent mocks from leaking into other test files
+  // Since Bun runs all tests in a single process, mocks persist across test files
+  // unless explicitly restored. This afterAll ensures cleanup happens.
+  afterAll(() => {
+    console.log('[RenameFolder.test.ts] afterAll: Starting mock restoration');
+    
+    // Restore all function mocks
+    mock.restore();
+    
+    // Explicitly restore all modules mocked with mock.module() using the real implementations
+    // This is necessary because mock.restore() does not reset modules overridden with mock.module()
+    // Use spread objects to ensure real function references are used
+    console.log('[RenameFolder.test.ts] afterAll: Restoring @/utils/config');
+    mock.module('@/utils/config', () => ({ ...realConfigModule }));
+    
+    console.log('[RenameFolder.test.ts] afterAll: Restoring @/utils/mediaMetadata');
+    mock.module('@/utils/mediaMetadata', () => ({ ...realMediaMetadataModule }));
+    
+    console.log('[RenameFolder.test.ts] afterAll: Restoring @/utils/mediaMetadataUtils');
+    console.log('[RenameFolder.test.ts] afterAll: realMediaMetadataUtilsModule keys:', Object.keys(realMediaMetadataUtilsModule));
+    mock.module('@/utils/mediaMetadataUtils', () => ({ ...realMediaMetadataUtilsModule }));
+    
+    console.log('[RenameFolder.test.ts] afterAll: Restoring fs/promises');
+    mock.module('fs/promises', () => ({ ...realFsPromises }));
+    
+    console.log('[RenameFolder.test.ts] afterAll: Restoring @/utils/socketIO');
+    mock.module('@/utils/socketIO', () => ({ ...realSocketIOModule }));
+    
+    console.log('[RenameFolder.test.ts] afterAll: Mock restoration complete');
+  });
 
 describe('doRenameFolder', () => {
   // Use Path.toPlatformPath to ensure folder paths match what the code expects
@@ -390,3 +484,4 @@ describe('doRenameFolder', () => {
     });
   });
 });
+}); // End of top-level describe block

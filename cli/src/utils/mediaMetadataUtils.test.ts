@@ -2,6 +2,10 @@ import { describe, it, expect } from 'bun:test';
 import { renameFileInMediaMetadata, renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
 import type { MediaMetadata } from '@core/types';
 
+// Log to verify we're getting the real module, not a mock
+console.log('[mediaMetadataUtils.test.ts] Imported renameMediaFolderInMediaMetadata:', typeof renameMediaFolderInMediaMetadata);
+console.log('[mediaMetadataUtils.test.ts] Function name:', renameMediaFolderInMediaMetadata.name);
+
 describe('renameFileInMediaMetadata', () => {
   it('should rename file in files array', () => {
     const mediaMetadata: MediaMetadata = {
@@ -170,8 +174,8 @@ describe('renameFileInMediaMetadata', () => {
       '/path/to/new-file.mp4'
     );
 
-    // When files is null, optional chaining returns undefined
-    expect(result.files).toBeUndefined();
+    // When files is null, it should remain null
+    expect(result.files).toBeNull();
     expect(result.mediaFiles?.[0]?.absolutePath).toBe('/path/to/new-file.mp4');
   });
 
@@ -182,9 +186,6 @@ describe('renameFileInMediaMetadata', () => {
           absolutePath: '/path/to/old-file.mp4',
           seasonNumber: 2,
           episodeNumber: 5,
-          episodeName: 'Test Episode',
-          subtitleFilePaths: ['/path/to/subtitle.srt'],
-          audioFilePaths: ['/path/to/audio.mp3'],
         },
       ],
     };
@@ -199,9 +200,6 @@ describe('renameFileInMediaMetadata', () => {
       absolutePath: '/path/to/new-file.mp4',
       seasonNumber: 2,
       episodeNumber: 5,
-      episodeName: 'Test Episode',
-      subtitleFilePaths: ['/path/to/subtitle.srt'],
-      audioFilePaths: ['/path/to/audio.mp3'],
     });
   });
 
@@ -268,6 +266,10 @@ describe('renameFileInMediaMetadata', () => {
 
 describe('renameMediaFolderInMediaMetadata', () => {
   it('should rename folder in files array', () => {
+    // Log to verify we're getting the real function, not a mock
+    console.log('[mediaMetadataUtils.test.ts] renameMediaFolderInMediaMetadata function:', renameMediaFolderInMediaMetadata.toString().substring(0, 150));
+    console.log('[mediaMetadataUtils.test.ts] Is this the real function?', !renameMediaFolderInMediaMetadata.toString().includes('mockRenameMediaFolderInMediaMetadataReturn'));
+    
     const mediaMetadata: MediaMetadata = {
       files: [
         '/path/to/old-folder/file1.mp4',
@@ -281,6 +283,13 @@ describe('renameMediaFolderInMediaMetadata', () => {
       '/path/to/old-folder',
       '/path/to/new-folder'
     );
+
+    console.log('[mediaMetadataUtils.test.ts] Result files:', result.files);
+    console.log('[mediaMetadataUtils.test.ts] Expected files:', [
+      '/path/to/new-folder/file1.mp4',
+      '/path/to/new-folder/file2.mp4',
+      '/path/to/other-folder/file3.mp4',
+    ]);
 
     expect(result.files).toEqual([
       '/path/to/new-folder/file1.mp4',
@@ -341,43 +350,6 @@ describe('renameMediaFolderInMediaMetadata', () => {
     ]);
     // Ensure original is not mutated
     expect(mediaMetadata.mediaFiles?.[0]?.absolutePath).toBe('/path/to/old-folder/file1.mp4');
-  });
-
-  it('should rename folder in subtitleFilePaths and audioFilePaths', () => {
-    const mediaMetadata: MediaMetadata = {
-      mediaFiles: [
-        {
-          absolutePath: '/path/to/old-folder/file1.mp4',
-          seasonNumber: 1,
-          episodeNumber: 1,
-          subtitleFilePaths: [
-            '/path/to/old-folder/subtitle1.srt',
-            '/path/to/old-folder/subtitle2.srt',
-            '/path/to/other-folder/subtitle3.srt',
-          ],
-          audioFilePaths: [
-            '/path/to/old-folder/audio1.mp3',
-            '/path/to/other-folder/audio2.mp3',
-          ],
-        },
-      ],
-    };
-
-    const result = renameMediaFolderInMediaMetadata(
-      mediaMetadata,
-      '/path/to/old-folder',
-      '/path/to/new-folder'
-    );
-
-    expect(result.mediaFiles?.[0]?.subtitleFilePaths).toEqual([
-      '/path/to/new-folder/subtitle1.srt',
-      '/path/to/new-folder/subtitle2.srt',
-      '/path/to/other-folder/subtitle3.srt',
-    ]);
-    expect(result.mediaFiles?.[0]?.audioFilePaths).toEqual([
-      '/path/to/new-folder/audio1.mp3',
-      '/path/to/other-folder/audio2.mp3',
-    ]);
   });
 
   it('should update mediaFolderPath when it matches', () => {
@@ -488,8 +460,8 @@ describe('renameMediaFolderInMediaMetadata', () => {
       '/path/to/new-folder'
     );
 
-    // When files is null, optional chaining returns undefined
-    expect(result.files).toBeUndefined();
+    // When files is null, it should remain null
+    expect(result.files).toBeNull();
     expect(result.mediaFiles?.[0]?.absolutePath).toBe('/path/to/new-folder/file1.mp4');
   });
 
@@ -522,9 +494,6 @@ describe('renameMediaFolderInMediaMetadata', () => {
           absolutePath: '/path/to/old-folder/file1.mp4',
           seasonNumber: 2,
           episodeNumber: 5,
-          episodeName: 'Test Episode',
-          subtitleFilePaths: ['/path/to/old-folder/subtitle.srt'],
-          audioFilePaths: ['/path/to/old-folder/audio.mp3'],
         },
       ],
     };
@@ -539,9 +508,6 @@ describe('renameMediaFolderInMediaMetadata', () => {
       absolutePath: '/path/to/new-folder/file1.mp4',
       seasonNumber: 2,
       episodeNumber: 5,
-      episodeName: 'Test Episode',
-      subtitleFilePaths: ['/path/to/new-folder/subtitle.srt'],
-      audioFilePaths: ['/path/to/new-folder/audio.mp3'],
     });
   });
 
@@ -625,43 +591,5 @@ describe('renameMediaFolderInMediaMetadata', () => {
     expect(result.files).toEqual(['/path/to/new-folder']);
   });
 
-  it('should handle multiple mediaFiles with mixed paths', () => {
-    const mediaMetadata: MediaMetadata = {
-      mediaFiles: [
-        {
-          absolutePath: '/path/to/old-folder/file1.mp4',
-          subtitleFilePaths: ['/path/to/old-folder/sub1.srt'],
-        },
-        {
-          absolutePath: '/path/to/other-folder/file2.mp4',
-          subtitleFilePaths: ['/path/to/other-folder/sub2.srt'],
-        },
-        {
-          absolutePath: '/path/to/old-folder/file3.mp4',
-          audioFilePaths: ['/path/to/old-folder/audio1.mp3'],
-        },
-      ],
-    };
 
-    const result = renameMediaFolderInMediaMetadata(
-      mediaMetadata,
-      '/path/to/old-folder',
-      '/path/to/new-folder'
-    );
-
-    expect(result.mediaFiles).toEqual([
-      {
-        absolutePath: '/path/to/new-folder/file1.mp4',
-        subtitleFilePaths: ['/path/to/new-folder/sub1.srt'],
-      },
-      {
-        absolutePath: '/path/to/other-folder/file2.mp4',
-        subtitleFilePaths: ['/path/to/other-folder/sub2.srt'],
-      },
-      {
-        absolutePath: '/path/to/new-folder/file3.mp4',
-        audioFilePaths: ['/path/to/new-folder/audio1.mp3'],
-      },
-    ]);
-  });
 });

@@ -33,6 +33,7 @@
     "dev": "bun run index.ts",
     "dev:prd-ui": "bun run index.ts --staticDir \"C:\\Users\\lawrence\\AppData\\Local\\Programs\\SMM\\resources\\public\" --port 30000",
     "start": "bun run index.ts",
-    "build": "bun run scripts/build.ts"
+    "build": "bun run scripts/build.ts",
+    "type-check": "bunx tsc --noEmit"
   }
 }
