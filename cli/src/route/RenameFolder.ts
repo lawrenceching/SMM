@@ -72,7 +72,6 @@ export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: s
     
     await rename(Path.toPlatformPath(from), Path.toPlatformPath(to));
 
-
     broadcast({
       clientId: clientId,
       event: 'userConfigUpdated',
