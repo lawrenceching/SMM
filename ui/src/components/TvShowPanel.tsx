@@ -3,28 +3,26 @@ import { useMediaMetadata } from "./media-metadata-provider"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { UseNfoPrompt } from "./UseNfoPrompt"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import type { TMDBEpisode, TMDBTVShow, TMDBTVShowDetails } from "@core/types"
+import { useState, useEffect, useCallback, useRef } from "react"
+import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
-import { newFileName } from "@/api/newFileName"
-import { renameFile } from "@/api/renameFile"
 import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
-import { sendAcknowledgement, useWebSocketEvent } from "@/hooks/useWebSocket"
-import { AskForRenameFilesConfirmation } from "@core/event-types"
+import { sendAcknowledgement } from "@/hooks/useWebSocket"
 import type { 
   AskForRenameFilesConfirmationResponseData,
-  AskForRenameFilesConfirmationBeginRequestData,
-  AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
-import { recognizeEpisodes, mapTagToFileType, newPath, buildFileProps, renameFiles } from "./TvShowPanelUtils"
-import { loadNfo } from "@/helpers/loadNfo"
+import { recognizeEpisodes, mapTagToFileType } from "./TvShowPanelUtils"
+import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
+import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
+import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
+import { useTvShowWebSocketEvents } from "./hooks/TvShowPanel/useTvShowWebSocketEvents"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -42,8 +40,6 @@ interface ToolbarOption {
   label: string,
 }
 
-let seasonsBackup: SeasonModel[] = [] 
-
 function TvShowPanel() {
   const { t } = useTranslation('components')
   const { 
@@ -55,404 +51,73 @@ function TvShowPanel() {
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
-  const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [seasons, setSeasons] = useState<SeasonModel[]>([])
-  const [isRenaming, setIsRenaming] = useState(false)
+
+  // Use state hook
+  const {
+    seasons,
+    setSeasons,
+    selectedNamingRule,
+    setSelectedNamingRule,
+    isRuleBasedRenameFilePromptOpen,
+    setIsRuleBasedRenameFilePromptOpen,
+    isAiBasedRenameFilePromptOpen,
+    setIsAiBasedRenameFilePromptOpen,
+    aiBasedRenameFileStatus,
+    setAiBasedRenameFileStatus,
+    isRuleBasedRecognizePromptOpen,
+    setIsRuleBasedRecognizePromptOpen,
+    isUseNfoPromptOpen,
+    setIsUseNfoPromptOpen,
+    loadedNfoData,
+    setLoadedNfoData,
+    isRenaming,
+    setIsRenaming,
+    scrollToEpisodeId,
+    setScrollToEpisodeId,
+    seasonsBackup,
+    isPreviewMode,
+  } = useTvShowPanelState({ mediaMetadata, toolbarOptions })
+
   const latestSeasons = useLatest(seasons)
   const [confirmButtonLabel] = useState(t('toolbar.confirm'))
   const [confirmButtonDisabled] = useState(false)
-  const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
 
   /**
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
    */
   const [pendingConfirmationMessage] = useState<any>(null)
 
-  // AiBasedRecognizePrompt state
-  const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
-
-  const [isAiBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen] = useState(false)
-  const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
-
   const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
   const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
 
-  const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
-
-  const [isUseNfoPromptOpen, setIsUseNfoPromptOpen] = useState(false)
-  const [loadedNfoData, setLoadedNfoData] = useState<TMDBTVShowDetails | undefined>(undefined)
-
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
-  const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
 
-  // Close UseNfoPrompt when mediaMetadata instance changes (different media folder selected)
-  useEffect(() => {
-    const currentPath = mediaMetadata?.mediaFolderPath
-    const prevPath = prevMediaFolderPathRef.current
-    
-    // If the path changed (different instance), close the prompt
-    if (prevPath !== undefined && currentPath !== prevPath) {
-      setIsUseNfoPromptOpen(false)
-      setLoadedNfoData(undefined)
-    }
-    
-    // Update the ref with the current path
-    prevMediaFolderPathRef.current = currentPath
-  }, [mediaMetadata?.mediaFolderPath])
+  // Use WebSocket events hook
+  useTvShowWebSocketEvents({
+    mediaMetadata,
+    setSeasons,
+    setScrollToEpisodeId,
+    setSelectedMediaMetadataByMediaFolderPath,
+    setIsAiBasedRenameFilePromptOpen,
+    setAiBasedRenameFileStatus,
+  })
 
-  useWebSocketEvent((message) => {
+  // Use file name generation hook
+  useTvShowFileNameGeneration({
+    seasons,
+    setSeasons,
+    mediaMetadata,
+    selectedNamingRule,
+    isRuleBasedRenameFilePromptOpen,
+  })
 
-    // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
-    if (message.event === AskForRenameFilesConfirmation.event) {
-      
-      console.error(`socket event "${AskForRenameFilesConfirmation.event}" is not supported anymore`)
-
-    } else if (message.event === AskForRenameFilesConfirmation.beginEvent) {
-      console.log('AskForRenameFilesConfirmation.beginEvent received', message.data);
-      const data: AskForRenameFilesConfirmationBeginRequestData = message.data as AskForRenameFilesConfirmationBeginRequestData;
-      const mediaFolderPath = data.mediaFolderPath;
-
-      setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
-      setIsAiBasedRenameFilePromptOpen(true)
-      setAiBasedRenameFileStatus("generating")
-
-
-      setSeasons(prev => {
-        return prev.map(season => ({
-          ...season,
-          episodes: season.episodes.map(episode => ({
-            ...episode,
-            files: episode.files.map(file => ({
-              ...file,
-              newPath: undefined,
-            })),
-          })),
-        }))
-      })
-
-    } else if (message.event === AskForRenameFilesConfirmation.addFileEvent) {
-      console.log('AskForRenameFilesConfirmation.addFileEvent received', message.data);
-      const data: AskForRenameFilesConfirmationAddFileResponseData = message.data as AskForRenameFilesConfirmationAddFileResponseData;
-      const from = data.from;
-      const to = data.to;
-      
-
-      setSeasons(prev => {
-        let foundEpisodeId: number | null = null;
-        const updatedSeasons = prev.map(season => ({
-          ...season,
-          episodes: season.episodes.map(episode => 
-          {
-
-            const videoFile = episode.files.find(file => file.type === "video");
-            if(videoFile === undefined) {
-              return episode;
-            }
-
-            if(videoFile.path !== from) {
-              return episode;
-            }
-
-            // Found the matching episode, store its ID for scrolling
-            foundEpisodeId = episode.episode.id;
-
-            const newFileFromAI = {
-              from: from,
-              to: to,
-            }
-
-            if(newFileFromAI === undefined) {
-              return episode;
-            }
-
-            const newFiles = renameFiles(mediaMetadata!.mediaFolderPath!, newFileFromAI.to, episode.files);
-            return {
-              episode: episode.episode,
-              files: newFiles,
-            }
-           
-          }
-          ),
-        }));
-
-        // Set scroll target if episode was found
-        if (foundEpisodeId !== null) {
-          setScrollToEpisodeId(foundEpisodeId);
-        }
-
-        return updatedSeasons;
-      })
-
-    } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
-      console.log('AskForRenameFilesConfirmation.endEvent received', message.data);
-      setAiBasedRenameFileStatus("wait-for-ack")
-    }
-
-  });
-
-  // Build seasons state from media metadata
-  useEffect(() => {
-
-    if(mediaMetadata === undefined) {
-      return;
-    }
-
-    if(mediaMetadata.tmdbTvShow === undefined) {
-      console.log(`[TvShowPanel] trying to infer to media type`);
-      if(mediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
-        // Read NFO file before opening prompt
-        loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
-          if (tmdbTvShowDetails !== undefined) {
-            setLoadedNfoData(tmdbTvShowDetails)
-            setIsUseNfoPromptOpen(true)
-          }
-        })
-      }
-    }
-
-    setSeasons(() => {
-      if(!mediaMetadata) {
-        return [];
-      }
-
-      if(mediaMetadata.tmdbTvShow?.seasons === undefined) {
-        return [];
-      }
-
-      console.log(`[TvShowPanel] building seasons state from media metadata`)
-
-      return mediaMetadata.tmdbTvShow.seasons.map(season => ({
-        season: season,
-        episodes: season.episodes?.map(episode => ({
-          episode: episode,
-          files: buildFileProps(mediaMetadata, season.season_number, episode.episode_number)
-        })) || []
-      }))
-    })
-
-  }, [mediaMetadata])
-
-  // Reset scrollToEpisodeId after scrolling completes
-  useEffect(() => {
-    if (scrollToEpisodeId !== null) {
-      const timeoutId = setTimeout(() => {
-        setScrollToEpisodeId(null)
-      }, 500) // Reset after scrolling animation completes (100ms delay + 400ms buffer)
-
-      return () => {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [scrollToEpisodeId])
-
-  // Generate new file names for preview mode
-  const generateNewFileNames = useCallback((selectedNamingRule: "plex" | "emby") => {
-    if(!selectedNamingRule) {
-      return;
-    }
-
-    if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
-      return;
-    }
-
-    const tvShow = mediaMetadata.tmdbTvShow
-    if(!tvShow) {
-      return;
-    }
-
-    (async () => {
-      const newSeasons = structuredClone(latestSeasons.current);
-      for(const season of newSeasons) {
-        for(const episode of season.episodes) {
-          const videoFile = episode.files.find(file => file.type === "video");
-          if(videoFile === undefined) {
-            console.error(`Video file is undefined for episode ${episode.episode.episode_number} in season ${season.season.season_number}`)
-            continue;
-          }
-
-          const response = await newFileName({
-            ruleName: selectedNamingRule,
-            type: "tv",
-            seasonNumber: season.season.season_number,
-            episodeNumber: episode.episode.episode_number,
-            episodeName: episode.episode.name || "",
-            tvshowName: tvShow.name || "",
-            file: videoFile.path,
-            tmdbId: tvShow.id?.toString() || "",
-            releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
-          })
-          
-          if (response.data) {
-            const relativePath = response.data
-            const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath)
-            videoFile.newPath = absolutePath
-            if(videoFile.path === videoFile.newPath) {
-              videoFile.newPath = undefined;
-            } else {
-              // Generate new paths for all associated files (subtitles, audio, nfo, poster, etc.)
-              for(const file of episode.files) {
-                if(file.type === "video") {
-                  continue;
-                }
-                // Only set newPath for associated files if video file has a newPath
-                file.newPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
-
-                if(file.path === file.newPath) {
-                  file.newPath = undefined;
-                }
-              }
-            }
-
-          } else {
-            // If video file rename failed, clear newPath for associated files
-            for(const file of episode.files) {
-              if(file.type !== "video") {
-                file.newPath = undefined
-              }
-            }
-          }
-        }
-      }
-      setSeasons(newSeasons);
-    })();
-  }, [mediaMetadata, latestSeasons])
-
-  // Trigger file name generation when preview mode is enabled
-  useEffect(() => {
-
-    if(!isRuleBasedRenameFilePromptOpen) {
-      return;
-    }
-    
-    generateNewFileNames(selectedNamingRule);
-  }, [isRuleBasedRenameFilePromptOpen, selectedNamingRule, generateNewFileNames])
-
-  const isPreviewMode = useMemo(() => {
-    return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen || isRuleBasedRecognizePromptOpen
-  }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen, isRuleBasedRecognizePromptOpen])
-
-
-  const startToRenameFiles = useCallback(async () => {
-    if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
-      return;
-    }
-
-    // Collect all files that need to be renamed, separating video files from associated files
-    const videoFilesToRename: Array<{ from: string; to: string; type: string }> = []
-    const associatedFilesToRename: Array<{ from: string; to: string; type: string }> = []
-    
-    for (const season of latestSeasons.current) {
-      for (const episode of season.episodes) {
-        for (const file of episode.files) {
-          if (file.newPath && file.path !== file.newPath) {
-            const renameEntry = {
-              from: file.path,
-              to: file.newPath,
-              type: file.type
-            }
-            
-            // Separate video files from associated files
-            if (file.type === "video") {
-              videoFilesToRename.push(renameEntry)
-            } else {
-              associatedFilesToRename.push(renameEntry)
-            }
-          }
-        }
-      }
-    }
-
-    try {
-      // Rename files sequentially: video files first, then associated files
-      // This ensures video files are renamed before associated files that depend on them
-      let successCount = 0
-      let errorCount = 0
-      const errors: string[] = []
-
-      // Filter out files where from and to are identical before sending requests
-      const filteredVideoFiles = videoFilesToRename.filter(({ from, to }) => from !== to)
-      const filteredAssociatedFiles = associatedFilesToRename.filter(({ from, to }) => from !== to)
-      
-      const totalFilesToRename = filteredVideoFiles.length + filteredAssociatedFiles.length
-      const skippedCount = (videoFilesToRename.length - filteredVideoFiles.length) + 
-                          (associatedFilesToRename.length - filteredAssociatedFiles.length)
-
-      if (totalFilesToRename === 0) {
-        if (skippedCount > 0) {
-          toast.info(`No files to rename (${skippedCount} file${skippedCount !== 1 ? 's' : ''} already have correct names)`)
-        } else {
-          toast.info("No files to rename")
-        }
-        setIsRenaming(false)
-        return
-      }
-      
-      // First, rename all video files
-      console.log(`Starting rename: ${filteredVideoFiles.length} video file(s) and ${filteredAssociatedFiles.length} associated file(s)${skippedCount > 0 ? ` (${skippedCount} skipped - identical paths)` : ''}`)
-      
-      for (const { from, to, type } of filteredVideoFiles) {
-        try {
-          // TODO:
-          // the renameFile API in backend will trigger mediaMetadataUpdated event
-          // so mulitple readMediaMetadata API calls was triggered 
-          // 1. Consider to create renameFileInBatch API
-          // 2. Consider not to trigger mediaMetadataUpdated for frontend API call (still need to trigger it for AI Agent rename file)
-          await renameFile({
-            mediaFolder: mediaMetadata.mediaFolderPath,
-            from,
-            to,
-          })
-          successCount++
-          console.log(`✓ Renamed video file: ${from} -> ${to}`)
-        } catch (error) {
-          errorCount++
-          const errorMessage = error instanceof Error ? error.message : "Unknown error"
-          errors.push(`${type} file ${from}: ${errorMessage}`)
-          console.error(`✗ Failed to rename video file ${from} to ${to}:`, error)
-        }
-      }
-
-      // Then, rename all associated files (subtitles, audio, nfo, poster, etc.)
-      for (const { from, to, type } of filteredAssociatedFiles) {
-        try {
-          await renameFile({
-            mediaFolder: mediaMetadata.mediaFolderPath,
-            from,
-            to,
-          })
-          successCount++
-          console.log(`✓ Renamed ${type} file: ${from} -> ${to}`)
-        } catch (error) {
-          errorCount++
-          const errorMessage = error instanceof Error ? error.message : "Unknown error"
-          errors.push(`${type} file ${from}: ${errorMessage}`)
-          console.error(`✗ Failed to rename ${type} file ${from} to ${to}:`, error)
-        }
-      }
-
-      // Refresh media metadata after all renames
-      if (successCount > 0) {
-        await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
-      }
-
-      // Show results
-      const skippedMessage = skippedCount > 0 ? ` (${skippedCount} skipped)` : ''
-      if (errorCount === 0) {
-        toast.success(`Successfully renamed ${successCount} file${successCount !== 1 ? 's' : ''} (${filteredVideoFiles.length} video, ${filteredAssociatedFiles.length} associated)${skippedMessage}`)
-      } else if (successCount > 0) {
-        toast.warning(`Renamed ${successCount} file${successCount !== 1 ? 's' : ''}, ${errorCount} failed${skippedMessage}`)
-        console.error("Rename errors:", errors)
-      } else {
-        toast.error(`Failed to rename ${errorCount} file${errorCount !== 1 ? 's' : ''}${skippedMessage}`)
-        console.error("All rename operations failed:", errors)
-      }
-
-
-    } catch (error) {
-      console.error("Unexpected error during rename operation:", error)
-      toast.error("An unexpected error occurred during rename operation")
-    }
-  }, [mediaMetadata])
+  // Use renaming hook
+  const { startToRenameFiles } = useTvShowRenaming({
+    seasons,
+    mediaMetadata,
+    refreshMediaMetadata,
+    setIsRenaming,
+  })
 
   // Handle confirm button click - rename all files
   const handleAiBasedRenamePromptConfirm = useCallback(async () => {
@@ -479,7 +144,7 @@ function TvShowPanel() {
       setIsAiBasedRenameFilePromptOpen(false)
     }
     
-  }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage])
+  }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage, startToRenameFiles, setIsAiBasedRenameFilePromptOpen])
 
 
   useEffect(() => {
@@ -550,7 +215,7 @@ function TvShowPanel() {
         })
       })
 
-      seasonsBackup = latestSeasons.current;
+      seasonsBackup.current = latestSeasons.current;
       console.log(`[TvShowPanel] backed up the seasons state`)
       setSeasons(seasonsForPreview);
       console.log(`[TvShowPanel] set the seasons state for preview`)
@@ -561,7 +226,7 @@ function TvShowPanel() {
 
     // seasons state will be restored on cancel button click
 
-  }, [mediaMetadata, isRuleBasedRecognizePromptOpen])
+  }, [mediaMetadata, isRuleBasedRecognizePromptOpen, latestSeasons, seasonsBackup, setSeasons])
 
   return (
     <div className='p-1 w-full h-full relative'>
@@ -644,8 +309,8 @@ function TvShowPanel() {
             isOpen={isRuleBasedRecognizePromptOpen}
             onConfirm={() => {
               setIsRuleBasedRecognizePromptOpen(false)
-              setSeasons(seasonsBackup)
-              seasonsBackup = []
+              setSeasons(seasonsBackup.current)
+              seasonsBackup.current = []
               console.log(`[TvShowPanel] seasons state restored because of user confirm`)
               if (mediaMetadata) {
                 console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
@@ -655,8 +320,8 @@ function TvShowPanel() {
             }}
             onCancel={() => {
               setIsRuleBasedRecognizePromptOpen(false)
-              setSeasons(seasonsBackup)
-              seasonsBackup = []
+              setSeasons(seasonsBackup.current)
+              seasonsBackup.current = []
               console.log(`[TvShowPanel] seasons state restored because of user cancel`)
             }}
           />

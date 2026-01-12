@@ -16,7 +16,6 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
-import { loadNfo } from "./helpers/loadNfo"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
