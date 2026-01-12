@@ -1,6 +1,6 @@
 import type { OpenFileRequestBody, OpenFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
-import { openFile } from '../utils/os';
+import { isDesktopEnv, openFile } from '../utils/os';
 
 export function handleOpenFile(app: Hono) {
   app.post('/api/openFile', async (c) => {
@@ -15,6 +15,17 @@ export function handleOpenFile(app: Hono) {
             path: body.path || '',
           },
           error: 'Validation Failed: Path is required and must be a string',
+        };
+        return c.json(response, 200);
+      }
+      
+      // Check if running in desktop environment
+      if (!isDesktopEnv()) {
+        const response: OpenFileResponseBody = {
+          data: {
+            path: body.path,
+          },
+          error: 'Not running in desktop environment. This operation requires a desktop environment.',
         };
         return c.json(response, 200);
       }
