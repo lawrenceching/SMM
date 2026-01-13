@@ -108,12 +108,6 @@ jobs:
       - name: Run tests
         run: bun test --coverage --coverage-reporter=lcov
       
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./cli/coverage/lcov.info
-          fail_ci_if_error: true
-      
       - name: Build CLI
         run: bun run build
       
