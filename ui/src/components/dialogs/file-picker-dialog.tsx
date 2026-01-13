@@ -75,6 +75,7 @@ export function FilePickerDialog({
               initialPath={currentPath}
               showPathBar={true}
               restrictToInitialPath={false}
+              visibleColumns={['name']}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2 shrink-0">

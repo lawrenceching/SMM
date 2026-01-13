@@ -149,6 +149,7 @@ export interface FileExplorerProps {
   showPathBar?: boolean
   onlyFolders?: boolean
   restrictToInitialPath?: boolean
+  visibleColumns?: ('name' | 'size' | 'date')[]
 }
 
 export function FileExplorer({
@@ -162,6 +163,7 @@ export function FileExplorer({
   showPathBar = true,
   onlyFolders = false,
   restrictToInitialPath = true,
+  visibleColumns = ['name', 'size', 'date'],
 }: FileExplorerProps) {
   const { t } = useTranslation('components')
   const [files, setFiles] = useState<FileItem[]>([])
@@ -173,6 +175,16 @@ export function FileExplorer({
   const [showDrives, setShowDrives] = useState(false)
   const [sortColumn, setSortColumn] = useState<'name' | 'size' | 'date'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Generate grid column template based on visible columns
+  const gridColsTemplate = useMemo(() => {
+    const templates: Record<'name' | 'size' | 'date', string> = {
+      name: '1fr',
+      size: '100px',
+      date: '150px',
+    }
+    return visibleColumns.map(col => templates[col]).join(' ')
+  }, [visibleColumns])
 
   const loadFiles = useCallback(async (path: string) => {
     // Skip loading if we're in drives view (drives are loaded separately)
@@ -467,6 +479,15 @@ export function FileExplorer({
       return [{ label: folderName, path: currentPath, isRoot: true }]
     }
   }, [currentPath, initialPath, normalizeToPosix, restrictToInitialPath, t])
+
+  // Ensure sort column is valid when visible columns change
+  useEffect(() => {
+    if (!visibleColumns.includes(sortColumn)) {
+      // Default to first visible column, or 'name' if available
+      const defaultColumn = visibleColumns.includes('name') ? 'name' : visibleColumns[0] || 'name'
+      setSortColumn(defaultColumn as 'name' | 'size' | 'date')
+    }
+  }, [visibleColumns, sortColumn])
 
   // Load files when path changes
   useEffect(() => {
@@ -937,34 +958,43 @@ export function FileExplorer({
             ) : (
               <div className="flex flex-col gap-0">
                 {/* Column Headers */}
-                <div className="grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground sticky top-0 z-10 min-w-0">
-                  <button
-                    onClick={() => handleColumnHeaderClick('name')}
-                    className="flex items-center gap-1.5 text-left hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5 min-w-0 overflow-hidden"
-                  >
-                    <span className="truncate">Name</span>
-                    {sortColumn === 'name' && (
-                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleColumnHeaderClick('size')}
-                    className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
-                  >
-                    <span>Size</span>
-                    {sortColumn === 'size' && (
-                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleColumnHeaderClick('date')}
-                    className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
-                  >
-                    <span>Date Modified</span>
-                    {sortColumn === 'date' && (
-                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                    )}
-                  </button>
+                <div 
+                  className="grid gap-2 px-2 py-1.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground sticky top-0 z-10 min-w-0"
+                  style={{ gridTemplateColumns: gridColsTemplate }}
+                >
+                  {visibleColumns.includes('name') && (
+                    <button
+                      onClick={() => handleColumnHeaderClick('name')}
+                      className="flex items-center gap-1.5 text-left hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5 min-w-0 overflow-hidden"
+                    >
+                      <span className="truncate">Name</span>
+                      {sortColumn === 'name' && (
+                        sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />
+                      )}
+                    </button>
+                  )}
+                  {visibleColumns.includes('size') && (
+                    <button
+                      onClick={() => handleColumnHeaderClick('size')}
+                      className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                    >
+                      <span>Size</span>
+                      {sortColumn === 'size' && (
+                        sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      )}
+                    </button>
+                  )}
+                  {visibleColumns.includes('date') && (
+                    <button
+                      onClick={() => handleColumnHeaderClick('date')}
+                      className="flex items-center justify-end gap-1.5 text-right hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                    >
+                      <span>Date Modified</span>
+                      {sortColumn === 'date' && (
+                        sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      )}
+                    </button>
+                  )}
                 </div>
                 {/* File Rows */}
                 {sortedFiles.map((file, index) => {
@@ -979,37 +1009,44 @@ export function FileExplorer({
                       onClick={() => handleItemClick(file)}
                       onDoubleClick={() => handleItemDoubleClick(file)}
                       className={cn(
-                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center select-none min-w-0",
+                        "file-item grid gap-2 px-2 py-1.5 cursor-pointer group items-center select-none min-w-0",
                         "hover:bg-accent/50 active:bg-accent",
                         isSelected && "bg-primary/10 hover:bg-primary/15",
                         isFocused && "ring-2 ring-primary ring-inset"
                       )}
+                      style={{ gridTemplateColumns: gridColsTemplate }}
                     >
                       {/* Name Column */}
-                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                        <div className="shrink-0">
-                          {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
+                      {visibleColumns.includes('name') && (
+                        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                          <div className="shrink-0">
+                            {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
+                          </div>
+                          <span className={cn(
+                            "text-sm font-medium truncate min-w-0 flex-1",
+                            file.isDirectory ? "text-foreground" : "text-foreground/90"
+                          )}>
+                            {file.name}
+                          </span>
+                          {file.isDirectory && (
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          )}
                         </div>
-                        <span className={cn(
-                          "text-sm font-medium truncate min-w-0 flex-1",
-                          file.isDirectory ? "text-foreground" : "text-foreground/90"
-                        )}>
-                          {file.name}
-                        </span>
-                        {file.isDirectory && (
-                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        )}
-                      </div>
+                      )}
                       
                       {/* Size Column */}
-                      <div className="text-sm text-muted-foreground text-right truncate">
-                        {file.isDirectory ? '--' : (file.size !== undefined ? formatFileSize(file.size) : '--')}
-                      </div>
+                      {visibleColumns.includes('size') && (
+                        <div className="text-sm text-muted-foreground text-right truncate">
+                          {file.isDirectory ? '--' : (file.size !== undefined ? formatFileSize(file.size) : '--')}
+                        </div>
+                      )}
                       
                       {/* Date Column */}
-                      <div className="text-sm text-muted-foreground text-right truncate">
-                        {file.mtime !== undefined ? formatRelativeDate(file.mtime) : '--'}
-                      </div>
+                      {visibleColumns.includes('date') && (
+                        <div className="text-sm text-muted-foreground text-right truncate">
+                          {file.mtime !== undefined ? formatRelativeDate(file.mtime) : '--'}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
