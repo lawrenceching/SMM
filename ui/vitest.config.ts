@@ -12,6 +12,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8', // Fast, accurate, and recommended for modern projects
       reporter: ['text', 'json', 'html', 'lcov'], // lcov format for VSCode Coverage Gutters extension
