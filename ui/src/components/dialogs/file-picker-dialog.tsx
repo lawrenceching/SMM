@@ -18,7 +18,8 @@ export function FilePickerDialog({
   onClose,
   onSelect,
   title,
-  description
+  description,
+  hideDialogHeader = true
 }: FilePickerDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const defaultTitle = title || t('filePicker.defaultTitle')
@@ -61,10 +62,15 @@ export function FilePickerDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent showCloseButton={true} className="max-w-2xl overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>{defaultTitle}</DialogTitle>
-          <DialogDescription>{defaultDescription}</DialogDescription>
-        </DialogHeader>
+
+        {
+          !hideDialogHeader && (
+            <DialogHeader>
+              <DialogTitle>{defaultTitle}</DialogTitle>
+              <DialogDescription>{defaultDescription}</DialogDescription>
+            </DialogHeader>
+          )
+        }
         <div className="flex flex-col gap-2 overflow-hidden">
           <div className="h-[400px] w-full flex flex-col min-h-0">
             <FileExplorer
