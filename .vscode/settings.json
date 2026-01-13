@@ -1,0 +1,25 @@
+{
+  // Vitest Configuration for UI Module
+  "vitest.enable": true,
+  // Point to the vitest config in the ui directory (relative path from workspace root)
+  "vitest.rootConfig": "ui/vitest.config.ts",
+  // The Vitest extension's worker process requires Node.js for WebSocket communication
+  // However, you can still run tests manually with Bun using: bun run test
+  "vitest.nodeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+  // Test file patterns
+  "vitest.include": [
+    "ui/src/**/*.test.{ts,tsx}"
+  ],
+  "vitest.exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.{idea,git,cache,output,temp}/**"
+  ],
+  // Environment variables
+  "vitest.nodeEnv": {},
+  // Enable test code lens (run/debug buttons above tests)
+  "vitest.codeLens": true,
+  // Show test status in editor
+  "vitest.showFailMessages": true
+}
+  
