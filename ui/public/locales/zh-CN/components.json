@@ -36,7 +36,8 @@
     "aiRecognizing": "AI正在识别剧集...",
     "aiReviewEpisodes": "查看已识别的剧集",
     "reviewRecognizeEpisodes": "查看并确认已识别的剧集...",
-    "useNfoMetadata": "使用NFO文件中的媒体元数据？"
+    "useNfoMetadata": "使用NFO文件中的媒体元数据？",
+    "useTmdbIdFromFolderName": "使用文件夹名称中的TMDB ID？"
   },
   "assistant": {
     "open": "打开助手",

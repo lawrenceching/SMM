@@ -21,6 +21,9 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions }: UseTvShow
   const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
   const [isUseNfoPromptOpen, setIsUseNfoPromptOpen] = useState(false)
   const [loadedNfoData, setLoadedNfoData] = useState<TMDBTVShowDetails | undefined>(undefined)
+  const [isUseTmdbidFromFolderNamePromptOpen, setIsUseTmdbidFromFolderNamePromptOpen] = useState(false)
+  const [tmdbIdFromFolderName, setTmdbIdFromFolderName] = useState<number | undefined>(undefined)
+  const [tmdbMediaNameFromFolderName, setTmdbMediaNameFromFolderName] = useState<string | undefined>(undefined)
 
   // Replace global seasonsBackup with useRef
   const seasonsBackup = useRef<SeasonModel[]>([])
@@ -35,6 +38,9 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions }: UseTvShow
     if (prevPath !== undefined && currentPath !== prevPath) {
       setIsUseNfoPromptOpen(false)
       setLoadedNfoData(undefined)
+      setIsUseTmdbidFromFolderNamePromptOpen(false)
+      setTmdbIdFromFolderName(undefined)
+      setTmdbMediaNameFromFolderName(undefined)
     }
     
     // Update the ref with the current path
@@ -117,6 +123,12 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions }: UseTvShow
     setIsUseNfoPromptOpen,
     loadedNfoData,
     setLoadedNfoData,
+    isUseTmdbidFromFolderNamePromptOpen,
+    setIsUseTmdbidFromFolderNamePromptOpen,
+    tmdbIdFromFolderName,
+    setTmdbIdFromFolderName,
+    tmdbMediaNameFromFolderName,
+    setTmdbMediaNameFromFolderName,
     isRenaming,
     setIsRenaming,
     scrollToEpisodeId,

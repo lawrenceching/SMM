@@ -36,7 +36,8 @@
     "aiRecognizing": "AI is recognizing episodes...",
     "aiReviewEpisodes": "Review recognized episodes",
     "reviewRecognizeEpisodes": "Review and confirm the recognize episodes...",
-    "useNfoMetadata": "Use media metadata from NFO file?"
+    "useNfoMetadata": "Use media metadata from NFO file?",
+    "useTmdbIdFromFolderName": "Use TMDB ID from folder name?"
   },
   "assistant": {
     "open": "Open Assistant",

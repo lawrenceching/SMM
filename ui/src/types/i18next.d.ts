@@ -63,6 +63,7 @@ interface ComponentsResources {
     aiReviewEpisodes: string
     reviewRecognizeEpisodes: string
     useNfoMetadata: string
+    useTmdbIdFromFolderName: string
   }
   mediaFolder: {
     rename: string

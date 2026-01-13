@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { UseNfoPrompt } from "./UseNfoPrompt"
+import { UseTmdbidFromFolderNamePrompt } from "./UseTmdbidFromFolderNamePrompt"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
@@ -98,6 +99,15 @@ interface TvShowPanelPromptsProps {
   setLoadedNfoData: (data: TMDBTVShowDetails | undefined) => void
   onUseNfoConfirm: (tmdbTvShow: TMDBTVShow) => void
   
+  // UseTmdbidFromFolderNamePrompt props
+  isUseTmdbidFromFolderNamePromptOpen: boolean
+  setIsUseTmdbidFromFolderNamePromptOpen: (open: boolean) => void
+  tmdbIdFromFolderName: number | undefined
+  tmdbMediaNameFromFolderName: string | undefined
+  setTmdbIdFromFolderName: (id: number | undefined) => void
+  setTmdbMediaNameFromFolderName: (name: string | undefined) => void
+  onUseTmdbidFromFolderNameConfirm: (tmdbTvShow: TMDBTVShow) => void
+  
   // RuleBasedRenameFilePrompt props
   isRuleBasedRenameFilePromptOpen: boolean
   setIsRuleBasedRenameFilePromptOpen: (open: boolean) => void
@@ -132,6 +142,13 @@ export function TvShowPanelPrompts({
   loadedNfoData,
   setLoadedNfoData,
   onUseNfoConfirm,
+  isUseTmdbidFromFolderNamePromptOpen,
+  setIsUseTmdbidFromFolderNamePromptOpen,
+  tmdbIdFromFolderName,
+  tmdbMediaNameFromFolderName,
+  setTmdbIdFromFolderName,
+  setTmdbMediaNameFromFolderName,
+  onUseTmdbidFromFolderNameConfirm,
   isRuleBasedRenameFilePromptOpen,
   setIsRuleBasedRenameFilePromptOpen,
   toolbarOptions,
@@ -186,6 +203,43 @@ export function TvShowPanelPrompts({
         onCancel={() => {
           setIsUseNfoPromptOpen(false)
           setLoadedNfoData(undefined)
+        }}
+      />
+
+      <UseTmdbidFromFolderNamePrompt
+        isOpen={isUseTmdbidFromFolderNamePromptOpen}
+        mediaName={tmdbMediaNameFromFolderName}
+        tmdbid={tmdbIdFromFolderName}
+        onConfirm={() => {
+          setIsUseTmdbidFromFolderNamePromptOpen(false)
+          if (tmdbIdFromFolderName !== undefined) {
+            // Create a minimal TMDBTVShow object with just the ID
+            // handleSelectResult will fetch the full details
+            const minimalTvShow: TMDBTVShow = {
+              id: tmdbIdFromFolderName,
+              name: '',
+              original_name: '',
+              overview: '',
+              poster_path: null,
+              backdrop_path: null,
+              first_air_date: '',
+              vote_average: 0,
+              vote_count: 0,
+              popularity: 0,
+              genre_ids: [],
+              origin_country: [],
+              media_type: 'tv'
+            }
+            
+            onUseTmdbidFromFolderNameConfirm(minimalTvShow)
+          }
+          setTmdbIdFromFolderName(undefined)
+          setTmdbMediaNameFromFolderName(undefined)
+        }}
+        onCancel={() => {
+          setIsUseTmdbidFromFolderNamePromptOpen(false)
+          setTmdbIdFromFolderName(undefined)
+          setTmdbMediaNameFromFolderName(undefined)
         }}
       />
 

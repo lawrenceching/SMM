@@ -16,6 +16,7 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
+import { getTmdbIdFromFolderName } from "./AppV2Utils"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -80,9 +81,14 @@ export default function AppV2() {
       return;
     }
 
+    if(selectedMediaMetadata.mediaFolderPath === undefined) {
+      console.error('[AppV2] selectedMediaMetadata.mediaFolderPath is undefined')
+      return;
+    }
+
     if(selectedMediaMetadata.type === undefined) {
       // 1. start to get TMDB id from folder name
-      const tmdbId = getTmdbIdFromFolderName(selectedMediaMetadata.mediaFolderPath)
+      
 
       // 2. start to find tvshow.nfo
       if(selectedMediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {

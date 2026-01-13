@@ -19,6 +19,9 @@ import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/TvShowPanel/useTvShowWebSocketEvents"
+import { getTmdbIdFromFolderName } from "@/AppV2Utils"
+import { getTvShowById } from "@/api/tmdb"
+import { useConfig } from "./config-provider"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -43,6 +46,7 @@ function TvShowPanel() {
     updateMediaMetadata,
     refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath
    } = useMediaMetadata()
+  const { userConfig } = useConfig()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
@@ -66,6 +70,12 @@ function TvShowPanel() {
     setIsUseNfoPromptOpen,
     loadedNfoData,
     setLoadedNfoData,
+    isUseTmdbidFromFolderNamePromptOpen,
+    setIsUseTmdbidFromFolderNamePromptOpen,
+    tmdbIdFromFolderName,
+    setTmdbIdFromFolderName,
+    tmdbMediaNameFromFolderName,
+    setTmdbMediaNameFromFolderName,
     isRenaming,
     setIsRenaming,
     scrollToEpisodeId,
@@ -85,6 +95,42 @@ function TvShowPanel() {
 
   const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
   const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
+
+  useEffect(() => {
+    if(mediaMetadata?.mediaFolderPath === undefined) {
+      return
+    }
+
+    // Don't prompt if TMDB TV show is already set
+    if(mediaMetadata.tmdbTvShow !== undefined) {
+      return
+    }
+
+    const tmdbIdString = getTmdbIdFromFolderName(mediaMetadata.mediaFolderPath)
+    if (tmdbIdString === null) {
+      return
+    }
+
+    const tmdbIdNumber = parseInt(tmdbIdString, 10)
+    if (isNaN(tmdbIdNumber)) {
+      return
+    }
+
+    // Get language from user config, default to en-US
+    const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
+
+    // Try to find TV Show by TMDB ID
+    getTvShowById(tmdbIdNumber, language).then(response => {
+      // Only open prompt if TV show exists and no error
+      if (response.data && !response.error) {
+        setTmdbIdFromFolderName(tmdbIdNumber)
+        setTmdbMediaNameFromFolderName(response.data.name)
+        setIsUseTmdbidFromFolderNamePromptOpen(true)
+      }
+    }).catch(error => {
+      console.error('Failed to get TV show by ID:', error)
+    })
+  }, [mediaMetadata, userConfig, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName, setIsUseTmdbidFromFolderNamePromptOpen])
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
 
@@ -172,6 +218,11 @@ function TvShowPanel() {
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
+
+  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
     tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
   }, [])
 
@@ -288,6 +339,13 @@ function TvShowPanel() {
         loadedNfoData={loadedNfoData}
         setLoadedNfoData={setLoadedNfoData}
         onUseNfoConfirm={handleUseNfoConfirm}
+        isUseTmdbidFromFolderNamePromptOpen={isUseTmdbidFromFolderNamePromptOpen}
+        setIsUseTmdbidFromFolderNamePromptOpen={setIsUseTmdbidFromFolderNamePromptOpen}
+        tmdbIdFromFolderName={tmdbIdFromFolderName}
+        tmdbMediaNameFromFolderName={tmdbMediaNameFromFolderName}
+        setTmdbIdFromFolderName={setTmdbIdFromFolderName}
+        setTmdbMediaNameFromFolderName={setTmdbMediaNameFromFolderName}
+        onUseTmdbidFromFolderNameConfirm={handleUseTmdbidFromFolderNameConfirm}
         isRuleBasedRenameFilePromptOpen={isRuleBasedRenameFilePromptOpen}
         setIsRuleBasedRenameFilePromptOpen={setIsRuleBasedRenameFilePromptOpen}
         toolbarOptions={toolbarOptions}

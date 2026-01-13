@@ -36,7 +36,8 @@
     "aiRecognizing": "AI正在識別劇集...",
     "aiReviewEpisodes": "檢視已識別的劇集",
     "reviewRecognizeEpisodes": "檢視並確認已識別的劇集...",
-    "useNfoMetadata": "使用NFO檔案中的媒體元資料？"
+    "useNfoMetadata": "使用NFO檔案中的媒體元資料？",
+    "useTmdbIdFromFolderName": "使用資料夾名稱中的TMDB ID？"
   },
   "assistant": {
     "open": "開啟助手",
