@@ -23,6 +23,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { listFiles } from "@/api/listFiles"
 import { listDrivesApi } from "@/api/listDrives"
@@ -175,6 +181,8 @@ export function FileExplorer({
   const [searchQuery, setSearchQuery] = useState("")
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
   const [showDrives, setShowDrives] = useState(false)
+  const [drives, setDrives] = useState<FileItem[]>([])
+  const [isLoadingDrives, setIsLoadingDrives] = useState(false)
   const [sortColumn, setSortColumn] = useState<'name' | 'size' | 'date'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
@@ -187,6 +195,34 @@ export function FileExplorer({
     }
     return visibleColumns.map(col => templates[col]).join(' ')
   }, [visibleColumns])
+
+  // Load drives list
+  const loadDrives = useCallback(async (): Promise<FileItem[]> => {
+    setIsLoadingDrives(true)
+    try {
+      const response = await listDrivesApi()
+      if (response.error) {
+        console.error('[FileExplorer] Failed to load drives:', response.error)
+        setDrives([])
+        return []
+      } else {
+        // Convert drives to FileItem format
+        const driveItems: FileItem[] = response.data.map((drivePath) => ({
+          name: drivePath,
+          path: drivePath,
+          isDirectory: true,
+        }))
+        setDrives(driveItems)
+        return driveItems
+      }
+    } catch (err) {
+      console.error('[FileExplorer] Error loading drives:', err)
+      setDrives([])
+      return []
+    } finally {
+      setIsLoadingDrives(false)
+    }
+  }, [])
 
   const loadFiles = useCallback(async (path: string) => {
     // Skip loading if we're in drives view (drives are loaded separately)
@@ -346,6 +382,91 @@ export function FileExplorer({
     return normalized
   }, [])
   
+  // Get current drive from current path
+  const currentDrive = useMemo(() => {
+    // Check if it's the home directory
+    if (currentPath === '~' || currentPath.startsWith('~/')) {
+      return '~'
+    }
+    // Extract drive from Windows path (e.g., "C:\Users\..." -> "C:\")
+    const driveMatch = currentPath.match(/^([A-Za-z]):[\\/]/)
+    if (driveMatch) {
+      return `${driveMatch[1]}:\\`
+    }
+    // Check if it's a network drive (UNC path)
+    if (currentPath.startsWith('\\\\')) {
+      // Extract server and share (e.g., "\\server\share" -> "\\server\share")
+      const pathParts = currentPath.split(/[\\/]/).filter(Boolean)
+      if (pathParts.length >= 2) {
+        return `\\\\${pathParts[0]}\\${pathParts[1]}`
+      }
+      return currentPath
+    }
+    // Not a drive path
+    return undefined
+  }, [currentPath])
+
+  // Create combined list of drives and home directory
+  const allDrives = useMemo(() => {
+    const homeItem: FileItem = {
+      name: '~',
+      path: '~',
+      isDirectory: true,
+    }
+    return [homeItem, ...drives]
+  }, [drives])
+
+  // Handle drive change
+  const handleDriveChange = (drivePath: string) => {
+    // Handle home directory (~) - always allowed
+    if (drivePath === '~') {
+      const newHistory = [...pathHistory, currentPath]
+      setPathHistory(newHistory)
+      onPathChange('~')
+      onFileSelect(null)
+      setShowDrives(false)
+      return
+    }
+
+    if (restrictToInitialPath) {
+      // Check if the drive path is allowed
+      const normalizedDrive = normalizeToPosix(drivePath)
+      const normalizedInitial = normalizeToPosix(initialPath)
+      
+      // Extract drive letters for comparison
+      const initialDriveMatch = initialPath.match(/^([A-Za-z]):[\\/]/)
+      const driveMatch = drivePath.match(/^([A-Za-z]):[\\/]/)
+      
+      // Allow if same drive letter, or if initial path is under the selected drive
+      if (initialDriveMatch && driveMatch) {
+        if (initialDriveMatch[1] !== driveMatch[1]) {
+          // Different drive letters - not allowed when restriction is enabled
+          console.warn('Cannot navigate to different drive when restrictToInitialPath is enabled:', { drivePath, initialPath })
+          return
+        }
+      } else if (driveMatch) {
+        // Selected drive is a local drive, check if initial path is under it
+        if (!normalizedInitial.startsWith(normalizedDrive + '/') && normalizedInitial !== normalizedDrive) {
+          console.warn('Cannot navigate to drive outside initialPath:', { drivePath, initialPath })
+          return
+        }
+      } else {
+        // Network drive or other path - check if initial path is under it
+        if (!normalizedInitial.startsWith(normalizedDrive + '/') && normalizedInitial !== normalizedDrive) {
+          console.warn('Cannot navigate to drive outside initialPath:', { drivePath, initialPath })
+          return
+        }
+      }
+    }
+    
+    // Navigate to the selected drive
+    const newHistory = [...pathHistory, currentPath]
+    setPathHistory(newHistory)
+    onPathChange(drivePath)
+    onFileSelect(null)
+    setShowDrives(false)
+  }
+
   // Parse current path into breadcrumb segments
   const breadcrumbs = useMemo(() => {
     try {
@@ -491,6 +612,11 @@ export function FileExplorer({
     }
   }, [visibleColumns, sortColumn])
 
+  // Load drives on mount
+  useEffect(() => {
+    loadDrives()
+  }, [loadDrives])
+
   // Load files when path changes
   useEffect(() => {
     loadFiles(currentPath)
@@ -582,25 +708,15 @@ export function FileExplorer({
           setIsLoading(true)
           setError(null)
           try {
-            const response = await listDrivesApi()
-            if (response.error) {
-              setError(response.error)
-              setFiles([])
-            } else {
-              // Convert drives to FileItem format
-              const driveItems: FileItem[] = response.data.map((drivePath) => ({
-                name: drivePath,
-                path: drivePath,
-                isDirectory: true,
-              }))
-              setFiles(driveItems)
-              setShowDrives(true)
-              // Add current path to history for going back
-              const newHistory = [...pathHistory, currentPath]
-              setPathHistory(newHistory)
-              onPathChange(DRIVES_VIEW_PATH)
-              onFileSelect(null)
-            }
+            // Load drives and use the result
+            const driveItems = await loadDrives()
+            setFiles(driveItems)
+            setShowDrives(true)
+            // Add current path to history for going back
+            const newHistory = [...pathHistory, currentPath]
+            setPathHistory(newHistory)
+            onPathChange(DRIVES_VIEW_PATH)
+            onFileSelect(null)
           } catch (err) {
             setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
             setFiles([])
@@ -704,33 +820,21 @@ export function FileExplorer({
     onFileSelect(null)
   }
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     // Refresh files for the current path
     if (currentPath === DRIVES_VIEW_PATH) {
       // If in drives view, reload drives
       setIsLoading(true)
       setError(null)
-      listDrivesApi()
-        .then((response) => {
-          if (response.error) {
-            setError(response.error)
-            setFiles([])
-          } else {
-            const driveItems: FileItem[] = response.data.map((drivePath) => ({
-              name: drivePath,
-              path: drivePath,
-              isDirectory: true,
-            }))
-            setFiles(driveItems)
-          }
-        })
-        .catch((err) => {
-          setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
-          setFiles([])
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+      try {
+        const driveItems = await loadDrives()
+        setFiles(driveItems)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
+        setFiles([])
+      } finally {
+        setIsLoading(false)
+      }
     } else {
       // Refresh regular files
       loadFiles(currentPath)
@@ -860,6 +964,54 @@ export function FileExplorer({
             >
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
+            {/* Drive Selector */}
+            {allDrives.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isLoading || isLoadingDrives}
+                    className="shrink-0 h-8 px-2"
+                    title={String((t as any)('fileExplorer.driveSelector'))}
+                  >
+                    {currentDrive === '~' ? (
+                      <Home className={cn("h-4 w-4", "text-blue-500")} />
+                    ) : (
+                      <HardDrive className={cn("h-4 w-4", currentDrive && "text-emerald-500")} />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[150px]">
+                  {allDrives.map((drive) => {
+                    const isCurrentDrive = drive.path === currentDrive
+                    const isHome = drive.path === '~'
+                    return (
+                      <DropdownMenuItem
+                        key={drive.path}
+                        onClick={() => handleDriveChange(drive.path)}
+                        className={cn(
+                          "flex items-center gap-2 cursor-pointer",
+                          isCurrentDrive && "bg-accent"
+                        )}
+                      >
+                        {isHome ? (
+                          <Home className="h-4 w-4 text-blue-500 shrink-0" />
+                        ) : (
+                          <HardDrive className="h-4 w-4 text-emerald-500 shrink-0" />
+                        )}
+                        <span className="truncate flex-1">
+                          {isHome ? String((t as any)('fileExplorer.home')) : drive.name.replace(/[\\/]+$/, '')}
+                        </span>
+                        {isCurrentDrive && (
+                          <span className="text-xs text-muted-foreground shrink-0">✓</span>
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <div className="flex items-center gap-1 min-w-0 flex-1 flex-wrap">
               {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.path} className="flex items-center gap-1 min-w-0">

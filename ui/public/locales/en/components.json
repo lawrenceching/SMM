@@ -90,7 +90,10 @@
     "searchStatus": "Showing {{showing}} of {{total}} items",
     "goToParent": "Go to parent folder",
     "drives": "Drives",
-    "drivesStatus": "{{count}} drives"
+    "drivesStatus": "{{count}} drives",
+    "driveSelector": "Select Drive",
+    "driveSelectorPlaceholder": "Select a drive...",
+    "home": "Home"
   },
   "episodeSection": {
     "notAvailable": "N/A",

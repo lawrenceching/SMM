@@ -40,7 +40,7 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
     })
 
     readMediaMetadataApi(folderPath).then((data) => {
-      if(!!data.data) {
+      if(data.data) {
         console.log(`[OpenFolderDialog] Media metadata is already exists, skip adding new metadata`)
       } else {
         addMediaMetadata({
@@ -67,9 +67,9 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
           </DialogDescription>
         </DialogHeader>
         {folderPath && (
-          <div className="flex items-center gap-2 p-3 rounded-md bg-muted border">
+          <div className="flex items-center gap-2 p-3 rounded-md bg-muted border min-w-0 overflow-hidden">
             <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
               <span className="text-xs font-medium text-muted-foreground">{t('openFolder.folderPathLabel')}</span>
               <span className="text-sm truncate">{folderPath}</span>
             </div>

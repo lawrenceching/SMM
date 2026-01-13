@@ -90,7 +90,10 @@
     "searchStatus": "顯示 {{showing}} / {{total}} 項",
     "goToParent": "移至父資料夾",
     "drives": "磁碟機",
-    "drivesStatus": "{{count}} 個磁碟機"
+    "drivesStatus": "{{count}} 個磁碟機",
+    "driveSelector": "選擇磁碟機",
+    "driveSelectorPlaceholder": "選擇磁碟機...",
+    "home": "使用者目錄"
   },
   "episodeSection": {
     "notAvailable": "不可用",

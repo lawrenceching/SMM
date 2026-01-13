@@ -90,7 +90,10 @@
     "searchStatus": "显示 {{showing}} / {{total}} 项",
     "goToParent": "转到上级文件夹",
     "drives": "驱动器",
-    "drivesStatus": "{{count}} 个驱动器"
+    "drivesStatus": "{{count}} 个驱动器",
+    "driveSelector": "选择驱动器",
+    "driveSelectorPlaceholder": "选择驱动器...",
+    "home": "用户目录"
   },
   "episodeSection": {
     "notAvailable": "不可用",
