@@ -11,11 +11,11 @@ import { FileExplorer } from "@/components/FileExplorer"
 import type { FilePickerDialogProps, FileItem } from "./types"
 import { useTranslation } from "@/lib/i18n"
 
-export function FilePickerDialog({ 
-  isOpen, 
-  onClose, 
-  onSelect, 
-  title, 
+export function FilePickerDialog({
+  isOpen,
+  onClose,
+  onSelect,
+  title,
   description
 }: FilePickerDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
@@ -64,16 +64,14 @@ export function FilePickerDialog({
               restrictToInitialPath={false}
             />
           </div>
-          {selectedFile && (
-            <div className="flex justify-end gap-2 pt-2 shrink-0">
-              <Button variant="outline" onClick={handleCancel}>
-                {t('cancel', { ns: 'common' })}
-              </Button>
-              <Button onClick={handleConfirm}>
-                {t('confirm', { ns: 'common' })}
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-end gap-2 pt-2 shrink-0">
+            <Button variant="outline" onClick={handleCancel}>
+              {t('cancel', { ns: 'common' })}
+            </Button>
+            <Button onClick={handleConfirm}>
+              {t('confirm', { ns: 'common' })}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
