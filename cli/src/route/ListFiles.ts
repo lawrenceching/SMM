@@ -15,7 +15,7 @@ const listFilesRequestSchema = z.object({
   recursively: z.boolean().optional(),
 });
 
-export async function processListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
+export async function doListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
   try {
     // Validate request body
     const validationResult = listFilesRequestSchema.safeParse(body);
@@ -25,6 +25,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
         data: {
           path: '',
           items: [],
+          size: 0,
         },
         error: `Validation Failed: ${validationResult.error.issues.map(i => i.message).join(', ')}`,
       };
@@ -76,6 +77,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
           data: {
             path: validatedPath,
             items: [],
+            size: 0,
           },
           error: `Path Not Directory: ${folderPath} is not a directory`,
         };
@@ -85,6 +87,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
         data: {
           path: validatedPath,
           items: [],
+          size: 0,
         },
         error: `Directory Not Found: ${folderPath} was not found`,
       };
@@ -93,8 +96,9 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
     // List directory contents
     try {
       const results: Array<{ path: string; size: number; mtime: number; isDirectory: boolean }> = [];
+      let totalCount = 0; // Count of all items in the immediate directory (before onlyFiles/onlyFolders filtering)
 
-      async function scanDirectory(dirPath: string): Promise<void> {
+      async function scanDirectory(dirPath: string, isTopLevel: boolean = false): Promise<void> {
         const items = await readdir(dirPath);
 
         for (const item of items) {
@@ -106,12 +110,16 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
             const isDirectory = itemStats.isDirectory();
 
             // Filter hidden files/directories if not including them
-            if (!includeHiddenFiles) {
-              const filename = path.basename(item);
-              // Unix/Linux/macOS hidden files (starting with .)
-              if (filename.startsWith('.')) continue;
-              // Windows system files
-              if (filename === 'Thumbs.db' || filename === 'desktop.ini') continue;
+            const filename = path.basename(item);
+            const isHidden = filename.startsWith('.') || filename === 'Thumbs.db' || filename === 'desktop.ini';
+            
+            if (!includeHiddenFiles && isHidden) {
+              continue;
+            }
+
+            // Count items in the top-level directory only (before onlyFiles/onlyFolders filtering)
+            if (isTopLevel) {
+              totalCount++;
             }
 
             // Filter based on onlyFiles/onlyFolders to determine if we add to results
@@ -146,7 +154,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
             // If it's a directory and recursively is true, scan it recursively
             // (even if we filtered it out from results)
             if (isDirectory && recursively) {
-              await scanDirectory(fullPath);
+              await scanDirectory(fullPath, false);
             }
           } catch (error) {
             // Skip items we can't stat (permissions, etc.)
@@ -155,12 +163,13 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
         }
       }
 
-      await scanDirectory(validatedPath);
+      await scanDirectory(validatedPath, true);
 
       return {
         data: {
           path: validatedPath,
           items: results,
+          size: totalCount,
         },
       };
     } catch (error) {
@@ -168,6 +177,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
         data: {
           path: validatedPath,
           items: [],
+          size: 0,
         },
         error: `List Directory Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
@@ -177,6 +187,7 @@ export async function processListFiles(body: ListFilesRequestBody): Promise<List
       data: {
         path: '',
         items: [],
+        size: 0,
       },
       error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
@@ -203,7 +214,7 @@ export function handleListFiles(app: Hono) {
       if (query.recursively !== undefined) {
         body.recursively = query.recursively === 'true';
       }
-      const result = await processListFiles(body);
+      const result = await doListFiles(body);
       return c.json(result, 200);
     } catch (error) {
       logger.error({ error }, 'ListFiles route error:');
@@ -211,6 +222,7 @@ export function handleListFiles(app: Hono) {
         data: {
           path: '',
           items: [],
+          size: 0,
         },
         error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
       }, 200);
@@ -221,7 +233,7 @@ export function handleListFiles(app: Hono) {
   app.post('/api/listFiles', async (c) => {
     try {
       const rawBody = await c.req.json();
-      const result = await processListFiles(rawBody);
+      const result = await doListFiles(rawBody);
       return c.json(result, 200);
     } catch (error) {
       logger.error({ error }, 'ListFiles route error:');
@@ -229,6 +241,7 @@ export function handleListFiles(app: Hono) {
         data: {
           path: '',
           items: [],
+          size: 0,
         },
         error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process list files request'}`,
       }, 200);
