@@ -14,7 +14,7 @@ import type {
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, mapTagToFileType } from "./TvShowPanelUtils"
-import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
+import { TvShowPanelPrompts, usePromptManager } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
@@ -88,13 +88,40 @@ function TvShowPanel() {
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
 
+  // Use prompt manager to handle opening/closing prompts
+  const { openPrompt } = usePromptManager(
+    {
+      setIsUseNfoPromptOpen,
+      setIsRuleBasedRenameFilePromptOpen,
+      setIsAiBasedRenameFilePromptOpen,
+      setIsAiRecognizePromptOpen,
+      setIsRuleBasedRecognizePromptOpen,
+    },
+    {
+      isUseNfoPromptOpen,
+      isRuleBasedRenameFilePromptOpen,
+      isAiBasedRenameFilePromptOpen,
+      isAiRecognizePromptOpen,
+      isRuleBasedRecognizePromptOpen,
+    }
+  )
+
+  // Wrapper for WebSocket hook that uses openPrompt
+  const handleSetAiBasedRenameFilePromptOpen = useCallback((open: boolean) => {
+    if (open) {
+      openPrompt("aiBasedRenameFile")
+    } else {
+      setIsAiBasedRenameFilePromptOpen(false)
+    }
+  }, [openPrompt, setIsAiBasedRenameFilePromptOpen])
+
   // Use WebSocket events hook
   useTvShowWebSocketEvents({
     mediaMetadata,
     setSeasons,
     setScrollToEpisodeId,
     setSelectedMediaMetadataByMediaFolderPath,
-    setIsAiBasedRenameFilePromptOpen,
+    setIsAiBasedRenameFilePromptOpen: handleSetAiBasedRenameFilePromptOpen,
     setAiBasedRenameFileStatus,
   })
 
@@ -288,8 +315,8 @@ function TvShowPanel() {
           ref={tmdbTvShowOverviewRef}
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
-          onRenameClick={() => {setIsRuleBasedRenameFilePromptOpen(true)}}
-          onRecognizeButtonClick={() => {setIsRuleBasedRecognizePromptOpen(true)}}
+          onRenameClick={() => openPrompt("ruleBasedRenameFile")}
+          onRecognizeButtonClick={() => openPrompt("ruleBasedRecognize")}
           ruleName={selectedNamingRule}
           seasons={seasons}
           isPreviewMode={isPreviewMode}

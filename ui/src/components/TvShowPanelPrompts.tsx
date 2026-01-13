@@ -1,9 +1,89 @@
+import { useCallback, useEffect } from "react"
 import { UseNfoPrompt } from "./UseNfoPrompt"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@core/types"
+
+export type PromptName = 
+  | "useNfo"
+  | "ruleBasedRenameFile"
+  | "aiBasedRenameFile"
+  | "aiRecognize"
+  | "ruleBasedRecognize"
+
+interface PromptSetters {
+  setIsUseNfoPromptOpen: (open: boolean) => void
+  setIsRuleBasedRenameFilePromptOpen: (open: boolean) => void
+  setIsAiBasedRenameFilePromptOpen: (open: boolean) => void
+  setIsAiRecognizePromptOpen: (open: boolean) => void
+  setIsRuleBasedRecognizePromptOpen: (open: boolean) => void
+}
+
+interface PromptStates {
+  isUseNfoPromptOpen: boolean
+  isRuleBasedRenameFilePromptOpen: boolean
+  isAiBasedRenameFilePromptOpen: boolean
+  isAiRecognizePromptOpen: boolean
+  isRuleBasedRecognizePromptOpen: boolean
+}
+
+export function usePromptManager(setters: PromptSetters, states: PromptStates) {
+  const openPrompt = useCallback((name: PromptName) => {
+    // Close all prompts first
+    setters.setIsUseNfoPromptOpen(false)
+    setters.setIsRuleBasedRenameFilePromptOpen(false)
+    setters.setIsAiBasedRenameFilePromptOpen(false)
+    setters.setIsAiRecognizePromptOpen(false)
+    setters.setIsRuleBasedRecognizePromptOpen(false)
+    
+    // Open the requested prompt
+    switch (name) {
+      case "useNfo":
+        setters.setIsUseNfoPromptOpen(true)
+        break
+      case "ruleBasedRenameFile":
+        setters.setIsRuleBasedRenameFilePromptOpen(true)
+        break
+      case "aiBasedRenameFile":
+        setters.setIsAiBasedRenameFilePromptOpen(true)
+        break
+      case "aiRecognize":
+        setters.setIsAiRecognizePromptOpen(true)
+        break
+      case "ruleBasedRecognize":
+        setters.setIsRuleBasedRecognizePromptOpen(true)
+        break
+    }
+  }, [setters])
+
+  // Ensure only one prompt is open at a time (handles external sources like hooks)
+  useEffect(() => {
+    const prompts = [
+      { isOpen: states.isUseNfoPromptOpen, close: setters.setIsUseNfoPromptOpen },
+      { isOpen: states.isRuleBasedRenameFilePromptOpen, close: setters.setIsRuleBasedRenameFilePromptOpen },
+      { isOpen: states.isAiBasedRenameFilePromptOpen, close: setters.setIsAiBasedRenameFilePromptOpen },
+      { isOpen: states.isAiRecognizePromptOpen, close: setters.setIsAiRecognizePromptOpen },
+      { isOpen: states.isRuleBasedRecognizePromptOpen, close: setters.setIsRuleBasedRecognizePromptOpen },
+    ]
+    const openPrompts = prompts.filter(p => p.isOpen)
+    
+    // If multiple prompts are open, close all except the first one
+    if (openPrompts.length > 1) {
+      openPrompts.slice(1).forEach(p => p.close(false))
+    }
+  }, [
+    states.isUseNfoPromptOpen,
+    states.isRuleBasedRenameFilePromptOpen,
+    states.isAiBasedRenameFilePromptOpen,
+    states.isAiRecognizePromptOpen,
+    states.isRuleBasedRecognizePromptOpen,
+    setters,
+  ])
+
+  return { openPrompt }
+}
 
 interface ToolbarOption {
   value: "plex" | "emby"
