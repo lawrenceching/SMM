@@ -104,10 +104,15 @@ npm run build:linux   # Build for Linux
 npm run typecheck     # Run TypeScript type checking
 ```
 
-### Running Tests
+### Running Unit Tests (Per Module)
 ```bash
-# From project root
-bun test:unit         # Run unit tests (if available)
+# CLI module (cli/)
+cd cli
+bun test [testfilename]    # Run a specific test file
+
+# UI module (ui/)
+cd ui
+bun run test [testfilename]    # Run a specific test file
 ```
 
 Note: The project follows red-green testing principle - tests should fail when production code is commented out.
