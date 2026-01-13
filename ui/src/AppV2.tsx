@@ -81,6 +81,10 @@ export default function AppV2() {
     }
 
     if(selectedMediaMetadata.type === undefined) {
+      // 1. start to get TMDB id from folder name
+      const tmdbId = getTmdbIdFromFolderName(selectedMediaMetadata.mediaFolderPath)
+
+      // 2. start to find tvshow.nfo
       if(selectedMediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
         console.log(`[AppV2] found tvshow.info, indicating this folder is a TV show`);  
         updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, {

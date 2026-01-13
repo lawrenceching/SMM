@@ -90,19 +90,27 @@ describe('FilePickerDialog', () => {
     expect(screen.queryByTestId('file-explorer')).not.toBeInTheDocument()
   })
 
-  it('should display default title and description when not provided', () => {
-    render(<FilePickerDialog {...defaultProps} />)
+  it('should display default title and description when not provided and hideDialogHeader is false', () => {
+    render(<FilePickerDialog {...defaultProps} hideDialogHeader={false} />)
     
     expect(screen.getByRole('heading', { name: 'Select File' })).toBeInTheDocument()
     expect(screen.getByText('Choose a file from the file system')).toBeInTheDocument()
   })
 
-  it('should display custom title and description when provided', () => {
+  it('should not display title and description when hideDialogHeader is true (default)', () => {
+    render(<FilePickerDialog {...defaultProps} />)
+    
+    expect(screen.queryByRole('heading', { name: 'Select File' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Choose a file from the file system')).not.toBeInTheDocument()
+  })
+
+  it('should display custom title and description when provided and hideDialogHeader is false', () => {
     render(
       <FilePickerDialog
         {...defaultProps}
         title="Custom Title"
         description="Custom Description"
+        hideDialogHeader={false}
       />
     )
     
