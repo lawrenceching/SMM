@@ -147,6 +147,7 @@ export interface FileExplorerProps {
   initialPath?: string
   className?: string
   showPathBar?: boolean
+  showStatusBar?: boolean
   onlyFolders?: boolean
   restrictToInitialPath?: boolean
   visibleColumns?: ('name' | 'size' | 'date')[]
@@ -161,6 +162,7 @@ export function FileExplorer({
   initialPath = "~",
   className,
   showPathBar = true,
+  showStatusBar = true,
   onlyFolders = false,
   restrictToInitialPath = true,
   visibleColumns = ['name', 'size', 'date'],
@@ -1057,7 +1059,7 @@ export function FileExplorer({
       </div>
       
       {/* Status Bar */}
-      {!isLoading && !error && sortedFiles.length > 0 && (
+      {showStatusBar && !isLoading && !error && sortedFiles.length > 0 && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
           <span>
             {showDrives

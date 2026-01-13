@@ -74,6 +74,7 @@ export function FilePickerDialog({
               onFileSelect={setSelectedFile}
               initialPath={currentPath}
               showPathBar={true}
+              showStatusBar={false}
               restrictToInitialPath={false}
               visibleColumns={['name']}
             />
