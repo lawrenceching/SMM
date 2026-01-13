@@ -979,7 +979,7 @@ export function FileExplorer({
                       onClick={() => handleItemClick(file)}
                       onDoubleClick={() => handleItemDoubleClick(file)}
                       className={cn(
-                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center",
+                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center select-none",
                         "hover:bg-accent/50 active:bg-accent",
                         isSelected && "bg-primary/10 hover:bg-primary/15",
                         isFocused && "ring-2 ring-primary ring-inset"
