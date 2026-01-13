@@ -937,14 +937,14 @@ export function FileExplorer({
             ) : (
               <div className="flex flex-col gap-0">
                 {/* Column Headers */}
-                <div className="grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground sticky top-0 z-10">
+                <div className="grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground sticky top-0 z-10 min-w-0">
                   <button
                     onClick={() => handleColumnHeaderClick('name')}
-                    className="flex items-center gap-1.5 text-left hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                    className="flex items-center gap-1.5 text-left hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5 min-w-0 overflow-hidden"
                   >
-                    <span>Name</span>
+                    <span className="truncate">Name</span>
                     {sortColumn === 'name' && (
-                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />
                     )}
                   </button>
                   <button
@@ -979,19 +979,19 @@ export function FileExplorer({
                       onClick={() => handleItemClick(file)}
                       onDoubleClick={() => handleItemDoubleClick(file)}
                       className={cn(
-                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center select-none",
+                        "file-item grid grid-cols-[1fr_100px_150px] gap-2 px-2 py-1.5 cursor-pointer group items-center select-none min-w-0",
                         "hover:bg-accent/50 active:bg-accent",
                         isSelected && "bg-primary/10 hover:bg-primary/15",
                         isFocused && "ring-2 ring-primary ring-inset"
                       )}
                     >
                       {/* Name Column */}
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                         <div className="shrink-0">
                           {getFileIcon(file.name, file.isDirectory ?? false, isDrive)}
                         </div>
                         <span className={cn(
-                          "text-sm font-medium truncate",
+                          "text-sm font-medium truncate min-w-0 flex-1",
                           file.isDirectory ? "text-foreground" : "text-foreground/90"
                         )}>
                           {file.name}
