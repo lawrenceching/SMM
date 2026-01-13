@@ -22,5 +22,16 @@
     "**/node_modules/**": true,
     "**/dist/**": true,
     "**/build/**": true
-  }
+  },
+  // Bun test coverage settings
+  // Coverage Gutters extension settings for displaying code coverage
+  "coverage-gutters.showGutterCoverage": true,
+  "coverage-gutters.showLineCoverage": true,
+  "coverage-gutters.showRulerCoverage": true,
+  "coverage-gutters.lcovname": "lcov.info",
+  "coverage-gutters.coverageFileNames": [
+    "lcov.info",
+    "coverage/lcov.info",
+    "cli/coverage/lcov.info"
+  ]
 }

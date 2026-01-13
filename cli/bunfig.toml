@@ -1,0 +1,7 @@
+[test]
+# Enable code coverage reporting
+# Generate coverage reports in text and lcov formats
+# lcov format is required for VSCode Coverage Gutters extension
+coverageReporter = ["text", "lcov"]
+# Coverage output directory
+coverageDir = "./coverage"

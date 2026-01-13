@@ -14,9 +14,16 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     coverage: {
       provider: 'v8', // Fast, accurate, and recommended for modern projects
-      enabled: true,
-      reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
+      reporter: ['text', 'json', 'html', 'lcov'], // lcov format for VSCode Coverage Gutters extension
+      reportsDirectory: './coverage',
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '**/*.test.{ts,tsx}',
+        '**/*.config.{ts,js}',
+        '**/test/**',
+        '**/coverage/**',
+      ],
     },
   },
   resolve: {

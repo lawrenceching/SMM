@@ -20,6 +20,20 @@
   // Enable test code lens (run/debug buttons above tests)
   "vitest.codeLens": true,
   // Show test status in editor
-  "vitest.showFailMessages": true
+  "vitest.showFailMessages": true,
+  // Enable coverage display in editor
+  "vitest.coverage": {
+    "enabled": true
+  },
+  // Coverage Gutters extension settings (if installed)
+  "coverage-gutters.showGutterCoverage": true,
+  "coverage-gutters.showLineCoverage": true,
+  "coverage-gutters.showRulerCoverage": true,
+  "coverage-gutters.lcovname": "lcov.info",
+  "coverage-gutters.coverageFileNames": [
+    "lcov.info",
+    "coverage/lcov.info",
+    "ui/coverage/lcov.info"
+  ]
 }
   
