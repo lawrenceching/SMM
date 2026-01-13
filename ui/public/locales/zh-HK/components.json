@@ -86,6 +86,7 @@
     "emptyDirectory": "空目錄",
     "noMatchesDescription": "沒有檔案符合 \"{{query}}\"",
     "emptyDirectoryDescription": "此資料夾不包含任何檔案",
+    "folderContents": "此資料夾包含 {{files}} 個檔案 和 {{folders}} 個資料夾",
     "statusBar": "{{folders}} 個資料夾, {{files}} 個檔案",
     "searchStatus": "顯示 {{showing}} / {{total}} 項",
     "goToParent": "移至父資料夾",

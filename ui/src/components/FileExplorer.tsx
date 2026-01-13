@@ -185,6 +185,9 @@ export function FileExplorer({
   const [isLoadingDrives, setIsLoadingDrives] = useState(false)
   const [sortColumn, setSortColumn] = useState<'name' | 'size' | 'date'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [directorySize, setDirectorySize] = useState<number>(0)
+  const [fileCount, setFileCount] = useState<number>(0)
+  const [folderCount, setFolderCount] = useState<number>(0)
 
   // Generate grid column template based on visible columns
   const gridColsTemplate = useMemo(() => {
@@ -245,11 +248,17 @@ export function FileExplorer({
       if (response.error) {
         setError(response.error || t('fileExplorer.loadFailed'))
         setFiles([])
+        setDirectorySize(0)
+        setFileCount(0)
+        setFolderCount(0)
       } else {
 
         if(!response.data) {
           console.error('[FileExplorer] unexpected response body: no data', response)
           setFiles([])
+          setDirectorySize(0)
+          setFileCount(0)
+          setFolderCount(0)
         } else {
           // Update path to the resolved path from API (e.g., "~" -> "C:\Users\<username>")
           const resolvedPath = response.data.path
@@ -257,6 +266,10 @@ export function FileExplorer({
             // Update the path to the resolved path
             onPathChange(resolvedPath)
           }
+
+          // Store the directory size from API response
+          const totalSize = response.data.size ?? 0
+          setDirectorySize(totalSize)
 
           // Convert to FileItem format
           // Handle both old format (strings) and new format (objects) for backward compatibility
@@ -304,6 +317,21 @@ export function FileExplorer({
             .filter((item): item is FileItem => item !== null)
 
           setFiles(items)
+
+          // Calculate file and folder counts
+          // If onlyFolders is true, all items in response are folders
+          // Otherwise, count from items directly
+          if (onlyFolders) {
+            const foldersInResponse = items.length
+            setFolderCount(foldersInResponse)
+            setFileCount(totalSize - foldersInResponse)
+          } else {
+            // Count from items directly
+            const filesInItems = items.filter(item => !item.isDirectory).length
+            const foldersInItems = items.filter(item => item.isDirectory).length
+            setFileCount(filesInItems)
+            setFolderCount(foldersInItems)
+          }
         }
 
         
@@ -311,6 +339,9 @@ export function FileExplorer({
     } catch (err) {
       setError(err instanceof Error ? err.message : t('fileExplorer.loadFailed'))
       setFiles([])
+      setDirectorySize(0)
+      setFileCount(0)
+      setFolderCount(0)
     } finally {
       setIsLoading(false)
     }
@@ -1096,19 +1127,37 @@ export function FileExplorer({
                 </div>
               </div>
             ) : sortedFiles.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="rounded-full bg-muted p-3">
-                  <File className="h-6 w-6 text-muted-foreground" />
+              directorySize === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <div className="rounded-full bg-muted p-3">
+                    <File className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      {searchQuery ? t('fileExplorer.noMatches') : t('fileExplorer.emptyDirectory')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {searchQuery ? t('fileExplorer.noMatchesDescription', { query: searchQuery }) : t('fileExplorer.emptyDirectoryDescription')}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-foreground mb-1">
-                    {searchQuery ? t('fileExplorer.noMatches') : t('fileExplorer.emptyDirectory')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {searchQuery ? t('fileExplorer.noMatchesDescription', { query: searchQuery }) : t('fileExplorer.emptyDirectoryDescription')}
-                  </p>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <div className="rounded-full bg-muted p-3">
+                    <File className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      {t('fileExplorer.folderContents', {
+                        files: fileCount,
+                        folders: folderCount,
+                        fileLabel: fileCount === 1 ? 'file' : 'files',
+                        folderLabel: folderCount === 1 ? 'folder' : 'folders'
+                      })}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="flex flex-col gap-0">
                 {/* Column Headers */}

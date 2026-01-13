@@ -246,7 +246,8 @@ export default function AppV2() {
         }, file.path)
       }, {
         title: "Select Folder",
-        description: "Choose a folder to open"
+        description: "Choose a folder to open",
+        selectFolder: true
       })
     }
   }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])

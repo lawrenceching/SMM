@@ -128,6 +128,17 @@ export interface ListFilesResponseBody {
       mtime: number;
       isDirectory: boolean;
     }>;
+
+    /**
+     * The total number of files and folders in the folder
+     * This number is different from the length of items
+     * Because the items got filtered by onlyFiles and onlyFolders.
+     * For example, the size is 10 and the length of items is 0
+     * because onlyFolders is true, and all files are filtered out.
+     * 
+     * The hidden files and directories are not counted.
+     */
+    size: number;
   };
   error?: string;
 }

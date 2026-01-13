@@ -19,7 +19,8 @@ export function FilePickerDialog({
   onSelect,
   title,
   description,
-  hideDialogHeader = true
+  hideDialogHeader = true,
+  selectFolder = false
 }: FilePickerDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const defaultTitle = title || t('filePicker.defaultTitle')
@@ -44,6 +45,12 @@ export function FilePickerDialog({
 
   const handleConfirm = () => {
     if (selectedFile) {
+      // Validate that a folder is selected when selectFolder is true
+      if (selectFolder && !selectedFile.isDirectory) {
+        // Don't allow selecting files when selectFolder is true
+        return
+      }
+      
       // Save the parent directory of the selected file/folder to localStorage
       const parentDir = getParentDirectory(selectedFile.path)
       localStorages.filePickerLastDir = parentDir
@@ -83,6 +90,7 @@ export function FilePickerDialog({
               showStatusBar={false}
               restrictToInitialPath={false}
               visibleColumns={['name']}
+              onlyFolders={selectFolder}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2 shrink-0">

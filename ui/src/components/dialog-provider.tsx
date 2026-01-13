@@ -38,7 +38,7 @@ interface DialogContextValue {
     closeOpenFolder: () => void
   ]
   filePickerDialog: [
-    openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string }) => void,
+    openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean }) => void,
     closeFilePicker: () => void
   ]
   downloadVideoDialog: [
@@ -85,7 +85,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // File picker dialog state
   const [isFilePickerOpen, setIsFilePickerOpen] = useState(false)
   const [filePickerOnSelect, setFilePickerOnSelect] = useState<((file: FileItem) => void) | null>(null)
-  const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string }>({})
+  const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string; selectFolder?: boolean }>({})
 
   // Download video dialog state
   const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
@@ -161,7 +161,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeOpenFolder()
   }, [openFolderOnSelect, closeOpenFolder])
 
-  const openFilePicker = useCallback((onSelect: (file: FileItem) => void, options?: { title?: string; description?: string }) => {
+  const openFilePicker = useCallback((onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean }) => {
     setFilePickerOnSelect(() => onSelect)
     setFilePickerOptions(options || {})
     setIsFilePickerOpen(true)
@@ -286,6 +286,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onSelect={handleFileSelect}
         title={filePickerOptions.title}
         description={filePickerOptions.description}
+        selectFolder={filePickerOptions.selectFolder}
       />
       <DownloadVideoDialog
         isOpen={isDownloadVideoOpen}

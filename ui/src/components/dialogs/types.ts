@@ -42,6 +42,7 @@ export interface FilePickerDialogProps {
   title?: string
   description?: string
   hideDialogHeader?: boolean
+  selectFolder?: boolean
 }
 
 export interface DownloadVideoDialogProps {

@@ -86,6 +86,7 @@
     "emptyDirectory": "Empty directory",
     "noMatchesDescription": "No files match \"{{query}}\"",
     "emptyDirectoryDescription": "This folder contains no files",
+    "folderContents": "This folder contains {{files}} {{fileLabel}} and {{folders}} {{folderLabel}}",
     "statusBar": "{{folders}} folders, {{files}} files",
     "searchStatus": "Showing {{showing}} of {{total}} items",
     "goToParent": "Go to parent folder",

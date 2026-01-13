@@ -109,6 +109,7 @@ interface ComponentsResources {
     emptyDirectoryDescription: string
     statusBar: string
     searchStatus: string
+    folderContents: string
   }
   episodeSection: {
     notAvailable: string
