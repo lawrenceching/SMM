@@ -68,7 +68,11 @@ export function FilePickerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent showCloseButton={true} className="max-w-2xl overflow-hidden">
+      <DialogContent 
+        showCloseButton={true} 
+        className="max-w-2xl overflow-hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
 
         {
           !hideDialogHeader && (
