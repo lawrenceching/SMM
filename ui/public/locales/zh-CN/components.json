@@ -37,7 +37,9 @@
     "aiReviewEpisodes": "查看已识别的剧集",
     "reviewRecognizeEpisodes": "查看并确认已识别的剧集...",
     "useNfoMetadata": "使用NFO文件中的媒体元数据？",
-    "useTmdbIdFromFolderName": "使用文件夹名称中的TMDB ID？"
+    "useTmdbIdFromFolderName": "使用文件夹名称中的TMDB ID？",
+    "queryingTmdb": "正在查询TMDB...",
+    "queryTmdbFailed": "查询TMDB失败"
   },
   "assistant": {
     "open": "打开助手",

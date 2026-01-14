@@ -27,6 +27,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   // Replace global seasonsBackup with useRef
   const seasonsBackup = useRef<SeasonModel[]>([])
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
+  const processedMediaFolderPathRef = useRef<string | undefined>(undefined) // Track which folder we've already processed for inference
   const promptsContext = usePromptsContext()
   
   // Extract setters to avoid dependency on the whole context object
@@ -35,19 +36,27 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   const setIsUseTmdbidFromFolderNamePromptOpen = promptsContext._setIsUseTmdbidFromFolderNamePromptOpen
   const setTmdbIdFromFolderName = promptsContext._setTmdbIdFromFolderName
   const setTmdbMediaNameFromFolderName = promptsContext._setTmdbMediaNameFromFolderName
+  
+  // Store latest function reference in ref to avoid dependency issues
+  const openUseNfoPromptRef = useRef(usePrompts.openUseNfoPrompt)
+  useEffect(() => {
+    openUseNfoPromptRef.current = usePrompts.openUseNfoPrompt
+  }, [usePrompts.openUseNfoPrompt])
 
   // Close prompts when mediaMetadata instance changes (different media folder selected)
   useEffect(() => {
     const currentPath = mediaMetadata?.mediaFolderPath
     const prevPath = prevMediaFolderPathRef.current
     
-    // If the path changed (different instance), close all prompts
+    // If the path changed (different instance), close all prompts and reset processed path
     if (prevPath !== undefined && currentPath !== prevPath) {
       setIsUseNfoPromptOpen(false)
       setLoadedNfoData(undefined)
       setIsUseTmdbidFromFolderNamePromptOpen(false)
       setTmdbIdFromFolderName(undefined)
       setTmdbMediaNameFromFolderName(undefined)
+      // Reset processed path so inference can run again for the new folder
+      processedMediaFolderPathRef.current = undefined
     }
     
     // Update the ref with the current path
@@ -60,13 +69,20 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
       return;
     }
 
-    if(mediaMetadata.tmdbTvShow === undefined) {
+    // Only try to infer media type once per mediaFolderPath
+    const currentPath = mediaMetadata.mediaFolderPath
+    const hasProcessedThisPath = processedMediaFolderPathRef.current === currentPath
+    
+    if(mediaMetadata.tmdbTvShow === undefined && !hasProcessedThisPath) {
       console.log(`[TvShowPanel] trying to infer to media type`);
+      // Mark this path as processed
+      processedMediaFolderPathRef.current = currentPath
+      
       if(mediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
         // Read NFO file before opening prompt
         loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
           if (tmdbTvShowDetails !== undefined) {
-            usePrompts.openUseNfoPrompt({
+            openUseNfoPromptRef.current({
               nfoData: tmdbTvShowDetails,
               // Callbacks will be set when opening from TvShowPanel
             })
@@ -95,7 +111,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
       }))
     })
 
-  }, [mediaMetadata, usePrompts.openUseNfoPrompt])
+  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow])
 
   // Reset scrollToEpisodeId after scrolling completes
   useEffect(() => {

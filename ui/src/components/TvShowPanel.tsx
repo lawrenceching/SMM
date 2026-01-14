@@ -114,6 +114,16 @@ function TvShowPanelContent() {
    */
   const [pendingConfirmationMessage] = useState<any>(null)
 
+  // Store latest function references in refs to avoid infinite loops in useEffect
+  const openUseTmdbIdFromFolderNamePromptRef = useRef(openUseTmdbIdFromFolderNamePrompt)
+  const handleUseTmdbidFromFolderNameConfirmRef = useRef(handleUseTmdbidFromFolderNameConfirm)
+  
+  // Update refs when functions change
+  useEffect(() => {
+    openUseTmdbIdFromFolderNamePromptRef.current = openUseTmdbIdFromFolderNamePrompt
+    handleUseTmdbidFromFolderNameConfirmRef.current = handleUseTmdbidFromFolderNameConfirm
+  }, [openUseTmdbIdFromFolderNamePrompt, handleUseTmdbidFromFolderNameConfirm])
+
   useEffect(() => {
     if(mediaMetadata?.mediaFolderPath === undefined) {
       return
@@ -130,28 +140,68 @@ function TvShowPanelContent() {
     }
 
     const tmdbIdNumber = parseInt(tmdbIdString, 10)
-    if (isNaN(tmdbIdNumber)) {
+    if (isNaN(tmdbIdNumber) || tmdbIdNumber <= 0) {
       return
     }
 
     // Get language from user config, default to en-US
     const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
 
+    let isCancelled = false
+
+    // Open prompt immediately with loading state
+    openUseTmdbIdFromFolderNamePromptRef.current({
+      tmdbId: tmdbIdNumber,
+      mediaName: undefined,
+      status: "loading",
+      onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+      onCancel: () => {},
+    })
+
     // Try to find TV Show by TMDB ID
     getTvShowById(tmdbIdNumber, language).then(response => {
-      // Only open prompt if TV show exists and no error
+      if (isCancelled) return
+      
       if (response.data && !response.error) {
-        openUseTmdbIdFromFolderNamePrompt({
+        // Update prompt with success state
+        openUseTmdbIdFromFolderNamePromptRef.current({
           tmdbId: tmdbIdNumber,
           mediaName: response.data.name,
-          onConfirm: handleUseTmdbidFromFolderNameConfirm,
+          status: "ready",
+          onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
           onCancel: () => {},
         })
+      } else {
+        // Update prompt with error state
+        openUseTmdbIdFromFolderNamePromptRef.current({
+          tmdbId: tmdbIdNumber,
+          mediaName: undefined,
+          status: "error",
+          onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+          onCancel: () => {},
+        })
+        toast.error(t('toolbar.queryTmdbFailed'))
       }
     }).catch(error => {
+      if (isCancelled) return
+      
       console.error('Failed to get TV show by ID:', error)
+      // Update prompt with error state
+      openUseTmdbIdFromFolderNamePromptRef.current({
+        tmdbId: tmdbIdNumber,
+        mediaName: undefined,
+        status: "error",
+        onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+        onCancel: () => {},
+      })
+      toast.error(t('toolbar.queryTmdbFailed'))
     })
-  }, [mediaMetadata, userConfig, openUseTmdbIdFromFolderNamePrompt, handleUseTmdbidFromFolderNameConfirm])
+
+    // Cleanup function to prevent state updates after unmount or dependency change
+    return () => {
+      isCancelled = true
+    }
+  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, userConfig?.applicationLanguage, t])
 
   // Use renaming hook
   const { startToRenameFiles } = useTvShowRenaming({

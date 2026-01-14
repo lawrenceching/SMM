@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { UseNfoPrompt } from "./UseNfoPrompt"
 import { UseTmdbidFromFolderNamePrompt } from "./UseTmdbidFromFolderNamePrompt"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
@@ -27,10 +27,14 @@ interface PromptsContextValue {
   isUseTmdbidFromFolderNamePromptOpen: boolean
   tmdbIdFromFolderName: number | undefined
   tmdbMediaNameFromFolderName: string | undefined
-  onUseTmdbidFromFolderNameConfirm: ((tmdbTvShow: TMDBTVShow) => void) | undefined
-  onUseTmdbidFromFolderNameCancel: (() => void) | undefined
+  tmdbIdFromFolderNameStatus: "ready" | "loading" | "error" | undefined
+  onUseTmdbidFromFolderNameConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onUseTmdbidFromFolderNameCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnUseTmdbidFromFolderNameConfirm: () => ((tmdbTvShow: TMDBTVShow) => void) | undefined // Getter for ref
+  _getOnUseTmdbidFromFolderNameCancel: () => (() => void) | undefined // Getter for cancel ref
   _setOnUseTmdbidFromFolderNameConfirm: (callback: ((tmdbTvShow: TMDBTVShow) => void) | undefined) => void
   _setOnUseTmdbidFromFolderNameCancel: (callback: (() => void) | undefined) => void
+  _setTmdbIdFromFolderNameStatus: (status: "ready" | "loading" | "error" | undefined) => void
   
   // RuleBasedRenameFilePrompt state
   isRuleBasedRenameFilePromptOpen: boolean
@@ -81,6 +85,7 @@ interface PromptsContextValue {
   _setIsUseTmdbidFromFolderNamePromptOpen: (open: boolean) => void
   _setTmdbIdFromFolderName: (id: number | undefined) => void
   _setTmdbMediaNameFromFolderName: (name: string | undefined) => void
+  _setTmdbIdFromFolderNameStatus: (status: "ready" | "loading" | "error" | undefined) => void
   _setIsRuleBasedRenameFilePromptOpen: (open: boolean) => void
   _setIsAiBasedRenameFilePromptOpen: (open: boolean) => void
   _setIsAiRecognizePromptOpen: (open: boolean) => void
@@ -105,8 +110,13 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
   const [isUseTmdbidFromFolderNamePromptOpen, setIsUseTmdbidFromFolderNamePromptOpen] = useState(false)
   const [tmdbIdFromFolderName, setTmdbIdFromFolderName] = useState<number | undefined>(undefined)
   const [tmdbMediaNameFromFolderName, setTmdbMediaNameFromFolderName] = useState<string | undefined>(undefined)
-  const [onUseTmdbidFromFolderNameConfirm, setOnUseTmdbidFromFolderNameConfirm] = useState<((tmdbTvShow: TMDBTVShow) => void) | undefined>(undefined)
-  const [onUseTmdbidFromFolderNameCancel, setOnUseTmdbidFromFolderNameCancel] = useState<(() => void) | undefined>(undefined)
+  const [tmdbIdFromFolderNameStatus, setTmdbIdFromFolderNameStatus] = useState<"ready" | "loading" | "error" | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onUseTmdbidFromFolderNameConfirmRef = useRef<((tmdbTvShow: TMDBTVShow) => void) | undefined>(undefined)
+  const onUseTmdbidFromFolderNameCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onUseTmdbidFromFolderNameConfirm, setOnUseTmdbidFromFolderNameConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onUseTmdbidFromFolderNameCancel, setOnUseTmdbidFromFolderNameCancel] = useState<boolean>(false)
   
   // RuleBasedRenameFilePrompt state
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
@@ -198,8 +208,17 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     _setIsUseTmdbidFromFolderNamePromptOpen: setIsUseTmdbidFromFolderNamePromptOpen,
     _setTmdbIdFromFolderName: setTmdbIdFromFolderName,
     _setTmdbMediaNameFromFolderName: setTmdbMediaNameFromFolderName,
-    _setOnUseTmdbidFromFolderNameConfirm: setOnUseTmdbidFromFolderNameConfirm,
-    _setOnUseTmdbidFromFolderNameCancel: setOnUseTmdbidFromFolderNameCancel,
+    _setTmdbIdFromFolderNameStatus: setTmdbIdFromFolderNameStatus,
+    _getOnUseTmdbidFromFolderNameConfirm: useCallback(() => onUseTmdbidFromFolderNameConfirmRef.current, []),
+    _getOnUseTmdbidFromFolderNameCancel: useCallback(() => onUseTmdbidFromFolderNameCancelRef.current, []),
+    _setOnUseTmdbidFromFolderNameConfirm: useCallback((callback: ((tmdbTvShow: TMDBTVShow) => void) | undefined) => {
+      onUseTmdbidFromFolderNameConfirmRef.current = callback
+      setOnUseTmdbidFromFolderNameConfirm(!!callback)
+    }, [setOnUseTmdbidFromFolderNameConfirm]),
+    _setOnUseTmdbidFromFolderNameCancel: useCallback((callback: (() => void) | undefined) => {
+      onUseTmdbidFromFolderNameCancelRef.current = callback
+      setOnUseTmdbidFromFolderNameCancel(!!callback)
+    }, [setOnUseTmdbidFromFolderNameCancel]),
     _setIsRuleBasedRenameFilePromptOpen: setIsRuleBasedRenameFilePromptOpen,
     _setRuleBasedRenameFileToolbarOptions: setRuleBasedRenameFileToolbarOptions,
     _setRuleBasedRenameFileSelectedNamingRule: setRuleBasedRenameFileSelectedNamingRule,
@@ -228,6 +247,7 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     isUseTmdbidFromFolderNamePromptOpen,
     tmdbIdFromFolderName,
     tmdbMediaNameFromFolderName,
+    tmdbIdFromFolderNameStatus,
     onUseTmdbidFromFolderNameConfirm,
     onUseTmdbidFromFolderNameCancel,
     isRuleBasedRenameFilePromptOpen,
@@ -276,6 +296,7 @@ export function usePrompts() {
   const setTmdbMediaNameFromFolderName = context._setTmdbMediaNameFromFolderName
   const setOnUseTmdbidFromFolderNameConfirm = context._setOnUseTmdbidFromFolderNameConfirm
   const setOnUseTmdbidFromFolderNameCancel = context._setOnUseTmdbidFromFolderNameCancel
+  // Note: Callbacks are now stored in refs, not state, to prevent unexpected calls during render
   const setLoadedNfoData = context.setLoadedNfoData
   const setOnUseNfoConfirm = context._setOnUseNfoConfirm
   const setOnUseNfoCancel = context._setOnUseNfoCancel
@@ -296,17 +317,27 @@ export function usePrompts() {
   const setOnRuleBasedRecognizeConfirm = context._setOnRuleBasedRecognizeConfirm
   const setOnRuleBasedRecognizeCancel = context._setOnRuleBasedRecognizeCancel
   
+  const setTmdbIdFromFolderNameStatus = context._setTmdbIdFromFolderNameStatus
+  
   const openUseTmdbIdFromFolderNamePrompt = useCallback(({ 
     tmdbId, 
     mediaName, 
+    status,
     onConfirm, 
     onCancel 
   }: { 
     tmdbId: number
-    mediaName: string
+    mediaName?: string
+    status?: "ready" | "loading" | "error"
     onConfirm?: (tmdbTvShow: TMDBTVShow) => void
     onCancel?: () => void
   }) => {
+    // Validate tmdbId before proceeding
+    if (tmdbId === undefined || tmdbId === null || isNaN(tmdbId)) {
+      console.warn('[TvShowPanelPrompts] openUseTmdbIdFromFolderNamePrompt called with invalid tmdbId:', tmdbId)
+      return
+    }
+
     // Close all prompts first
     setIsUseNfoPromptOpen(false)
     setIsRuleBasedRenameFilePromptOpen(false)
@@ -317,10 +348,12 @@ export function usePrompts() {
     // Set data and callbacks
     setTmdbIdFromFolderName(tmdbId)
     setTmdbMediaNameFromFolderName(mediaName)
-    setOnUseTmdbidFromFolderNameConfirm(onConfirm)
-    setOnUseTmdbidFromFolderNameCancel(onCancel)
+    setTmdbIdFromFolderNameStatus(status ?? "ready")
+    // Store callbacks in refs instead of state to prevent unexpected calls during render
+    context._setOnUseTmdbidFromFolderNameConfirm(onConfirm)
+    context._setOnUseTmdbidFromFolderNameCancel(onCancel)
     context._setIsUseTmdbidFromFolderNamePromptOpen(true)
-  }, [setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName, setOnUseTmdbidFromFolderNameConfirm, setOnUseTmdbidFromFolderNameCancel, context])
+  }, [setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName, setTmdbIdFromFolderNameStatus, setOnUseTmdbidFromFolderNameConfirm, setOnUseTmdbidFromFolderNameCancel, context])
   
   const openUseNfoPrompt = useCallback(({ 
     nfoData, 
@@ -538,21 +571,31 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         isOpen={context.isUseTmdbidFromFolderNamePromptOpen}
         mediaName={context.tmdbMediaNameFromFolderName}
         tmdbid={context.tmdbIdFromFolderName}
+        status={context.tmdbIdFromFolderNameStatus ?? "ready"}
         onConfirm={() => {
+          // Only allow confirmation when status is "ready"
+          const currentStatus = context.tmdbIdFromFolderNameStatus ?? "ready"
+          if (currentStatus !== "ready") {
+            // Don't proceed if still loading or in error state
+            return
+          }
+
           context._setIsUseTmdbidFromFolderNamePromptOpen(false)
           
-          // Store callback and data before clearing state
-          const callback = context.onUseTmdbidFromFolderNameConfirm
+          // Store callback and data before clearing state - use ref to get the actual callback
+          const callback = context._getOnUseTmdbidFromFolderNameConfirm()
           const tmdbId = context.tmdbIdFromFolderName
           
           // Clear state first
           context._setTmdbIdFromFolderName(undefined)
           context._setTmdbMediaNameFromFolderName(undefined)
+          context._setTmdbIdFromFolderNameStatus(undefined)
           context._setOnUseTmdbidFromFolderNameConfirm(undefined)
           context._setOnUseTmdbidFromFolderNameCancel(undefined)
           
           // Then call callback if valid
-          if (tmdbId !== undefined && callback) {
+          // Double check that we have valid data before calling callback
+          if (tmdbId !== undefined && tmdbId !== null && !isNaN(tmdbId) && typeof tmdbId === 'number' && callback) {
             // Create a minimal TMDBTVShow object with just the ID
             // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
@@ -572,17 +615,23 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
             }
             
             callback(minimalTvShow)
+          } else {
+            // Log warning if callback would be called with invalid data
+            if (callback && (tmdbId === undefined || tmdbId === null || isNaN(tmdbId) || typeof tmdbId !== 'number')) {
+              console.warn('[TvShowPanelPrompts] Attempted to call onConfirm with invalid tmdbId:', tmdbId, 'status:', currentStatus)
+            }
           }
         }}
         onCancel={() => {
           context._setIsUseTmdbidFromFolderNamePromptOpen(false)
           context._setTmdbIdFromFolderName(undefined)
           context._setTmdbMediaNameFromFolderName(undefined)
-          if (context.onUseTmdbidFromFolderNameCancel) {
-            context.onUseTmdbidFromFolderNameCancel()
-          }
+          const cancelCallback = context._getOnUseTmdbidFromFolderNameCancel()
           context._setOnUseTmdbidFromFolderNameConfirm(undefined)
           context._setOnUseTmdbidFromFolderNameCancel(undefined)
+          if (cancelCallback) {
+            cancelCallback()
+          }
         }}
       />
 

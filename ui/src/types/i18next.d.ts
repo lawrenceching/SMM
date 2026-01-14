@@ -64,6 +64,8 @@ interface ComponentsResources {
     reviewRecognizeEpisodes: string
     useNfoMetadata: string
     useTmdbIdFromFolderName: string
+    queryingTmdb: string
+    queryTmdbFailed: string
   }
   mediaFolder: {
     rename: string
