@@ -5,13 +5,13 @@ import type { SeasonModel } from "../../TvShowPanel"
 import { newFileName } from "@/api/newFileName"
 import { newPath } from "../../TvShowPanelUtils"
 import { join } from "@/lib/path"
+import { usePromptsContext } from "../../TvShowPanelPrompts"
 
 interface UseTvShowFileNameGenerationParams {
   seasons: SeasonModel[]
   setSeasons: (updater: (prev: SeasonModel[]) => SeasonModel[]) => void
   mediaMetadata: MediaMetadata | undefined
   selectedNamingRule: "plex" | "emby"
-  isRuleBasedRenameFilePromptOpen: boolean
 }
 
 export function useTvShowFileNameGeneration({
@@ -19,8 +19,8 @@ export function useTvShowFileNameGeneration({
   setSeasons,
   mediaMetadata,
   selectedNamingRule,
-  isRuleBasedRenameFilePromptOpen,
 }: UseTvShowFileNameGenerationParams) {
+  const { isRuleBasedRenameFilePromptOpen } = usePromptsContext()
   const latestSeasons = useLatest(seasons)
 
   // Generate new file names for preview mode

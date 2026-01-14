@@ -14,7 +14,7 @@ import type {
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, mapTagToFileType } from "./TvShowPanelUtils"
-import { TvShowPanelPrompts, usePromptManager } from "./TvShowPanelPrompts"
+import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
@@ -39,7 +39,7 @@ interface ToolbarOption {
   label: string,
 }
 
-function TvShowPanel() {
+function TvShowPanelContent() {
   const { t } = useTranslation('components')
   const { 
     selectedMediaMetadata: mediaMetadata, 
@@ -52,49 +52,53 @@ function TvShowPanel() {
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
 
+  // Use prompts hook
+  const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt } = usePrompts()
+
   // Use state hook
   const {
     seasons,
     setSeasons,
     selectedNamingRule,
     setSelectedNamingRule,
-    isRuleBasedRenameFilePromptOpen,
-    setIsRuleBasedRenameFilePromptOpen,
-    isAiBasedRenameFilePromptOpen,
-    setIsAiBasedRenameFilePromptOpen,
-    aiBasedRenameFileStatus,
-    setAiBasedRenameFileStatus,
-    isRuleBasedRecognizePromptOpen,
-    setIsRuleBasedRecognizePromptOpen,
-    isUseNfoPromptOpen,
-    setIsUseNfoPromptOpen,
-    loadedNfoData,
-    setLoadedNfoData,
-    isUseTmdbidFromFolderNamePromptOpen,
-    setIsUseTmdbidFromFolderNamePromptOpen,
-    tmdbIdFromFolderName,
-    setTmdbIdFromFolderName,
-    tmdbMediaNameFromFolderName,
-    setTmdbMediaNameFromFolderName,
-    isRenaming,
     setIsRenaming,
     scrollToEpisodeId,
     setScrollToEpisodeId,
     seasonsBackup,
-    isPreviewMode,
-  } = useTvShowPanelState({ mediaMetadata, toolbarOptions })
+  } = useTvShowPanelState({ 
+    mediaMetadata, 
+    toolbarOptions, 
+    usePrompts: { 
+      openUseNfoPrompt: (params) => openUseNfoPrompt({
+        ...params,
+        onConfirm: handleUseNfoConfirm,
+        onCancel: () => {},
+      })
+    } 
+  })
 
   const latestSeasons = useLatest(seasons)
-  const [confirmButtonLabel] = useState(t('toolbar.confirm'))
-  const [confirmButtonDisabled] = useState(false)
 
   /**
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
    */
   const [pendingConfirmationMessage] = useState<any>(null)
 
-  const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
-  const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
+  // Get prompts context for status updates
+  const promptsContext = usePromptsContext()
+
+  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+
+  // Callback handlers for prompts
+  const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
+
+  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
 
   useEffect(() => {
     if(mediaMetadata?.mediaFolderPath === undefined) {
@@ -123,62 +127,17 @@ function TvShowPanel() {
     getTvShowById(tmdbIdNumber, language).then(response => {
       // Only open prompt if TV show exists and no error
       if (response.data && !response.error) {
-        setTmdbIdFromFolderName(tmdbIdNumber)
-        setTmdbMediaNameFromFolderName(response.data.name)
-        setIsUseTmdbidFromFolderNamePromptOpen(true)
+        openUseTmdbIdFromFolderNamePrompt({
+          tmdbId: tmdbIdNumber,
+          mediaName: response.data.name,
+          onConfirm: handleUseTmdbidFromFolderNameConfirm,
+          onCancel: () => {},
+        })
       }
     }).catch(error => {
       console.error('Failed to get TV show by ID:', error)
     })
-  }, [mediaMetadata, userConfig, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName, setIsUseTmdbidFromFolderNamePromptOpen])
-
-  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
-
-  // Use prompt manager to handle opening/closing prompts
-  const { openPrompt } = usePromptManager(
-    {
-      setIsUseNfoPromptOpen,
-      setIsRuleBasedRenameFilePromptOpen,
-      setIsAiBasedRenameFilePromptOpen,
-      setIsAiRecognizePromptOpen,
-      setIsRuleBasedRecognizePromptOpen,
-    },
-    {
-      isUseNfoPromptOpen,
-      isRuleBasedRenameFilePromptOpen,
-      isAiBasedRenameFilePromptOpen,
-      isAiRecognizePromptOpen,
-      isRuleBasedRecognizePromptOpen,
-    }
-  )
-
-  // Wrapper for WebSocket hook that uses openPrompt
-  const handleSetAiBasedRenameFilePromptOpen = useCallback((open: boolean) => {
-    if (open) {
-      openPrompt("aiBasedRenameFile")
-    } else {
-      setIsAiBasedRenameFilePromptOpen(false)
-    }
-  }, [openPrompt, setIsAiBasedRenameFilePromptOpen])
-
-  // Use WebSocket events hook
-  useTvShowWebSocketEvents({
-    mediaMetadata,
-    setSeasons,
-    setScrollToEpisodeId,
-    setSelectedMediaMetadataByMediaFolderPath,
-    setIsAiBasedRenameFilePromptOpen: handleSetAiBasedRenameFilePromptOpen,
-    setAiBasedRenameFileStatus,
-  })
-
-  // Use file name generation hook
-  useTvShowFileNameGeneration({
-    seasons,
-    setSeasons,
-    mediaMetadata,
-    selectedNamingRule,
-    isRuleBasedRenameFilePromptOpen,
-  })
+  }, [mediaMetadata, userConfig, openUseTmdbIdFromFolderNamePrompt, handleUseTmdbidFromFolderNameConfirm])
 
   // Use renaming hook
   const { startToRenameFiles } = useTvShowRenaming({
@@ -196,7 +155,6 @@ function TvShowPanel() {
         confirmed: true,
       }
       sendAcknowledgement(pendingConfirmationMessage, respData);
-      setIsAiBasedRenameFilePromptOpen(false)
       return;
     }
 
@@ -209,30 +167,51 @@ function TvShowPanel() {
       await startToRenameFiles();
     } catch (error) {
       console.error('Error starting to rename files', error);
-    } finally {
-      setIsAiBasedRenameFilePromptOpen(false)
     }
     
-  }, [mediaMetadata, isPreviewMode, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage, startToRenameFiles, setIsAiBasedRenameFilePromptOpen])
+  }, [mediaMetadata, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage, startToRenameFiles])
 
-  // Callback handlers for prompts
-  const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
-    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
+  // Wrapper for openAiBasedRenameFilePrompt that handles status updates and callbacks
+  const openAiBasedRenameFilePromptWithStatus = useCallback((params: {
+    status: "generating" | "wait-for-ack"
+    onConfirm: () => void
+    onCancel?: () => void
+  }) => {
+    openAiBasedRenameFilePrompt({
+      status: params.status,
+      onConfirm: handleAiBasedRenamePromptConfirm,
+      onCancel: params.onCancel,
+    })
+  }, [openAiBasedRenameFilePrompt, handleAiBasedRenamePromptConfirm])
 
-  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
-    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
+  // Wrapper for setAiBasedRenameFileStatus that updates context
+  const setAiBasedRenameFileStatus = useCallback((status: "generating" | "wait-for-ack") => {
+    promptsContext._setAiBasedRenameFileStatus(status)
+  }, [promptsContext])
+
+  // Use WebSocket events hook
+  useTvShowWebSocketEvents({
+    mediaMetadata,
+    setSeasons,
+    setScrollToEpisodeId,
+    setSelectedMediaMetadataByMediaFolderPath,
+    openAiBasedRenameFilePrompt: openAiBasedRenameFilePromptWithStatus,
+    setAiBasedRenameFileStatus,
+  })
+
+  // Use file name generation hook
+  useTvShowFileNameGeneration({
+    seasons,
+    setSeasons,
+    mediaMetadata,
+    selectedNamingRule,
+  })
 
   const handleRuleBasedRenameConfirm = useCallback(() => {
-    setIsRuleBasedRenameFilePromptOpen(false)
     startToRenameFiles()
-  }, [setIsRuleBasedRenameFilePromptOpen, startToRenameFiles])
+  }, [startToRenameFiles])
 
   const handleRuleBasedRecognizeConfirm = useCallback(() => {
-    setIsRuleBasedRecognizePromptOpen(false)
     setSeasons(seasonsBackup.current)
     seasonsBackup.current = []
     console.log(`[TvShowPanel] seasons state restored because of user confirm`)
@@ -240,15 +219,17 @@ function TvShowPanel() {
       console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
       recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
     }
-  }, [setIsRuleBasedRecognizePromptOpen, setSeasons, seasonsBackup, mediaMetadata, seasons, updateMediaMetadata])
+  }, [setSeasons, seasonsBackup, mediaMetadata, seasons, updateMediaMetadata])
 
   const handleRuleBasedRecognizeCancel = useCallback(() => {
-    setIsRuleBasedRecognizePromptOpen(false)
     setSeasons(seasonsBackup.current)
     seasonsBackup.current = []
     console.log(`[TvShowPanel] seasons state restored because of user cancel`)
-  }, [setIsRuleBasedRecognizePromptOpen, setSeasons, seasonsBackup])
+  }, [setSeasons, seasonsBackup])
 
+
+  // Get prompt states for preview mode calculation (promptsContext already declared above)
+  const isPreviewMode = promptsContext.isAiBasedRenameFilePromptOpen || promptsContext.isRuleBasedRenameFilePromptOpen || promptsContext.isRuleBasedRecognizePromptOpen
 
   useEffect(() => {
 
@@ -256,7 +237,7 @@ function TvShowPanel() {
       return;
     }
 
-    if(!isRuleBasedRecognizePromptOpen) {
+    if(!promptsContext.isRuleBasedRecognizePromptOpen) {
       return;
     }
 
@@ -329,43 +310,11 @@ function TvShowPanel() {
 
     // seasons state will be restored on cancel button click
 
-  }, [mediaMetadata, isRuleBasedRecognizePromptOpen, latestSeasons, seasonsBackup, setSeasons])
+  }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen, latestSeasons, seasonsBackup, setSeasons])
 
   return (
     <div className='p-1 w-full h-full relative'>
-      <TvShowPanelPrompts
-        isUseNfoPromptOpen={isUseNfoPromptOpen}
-        setIsUseNfoPromptOpen={setIsUseNfoPromptOpen}
-        loadedNfoData={loadedNfoData}
-        setLoadedNfoData={setLoadedNfoData}
-        onUseNfoConfirm={handleUseNfoConfirm}
-        isUseTmdbidFromFolderNamePromptOpen={isUseTmdbidFromFolderNamePromptOpen}
-        setIsUseTmdbidFromFolderNamePromptOpen={setIsUseTmdbidFromFolderNamePromptOpen}
-        tmdbIdFromFolderName={tmdbIdFromFolderName}
-        tmdbMediaNameFromFolderName={tmdbMediaNameFromFolderName}
-        setTmdbIdFromFolderName={setTmdbIdFromFolderName}
-        setTmdbMediaNameFromFolderName={setTmdbMediaNameFromFolderName}
-        onUseTmdbidFromFolderNameConfirm={handleUseTmdbidFromFolderNameConfirm}
-        isRuleBasedRenameFilePromptOpen={isRuleBasedRenameFilePromptOpen}
-        setIsRuleBasedRenameFilePromptOpen={setIsRuleBasedRenameFilePromptOpen}
-        toolbarOptions={toolbarOptions}
-        selectedNamingRule={selectedNamingRule}
-        setSelectedNamingRule={setSelectedNamingRule}
-        onRuleBasedRenameConfirm={handleRuleBasedRenameConfirm}
-        isAiBasedRenameFilePromptOpen={isAiBasedRenameFilePromptOpen}
-        setIsAiBasedRenameFilePromptOpen={setIsAiBasedRenameFilePromptOpen}
-        aiBasedRenameFileStatus={aiBasedRenameFileStatus}
-        onAiBasedRenameConfirm={handleAiBasedRenamePromptConfirm}
-        isAiRecognizePromptOpen={isAiRecognizePromptOpen}
-        setIsAiRecognizePromptOpen={setIsAiRecognizePromptOpen}
-        aiRecognizeStatus={aiRecognizeStatus}
-        confirmButtonLabel={confirmButtonLabel}
-        confirmButtonDisabled={confirmButtonDisabled}
-        isRenaming={isRenaming}
-        isRuleBasedRecognizePromptOpen={isRuleBasedRecognizePromptOpen}
-        onRuleBasedRecognizeConfirm={handleRuleBasedRecognizeConfirm}
-        onRuleBasedRecognizeCancel={handleRuleBasedRecognizeCancel}
-      />
+      <TvShowPanelPrompts />
 
       
       <div className="w-full h-full">
@@ -373,8 +322,17 @@ function TvShowPanel() {
           ref={tmdbTvShowOverviewRef}
           tvShow={mediaMetadata?.tmdbTvShow} 
           className="w-full h-full"
-          onRenameClick={() => openPrompt("ruleBasedRenameFile")}
-          onRecognizeButtonClick={() => openPrompt("ruleBasedRecognize")}
+          onRenameClick={() => openRuleBasedRenameFilePrompt({
+            toolbarOptions,
+            selectedNamingRule,
+            setSelectedNamingRule,
+            onConfirm: handleRuleBasedRenameConfirm,
+            onCancel: () => {},
+          })}
+          onRecognizeButtonClick={() => openRuleBasedRecognizePrompt({
+            onConfirm: handleRuleBasedRecognizeConfirm,
+            onCancel: handleRuleBasedRecognizeCancel,
+          })}
           ruleName={selectedNamingRule}
           seasons={seasons}
           isPreviewMode={isPreviewMode}
@@ -382,6 +340,14 @@ function TvShowPanel() {
         />
       </div>
     </div>
+  )
+}
+
+function TvShowPanel() {
+  return (
+    <TvShowPanelPromptsProvider>
+      <TvShowPanelContent />
+    </TvShowPanelPromptsProvider>
   )
 }
 

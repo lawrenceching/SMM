@@ -13,7 +13,11 @@ interface UseTvShowWebSocketEventsParams {
   setSeasons: (updater: (prev: SeasonModel[]) => SeasonModel[]) => void
   setScrollToEpisodeId: (id: number | null) => void
   setSelectedMediaMetadataByMediaFolderPath: (path: string) => void
-  setIsAiBasedRenameFilePromptOpen: (open: boolean) => void
+  openAiBasedRenameFilePrompt: (params: {
+    status: "generating" | "wait-for-ack"
+    onConfirm: () => void
+    onCancel?: () => void
+  }) => void
   setAiBasedRenameFileStatus: (status: "generating" | "wait-for-ack") => void
 }
 
@@ -22,7 +26,7 @@ export function useTvShowWebSocketEvents({
   setSeasons,
   setScrollToEpisodeId,
   setSelectedMediaMetadataByMediaFolderPath,
-  setIsAiBasedRenameFilePromptOpen,
+  openAiBasedRenameFilePrompt,
   setAiBasedRenameFileStatus,
 }: UseTvShowWebSocketEventsParams) {
   useWebSocketEvent((message) => {
@@ -35,8 +39,13 @@ export function useTvShowWebSocketEvents({
       const mediaFolderPath = data.mediaFolderPath;
 
       setSelectedMediaMetadataByMediaFolderPath(mediaFolderPath)
-      setIsAiBasedRenameFilePromptOpen(true)
-      setAiBasedRenameFileStatus("generating")
+      openAiBasedRenameFilePrompt({
+        status: "generating",
+        onConfirm: () => {
+          // This will be set by TvShowPanel
+        },
+        onCancel: () => {},
+      })
 
       setSeasons(prev => {
         return prev.map(season => ({
