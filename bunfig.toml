@@ -1,0 +1,15 @@
+# Root-level Bun configuration
+# Excludes UI folder from Bun test discovery
+# UI module uses Vitest, not Bun test runner
+# CLI and Core modules use Bun test runner
+
+[test]
+# Exclude UI folder from test discovery and coverage
+# This tells Bun to ignore the entire ui directory when discovering tests
+coveragePathIgnorePatterns = [
+  "ui/**"
+]
+
+# Note: The Bun extension should respect the ui/.vscode/settings.json 
+# where "bun.enable": false is set, but if it doesn't, this bunfig.toml
+# configuration should help exclude the ui folder from test discovery
