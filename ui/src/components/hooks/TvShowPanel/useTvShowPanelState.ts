@@ -28,6 +28,13 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   const seasonsBackup = useRef<SeasonModel[]>([])
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
   const promptsContext = usePromptsContext()
+  
+  // Extract setters to avoid dependency on the whole context object
+  const setIsUseNfoPromptOpen = promptsContext._setIsUseNfoPromptOpen
+  const setLoadedNfoData = promptsContext.setLoadedNfoData
+  const setIsUseTmdbidFromFolderNamePromptOpen = promptsContext._setIsUseTmdbidFromFolderNamePromptOpen
+  const setTmdbIdFromFolderName = promptsContext._setTmdbIdFromFolderName
+  const setTmdbMediaNameFromFolderName = promptsContext._setTmdbMediaNameFromFolderName
 
   // Close prompts when mediaMetadata instance changes (different media folder selected)
   useEffect(() => {
@@ -36,16 +43,16 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     
     // If the path changed (different instance), close all prompts
     if (prevPath !== undefined && currentPath !== prevPath) {
-      promptsContext._setIsUseNfoPromptOpen(false)
-      promptsContext.setLoadedNfoData(undefined)
-      promptsContext._setIsUseTmdbidFromFolderNamePromptOpen(false)
-      promptsContext._setTmdbIdFromFolderName(undefined)
-      promptsContext._setTmdbMediaNameFromFolderName(undefined)
+      setIsUseNfoPromptOpen(false)
+      setLoadedNfoData(undefined)
+      setIsUseTmdbidFromFolderNamePromptOpen(false)
+      setTmdbIdFromFolderName(undefined)
+      setTmdbMediaNameFromFolderName(undefined)
     }
     
     // Update the ref with the current path
     prevMediaFolderPathRef.current = currentPath
-  }, [mediaMetadata?.mediaFolderPath, promptsContext])
+  }, [mediaMetadata?.mediaFolderPath, setIsUseNfoPromptOpen, setLoadedNfoData, setIsUseTmdbidFromFolderNamePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName])
 
   // Build seasons state from media metadata
   useEffect(() => {
@@ -88,7 +95,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
       }))
     })
 
-  }, [mediaMetadata, usePrompts])
+  }, [mediaMetadata, usePrompts.openUseNfoPrompt])
 
   // Reset scrollToEpisodeId after scrolling completes
   useEffect(() => {

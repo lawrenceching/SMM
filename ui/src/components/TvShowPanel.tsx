@@ -55,6 +55,40 @@ function TvShowPanelContent() {
   // Use prompts hook
   const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt } = usePrompts()
 
+  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+
+  // Callback handlers for prompts
+  const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    if (!tmdbTvShow || !tmdbTvShow.id) {
+      console.error('[TvShowPanel] handleUseNfoConfirm called with invalid tmdbTvShow:', tmdbTvShow)
+      return
+    }
+    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
+
+  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    if (!tmdbTvShow || !tmdbTvShow.id) {
+      console.error('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm called with invalid tmdbTvShow:', tmdbTvShow)
+      return
+    }
+    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
+    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
+  }, [])
+
+  // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
+  const openUseNfoPromptWithCallbacks = useCallback((params: {
+    nfoData: import("@core/types").TMDBTVShowDetails
+    onConfirm?: (tmdbTvShow: import("@core/types").TMDBTVShow) => void
+    onCancel?: () => void
+  }) => {
+    openUseNfoPrompt({
+      ...params,
+      onConfirm: handleUseNfoConfirm,
+      onCancel: () => {},
+    })
+  }, [openUseNfoPrompt, handleUseNfoConfirm])
+
   // Use state hook
   const {
     seasons,
@@ -69,11 +103,7 @@ function TvShowPanelContent() {
     mediaMetadata, 
     toolbarOptions, 
     usePrompts: { 
-      openUseNfoPrompt: (params) => openUseNfoPrompt({
-        ...params,
-        onConfirm: handleUseNfoConfirm,
-        onCancel: () => {},
-      })
+      openUseNfoPrompt: openUseNfoPromptWithCallbacks
     } 
   })
 
@@ -83,22 +113,6 @@ function TvShowPanelContent() {
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
    */
   const [pendingConfirmationMessage] = useState<any>(null)
-
-  // Get prompts context for status updates
-  const promptsContext = usePromptsContext()
-
-  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
-
-  // Callback handlers for prompts
-  const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
-    console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
-
-  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
-    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
 
   useEffect(() => {
     if(mediaMetadata?.mediaFolderPath === undefined) {
@@ -184,10 +198,14 @@ function TvShowPanelContent() {
     })
   }, [openAiBasedRenameFilePrompt, handleAiBasedRenamePromptConfirm])
 
+  // Get prompts context for status updates (only get the setter, not the whole context)
+  const promptsContext = usePromptsContext()
+  const setAiBasedRenameFileStatusFromContext = promptsContext._setAiBasedRenameFileStatus
+
   // Wrapper for setAiBasedRenameFileStatus that updates context
   const setAiBasedRenameFileStatus = useCallback((status: "generating" | "wait-for-ack") => {
-    promptsContext._setAiBasedRenameFileStatus(status)
-  }, [promptsContext])
+    setAiBasedRenameFileStatusFromContext(status)
+  }, [setAiBasedRenameFileStatusFromContext])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({

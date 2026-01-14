@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react"
 import { UseNfoPrompt } from "./UseNfoPrompt"
 import { UseTmdbidFromFolderNamePrompt } from "./UseTmdbidFromFolderNamePrompt"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
@@ -161,7 +161,7 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     isRuleBasedRecognizePromptOpen,
   ])
   
-  const value: PromptsContextValue = {
+  const value: PromptsContextValue = useMemo(() => ({
     isUseNfoPromptOpen,
     loadedNfoData,
     setLoadedNfoData,
@@ -220,7 +220,37 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     _setIsRuleBasedRecognizePromptOpen: setIsRuleBasedRecognizePromptOpen,
     _setOnRuleBasedRecognizeConfirm: setOnRuleBasedRecognizeConfirm,
     _setOnRuleBasedRecognizeCancel: setOnRuleBasedRecognizeCancel,
-  }
+  }), [
+    isUseNfoPromptOpen,
+    loadedNfoData,
+    onUseNfoConfirm,
+    onUseNfoCancel,
+    isUseTmdbidFromFolderNamePromptOpen,
+    tmdbIdFromFolderName,
+    tmdbMediaNameFromFolderName,
+    onUseTmdbidFromFolderNameConfirm,
+    onUseTmdbidFromFolderNameCancel,
+    isRuleBasedRenameFilePromptOpen,
+    ruleBasedRenameFileToolbarOptions,
+    ruleBasedRenameFileSelectedNamingRule,
+    ruleBasedRenameFileSetSelectedNamingRule,
+    onRuleBasedRenameFileConfirm,
+    onRuleBasedRenameFileCancel,
+    isAiBasedRenameFilePromptOpen,
+    aiBasedRenameFileStatus,
+    onAiBasedRenameFileConfirm,
+    onAiBasedRenameFileCancel,
+    isAiRecognizePromptOpen,
+    aiRecognizeStatus,
+    aiRecognizeConfirmButtonLabel,
+    aiRecognizeConfirmButtonDisabled,
+    aiRecognizeIsRenaming,
+    onAiRecognizeConfirm,
+    onAiRecognizeCancel,
+    isRuleBasedRecognizePromptOpen,
+    onRuleBasedRecognizeConfirm,
+    onRuleBasedRecognizeCancel,
+  ])
   
   return (
     <PromptsContext.Provider value={value}>
@@ -236,6 +266,36 @@ export function usePrompts() {
     throw new Error('usePrompts must be used within TvShowPanelPromptsProvider')
   }
   
+  // Extract setters to avoid dependency on the whole context object
+  const setIsUseNfoPromptOpen = context._setIsUseNfoPromptOpen
+  const setIsRuleBasedRenameFilePromptOpen = context._setIsRuleBasedRenameFilePromptOpen
+  const setIsAiBasedRenameFilePromptOpen = context._setIsAiBasedRenameFilePromptOpen
+  const setIsAiRecognizePromptOpen = context._setIsAiRecognizePromptOpen
+  const setIsRuleBasedRecognizePromptOpen = context._setIsRuleBasedRecognizePromptOpen
+  const setTmdbIdFromFolderName = context._setTmdbIdFromFolderName
+  const setTmdbMediaNameFromFolderName = context._setTmdbMediaNameFromFolderName
+  const setOnUseTmdbidFromFolderNameConfirm = context._setOnUseTmdbidFromFolderNameConfirm
+  const setOnUseTmdbidFromFolderNameCancel = context._setOnUseTmdbidFromFolderNameCancel
+  const setLoadedNfoData = context.setLoadedNfoData
+  const setOnUseNfoConfirm = context._setOnUseNfoConfirm
+  const setOnUseNfoCancel = context._setOnUseNfoCancel
+  const setRuleBasedRenameFileToolbarOptions = context._setRuleBasedRenameFileToolbarOptions
+  const setRuleBasedRenameFileSelectedNamingRule = context._setRuleBasedRenameFileSelectedNamingRule
+  const setRuleBasedRenameFileSetSelectedNamingRule = context._setRuleBasedRenameFileSetSelectedNamingRule
+  const setOnRuleBasedRenameFileConfirm = context._setOnRuleBasedRenameFileConfirm
+  const setOnRuleBasedRenameFileCancel = context._setOnRuleBasedRenameFileCancel
+  const setAiBasedRenameFileStatus = context._setAiBasedRenameFileStatus
+  const setOnAiBasedRenameFileConfirm = context._setOnAiBasedRenameFileConfirm
+  const setOnAiBasedRenameFileCancel = context._setOnAiBasedRenameFileCancel
+  const setAiRecognizeStatus = context._setAiRecognizeStatus
+  const setAiRecognizeConfirmButtonLabel = context._setAiRecognizeConfirmButtonLabel
+  const setAiRecognizeConfirmButtonDisabled = context._setAiRecognizeConfirmButtonDisabled
+  const setAiRecognizeIsRenaming = context._setAiRecognizeIsRenaming
+  const setOnAiRecognizeConfirm = context._setOnAiRecognizeConfirm
+  const setOnAiRecognizeCancel = context._setOnAiRecognizeCancel
+  const setOnRuleBasedRecognizeConfirm = context._setOnRuleBasedRecognizeConfirm
+  const setOnRuleBasedRecognizeCancel = context._setOnRuleBasedRecognizeCancel
+  
   const openUseTmdbIdFromFolderNamePrompt = useCallback(({ 
     tmdbId, 
     mediaName, 
@@ -248,19 +308,19 @@ export function usePrompts() {
     onCancel?: () => void
   }) => {
     // Close all prompts first
-    context._setIsUseNfoPromptOpen(false)
-    context._setIsRuleBasedRenameFilePromptOpen(false)
-    context._setIsAiBasedRenameFilePromptOpen(false)
-    context._setIsAiRecognizePromptOpen(false)
-    context._setIsRuleBasedRecognizePromptOpen(false)
+    setIsUseNfoPromptOpen(false)
+    setIsRuleBasedRenameFilePromptOpen(false)
+    setIsAiBasedRenameFilePromptOpen(false)
+    setIsAiRecognizePromptOpen(false)
+    setIsRuleBasedRecognizePromptOpen(false)
     
     // Set data and callbacks
-    context._setTmdbIdFromFolderName(tmdbId)
-    context._setTmdbMediaNameFromFolderName(mediaName)
-    context._setOnUseTmdbidFromFolderNameConfirm(onConfirm)
-    context._setOnUseTmdbidFromFolderNameCancel(onCancel)
+    setTmdbIdFromFolderName(tmdbId)
+    setTmdbMediaNameFromFolderName(mediaName)
+    setOnUseTmdbidFromFolderNameConfirm(onConfirm)
+    setOnUseTmdbidFromFolderNameCancel(onCancel)
     context._setIsUseTmdbidFromFolderNamePromptOpen(true)
-  }, [context])
+  }, [setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName, setOnUseTmdbidFromFolderNameConfirm, setOnUseTmdbidFromFolderNameCancel, context])
   
   const openUseNfoPrompt = useCallback(({ 
     nfoData, 
@@ -273,17 +333,17 @@ export function usePrompts() {
   }) => {
     // Close all prompts first
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-    context._setIsRuleBasedRenameFilePromptOpen(false)
-    context._setIsAiBasedRenameFilePromptOpen(false)
-    context._setIsAiRecognizePromptOpen(false)
-    context._setIsRuleBasedRecognizePromptOpen(false)
+    setIsRuleBasedRenameFilePromptOpen(false)
+    setIsAiBasedRenameFilePromptOpen(false)
+    setIsAiRecognizePromptOpen(false)
+    setIsRuleBasedRecognizePromptOpen(false)
     
     // Set data and callbacks
-    context.setLoadedNfoData(nfoData)
-    context._setOnUseNfoConfirm(onConfirm)
-    context._setOnUseNfoCancel(onCancel)
-    context._setIsUseNfoPromptOpen(true)
-  }, [context])
+    setLoadedNfoData(nfoData)
+    setOnUseNfoConfirm(onConfirm)
+    setOnUseNfoCancel(onCancel)
+    setIsUseNfoPromptOpen(true)
+  }, [context, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setLoadedNfoData, setOnUseNfoConfirm, setOnUseNfoCancel, setIsUseNfoPromptOpen])
   
   const openRuleBasedRenameFilePrompt = useCallback(({
     toolbarOptions,
@@ -299,20 +359,20 @@ export function usePrompts() {
     onCancel?: () => void
   }) => {
     // Close all prompts first
-    context._setIsUseNfoPromptOpen(false)
+    setIsUseNfoPromptOpen(false)
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-    context._setIsAiBasedRenameFilePromptOpen(false)
-    context._setIsAiRecognizePromptOpen(false)
-    context._setIsRuleBasedRecognizePromptOpen(false)
+    setIsAiBasedRenameFilePromptOpen(false)
+    setIsAiRecognizePromptOpen(false)
+    setIsRuleBasedRecognizePromptOpen(false)
     
     // Set data and callbacks
-    context._setRuleBasedRenameFileToolbarOptions(toolbarOptions)
-    context._setRuleBasedRenameFileSelectedNamingRule(selectedNamingRule)
-    context._setRuleBasedRenameFileSetSelectedNamingRule(setSelectedNamingRule)
-    context._setOnRuleBasedRenameFileConfirm(onConfirm)
-    context._setOnRuleBasedRenameFileCancel(onCancel)
-    context._setIsRuleBasedRenameFilePromptOpen(true)
-  }, [context])
+    setRuleBasedRenameFileToolbarOptions(toolbarOptions)
+    setRuleBasedRenameFileSelectedNamingRule(selectedNamingRule)
+    setRuleBasedRenameFileSetSelectedNamingRule(setSelectedNamingRule)
+    setOnRuleBasedRenameFileConfirm(onConfirm)
+    setOnRuleBasedRenameFileCancel(onCancel)
+    setIsRuleBasedRenameFilePromptOpen(true)
+  }, [context, setIsUseNfoPromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setRuleBasedRenameFileToolbarOptions, setRuleBasedRenameFileSelectedNamingRule, setRuleBasedRenameFileSetSelectedNamingRule, setOnRuleBasedRenameFileConfirm, setOnRuleBasedRenameFileCancel, setIsRuleBasedRenameFilePromptOpen])
   
   const openAiBasedRenameFilePrompt = useCallback(({
     status,
@@ -324,18 +384,18 @@ export function usePrompts() {
     onCancel?: () => void
   }) => {
     // Close all prompts first
-    context._setIsUseNfoPromptOpen(false)
+    setIsUseNfoPromptOpen(false)
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-    context._setIsRuleBasedRenameFilePromptOpen(false)
-    context._setIsAiRecognizePromptOpen(false)
-    context._setIsRuleBasedRecognizePromptOpen(false)
+    setIsRuleBasedRenameFilePromptOpen(false)
+    setIsAiRecognizePromptOpen(false)
+    setIsRuleBasedRecognizePromptOpen(false)
     
     // Set data and callbacks
-    context._setAiBasedRenameFileStatus(status)
-    context._setOnAiBasedRenameFileConfirm(onConfirm)
-    context._setOnAiBasedRenameFileCancel(onCancel)
-    context._setIsAiBasedRenameFilePromptOpen(true)
-  }, [context])
+    setAiBasedRenameFileStatus(status)
+    setOnAiBasedRenameFileConfirm(onConfirm)
+    setOnAiBasedRenameFileCancel(onCancel)
+    setIsAiBasedRenameFilePromptOpen(true)
+  }, [context, setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen, setAiBasedRenameFileStatus, setOnAiBasedRenameFileConfirm, setOnAiBasedRenameFileCancel, setIsAiBasedRenameFilePromptOpen])
   
   const openAiRecognizePrompt = useCallback(({
     status,
@@ -353,21 +413,21 @@ export function usePrompts() {
     onCancel?: () => void
   }) => {
     // Close all prompts first
-    context._setIsUseNfoPromptOpen(false)
+    setIsUseNfoPromptOpen(false)
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-    context._setIsRuleBasedRenameFilePromptOpen(false)
-    context._setIsAiBasedRenameFilePromptOpen(false)
-    context._setIsRuleBasedRecognizePromptOpen(false)
+    setIsRuleBasedRenameFilePromptOpen(false)
+    setIsAiBasedRenameFilePromptOpen(false)
+    setIsRuleBasedRecognizePromptOpen(false)
     
     // Set data and callbacks
-    context._setAiRecognizeStatus(status)
-    context._setAiRecognizeConfirmButtonLabel(confirmButtonLabel)
-    context._setAiRecognizeConfirmButtonDisabled(confirmButtonDisabled)
-    context._setAiRecognizeIsRenaming(isRenaming)
-    context._setOnAiRecognizeConfirm(onConfirm)
-    context._setOnAiRecognizeCancel(onCancel)
-    context._setIsAiRecognizePromptOpen(true)
-  }, [context])
+    setAiRecognizeStatus(status)
+    setAiRecognizeConfirmButtonLabel(confirmButtonLabel)
+    setAiRecognizeConfirmButtonDisabled(confirmButtonDisabled)
+    setAiRecognizeIsRenaming(isRenaming)
+    setOnAiRecognizeConfirm(onConfirm)
+    setOnAiRecognizeCancel(onCancel)
+    setIsAiRecognizePromptOpen(true)
+  }, [context, setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsRuleBasedRecognizePromptOpen, setAiRecognizeStatus, setAiRecognizeConfirmButtonLabel, setAiRecognizeConfirmButtonDisabled, setAiRecognizeIsRenaming, setOnAiRecognizeConfirm, setOnAiRecognizeCancel, setIsAiRecognizePromptOpen])
   
   const openRuleBasedRecognizePrompt = useCallback(({
     onConfirm,
@@ -377,26 +437,33 @@ export function usePrompts() {
     onCancel: () => void
   }) => {
     // Close all prompts first
-    context._setIsUseNfoPromptOpen(false)
+    setIsUseNfoPromptOpen(false)
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-    context._setIsRuleBasedRenameFilePromptOpen(false)
-    context._setIsAiBasedRenameFilePromptOpen(false)
-    context._setIsAiRecognizePromptOpen(false)
+    setIsRuleBasedRenameFilePromptOpen(false)
+    setIsAiBasedRenameFilePromptOpen(false)
+    setIsAiRecognizePromptOpen(false)
     
     // Set callbacks
-    context._setOnRuleBasedRecognizeConfirm(onConfirm)
-    context._setOnRuleBasedRecognizeCancel(onCancel)
-    context._setIsRuleBasedRecognizePromptOpen(true)
-  }, [context])
+    setOnRuleBasedRecognizeConfirm(onConfirm)
+    setOnRuleBasedRecognizeCancel(onCancel)
+    setIsRuleBasedRecognizePromptOpen(true)
+  }, [context, setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setOnRuleBasedRecognizeConfirm, setOnRuleBasedRecognizeCancel, setIsRuleBasedRecognizePromptOpen])
   
-  return {
+  return useMemo(() => ({
     openUseTmdbIdFromFolderNamePrompt,
     openUseNfoPrompt,
     openRuleBasedRenameFilePrompt,
     openAiBasedRenameFilePrompt,
     openAiRecognizePrompt,
     openRuleBasedRecognizePrompt,
-  }
+  }), [
+    openUseTmdbIdFromFolderNamePrompt,
+    openUseNfoPrompt,
+    openRuleBasedRenameFilePrompt,
+    openAiBasedRenameFilePrompt,
+    openAiRecognizePrompt,
+    openRuleBasedRecognizePrompt,
+  ])
 }
 
 // Internal hook to access context state (used by TvShowPanelPrompts component and other components that need to read state)
@@ -423,11 +490,22 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         tmdbid={context.loadedNfoData?.id}
         onConfirm={() => {
           context._setIsUseNfoPromptOpen(false)
-          if (context.loadedNfoData?.id && context.onUseNfoConfirm) {
+          
+          // Store callback and data before clearing state
+          const callback = context.onUseNfoConfirm
+          const nfoData = context.loadedNfoData
+          
+          // Clear state first
+          context.setLoadedNfoData(undefined)
+          context._setOnUseNfoConfirm(undefined)
+          context._setOnUseNfoCancel(undefined)
+          
+          // Then call callback if valid
+          if (nfoData?.id && callback) {
             // Create a minimal TMDBTVShow object with just the ID
             // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
-              id: context.loadedNfoData.id,
+              id: nfoData.id,
               name: '',
               original_name: '',
               overview: '',
@@ -442,11 +520,8 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
               media_type: 'tv'
             }
             
-            context.onUseNfoConfirm(minimalTvShow)
+            callback(minimalTvShow)
           }
-          context.setLoadedNfoData(undefined)
-          context._setOnUseNfoConfirm(undefined)
-          context._setOnUseNfoCancel(undefined)
         }}
         onCancel={() => {
           context._setIsUseNfoPromptOpen(false)
@@ -465,11 +540,23 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         tmdbid={context.tmdbIdFromFolderName}
         onConfirm={() => {
           context._setIsUseTmdbidFromFolderNamePromptOpen(false)
-          if (context.tmdbIdFromFolderName !== undefined && context.onUseTmdbidFromFolderNameConfirm) {
+          
+          // Store callback and data before clearing state
+          const callback = context.onUseTmdbidFromFolderNameConfirm
+          const tmdbId = context.tmdbIdFromFolderName
+          
+          // Clear state first
+          context._setTmdbIdFromFolderName(undefined)
+          context._setTmdbMediaNameFromFolderName(undefined)
+          context._setOnUseTmdbidFromFolderNameConfirm(undefined)
+          context._setOnUseTmdbidFromFolderNameCancel(undefined)
+          
+          // Then call callback if valid
+          if (tmdbId !== undefined && callback) {
             // Create a minimal TMDBTVShow object with just the ID
             // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
-              id: context.tmdbIdFromFolderName,
+              id: tmdbId,
               name: '',
               original_name: '',
               overview: '',
@@ -484,12 +571,8 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
               media_type: 'tv'
             }
             
-            context.onUseTmdbidFromFolderNameConfirm(minimalTvShow)
+            callback(minimalTvShow)
           }
-          context._setTmdbIdFromFolderName(undefined)
-          context._setTmdbMediaNameFromFolderName(undefined)
-          context._setOnUseTmdbidFromFolderNameConfirm(undefined)
-          context._setOnUseTmdbidFromFolderNameCancel(undefined)
         }}
         onCancel={() => {
           context._setIsUseTmdbidFromFolderNamePromptOpen(false)
