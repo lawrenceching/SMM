@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import React from 'react'
 import TvShowPanel from './TvShowPanel'
 
 // Mock components
@@ -11,15 +12,62 @@ vi.mock('./tmdb-tvshow-overview', () => ({
   )),
 }))
 
-vi.mock('./TvShowPanelPrompts', async () => {
-  const actual = await vi.importActual('./TvShowPanelPrompts')
-  return {
-    ...actual,
-    TvShowPanelPrompts: vi.fn().mockImplementation(() => (
-      <div data-testid="tvshow-panel-prompts">TvShowPanelPrompts</div>
-    )),
+// Helper function for usePromptManager
+function createUsePromptManager() {
+  return (setters: any, states: any) => {
+    const openPrompt = (promptType: 'useNfo' | 'ruleBasedRenameFile' | 'aiBasedRenameFile' | 'aiRecognize' | 'ruleBasedRecognize') => {
+      // Close all prompts first
+      setters.setIsUseNfoPromptOpen(false)
+      setters.setIsRuleBasedRenameFilePromptOpen(false)
+      setters.setIsAiBasedRenameFilePromptOpen(false)
+      setters.setIsAiRecognizePromptOpen(false)
+      setters.setIsRuleBasedRecognizePromptOpen(false)
+      
+      // Then open the requested prompt
+      switch (promptType) {
+        case 'useNfo':
+          setters.setIsUseNfoPromptOpen(true)
+          break
+        case 'ruleBasedRenameFile':
+          setters.setIsRuleBasedRenameFilePromptOpen(true)
+          break
+        case 'aiBasedRenameFile':
+          setters.setIsAiBasedRenameFilePromptOpen(true)
+          break
+        case 'aiRecognize':
+          setters.setIsAiRecognizePromptOpen(true)
+          break
+        case 'ruleBasedRecognize':
+          setters.setIsRuleBasedRecognizePromptOpen(true)
+          break
+      }
+    }
+    
+    return { openPrompt }
   }
-})
+}
+
+vi.mock('./TvShowPanelPrompts', () => ({
+  TvShowPanelPrompts: vi.fn().mockImplementation(() => (
+    <div data-testid="tvshow-panel-prompts">TvShowPanelPrompts</div>
+  )),
+  TvShowPanelPromptsProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  usePrompts: vi.fn(() => ({
+    openUseTmdbIdFromFolderNamePrompt: vi.fn(),
+    openUseNfoPrompt: vi.fn(),
+    openRuleBasedRenameFilePrompt: vi.fn(),
+    openAiBasedRenameFilePrompt: vi.fn(),
+    openAiRecognizePrompt: vi.fn(),
+    openRuleBasedRecognizePrompt: vi.fn(),
+  })),
+  usePromptManager: createUsePromptManager(),
+  usePromptsContext: vi.fn(() => ({
+    _setAiBasedRenameFileStatus: vi.fn(),
+    isAiBasedRenameFilePromptOpen: false,
+    isRuleBasedRenameFilePromptOpen: false,
+    isRuleBasedRecognizePromptOpen: false,
+  })),
+}))
 
 // Mock hooks
 vi.mock('./media-metadata-provider', () => ({
@@ -125,6 +173,56 @@ vi.mock('./TvShowPanelUtils', () => ({
 
 vi.mock('@/lib/lookup', () => ({
   lookup: vi.fn(() => null),
+}))
+
+vi.mock('./config-provider', () => ({
+  ConfigProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useConfig: vi.fn(() => ({
+    appConfig: { version: 'test' },
+    userConfig: {
+      applicationLanguage: 'zh-CN',
+      tmdb: {
+        host: 'https://api.themoviedb.org/3',
+        apiKey: '',
+        httpProxy: ''
+      },
+      ai: {
+        deepseek: {
+          baseURL: 'https://api.deepseek.com',
+          apiKey: '',
+          model: 'deepseek-chat'
+        },
+        openAI: {
+          baseURL: 'https://api.openai.com/v1',
+          apiKey: '',
+          model: 'gpt-4o'
+        },
+        openrouter: {
+          baseURL: 'https://openrouter.ai/api/v1',
+          apiKey: '',
+          model: 'deepseek/deepseek-chat'
+        },
+        glm: {
+          baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+          apiKey: '',
+          model: 'GLM-4.5'
+        },
+        other: {
+          baseURL: '',
+          apiKey: '',
+          model: ''
+        }
+      },
+      selectedAI: 'DeepSeek',
+      selectedTMDBIntance: 'public',
+      folders: [],
+      selectedRenameRule: 'Plex' as any,
+    },
+    isLoading: false,
+    error: null,
+    setUserConfig: vi.fn(),
+    reload: vi.fn(),
+  })),
 }))
 
 describe('TvShowPanel', () => {
