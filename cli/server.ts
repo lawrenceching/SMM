@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import path from 'path';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { initializeSocketIO } from './src/utils/socketIO.ts';
 import { executeHelloTask } from './tasks/HelloTask';
 import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMetadataTask';

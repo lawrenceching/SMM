@@ -6,7 +6,7 @@ import type { UserConfig } from "@core/types";
 
 const getMediaFolders = tool({
     description: "Get media folders that managed by SMM",
-    parameters: {
+    inputSchema: {
         type: "object"
     },
     execute: async ({ }) => {

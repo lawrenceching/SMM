@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { broadcast, acknowledge, type WebSocketMessage } from '../utils/socketIO';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';

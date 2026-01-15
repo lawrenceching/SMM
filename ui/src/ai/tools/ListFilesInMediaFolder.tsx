@@ -1,5 +1,5 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from "zod";
+import { z } from 'zod/v3';
 import { useMediaMetadata } from "@/components/media-metadata-provider";
 import { useEffect } from "react";
 import type { MediaMetadata } from "@core/types";
@@ -13,7 +13,7 @@ let mediaMetadatas: MediaMetadata[] = [];
 
 const getFilesInMediaFolder = tool({
     description: "List files in a media folder",
-    parameters: z.object({
+    inputSchema: z.object({
         path: z.string(),
     }),
     execute: async ({ path }) => {

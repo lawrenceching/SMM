@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 export const isFolderExistTool = {
   description: "Check if the folder exists in the file system",

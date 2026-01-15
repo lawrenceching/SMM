@@ -17,7 +17,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
     console.log('Converted to model messages:', modelMessages.length);
 
     const deepseekProvider = getDeepseekProvider();
-    const result = await streamText({
+    const result = streamText({
       model: deepseekProvider(model || DEEPSEEK_MODEL),
       messages: modelMessages,
     });

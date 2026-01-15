@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { listFiles } from '@/utils/files';
 import { Path } from '@core/path';
 

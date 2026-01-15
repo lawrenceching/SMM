@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import path from 'path';
 import type { ReadImageRequestBody, ReadImageResponseBody } from '@core/types';
 import type { Hono } from 'hono';

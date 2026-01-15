@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import os from 'os';
 import { readdir, stat } from 'node:fs/promises';
 import path from 'path';

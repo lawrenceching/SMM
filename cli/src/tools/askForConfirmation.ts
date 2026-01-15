@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { acknowledge } from '../utils/socketIO';
 import pino from "pino"
 const logger = pino()

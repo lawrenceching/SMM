@@ -1,5 +1,5 @@
 import { acknowledge } from '@/utils/socketIO';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 export const getApplicationContextTool = (clientId: string, abortSignal?: AbortSignal) => ({
     description: `The the application context including:

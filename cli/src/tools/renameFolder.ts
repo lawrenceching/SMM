@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import { handleRenameFolder } from '../route/RenameFolder';
 import { acknowledge } from '../utils/socketIO';

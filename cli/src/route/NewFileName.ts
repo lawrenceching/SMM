@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import type { NewFileNameRequestBody, GetFileNameResponseBody } from '@core/types';
 import { emby, generateFileNameByJavaScript, plex } from '../utils/renameRules';
 import pino from 'pino';

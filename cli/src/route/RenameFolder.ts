@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types';
 import { rename } from 'fs/promises';

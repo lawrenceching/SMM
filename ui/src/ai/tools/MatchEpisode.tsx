@@ -1,5 +1,5 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from "zod";
+import { z } from 'zod/v3';
 import { useMediaMetadata } from "@/components/media-metadata-provider";
 import { useEffect } from "react";
 import type { MediaFileMetadata, MediaMetadata } from "@core/types";
@@ -61,7 +61,7 @@ interface ToolResponse {
 }
 \`\`\`typescript
 `,
-    parameters: episodeMatchSchema,
+    inputSchema: episodeMatchSchema,
     execute: async ({ folderPath, path, seasonNumber, episodeNumber }) => {
         console.log(`[MatchEpisodeTool] Match episode ${seasonNumber} ${episodeNumber} in folder "${folderPath}" with file "${path}"`);
         const folderPathInPosix = Path.posix(folderPath)

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import path from 'path';
 import { validatePathIsInAllowlist } from './path-validator';
 import { Path } from '@core/path';

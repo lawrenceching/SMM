@@ -14,9 +14,9 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.88",
-    "@ai-sdk/openai-compatible": "^1.0.28",
-    "@ai-sdk/react": "^2.0.109",
+    "@ai-sdk/openai": "^3.0.11",
+    "@ai-sdk/openai-compatible": "^2.0.11",
+    "@ai-sdk/react": "^3.0.38",
     "@assistant-ui/react": "^0.11.53",
     "@assistant-ui/react-ai-sdk": "^1.1.20",
     "@assistant-ui/react-markdown": "^0.11.9",
@@ -42,7 +42,7 @@
     "@shikijs/transformers": "^3.19.0",
     "@tailwindcss/vite": "^4.1.17",
     "@tanstack/react-table": "^8.21.3",
-    "ai": "^5.0.115",
+    "ai": "^6.0.36",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

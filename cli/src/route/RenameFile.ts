@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { FileRenameRequestBody, FileRenameResponseBody, FileRenameInBatchRequestBody, FileRenameInBatchResponseBody } from '@core/types';
 import { validateSingleRenameOperation, executeRenameOperation, updateMediaMetadataAndBroadcast, validateBatchRenameOperations, executeBatchRenameOperations } from '../utils/renameFileUtils';

@@ -74,7 +74,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     const hasProcessedThisPath = processedMediaFolderPathRef.current === currentPath
     
     if(mediaMetadata.tmdbTvShow === undefined && !hasProcessedThisPath) {
-      console.log(`[TvShowPanel] trying to infer to media type`);
+      console.log(`[useTvShowPanelState] trying to infer to media type`);
       // Mark this path as processed
       processedMediaFolderPathRef.current = currentPath
       

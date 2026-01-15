@@ -84,7 +84,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
     const modelMessages = await convertToModelMessages(messages || []);
 
     logger.debug({ selectedAI: userConfig.selectedAI, model: model || defaultModel }, 'Using AI model configuration');
-    const result = await streamText({
+    const result = streamText({
       model: aiProvider.chatModel(model || defaultModel),
       messages: modelMessages,
       system: system,
