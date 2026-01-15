@@ -13,7 +13,7 @@ export async function handleChatRequest(request: Request): Promise<Response> {
     console.log('Received chat request:', { messageCount: messages?.length, model });
 
     // Convert UI messages to model messages format
-    const modelMessages = convertToModelMessages(messages || []);
+    const modelMessages = await convertToModelMessages(messages || []);
     console.log('Converted to model messages:', modelMessages.length);
 
     const deepseekProvider = getDeepseekProvider();
