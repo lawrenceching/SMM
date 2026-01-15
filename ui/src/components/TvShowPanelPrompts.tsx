@@ -34,7 +34,6 @@ interface PromptsContextValue {
   _getOnUseTmdbidFromFolderNameCancel: () => (() => void) | undefined // Getter for cancel ref
   _setOnUseTmdbidFromFolderNameConfirm: (callback: ((tmdbTvShow: TMDBTVShow) => void) | undefined) => void
   _setOnUseTmdbidFromFolderNameCancel: (callback: (() => void) | undefined) => void
-  _setTmdbIdFromFolderNameStatus: (status: "ready" | "loading" | "error" | undefined) => void
   
   // RuleBasedRenameFilePrompt state
   isRuleBasedRenameFilePromptOpen: boolean
@@ -180,6 +179,7 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     isUseTmdbidFromFolderNamePromptOpen,
     tmdbIdFromFolderName,
     tmdbMediaNameFromFolderName,
+    tmdbIdFromFolderNameStatus,
     onUseTmdbidFromFolderNameConfirm,
     onUseTmdbidFromFolderNameCancel,
     isRuleBasedRenameFilePromptOpen,

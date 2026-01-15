@@ -78,6 +78,7 @@ describe('readMediaMetadataV2', () => {
           mtime: 0,
           isDirectory: false,
         })),
+        size: mockFiles.length,
       },
       error: undefined,
     })
@@ -125,6 +126,7 @@ describe('readMediaMetadataV2', () => {
           mtime: 0,
           isDirectory: false,
         }],
+        size: 1,
       },
       error: undefined,
     })
@@ -209,6 +211,7 @@ describe('readMediaMetadataV2', () => {
           mtime: 0,
           isDirectory: false,
         }],
+        size: 1,
       },
       error: undefined,
     })
@@ -264,6 +267,7 @@ describe('readMediaMetadataV2', () => {
           mtime: 0,
           isDirectory: false,
         }],
+        size: 1,
       },
       error: undefined,
     })
@@ -314,6 +318,7 @@ describe('readMediaMetadataV2', () => {
           mtime: 0,
           isDirectory: false,
         }],
+        size: 1,
       },
       error: undefined,
     })

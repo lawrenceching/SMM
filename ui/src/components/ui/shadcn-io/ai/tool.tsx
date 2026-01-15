@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   CircleIcon,
   ClockIcon,
+  HelpCircleIcon,
   WrenchIcon,
   XCircleIcon,
 } from 'lucide-react';
@@ -40,6 +41,9 @@ const getStatusBadge = (status: ToolUIPart['state']) => {
     'input-available': 'Running',
     'output-available': 'Completed',
     'output-error': 'Error',
+    'approval-requested': 'Awaiting Approval',
+    'approval-responded': 'Approval Responded',
+    'output-denied': 'Denied',
   } as const;
 
   const icons = {
@@ -47,6 +51,9 @@ const getStatusBadge = (status: ToolUIPart['state']) => {
     'input-available': <ClockIcon className="size-4 animate-pulse" />,
     'output-available': <CheckCircleIcon className="size-4 text-green-600" />,
     'output-error': <XCircleIcon className="size-4 text-red-600" />,
+    'approval-requested': <HelpCircleIcon className="size-4 text-yellow-600" />,
+    'approval-responded': <CheckCircleIcon className="size-4 text-blue-600" />,
+    'output-denied': <XCircleIcon className="size-4 text-red-600" />,
   } as const;
 
   return (

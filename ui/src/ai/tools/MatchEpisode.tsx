@@ -61,8 +61,8 @@ interface ToolResponse {
 }
 \`\`\`typescript
 `,
-    inputSchema: episodeMatchSchema,
-    execute: async ({ folderPath, path, seasonNumber, episodeNumber }) => {
+    parameters: episodeMatchSchema,
+    execute: async ({ folderPath, path, seasonNumber, episodeNumber }: z.infer<typeof episodeMatchSchema>) => {
         console.log(`[MatchEpisodeTool] Match episode ${seasonNumber} ${episodeNumber} in folder "${folderPath}" with file "${path}"`);
         const folderPathInPosix = Path.posix(folderPath)
 

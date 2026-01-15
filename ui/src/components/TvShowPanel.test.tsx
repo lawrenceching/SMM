@@ -14,7 +14,7 @@ vi.mock('./tmdb-tvshow-overview', () => ({
 
 // Helper function for usePromptManager
 function createUsePromptManager() {
-  return (setters: any, states: any) => {
+  return (setters: any, _states: any) => {
     const openPrompt = (promptType: 'useNfo' | 'ruleBasedRenameFile' | 'aiBasedRenameFile' | 'aiRecognize' | 'ruleBasedRecognize') => {
       // Close all prompts first
       setters.setIsUseNfoPromptOpen(false)
@@ -263,7 +263,8 @@ describe('TvShowPanel', () => {
   })
 
   it('should close other prompts when one prompt is opened', async () => {
-    const { usePromptManager } = await import('./TvShowPanelPrompts')
+    // Get the mocked usePromptManager from the mock
+    const usePromptManager = createUsePromptManager()
     
     const setters = {
       setIsUseNfoPromptOpen: mockSetIsUseNfoPromptOpen,

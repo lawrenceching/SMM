@@ -51,6 +51,7 @@ describe('FileExplorer', () => {
       data: {
         path: '/test/path',
         items: [],
+        size: 0,
       },
       error: undefined,
     })
@@ -78,6 +79,7 @@ describe('FileExplorer', () => {
             isDirectory: false,
           },
         ],
+        size: 1,
       },
       error: undefined,
     })

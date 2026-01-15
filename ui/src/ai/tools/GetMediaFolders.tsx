@@ -1,14 +1,13 @@
 import { readFileApi } from "@/api/readFile";
 import { makeAssistantTool, tool } from "@assistant-ui/react";
+import { z } from 'zod/v3';
 import { hello } from "@/api/hello";
 import { join } from "@/lib/path";
 import type { UserConfig } from "@core/types";
 
 const getMediaFolders = tool({
     description: "Get media folders that managed by SMM",
-    inputSchema: {
-        type: "object"
-    },
+    parameters: z.object({}),
     execute: async ({ }) => {
         const { userDataDir } = await hello();
         const userConfig: UserConfig = await readFileApi(join(userDataDir, 'smm.json'));

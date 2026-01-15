@@ -13,7 +13,7 @@ let mediaMetadatas: MediaMetadata[] = [];
 
 const getFilesInMediaFolder = tool({
     description: "List files in a media folder",
-    inputSchema: z.object({
+    parameters: z.object({
         path: z.string(),
     }),
     execute: async ({ path }) => {
