@@ -94,6 +94,7 @@ interface ComponentsResources {
     rename: string
     renameSuccess: string
     renameFailed: string
+    selectFile: string
   }
   viewSwitcher: {
     metadataView: string

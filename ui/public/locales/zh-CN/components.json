@@ -72,7 +72,8 @@
   "episodeFile": {
     "rename": "重命名",
     "renameSuccess": "文件重命名成功",
-    "renameFailed": "文件重命名失败"
+    "renameFailed": "文件重命名失败",
+    "selectFile": "选择文件"
   },
   "viewSwitcher": {
     "metadataView": "元数据视图",

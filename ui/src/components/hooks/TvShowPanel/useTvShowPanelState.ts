@@ -102,13 +102,20 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
 
       console.log(`[TvShowPanel] building seasons state from media metadata`)
 
-      return mediaMetadata.tmdbTvShow.seasons.map(season => ({
-        season: season,
-        episodes: season.episodes?.map(episode => ({
-          episode: episode,
-          files: buildFileProps(mediaMetadata, season.season_number, episode.episode_number)
-        })) || []
-      }))
+      const newSeasons = mediaMetadata.tmdbTvShow.seasons.map(season => {
+        return {
+          season: season,
+          episodes: season.episodes?.map(episode => {
+            const files = buildFileProps(mediaMetadata, season.season_number, episode.episode_number);
+            return {
+              episode: episode,
+              files: files
+            };
+          }) || []
+        };
+      });
+
+      return newSeasons;
     })
 
   }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, mediaMetadata?.mediaFiles])

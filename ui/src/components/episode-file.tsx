@@ -17,6 +17,10 @@ interface EpisodeFileProps {
     iconColor?: string
     isPreviewMode: boolean
     showRenameMenu?: boolean
+    /**
+     * Callback when "Select File" is clicked from context menu
+     */
+    onFileSelectButtonClick?: (file: FileProps) => void
 }
 
 // Helper function to get relative path from media folder
@@ -42,6 +46,7 @@ export function EpisodeFile({
     iconColor = "text-muted-foreground",
     isPreviewMode,
     showRenameMenu = false,
+    onFileSelectButtonClick,
 }: EpisodeFileProps) {
     const { t } = useTranslation(['components', 'dialogs'])
     const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
@@ -114,11 +119,11 @@ export function EpisodeFile({
                     <ContextMenuItem
                         onClick={() => {
                             if (!file.path || file.isDeleted) return
-                            
+
                             // Calculate relative path from media folder
                             const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
                             let relativePath: string
-                            
+
                             if (mediaFolderPath) {
                                 try {
                                     relativePath = relative(mediaFolderPath, file.path)
@@ -129,7 +134,7 @@ export function EpisodeFile({
                             } else {
                                 relativePath = file.path
                             }
-                            
+
                             const [openRename] = renameDialog
                             openRename(
                                 async (newRelativePath: string) => {
@@ -141,7 +146,7 @@ export function EpisodeFile({
                                     try {
                                         // Convert relative path to absolute path
                                         const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
-                                        
+
                                         // Call renameFile API
                                         await renameFile({
                                             mediaFolder: selectedMediaMetadata.mediaFolderPath,
@@ -151,7 +156,7 @@ export function EpisodeFile({
 
                                         // Refresh media metadata to reflect the rename
                                         refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
-                                        
+
                                         console.log("File renamed successfully:", file.path, "->", newAbsolutePath)
                                         toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
                                     } catch (error) {
@@ -171,8 +176,17 @@ export function EpisodeFile({
                             )
                         }}
                     >
-                        <FileEdit className="size-4 mr-2" />
                         {t('episodeFile.rename', { ns: 'components' })}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        disabled={!onFileSelectButtonClick}
+                        onClick={() => {
+                            if (onFileSelectButtonClick) {
+                                onFileSelectButtonClick(file)
+                            }
+                        }}
+                    >
+                        {t('episodeFile.selectFile', { ns: 'components' })}
                     </ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>

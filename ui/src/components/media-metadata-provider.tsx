@@ -84,6 +84,7 @@ export function MediaMetadataProvider({
       const existingIndex = prev.findIndex(
         (m) => m.mediaFolderPath === metadata.mediaFolderPath
       )
+
       if (existingIndex >= 0) {
         // Update existing metadata
         const updated = [...prev]
@@ -112,7 +113,7 @@ export function MediaMetadataProvider({
       ...metadata,
       mediaFolderPath: metadata.mediaFolderPath || path
     }
-    
+
     writeMediaMetadata(metadataToUpdate)
       .then(() => {
         _addMediaMetadata(metadataToUpdate)

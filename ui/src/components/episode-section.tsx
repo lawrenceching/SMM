@@ -104,8 +104,10 @@ export interface EpisodeSectionProps {
     scrollToEpisodeId?: number | null
     /**
      * Callback to handle file selection for this episode
+     * @param episode - The episode to select file for
+     * @param file - The file that was clicked (for context menu) or undefined (for no-files area)
      */
-    onEpisodeFileSelect?: (episode: NonNullable<NonNullable<TMDBTVShowDetails['seasons']>[number]['episodes']>[number]) => void
+    onEpisodeFileSelect?: (episode: NonNullable<NonNullable<TMDBTVShowDetails['seasons']>[number]['episodes']>[number], file?: { path: string; isDirectory?: boolean }) => void
 }
 
 export function EpisodeSection({
@@ -294,6 +296,11 @@ export function EpisodeSection({
                                         iconColor={iconColor}
                                         isPreviewMode={isPreviewMode}
                                         showRenameMenu={true}
+                                        onFileSelectButtonClick={(file) => {
+                                            if (onEpisodeFileSelect) {
+                                                onEpisodeFileSelect(episode, file)
+                                            }
+                                        }}
                                     />
                                 ))
                             })}

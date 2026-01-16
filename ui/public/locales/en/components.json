@@ -72,7 +72,8 @@
   "episodeFile": {
     "rename": "Rename",
     "renameSuccess": "File renamed successfully",
-    "renameFailed": "Failed to rename file"
+    "renameFailed": "Failed to rename file",
+    "selectFile": "Select File"
   },
   "viewSwitcher": {
     "metadataView": "Metadata View",

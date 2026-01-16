@@ -67,6 +67,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
     const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
     const prevPreviewModeRef = useRef(false)
     const { userConfig } = useConfig()
+
     const { scrapeDialog } = useDialogs()
     const [openScrape] = scrapeDialog
 

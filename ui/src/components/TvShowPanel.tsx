@@ -25,6 +25,23 @@ import { useConfig } from "./config-provider"
 import { useDialogs } from "./dialog-provider"
 import { Path } from "@core/path"
 
+/**
+ * Extract season and episode numbers from a filename
+ * Returns { seasonNumber, episodeNumber } or null if not found
+ */
+function extractSeasonEpisodeFromFilename(filename: string): { seasonNumber: number; episodeNumber: number } | null {
+  // Pattern: S01E07, S1E7, s01e07, etc.
+  const sxePattern = /[Ss](\d+)[Eexx](\d+)/g;
+  const match = sxePattern.exec(filename);
+  if (match) {
+    return {
+      seasonNumber: parseInt(match[1], 10),
+      episodeNumber: parseInt(match[2], 10)
+    };
+  }
+  return null;
+}
+
 export interface EpisodeModel {
     episode: TMDBEpisode,
     files: FileProps[],
@@ -338,7 +355,7 @@ function TvShowPanelContent() {
   }, [mediaMetadata, updateMediaMetadata])
 
   // Handle opening file picker for episode
-  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode) => {
+  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode, file?: { path: string; isDirectory?: boolean }) => {
 
     // Validate mediaMetadata is available
     if (!mediaMetadata?.mediaFolderPath) {
@@ -350,8 +367,29 @@ function TvShowPanelContent() {
     const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
 
     // Create file selection handler for this specific episode
-    const fileSelectHandler = (file: { path: string; isDirectory?: boolean }) => {
-      handleEpisodeFileSelect(episode, file)
+    const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
+      // Extract season and episode from the selected filename
+      const filename = selectedFile.path.split(/[/\\]/).pop() || selectedFile.path;
+      const extractedInfo = extractSeasonEpisodeFromFilename(filename);
+
+      let targetEpisode = episode;
+
+      if (extractedInfo) {
+        // Find the episode in seasons that matches the extracted episode number
+        // Look for the episode in all seasons
+        for (const season of seasons) {
+          const foundEpisode = season.episodes.find(
+            ep => ep.episode.season_number === extractedInfo.seasonNumber &&
+                 ep.episode.episode_number === extractedInfo.episodeNumber
+          );
+          if (foundEpisode) {
+            targetEpisode = foundEpisode.episode;
+            break;
+          }
+        }
+      }
+
+      handleEpisodeFileSelect(targetEpisode, selectedFile)
     }
 
     openFilePicker(fileSelectHandler, {
@@ -360,7 +398,7 @@ function TvShowPanelContent() {
       selectFolder: false,
       initialPath: mediaFolderPlatformPath
     })
-  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect])
+  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect, seasons])
 
   const handleRuleBasedRenameConfirm = useCallback(() => {
     startToRenameFiles()
