@@ -25,23 +25,6 @@ import { useConfig } from "./config-provider"
 import { useDialogs } from "./dialog-provider"
 import { Path } from "@core/path"
 
-/**
- * Extract season and episode numbers from a filename
- * Returns { seasonNumber, episodeNumber } or null if not found
- */
-function extractSeasonEpisodeFromFilename(filename: string): { seasonNumber: number; episodeNumber: number } | null {
-  // Pattern: S01E07, S1E7, s01e07, etc.
-  const sxePattern = /[Ss](\d+)[Eexx](\d+)/g;
-  const match = sxePattern.exec(filename);
-  if (match) {
-    return {
-      seasonNumber: parseInt(match[1], 10),
-      episodeNumber: parseInt(match[2], 10)
-    };
-  }
-  return null;
-}
-
 export interface EpisodeModel {
     episode: TMDBEpisode,
     files: FileProps[],
@@ -355,7 +338,7 @@ function TvShowPanelContent() {
   }, [mediaMetadata, updateMediaMetadata])
 
   // Handle opening file picker for episode
-  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode, file?: { path: string; isDirectory?: boolean }) => {
+  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode, _file?: { path: string; isDirectory?: boolean }) => {
 
 
     // Validate mediaMetadata is available

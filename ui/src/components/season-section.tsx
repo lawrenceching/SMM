@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import type { SeasonModel } from "./TvShowPanel"
-import { useEffect } from "react"
+
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
