@@ -5,7 +5,7 @@ import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
 import { useMediaMetadata } from "./media-metadata-provider"
 import { relative } from "@/lib/path"
-import { useMemo } from "react"
+import { useMemo, useCallback } from "react"
 import React from "react"
 import { useTranslation } from "@/lib/i18n"
 import type { TFunction } from "i18next"
@@ -102,6 +102,10 @@ export interface EpisodeSectionProps {
      * Optional episode ID to scroll to (for programmatic scrolling)
      */
     scrollToEpisodeId?: number | null
+    /**
+     * Callback to handle file selection for this episode
+     */
+    onEpisodeFileSelect?: (episode: NonNullable<NonNullable<TMDBTVShowDetails['seasons']>[number]['episodes']>[number]) => void
 }
 
 export function EpisodeSection({
@@ -110,11 +114,25 @@ export function EpisodeSection({
     setExpandedEpisodeIds,
     files,
     isPreviewMode,
+    onEpisodeFileSelect,
 }: EpisodeSectionProps) {
     const { t } = useTranslation(['components'])
     const { selectedMediaMetadata } = useMediaMetadata()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
+    
+    // Handle click on "noFiles" div to open file picker
+    const handleNoFilesClick = useCallback(() => {
+        // Don't allow file selection in preview mode
+        if (isPreviewMode) {
+            return
+        }
+
+        // Call the handler passed from parent component
+        if (onEpisodeFileSelect) {
+            onEpisodeFileSelect(episode)
+        }
+    }, [isPreviewMode, onEpisodeFileSelect, episode])
     
     // Group files by type
     const filesByType = useMemo(() => {
@@ -249,7 +267,15 @@ export function EpisodeSection({
             {isEpisodeExpanded && (
                 <div className="border-t bg-muted/30">
                     {files.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-muted-foreground">
+                        <div 
+                            onClick={handleNoFilesClick}
+                            className={cn(
+                                "text-center py-6 text-xs transition-colors",
+                                isPreviewMode 
+                                    ? "text-muted-foreground" 
+                                    : "text-muted-foreground cursor-pointer hover:text-foreground hover:bg-accent/50"
+                            )}
+                        >
                             {t("episodeSection.noFiles")}
                         </div>
                     ) : (

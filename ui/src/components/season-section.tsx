@@ -38,6 +38,7 @@ interface SeasonSectionProps {
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
     scrollToEpisodeId?: number | null
+    onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
 }
 
 export function SeasonSection({
@@ -50,6 +51,7 @@ export function SeasonSection({
     isPreviewMode = false,
     seasons,
     scrollToEpisodeId,
+    onEpisodeFileSelect,
 }: SeasonSectionProps) {
     if (isUpdatingTvShow) {
         return (
@@ -172,6 +174,7 @@ export function SeasonSection({
                                                             files={files}
                                                             isPreviewMode={isPreviewMode}
                                                             scrollToEpisodeId={scrollToEpisodeId}
+                                                            onEpisodeFileSelect={onEpisodeFileSelect}
                                                         />
                                                     )
                                                 })

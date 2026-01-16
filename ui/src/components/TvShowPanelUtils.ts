@@ -103,6 +103,45 @@ export function renameFiles(mediaFolderPath: string, newVideoFilePath: string,fi
   ]
 }
 
+/**
+ * Update media file metadata array by adding or updating an entry for a video file.
+ * If the video file already exists in the array, update its season/episode numbers.
+ * Otherwise, add a new entry.
+ */
+export function updateMediaFileMetadatas(
+    mediaFiles: MediaFileMetadata[],
+    videoFilePath: string,
+    seasonNumber: number,
+    episodeNumber: number
+): MediaFileMetadata[] {
+    // Check if videoFilePath already exists
+    const existingIndex = mediaFiles.findIndex(file => file.absolutePath === videoFilePath);
+
+    if (existingIndex !== -1) {
+        // Update existing entry
+        const existingFile = mediaFiles[existingIndex]!;
+        console.log(`Update media file "${videoFilePath}" from season ${existingFile.seasonNumber ?? '?'} episode ${existingFile.episodeNumber ?? '?'} to season ${seasonNumber} episode ${episodeNumber}`);
+        const updatedFiles = [...mediaFiles];
+        updatedFiles[existingIndex] = {
+            ...updatedFiles[existingIndex]!,
+            seasonNumber,
+            episodeNumber
+        };
+        return updatedFiles;
+    } else {
+        // Add new entry
+        console.log(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`);
+        return [
+            ...mediaFiles,
+            {
+                absolutePath: videoFilePath,
+                seasonNumber,
+                episodeNumber
+            }
+        ];
+    }
+}
+
 export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] {
     const mapping: {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] = [];
 

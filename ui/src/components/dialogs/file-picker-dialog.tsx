@@ -20,28 +20,33 @@ export function FilePickerDialog({
   title,
   description,
   hideDialogHeader = true,
-  selectFolder = false
+  selectFolder = false,
+  initialPath
 }: FilePickerDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const defaultTitle = title || t('filePicker.defaultTitle')
   const defaultDescription = description || t('filePicker.defaultDescription')
   
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
-  const [currentPath, setCurrentPath] = useState<string>(localStorages.filePickerLastDir)
+  const [currentPath, setCurrentPath] = useState<string>(initialPath || localStorages.filePickerLastDir || "~")
 
-  // Load saved last directory when dialog opens
+  // Load saved last directory when dialog opens, or use initialPath if provided
   useEffect(() => {
     if (isOpen) {
-      const saved = localStorages.filePickerLastDir
-      if (saved) {
-        setCurrentPath(saved)
+      if (initialPath) {
+        setCurrentPath(initialPath)
+      } else {
+        const saved = localStorages.filePickerLastDir
+        if (saved) {
+          setCurrentPath(saved)
+        }
       }
     } else {
       // Reset state when dialog closes
       setSelectedFile(null)
       // Don't reset currentPath to "~" - keep it for next time
     }
-  }, [isOpen])
+  }, [isOpen, initialPath])
 
   const handleConfirm = () => {
     if (selectedFile) {

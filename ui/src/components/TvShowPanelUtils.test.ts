@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles } from './TvShowPanelUtils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -878,5 +878,712 @@ describe('renameFiles', () => {
     
     // The input file should have newPath set (mutation behavior)
     expect(files[1].newPath).toBe('/media/tvshow/season1/episode1_new.srt')
+  })
+})
+
+describe('updateMediaFileMetadatas', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should add new file when mediaFiles array is empty', () => {
+    const mediaFiles: MediaFileMetadata[] = []
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 1,
+      episodeNumber: 1,
+    })
+    expect(consoleLogSpy).toHaveBeenCalledWith(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`)
+  })
+
+  it('should add new file to existing mediaFiles array', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode2.mkv',
+        seasonNumber: 1,
+        episodeNumber: 2,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      absolutePath: '/media/tvshow/season1/episode2.mkv',
+      seasonNumber: 1,
+      episodeNumber: 2,
+    })
+    expect(result[1]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 1,
+      episodeNumber: 1,
+    })
+    expect(consoleLogSpy).toHaveBeenCalledWith(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`)
+  })
+
+  it('should update existing file when videoFilePath already exists', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 2, // Wrong episode number
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1 // Correct episode number
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 1,
+      episodeNumber: 1,
+    })
+    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season 1 episode 2 to season ${seasonNumber} episode ${episodeNumber}`)
+  })
+
+  it('should update existing file with undefined season/episode numbers', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: undefined,
+        episodeNumber: undefined,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 1,
+      episodeNumber: 1,
+    })
+    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season ? episode ? to season ${seasonNumber} episode ${episodeNumber}`)
+  })
+
+  it('should preserve other files when updating one file', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+      {
+        absolutePath: '/media/tvshow/season1/episode2.mkv',
+        seasonNumber: 1,
+        episodeNumber: 2,
+      } as MediaFileMetadata,
+      {
+        absolutePath: '/media/tvshow/season2/episode1.mkv',
+        seasonNumber: 2,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 5 // Update to episode 5
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(3)
+    expect(result[0]).toEqual({
+      absolutePath: '/media/tvshow/season1/episode1.mkv',
+      seasonNumber: 1,
+      episodeNumber: 5, // Updated
+    })
+    expect(result[1]).toEqual({
+      absolutePath: '/media/tvshow/season1/episode2.mkv',
+      seasonNumber: 1,
+      episodeNumber: 2, // Unchanged
+    })
+    expect(result[2]).toEqual({
+      absolutePath: '/media/tvshow/season2/episode1.mkv',
+      seasonNumber: 2,
+      episodeNumber: 1, // Unchanged
+    })
+  })
+
+  it('should handle multiple seasons correctly', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season2/episode3.mkv'
+    const seasonNumber = 2
+    const episodeNumber = 3
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      absolutePath: '/media/tvshow/season1/episode1.mkv',
+      seasonNumber: 1,
+      episodeNumber: 1,
+    })
+    expect(result[1]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 2,
+      episodeNumber: 3,
+    })
+  })
+
+  it('should not mutate the input array', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode2.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 2
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    // Original array should not be modified
+    expect(mediaFiles).toHaveLength(1)
+    expect(result).toHaveLength(2)
+    expect(mediaFiles[0]?.episodeNumber).toBe(1)
+    expect(result[1]?.episodeNumber).toBe(2)
+  })
+
+  it('should handle case-sensitive file paths correctly', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/Season1/Episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv' // Different case
+    const seasonNumber = 1
+    const episodeNumber = 2
+    
+    // Should be treated as different files (case-sensitive)
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(2)
+    expect(result[0]?.absolutePath).toBe('/media/tvshow/Season1/Episode1.mkv')
+    expect(result[1]?.absolutePath).toBe('/media/tvshow/season1/episode1.mkv')
+  })
+
+  it('should handle Windows path format correctly', () => {
+    const mediaFiles: MediaFileMetadata[] = []
+    const videoFilePath = 'C:\\media\\tvshow\\season1\\episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]?.absolutePath).toBe(videoFilePath)
+    expect(result[0]?.seasonNumber).toBe(1)
+    expect(result[0]?.episodeNumber).toBe(1)
+  })
+
+  it('should handle POSIX path format correctly', () => {
+    const mediaFiles: MediaFileMetadata[] = []
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1
+    const episodeNumber = 1
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]?.absolutePath).toBe(videoFilePath)
+    expect(result[0]?.seasonNumber).toBe(1)
+    expect(result[0]?.episodeNumber).toBe(1)
+  })
+
+  it('should update file when moving from one season/episode to another', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 2 // Moving to season 2
+    const episodeNumber = 5 // Moving to episode 5
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: 2,
+      episodeNumber: 5,
+    })
+    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season 1 episode 1 to season ${seasonNumber} episode ${episodeNumber}`)
+  })
+})
+
+describe('recognizeEpisodes', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+  let mockUpdateMediaMetadata: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockUpdateMediaMetadata = vi.fn()
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    vi.clearAllMocks()
+  })
+
+  const createMockSeasonModel = (
+    seasonNumber: number,
+    episodeNumber: number,
+    videoFilePath: string
+  ): SeasonModel => ({
+    season: {
+      id: seasonNumber,
+      name: `Season ${seasonNumber}`,
+      overview: '',
+      poster_path: null,
+      season_number: seasonNumber,
+      air_date: '2024-01-01',
+      episode_count: 1,
+      episodes: [
+        {
+          id: seasonNumber * 100 + episodeNumber,
+          name: `Episode ${episodeNumber}`,
+          overview: '',
+          still_path: null,
+          air_date: '2024-01-01',
+          episode_number: episodeNumber,
+          season_number: seasonNumber,
+          vote_average: 8.5,
+          vote_count: 100,
+          runtime: 42,
+        },
+      ],
+    },
+    episodes: [
+      {
+        episode: {
+          id: seasonNumber * 100 + episodeNumber,
+          name: `Episode ${episodeNumber}`,
+          overview: '',
+          still_path: null,
+          air_date: '2024-01-01',
+          episode_number: episodeNumber,
+          season_number: seasonNumber,
+          vote_average: 8.5,
+          vote_count: 100,
+          runtime: 42,
+        },
+        files: [
+          {
+            type: 'video',
+            path: videoFilePath,
+          } as FileProps,
+        ],
+      },
+    ],
+  })
+
+  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
+    mediaFolderPath: '/media/tvshow',
+    ...overrides,
+  } as MediaMetadata)
+
+  it('should recognize episodes and call updateMediaMetadata with correct metadata', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/season1/episode1.mkv'),
+      createMockSeasonModel(1, 2, '/media/tvshow/season1/episode2.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      `[TvShowPanelUtils] recognized episodes:`,
+      expect.arrayContaining([
+        expect.objectContaining({
+          seasonNumber: 1,
+          episodeNumber: 1,
+          videoFilePath: '/media/tvshow/season1/episode1.mkv',
+        }),
+        expect.objectContaining({
+          seasonNumber: 1,
+          episodeNumber: 2,
+          videoFilePath: '/media/tvshow/season1/episode2.mkv',
+        }),
+      ])
+    )
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+      '/media/tvshow',
+      expect.objectContaining({
+        mediaFolderPath: '/media/tvshow',
+        mediaFiles: expect.arrayContaining([
+          expect.objectContaining({
+            absolutePath: '/media/tvshow/season1/episode1.mkv',
+            seasonNumber: 1,
+            episodeNumber: 1,
+          }),
+          expect.objectContaining({
+            absolutePath: '/media/tvshow/season1/episode2.mkv',
+            seasonNumber: 1,
+            episodeNumber: 2,
+          }),
+        ]),
+      })
+    )
+  })
+
+  it('should handle empty seasons array', async () => {
+    const seasons: SeasonModel[] = []
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+      '/media/tvshow',
+      expect.objectContaining({
+        mediaFolderPath: '/media/tvshow',
+        mediaFiles: [],
+      })
+    )
+  })
+
+  it('should handle seasons with no video files', async () => {
+    const seasons: SeasonModel[] = [
+      {
+        season: {
+          id: 1,
+          name: 'Season 1',
+          overview: '',
+          poster_path: null,
+          season_number: 1,
+          air_date: '2024-01-01',
+          episode_count: 1,
+          episodes: [
+            {
+              id: 101,
+              name: 'Episode 1',
+              overview: '',
+              still_path: null,
+              air_date: '2024-01-01',
+              episode_number: 1,
+              season_number: 1,
+              vote_average: 8.5,
+              vote_count: 100,
+              runtime: 42,
+            },
+          ],
+        },
+        episodes: [
+          {
+            episode: {
+              id: 101,
+              name: 'Episode 1',
+              overview: '',
+              still_path: null,
+              air_date: '2024-01-01',
+              episode_number: 1,
+              season_number: 1,
+              vote_average: 8.5,
+              vote_count: 100,
+              runtime: 42,
+            },
+            files: [
+              {
+                type: 'subtitle',
+                path: '/media/tvshow/season1/episode1.srt',
+              } as FileProps,
+            ],
+          },
+        ],
+      },
+    ]
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+      '/media/tvshow',
+      expect.objectContaining({
+        mediaFolderPath: '/media/tvshow',
+        mediaFiles: [],
+      })
+    )
+  })
+
+  it('should handle multiple seasons correctly', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/s01e01.mkv'),
+      createMockSeasonModel(2, 1, '/media/tvshow/s02e01.mkv'),
+      createMockSeasonModel(2, 2, '/media/tvshow/s02e02.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const callArgs = mockUpdateMediaMetadata.mock.calls[0]
+    expect(callArgs[1].mediaFiles).toHaveLength(3)
+    expect(callArgs[1].mediaFiles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/s01e01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        }),
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/s02e01.mkv',
+          seasonNumber: 2,
+          episodeNumber: 1,
+        }),
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/s02e02.mkv',
+          seasonNumber: 2,
+          episodeNumber: 2,
+        }),
+      ])
+    )
+  })
+
+  it('should preserve existing mediaMetadata properties', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/episode1.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata({
+      type: 'tvshow-folder',
+      tmdbTvShow: {} as any,
+    })
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const callArgs = mockUpdateMediaMetadata.mock.calls[0]
+    expect(callArgs[1]).toEqual(
+      expect.objectContaining({
+        mediaFolderPath: '/media/tvshow',
+        type: 'tvshow-folder',
+        tmdbTvShow: {},
+        mediaFiles: expect.any(Array),
+      })
+    )
+  })
+
+  it('should replace existing mediaFiles with new ones', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/episode1.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata({
+      mediaFiles: [
+        {
+          absolutePath: '/media/tvshow/old-episode.mkv',
+          seasonNumber: 1,
+          episodeNumber: 5,
+        } as MediaFileMetadata,
+      ],
+    })
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const callArgs = mockUpdateMediaMetadata.mock.calls[0]
+    expect(callArgs[1].mediaFiles).toEqual([
+      expect.objectContaining({
+        absolutePath: '/media/tvshow/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+    ])
+    // Old mediaFiles should be replaced
+    expect(callArgs[1].mediaFiles).not.toContainEqual(
+      expect.objectContaining({
+        absolutePath: '/media/tvshow/old-episode.mkv',
+      })
+    )
+  })
+
+  it('should not call updateMediaMetadata when mediaFolderPath is undefined', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/episode1.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata({
+      mediaFolderPath: undefined,
+    })
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      `[TvShowPanelUtils] mediaFolderPath is undefined, cannot update media metadata`
+    )
+  })
+
+  it('should not call updateMediaMetadata when mediaFolderPath is null', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/episode1.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata({
+      mediaFolderPath: null as any,
+    })
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      `[TvShowPanelUtils] mediaFolderPath is undefined, cannot update media metadata`
+    )
+  })
+
+  it('should handle mixed seasons with and without video files', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/episode1.mkv'),
+      {
+        season: {
+          id: 1,
+          name: 'Season 1',
+          overview: '',
+          poster_path: null,
+          season_number: 1,
+          air_date: '2024-01-01',
+          episode_count: 1,
+          episodes: [
+            {
+              id: 102,
+              name: 'Episode 2',
+              overview: '',
+              still_path: null,
+              air_date: '2024-01-08',
+              episode_number: 2,
+              season_number: 1,
+              vote_average: 8.3,
+              vote_count: 95,
+              runtime: 42,
+            },
+          ],
+        },
+        episodes: [
+          {
+            episode: {
+              id: 102,
+              name: 'Episode 2',
+              overview: '',
+              still_path: null,
+              air_date: '2024-01-08',
+              episode_number: 2,
+              season_number: 1,
+              vote_average: 8.3,
+              vote_count: 95,
+              runtime: 42,
+            },
+            files: [
+              {
+                type: 'subtitle',
+                path: '/media/tvshow/episode2.srt',
+              } as FileProps,
+            ],
+          },
+        ],
+      },
+    ]
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const callArgs = mockUpdateMediaMetadata.mock.calls[0]
+    // Should only include episode with video file
+    expect(callArgs[1].mediaFiles).toHaveLength(1)
+    expect(callArgs[1].mediaFiles[0]).toEqual(
+      expect.objectContaining({
+        absolutePath: '/media/tvshow/episode1.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      })
+    )
+  })
+
+  it('should handle Windows path format in mediaFolderPath', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, 'C:\\media\\tvshow\\episode1.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata({
+      mediaFolderPath: 'C:\\media\\tvshow',
+    })
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+      'C:\\media\\tvshow',
+      expect.objectContaining({
+        mediaFolderPath: 'C:\\media\\tvshow',
+        mediaFiles: expect.arrayContaining([
+          expect.objectContaining({
+            absolutePath: 'C:\\media\\tvshow\\episode1.mkv',
+          }),
+        ]),
+      })
+    )
+  })
+
+  it('should correctly map all recognized episodes to MediaFileMetadata format', async () => {
+    const seasons: SeasonModel[] = [
+      createMockSeasonModel(1, 1, '/media/tvshow/s01e01.mkv'),
+      createMockSeasonModel(1, 2, '/media/tvshow/s01e02.mkv'),
+      createMockSeasonModel(2, 1, '/media/tvshow/s02e01.mkv'),
+    ]
+    const mediaMetadata = createMockMediaMetadata()
+
+    await recognizeEpisodes(seasons, mediaMetadata, mockUpdateMediaMetadata)
+
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const callArgs = mockUpdateMediaMetadata.mock.calls[0]
+    const mediaFiles = callArgs[1].mediaFiles as MediaFileMetadata[]
+
+    expect(mediaFiles).toHaveLength(3)
+    mediaFiles.forEach((file) => {
+      expect(file).toHaveProperty('absolutePath')
+      expect(file).toHaveProperty('seasonNumber')
+      expect(file).toHaveProperty('episodeNumber')
+      expect(typeof file.seasonNumber).toBe('number')
+      expect(typeof file.episodeNumber).toBe('number')
+      expect(typeof file.absolutePath).toBe('string')
+    })
   })
 })

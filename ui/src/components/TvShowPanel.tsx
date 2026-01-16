@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -22,6 +22,8 @@ import { useTvShowWebSocketEvents } from "./hooks/TvShowPanel/useTvShowWebSocket
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
 import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "./config-provider"
+import { useDialogs } from "./dialog-provider"
+import { Path } from "@core/path"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -46,6 +48,8 @@ function TvShowPanelContent() {
     updateMediaMetadata,
     refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath
    } = useMediaMetadata()
+  const { filePickerDialog } = useDialogs()
+  const [openFilePicker] = filePickerDialog
   const { userConfig } = useConfig()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
@@ -275,6 +279,89 @@ function TvShowPanelContent() {
     selectedNamingRule,
   })
 
+  // Handle file selection for episode
+  const handleEpisodeFileSelect = useCallback((episode: TMDBEpisode, file: { path: string; isDirectory?: boolean }) => {
+    // Don't allow selecting directories
+    if (file.isDirectory) {
+      toast.error("Directory selection is not allowed. Please select a file.")
+      return
+    }
+
+    // Validate mediaMetadata is available
+    if (!mediaMetadata) {
+      toast.error("No media metadata available")
+      return
+    }
+
+    // Validate files array is available
+    if (!mediaMetadata.files) {
+      toast.error("Files list is not available")
+      return
+    }
+
+    // Validate episode has season and episode numbers
+    if (episode.season_number === undefined || episode.episode_number === undefined) {
+      toast.error("Invalid episode: season or episode number is missing")
+      return
+    }
+
+    // Convert file path to POSIX format
+    const filePathInPosix = Path.posix(file.path)
+
+    // Validate the file exists in the media folder files
+    if (!mediaMetadata.files.includes(filePathInPosix)) {
+      toast.error("Selected file is not in the media folder")
+      return
+    }
+
+    // Validate mediaFolderPath is available
+    if (!mediaMetadata.mediaFolderPath) {
+      toast.error("Media folder path is not available")
+      return
+    }
+
+    // Update media file metadata
+    const updatedMediaFiles = updateMediaFileMetadatas(
+      mediaMetadata.mediaFiles ?? [],
+      filePathInPosix,
+      episode.season_number,
+      episode.episode_number
+    )
+
+    // Update media metadata
+    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+      ...mediaMetadata,
+      mediaFiles: updatedMediaFiles
+    })
+
+    toast.success("File added successfully")
+  }, [mediaMetadata, updateMediaMetadata])
+
+  // Handle opening file picker for episode
+  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode) => {
+
+    // Validate mediaMetadata is available
+    if (!mediaMetadata?.mediaFolderPath) {
+      toast.error("No media metadata available")
+      return
+    }
+
+    // Convert media folder path from POSIX to platform-specific format for the file picker
+    const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+
+    // Create file selection handler for this specific episode
+    const fileSelectHandler = (file: { path: string; isDirectory?: boolean }) => {
+      handleEpisodeFileSelect(episode, file)
+    }
+
+    openFilePicker(fileSelectHandler, {
+      title: "Select Video File",
+      description: "Choose a video file for this episode",
+      selectFolder: false,
+      initialPath: mediaFolderPlatformPath
+    })
+  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect])
+
   const handleRuleBasedRenameConfirm = useCallback(() => {
     startToRenameFiles()
   }, [startToRenameFiles])
@@ -405,6 +492,7 @@ function TvShowPanelContent() {
           seasons={seasons}
           isPreviewMode={isPreviewMode}
           scrollToEpisodeId={scrollToEpisodeId}
+          onEpisodeFileSelect={handleOpenFilePickerForEpisode}
         />
       </div>
     </div>

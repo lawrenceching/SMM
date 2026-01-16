@@ -38,7 +38,7 @@ interface DialogContextValue {
     closeOpenFolder: () => void
   ]
   filePickerDialog: [
-    openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean }) => void,
+    openFilePicker: (onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean; initialPath?: string }) => void,
     closeFilePicker: () => void
   ]
   downloadVideoDialog: [
@@ -85,7 +85,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // File picker dialog state
   const [isFilePickerOpen, setIsFilePickerOpen] = useState(false)
   const [filePickerOnSelect, setFilePickerOnSelect] = useState<((file: FileItem) => void) | null>(null)
-  const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string; selectFolder?: boolean }>({})
+  const [filePickerOptions, setFilePickerOptions] = useState<{ title?: string; description?: string; selectFolder?: boolean; initialPath?: string }>({})
 
   // Download video dialog state
   const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
@@ -161,7 +161,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeOpenFolder()
   }, [openFolderOnSelect, closeOpenFolder])
 
-  const openFilePicker = useCallback((onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean }) => {
+  const openFilePicker = useCallback((onSelect: (file: FileItem) => void, options?: { title?: string; description?: string; selectFolder?: boolean; initialPath?: string }) => {
     setFilePickerOnSelect(() => onSelect)
     setFilePickerOptions(options || {})
     setIsFilePickerOpen(true)
@@ -287,6 +287,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         title={filePickerOptions.title}
         description={filePickerOptions.description}
         selectFolder={filePickerOptions.selectFolder}
+        initialPath={filePickerOptions.initialPath}
       />
       <DownloadVideoDialog
         isOpen={isDownloadVideoOpen}
