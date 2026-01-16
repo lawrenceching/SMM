@@ -225,6 +225,14 @@ vi.mock('./config-provider', () => ({
   })),
 }))
 
+vi.mock('./dialog-provider', () => ({
+  DialogProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useDialogs: vi.fn(() => ({
+    filePickerDialog: [vi.fn(), vi.fn()],
+    confirmationDialog: [vi.fn(), vi.fn()],
+  })),
+}))
+
 describe('TvShowPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
