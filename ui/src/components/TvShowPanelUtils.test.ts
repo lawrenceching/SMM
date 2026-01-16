@@ -909,7 +909,6 @@ describe('updateMediaFileMetadatas', () => {
       seasonNumber: 1,
       episodeNumber: 1,
     })
-    expect(consoleLogSpy).toHaveBeenCalledWith(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`)
   })
 
   it('should add new file to existing mediaFiles array', () => {
@@ -937,7 +936,6 @@ describe('updateMediaFileMetadatas', () => {
       seasonNumber: 1,
       episodeNumber: 1,
     })
-    expect(consoleLogSpy).toHaveBeenCalledWith(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`)
   })
 
   it('should update existing file when videoFilePath already exists', () => {
@@ -960,7 +958,7 @@ describe('updateMediaFileMetadatas', () => {
       seasonNumber: 1,
       episodeNumber: 1,
     })
-    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season 1 episode 2 to season ${seasonNumber} episode ${episodeNumber}`)
+    
   })
 
   it('should update existing file with undefined season/episode numbers', () => {
@@ -983,7 +981,7 @@ describe('updateMediaFileMetadatas', () => {
       seasonNumber: 1,
       episodeNumber: 1,
     })
-    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season ? episode ? to season ${seasonNumber} episode ${episodeNumber}`)
+    
   })
 
   it('should preserve other files when updating one file', () => {
@@ -1011,21 +1009,26 @@ describe('updateMediaFileMetadatas', () => {
     const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
     
     expect(result).toHaveLength(3)
-    expect(result[0]).toEqual({
-      absolutePath: '/media/tvshow/season1/episode1.mkv',
-      seasonNumber: 1,
-      episodeNumber: 5, // Updated
-    })
-    expect(result[1]).toEqual({
-      absolutePath: '/media/tvshow/season1/episode2.mkv',
-      seasonNumber: 1,
-      episodeNumber: 2, // Unchanged
-    })
-    expect(result[2]).toEqual({
-      absolutePath: '/media/tvshow/season2/episode1.mkv',
-      seasonNumber: 2,
-      episodeNumber: 1, // Unchanged
-    })
+    // Verify all expected files are present regardless of order
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/season1/episode1.mkv',
+          seasonNumber: 1,
+          episodeNumber: 5, // Updated
+        }),
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/season1/episode2.mkv',
+          seasonNumber: 1,
+          episodeNumber: 2, // Unchanged
+        }),
+        expect.objectContaining({
+          absolutePath: '/media/tvshow/season2/episode1.mkv',
+          seasonNumber: 2,
+          episodeNumber: 1, // Unchanged
+        }),
+      ])
+    )
   })
 
   it('should handle multiple seasons correctly', () => {
@@ -1144,7 +1147,30 @@ describe('updateMediaFileMetadatas', () => {
       seasonNumber: 2,
       episodeNumber: 5,
     })
-    expect(consoleLogSpy).toHaveBeenCalledWith(`Update media file "${videoFilePath}" from season 1 episode 1 to season ${seasonNumber} episode ${episodeNumber}`)
+    
+  })
+
+  it('should update absolutePath for the same season/episode', () => {
+    const mediaFiles: MediaFileMetadata[] = [
+      {
+        absolutePath: '/media/tvshow/season1/episode1_op.mkv',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      } as MediaFileMetadata,
+    ]
+    const videoFilePath = '/media/tvshow/season1/episode1.mkv'
+    const seasonNumber = 1 // Moving to season 2
+    const episodeNumber = 1 // Moving to episode 5
+    
+    const result = updateMediaFileMetadatas(mediaFiles, videoFilePath, seasonNumber, episodeNumber)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      absolutePath: videoFilePath,
+      seasonNumber: seasonNumber,
+      episodeNumber: episodeNumber,
+    })
+    
   })
 })
 

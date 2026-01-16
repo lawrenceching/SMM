@@ -5,38 +5,35 @@ import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/
 import { mkdir } from 'fs/promises';
 import { broadcast } from '../utils/socketIO';
 
-function updateMediaFileMetadatas(
+/**
+ * Update media file metadata array by adding or updating an entry for a video file.
+ * If the video file already exists in the array, update its season/episode numbers.
+ * Otherwise, add a new entry.
+ * @return new array of media files
+ */
+export function updateMediaFileMetadatas(
   mediaFiles: MediaFileMetadata[],
   videoFilePath: string,
   seasonNumber: number,
   episodeNumber: number
 ): MediaFileMetadata[] {
-  // Check if videoFilePath already exists
-  const existingIndex = mediaFiles.findIndex(file => file.absolutePath === videoFilePath);
 
-  if (existingIndex !== -1) {
-    // Update existing entry
-    const existingFile = mediaFiles[existingIndex]!;
-    console.log(`Update media file "${videoFilePath}" from season ${existingFile.seasonNumber ?? '?'} episode ${existingFile.episodeNumber ?? '?'} to season ${seasonNumber} episode ${episodeNumber}`);
-    const updatedFiles = [...mediaFiles];
-    updatedFiles[existingIndex] = {
-      ...updatedFiles[existingIndex]!,
+  // There are two possible cases:
+  // 1. The video file has been assigned to one episode
+  // 2. The episode has been assigned by another video file
+
+  const newMediaFiles: MediaFileMetadata[] = mediaFiles
+      .filter(mediaFile => mediaFile.seasonNumber !== seasonNumber || mediaFile.episodeNumber !== episodeNumber)
+      .filter(mediaFile => mediaFile.absolutePath !== videoFilePath);
+
+  newMediaFiles.push({
+      absolutePath: videoFilePath,
       seasonNumber,
       episodeNumber
-    };
-    return updatedFiles;
-  } else {
-    // Add new entry
-    console.log(`Add media file "${videoFilePath}" season ${seasonNumber} episode ${episodeNumber}`);
-    return [
-      ...mediaFiles,
-      {
-        absolutePath: videoFilePath,
-        seasonNumber,
-        episodeNumber
-      }
-    ];
-  }
+  });
+
+  return newMediaFiles;
+  
 }
 
 export const matchEpisodeTool = {

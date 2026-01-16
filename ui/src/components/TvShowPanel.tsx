@@ -357,6 +357,7 @@ function TvShowPanelContent() {
   // Handle opening file picker for episode
   const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode, file?: { path: string; isDirectory?: boolean }) => {
 
+
     // Validate mediaMetadata is available
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media metadata available")
@@ -368,28 +369,8 @@ function TvShowPanelContent() {
 
     // Create file selection handler for this specific episode
     const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
-      // Extract season and episode from the selected filename
-      const filename = selectedFile.path.split(/[/\\]/).pop() || selectedFile.path;
-      const extractedInfo = extractSeasonEpisodeFromFilename(filename);
 
-      let targetEpisode = episode;
-
-      if (extractedInfo) {
-        // Find the episode in seasons that matches the extracted episode number
-        // Look for the episode in all seasons
-        for (const season of seasons) {
-          const foundEpisode = season.episodes.find(
-            ep => ep.episode.season_number === extractedInfo.seasonNumber &&
-                 ep.episode.episode_number === extractedInfo.episodeNumber
-          );
-          if (foundEpisode) {
-            targetEpisode = foundEpisode.episode;
-            break;
-          }
-        }
-      }
-
-      handleEpisodeFileSelect(targetEpisode, selectedFile)
+      handleEpisodeFileSelect(episode, selectedFile)
     }
 
     openFilePicker(fileSelectHandler, {

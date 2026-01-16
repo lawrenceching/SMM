@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import type { SeasonModel } from "./TvShowPanel"
+import { useEffect } from "react"
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -70,6 +71,7 @@ export function SeasonSection({
         return null
     }
 
+
     return (
         <div className="space-y-2">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -78,7 +80,7 @@ export function SeasonSection({
             </h2>
             <div className="space-y-3">
                 {seasons
-                    .filter(seasonModel => seasonModel.season.season_number > 0) // Filter out specials (season 0)
+                    
                     .map((seasonModel) => {
                         const { season, episodes } = seasonModel
                         const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "w200")

@@ -100,7 +100,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
         return [];
       }
 
-      console.log(`[TvShowPanel] building seasons state from media metadata`)
 
       const newSeasons = mediaMetadata.tmdbTvShow.seasons.map(season => {
         return {
@@ -114,6 +113,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
           }) || []
         };
       });
+
 
       return newSeasons;
     })
