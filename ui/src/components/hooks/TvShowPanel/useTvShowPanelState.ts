@@ -111,7 +111,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
       }))
     })
 
-  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow])
+  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, mediaMetadata?.mediaFiles])
 
   // Reset scrollToEpisodeId after scrolling completes
   useEffect(() => {
