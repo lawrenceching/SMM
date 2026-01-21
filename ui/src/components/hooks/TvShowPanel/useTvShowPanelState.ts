@@ -24,8 +24,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
   const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
 
-  // Replace global seasonsBackup with useRef
-  const seasonsBackup = useRef<SeasonModel[]>([])
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
   const processedMediaFolderPathRef = useRef<string | undefined>(undefined) // Track which folder we've already processed for inference
   const promptsContext = usePromptsContext()
@@ -144,6 +142,5 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     setIsRenaming,
     scrollToEpisodeId,
     setScrollToEpisodeId,
-    seasonsBackup,
   }
 }

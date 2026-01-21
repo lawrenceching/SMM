@@ -102,7 +102,6 @@ function TvShowPanelContent() {
     setIsRenaming,
     scrollToEpisodeId,
     setScrollToEpisodeId,
-    seasonsBackup,
   } = useTvShowPanelState({ 
     mediaMetadata, 
     toolbarOptions, 
@@ -112,6 +111,7 @@ function TvShowPanelContent() {
   })
 
   const latestSeasons = useLatest(seasons)
+  const [seasonsForPreview, setSeasonsForPreview] = useState<SeasonModel[]>([])
 
   /**
    * The message from socket.io, which will be used to send acknowledgement later when user confirms or cancels
@@ -369,20 +369,15 @@ function TvShowPanelContent() {
   }, [startToRenameFiles])
 
   const handleRuleBasedRecognizeConfirm = useCallback(() => {
-    setSeasons(seasonsBackup.current)
-    seasonsBackup.current = []
-    console.log(`[TvShowPanel] seasons state restored because of user confirm`)
     if (mediaMetadata) {
       console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
       recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
     }
-  }, [setSeasons, seasonsBackup, mediaMetadata, seasons, updateMediaMetadata])
+  }, [mediaMetadata, seasons, updateMediaMetadata])
 
   const handleRuleBasedRecognizeCancel = useCallback(() => {
-    setSeasons(seasonsBackup.current)
-    seasonsBackup.current = []
-    console.log(`[TvShowPanel] seasons state restored because of user cancel`)
-  }, [setSeasons, seasonsBackup])
+    // No-op: seasons state is no longer mutated, so no restoration needed
+  }, [])
 
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
@@ -402,6 +397,7 @@ function TvShowPanelContent() {
     try {
 
       const seasonsForPreview: SeasonModel[] = structuredClone(latestSeasons.current);
+      console.log(`[TvShowPanel] cloned seasons model:`, seasonsForPreview);
       const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
         // Find the matching season and episode
         const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber);
@@ -456,18 +452,15 @@ function TvShowPanelContent() {
         })
       })
 
-      seasonsBackup.current = latestSeasons.current;
-      console.log(`[TvShowPanel] backed up the seasons state`)
-      setSeasons(seasonsForPreview);
-      console.log(`[TvShowPanel] set the seasons state for preview`)
+      console.log(`[TvShowPanel] seasons for preview:`, seasonsForPreview);
+      setSeasonsForPreview(seasonsForPreview);
+      console.log(`[TvShowPanel] set the seasonsForPreview state`)
     
     } catch (error) {
       console.error('Error building seasons state from media metadata', error);
     }
 
-    // seasons state will be restored on cancel button click
-
-  }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen, latestSeasons, seasonsBackup, setSeasons])
+  }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen, latestSeasons])
 
   return (
     <div className='p-1 w-full h-full relative'>
@@ -491,7 +484,7 @@ function TvShowPanelContent() {
             onCancel: handleRuleBasedRecognizeCancel,
           })}
           ruleName={selectedNamingRule}
-          seasons={seasons}
+          seasons={promptsContext.isRuleBasedRecognizePromptOpen ? seasonsForPreview : seasons}
           isPreviewMode={isPreviewMode}
           scrollToEpisodeId={scrollToEpisodeId}
           onEpisodeFileSelect={handleOpenFilePickerForEpisode}
