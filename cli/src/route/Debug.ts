@@ -2,6 +2,10 @@ import { z } from 'zod/v3';
 import { broadcast, acknowledge, type WebSocketMessage } from '../utils/socketIO';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
+import { getUserConfigPath } from '../utils/config';
+import { mediaMetadataDir } from '../route/mediaMetadata/utils';
+import { unlink, rm } from 'fs/promises';
+import { existsSync } from 'fs';
 
 interface DebugApiResponseBody {
   success: boolean;
@@ -63,6 +67,11 @@ const endRenameFilesTaskSchema = debugRequestBaseSchema.extend({
   clientId: z.string().optional(),
 });
 
+// Schema for cleanUp function
+const cleanUpSchema = debugRequestBaseSchema.extend({
+  name: z.literal('cleanUp'),
+});
+
 // Union schema for all debug functions
 const debugRequestSchema = z.discriminatedUnion('name', [
   broadcastMessageSchema,
@@ -71,6 +80,7 @@ const debugRequestSchema = z.discriminatedUnion('name', [
   beginRenameFilesTaskSchema,
   addRenameFileToTaskSchema,
   endRenameFilesTaskSchema,
+  cleanUpSchema,
   // Add more schemas here as new debug functions are added
 ]);
 
@@ -293,6 +303,67 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           return {
             success: false,
             error: `Failed to execute endRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'cleanUp': {
+        try {
+          console.log(`[DebugAPI] Executing cleanUp`);
+          
+          const results: { configDeleted?: boolean; metadataDeleted?: boolean } = {};
+          const errors: string[] = [];
+          
+          // Delete user config file
+          try {
+            const configPath = getUserConfigPath();
+            if (existsSync(configPath)) {
+              await unlink(configPath);
+              results.configDeleted = true;
+              console.log(`[DebugAPI] Deleted user config file: ${configPath}`);
+            } else {
+              console.log(`[DebugAPI] User config file does not exist: ${configPath}`);
+            }
+          } catch (error) {
+            const errorMsg = `Failed to delete user config: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            errors.push(errorMsg);
+            console.error(`[DebugAPI] ${errorMsg}`, error);
+          }
+          
+          // Delete media metadata cache directory
+          try {
+            if (existsSync(mediaMetadataDir)) {
+              await rm(mediaMetadataDir, { recursive: true, force: true });
+              results.metadataDeleted = true;
+              console.log(`[DebugAPI] Deleted media metadata cache directory: ${mediaMetadataDir}`);
+            } else {
+              console.log(`[DebugAPI] Media metadata cache directory does not exist: ${mediaMetadataDir}`);
+            }
+          } catch (error) {
+            const errorMsg = `Failed to delete media metadata cache: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            errors.push(errorMsg);
+            console.error(`[DebugAPI] ${errorMsg}`, error);
+          }
+          
+          if (errors.length > 0) {
+            console.log(`[DebugAPI] cleanUp completed with errors:`, errors);
+            return {
+              success: false,
+              data: results,
+              error: errors.join('; '),
+            };
+          } else {
+            console.log(`[DebugAPI] cleanUp completed successfully`);
+            return {
+              success: true,
+              data: results,
+            };
+          }
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing cleanUp:`, error);
+          return {
+            success: false,
+            error: `Failed to execute cleanUp: ${error instanceof Error ? error.message : 'Unknown error'}`,
           };
         }
       }

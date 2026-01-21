@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/components/dialog-provider"
 import { useTranslation } from "@/lib/i18n"
+import { cleanUp } from "@/api/cleanUp"
+import { toast } from "sonner"
 
 export interface MenuItem {
   name: string
@@ -165,6 +167,21 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
           name: t('menu.config'),
           onClick: () => {
             openConfig()
+          }
+        },
+        {
+          name: t('menu.cleanUp'),
+          onClick: async () => {
+            try {
+              const result = await cleanUp()
+              if (result.success) {
+                toast.success('Clean up completed successfully')
+              } else {
+                toast.error(result.error || 'Clean up failed')
+              }
+            } catch (error) {
+              toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            }
           }
         },
         {

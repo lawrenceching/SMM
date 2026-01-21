@@ -271,6 +271,45 @@ curl -X POST http://localhost:30000/debug \
 - The function returns validation errors if any rename operations are invalid
 - After execution, the task is removed from memory
 
+### cleanUp
+
+The cleanUp function allows developers to clean up user configuration and media metadata cache. This is useful for testing, debugging, and resolving configuration issues. It deletes:
+1. User config file (located at the path returned by `getUserConfigPath()`)
+2. Media metadata cache directory (located at `mediaMetadataDir`)
+
+```typescript
+interface CleanUpDebugApiRequestBody {
+  name: "cleanUp"
+}
+```
+
+#### Example: Clean up user data
+
+```bash
+curl -X POST http://localhost:30000/debug \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "cleanUp"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "configDeleted": true,
+    "metadataDeleted": true
+  }
+}
+```
+
+**Note:**
+- The function gracefully handles missing files/directories (no error if they don't exist)
+- If either operation fails, the function continues with the other operation
+- Errors are collected and returned in the response if any occur
+- The function returns success if at least one operation completes, even if the other fails
+
 #### Complete Example: Using all three functions together
 
 ```bash

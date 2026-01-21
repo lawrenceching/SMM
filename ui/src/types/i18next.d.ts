@@ -40,6 +40,7 @@ interface ComponentsResources {
     help: string
     openFolder: string
     config: string
+    cleanUp: string
     exit: string
     downloadVideo: string
   }
