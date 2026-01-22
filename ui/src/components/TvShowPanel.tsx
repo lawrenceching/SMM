@@ -63,6 +63,12 @@ function TvShowPanelContent() {
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log('[TvShowPanel] handleUseNfoConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      tmdbTvShow,
+      tmdbTvShowId: tmdbTvShow?.id,
+      stackTrace: new Error().stack
+    })
     if (!tmdbTvShow || !tmdbTvShow.id) {
       console.error('[TvShowPanel] handleUseNfoConfirm called with invalid tmdbTvShow:', tmdbTvShow)
       return
@@ -72,6 +78,12 @@ function TvShowPanelContent() {
   }, [])
 
   const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
+    console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      tmdbTvShow,
+      tmdbTvShowId: tmdbTvShow?.id,
+      stackTrace: new Error().stack
+    })
     if (!tmdbTvShow || !tmdbTvShow.id) {
       console.error('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm called with invalid tmdbTvShow:', tmdbTvShow)
       return
@@ -86,6 +98,12 @@ function TvShowPanelContent() {
     onConfirm?: (tmdbTvShow: import("@core/types").TMDBTVShow) => void
     onCancel?: () => void
   }) => {
+    console.log('[TvShowPanel] openUseNfoPromptWithCallbacks CALLED', {
+      timestamp: new Date().toISOString(),
+      nfoDataId: params.nfoData?.id,
+      hasOriginalOnConfirm: !!params.onConfirm,
+      stackTrace: new Error().stack
+    })
     openUseNfoPrompt({
       ...params,
       onConfirm: handleUseNfoConfirm,
@@ -217,6 +235,12 @@ function TvShowPanelContent() {
 
   // Handle confirm button click - rename all files
   const handleAiBasedRenamePromptConfirm = useCallback(async () => {
+    console.log('[TvShowPanel] handleAiBasedRenamePromptConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      hasPendingConfirmationMessage: !!pendingConfirmationMessage,
+      mediaFolderPath: mediaMetadata?.mediaFolderPath,
+      stackTrace: new Error().stack
+    })
     // Send acknowledgement if there's a pending confirmation message
     if (pendingConfirmationMessage) {
       const respData: AskForRenameFilesConfirmationResponseData = {
@@ -365,10 +389,19 @@ function TvShowPanelContent() {
   }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect, seasons])
 
   const handleRuleBasedRenameConfirm = useCallback(() => {
+    console.log('[TvShowPanel] handleRuleBasedRenameConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack
+    })
     startToRenameFiles()
   }, [startToRenameFiles])
 
   const handleRuleBasedRecognizeConfirm = useCallback(() => {
+    console.log('[TvShowPanel] handleRuleBasedRecognizeConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      hasMediaMetadata: !!mediaMetadata,
+      stackTrace: new Error().stack
+    })
     if (mediaMetadata) {
       console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
       recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);

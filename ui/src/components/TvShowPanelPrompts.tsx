@@ -18,8 +18,10 @@ interface PromptsContextValue {
   isUseNfoPromptOpen: boolean
   loadedNfoData: TMDBTVShowDetails | undefined
   setLoadedNfoData: (data: TMDBTVShowDetails | undefined) => void
-  onUseNfoConfirm: ((tmdbTvShow: TMDBTVShow) => void) | undefined
-  onUseNfoCancel: (() => void) | undefined
+  onUseNfoConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onUseNfoCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnUseNfoConfirm: () => ((tmdbTvShow: TMDBTVShow) => void) | undefined // Getter for ref
+  _getOnUseNfoCancel: () => (() => void) | undefined // Getter for cancel ref
   _setOnUseNfoConfirm: (callback: ((tmdbTvShow: TMDBTVShow) => void) | undefined) => void
   _setOnUseNfoCancel: (callback: (() => void) | undefined) => void
   
@@ -40,8 +42,10 @@ interface PromptsContextValue {
   ruleBasedRenameFileToolbarOptions: ToolbarOption[] | undefined
   ruleBasedRenameFileSelectedNamingRule: "plex" | "emby" | undefined
   ruleBasedRenameFileSetSelectedNamingRule: ((rule: "plex" | "emby") => void) | undefined
-  onRuleBasedRenameFileConfirm: (() => void) | undefined
-  onRuleBasedRenameFileCancel: (() => void) | undefined
+  onRuleBasedRenameFileConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onRuleBasedRenameFileCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnRuleBasedRenameFileConfirm: () => (() => void) | undefined // Getter for ref
+  _getOnRuleBasedRenameFileCancel: () => (() => void) | undefined // Getter for cancel ref
   _setRuleBasedRenameFileToolbarOptions: (options: ToolbarOption[] | undefined) => void
   _setRuleBasedRenameFileSelectedNamingRule: (rule: "plex" | "emby" | undefined) => void
   _setRuleBasedRenameFileSetSelectedNamingRule: (setter: ((rule: "plex" | "emby") => void) | undefined) => void
@@ -51,8 +55,10 @@ interface PromptsContextValue {
   // AiBasedRenameFilePrompt state
   isAiBasedRenameFilePromptOpen: boolean
   aiBasedRenameFileStatus: "generating" | "wait-for-ack" | undefined
-  onAiBasedRenameFileConfirm: (() => void) | undefined
-  onAiBasedRenameFileCancel: (() => void) | undefined
+  onAiBasedRenameFileConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onAiBasedRenameFileCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnAiBasedRenameFileConfirm: () => (() => void) | undefined // Getter for ref
+  _getOnAiBasedRenameFileCancel: () => (() => void) | undefined // Getter for cancel ref
   _setAiBasedRenameFileStatus: (status: "generating" | "wait-for-ack" | undefined) => void
   _setOnAiBasedRenameFileConfirm: (callback: (() => void) | undefined) => void
   _setOnAiBasedRenameFileCancel: (callback: (() => void) | undefined) => void
@@ -63,8 +69,10 @@ interface PromptsContextValue {
   aiRecognizeConfirmButtonLabel: string | undefined
   aiRecognizeConfirmButtonDisabled: boolean | undefined
   aiRecognizeIsRenaming: boolean | undefined
-  onAiRecognizeConfirm: (() => void) | undefined
-  onAiRecognizeCancel: (() => void) | undefined
+  onAiRecognizeConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onAiRecognizeCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnAiRecognizeConfirm: () => (() => void) | undefined // Getter for ref
+  _getOnAiRecognizeCancel: () => (() => void) | undefined // Getter for cancel ref
   _setAiRecognizeStatus: (status: "generating" | "wait-for-ack" | undefined) => void
   _setAiRecognizeConfirmButtonLabel: (label: string | undefined) => void
   _setAiRecognizeConfirmButtonDisabled: (disabled: boolean | undefined) => void
@@ -74,8 +82,10 @@ interface PromptsContextValue {
   
   // RuleBasedRecognizePrompt state
   isRuleBasedRecognizePromptOpen: boolean
-  onRuleBasedRecognizeConfirm: (() => void) | undefined
-  onRuleBasedRecognizeCancel: (() => void) | undefined
+  onRuleBasedRecognizeConfirm: boolean // Just tracks if callback exists, actual callback stored in ref
+  onRuleBasedRecognizeCancel: boolean // Just tracks if callback exists, actual callback stored in ref
+  _getOnRuleBasedRecognizeConfirm: () => (() => void) | undefined // Getter for ref
+  _getOnRuleBasedRecognizeCancel: () => (() => void) | undefined // Getter for cancel ref
   _setOnRuleBasedRecognizeConfirm: (callback: (() => void) | undefined) => void
   _setOnRuleBasedRecognizeCancel: (callback: (() => void) | undefined) => void
   
@@ -102,8 +112,12 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
   // UseNfoPrompt state
   const [isUseNfoPromptOpen, setIsUseNfoPromptOpen] = useState(false)
   const [loadedNfoData, setLoadedNfoData] = useState<TMDBTVShowDetails | undefined>(undefined)
-  const [onUseNfoConfirm, setOnUseNfoConfirm] = useState<((tmdbTvShow: TMDBTVShow) => void) | undefined>(undefined)
-  const [onUseNfoCancel, setOnUseNfoCancel] = useState<(() => void) | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onUseNfoConfirmRef = useRef<((tmdbTvShow: TMDBTVShow) => void) | undefined>(undefined)
+  const onUseNfoCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onUseNfoConfirm, setOnUseNfoConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onUseNfoCancel, setOnUseNfoCancel] = useState<boolean>(false)
   
   // UseTmdbidFromFolderNamePrompt state
   const [isUseTmdbidFromFolderNamePromptOpen, setIsUseTmdbidFromFolderNamePromptOpen] = useState(false)
@@ -122,14 +136,22 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
   const [ruleBasedRenameFileToolbarOptions, setRuleBasedRenameFileToolbarOptions] = useState<ToolbarOption[] | undefined>(undefined)
   const [ruleBasedRenameFileSelectedNamingRule, setRuleBasedRenameFileSelectedNamingRule] = useState<"plex" | "emby" | undefined>(undefined)
   const [ruleBasedRenameFileSetSelectedNamingRule, setRuleBasedRenameFileSetSelectedNamingRule] = useState<((rule: "plex" | "emby") => void) | undefined>(undefined)
-  const [onRuleBasedRenameFileConfirm, setOnRuleBasedRenameFileConfirm] = useState<(() => void) | undefined>(undefined)
-  const [onRuleBasedRenameFileCancel, setOnRuleBasedRenameFileCancel] = useState<(() => void) | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onRuleBasedRenameFileConfirmRef = useRef<(() => void) | undefined>(undefined)
+  const onRuleBasedRenameFileCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onRuleBasedRenameFileConfirm, setOnRuleBasedRenameFileConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onRuleBasedRenameFileCancel, setOnRuleBasedRenameFileCancel] = useState<boolean>(false)
   
   // AiBasedRenameFilePrompt state
   const [isAiBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen] = useState(false)
   const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack" | undefined>(undefined)
-  const [onAiBasedRenameFileConfirm, setOnAiBasedRenameFileConfirm] = useState<(() => void) | undefined>(undefined)
-  const [onAiBasedRenameFileCancel, setOnAiBasedRenameFileCancel] = useState<(() => void) | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onAiBasedRenameFileConfirmRef = useRef<(() => void) | undefined>(undefined)
+  const onAiBasedRenameFileCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onAiBasedRenameFileConfirm, setOnAiBasedRenameFileConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onAiBasedRenameFileCancel, setOnAiBasedRenameFileCancel] = useState<boolean>(false)
   
   // AiBasedRecognizePrompt state
   const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
@@ -137,13 +159,21 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
   const [aiRecognizeConfirmButtonLabel, setAiRecognizeConfirmButtonLabel] = useState<string | undefined>(undefined)
   const [aiRecognizeConfirmButtonDisabled, setAiRecognizeConfirmButtonDisabled] = useState<boolean | undefined>(undefined)
   const [aiRecognizeIsRenaming, setAiRecognizeIsRenaming] = useState<boolean | undefined>(undefined)
-  const [onAiRecognizeConfirm, setOnAiRecognizeConfirm] = useState<(() => void) | undefined>(undefined)
-  const [onAiRecognizeCancel, setOnAiRecognizeCancel] = useState<(() => void) | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onAiRecognizeConfirmRef = useRef<(() => void) | undefined>(undefined)
+  const onAiRecognizeCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onAiRecognizeConfirm, setOnAiRecognizeConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onAiRecognizeCancel, setOnAiRecognizeCancel] = useState<boolean>(false)
   
   // RuleBasedRecognizePrompt state
   const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
-  const [onRuleBasedRecognizeConfirm, setOnRuleBasedRecognizeConfirm] = useState<(() => void) | undefined>(undefined)
-  const [onRuleBasedRecognizeCancel, setOnRuleBasedRecognizeCancel] = useState<(() => void) | undefined>(undefined)
+  // Use refs to store callbacks to prevent them from being called unexpectedly during render
+  const onRuleBasedRecognizeConfirmRef = useRef<(() => void) | undefined>(undefined)
+  const onRuleBasedRecognizeCancelRef = useRef<(() => void) | undefined>(undefined)
+  // Keep state versions for context (but don't store the actual functions)
+  const [onRuleBasedRecognizeConfirm, setOnRuleBasedRecognizeConfirm] = useState<boolean>(false) // Just track if callback exists
+  const [onRuleBasedRecognizeCancel, setOnRuleBasedRecognizeCancel] = useState<boolean>(false)
   
   // Ensure only one prompt is open at a time
   useEffect(() => {
@@ -170,12 +200,74 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     isRuleBasedRecognizePromptOpen,
   ])
   
+  // Define getters and setters for UseNfoPrompt callbacks (similar to UseTmdbidFromFolderNamePrompt)
+  const _getOnUseNfoConfirm = useCallback(() => onUseNfoConfirmRef.current, [])
+  const _getOnUseNfoCancel = useCallback(() => onUseNfoCancelRef.current, [])
+  const _setOnUseNfoConfirm = useCallback((callback: ((tmdbTvShow: TMDBTVShow) => void) | undefined) => {
+    onUseNfoConfirmRef.current = callback
+    setOnUseNfoConfirm(!!callback)
+  }, [])
+  const _setOnUseNfoCancel = useCallback((callback: (() => void) | undefined) => {
+    onUseNfoCancelRef.current = callback
+    setOnUseNfoCancel(!!callback)
+  }, [])
+  
+  // Define getters and setters for RuleBasedRenameFilePrompt callbacks
+  const _getOnRuleBasedRenameFileConfirm = useCallback(() => onRuleBasedRenameFileConfirmRef.current, [])
+  const _getOnRuleBasedRenameFileCancel = useCallback(() => onRuleBasedRenameFileCancelRef.current, [])
+  const _setOnRuleBasedRenameFileConfirm = useCallback((callback: (() => void) | undefined) => {
+    onRuleBasedRenameFileConfirmRef.current = callback
+    setOnRuleBasedRenameFileConfirm(!!callback)
+  }, [])
+  const _setOnRuleBasedRenameFileCancel = useCallback((callback: (() => void) | undefined) => {
+    onRuleBasedRenameFileCancelRef.current = callback
+    setOnRuleBasedRenameFileCancel(!!callback)
+  }, [])
+  
+  // Define getters and setters for AiBasedRenameFilePrompt callbacks
+  const _getOnAiBasedRenameFileConfirm = useCallback(() => onAiBasedRenameFileConfirmRef.current, [])
+  const _getOnAiBasedRenameFileCancel = useCallback(() => onAiBasedRenameFileCancelRef.current, [])
+  const _setOnAiBasedRenameFileConfirm = useCallback((callback: (() => void) | undefined) => {
+    onAiBasedRenameFileConfirmRef.current = callback
+    setOnAiBasedRenameFileConfirm(!!callback)
+  }, [])
+  const _setOnAiBasedRenameFileCancel = useCallback((callback: (() => void) | undefined) => {
+    onAiBasedRenameFileCancelRef.current = callback
+    setOnAiBasedRenameFileCancel(!!callback)
+  }, [])
+  
+  // Define getters and setters for AiBasedRecognizePrompt callbacks
+  const _getOnAiRecognizeConfirm = useCallback(() => onAiRecognizeConfirmRef.current, [])
+  const _getOnAiRecognizeCancel = useCallback(() => onAiRecognizeCancelRef.current, [])
+  const _setOnAiRecognizeConfirm = useCallback((callback: (() => void) | undefined) => {
+    onAiRecognizeConfirmRef.current = callback
+    setOnAiRecognizeConfirm(!!callback)
+  }, [])
+  const _setOnAiRecognizeCancel = useCallback((callback: (() => void) | undefined) => {
+    onAiRecognizeCancelRef.current = callback
+    setOnAiRecognizeCancel(!!callback)
+  }, [])
+  
+  // Define getters and setters for RuleBasedRecognizePrompt callbacks
+  const _getOnRuleBasedRecognizeConfirm = useCallback(() => onRuleBasedRecognizeConfirmRef.current, [])
+  const _getOnRuleBasedRecognizeCancel = useCallback(() => onRuleBasedRecognizeCancelRef.current, [])
+  const _setOnRuleBasedRecognizeConfirm = useCallback((callback: (() => void) | undefined) => {
+    onRuleBasedRecognizeConfirmRef.current = callback
+    setOnRuleBasedRecognizeConfirm(!!callback)
+  }, [])
+  const _setOnRuleBasedRecognizeCancel = useCallback((callback: (() => void) | undefined) => {
+    onRuleBasedRecognizeCancelRef.current = callback
+    setOnRuleBasedRecognizeCancel(!!callback)
+  }, [])
+  
   const value: PromptsContextValue = useMemo(() => ({
     isUseNfoPromptOpen,
     loadedNfoData,
     setLoadedNfoData,
     onUseNfoConfirm,
     onUseNfoCancel,
+    _getOnUseNfoConfirm,
+    _getOnUseNfoCancel,
     isUseTmdbidFromFolderNamePromptOpen,
     tmdbIdFromFolderName,
     tmdbMediaNameFromFolderName,
@@ -203,8 +295,8 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     onRuleBasedRecognizeConfirm,
     onRuleBasedRecognizeCancel,
     _setIsUseNfoPromptOpen: setIsUseNfoPromptOpen,
-    _setOnUseNfoConfirm: setOnUseNfoConfirm,
-    _setOnUseNfoCancel: setOnUseNfoCancel,
+    _setOnUseNfoConfirm,
+    _setOnUseNfoCancel,
     _setIsUseTmdbidFromFolderNamePromptOpen: setIsUseTmdbidFromFolderNamePromptOpen,
     _setTmdbIdFromFolderName: setTmdbIdFromFolderName,
     _setTmdbMediaNameFromFolderName: setTmdbMediaNameFromFolderName,
@@ -223,22 +315,30 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     _setRuleBasedRenameFileToolbarOptions: setRuleBasedRenameFileToolbarOptions,
     _setRuleBasedRenameFileSelectedNamingRule: setRuleBasedRenameFileSelectedNamingRule,
     _setRuleBasedRenameFileSetSelectedNamingRule: setRuleBasedRenameFileSetSelectedNamingRule,
-    _setOnRuleBasedRenameFileConfirm: setOnRuleBasedRenameFileConfirm,
-    _setOnRuleBasedRenameFileCancel: setOnRuleBasedRenameFileCancel,
+    _getOnRuleBasedRenameFileConfirm,
+    _getOnRuleBasedRenameFileCancel,
+    _setOnRuleBasedRenameFileConfirm,
+    _setOnRuleBasedRenameFileCancel,
     _setIsAiBasedRenameFilePromptOpen: setIsAiBasedRenameFilePromptOpen,
     _setAiBasedRenameFileStatus: setAiBasedRenameFileStatus,
-    _setOnAiBasedRenameFileConfirm: setOnAiBasedRenameFileConfirm,
-    _setOnAiBasedRenameFileCancel: setOnAiBasedRenameFileCancel,
+    _getOnAiBasedRenameFileConfirm,
+    _getOnAiBasedRenameFileCancel,
+    _setOnAiBasedRenameFileConfirm,
+    _setOnAiBasedRenameFileCancel,
     _setIsAiRecognizePromptOpen: setIsAiRecognizePromptOpen,
     _setAiRecognizeStatus: setAiRecognizeStatus,
     _setAiRecognizeConfirmButtonLabel: setAiRecognizeConfirmButtonLabel,
     _setAiRecognizeConfirmButtonDisabled: setAiRecognizeConfirmButtonDisabled,
     _setAiRecognizeIsRenaming: setAiRecognizeIsRenaming,
-    _setOnAiRecognizeConfirm: setOnAiRecognizeConfirm,
-    _setOnAiRecognizeCancel: setOnAiRecognizeCancel,
+    _getOnAiRecognizeConfirm,
+    _getOnAiRecognizeCancel,
+    _setOnAiRecognizeConfirm,
+    _setOnAiRecognizeCancel,
     _setIsRuleBasedRecognizePromptOpen: setIsRuleBasedRecognizePromptOpen,
-    _setOnRuleBasedRecognizeConfirm: setOnRuleBasedRecognizeConfirm,
-    _setOnRuleBasedRecognizeCancel: setOnRuleBasedRecognizeCancel,
+    _getOnRuleBasedRecognizeConfirm,
+    _getOnRuleBasedRecognizeCancel,
+    _setOnRuleBasedRecognizeConfirm,
+    _setOnRuleBasedRecognizeCancel,
   }), [
     isUseNfoPromptOpen,
     loadedNfoData,
@@ -270,6 +370,26 @@ export function TvShowPanelPromptsProvider({ children }: TvShowPanelPromptsProvi
     isRuleBasedRecognizePromptOpen,
     onRuleBasedRecognizeConfirm,
     onRuleBasedRecognizeCancel,
+    _getOnUseNfoConfirm,
+    _getOnUseNfoCancel,
+    _setOnUseNfoConfirm,
+    _setOnUseNfoCancel,
+    _getOnRuleBasedRenameFileConfirm,
+    _getOnRuleBasedRenameFileCancel,
+    _setOnRuleBasedRenameFileConfirm,
+    _setOnRuleBasedRenameFileCancel,
+    _getOnAiBasedRenameFileConfirm,
+    _getOnAiBasedRenameFileCancel,
+    _setOnAiBasedRenameFileConfirm,
+    _setOnAiBasedRenameFileCancel,
+    _getOnAiRecognizeConfirm,
+    _getOnAiRecognizeCancel,
+    _setOnAiRecognizeConfirm,
+    _setOnAiRecognizeCancel,
+    _getOnRuleBasedRecognizeConfirm,
+    _getOnRuleBasedRecognizeCancel,
+    _setOnRuleBasedRecognizeConfirm,
+    _setOnRuleBasedRecognizeCancel,
   ])
   
   return (
@@ -300,6 +420,7 @@ export function usePrompts() {
   const setLoadedNfoData = context.setLoadedNfoData
   const setOnUseNfoConfirm = context._setOnUseNfoConfirm
   const setOnUseNfoCancel = context._setOnUseNfoCancel
+  // Note: Callbacks are now stored in refs, not state, to prevent unexpected calls during render
   const setRuleBasedRenameFileToolbarOptions = context._setRuleBasedRenameFileToolbarOptions
   const setRuleBasedRenameFileSelectedNamingRule = context._setRuleBasedRenameFileSelectedNamingRule
   const setRuleBasedRenameFileSetSelectedNamingRule = context._setRuleBasedRenameFileSetSelectedNamingRule
@@ -364,6 +485,12 @@ export function usePrompts() {
     onConfirm?: (tmdbTvShow: TMDBTVShow) => void
     onCancel?: () => void
   }) => {
+    console.log('[TvShowPanelPrompts] openUseNfoPrompt CALLED', {
+      timestamp: new Date().toISOString(),
+      nfoDataId: nfoData?.id,
+      hasOnConfirm: !!onConfirm,
+      stackTrace: new Error().stack
+    })
     // Close all prompts first
     context._setIsUseTmdbidFromFolderNamePromptOpen(false)
     setIsRuleBasedRenameFilePromptOpen(false)
@@ -522,10 +649,16 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         mediaName={context.loadedNfoData?.name}
         tmdbid={context.loadedNfoData?.id}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] UseNfoPrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            hasCallback: context.onUseNfoConfirm,
+            nfoDataId: context.loadedNfoData?.id,
+            stackTrace: new Error().stack
+          })
           context._setIsUseNfoPromptOpen(false)
           
-          // Store callback and data before clearing state
-          const callback = context.onUseNfoConfirm
+          // Store callback and data before clearing state - use ref to get the actual callback
+          const callback = context._getOnUseNfoConfirm()
           const nfoData = context.loadedNfoData
           
           // Clear state first
@@ -535,6 +668,11 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
           
           // Then call callback if valid
           if (nfoData?.id && callback) {
+            console.log('[TvShowPanelPrompts] UseNfoPrompt INVOKING callback', {
+              timestamp: new Date().toISOString(),
+              nfoDataId: nfoData.id,
+              callbackType: typeof callback
+            })
             // Create a minimal TMDBTVShow object with just the ID
             // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
@@ -554,16 +692,24 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
             }
             
             callback(minimalTvShow)
+          } else {
+            console.warn('[TvShowPanelPrompts] UseNfoPrompt callback NOT invoked', {
+              timestamp: new Date().toISOString(),
+              hasNfoData: !!nfoData,
+              nfoDataId: nfoData?.id,
+              hasCallback: !!callback
+            })
           }
         }}
         onCancel={() => {
           context._setIsUseNfoPromptOpen(false)
           context.setLoadedNfoData(undefined)
-          if (context.onUseNfoCancel) {
-            context.onUseNfoCancel()
-          }
+          const cancelCallback = context._getOnUseNfoCancel()
           context._setOnUseNfoConfirm(undefined)
           context._setOnUseNfoCancel(undefined)
+          if (cancelCallback) {
+            cancelCallback()
+          }
         }}
       />
 
@@ -573,10 +719,20 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         tmdbid={context.tmdbIdFromFolderName}
         status={context.tmdbIdFromFolderNameStatus ?? "ready"}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            status: context.tmdbIdFromFolderNameStatus ?? "ready",
+            tmdbId: context.tmdbIdFromFolderName,
+            stackTrace: new Error().stack
+          })
           // Only allow confirmation when status is "ready"
           const currentStatus = context.tmdbIdFromFolderNameStatus ?? "ready"
           if (currentStatus !== "ready") {
             // Don't proceed if still loading or in error state
+            console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm BLOCKED - status not ready', {
+              timestamp: new Date().toISOString(),
+              currentStatus
+            })
             return
           }
 
@@ -596,6 +752,11 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
           // Then call callback if valid
           // Double check that we have valid data before calling callback
           if (tmdbId !== undefined && tmdbId !== null && !isNaN(tmdbId) && typeof tmdbId === 'number' && callback) {
+            console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt INVOKING callback', {
+              timestamp: new Date().toISOString(),
+              tmdbId,
+              callbackType: typeof callback
+            })
             // Create a minimal TMDBTVShow object with just the ID
             // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
@@ -619,6 +780,13 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
             // Log warning if callback would be called with invalid data
             if (callback && (tmdbId === undefined || tmdbId === null || isNaN(tmdbId) || typeof tmdbId !== 'number')) {
               console.warn('[TvShowPanelPrompts] Attempted to call onConfirm with invalid tmdbId:', tmdbId, 'status:', currentStatus)
+            } else {
+              console.warn('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt callback NOT invoked', {
+                timestamp: new Date().toISOString(),
+                hasCallback: !!callback,
+                tmdbId,
+                tmdbIdType: typeof tmdbId
+              })
             }
           }
         }}
@@ -646,9 +814,18 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
           }
         }}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] RuleBasedRenameFilePrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            hasCallback: !!context.onRuleBasedRenameFileConfirm,
+            stackTrace: new Error().stack
+          })
           context._setIsRuleBasedRenameFilePromptOpen(false)
-          if (context.onRuleBasedRenameFileConfirm) {
-            context.onRuleBasedRenameFileConfirm()
+          const callback = context._getOnRuleBasedRenameFileConfirm()
+          if (callback) {
+            console.log('[TvShowPanelPrompts] RuleBasedRenameFilePrompt INVOKING callback', {
+              timestamp: new Date().toISOString()
+            })
+            callback()
           }
           // Clean up
           context._setRuleBasedRenameFileToolbarOptions(undefined)
@@ -659,8 +836,9 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         }}
         onCancel={() => {
           context._setIsRuleBasedRenameFilePromptOpen(false)
-          if (context.onRuleBasedRenameFileCancel) {
-            context.onRuleBasedRenameFileCancel()
+          const cancelCallback = context._getOnRuleBasedRenameFileCancel()
+          if (cancelCallback) {
+            cancelCallback()
           }
           // Clean up
           context._setRuleBasedRenameFileToolbarOptions(undefined)
@@ -675,9 +853,19 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         isOpen={context.isAiBasedRenameFilePromptOpen}
         status={context.aiBasedRenameFileStatus || "generating"}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] AiBasedRenameFilePrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            hasCallback: !!context.onAiBasedRenameFileConfirm,
+            status: context.aiBasedRenameFileStatus,
+            stackTrace: new Error().stack
+          })
           context._setIsAiBasedRenameFilePromptOpen(false)
-          if (context.onAiBasedRenameFileConfirm) {
-            context.onAiBasedRenameFileConfirm()
+          const callback = context._getOnAiBasedRenameFileConfirm()
+          if (callback) {
+            console.log('[TvShowPanelPrompts] AiBasedRenameFilePrompt INVOKING callback', {
+              timestamp: new Date().toISOString()
+            })
+            callback()
           }
           // Clean up
           context._setAiBasedRenameFileStatus(undefined)
@@ -686,8 +874,9 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         }}
         onCancel={() => {
           context._setIsAiBasedRenameFilePromptOpen(false)
-          if (context.onAiBasedRenameFileCancel) {
-            context.onAiBasedRenameFileCancel()
+          const cancelCallback = context._getOnAiBasedRenameFileCancel()
+          if (cancelCallback) {
+            cancelCallback()
           }
           // Clean up
           context._setAiBasedRenameFileStatus(undefined)
@@ -700,9 +889,19 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         isOpen={context.isAiRecognizePromptOpen}
         status={context.aiRecognizeStatus || "generating"}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] AiBasedRecognizePrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            hasCallback: !!context.onAiRecognizeConfirm,
+            status: context.aiRecognizeStatus,
+            stackTrace: new Error().stack
+          })
           context._setIsAiRecognizePromptOpen(false)
-          if (context.onAiRecognizeConfirm) {
-            context.onAiRecognizeConfirm()
+          const callback = context._getOnAiRecognizeConfirm()
+          if (callback) {
+            console.log('[TvShowPanelPrompts] AiBasedRecognizePrompt INVOKING callback', {
+              timestamp: new Date().toISOString()
+            })
+            callback()
           }
           // Clean up
           context._setAiRecognizeStatus(undefined)
@@ -714,8 +913,9 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         }}
         onCancel={() => {
           context._setIsAiRecognizePromptOpen(false)
-          if (context.onAiRecognizeCancel) {
-            context.onAiRecognizeCancel()
+          const cancelCallback = context._getOnAiRecognizeCancel()
+          if (cancelCallback) {
+            cancelCallback()
           }
           // Clean up
           context._setAiRecognizeStatus(undefined)
@@ -733,9 +933,18 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
       <RuleBasedRecognizePrompt
         isOpen={context.isRuleBasedRecognizePromptOpen}
         onConfirm={() => {
+          console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt onConfirm TRIGGERED', {
+            timestamp: new Date().toISOString(),
+            hasCallback: !!context.onRuleBasedRecognizeConfirm,
+            stackTrace: new Error().stack
+          })
           context._setIsRuleBasedRecognizePromptOpen(false)
-          if (context.onRuleBasedRecognizeConfirm) {
-            context.onRuleBasedRecognizeConfirm()
+          const callback = context._getOnRuleBasedRecognizeConfirm()
+          if (callback) {
+            console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt INVOKING callback', {
+              timestamp: new Date().toISOString()
+            })
+            callback()
           }
           // Clean up
           context._setOnRuleBasedRecognizeConfirm(undefined)
@@ -743,8 +952,9 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
         }}
         onCancel={() => {
           context._setIsRuleBasedRecognizePromptOpen(false)
-          if (context.onRuleBasedRecognizeCancel) {
-            context.onRuleBasedRecognizeCancel()
+          const cancelCallback = context._getOnRuleBasedRecognizeCancel()
+          if (cancelCallback) {
+            cancelCallback()
           }
           // Clean up
           context._setOnRuleBasedRecognizeConfirm(undefined)
