@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { Nfo } from './nfo'
+import { Nfo, parseEpisodeNfo } from './nfo'
 
 describe('Nfo', () => {
 
@@ -325,5 +325,181 @@ describe('Nfo', () => {
       expect(nfo.thumbs?.[1].season).toBe(1)
       expect(nfo.thumbs?.[1].type).toBe('season')
     })
+  })
+})
+
+describe('parseEpisodeNfo', () => {
+  it('should parse minimal episode NFO with only required fields', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test Episode</title>
+  <season>2</season>
+  <episode>5</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBe('Test Episode')
+    expect(episodeNfo?.season).toBe(2)
+    expect(episodeNfo?.episode).toBe(5)
+    expect(episodeNfo?.id).toBeUndefined()
+    expect(episodeNfo?.originalFilename).toBeUndefined()
+  })
+
+  it('should handle missing optional fields', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode Title</title>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBe('Episode Title')
+    expect(episodeNfo?.season).toBe(1)
+    expect(episodeNfo?.episode).toBe(1)
+    expect(episodeNfo?.id).toBeUndefined()
+    expect(episodeNfo?.originalFilename).toBeUndefined()
+  })
+
+  it('should handle missing season and episode fields', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode Title</title>
+  <id>12345</id>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBe('Episode Title')
+    expect(episodeNfo?.id).toBe('12345')
+    expect(episodeNfo?.season).toBeUndefined()
+    expect(episodeNfo?.episode).toBeUndefined()
+  })
+
+  it('should parse season and episode as numbers', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>10</season>
+  <episode>99</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.season).toBe(10)
+    expect(episodeNfo?.episode).toBe(99)
+    expect(typeof episodeNfo?.season).toBe('number')
+    expect(typeof episodeNfo?.episode).toBe('number')
+  })
+
+  it('should handle season 0', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>0</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.season).toBe(0)
+    expect(episodeNfo?.episode).toBe(1)
+  })
+
+  it('should skip invalid numeric values for season and episode', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>invalid</season>
+  <episode>not-a-number</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBe('Test')
+    expect(episodeNfo?.season).toBeUndefined()
+    expect(episodeNfo?.episode).toBeUndefined()
+  })
+
+  it('should trim whitespace from text fields', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>  Test Episode  </title>
+  <id>  12345  </id>
+  <original_filename>  test.mkv  </original_filename>
+  <season>1</season>
+  <episode>2</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBe('Test Episode')
+    expect(episodeNfo?.id).toBe('12345')
+    expect(episodeNfo?.originalFilename).toBe('test.mkv')
+  })
+
+  it('should handle empty text elements', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title></title>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.title).toBeUndefined()
+    expect(episodeNfo?.season).toBe(1)
+    expect(episodeNfo?.episode).toBe(1)
+  })
+
+  it('should throw error for invalid XML', async () => {
+    const invalidXml = `<?xml version="1.0"?>
+<episodedetails>
+  <title>Test</title>
+  <unclosed-tag>
+</episodedetails>`
+    
+    await expect(parseEpisodeNfo(invalidXml)).rejects.toThrow('Failed to parse XML')
+  })
+
+  it('should return undefined when episodedetails root element is missing', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <title>Test</title>
+</tvshow>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    expect(episodeNfo).toBeUndefined()
+  })
+
+  it('should handle special characters in text content', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode &amp; Title &lt;with&gt; "quotes"</title>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    // XML entities should be decoded by the parser
+    expect(episodeNfo?.title).toBe('Episode & Title <with> "quotes"')
+  })
+
+  it('should handle original_filename with special characters', async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <original_filename>Show Name - S01E01 - Episode Title.mkv</original_filename>
+</episodedetails>`
+    
+    const episodeNfo = await parseEpisodeNfo(xml)
+    
+    expect(episodeNfo?.originalFilename).toBe('Show Name - S01E01 - Episode Title.mkv')
   })
 })

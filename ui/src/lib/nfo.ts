@@ -169,4 +169,60 @@ export class Nfo {
 
 }
 
+export interface EpisodeNfo {
+    id?: string;
+    title?: string;
+    season?: number;
+    episode?: number;
+    originalFilename?: string;
+}
+
+export async function parseEpisodeNfo(xml: string): Promise<EpisodeNfo | undefined> {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(xml, 'text/xml')
+    
+    // Check for parsing errors
+    const parseError = doc.querySelector('parsererror')
+    if (parseError) {
+        throw new Error(`Failed to parse XML: ${parseError.textContent}`)
+    }
+    
+    const episode = doc.querySelector('episodedetails')
+    if (!episode) {
+        return undefined
+    }
+    
+    const episodeNfo: EpisodeNfo = {}
+    
+    // Helper function to get text content from an element
+    const getTextContent = (selector: string): string | undefined => {
+        const element = episode.querySelector(selector)
+        return element?.textContent?.trim() || undefined
+    }
+    
+    // Extract simple text elements
+    episodeNfo.id = getTextContent('id')
+    episodeNfo.title = getTextContent('title')
+    episodeNfo.originalFilename = getTextContent('original_filename')
+    
+    // Extract and parse numeric fields
+    const seasonText = getTextContent('season')
+    if (seasonText !== undefined) {
+        const season = parseInt(seasonText, 10)
+        if (!isNaN(season)) {
+            episodeNfo.season = season
+        }
+    }
+    
+    const episodeText = getTextContent('episode')
+    if (episodeText !== undefined) {
+        const episodeNum = parseInt(episodeText, 10)
+        if (!isNaN(episodeNum)) {
+            episodeNfo.episode = episodeNum
+        }
+    }
+    
+    return episodeNfo
+}
+
 export default Nfo

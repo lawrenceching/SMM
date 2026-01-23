@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
+import { readFile } from '@/api/readFile'
+import { parseEpisodeNfo } from '@/lib/nfo'
+
+vi.mock('@/api/readFile')
+vi.mock('@/lib/nfo')
 
 describe('_buildMappingFromSeasonModels', () => {
   it('should return empty array when given empty seasons array', () => {
@@ -1611,5 +1616,108 @@ describe('recognizeEpisodes', () => {
       expect(typeof file.episodeNumber).toBe('number')
       expect(typeof file.absolutePath).toBe('string')
     })
+  })
+})
+
+describe('tryToRecognizeMediaFolderByNFO', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should successfully recognize media folder by NFO files', async () => {
+    const mockMediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [
+        '/media/tvshow/tvshow.nfo',
+        '/media/tvshow/Show Name - S01E01.nfo',
+        '/media/tvshow/Show Name - S01E02.nfo',
+      ],
+      mediaFiles: [],
+    }
+
+    const episodeNfo1Xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode 1</title>
+  <season>1</season>
+  <episode>1</episode>
+  <original_filename>Show Name - S01E01.mkv</original_filename>
+</episodedetails>`
+
+    const episodeNfo2Xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode 2</title>
+  <season>1</season>
+  <episode>2</episode>
+  <original_filename>Show Name - S01E02.mkv</original_filename>
+</episodedetails>`
+
+    // Mock readFile to return different XML for each episode NFO file
+    vi.mocked(readFile).mockImplementation(async (path: string) => {
+      if (path === '/media/tvshow/Show Name - S01E01.nfo') {
+        return { data: episodeNfo1Xml }
+      } else if (path === '/media/tvshow/Show Name - S01E02.nfo') {
+        return { data: episodeNfo2Xml }
+      }
+      return { error: 'File not found' }
+    })
+
+    // Mock parseEpisodeNfo to return parsed episode data
+    vi.mocked(parseEpisodeNfo).mockImplementation(async (xml: string) => {
+      if (xml === episodeNfo1Xml) {
+        return {
+          title: 'Episode 1',
+          season: 1,
+          episode: 1,
+          originalFilename: 'Show Name - S01E01.mkv',
+        }
+      } else if (xml === episodeNfo2Xml) {
+        return {
+          title: 'Episode 2',
+          season: 1,
+          episode: 2,
+          originalFilename: 'Show Name - S01E02.mkv',
+        }
+      }
+      return undefined
+    })
+
+    const result = await tryToRecognizeMediaFolderByNFO(mockMediaMetadata)
+
+    expect(result).toBeDefined()
+    expect(result?.mediaFiles).toHaveLength(2)
+    expect(result?.mediaFiles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          absolutePath: 'Show Name - S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        }),
+        expect.objectContaining({
+          absolutePath: 'Show Name - S01E02.mkv',
+          seasonNumber: 1,
+          episodeNumber: 2,
+        }),
+      ])
+    )
+
+    // Verify readFile was called for each episode NFO file
+    expect(readFile).toHaveBeenCalledTimes(2)
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E01.nfo')
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E02.nfo')
+
+    // Verify parseEpisodeNfo was called for each XML
+    expect(parseEpisodeNfo).toHaveBeenCalledTimes(2)
+    expect(parseEpisodeNfo).toHaveBeenCalledWith(episodeNfo1Xml)
+    expect(parseEpisodeNfo).toHaveBeenCalledWith(episodeNfo2Xml)
   })
 })

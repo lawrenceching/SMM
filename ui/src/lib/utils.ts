@@ -471,3 +471,29 @@ export async function downloadSeasonPoster(
     // Don't throw - errors are handled internally
   }
 }
+
+/**
+ * Validates that specified fields in an object are not undefined.
+ * @param obj The object to validate
+ * @param fields The field names to check
+ * @throws Error if any of the specified fields are undefined
+ */
+export function requireFieldsNonUndefined<T extends Record<string, any>>(
+  obj: T,
+  ...fields: (keyof T)[]
+): void {
+  const undefinedFields: string[] = []
+
+  for (const field of fields) {
+    if (obj[field] === undefined) {
+      undefinedFields.push(String(field))
+    }
+  }
+
+  if (undefinedFields.length > 0) {
+    const fieldsList = undefinedFields.join(', ')
+    throw new Error(
+      `Required fields are undefined: ${fieldsList}. Object: ${JSON.stringify(obj)}`
+    )
+  }
+}

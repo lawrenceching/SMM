@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--created on 2026-01-11 16:31:20 by tinyMediaManager 5.1.5 for KODI-->
+<episodedetails>
+  <title>交流75「白色情人节」／交流76「这一年间」</title>
+  <originaltitle>「ホワイトデーです。」ほか</originaltitle>
+  <showtitle>古见同学有交流障碍症</showtitle>
+  <season>1</season>
+  <episode>24</episode>
+  <id>9173063</id>
+  <uniqueid default="false" type="tmdb">4011143</uniqueid>
+  <uniqueid default="true" type="imdb">tt21092092</uniqueid>
+  <uniqueid default="false" type="tvdb">9173063</uniqueid>
+  <ratings>
+    <rating default="false" max="10" name="themoviedb">
+      <value>8.2</value>
+      <votes>5</votes>
+    </rating>
+  </ratings>
+  <userrating>0</userrating>
+  <plot>白色情人节快到了，只野想送点东西给古见，作为情人节巧克力的回礼。</plot>
+  <runtime>24</runtime>
+  <thumb>https://image.tmdb.org/t/p/original/tqEI9img7H2hR1uREp9PUnmnpYi.jpg</thumb>
+  <mpaa/>
+  <premiered>2022-06-23</premiered>
+  <aired>2022-06-23</aired>
+  <watched>false</watched>
+  <playcount>0</playcount>
+  <studio>TV Tokyo</studio>
+  <studio>OLM</studio>
+  <studio>Shogakukan-Shueisha Productions</studio>
+  <credits tmdbid="3061350">オダトモヒト</credits>
+  <credits tmdbid="1149042">三重野瞳</credits>
+  <director tmdbid="3086899">川越一生</director>
+  <director tmdbid="3350700">筱原准</director>
+  <actor>
+    <name>古贺葵</name>
+    <role>Shoko Komi (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/uVpwheVV4aPROyY1toYv3v5HSPD.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2251986</profile>
+    <tmdbid>2251986</tmdbid>
+  </actor>
+  <actor>
+    <name>梶原岳人</name>
+    <role>Hitohito Tadano (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/kUer38jXf7vTD2TGGxJMZVYL5Te.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1919881</profile>
+    <tmdbid>1919881</tmdbid>
+  </actor>
+  <actor>
+    <name>村川梨衣</name>
+    <role>Najimi Osana (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/pawIx7uhV1a2fAHjvTnrCP0KcHX.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1324665</profile>
+    <tmdbid>1324665</tmdbid>
+  </actor>
+  <actor>
+    <name>日高里菜</name>
+    <role>Ren Yamai (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/7JupZGvqcq4dRxiTKpPxzg8NUS4.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1116334</profile>
+    <tmdbid>1116334</tmdbid>
+  </actor>
+  <actor>
+    <name>大久保瑠美</name>
+    <role>Omoharu Nakanaka (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/cf4cnFMllu1yO3X0gCGGDdl8GXW.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1256913</profile>
+    <tmdbid>1256913</tmdbid>
+  </actor>
+  <actor>
+    <name>藤井幸代</name>
+    <role>Himiko Agari (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/tLG4K1iix3QNHFexf98mrZ25jT6.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1287794</profile>
+    <tmdbid>1287794</tmdbid>
+  </actor>
+  <actor>
+    <name>前岛亚美</name>
+    <role>Makeru Yadano (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/sbjkoMgu6SevuoRTogXHcEJ61Qo.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2493237</profile>
+    <tmdbid>2493237</tmdbid>
+  </actor>
+  <actor>
+    <name>日高范子</name>
+    <role>Narrator (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/43OuwsjqGf7JxpFpUvB75OdDDXQ.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/55662</profile>
+    <tmdbid>55662</tmdbid>
+  </actor>
+  <actor>
+    <name>长谷德人</name>
+    <role>Toshio Seikimatsu (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/i3f20088m49mRJsfC4VCn8wvQZ8.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/3271042</profile>
+    <type>GuestStar</type>
+    <tmdbid>3271042</tmdbid>
+  </actor>
+  <actor>
+    <name>星野充昭</name>
+    <role>Masayoshi Komi (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/ePTD73h2jLs2kRHcpCx7iRgq4x7.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/550092</profile>
+    <type>GuestStar</type>
+    <tmdbid>550092</tmdbid>
+  </actor>
+  <actor>
+    <name>内山茉莉</name>
+    <role>Eiko Ushiroda (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/mgyJl1FFjtb8Ba1cyLwOBxTXzOd.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2955668</profile>
+    <type>GuestStar</type>
+    <tmdbid>2955668</tmdbid>
+  </actor>
+  <actor>
+    <name>小野贤章</name>
+    <role>Mono Shinobino (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/wUYJ3HIeygHfh4rAqupE4RPoG3W.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1065297</profile>
+    <type>GuestStar</type>
+    <tmdbid>1065297</tmdbid>
+  </actor>
+  <actor>
+    <name>赤羽根健治</name>
+    <role>Shigeo Chiarai (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/sBduxft8NwdbASvtL14bMx86cPq.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1071545</profile>
+    <type>GuestStar</type>
+    <tmdbid>1071545</tmdbid>
+  </actor>
+  <actor>
+    <name>佐藤悠雅</name>
+    <role>Taisei Sonoda (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/A2xKRzxxYqAFrejZNvZPAbO1ZOv.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2884635</profile>
+    <type>GuestStar</type>
+    <tmdbid>2884635</tmdbid>
+  </actor>
+  <actor>
+    <name>榎木淳弥</name>
+    <role>Shosuke Komi (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/vBnNL3Jqy0zkS3ZgsXZmvDM9Dfz.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1606164</profile>
+    <type>GuestStar</type>
+    <tmdbid>1606164</tmdbid>
+  </actor>
+  <actor>
+    <name>内田真礼</name>
+    <role>Hitomi Tadano (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/rq4glg2SZwGyt3TIxR3ElalKmhH.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1296667</profile>
+    <type>GuestStar</type>
+    <tmdbid>1296667</tmdbid>
+  </actor>
+  <actor>
+    <name>向井莉生</name>
+    <role>Amami Sato (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/t9Wai4L3xtr1S9uyDRward5VSpQ.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2455684</profile>
+    <type>GuestStar</type>
+    <tmdbid>2455684</tmdbid>
+  </actor>
+  <actor>
+    <name>井上喜久子</name>
+    <role>Shuko Komi (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/pPxGWy53FgYSC79zmxblmHe0gI3.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/101913</profile>
+    <type>GuestStar</type>
+    <tmdbid>101913</tmdbid>
+  </actor>
+  <actor>
+    <name>潘惠美</name>
+    <role>Nokoko Inaka (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/cwnwrPg1YvB19TbfouC4ShGPmbQ.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1164931</profile>
+    <type>GuestStar</type>
+    <tmdbid>1164931</tmdbid>
+  </actor>
+  <actor>
+    <name>青木瑠璃子</name>
+    <role>Nene Onemine (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/oIFCVeUfExnxu7jq5snnBScF6cB.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1491336</profile>
+    <type>GuestStar</type>
+    <tmdbid>1491336</tmdbid>
+  </actor>
+  <actor>
+    <name>森山由梨佳</name>
+    <role>Kaede Otori (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/Kygf7PirIf1733RaaffLUP5Ldd.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2889600</profile>
+    <type>GuestStar</type>
+    <tmdbid>2889600</tmdbid>
+  </actor>
+  <actor>
+    <name>有隅融</name>
+    <role>Yuji Otaku (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/l5HranSrC0OyKDEJFP1gsogHN36.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2934416</profile>
+    <type>GuestStar</type>
+    <tmdbid>2934416</tmdbid>
+  </actor>
+  <actor>
+    <name>米内佑希</name>
+    <role>Tsukasa Aizawa (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/f7fJNoIm6pzF7jK6XdDERP9nc0h.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2526935</profile>
+    <type>GuestStar</type>
+    <tmdbid>2526935</tmdbid>
+  </actor>
+  <actor>
+    <name>神尾晋一郎</name>
+    <role>Makoto Katai (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/ovlwyRErLZQw0s8IVQB87Ch9DYa.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2748780</profile>
+    <type>GuestStar</type>
+    <tmdbid>2748780</tmdbid>
+  </actor>
+  <actor>
+    <name>三浦胜之</name>
+    <role>Shisuto Naruse (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/Ae7523Dx1PvqCO1xlDH4ik4Upzx.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2018175</profile>
+    <type>GuestStar</type>
+    <tmdbid>2018175</tmdbid>
+  </actor>
+  <actor>
+    <name>鹈泽正太郎</name>
+    <role>Chushaku Kometani (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/u9YuD5D7gSp7gUxkN4onfzZ6DkB.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2680911</profile>
+    <type>GuestStar</type>
+    <tmdbid>2680911</tmdbid>
+  </actor>
+  <actor>
+    <name>内村史子</name>
+    <role>Mikuni Kato (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/69DJZqpZ9krAYNBkgQAL8RBPDCG.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1789230</profile>
+    <type>GuestStar</type>
+    <tmdbid>1789230</tmdbid>
+  </actor>
+  <actor>
+    <name>高桥未奈美</name>
+    <role>Ayami Sasaki (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/9SRX6yrHGtGEJxcnLyGFhOZkXSH.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1795137</profile>
+    <type>GuestStar</type>
+    <tmdbid>1795137</tmdbid>
+  </actor>
+  <actor>
+    <name>布莱德库特·莎拉·惠美</name>
+    <role>Akako Onigashima (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/aylO6RuIXR8eFrErnYMCPxjjQtt.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1498133</profile>
+    <type>GuestStar</type>
+    <tmdbid>1498133</tmdbid>
+  </actor>
+  <actor>
+    <name>桑田直树</name>
+    <role>Hoshio Jukujosky Maeda (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/6l8CnzcBvXSCljIyyEEyqFBQVCx.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/3077616</profile>
+    <type>GuestStar</type>
+    <tmdbid>3077616</tmdbid>
+  </actor>
+  <dateadded>2026-01-11 16:30:19</dateadded>
+  <fileinfo>
+    <streamdetails>
+      <video>
+        <codec/>
+        <aspect>0.0</aspect>
+        <width>0</width>
+        <height>0</height>
+        <durationinseconds>0</durationinseconds>
+      </video>
+    </streamdetails>
+  </fileinfo>
+  <epbookmark/>
+  <code/>
+  <!--tinyMediaManager meta data-->
+  <source>UNKNOWN</source>
+  <edition>NONE</edition>
+  <original_filename>古见同学有交流障碍症 - S01E24.mkv</original_filename>
+  <user_note/>
+  <episode_groups>
+    <group episode="24" id="AIRED" name="" season="1"/>
+    <group episode="12" id="DVD" name="Seasonal order" season="2"/>
+  </episode_groups>
+</episodedetails>

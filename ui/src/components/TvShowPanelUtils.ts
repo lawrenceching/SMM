@@ -1,8 +1,10 @@
 import type { SeasonModel } from "./TvShowPanel";
 import type { MediaMetadata, MediaFileMetadata } from "@core/types";
 import { extname, join } from "@/lib/path";
-import { findAssociatedFiles } from "@/lib/utils";
+import { findAssociatedFiles, requireFieldsNonUndefined } from "@/lib/utils";
 import type { FileProps } from "@/lib/types";
+import { parseEpisodeNfo } from "@/lib/nfo";
+import { readFile } from "@/api/readFile";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -181,4 +183,65 @@ export async function recognizeEpisodes(
     } else {
         console.error(`[TvShowPanelUtils] mediaFolderPath is undefined, cannot update media metadata`);
     }
+}
+
+/**
+ * Try to regcognize media folder by NFO. 
+ * @param mediaFolderPath 
+ * @returns return undefined if not recognizable
+ */
+export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promise<MediaMetadata | undefined> {
+
+    const mm = structuredClone(_mm)
+    
+    if(mm.files === undefined || mm.files === null) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: files is undefined or null`)
+        return undefined
+    }
+
+    mm.mediaFiles = mm.mediaFiles ?? [];
+
+    const nfoFilePath = mm.files.find(file => file.endsWith('/tvshow.nfo'))
+    if(nfoFilePath === undefined) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tvshow.nfo not found`)
+        return undefined
+    }
+    
+    const episodeNfoFiles = mm.files.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
+    if(episodeNfoFiles.length === 0) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: no episode NFO files found`)
+        return undefined
+    }
+    
+    for(const episodeNfoFile of episodeNfoFiles) {
+        const resp = await readFile(episodeNfoFile)
+        if(resp.error) {
+            console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read episode NFO file: ${episodeNfoFile}`, resp.error)
+            continue
+        }
+        if(resp.data === undefined) {
+            console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unexpected response body: no data`, resp)
+            continue
+        }
+        const xml = resp.data
+        const episodeNfo = await parseEpisodeNfo(xml)
+        
+        if(episodeNfo === undefined) {
+            console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to parse episode NFO file: ${episodeNfoFile}`)
+            continue
+        }
+
+        try {
+            requireFieldsNonUndefined(episodeNfo, 'season', 'episode', 'originalFilename')
+        } catch(error) {
+            console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: missing required fields in episode NFO file: ${episodeNfoFile}`, error)
+            continue
+        }
+
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: found episode S${episodeNfo.season}E${episodeNfo.episode} "${episodeNfo.originalFilename}"`)
+        mm.mediaFiles = updateMediaFileMetadatas(mm.mediaFiles, episodeNfo.originalFilename!, episodeNfo.season!, episodeNfo.episode!)
+    }
+
+    return mm;
+
 }
