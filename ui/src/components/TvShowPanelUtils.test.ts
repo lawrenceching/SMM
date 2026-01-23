@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO } from './TvShowPanelUtils'
+import * as TvShowPanelUtils from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
-import type { MediaMetadata, MediaFileMetadata } from '@core/types'
+import type { MediaMetadata, MediaFileMetadata, TMDBTVShowDetails, TMDBEpisode } from '@core/types'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
@@ -1641,9 +1644,18 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
         '/media/tvshow/tvshow.nfo',
         '/media/tvshow/Show Name - S01E01.nfo',
         '/media/tvshow/Show Name - S01E02.nfo',
+        '/media/tvshow/Show Name - S01E01.mkv',
+        '/media/tvshow/Show Name - S01E02.mkv',
       ],
       mediaFiles: [],
     }
+
+    const tvshowNfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <title>Test Show</title>
+  <tmdbid>12345</tmdbid>
+  <plot>Test plot</plot>
+</tvshow>`
 
     const episodeNfo1Xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <episodedetails>
@@ -1661,9 +1673,11 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
   <original_filename>Show Name - S01E02.mkv</original_filename>
 </episodedetails>`
 
-    // Mock readFile to return different XML for each episode NFO file
+    // Mock readFile to return different XML for tvshow.nfo and episode NFO files
     vi.mocked(readFile).mockImplementation(async (path: string) => {
-      if (path === '/media/tvshow/Show Name - S01E01.nfo') {
+      if (path === '/media/tvshow/tvshow.nfo') {
+        return { data: tvshowNfoXml }
+      } else if (path === '/media/tvshow/Show Name - S01E01.nfo') {
         return { data: episodeNfo1Xml }
       } else if (path === '/media/tvshow/Show Name - S01E02.nfo') {
         return { data: episodeNfo2Xml }
@@ -1694,30 +1708,309 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
     const result = await tryToRecognizeMediaFolderByNFO(mockMediaMetadata)
 
     expect(result).toBeDefined()
+    expect(result?.tmdbTvShow).toBeDefined()
+    expect(result?.tmdbTvShow?.id).toBe(12345)
+    expect(result?.tmdbTvShow?.name).toBe('Test Show')
+    
+    // Verify seasons and episodes are populated
+    expect(result?.tmdbTvShow?.seasons).toHaveLength(1)
+    expect(result?.tmdbTvShow?.seasons[0]?.season_number).toBe(1)
+    expect(result?.tmdbTvShow?.seasons[0]?.episodes).toHaveLength(2)
+    
+    // Verify episodes are correctly structured
+    // Note: buildTmdbEpisodeByNFO will parse the XML and return episodes with id: 0 
+    // when no ID is present in the XML (which is the case here)
+    const episodes = result?.tmdbTvShow?.seasons[0]?.episodes || []
+    expect(episodes.length).toBe(2)
+    
+    const episode1 = episodes.find(ep => ep.episode_number === 1 && ep.season_number === 1)
+    const episode2 = episodes.find(ep => ep.episode_number === 2 && ep.season_number === 1)
+    
+    expect(episode1).toBeDefined()
+    expect(episode2).toBeDefined()
+    expect(episode1?.name).toBe('Episode 1')
+    expect(episode2?.name).toBe('Episode 2')
+    // When XML has no ID, buildTmdbEpisodeByNFO returns id: 0
+    expect(episode1?.id).toBe(0)
+    expect(episode2?.id).toBe(0)
+
+    // Verify mediaFiles are updated
     expect(result?.mediaFiles).toHaveLength(2)
     expect(result?.mediaFiles).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          absolutePath: 'Show Name - S01E01.mkv',
+          absolutePath: '/media/tvshow/Show Name - S01E01.mkv',
           seasonNumber: 1,
           episodeNumber: 1,
         }),
         expect.objectContaining({
-          absolutePath: 'Show Name - S01E02.mkv',
+          absolutePath: '/media/tvshow/Show Name - S01E02.mkv',
           seasonNumber: 1,
           episodeNumber: 2,
         }),
       ])
     )
 
-    // Verify readFile was called for each episode NFO file
-    expect(readFile).toHaveBeenCalledTimes(2)
+    // Verify readFile was called for tvshow.nfo and each episode NFO file
+    expect(readFile).toHaveBeenCalledTimes(3)
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/tvshow.nfo')
     expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E01.nfo')
     expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E02.nfo')
 
-    // Verify parseEpisodeNfo was called for each XML
+    // Verify parseEpisodeNfo was called for each episode XML
     expect(parseEpisodeNfo).toHaveBeenCalledTimes(2)
     expect(parseEpisodeNfo).toHaveBeenCalledWith(episodeNfo1Xml)
     expect(parseEpisodeNfo).toHaveBeenCalledWith(episodeNfo2Xml)
+
+    // Note: We don't spy on buildTmdbTVShowDetailsByNFO and buildTmdbEpisodeByNFO
+    // because they are called directly within the same module, so spies won't intercept them.
+    // Instead, we verify the actual behavior - that the TV show and episodes are correctly parsed.
+  })
+})
+
+describe('buildTmdbEpisodeByNFO', () => {
+
+  it('should build TMDBEpisode with minimal fields', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test Episode</title>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.id).toBe(0)
+    expect(episode?.name).toBe('Test Episode')
+    expect(episode?.overview).toBe('')
+    expect(episode?.still_path).toBeNull()
+    expect(episode?.air_date).toBe('')
+    expect(episode?.episode_number).toBe(1)
+    expect(episode?.season_number).toBe(1)
+    expect(episode?.vote_average).toBe(0)
+    expect(episode?.vote_count).toBe(0)
+    expect(episode?.runtime).toBe(0)
+  })
+
+  it('should use id element when uniqueid type="tmdb" is not present', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <id>12345</id>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.id).toBe(12345)
+  })
+
+  it('should prefer uniqueid type="tmdb" over id element', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <id>99999</id>
+  <uniqueid type="tmdb">12345</uniqueid>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.id).toBe(12345) // Should prefer uniqueid type="tmdb"
+  })
+
+  it('should extract still_path from full TMDB URL', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <thumb>https://image.tmdb.org/t/p/w500/test-image.jpg</thumb>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.still_path).toBe('/test-image.jpg')
+  })
+
+  it('should handle still_path that is already a path', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <thumb>/test-image.jpg</thumb>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.still_path).toBe('/test-image.jpg')
+  })
+
+  it('should prefer premiered over aired for air_date', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <premiered>2022-01-01</premiered>
+  <aired>2022-01-02</aired>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.air_date).toBe('2022-01-01') // Should prefer premiered
+  })
+
+  it('should use aired when premiered is not present', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <aired>2022-01-02</aired>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.air_date).toBe('2022-01-02')
+  })
+
+  it('should extract vote_average and vote_count from ratings', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <ratings>
+    <rating name="themoviedb">
+      <value>9.5</value>
+      <votes>100</votes>
+    </rating>
+  </ratings>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.vote_average).toBe(9.5)
+    expect(episode?.vote_count).toBe(100)
+  })
+
+  it('should handle decimal vote_average', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <season>1</season>
+  <episode>1</episode>
+  <ratings>
+    <rating name="themoviedb">
+      <value>8.75</value>
+      <votes>50</votes>
+    </rating>
+  </ratings>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.vote_average).toBe(8.75)
+  })
+
+  it('should return undefined for invalid XML', () => {
+    const invalidXml = `<?xml version="1.0"?>
+<episodedetails>
+  <title>Test</title>
+  <unclosed-tag>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(invalidXml)
+    
+    expect(episode).toBeUndefined()
+  })
+
+  it('should return undefined when episodedetails root element is missing', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <title>Test</title>
+</tvshow>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeUndefined()
+  })
+
+  it('should handle missing optional fields gracefully', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <season>2</season>
+  <episode>5</episode>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.id).toBe(0)
+    expect(episode?.name).toBe('')
+    expect(episode?.overview).toBe('')
+    expect(episode?.still_path).toBeNull()
+    expect(episode?.air_date).toBe('')
+    expect(episode?.episode_number).toBe(5)
+    expect(episode?.season_number).toBe(2)
+    expect(episode?.vote_average).toBe(0)
+    expect(episode?.vote_count).toBe(0)
+    expect(episode?.runtime).toBe(0)
+  })
+
+  it('should handle invalid numeric values', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Test</title>
+  <id>invalid</id>
+  <season>not-a-number</season>
+  <episode>also-invalid</episode>
+  <runtime>bad</runtime>
+  <ratings>
+    <rating name="themoviedb">
+      <value>invalid</value>
+      <votes>bad</votes>
+    </rating>
+  </ratings>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.id).toBe(0)
+    expect(episode?.season_number).toBe(0)
+    expect(episode?.episode_number).toBe(0)
+    expect(episode?.runtime).toBe(0)
+    expect(episode?.vote_average).toBe(0)
+    expect(episode?.vote_count).toBe(0)
+  })
+
+  it('should handle empty string values', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title></title>
+  <plot></plot>
+  <season>1</season>
+  <episode>1</episode>
+</episodedetails>`
+    
+    const episode = buildTmdbEpisodeByNFO(xml)
+    
+    expect(episode).toBeDefined()
+    expect(episode?.name).toBe('')
+    expect(episode?.overview).toBe('')
   })
 })

@@ -1,5 +1,5 @@
 import type { SeasonModel } from "./TvShowPanel";
-import type { MediaMetadata, MediaFileMetadata } from "@core/types";
+import type { MediaMetadata, MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { extname, join } from "@/lib/path";
 import { findAssociatedFiles, requireFieldsNonUndefined } from "@/lib/utils";
 import type { FileProps } from "@/lib/types";
@@ -185,6 +185,19 @@ export async function recognizeEpisodes(
     }
 }
 
+function createInitialTMDBSeason(seasonNumber: number): TMDBSeason {
+    return {
+        id: seasonNumber,
+        name: '',
+        overview: '',
+        poster_path: null,
+        season_number: seasonNumber,
+        air_date: '',
+        episode_count: 0,
+        episodes: [],
+    }
+}
+
 /**
  * Try to regcognize media folder by NFO. 
  * @param mediaFolderPath 
@@ -206,12 +219,27 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promis
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tvshow.nfo not found`)
         return undefined
     }
+
+    const resp = await readFile(nfoFilePath)
+
+    if(resp.error) {
+        console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read tvshow.nfo file: ${nfoFilePath}`, resp.error)
+        return undefined
+    }
+    if(resp.data === undefined) {
+        console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unexpected response body: no data`, resp)
+        return undefined
+    }
     
+    const tvshowDetails = buildTmdbTVShowDetailsByNFO(resp.data)
+    mm.tmdbTvShow = tvshowDetails
+
     const episodeNfoFiles = mm.files.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
     if(episodeNfoFiles.length === 0) {
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: no episode NFO files found`)
         return undefined
     }
+
     
     for(const episodeNfoFile of episodeNfoFiles) {
         const resp = await readFile(episodeNfoFile)
@@ -238,10 +266,386 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promis
             continue
         }
 
+        if(mm.tmdbTvShow !== undefined) {
+            const { season } = episodeNfo
+            
+            let tmdbSeason = mm.tmdbTvShow.seasons.find(_season => _season.season_number === season)
+            if(tmdbSeason === undefined) {
+                tmdbSeason = createInitialTMDBSeason(season!)
+                mm.tmdbTvShow.seasons.push(tmdbSeason)
+            }
+
+            if(tmdbSeason.episodes === undefined) {
+                tmdbSeason.episodes = []
+            }
+
+            const tmdbEpisode = buildTmdbEpisodeByNFO(xml)
+            if(tmdbEpisode === undefined) {
+                console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to build tmdbEpisode from NFO file: ${episodeNfoFile}`)
+                continue
+            }
+            tmdbSeason.episodes.push(tmdbEpisode)
+
+        } else {
+            console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tmdbTvShow is undefined, cannot build tmdbEpisode`)
+        }
+
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: found episode S${episodeNfo.season}E${episodeNfo.episode} "${episodeNfo.originalFilename}"`)
-        mm.mediaFiles = updateMediaFileMetadatas(mm.mediaFiles, episodeNfo.originalFilename!, episodeNfo.season!, episodeNfo.episode!)
+        const mediaFileAbsPath = mm.files.find(file => file.endsWith(episodeNfo.originalFilename!))
+        if(mediaFileAbsPath === undefined) {
+            console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: media file not found: ${episodeNfo.originalFilename}`)
+        }
+        mm.mediaFiles = updateMediaFileMetadatas(mm.mediaFiles, mediaFileAbsPath!, episodeNfo.season!, episodeNfo.episode!)
     }
 
     return mm;
 
+}
+
+/**
+ * Extracts the path portion from a TMDB image URL.
+ * Handles both full URLs (https://image.tmdb.org/t/p/{size}{path}) and paths that are already just the path.
+ * 
+ * @param urlOrPath - Full TMDB image URL or just the path
+ * @returns The path portion (e.g., "/mNuV7Jti0jYQh34OP2WdmhflTDQ.jpg") or null if invalid
+ */
+function extractTmdbImagePath(urlOrPath: string | undefined | null): string | null {
+    if (!urlOrPath) return null
+    
+    // If it's already just a path (starts with /), return it
+    if (urlOrPath.startsWith('/')) {
+        return urlOrPath
+    }
+    
+    // If it's a full URL, extract the path portion
+    // Pattern: https://image.tmdb.org/t/p/{size}{path}
+    const tmdbImagePattern = /^https?:\/\/image\.tmdb\.org\/t\/p\/[^/]+(\/.+)$/
+    const match = urlOrPath.match(tmdbImagePattern)
+    
+    if (match && match[1]) {
+        return match[1]
+    }
+    
+    // If it doesn't match the pattern, try to extract path from URL
+    try {
+        const url = new URL(urlOrPath)
+        return url.pathname
+    } catch {
+        // If URL parsing fails, return null
+        return null
+    }
+}
+
+export function buildTmdbEpisodeByNFO(episodeNfoXml: string): TMDBEpisode | undefined {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(episodeNfoXml, 'text/xml')
+    
+    // Check for parsing errors
+    const parseError = doc.querySelector('parsererror')
+    if (parseError) {
+        console.error(`[buildTmdbEpisodeByNFO] Failed to parse XML: ${parseError.textContent}`)
+        return undefined
+    }
+    
+    const episode = doc.querySelector('episodedetails')
+    if (!episode) {
+        return undefined
+    }
+    
+    // Helper function to get text content from an element
+    const getTextContent = (selector: string): string | undefined => {
+        const element = episode.querySelector(selector)
+        return element?.textContent?.trim() || undefined
+    }
+    
+    // Extract ID - prefer uniqueid with type="tmdb", fallback to id
+    let id = 0
+    const tmdbUniqueId = episode.querySelector('uniqueid[type="tmdb"]')
+    if (tmdbUniqueId) {
+        const idText = tmdbUniqueId.textContent?.trim()
+        if (idText) {
+            const parsedId = parseInt(idText, 10)
+            if (!isNaN(parsedId)) {
+                id = parsedId
+            }
+        }
+    }
+    
+    // Fallback to id element if tmdb uniqueid not found
+    if (id === 0) {
+        const idText = getTextContent('id')
+        if (idText) {
+            const parsedId = parseInt(idText, 10)
+            if (!isNaN(parsedId)) {
+                id = parsedId
+            }
+        }
+    }
+    
+    // Extract name (title)
+    const name = getTextContent('title') || ''
+    
+    // Extract overview (plot)
+    const overview = getTextContent('plot') || ''
+    
+    // Extract still_path (thumb) - extract path from URL
+    const thumbUrl = getTextContent('thumb')
+    const still_path = extractTmdbImagePath(thumbUrl)
+    
+    // Extract air_date (prefer premiered, fallback to aired)
+    const air_date = getTextContent('premiered') || getTextContent('aired') || ''
+    
+    // Extract episode_number
+    let episode_number = 0
+    const episodeText = getTextContent('episode')
+    if (episodeText) {
+        const parsedEpisode = parseInt(episodeText, 10)
+        if (!isNaN(parsedEpisode)) {
+            episode_number = parsedEpisode
+        }
+    }
+    
+    // Extract season_number
+    let season_number = 0
+    const seasonText = getTextContent('season')
+    if (seasonText) {
+        const parsedSeason = parseInt(seasonText, 10)
+        if (!isNaN(parsedSeason)) {
+            season_number = parsedSeason
+        }
+    }
+    
+    // Extract vote_average and vote_count from ratings
+    let vote_average = 0
+    let vote_count = 0
+    const rating = episode.querySelector('ratings > rating[name="themoviedb"]')
+    if (rating) {
+        const valueElement = rating.querySelector('value')
+        const votesElement = rating.querySelector('votes')
+        
+        if (valueElement) {
+            const valueText = valueElement.textContent?.trim()
+            if (valueText) {
+                const parsedValue = parseFloat(valueText)
+                if (!isNaN(parsedValue)) {
+                    vote_average = parsedValue
+                }
+            }
+        }
+        
+        if (votesElement) {
+            const votesText = votesElement.textContent?.trim()
+            if (votesText) {
+                const parsedVotes = parseInt(votesText, 10)
+                if (!isNaN(parsedVotes)) {
+                    vote_count = parsedVotes
+                }
+            }
+        }
+    }
+    
+    // Extract runtime
+    let runtime = 0
+    const runtimeText = getTextContent('runtime')
+    if (runtimeText) {
+        const parsedRuntime = parseInt(runtimeText, 10)
+        if (!isNaN(parsedRuntime)) {
+            runtime = parsedRuntime
+        }
+    }
+    
+    // Build and return TMDBEpisode
+    const tmdbEpisode: TMDBEpisode = {
+        id,
+        name,
+        overview,
+        still_path,
+        air_date,
+        episode_number,
+        season_number,
+        vote_average,
+        vote_count,
+        runtime,
+    }
+    
+    return tmdbEpisode
+}
+
+export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDetails | undefined {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(tvshowNfoXml, 'text/xml')
+    
+    // Check for parsing errors
+    const parseError = doc.querySelector('parsererror')
+    if (parseError) {
+        console.error(`[buildTmdbTVShowDetailsByNFO] Failed to parse XML: ${parseError.textContent}`)
+        return undefined
+    }
+    
+    const tvshow = doc.querySelector('tvshow')
+    if (!tvshow) {
+        return undefined
+    }
+    
+    // Helper function to get text content from an element
+    const getTextContent = (selector: string): string | undefined => {
+        const element = tvshow.querySelector(selector)
+        return element?.textContent?.trim() || undefined
+    }
+    
+    // Extract ID - prefer uniqueid with type="tmdb", fallback to tmdbid, then id
+    let id = 0
+    const tmdbUniqueId = tvshow.querySelector('uniqueid[type="tmdb"]')
+    if (tmdbUniqueId) {
+        const idText = tmdbUniqueId.textContent?.trim()
+        if (idText) {
+            const parsedId = parseInt(idText, 10)
+            if (!isNaN(parsedId)) {
+                id = parsedId
+            }
+        }
+    }
+    
+    // Fallback to tmdbid element
+    if (id === 0) {
+        const tmdbidText = getTextContent('tmdbid')
+        if (tmdbidText) {
+            const parsedId = parseInt(tmdbidText, 10)
+            if (!isNaN(parsedId)) {
+                id = parsedId
+            }
+        }
+    }
+    
+    // Fallback to id element
+    if (id === 0) {
+        const idText = getTextContent('id')
+        if (idText) {
+            const parsedId = parseInt(idText, 10)
+            if (!isNaN(parsedId)) {
+                id = parsedId
+            }
+        }
+    }
+    
+    // Extract name (title)
+    const name = getTextContent('title') || ''
+    
+    // Extract original_name (originaltitle)
+    const original_name = getTextContent('originaltitle') || ''
+    
+    // Extract overview (plot)
+    const overview = getTextContent('plot') || ''
+    
+    // Extract poster_path from thumb with aspect="poster" and no season attribute
+    let poster_path: string | null = null
+    const posterThumbs = tvshow.querySelectorAll('thumb[aspect="poster"]')
+    for (const thumb of Array.from(posterThumbs)) {
+        const seasonAttr = thumb.getAttribute('season')
+        if (!seasonAttr) {
+            const thumbUrl = thumb.textContent?.trim()
+            if (thumbUrl) {
+                poster_path = extractTmdbImagePath(thumbUrl)
+                break
+            }
+        }
+    }
+    
+    // Extract backdrop_path from fanart
+    let backdrop_path: string | null = null
+    const fanart = tvshow.querySelector('fanart')
+    if (fanart) {
+        const fanartThumb = fanart.querySelector('thumb')
+        if (fanartThumb) {
+            const fanartUrl = fanartThumb.textContent?.trim()
+            if (fanartUrl) {
+                backdrop_path = extractTmdbImagePath(fanartUrl)
+            }
+        }
+    }
+    
+    // Fallback to fanart element if fanart/thumb structure not found
+    if (!backdrop_path) {
+        const fanartUrl = getTextContent('fanart')
+        backdrop_path = extractTmdbImagePath(fanartUrl)
+    }
+    
+    // Extract first_air_date (premiered)
+    const first_air_date = getTextContent('premiered') || ''
+    
+    // Extract vote_average and vote_count from ratings
+    let vote_average = 0
+    let vote_count = 0
+    const rating = tvshow.querySelector('ratings > rating[name="themoviedb"]')
+    if (rating) {
+        const valueElement = rating.querySelector('value')
+        const votesElement = rating.querySelector('votes')
+        
+        if (valueElement) {
+            const valueText = valueElement.textContent?.trim()
+            if (valueText) {
+                const parsedValue = parseFloat(valueText)
+                if (!isNaN(parsedValue)) {
+                    vote_average = parsedValue
+                }
+            }
+        }
+        
+        if (votesElement) {
+            const votesText = votesElement.textContent?.trim()
+            if (votesText) {
+                const parsedVotes = parseInt(votesText, 10)
+                if (!isNaN(parsedVotes)) {
+                    vote_count = parsedVotes
+                }
+            }
+        }
+    }
+    
+    // Extract origin_country from country elements
+    const origin_country: string[] = []
+    const countryElements = tvshow.querySelectorAll('country')
+    for (const country of Array.from(countryElements)) {
+        const countryText = country.textContent?.trim()
+        if (countryText) {
+            origin_country.push(countryText)
+        }
+    }
+    
+    // Extract status
+    const status = getTextContent('status') || ''
+    
+    // Extract last_air_date (not directly in NFO, but we can try to infer from status or leave empty)
+    const last_air_date = ''
+    
+    // Build and return TMDBTVShowDetails
+    const tvShowDetails: TMDBTVShowDetails = {
+        // Base TMDBTVShow fields
+        id,
+        name,
+        original_name,
+        overview,
+        poster_path,
+        backdrop_path,
+        first_air_date,
+        vote_average,
+        vote_count,
+        popularity: 0, // Not available in NFO
+        genre_ids: [], // Genre names in NFO, can't map to IDs without API
+        origin_country,
+        media_type: 'tv',
+        
+        // TMDBTVShowDetails specific fields
+        number_of_seasons: 0, // Not available in NFO
+        number_of_episodes: 0, // Not available in NFO
+        seasons: [], // Not available in NFO
+        status,
+        type: '', // Not available in NFO
+        in_production: status.toLowerCase() !== 'ended', // Infer from status
+        last_air_date,
+        networks: [], // Not available in NFO
+        production_companies: [], // Not available in NFO
+    }
+    
+    return tvShowDetails
 }
