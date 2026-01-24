@@ -1,6 +1,6 @@
 import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { findAssociatedFiles } from "@/lib/utils"
@@ -24,6 +24,7 @@ import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
+import { useGlobalStates } from "@/providers/global-states-provider"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -43,6 +44,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
+  const { mediaFolderStates } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -60,6 +62,10 @@ function TvShowPanelContent() {
   const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt } = usePrompts()
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+
+  const isLoading = useMemo(() => {
+    return mediaFolderStates[mediaMetadata?.mediaFolderPath ?? '']?.loading ?? false
+  }, [mediaFolderStates, mediaMetadata?.mediaFolderPath])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -521,6 +527,7 @@ function TvShowPanelContent() {
           isPreviewMode={isPreviewMode}
           scrollToEpisodeId={scrollToEpisodeId}
           onEpisodeFileSelect={handleOpenFilePickerForEpisode}
+          isLoading={isLoading}
         />
       </div>
     </div>

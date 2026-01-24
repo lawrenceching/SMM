@@ -28,6 +28,7 @@ interface TMDBTVShowOverviewProps {
     isPreviewMode: boolean
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
+    isLoading?: boolean
 }
 
 // Helper function to format date
@@ -53,7 +54,8 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
-    ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, seasons, isPreviewMode, scrollToEpisodeId, onEpisodeFileSelect }, ref) => {
+    ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, 
+        seasons, isPreviewMode, scrollToEpisodeId, onEpisodeFileSelect, isLoading }, ref) => {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
@@ -490,7 +492,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                 {/* Seasons */}
                 <SeasonSection
                     tvShow={tvShow}
-                    isUpdatingTvShow={isUpdatingTvShow}
+                    isUpdatingTvShow={isUpdatingTvShow || (isLoading ?? false)}
                     expandedSeasonIds={expandedSeasonIds}
                     setExpandedSeasonIds={setExpandedSeasonIds}
                     expandedEpisodeIds={expandedEpisodeIds}

@@ -5,6 +5,9 @@ export interface MediaFolderState {
 }
 
 interface GlobalStatesContextValue {
+  /**
+   * A record from media folder path in POSIX format to media folder state
+   */
   mediaFolderStates: Record<string, MediaFolderState>
   setMediaFolderStates: React.Dispatch<React.SetStateAction<Record<string, MediaFolderState>>>
 }

@@ -56,10 +56,12 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
           type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
         }
 
+        const pathKey = initialMetadata.mediaFolderPath as string
         setMediaFolderStates((prev) => {
+          console.log('[onFolderSelected] setting media folder state to loading:', pathKey)
           return {
             ...prev,
-            [folderPath]: {
+            [pathKey]: {
               loading: true
             }
           }
@@ -90,7 +92,16 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
         }
         console.log(`[AppV2] recognizedMetadata:`, recognizedMetadata);
         addMediaMetadata(recognizedMetadata)
-        refreshMediaMetadata(recognizedMetadata, updateMediaMetadata)
+        await refreshMediaMetadata(recognizedMetadata, updateMediaMetadata)
+        setMediaFolderStates((prev) => {
+          console.log('[onFolderSelected] setting media folder state to loading:', pathKey)
+          return {
+            ...prev,
+            [pathKey]: {
+              loading: false
+            }
+          }
+        })
         return;
       }
 
