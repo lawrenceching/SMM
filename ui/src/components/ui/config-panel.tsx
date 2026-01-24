@@ -6,7 +6,7 @@ import { AiSettings } from "./settings/AiSettings"
 import { Feedback } from "./settings/Feedback"
 import { useTranslation } from "@/lib/i18n"
 
-type SettingsTab = "general" | "ai" | "rename-rules" | "feedback"
+export type SettingsTab = "general" | "ai" | "rename-rules" | "feedback"
 
 interface ConfigPanelSidebarProps {
   activeTab: SettingsTab
@@ -49,8 +49,12 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
   )
 }
 
-function ConfigPanel() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("general")
+interface ConfigPanelProps {
+  initialTab?: SettingsTab
+}
+
+function ConfigPanel({ initialTab = "general" }: ConfigPanelProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
 
   const renderContent = () => {
     switch (activeTab) {

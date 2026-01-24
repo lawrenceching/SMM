@@ -30,9 +30,12 @@ export interface SpinnerDialogProps {
   message?: string
 }
 
+import type { SettingsTab } from "@/components/ui/config-panel"
+
 export interface ConfigDialogProps {
   isOpen: boolean
   onClose: () => void
+  initialTab?: SettingsTab
 }
 
 export interface FilePickerDialogProps {

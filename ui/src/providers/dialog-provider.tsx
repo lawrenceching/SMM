@@ -16,6 +16,7 @@ import {
   type FileItem,
   type Task,
 } from "@/components/dialogs"
+import type { SettingsTab } from "@/components/ui/config-panel"
 
 // Re-export types for backward compatibility
 export type { FolderType, FileItem, Task }
@@ -30,7 +31,7 @@ interface DialogContextValue {
     closeSpinner: () => void
   ]
   configDialog: [
-    openConfig: () => void,
+    openConfig: (initialTab?: SettingsTab) => void,
     closeConfig: () => void
   ]
   openFolderDialog: [
@@ -76,6 +77,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   // Config dialog state
   const [isConfigOpen, setIsConfigOpen] = useState(false)
+  const [configInitialTab, setConfigInitialTab] = useState<SettingsTab | undefined>(undefined)
 
   // Open folder dialog state
   const [isOpenFolderOpen, setIsOpenFolderOpen] = useState(false)
@@ -132,12 +134,16 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openConfig = useCallback(() => {
+  const openConfig = useCallback((initialTab?: SettingsTab) => {
+    setConfigInitialTab(initialTab)
     setIsConfigOpen(true)
   }, [])
 
   const closeConfig = useCallback(() => {
     setIsConfigOpen(false)
+    setTimeout(() => {
+      setConfigInitialTab(undefined)
+    }, 200)
   }, [])
 
   const openOpenFolder = useCallback((onSelect: (type: FolderType) => void, folderPath?: string) => {
@@ -273,6 +279,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <ConfigDialog
         isOpen={isConfigOpen}
         onClose={closeConfig}
+        initialTab={configInitialTab}
       />
       <OpenFolderDialog
         isOpen={isOpenFolderOpen}

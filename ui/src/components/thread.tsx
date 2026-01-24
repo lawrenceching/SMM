@@ -29,6 +29,7 @@ import type { FC } from "react";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
+import { useEventHandlers } from "@/hooks/useEventHandlers";
 
 export const Thread: FC = () => {
   return (
@@ -79,6 +80,7 @@ const ThreadScrollToBottom: FC = () => {
 
 const ThreadWelcome: FC = () => {
   const { t } = useTranslation('components');
+  const { onRequireToOpenConfigDialog } = useEventHandlers();
   
   return (
     <div className="aui-thread-welcome-root mx-auto my-auto flex w-full max-w-(--thread-max-width) grow flex-col">
@@ -90,6 +92,10 @@ const ThreadWelcome: FC = () => {
           <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
             {t('thread.welcome.subtitle' as any) as string}
           </p>
+          <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
+            你尚未配置 DeepSeek 的 API Key <a onClick={onRequireToOpenConfigDialog} className="cursor-pointer underline hover:text-foreground">设置</a>
+          </p>
+          
         </div>
       </div>
       <ThreadSuggestions />

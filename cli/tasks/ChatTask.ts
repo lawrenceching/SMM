@@ -45,7 +45,13 @@ export async function processChatRequest(request: Request): Promise<Response> {
     aiProvider = provider;
     defaultModel = model;
   } catch (error) {
-    logger.error({ error }, 'Failed to create AI provider');
+    logger.error({ 
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error 
+    }, 'Failed to create AI provider');
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to create AI provider' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -129,7 +135,13 @@ export async function processChatRequest(request: Request): Promise<Response> {
       );
     }
 
-    logger.error({ error }, 'Chat API error');
+    logger.error({ 
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error 
+    }, 'Chat API error');
     return new Response(
       JSON.stringify({ error: 'Failed to process chat request', details: error instanceof Error ? error.message : String(error) }),
       {
@@ -147,7 +159,13 @@ export function handleChatRequest(app: Hono) {
       const response = await processChatRequest(c.req.raw);
       return response;
     } catch (error) {
-      logger.error({ error }, 'Chat route error:');
+      logger.error({ 
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        } : error 
+      }, 'Chat route error:');
       return c.json({ 
         error: 'Failed to process chat request',
         details: error instanceof Error ? error.message : 'Unknown error'

@@ -5,7 +5,7 @@ import {
 import { ConfigPanel } from "@/components/ui/config-panel"
 import type { ConfigDialogProps } from "./types"
 
-export function ConfigDialog({ isOpen, onClose }: ConfigDialogProps) {
+export function ConfigDialog({ isOpen, onClose, initialTab }: ConfigDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -17,7 +17,7 @@ export function ConfigDialog({ isOpen, onClose }: ConfigDialogProps) {
         }}
         showCloseButton={true}
       >
-        <ConfigPanel />
+        <ConfigPanel initialTab={initialTab} />
       </DialogContent>
     </Dialog>
   )
