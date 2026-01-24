@@ -18,6 +18,9 @@ import { useDialogs } from "@/providers/dialog-provider"
 import { useTranslation } from "@/lib/i18n"
 import { cleanUp } from "@/api/cleanUp"
 import { toast } from "sonner"
+import { hello } from "@/api/hello"
+import { openInFileManagerApi } from "@/api/openInFileManager"
+import { Path } from "@core/path"
 
 export interface MenuItem {
   name: string
@@ -150,6 +153,26 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
         {
           name: t('menu.openFolder'),
           onClick: () => { onOpenFolderMenuClick?.() }
+        },
+        {
+          name: t('menu.openAppDataFolder'),
+          onClick: async () => {
+            try {
+              const result = await hello()
+              if (result.error) {
+                toast.error(result.error)
+                return
+              }
+              // Convert platform path to POSIX format
+              const posixPath = Path.isWindows() ? Path.posix(result.appDataDir) : result.appDataDir
+              const openResult = await openInFileManagerApi(posixPath)
+              if (openResult.error) {
+                toast.error(openResult.error)
+              }
+            } catch (error) {
+              toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            }
+          }
         },
         // {
         //   name: t('menu.downloadVideo'),

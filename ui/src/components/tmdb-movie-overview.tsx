@@ -1,7 +1,7 @@
 import type { TMDBMovie } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, FileEdit, Download } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveMovieSearchbox } from "./ImmersiveMovieSearchbox"
 import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -128,12 +128,13 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
         try {
             // For now, just update with the search result
             // In a real implementation, you might want to fetch full movie details
+            const traceId = `tmdb-movie-overview-handleSelectResult-${nextTraceId()}`
             updateMediaMetadata(selectedMediaMetadata.mediaFolderPath, {
                 ...selectedMediaMetadata,
                 tmdbMovie: result,
                 tmdbMediaType: 'movie',
                 type: 'movie-folder',
-            })
+            }, { traceId })
 
             setIsUpdatingMovie(false)
         } catch (error) {

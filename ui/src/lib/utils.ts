@@ -43,6 +43,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const STORAGE_KEY_TRACE_ID = 'traceId';
+
+let runtimeTraceIdCounter = 0; // Fallback if localStorage fails
+
+/**
+ * Returns the next trace ID as an integer.
+ * The trace ID is persisted in localStorage and increments with each call.
+ * If localStorage is unavailable, falls back to a runtime counter.
+ * 
+ * @returns The next trace ID (starts at 1 for the first call)
+ */
+export function nextTraceId(): number {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_TRACE_ID);
+    const currentId = stored !== null ? parseInt(stored, 10) : 0;
+    const nextId = isNaN(currentId) ? 1 : currentId + 1;
+    localStorage.setItem(STORAGE_KEY_TRACE_ID, nextId.toString());
+    return nextId;
+  } catch (error) {
+    // Fallback to runtime counter if localStorage fails
+    runtimeTraceIdCounter++;
+    return runtimeTraceIdCounter;
+  }
+}
+
 const extensions = {
   audioTrackFileExtensions: ['.mka'],
   videoFileExtensions: [

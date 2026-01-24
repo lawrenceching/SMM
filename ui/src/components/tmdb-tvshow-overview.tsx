@@ -1,7 +1,7 @@
 import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { useCallback, useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -259,12 +259,13 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
             }
 
             // Update media metadata with the new TV show
+            const traceId = `tmdb-tvshow-overview-handleSelectResult-${nextTraceId()}`
             updateMediaMetadata(selectedMediaMetadata.mediaFolderPath, {
                 ...selectedMediaMetadata,
                 tmdbTvShow: response.data,
                 tmdbMediaType: 'tv',
                 type: 'tvshow-folder',
-            })
+            }, { traceId })
 
             setIsUpdatingTvShow(false)
         } catch (error) {

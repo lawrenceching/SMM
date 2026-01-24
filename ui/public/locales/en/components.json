@@ -5,6 +5,7 @@
     "view": "View",
     "help": "Help",
     "openFolder": "Open Folder",
+    "openAppDataFolder": "Open App Data Folder",
     "config": "Config",
     "cleanUp": "Clean Up",
     "exit": "Exit",

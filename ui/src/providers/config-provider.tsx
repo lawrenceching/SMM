@@ -4,6 +4,7 @@ import { join } from "@/lib/path"
 import { readFileApi } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
 import { changeLanguage } from "@/lib/i18n"
+import { useLatest } from "react-use"
 
 interface ConfigContextValue {
   appConfig: AppConfig
@@ -12,6 +13,7 @@ interface ConfigContextValue {
   error: Error | null
   setUserConfig: (config: UserConfig) => void
   reload: () => void
+  addMediaFolderInUserConfig: (folder: string) => void
 }
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined)
@@ -76,6 +78,7 @@ export function ConfigProvider({
   const [appConfig, setAppConfig] = useState<AppConfig>(
     initialAppConfig || { version: "unknown" }
   )
+  const latestAppConfig = useLatest(appConfig)
   const [userConfig, setUserConfig] = useState<UserConfig>(initialUserConfig || defaultUserConfig)
   const [isLoading, setIsLoading] = useState(!initialAppConfig)
   const [error, setError] = useState<Error | null>(null)
@@ -84,6 +87,8 @@ export function ConfigProvider({
     try {
       setIsLoading(true)
       setError(null)
+
+      // TODO: use the hello.ts
       
       const response = await fetch("/api/execute", {
         method: "POST",
@@ -99,6 +104,7 @@ export function ConfigProvider({
 
       const data: HelloResponse = await response.json()
       const userDataDir = data.userDataDir;
+      console.log(`[ConfigProvider] Reloaded user data directory: ${userDataDir}`)
       setAppConfig((prev) => {
         return {
           ...prev,
@@ -143,7 +149,8 @@ export function ConfigProvider({
   }, [initialAppConfig])
 
   const saveUserConfig = useCallback(async (config: UserConfig) => {
-    if(!appConfig.userDataDir) {
+    if(!latestAppConfig.current.userDataDir) {
+      debugger;
       throw new Error("User data directory not found")
     }
     
@@ -152,7 +159,7 @@ export function ConfigProvider({
       await changeLanguage(config.applicationLanguage);
     }
     
-    writeFile(join(appConfig.userDataDir, 'smm.json'), JSON.stringify(config))
+    writeFile(join(latestAppConfig.current.userDataDir, 'smm.json'), JSON.stringify(config))
     .then(() => {
       console.log("User config written successfully")
       setUserConfig(config)
@@ -162,6 +169,21 @@ export function ConfigProvider({
       setError(err instanceof Error ? err : new Error("Unknown error"))
     })
   }, [appConfig.userDataDir, userConfig.applicationLanguage])
+
+  const addMediaFolderInUserConfig = useCallback((folder: string) => {
+    // Check if folder already exists
+    if (userConfig.folders.includes(folder)) {
+      return
+    }
+    
+    // Add folder to the array and save
+    const updatedConfig: UserConfig = {
+      ...userConfig,
+      folders: [...userConfig.folders, folder]
+    }
+    
+    saveUserConfig(updatedConfig)
+  }, [userConfig, saveUserConfig])
   
   // Sync i18n language on initial load
   useEffect(() => {
@@ -177,6 +199,7 @@ export function ConfigProvider({
     error,
     setUserConfig: saveUserConfig,
     reload,
+    addMediaFolderInUserConfig,
   }
 
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>

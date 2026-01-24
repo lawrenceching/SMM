@@ -3,7 +3,7 @@ import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
-import { findAssociatedFiles } from "@/lib/utils"
+import { findAssociatedFiles, nextTraceId } from "@/lib/utils"
 import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
@@ -359,10 +359,11 @@ function TvShowPanelContent() {
     )
 
     // Update media metadata
+    const traceId = `TvShowPanel-handleFileSelect-${nextTraceId()}`
     updateMediaMetadata(mediaMetadata.mediaFolderPath, {
       ...mediaMetadata,
       mediaFiles: updatedMediaFiles
-    })
+    }, { traceId })
 
     toast.success("File added successfully")
   }, [mediaMetadata, updateMediaMetadata])

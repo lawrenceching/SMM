@@ -1,7 +1,7 @@
 import type { SeasonModel } from "./TvShowPanel";
 import type { MediaMetadata, MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { extname, join } from "@/lib/path";
-import { findAssociatedFiles, requireFieldsNonUndefined } from "@/lib/utils";
+import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/lib/utils";
 import type { FileProps } from "@/lib/types";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { readFile } from "@/api/readFile";
@@ -160,7 +160,7 @@ export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNu
 export async function recognizeEpisodes(
     seasons: SeasonModel[], 
     mediaMetadata: MediaMetadata, 
-    updateMediaMetadata: (path: string, metadata: MediaMetadata) => void) {
+    updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
     const mapping = _buildMappingFromSeasonModels(seasons);
     console.log(`[TvShowPanelUtils] recognized episodes:`, mapping);
 
@@ -179,7 +179,8 @@ export async function recognizeEpisodes(
 
     // Call updateMediaMetadata to persist the changes
     if (mediaMetadata.mediaFolderPath) {
-        updateMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata);
+        const traceId = `TvShowPanelUtils-recognizeEpisodes-${nextTraceId()}`
+        updateMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, { traceId });
     } else {
         console.error(`[TvShowPanelUtils] mediaFolderPath is undefined, cannot update media metadata`);
     }

@@ -5,6 +5,7 @@
     "view": "视图",
     "help": "帮助",
     "openFolder": "打开文件夹",
+    "openAppDataFolder": "打开应用数据文件夹",
     "config": "设置",
     "cleanUp": "清理",
     "exit": "退出",

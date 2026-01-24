@@ -23,7 +23,7 @@ function blankMediaMetadata(path: string): MediaMetadata {
     } as MediaMetadata;
 }
 
-export async function readMediaMetadataV2(pathPosix: string): Promise<MediaMetadata> {
+export async function readMediaMetadataV2(pathPosix: string, { traceId }: { traceId?: string } = {}): Promise<MediaMetadata> {
   
     const systemConfig = await hello();
     const mediaMetadataFilePath = metadataCacheFilePath(systemConfig.appDataDir, pathPosix);
@@ -33,16 +33,16 @@ export async function readMediaMetadataV2(pathPosix: string): Promise<MediaMetad
 
     if(readFileResponseBody.error) {
         if(isError(readFileResponseBody.error, FileNotFoundError)) {
-            console.warn(`[readMediaMetadataV2] media metadata file not found: ${mediaMetadataFilePath}, skip a blank media metadata`)
+            console.warn(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} media metadata file not found: ${mediaMetadataFilePath}, skip a blank media metadata`)
         } else {
-            console.error(`[readMediaMetadataV2] unexpected response body: ${readFileResponseBody.error}`);
+            console.error(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} unexpected response body: ${readFileResponseBody.error}`);
         }
     }
 
     if(readFileResponseBody.data) { 
         mediaMetadata = JSON.parse(readFileResponseBody.data) as MediaMetadata;
     } else {
-        console.error(`[readMediaMetadataV2] unexpected response body: no data`);
+        console.error(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} unexpected response body: no data`);
     }
 
     const listFilesResponseBody = await listFiles({
@@ -59,7 +59,7 @@ export async function readMediaMetadataV2(pathPosix: string): Promise<MediaMetad
         });
     }
 
-    console.log(`[readMediaMetadataV2] read media metadata: ${pathPosix}`, mediaMetadata);
+    console.log(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} read media metadata: ${pathPosix}`, mediaMetadata);
 
     return mediaMetadata;
 }

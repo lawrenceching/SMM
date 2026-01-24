@@ -4,9 +4,10 @@ import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useEffect } from "react";
 import type { MediaFileMetadata, MediaMetadata } from "@core/types";
 import { Path } from "@core/path";
+import { nextTraceId } from "@/lib/utils";
 
 let mediaMetadatas: MediaMetadata[] = [];
-let updateMediaMetadata: (path: string, mediaMetadata: MediaMetadata) => void = () => {};
+let updateMediaMetadata: (path: string, mediaMetadata: MediaMetadata, options?: { traceId?: string }) => void = () => {};
 
 function updateMediaFileMetadatas(
     mediaFiles: MediaFileMetadata[], 
@@ -95,10 +96,11 @@ interface ToolResponse {
             return { error: `Error Reason: episode ${episodeNumber} does not exist in season ${seasonNumber}` };
         }
 
+        const traceId = `MatchEpisode-execute-${nextTraceId()}`
         updateMediaMetadata(folderPathInPosix, {
             ...mediaMetadata,
             mediaFiles: updateMediaFileMetadatas(mediaMetadata.mediaFiles ?? [], pathInPosix, seasonNumber, episodeNumber)
-        });
+        }, { traceId });
 
         return {
             error: undefined

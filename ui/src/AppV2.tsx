@@ -16,6 +16,7 @@ import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 import { useEventHandlers } from "@/hooks/useEventHandlers"
+import { nextTraceId } from "@/lib/utils"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -95,10 +96,11 @@ export default function AppV2() {
       // 2. start to find tvshow.nfo
       if(selectedMediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
         console.log(`[AppV2] found tvshow.info, indicating this folder is a TV show`);  
+        const traceId = `AppV2-updateMediaMetadata-${nextTraceId()}`
         updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, {
           ...selectedMediaMetadata,
           type: "tvshow-folder",
-        })
+        }, { traceId })
       }
     }
 
@@ -462,6 +464,7 @@ export default function AppV2() {
             </div>
           )}
           {folders.length > 0 && selectedMediaMetadata && (
+            console.log(`[DEBUG] selectedMediaMetadata: `, selectedMediaMetadata),
             <>
               {viewMode === "metadata" && (
                 <>

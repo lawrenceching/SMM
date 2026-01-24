@@ -19,6 +19,7 @@ import { MediaMetadataProvider, useMediaMetadata } from "./providers/media-metad
 import { Assistant } from "./ai/Assistant"
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from "./hooks/useWebSocket"
 import { Path } from "@core/path"
+import { nextTraceId } from "@/lib/utils"
 
 // Check if running in Electron environment
 function isElectron(): boolean {
@@ -194,7 +195,8 @@ function AppLayout() {
         metadata.type = folderTypeMap[type]
 
         // Add the metadata to the list
-        addMediaMetadata(metadata)
+        const traceId = `App-handleFolderSelected-${nextTraceId()}`
+        addMediaMetadata(metadata, { traceId })
 
         // Select the newly added folder
         pendingFolderPathRef.current = folderPath

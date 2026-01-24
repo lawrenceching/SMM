@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react"
 import { basename, dirname, join } from "@/lib/path"
-import { cn } from "@/lib/utils"
+import { cn, nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
@@ -215,7 +215,8 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
           }
 
           // Update media metadata with new path
-          updateMediaMetadata(newFolderPath, updatedMetadata)
+          const traceId = `MediaFolderListItem-handleRenameButtonClick-${nextTraceId()}`
+          updateMediaMetadata(newFolderPath, updatedMetadata, { traceId })
 
           // Refresh media metadata to reflect the rename
           await refreshMediaMetadata(newFolderPath)

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { Path } from "@core/path"
+import { nextTraceId } from "@/lib/utils"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useTranslation } from "@/lib/i18n"
 import type { OpenFolderDialogProps, FolderType } from "./types"
@@ -33,25 +34,6 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
       onClose()
       return
     }
-
-    setUserConfig({
-      ...userConfig,
-      folders: [...userConfig.folders, folderPath]
-    })
-
-    readMediaMetadataApi(folderPath).then((data) => {
-      if(data.data) {
-        console.log(`[OpenFolderDialog] Media metadata is already exists, skip adding new metadata`)
-      } else {
-        addMediaMetadata({
-          mediaFolderPath: Path.posix(folderPath),
-          type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
-        })
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to read media metadata:", error)
-    })
 
     onSelect(type)
     onClose()

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
@@ -82,7 +83,8 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
       mediaFolderPath: mediaFolderPathInPosix,
     }
 
-    updateMediaMetadata(mediaFolderPathInPosix, updatedMetadata)
+    const traceId = `LocalFilePanel-handleConfirm-${nextTraceId()}`
+    updateMediaMetadata(mediaFolderPathInPosix, updatedMetadata, { traceId })
     console.log(`[LocalFilePanel] Updated media type to: ${metadataType}`)
   }
 

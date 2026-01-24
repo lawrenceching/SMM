@@ -7,9 +7,12 @@ import type { MediaMetadata } from "@core/types"
 import type { FolderType } from "@/providers/dialog-provider"
 import { getTvShowById } from "@/api/tmdb"
 import { useGlobalStates } from "@/providers/global-states-provider"
+import { nextTraceId } from "@/lib/utils"
+import { useConfig } from "@/providers/config-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 
 
-async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata) => void, signal?: AbortSignal) {
+async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void, signal?: AbortSignal) {
   const tmdbId = mm.tmdbTvShow?.id;
   if (tmdbId === undefined) {
     console.error('[onFolderSelected] Failed to refresh media metadata, tmdbId is undefined')
@@ -32,21 +35,25 @@ async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (pat
     return
   }
 
+  const traceId = `refreshMediaMetadata-${nextTraceId()}`
   updateMediaMetadata(mm.mediaFolderPath!, {
     ...mm,
     tmdbTvShow: response.data,
     tmdbMediaType: 'tv',
     type: 'tvshow-folder',
-  })
+  }, { traceId })
 
 }
 
-export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata) => void) {
+export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata, options?: { traceId?: string }) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
 
   const { setMediaFolderStates } = useGlobalStates()
+  const { userConfig, setUserConfig, addMediaFolderInUserConfig } = useConfig()
+  const { addMediaMetadata } = useMediaMetadata()
 
   const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
     console.log('Folder type selected:', type, 'for path:', folderPath)
+    const traceId = `onFolderSelected-${nextTraceId()}`
     
     const abortController = new AbortController()
     const signal = abortController.signal
@@ -85,11 +92,13 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
 
         if (!metadata) {
           
-          console.log('[AppV2] Failed to read media metadata, it is the first time to open this folder, try to recognize by NFO')
+          console.log('[onFolderSelected] Failed to read media metadata, it is the first time to open this folder, try to recognize by NFO')
           const initialMetadata: MediaMetadata = {
             mediaFolderPath: Path.posix(folderPath),
             type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
           }
+
+          addMediaMetadata(initialMetadata, { traceId })
 
           pathKey = initialMetadata.mediaFolderPath as string
           loadingWasSet = true
@@ -114,12 +123,12 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
           }
 
           if (resp.error) {
-            console.error('[AppV2] Failed to list files:', resp.error)
+            console.error('[onFolderSelected] Failed to list files:', resp.error)
             return;
           }
 
           if (resp.data === undefined) {
-            console.error('[AppV2] Failed to list files:', resp)
+            console.error('[onFolderSelected] Failed to list files:', resp)
             return;
           }
 
@@ -132,7 +141,9 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
           }
 
           if (recognizedMetadata === undefined) {
-            console.error('[AppV2] Failed to recognize media folder by NFO')
+            console.log('[onFolderSelected] Failed to recognize media folder by NFO')
+            addMediaFolderInUserConfig(folderPath)
+            addMediaMetadata(initialMetadata, { traceId })
             return;
           }
           
@@ -140,8 +151,9 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
             return
           }
 
-          console.log(`[AppV2] recognizedMetadata:`, recognizedMetadata);
-          addMediaMetadata(recognizedMetadata)
+          console.log(`[onFolderSelected] recognizedMetadata:`, recognizedMetadata);
+          await addMediaMetadata(recognizedMetadata, { traceId })
+          addMediaFolderInUserConfig(folderPath)
           await refreshMediaMetadata(recognizedMetadata, updateMediaMetadata, signal)
           
           if (signal.aborted) {
@@ -155,14 +167,7 @@ export function useOnFolderSelected(addMediaMetadata: (metadata: MediaMetadata) 
           return
         }
 
-        const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
-          tvshow: "tvshow-folder",
-          movie: "movie-folder",
-          music: "music-folder"
-        }
-        metadata.type = folderTypeMap[type]
-
-        addMediaMetadata(metadata)
+        
       } catch (error) {
         // Only log if not aborted (timeout errors are expected)
         if (!signal.aborted) {

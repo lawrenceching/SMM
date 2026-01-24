@@ -5,6 +5,7 @@
     "view": "檢視",
     "help": "說明",
     "openFolder": "開啟資料夾",
+    "openAppDataFolder": "開啟應用程式資料資料夾",
     "config": "設定",
     "cleanUp": "清理",
     "exit": "結束",
