@@ -8,17 +8,12 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useConfig } from "@/providers/config-provider"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
-import { Path } from "@core/path"
-import { nextTraceId } from "@/lib/utils"
-import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useTranslation } from "@/lib/i18n"
 import type { OpenFolderDialogProps, FolderType } from "./types"
 
 export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderDialogProps) {
   const { t } = useTranslation('dialogs')
-  const { userConfig, setUserConfig } = useConfig()
-  const { addMediaMetadata } = useMediaMetadata()
+  const { userConfig } = useConfig()
 
   const handleSelect = (type: FolderType) => {
     console.log(`[DialogProvider] handleSelect ${type} ${folderPath}`)

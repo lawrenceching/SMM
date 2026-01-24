@@ -747,6 +747,11 @@ export interface HelloResponseBody {
    * path in platform-specific format
    */
   appDataDir: string;
+
+  /**
+   * error message when the hello task fails (e.g. validation, server error)
+   */
+  error?: string;
 }
 
 export interface FileRenameRequestBody {

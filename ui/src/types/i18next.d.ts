@@ -39,6 +39,7 @@ interface ComponentsResources {
     view: string
     help: string
     openFolder: string
+    openAppDataFolder: string
     config: string
     cleanUp: string
     exit: string

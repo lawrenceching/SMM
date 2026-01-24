@@ -48,7 +48,7 @@ async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (pat
 export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata, options?: { traceId?: string }) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
 
   const { setMediaFolderStates } = useGlobalStates()
-  const { userConfig, setUserConfig, addMediaFolderInUserConfig } = useConfig()
+  const { addMediaFolderInUserConfig } = useConfig()
   const { addMediaMetadata } = useMediaMetadata()
 
   const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {

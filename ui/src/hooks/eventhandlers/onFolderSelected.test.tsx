@@ -186,7 +186,7 @@ describe('useOnFolderSelected', () => {
 
       // Mock listFiles to take longer than 10 seconds (by not resolving immediately)
       ;(listFiles as any).mockImplementation(() => {
-        return new Promise((resolve) => {
+        return new Promise<void>((_resolve) => {
           // This promise will never resolve, simulating a hanging operation
           // We'll let the timeout handle it
         })
