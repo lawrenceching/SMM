@@ -25,13 +25,23 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import type { FC } from "react";
+import { useMemo, type FC } from "react";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
 import { useEventHandlers } from "@/hooks/useEventHandlers";
+import { useConfig } from "@/providers/config-provider";
+import type { AI, AIConfig } from "@core/types";
 
 export const Thread: FC = () => {
+  const { userConfig } = useConfig();
+  
+  const ready = useMemo(() => {
+    const selectedAI = userConfig.selectedAI;
+    if (selectedAI === undefined) return false;
+    return isAIReady(selectedAI, userConfig.ai);
+  }, [userConfig]);
+
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-background"
@@ -44,7 +54,7 @@ export const Thread: FC = () => {
         className="aui-thread-viewport relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth px-4 pt-4"
       >
         <AssistantIf condition={({ thread }) => thread.isEmpty}>
-          <ThreadWelcome />
+          <ThreadWelcome ready={ready} />
         </AssistantIf>
 
         <ThreadPrimitive.Messages
@@ -57,7 +67,7 @@ export const Thread: FC = () => {
 
         <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mx-auto mt-auto flex w-full max-w-(--thread-max-width) flex-col gap-4 overflow-visible rounded-t-3xl bg-background pb-4 md:pb-6">
           <ThreadScrollToBottom />
-          <Composer />
+          <Composer ready={ready} />
         </ThreadPrimitive.ViewportFooter>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
@@ -78,9 +88,37 @@ const ThreadScrollToBottom: FC = () => {
   );
 };
 
-const ThreadWelcome: FC = () => {
+const AI_TO_CONFIG_KEY: Record<AI, keyof AIConfig> = {
+  OpenAI: "openAI",
+  DeepSeek: "deepseek",
+  OpenRouter: "openrouter",
+  GLM: "glm",
+  Other: "other",
+};
+
+function isAIReady(selectedAI: AI, ai?: AIConfig): boolean {
+  const key = AI_TO_CONFIG_KEY[selectedAI];
+  const config = ai?.[key];
+  if (!config) return false;
+
+  const baseURL = typeof config.baseURL === "string" ? config.baseURL.trim() : "";
+  const model = typeof config.model === "string" ? config.model.trim() : "";
+  const apiKey = typeof config.apiKey === "string" ? config.apiKey.trim() : "";
+
+  if (!baseURL || !model) return false;
+  const apiKeyOptional = selectedAI === "Other";
+  if (!apiKeyOptional && !apiKey) return false;
+  return true;
+}
+
+interface ThreadWelcomeProps {
+  ready: boolean;
+}
+
+const ThreadWelcome: FC<ThreadWelcomeProps> = ({ ready }) => {
   const { t } = useTranslation('components');
   const { onRequireToOpenConfigDialog } = useEventHandlers();
+  const { userConfig } = useConfig();
   
   return (
     <div className="aui-thread-welcome-root mx-auto my-auto flex w-full max-w-(--thread-max-width) grow flex-col">
@@ -89,16 +127,31 @@ const ThreadWelcome: FC = () => {
           <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in font-semibold text-2xl duration-200">
             {t('thread.welcome.title' as any) as string}
           </h1>
-          <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
-            {t('thread.welcome.subtitle' as any) as string}
-          </p>
-          <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
-            你尚未配置 DeepSeek 的 API Key <a onClick={onRequireToOpenConfigDialog} className="cursor-pointer underline hover:text-foreground">设置</a>
-          </p>
+
+          {
+            ready && (
+              <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
+                {t('thread.welcome.subtitle' as any) as string}
+              </p>
+            )
+          }
+          
+          {!ready && (
+            <>
+              <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
+                {t('thread.welcome.configNotComplete' as any, { selectedAI: userConfig.selectedAI || '' }) as string}
+              </p>
+              <p>
+                <a onClick={onRequireToOpenConfigDialog} className="cursor-pointer underline hover:text-foreground font-bold">
+                  {t('thread.welcome.openSettings' as any) as string}
+                </a>
+              </p>
+            </>
+          )}
           
         </div>
       </div>
-      <ThreadSuggestions />
+      <ThreadSuggestions ready={ready} />
     </div>
   );
 };
@@ -109,7 +162,11 @@ interface Suggestion {
   prompt: string
 }
 
-const ThreadSuggestions: FC = () => {
+interface ThreadSuggestionsProps {
+  ready: boolean;
+}
+
+const ThreadSuggestions: FC<ThreadSuggestionsProps> = ({ ready }) => {
   const { t } = useTranslation('components');
   
   const suggestions: Suggestion[] = [
@@ -136,7 +193,8 @@ const ThreadSuggestions: FC = () => {
           <ThreadPrimitive.Suggestion prompt={suggestion.prompt} send asChild>
             <Button
               variant="ghost"
-              className="aui-thread-welcome-suggestion h-auto w-full @md:flex-col flex-wrap items-start justify-start gap-1 rounded-2xl border px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
+              disabled={!ready}
+              className="aui-thread-welcome-suggestion h-auto w-full @md:flex-col flex-wrap items-start justify-start gap-1 rounded-2xl border px-4 py-3 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label={suggestion.prompt}
             >
               <span className="aui-thread-welcome-suggestion-text-1 font-medium">
@@ -153,16 +211,21 @@ const ThreadSuggestions: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+interface ComposerProps {
+  ready: boolean;
+}
+
+const Composer: FC<ComposerProps> = ({ ready }) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone className="aui-composer-attachment-dropzone flex w-full flex-col rounded-2xl border border-input bg-background px-1 pt-2 outline-none transition-shadow has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50">
         <ComposerPrimitive.Input
           placeholder="Send a message..."
-          className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+          className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
           rows={1}
           autoFocus
           aria-label="Message input"
+          disabled={!ready}
         />
         <ComposerAction />
       </ComposerPrimitive.AttachmentDropzone>

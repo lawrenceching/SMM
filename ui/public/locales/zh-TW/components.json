@@ -117,7 +117,9 @@
   "thread": {
     "welcome": {
       "title": "你好！",
-      "subtitle": "今天我能為您做些什麼？"
+      "subtitle": "今天我能為您做些什麼？",
+      "configNotComplete": "你尚未完成 {{selectedAI}} 的配置",
+      "openSettings": "開啟設定"
     },
     "suggestions": {
       "recognizeVideoFiles": {

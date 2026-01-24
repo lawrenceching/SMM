@@ -119,7 +119,9 @@
   "thread": {
     "welcome": {
       "title": "Hello there!",
-      "subtitle": "How can I help you today?"
+      "subtitle": "How can I help you today?",
+      "configNotComplete": "You have not completed the configuration for {{selectedAI}}",
+      "openSettings": "Open Settings"
     },
     "suggestions": {
       "recognizeVideoFiles": {
