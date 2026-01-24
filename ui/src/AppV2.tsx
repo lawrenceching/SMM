@@ -7,7 +7,6 @@ import { useDialogs } from "@/components/dialog-provider"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { FileItem, FolderType } from "@/components/dialog-provider"
-import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
@@ -16,9 +15,7 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
-import { tryToRecognizeMediaFolderByNFO } from "./components/TvShowPanelUtils"
-import type { MediaMetadata } from "@core/types"
-import { listFiles, listFilesApi } from "./api/listFiles"
+import { useEventHandlers } from "@/hooks/useEventHandlers"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -45,7 +42,10 @@ export default function AppV2() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, addMediaMetadata, selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata()
+
+  // Event handlers
+  const { onFolderSelected } = useEventHandlers()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -212,60 +212,6 @@ export default function AppV2() {
       return null
     }
   }, [isElectron])
-
-  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
-    console.log('Folder type selected:', type, 'for path:', folderPath)
-    try {
-      const response = await readMediaMetadataApi(folderPath)
-      const metadata = response.data
-
-      if(!metadata) {
-        console.log('[AppV2] Failed to read media metadata, it is the first time to open this folder, try to recognize by NFO')
-        const initialMetadata: MediaMetadata = {
-          mediaFolderPath: Path.posix(folderPath),
-          type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
-        }
-
-        const resp = await listFiles({
-          path: folderPath,
-          recursively: true,
-          onlyFiles: true,
-        })
-
-        if(resp.error) {
-          console.error('[AppV2] Failed to list files:', resp.error)
-          return;
-        }
-
-        if(resp.data === undefined) {
-          console.error('[AppV2] Failed to list files:', resp)
-          return;
-        }
-
-        initialMetadata.files = resp.data.items.map(item => Path.posix(item.path))
-
-        const recognizedMetadata = await tryToRecognizeMediaFolderByNFO(initialMetadata)
-        if(recognizedMetadata === undefined) {
-          console.error('[AppV2] Failed to recognize media folder by NFO')
-          return;
-        }
-        console.log(`[AppV2] recognizedMetadata:`, recognizedMetadata);
-        addMediaMetadata(recognizedMetadata)
-        return;
-      }
-
-      const folderTypeMap: Record<FolderType, "tvshow-folder" | "movie-folder" | "music-folder"> = {
-        tvshow: "tvshow-folder",
-        movie: "movie-folder",
-        music: "music-folder"
-      }
-      metadata.type = folderTypeMap[type]
-
-      addMediaMetadata(metadata)
-    } catch (error) {
-      console.error('Failed to read media metadata:', error)
-    }
-  }, [addMediaMetadata])
 
   const handleOpenFolderMenuClick = useCallback(() => {
     if (isElectron()) {
