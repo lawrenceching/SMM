@@ -1,7 +1,7 @@
 import type { ReadFileRequestBody, ReadFileResponseBody, UserConfig } from '@core/types';
 
 
-export async function readFile(path: string): Promise<ReadFileResponseBody> {
+export async function readFile(path: string, signal?: AbortSignal): Promise<ReadFileResponseBody> {
   const req: ReadFileRequestBody = {
     path: path,
   }
@@ -12,6 +12,7 @@ export async function readFile(path: string): Promise<ReadFileResponseBody> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(req),
+    signal,
   })
 
   if (!resp.ok) {

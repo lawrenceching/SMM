@@ -3,8 +3,9 @@ import type { ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from
 /**
  * 
  * @param path platform-specific path
+ * @param signal optional AbortSignal to cancel the request
  */
-export async function readMediaMetadataApi(path: string): Promise<ReadMediaMetadataResponseBody> {
+export async function readMediaMetadataApi(path: string, signal?: AbortSignal): Promise<ReadMediaMetadataResponseBody> {
   const req: ReadMediaMetadataRequestBody = {
     path: path,
   }
@@ -15,6 +16,7 @@ export async function readMediaMetadataApi(path: string): Promise<ReadMediaMetad
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(req),
+    signal,
   });
 
   if (!resp.ok) {

@@ -37,7 +37,8 @@ export async function searchTmdb(
  */
 export async function getTvShowById(
   id: number,
-  language?: 'zh-CN' | 'en-US' | 'ja-JP'
+  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  signal?: AbortSignal
 ): Promise<TmdbTvShowResponseBody> {
   const queryParams = new URLSearchParams();
   if (language) {
@@ -51,6 +52,7 @@ export async function getTvShowById(
     headers: {
       'Content-Type': 'application/json',
     },
+    signal,
   });
 
   if (!resp.ok) {

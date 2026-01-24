@@ -201,9 +201,10 @@ function createInitialTMDBSeason(seasonNumber: number): TMDBSeason {
 /**
  * Try to regcognize media folder by NFO. 
  * @param mediaFolderPath 
+ * @param signal optional AbortSignal to cancel the operation
  * @returns return undefined if not recognizable
  */
-export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promise<MediaMetadata | undefined> {
+export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata, signal?: AbortSignal): Promise<MediaMetadata | undefined> {
 
     const mm = structuredClone(_mm)
     
@@ -220,7 +221,7 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promis
         return undefined
     }
 
-    const resp = await readFile(nfoFilePath)
+    const resp = await readFile(nfoFilePath, signal)
 
     if(resp.error) {
         console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read tvshow.nfo file: ${nfoFilePath}`, resp.error)
@@ -242,7 +243,10 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata): Promis
 
     
     for(const episodeNfoFile of episodeNfoFiles) {
-        const resp = await readFile(episodeNfoFile)
+        if (signal?.aborted) {
+            return undefined
+        }
+        const resp = await readFile(episodeNfoFile, signal)
         if(resp.error) {
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read episode NFO file: ${episodeNfoFile}`, resp.error)
             continue

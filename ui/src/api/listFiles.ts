@@ -1,12 +1,13 @@
 import type { ListFilesRequestBody, ListFilesResponseBody } from "@core/types";
 
-export async function listFiles(req: ListFilesRequestBody): Promise<ListFilesResponseBody> {
+export async function listFiles(req: ListFilesRequestBody, signal?: AbortSignal): Promise<ListFilesResponseBody> {
   const resp = await fetch('/api/listFiles', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(req),
+    signal,
   });
 
   if (!resp.ok) {
