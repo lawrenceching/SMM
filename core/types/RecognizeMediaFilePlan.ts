@@ -8,6 +8,10 @@ export interface RecognizedFile {
 }
 
 export interface RecognizeMediaFilePlan {
+    /**
+     * UUID of the plan
+     */
+    id: string;
     task: "recognize-media-file",
     status: "pending" | "completed" | "rejected",
     /**

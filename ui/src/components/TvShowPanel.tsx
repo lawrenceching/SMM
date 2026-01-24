@@ -25,6 +25,7 @@ import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { useGlobalStates } from "@/providers/global-states-provider"
+import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -44,7 +45,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { mediaFolderStates } = useGlobalStates()
+  const { mediaFolderStates, pendingPlans, rejectPlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -59,7 +60,7 @@ function TvShowPanelContent() {
   ]
 
   // Use prompts hook
-  const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt } = usePrompts()
+  const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt, openAiRecognizePrompt } = usePrompts()
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
 
@@ -230,6 +231,100 @@ function TvShowPanelContent() {
       isCancelled = true
     }
   }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, userConfig?.applicationLanguage, t])
+
+  // Handle AI recognition confirm - apply recognized files from plan to media metadata
+  const handleAiRecognizeConfirm = useCallback(async (plan: RecognizeMediaFilePlan) => {
+    console.log('[TvShowPanel] handleAiRecognizeConfirm CALLED', {
+      timestamp: new Date().toISOString(),
+      plan,
+      mediaFolderPath: mediaMetadata?.mediaFolderPath,
+      stackTrace: new Error().stack
+    })
+
+    if (!mediaMetadata?.mediaFolderPath) {
+      toast.error("No media folder path available")
+      return
+    }
+
+    // Verify the plan's mediaFolderPath matches the current media metadata
+    if (plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
+      console.warn('[TvShowPanel] Plan mediaFolderPath does not match current media metadata', {
+        planPath: plan.mediaFolderPath,
+        currentPath: mediaMetadata.mediaFolderPath
+      })
+      toast.error("Plan does not match current media folder")
+      return
+    }
+
+    try {
+      // Apply recognized files to media metadata
+      let updatedMediaFiles = mediaMetadata.mediaFiles ?? []
+      
+      for (const recognizedFile of plan.files) {
+        updatedMediaFiles = updateMediaFileMetadatas(
+          updatedMediaFiles,
+          recognizedFile.path,
+          recognizedFile.season,
+          recognizedFile.episode
+        )
+      }
+
+      // Update media metadata with recognized files
+      const updatedMetadata: typeof mediaMetadata = {
+        ...mediaMetadata,
+        mediaFiles: updatedMediaFiles
+      }
+
+      const traceId = `TvShowPanel-handleAiRecognizeConfirm-${nextTraceId()}`
+      updateMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, { traceId })
+      
+      console.log('[TvShowPanel] Applied recognition from plan', {
+        planFilesCount: plan.files.length,
+        updatedMediaFilesCount: updatedMediaFiles.length
+      })
+      
+      toast.success(`Applied recognition for ${plan.files.length} file(s)`)
+    } catch (error) {
+      console.error('[TvShowPanel] Error applying recognition:', error)
+      toast.error("Failed to apply recognition")
+    }
+  }, [mediaMetadata, updateMediaMetadata])
+
+  // Log pending plans and open prompt if plan matches current media folder
+  useEffect(() => {
+    console.log('[TvShowPanel] Pending plans:', pendingPlans)
+    
+    if (!mediaMetadata?.mediaFolderPath) {
+      return
+    }
+
+    const plan = pendingPlans.find(
+      plan => 
+        plan.task === "recognize-media-file" && 
+        plan.status === 'pending' &&
+        plan.mediaFolderPath === mediaMetadata.mediaFolderPath
+    )
+    
+    if (plan) {
+      openAiRecognizePrompt({
+        status: "wait-for-ack",
+        confirmButtonLabel: t('toolbar.confirm') || "Confirm",
+        confirmButtonDisabled: false,
+        isRenaming: false,
+        onConfirm: () => handleAiRecognizeConfirm(plan),
+        onCancel: async () => {
+          console.log('[TvShowPanel] AI recognition cancelled')
+          try {
+            await rejectPlan(plan.id)
+            console.log('[TvShowPanel] Plan rejected successfully')
+          } catch (error) {
+            // Error handling is done in global states provider
+            console.error('[TvShowPanel] Error rejecting plan:', error)
+          }
+        }
+      })
+    }
+  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, rejectPlan, t])
 
   // Use renaming hook
   const { startToRenameFiles } = useTvShowRenaming({
