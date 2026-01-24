@@ -9,6 +9,7 @@ export interface RecognizedFile {
 
 export interface RecognizeMediaFilePlan {
     task: "recognize-media-file",
+    status: "pending" | "completed" | "rejected",
     /**
      * The absolute path of the media folder, in POSIX format
      */

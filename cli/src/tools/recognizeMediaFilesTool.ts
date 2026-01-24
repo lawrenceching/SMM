@@ -3,8 +3,11 @@ import { RecognizeMediaFilePlanReady, type RecognizeMediaFilePlanReadyRequestDat
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import { getUserDataDir } from "@/utils/config";
 import path from "path";
-import { mkdir } from "fs/promises";
+import { mkdir, readdir, stat } from "fs/promises";
 import { Path } from "@core/path";
+import pino from "pino";
+
+const logger = pino();
 
 /**
  * Get the path to the plans directory
@@ -60,6 +63,7 @@ export async function beginRecognizeTask(mediaFolderPath: string): Promise<strin
   
   const plan: RecognizeMediaFilePlan = {
     task: "recognize-media-file",
+    status: "pending",
     mediaFolderPath: folderPathInPosix,
     files: [],
   };
@@ -129,4 +133,74 @@ export async function endRecognizeTask(taskId: string): Promise<void> {
     event: RecognizeMediaFilePlanReady.event,
     data,
   });
+}
+
+/**
+ * Get all pending tasks from the plans directory
+ * @return Array of pending RecognizeMediaFilePlan tasks
+ */
+export async function getAllPendingTasks(): Promise<RecognizeMediaFilePlan[]> {
+  const plansDir = getPlansDir();
+  const pendingTasks: RecognizeMediaFilePlan[] = [];
+
+  try {
+    // Check if plans directory exists
+    try {
+      const stats = await stat(plansDir);
+      if (!stats.isDirectory()) {
+        logger.warn({ plansDir }, 'Plans path exists but is not a directory');
+        return [];
+      }
+    } catch (error) {
+      // Directory doesn't exist, return empty array
+      return [];
+    }
+
+    // Read all files in the plans directory
+    const files = await readdir(plansDir);
+
+    // Filter for .plan.json files and parse them
+    for (const file of files) {
+      if (!file.endsWith('.plan.json')) {
+        continue;
+      }
+
+      const planFilePath = path.join(plansDir, file);
+
+      try {
+        const fileContent = Bun.file(planFilePath);
+        
+        if (!(await fileContent.exists())) {
+          continue;
+        }
+
+        const content = await fileContent.json();
+        
+        // Validate that it's a RecognizeMediaFilePlan with pending status
+        if (
+          typeof content === 'object' &&
+          content !== null &&
+          content.task === 'recognize-media-file' &&
+          content.status === 'pending'
+        ) {
+          pendingTasks.push(content as RecognizeMediaFilePlan);
+        }
+      } catch (error) {
+        // Log warning for invalid JSON files but continue processing others
+        logger.warn(
+          { planFilePath, error: error instanceof Error ? error.message : String(error) },
+          'Failed to parse plan file, skipping'
+        );
+      }
+    }
+
+    return pendingTasks;
+  } catch (error) {
+    logger.error(
+      { plansDir, error: error instanceof Error ? error.message : String(error) },
+      'Failed to read plans directory'
+    );
+    // Return empty array on error rather than throwing
+    return [];
+  }
 }
