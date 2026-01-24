@@ -1,3 +1,10 @@
 {
     "bun.test.enable": false,
+    "vitest.include": [
+        "ui/src/**/*.{test,spec}.{ts,tsx}"
+    ],
+    "vitest.configPath": "ui/vitest.config.ts",
+    "vitest.nodeEnv": {
+        "NODE_ENV": "test"
+    }
 }
