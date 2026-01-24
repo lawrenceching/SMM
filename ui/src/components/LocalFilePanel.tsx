@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
-import { useMediaMetadata } from "@/components/media-metadata-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"

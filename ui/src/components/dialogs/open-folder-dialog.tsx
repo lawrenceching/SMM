@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useConfig } from "@/components/config-provider"
-import { useMediaMetadata } from "@/components/media-metadata-provider"
+import { useConfig } from "@/providers/config-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { Path } from "@core/path"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import { useTranslation } from "@/lib/i18n"

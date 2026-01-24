@@ -1,5 +1,5 @@
 import { TMDBMovieOverview } from "./tmdb-movie-overview"
-import { useMediaMetadata } from "./media-metadata-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"

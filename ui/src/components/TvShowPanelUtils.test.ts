@@ -1,13 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import * as TvShowPanelUtils from './TvShowPanelUtils'
 import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
-import type { MediaMetadata, MediaFileMetadata, TMDBTVShowDetails, TMDBEpisode } from '@core/types'
+import type { MediaMetadata, MediaFileMetadata } from '@core/types'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')

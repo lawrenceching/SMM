@@ -5,10 +5,11 @@ import './lib/i18n' // Initialize i18n
 import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
-import { ThemeProvider } from './components/theme-provider'
-import { ConfigProvider, useConfig } from './components/config-provider'
-import { MediaMetadataProvider, useMediaMetadata } from './components/media-metadata-provider'
-import { DialogProvider, useDialogs } from './components/dialog-provider'
+import { ThemeProvider } from './providers/theme-provider'
+import { ConfigProvider, useConfig } from './providers/config-provider'
+import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
+import { DialogProvider, useDialogs } from './providers/dialog-provider'
+import { GlobalStatesProvider } from './providers/global-states-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
@@ -231,10 +232,12 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <ConfigProvider>
         <MediaMetadataProvider>
-          <DialogProvider>
-            <AppInitializer />
-            <AppSwitcher />
-          </DialogProvider>
+          <GlobalStatesProvider>
+            <DialogProvider>
+              <AppInitializer />
+              <AppSwitcher />
+            </DialogProvider>
+          </GlobalStatesProvider>
         </MediaMetadataProvider>
       </ConfigProvider>
     </ThemeProvider>

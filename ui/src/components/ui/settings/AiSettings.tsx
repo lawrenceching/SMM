@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useConfig } from "@/components/config-provider"
+import { useConfig } from "@/providers/config-provider"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"

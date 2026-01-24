@@ -1,7 +1,7 @@
 import { AssistantModal } from "@/components/assistant-modal";
 import { AssistantRuntimeProvider, useAssistantApi } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { useMediaMetadata } from "@/components/media-metadata-provider";
+import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useEffect } from "react";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { prompts } from "./prompts";

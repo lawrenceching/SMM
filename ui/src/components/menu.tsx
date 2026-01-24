@@ -14,7 +14,7 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
-import { useDialogs } from "@/components/dialog-provider"
+import { useDialogs } from "@/providers/dialog-provider"
 import { useTranslation } from "@/lib/i18n"
 import { cleanUp } from "@/api/cleanUp"
 import { toast } from "sonner"

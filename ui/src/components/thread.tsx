@@ -26,7 +26,7 @@ import {
   SquareIcon,
 } from "lucide-react";
 import type { FC } from "react";
-import { useMediaMetadata } from "./media-metadata-provider";
+import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
 

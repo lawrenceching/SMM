@@ -3,7 +3,7 @@ import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
-import { useMediaMetadata } from "./media-metadata-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { relative } from "@/lib/path"
 import { useMemo, useCallback } from "react"
 import React from "react"

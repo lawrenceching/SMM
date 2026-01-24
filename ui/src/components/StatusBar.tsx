@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { useConfig } from "./config-provider"
+import { useConfig } from "@/providers/config-provider"
 import { useWebSocket } from "@/hooks/useWebSocket"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
 

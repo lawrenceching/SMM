@@ -1,6 +1,6 @@
 import { useMount } from "react-use"
 import localStorages from "./lib/localStorages";
-import { useMediaMetadata } from "./components/media-metadata-provider";
+import { useMediaMetadata } from "./providers/media-metadata-provider";
 
 /**
  * This component is used to initialize the app

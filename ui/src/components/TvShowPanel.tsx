@@ -1,5 +1,5 @@
 import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
-import { useMediaMetadata } from "./media-metadata-provider"
+import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
@@ -21,8 +21,8 @@ import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/TvShowPanel/useTvShowWebSocketEvents"
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
 import { getTvShowById } from "@/api/tmdb"
-import { useConfig } from "./config-provider"
-import { useDialogs } from "./dialog-provider"
+import { useConfig } from "@/providers/config-provider"
+import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 
 export interface EpisodeModel {
