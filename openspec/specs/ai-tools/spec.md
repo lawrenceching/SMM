@@ -11,7 +11,7 @@ The system SHALL provide AI tools that allow AI agents to create a media file re
 - **THEN** the system generates a unique task UUID
 - **AND** creates the plans directory `${userDataDir}/plans/` if it doesn't exist
 - **AND** creates a plan file `{taskId}.plan.json` in `${userDataDir}/plans/` directory
-- **AND** initializes the plan file with `task: "recognize-media-file"`, `mediaFolderPath`, and empty `files` array
+- **AND** initializes the plan file with `task: "recognize-media-file"`, `id` (set to the generated UUID), `status: "pending"`, `mediaFolderPath`, and empty `files` array
 - **AND** returns the task ID to the AI agent
 
 #### Scenario: Add recognized file to task
@@ -35,10 +35,37 @@ The system SHALL provide AI tools that allow AI agents to create a media file re
 #### Scenario: Plan file format matches RecognizeMediaFilePlan
 - **WHEN** a recognition task plan file is created or updated
 - **THEN** the file content SHALL conform to the `RecognizeMediaFilePlan` interface:
+  - `id: string` (UUID)
   - `task: "recognize-media-file"`
+  - `status: "pending" | "completed" | "rejected"`
   - `mediaFolderPath: string` (absolute path in POSIX format)
   - `files: RecognizedFile[]` where each file has:
     - `season: number`
     - `episode: number`
     - `path: string` (absolute path in POSIX format)
+
+### Requirement: Plan Rejection
+The system SHALL allow users to reject recognition plans that are in "pending" status.
+
+#### Scenario: Reject plan via API
+- **WHEN** a client calls `/api/rejectPlan` with a plan ID in the request body
+- **THEN** the system reads the plan file for the given plan ID
+- **AND** validates that the plan exists and has status "pending"
+- **AND** updates the plan status to "rejected"
+- **AND** writes the updated plan back to the file
+- **AND** returns success response to the client
+
+#### Scenario: Reject non-existent plan
+- **WHEN** a client calls `/api/rejectPlan` with a non-existent plan ID
+- **THEN** the system returns an error response indicating the plan was not found
+
+#### Scenario: Reject already processed plan
+- **WHEN** a client calls `/api/rejectPlan` with a plan ID that has status "completed" or "rejected"
+- **THEN** the system returns an error response indicating the plan cannot be rejected
+
+#### Scenario: Frontend rejects plan on cancel
+- **WHEN** user clicks the cancel button in AiRecognizePrompt for a pending recognition plan
+- **THEN** the frontend calls `/api/rejectPlan` with the plan's ID
+- **AND** the plan status is updated to "rejected" on the backend
+- **AND** the UI handles the response appropriately (closes prompt, shows error if rejection failed)
 
