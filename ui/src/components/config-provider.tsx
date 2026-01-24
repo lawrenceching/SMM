@@ -31,7 +31,7 @@ interface HelloResponse {
 const defaultUserConfig: UserConfig = {
   applicationLanguage: 'zh-CN',
   tmdb: {
-    host: 'https://api.themoviedb.org/3',
+    host: '',
     apiKey: '',
     httpProxy: ''
   },
