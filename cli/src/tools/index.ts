@@ -13,6 +13,12 @@ import {
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
 } from './renameFilesTask';
+import {
+  createBeginRecognizeTaskTool,
+  createAddRecognizedMediaFileTool,
+  createEndRecognizeTaskTool,
+} from './recognizeMediaFilesTask';
+import { createGetEpisodesTool } from './getEpisodes';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
@@ -27,5 +33,9 @@ export {
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
+  createBeginRecognizeTaskTool,
+  createAddRecognizedMediaFileTool,
+  createEndRecognizeTaskTool,
+  createGetEpisodesTool,
 };
 

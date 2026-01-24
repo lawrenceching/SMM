@@ -11,33 +11,27 @@ SMM maintains below date for a media folder:
 3. Media File Metadata - The linkage between local video file to Season and Episode of TV show
 
 
-## Main Use Cases
+## Tasks
 
-### Match Video File to Episode
+This section defines tasks for how to handle certain user requirements.
 
-When user download videos from Internet, 
-the media folders may not in a correct structure for SMM and other media manager (such as Plex, Jellyfin, etc.) to recognize.
+### Recognize Media File
 
-For a media folder, SMM don't know the linkage between local video file to season and episode.
-The linkage is reprensented as MediaFileMetadata.
+When user asks to recognize media file, match media file, or find the video file for episodes,
+user is asking for this use case.
 
-If user ask "match xxx.mp4 to season 1 episode 1",
-or "look up the video file for season 1 episode 2",
-you should help user to create the MediaFileMetadata.
+SMM maintains a linkage between local video file to season and episode. This task will update the linkages.
 
-Order to infer the MediaFileMetadata, you may need below information:
+Below is the steps to recognize media file:
+
 1. The media folder user is asking for.
-   If user don't tell the media folder, you should call "get-selected-media-metadata" to get the selected media folder in UI.
-2. The TV Show or Movie media metadata
-3. The local files in media folder
-
-#### Tasks
-
-Below are tasks to help user to match video files to each episode.
-
-[ ] Gather information from user and software context.
-[ ] Call "match-episodes-in-batch" to update the MediaFileMetadata
-
+   If user don't tell which folder he is asking for, you should call "get-selected-media-metadata" to get the selected media folder in UI.
+2. Get episodes using "get-episodes" tool
+3. Get local files using "list-files-in-media-folder" tool
+4. Call "begin-recognize-task" tool to notify AI Agent to start a recognize task
+5. iterate each episodes, find the local video file for the episode, and call "add-recognized-media-file" tool to add the recognized media file to the task
+   IMPORTANT: It's OK to skip the episode if the local video file is not found.
+6. Call "end-recognize-task" tool to notify AI Agent to end the recognize task
 
 ### Rename Files
 

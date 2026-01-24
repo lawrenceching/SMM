@@ -10,6 +10,10 @@ import {
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
+  createBeginRecognizeTaskTool,
+  createAddRecognizedMediaFileTool,
+  createEndRecognizeTaskTool,
+  createGetEpisodesTool,
 } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
 import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
@@ -101,16 +105,23 @@ export async function processChatRequest(request: Request): Promise<Response> {
         isFolderExist: { ...isFolderExistTool, execute: (args: any) => isFolderExistTool.execute(args, abortSignal) },
         // getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId, abortSignal),
         getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
+        getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: { ...getMediaFoldersTool, execute: (args: any) => getMediaFoldersTool.execute(args, abortSignal) },
         listFilesInMediaFolder: { ...listFilesInMediaFolderTool, execute: (args: any) => listFilesInMediaFolderTool.execute(args, abortSignal) },
         // matchEpisode: { ...matchEpisodeTool, execute: (args: any) => matchEpisodeTool.execute(args, abortSignal) },
-        matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId, abortSignal),
+
+        // deprecate the matchEpisodesInBatch
+        // matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId, abortSignal),
+
         // renameFilesInBatch: createRenameFilesInBatchTool(clientId, abortSignal),
         renameFolder: createRenameFolderTool(clientId, abortSignal),
         // askForConfirmation: createAskForConfirmationTool(clientId, abortSignal),
         beginRenameFilesTask: createBeginRenameFilesTaskTool(clientId, abortSignal),
         addRenameFileToTask: createAddRenameFileToTaskTool(clientId, abortSignal),
         endRenameFilesTask: createEndRenameFilesTaskTool(clientId, abortSignal),
+        beginRecognizeTask: createBeginRecognizeTaskTool(clientId, abortSignal),
+        addRecognizedMediaFile: createAddRecognizedMediaFileTool(clientId, abortSignal),
+        endRecognizeTask: createEndRecognizeTaskTool(clientId, abortSignal),
       },
       stopWhen: stepCountIs(100)
     });
