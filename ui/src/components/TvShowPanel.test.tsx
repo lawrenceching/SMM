@@ -69,8 +69,8 @@ vi.mock('./TvShowPanelPrompts', () => ({
   })),
 }))
 
-// Mock hooks
-vi.mock('./media-metadata-provider', () => ({
+// Mock hooks (TvShowPanel imports from @/providers/media-metadata-provider)
+vi.mock('@/providers/media-metadata-provider', () => ({
   useMediaMetadata: vi.fn(() => ({
     selectedMediaMetadata: undefined,
     updateMediaMetadata: vi.fn(),
@@ -175,7 +175,7 @@ vi.mock('@/lib/lookup', () => ({
   lookup: vi.fn(() => null),
 }))
 
-vi.mock('./config-provider', () => ({
+vi.mock('@/providers/config-provider', () => ({
   ConfigProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useConfig: vi.fn(() => ({
     appConfig: { version: 'test' },
@@ -225,7 +225,18 @@ vi.mock('./config-provider', () => ({
   })),
 }))
 
-vi.mock('./dialog-provider', () => ({
+vi.mock('@/providers/global-states-provider', () => ({
+  useGlobalStates: vi.fn(() => ({
+    mediaFolderStates: {},
+    setMediaFolderStates: vi.fn(),
+    pendingPlans: [],
+    fetchPendingPlans: vi.fn(),
+    rejectPlan: vi.fn(),
+  })),
+  GlobalStatesProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+vi.mock('@/providers/dialog-provider', () => ({
   DialogProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useDialogs: vi.fn(() => ({
     filePickerDialog: [vi.fn(), vi.fn()],

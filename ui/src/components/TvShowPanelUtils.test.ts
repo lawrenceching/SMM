@@ -1295,7 +1295,8 @@ describe('recognizeEpisodes', () => {
             episodeNumber: 2,
           }),
         ]),
-      })
+      }),
+      expect.objectContaining({ traceId: expect.any(String) })
     )
   })
 
@@ -1311,7 +1312,8 @@ describe('recognizeEpisodes', () => {
       expect.objectContaining({
         mediaFolderPath: '/media/tvshow',
         mediaFiles: [],
-      })
+      }),
+      expect.objectContaining({ traceId: expect.any(String) })
     )
   })
 
@@ -1375,7 +1377,8 @@ describe('recognizeEpisodes', () => {
       expect.objectContaining({
         mediaFolderPath: '/media/tvshow',
         mediaFiles: [],
-      })
+      }),
+      expect.objectContaining({ traceId: expect.any(String) })
     )
   })
 
@@ -1589,7 +1592,8 @@ describe('recognizeEpisodes', () => {
             absolutePath: 'C:\\media\\tvshow\\episode1.mkv',
           }),
         ]),
-      })
+      }),
+      expect.objectContaining({ traceId: expect.any(String) })
     )
   })
 
@@ -1750,9 +1754,9 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
 
     // Verify readFile was called for tvshow.nfo and each episode NFO file
     expect(readFile).toHaveBeenCalledTimes(3)
-    expect(readFile).toHaveBeenCalledWith('/media/tvshow/tvshow.nfo')
-    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E01.nfo')
-    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E02.nfo')
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/tvshow.nfo', undefined)
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E01.nfo', undefined)
+    expect(readFile).toHaveBeenCalledWith('/media/tvshow/Show Name - S01E02.nfo', undefined)
 
     // Verify parseEpisodeNfo was called for each episode XML
     expect(parseEpisodeNfo).toHaveBeenCalledTimes(2)
