@@ -97,7 +97,7 @@ export interface EpisodeSectionProps {
     /**
      * If true, the episode section display the new path which user to preview
      */
-    isPreviewMode: boolean
+    isPreviewingForRename: boolean
     /**
      * Optional episode ID to scroll to (for programmatic scrolling)
      */
@@ -115,7 +115,7 @@ export function EpisodeSection({
     expandedEpisodeIds,
     setExpandedEpisodeIds,
     files,
-    isPreviewMode,
+    isPreviewingForRename,
     onEpisodeFileSelect,
 }: EpisodeSectionProps) {
     const { t } = useTranslation(['components'])
@@ -126,7 +126,7 @@ export function EpisodeSection({
     // Handle click on "noFiles" div to open file picker
     const handleNoFilesClick = useCallback(() => {
         // Don't allow file selection in preview mode
-        if (isPreviewMode) {
+        if (isPreviewingForRename) {
             return
         }
 
@@ -134,7 +134,7 @@ export function EpisodeSection({
         if (onEpisodeFileSelect) {
             onEpisodeFileSelect(episode)
         }
-    }, [isPreviewMode, onEpisodeFileSelect, episode])
+    }, [isPreviewingForRename, onEpisodeFileSelect, episode])
     
     // Group files by type
     const filesByType = useMemo(() => {
@@ -187,7 +187,7 @@ export function EpisodeSection({
         >
             <div
                 onClick={() => {
-                    if (isPreviewMode) return // Don't allow collapse in preview mode
+                    if (isPreviewingForRename) return // Don't allow collapse in preview mode
                     setExpandedEpisodeIds(prev => {
                         const newSet = new Set(prev)
                         if (isEpisodeExpanded) {
@@ -273,7 +273,7 @@ export function EpisodeSection({
                             onClick={handleNoFilesClick}
                             className={cn(
                                 "text-center py-6 text-xs transition-colors",
-                                isPreviewMode 
+                                isPreviewingForRename 
                                     ? "text-muted-foreground" 
                                     : "text-muted-foreground cursor-pointer hover:text-foreground hover:bg-accent/50"
                             )}
@@ -294,7 +294,7 @@ export function EpisodeSection({
                                         icon={TypeIcon}
                                         label=""
                                         iconColor={iconColor}
-                                        isPreviewMode={isPreviewMode}
+                                        isPreviewingForRename={isPreviewingForRename}
                                         showRenameMenu={true}
                                         onFileSelectButtonClick={(file) => {
                                             if (onEpisodeFileSelect) {
@@ -315,7 +315,7 @@ export function EpisodeSection({
                                     const Icon = getFileIcon(file.path)
                                     const relativePath = getRelativePath(mediaFolderPath, file.path)
                                     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
-                                    const hasPreview = isPreviewMode && file.newPath
+                                    const hasPreview = isPreviewingForRename && file.newPath
                                     const isDeleted = file.isDeleted ?? false
                                     
                                     return (

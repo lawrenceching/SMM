@@ -25,7 +25,7 @@ interface TMDBTVShowOverviewProps {
     onRecognizeButtonClick?: () => void
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
-    isPreviewMode: boolean
+    isPreviewingForRename: boolean
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
     isLoading?: boolean
@@ -55,7 +55,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 
 export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
     ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, 
-        seasons, isPreviewMode, scrollToEpisodeId, onEpisodeFileSelect, isLoading }, ref) => {
+        seasons, isPreviewingForRename, scrollToEpisodeId, onEpisodeFileSelect, isLoading }, ref) => {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
@@ -76,9 +76,9 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
     // Expand all seasons and episodes when preview mode is entered, save current state
     useEffect(() => {
         const wasInPreviewMode = prevPreviewModeRef.current
-        prevPreviewModeRef.current = isPreviewMode
+        prevPreviewModeRef.current = isPreviewingForRename
 
-        if (isPreviewMode && !wasInPreviewMode && tvShow?.seasons) {
+        if (isPreviewingForRename && !wasInPreviewMode && tvShow?.seasons) {
             // Entering preview mode: save current expand state before expanding all
             // Use functional updates to get the current state values
             setExpandedSeasonIds(currentSeasonIds => {
@@ -105,7 +105,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                 })
                 return episodeIds
             })
-        } else if (!isPreviewMode && wasInPreviewMode && savedSeasonIdsRef.current !== null && savedEpisodeIdsRef.current !== null) {
+        } else if (!isPreviewingForRename && wasInPreviewMode && savedSeasonIdsRef.current !== null && savedEpisodeIdsRef.current !== null) {
             // Exiting preview mode: restore saved state
             setExpandedSeasonIds(savedSeasonIdsRef.current)
             setExpandedEpisodeIds(savedEpisodeIdsRef.current)
@@ -113,7 +113,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
             savedSeasonIdsRef.current = null
             savedEpisodeIdsRef.current = null
         }
-    }, [isPreviewMode, tvShow])
+    }, [isPreviewingForRename, tvShow])
 
     // Handle scrolling to episode when scrollToEpisodeId changes
     useEffect(() => {
@@ -498,7 +498,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                     setExpandedSeasonIds={setExpandedSeasonIds}
                     expandedEpisodeIds={expandedEpisodeIds}
                     setExpandedEpisodeIds={setExpandedEpisodeIds}
-                    isPreviewMode={isPreviewMode}
+                    isPreviewingForRename={isPreviewingForRename}
                     ruleName={ruleName}
                     seasons={seasons}
                     scrollToEpisodeId={scrollToEpisodeId}

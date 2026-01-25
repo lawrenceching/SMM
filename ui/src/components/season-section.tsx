@@ -35,7 +35,7 @@ interface SeasonSectionProps {
     setExpandedSeasonIds: React.Dispatch<React.SetStateAction<Set<number>>>
     expandedEpisodeIds: Set<number>
     setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
-    isPreviewMode?: boolean
+    isPreviewingForRename?: boolean
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
     scrollToEpisodeId?: number | null
@@ -49,7 +49,7 @@ export function SeasonSection({
     setExpandedSeasonIds,
     expandedEpisodeIds,
     setExpandedEpisodeIds,
-    isPreviewMode = false,
+    isPreviewingForRename = false,
     seasons,
     scrollToEpisodeId,
     onEpisodeFileSelect,
@@ -119,7 +119,7 @@ export function SeasonSection({
                             >
                                 <div
                                     onClick={() => {
-                                        if (isPreviewMode) return // Don't allow collapse in preview mode
+                                        if (isPreviewingForRename) return // Don't allow collapse in preview mode
                                         setExpandedSeasonIds(prev => {
                                             const newSet = new Set(prev)
                                             if (isExpanded) {
@@ -199,7 +199,7 @@ export function SeasonSection({
                                                             expandedEpisodeIds={expandedEpisodeIds}
                                                             setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
-                                                            isPreviewMode={isPreviewMode}
+                                                            isPreviewingForRename={isPreviewingForRename}
                                                             scrollToEpisodeId={scrollToEpisodeId}
                                                             onEpisodeFileSelect={onEpisodeFileSelect}
                                                         />

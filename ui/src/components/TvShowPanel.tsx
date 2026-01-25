@@ -522,7 +522,7 @@ function TvShowPanelContent() {
 
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
-  const isPreviewMode = promptsContext.isAiBasedRenameFilePromptOpen 
+  const isPreviewingForRename = promptsContext.isAiBasedRenameFilePromptOpen 
       || promptsContext.isRuleBasedRenameFilePromptOpen 
       || promptsContext.isRuleBasedRecognizePromptOpen
       || promptsContext.isAiRecognizePromptOpen
@@ -629,7 +629,7 @@ function TvShowPanelContent() {
           })}
           ruleName={selectedNamingRule}
           seasons={promptsContext.isRuleBasedRecognizePromptOpen ? seasonsForPreview : seasons}
-          isPreviewMode={isPreviewMode}
+          isPreviewingForRename={isPreviewingForRename}
           scrollToEpisodeId={scrollToEpisodeId}
           onEpisodeFileSelect={handleOpenFilePickerForEpisode}
           isLoading={isLoading}

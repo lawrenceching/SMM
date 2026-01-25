@@ -21,7 +21,7 @@ interface TMDBMovieOverviewProps {
     onRenameClick?: () => void
     ruleName?: "plex" | "emby"
     movieFiles: MovieFileModel
-    isPreviewMode: boolean
+    isPreviewingForRename: boolean
     
 }
 
@@ -47,7 +47,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
-export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewMode }: TMDBMovieOverviewProps) {
+export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewingForRename }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const { scrapeDialog } = useDialogs()
@@ -336,7 +336,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                 <MovieFilesSection
                     movie={movie}
                     isUpdatingMovie={isUpdatingMovie}
-                    isPreviewMode={isPreviewMode}
+                    isPreviewingForRename={isPreviewingForRename}
                     movieFiles={movieFiles}
                 />
             </div>

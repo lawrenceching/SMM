@@ -38,14 +38,14 @@ function getFileTypeConfig(type: FileProps['type']): { icon: typeof FileVideo, l
 interface MovieFilesSectionProps {
     movie?: TMDBMovie
     isUpdatingMovie: boolean
-    isPreviewMode: boolean
+    isPreviewingForRename: boolean
     movieFiles: MovieFileModel
 }
 
 export function MovieFilesSection({
     movie,
     isUpdatingMovie,
-    isPreviewMode,
+    isPreviewingForRename,
     movieFiles,
 }: MovieFilesSectionProps) {
     // Group files by type
@@ -114,7 +114,7 @@ export function MovieFilesSection({
                                                     icon={Icon}
                                                     label={isVideo && !isMultiple ? label : ""}
                                                     iconColor={fileIconColor}
-                                                    isPreviewMode={isPreviewMode}
+                                                    isPreviewingForRename={isPreviewingForRename}
                                                     showRenameMenu={isVideo}
                                                 />
                                             )

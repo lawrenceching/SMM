@@ -15,7 +15,7 @@ interface EpisodeFileProps {
     icon: LucideIcon
     label?: string
     iconColor?: string
-    isPreviewMode: boolean
+    isPreviewingForRename: boolean
     showRenameMenu?: boolean
     /**
      * Callback when "Select File" is clicked from context menu
@@ -44,7 +44,7 @@ export function EpisodeFile({
     file,
     icon: Icon,
     iconColor = "text-muted-foreground",
-    isPreviewMode,
+    isPreviewingForRename,
     showRenameMenu = false,
     onFileSelectButtonClick,
 }: EpisodeFileProps) {
@@ -55,7 +55,7 @@ export function EpisodeFile({
     const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
     const relativePath = getRelativePath(mediaFolderPath, file.path)
     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
-    const hasPreview = isPreviewMode && file.newPath
+    const hasPreview = isPreviewingForRename && file.newPath
     const isDeleted = file.isDeleted ?? false
     
     // Debug logging

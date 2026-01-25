@@ -126,7 +126,7 @@ vi.mock('./hooks/TvShowPanel/useTvShowPanelState', () => ({
     scrollToEpisodeId: null,
     setScrollToEpisodeId: vi.fn(),
     seasonsBackup: { current: [] },
-    isPreviewMode: false,
+    isPreviewingForRename: false,
   })),
 }))
 

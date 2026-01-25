@@ -80,7 +80,7 @@ function MoviePanel() {
 
 
   // Compute preview mode from prompt states
-  const isPreviewMode = useMemo(() => {
+  const isPreviewingForRename = useMemo(() => {
     return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen || isRuleBasedRecognizePromptOpen
   }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen, isRuleBasedRecognizePromptOpen])
 
@@ -367,7 +367,7 @@ function MoviePanel() {
           }}
           ruleName={selectedNamingRule}
           movieFiles={movieFiles}
-          isPreviewMode={isPreviewMode}
+          isPreviewingForRename={isPreviewingForRename}
         />
       </div>
     </div>
