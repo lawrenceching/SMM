@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, applyRecognizeMediaFilePlan } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -45,7 +45,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { mediaFolderStates, pendingPlans, rejectPlan } = useGlobalStates()
+  const { mediaFolderStates, pendingPlans, updatePlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -232,9 +232,10 @@ function TvShowPanelContent() {
     }
   }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, userConfig?.applicationLanguage, t])
 
-  // Handle AI recognition confirm - apply recognized files from plan to media metadata
+  // Handle AI recognition confirm - update plan (removes from pending), then apply recognized files
   const handleAiRecognizeConfirm = useCallback(async (plan: RecognizeMediaFilePlan) => {
-    console.log('[TvShowPanel] handleAiRecognizeConfirm CALLED', {
+    const traceId = `TvShowPanel-handleAiRecognizeConfirm-${nextTraceId()}`
+    console.log(`[${traceId}] handleAiRecognizeConfirm CALLED`, {
       timestamp: new Date().toISOString(),
       plan,
       mediaFolderPath: mediaMetadata?.mediaFolderPath,
@@ -248,7 +249,7 @@ function TvShowPanelContent() {
 
     // Verify the plan's mediaFolderPath matches the current media metadata
     if (plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
-      console.warn('[TvShowPanel] Plan mediaFolderPath does not match current media metadata', {
+      console.warn(`[${traceId}] Plan mediaFolderPath does not match current media metadata`, {
         planPath: plan.mediaFolderPath,
         currentPath: mediaMetadata.mediaFolderPath
       })
@@ -257,38 +258,15 @@ function TvShowPanelContent() {
     }
 
     try {
-      // Apply recognized files to media metadata
-      let updatedMediaFiles = mediaMetadata.mediaFiles ?? []
-      
-      for (const recognizedFile of plan.files) {
-        updatedMediaFiles = updateMediaFileMetadatas(
-          updatedMediaFiles,
-          recognizedFile.path,
-          recognizedFile.season,
-          recognizedFile.episode
-        )
-      }
-
-      // Update media metadata with recognized files
-      const updatedMetadata: typeof mediaMetadata = {
-        ...mediaMetadata,
-        mediaFiles: updatedMediaFiles
-      }
-
-      const traceId = `TvShowPanel-handleAiRecognizeConfirm-${nextTraceId()}`
-      updateMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, { traceId })
-      
-      console.log('[TvShowPanel] Applied recognition from plan', {
-        planFilesCount: plan.files.length,
-        updatedMediaFilesCount: updatedMediaFiles.length
-      })
-      
+      await updatePlan(plan.id, 'completed')
+      applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata, { traceId })
+      console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
       toast.success(`Applied recognition for ${plan.files.length} file(s)`)
     } catch (error) {
-      console.error('[TvShowPanel] Error applying recognition:', error)
+      console.error(`[${traceId}] Error applying recognition:`, error)
       toast.error("Failed to apply recognition")
     }
-  }, [mediaMetadata, updateMediaMetadata])
+  }, [mediaMetadata, updateMediaMetadata, updatePlan])
 
   // Log pending plans and open prompt if plan matches current media folder
   useEffect(() => {
@@ -310,8 +288,6 @@ function TvShowPanelContent() {
       const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
       setSeasonsForPreview(seasons)
 
-      // TODO: expand the seasons
-
       openAiRecognizePrompt({
         status: "wait-for-ack",
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
@@ -321,7 +297,7 @@ function TvShowPanelContent() {
         onCancel: async () => {
           console.log('[TvShowPanel] AI recognition cancelled')
           try {
-            await rejectPlan(plan.id)
+            await updatePlan(plan.id, 'rejected')
             console.log('[TvShowPanel] Plan rejected successfully')
           } catch (error) {
             // Error handling is done in global states provider
@@ -330,7 +306,7 @@ function TvShowPanelContent() {
         }
       })
     }
-  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, rejectPlan, t])
+  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t])
 
   // Use renaming hook
   const { startToRenameFiles } = useTvShowRenaming({

@@ -137,6 +137,32 @@ export function updateMediaFileMetadatas(
     
 }
 
+/**
+ * Apply a RecognizeMediaFilePlan to media metadata and persist via updateMediaMetadata.
+ * Caller is responsible for validation and must pass a traceId so the event origin is visible (e.g. TvShowPanel-handleAiRecognizeConfirm-...).
+ */
+export function applyRecognizeMediaFilePlan(
+    plan: RecognizeMediaFilePlan,
+    mediaMetadata: MediaMetadata,
+    updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void,
+    options: { traceId: string }
+): void {
+    let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
+    for (const recognizedFile of plan.files) {
+        updatedMediaFiles = updateMediaFileMetadatas(
+            updatedMediaFiles,
+            recognizedFile.path,
+            recognizedFile.season,
+            recognizedFile.episode
+        );
+    }
+    const updatedMetadata: MediaMetadata = {
+        ...mediaMetadata,
+        mediaFiles: updatedMediaFiles,
+    };
+    updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
+}
+
 export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] {
     const mapping: {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] = [];
 

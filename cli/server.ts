@@ -26,7 +26,7 @@ import { handleOpenFile } from './src/route/OpenFile';
 import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleGetPendingPlans } from './src/route/GetPendingPlans';
-import { handleRejectPlan } from './src/route/RejectPlan';
+import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import { Server as SocketIOServer } from 'socket.io';
@@ -142,7 +142,7 @@ export class Server {
     handleScrapeRequest(this.app);
     handleDebugRequest(this.app);
     handleGetPendingPlans(this.app);
-    handleRejectPlan(this.app);
+    handleUpdatePlan(this.app);
     handleTmdb(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks

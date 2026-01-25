@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
-import { rejectPlan as rejectPlanApi } from "@/api/rejectPlan"
+import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
 import { toast } from "sonner"
 
 export interface MediaFolderState {
@@ -23,9 +23,10 @@ interface GlobalStatesContextValue {
    */
   fetchPendingPlans: () => Promise<void>
   /**
-   * Reject a plan and update the cached state
+   * Update a plan's status (reject or complete). Automatically removes the plan from
+   * pendingPlans so the UI does not need to do it.
    */
-  rejectPlan: (planId: string) => Promise<void>
+  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
 }
 
 const GlobalStatesContext = createContext<GlobalStatesContextValue | undefined>(undefined)
@@ -53,26 +54,29 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
     }
   }, [])
 
-  const rejectPlan = useCallback(async (planId: string) => {
+  const updatePlan = useCallback(async (planId: string, status: UpdatePlanStatus) => {
+    // Optimistic update: remove from UI immediately so the prompt doesn't re-open
+    // before the API returns (e.g. when effect re-runs after toast/metadata update)
+    setPendingPlans(prev => prev.filter(plan => plan.id !== planId))
     try {
-      const result = await rejectPlanApi(planId)
+      const result = await updatePlanApi(planId, status)
       if (result.error) {
-        console.error('[GlobalStatesProvider] Failed to reject plan:', result.error)
+        console.error('[GlobalStatesProvider] Failed to update plan:', result.error)
         toast.error(result.error)
+        await fetchPendingPlans()
         throw new Error(result.error)
       } else {
-        // Update the cached state by removing the rejected plan
-        setPendingPlans(prev => prev.filter(plan => plan.id !== planId))
-        console.log('[GlobalStatesProvider] Plan rejected successfully and state updated')
+        console.log('[GlobalStatesProvider] Plan updated successfully', { planId, status })
       }
     } catch (error) {
-      console.error('[GlobalStatesProvider] Error rejecting plan:', error)
-      if (error instanceof Error && !error.message.includes('Failed to reject plan')) {
+      console.error('[GlobalStatesProvider] Error updating plan:', error)
+      await fetchPendingPlans()
+      if (error instanceof Error && !error.message.includes('Failed to update plan')) {
         toast.error(error.message)
       }
       throw error
     }
-  }, [])
+  }, [fetchPendingPlans])
 
   useEffect(() => {
     fetchPendingPlans()
@@ -83,7 +87,7 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
     setMediaFolderStates,
     pendingPlans,
     fetchPendingPlans,
-    rejectPlan,
+    updatePlan,
   }
 
   return (

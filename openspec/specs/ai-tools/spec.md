@@ -44,28 +44,34 @@ The system SHALL provide AI tools that allow AI agents to create a media file re
     - `episode: number`
     - `path: string` (absolute path in POSIX format)
 
-### Requirement: Plan Rejection
-The system SHALL allow users to reject recognition plans that are in "pending" status.
+### Requirement: Plan status update (reject or complete)
+The system SHALL allow the frontend to update a pending recognition plan's status to "rejected" or "completed" via `/api/updatePlan`.
 
-#### Scenario: Reject plan via API
-- **WHEN** a client calls `/api/rejectPlan` with a plan ID in the request body
+#### Scenario: Update plan via API (reject or complete)
+- **WHEN** a client calls `/api/updatePlan` with a request body containing `planId` and `status` ("rejected" or "completed")
 - **THEN** the system reads the plan file for the given plan ID
 - **AND** validates that the plan exists and has status "pending"
-- **AND** updates the plan status to "rejected"
+- **AND** updates the plan status to the given value
 - **AND** writes the updated plan back to the file
 - **AND** returns success response to the client
 
-#### Scenario: Reject non-existent plan
-- **WHEN** a client calls `/api/rejectPlan` with a non-existent plan ID
+#### Scenario: Update non-existent plan
+- **WHEN** a client calls `/api/updatePlan` with a non-existent plan ID
 - **THEN** the system returns an error response indicating the plan was not found
 
-#### Scenario: Reject already processed plan
-- **WHEN** a client calls `/api/rejectPlan` with a plan ID that has status "completed" or "rejected"
-- **THEN** the system returns an error response indicating the plan cannot be rejected
+#### Scenario: Update already processed plan
+- **WHEN** a client calls `/api/updatePlan` with a plan ID that has status "completed" or "rejected"
+- **THEN** the system returns an error response indicating the plan cannot be updated
 
 #### Scenario: Frontend rejects plan on cancel
 - **WHEN** user clicks the cancel button in AiRecognizePrompt for a pending recognition plan
-- **THEN** the frontend calls `/api/rejectPlan` with the plan's ID
+- **THEN** the frontend calls `/api/updatePlan` with the plan's ID and `status: "rejected"`
 - **AND** the plan status is updated to "rejected" on the backend
-- **AND** the UI handles the response appropriately (closes prompt, shows error if rejection failed)
+- **AND** the UI handles the response appropriately (closes prompt, shows error if update failed)
+
+#### Scenario: Frontend completes plan on confirm
+- **WHEN** user clicks the confirm button in AiRecognizePrompt and recognition is applied successfully
+- **THEN** the frontend calls `/api/updatePlan` with the plan's ID and `status: "completed"`
+- **AND** the plan status is updated to "completed" on the backend
+- **AND** the plan is removed from the pending list in the UI
 

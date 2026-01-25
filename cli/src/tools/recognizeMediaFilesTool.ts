@@ -137,15 +137,18 @@ export async function endRecognizeTask(taskId: string): Promise<void> {
   });
 }
 
+export type UpdatePlanStatus = 'rejected' | 'completed';
+
 /**
- * Reject a recognition plan
+ * Update a recognition plan's status (reject or complete).
+ * Only plans in "pending" status can be updated.
  * @param planId The plan ID (UUID)
+ * @param status The new status: "rejected" or "completed"
  */
-export async function rejectPlan(planId: string): Promise<void> {
+export async function updatePlanStatus(planId: string, status: UpdatePlanStatus): Promise<void> {
   const plansDir = getPlansDir();
-  
+
   try {
-    // Check if plans directory exists
     try {
       const stats = await stat(plansDir);
       if (!stats.isDirectory()) {
@@ -155,9 +158,8 @@ export async function rejectPlan(planId: string): Promise<void> {
       throw new Error(`Plans directory does not exist`);
     }
 
-    // Read all files in the plans directory to find the plan by ID
     const files = await readdir(plansDir);
-    
+
     for (const file of files) {
       if (!file.endsWith('.plan.json')) {
         continue;
@@ -167,44 +169,37 @@ export async function rejectPlan(planId: string): Promise<void> {
 
       try {
         const fileContent = Bun.file(planFilePath);
-        
+
         if (!(await fileContent.exists())) {
           continue;
         }
 
         const plan = await fileContent.json() as RecognizeMediaFilePlan;
-        
-        // Check if this is the plan we're looking for
+
         if (plan.id === planId) {
-          // Validate that plan is in pending status
           if (plan.status !== 'pending') {
-            throw new Error(`Plan cannot be rejected: plan has status "${plan.status}"`);
+            throw new Error(`Plan cannot be updated: plan has status "${plan.status}"`);
           }
-          
-          // Update status to rejected
-          plan.status = 'rejected';
-          
-          // Write updated plan back to file
+
+          plan.status = status;
           await Bun.write(planFilePath, JSON.stringify(plan, null, 2));
-          
-          logger.info({ planId, planFilePath }, 'Plan rejected successfully');
+
+          logger.info({ planId, planFilePath, status }, 'Plan status updated successfully');
           return;
         }
       } catch (error) {
-        // Log warning for invalid JSON files but continue processing others
         logger.warn(
           { planFilePath, error: error instanceof Error ? error.message : String(error) },
           'Failed to parse plan file, skipping'
         );
       }
     }
-    
-    // Plan not found
+
     throw new Error(`Plan with id "${planId}" not found`);
   } catch (error) {
     logger.error(
-      { planId, plansDir, error: error instanceof Error ? error.message : String(error) },
-      'Failed to reject plan'
+      { planId, plansDir, status, error: error instanceof Error ? error.message : String(error) },
+      'Failed to update plan status'
     );
     throw error;
   }
