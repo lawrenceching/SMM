@@ -36,6 +36,8 @@ interface SeasonSectionProps {
     expandedEpisodeIds: Set<number>
     setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
     isPreviewingForRename?: boolean
+    /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
+    isPreviewingForRecognize?: boolean
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
     scrollToEpisodeId?: number | null
@@ -50,6 +52,7 @@ export function SeasonSection({
     expandedEpisodeIds,
     setExpandedEpisodeIds,
     isPreviewingForRename = false,
+    isPreviewingForRecognize = false,
     seasons,
     scrollToEpisodeId,
     onEpisodeFileSelect,
@@ -200,6 +203,7 @@ export function SeasonSection({
                                                             setExpandedEpisodeIds={setExpandedEpisodeIds}
                                                             files={files}
                                                             isPreviewingForRename={isPreviewingForRename}
+                                                            isPreviewingForRecognize={isPreviewingForRecognize}
                                                             scrollToEpisodeId={scrollToEpisodeId}
                                                             onEpisodeFileSelect={onEpisodeFileSelect}
                                                         />

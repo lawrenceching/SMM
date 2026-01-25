@@ -16,6 +16,8 @@ interface EpisodeFileProps {
     label?: string
     iconColor?: string
     isPreviewingForRename: boolean
+    /** True when user is reviewing match between local video file and episode; UI highlights the video file path. */
+    isPreviewingForRecognize?: boolean
     showRenameMenu?: boolean
     /**
      * Callback when "Select File" is clicked from context menu
@@ -45,6 +47,7 @@ export function EpisodeFile({
     icon: Icon,
     iconColor = "text-muted-foreground",
     isPreviewingForRename,
+    isPreviewingForRecognize = false,
     showRenameMenu = false,
     onFileSelectButtonClick,
 }: EpisodeFileProps) {
@@ -57,6 +60,7 @@ export function EpisodeFile({
     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
     const hasPreview = isPreviewingForRename && file.newPath
     const isDeleted = file.isDeleted ?? false
+    const highlightPath = isPreviewingForRecognize && !hasPreview
     
     // Debug logging
     if (!relativePath || relativePath === file.path) {
@@ -71,7 +75,9 @@ export function EpisodeFile({
     const fileContent = (
         <div className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
-            hasPreview ? "bg-primary/5 border border-primary/20" : "bg-muted/30 border border-transparent",
+            hasPreview && "bg-primary/5 border border-primary/20",
+            highlightPath && "bg-primary/5 border border-primary/20 animate-pulse ring-2 ring-primary/50 ring-offset-2",
+            !hasPreview && !highlightPath && "bg-muted/30 border border-transparent",
             "hover:bg-muted/50",
             isDeleted && "opacity-50"
         )}>

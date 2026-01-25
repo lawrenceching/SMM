@@ -99,6 +99,10 @@ export interface EpisodeSectionProps {
      */
     isPreviewingForRename: boolean
     /**
+     * True when user is reviewing match between local video file and episode; UI should highlight the video file path.
+     */
+    isPreviewingForRecognize?: boolean
+    /**
      * Optional episode ID to scroll to (for programmatic scrolling)
      */
     scrollToEpisodeId?: number | null
@@ -116,6 +120,7 @@ export function EpisodeSection({
     setExpandedEpisodeIds,
     files,
     isPreviewingForRename,
+    isPreviewingForRecognize = false,
     onEpisodeFileSelect,
 }: EpisodeSectionProps) {
     const { t } = useTranslation(['components'])
@@ -295,6 +300,7 @@ export function EpisodeSection({
                                         label=""
                                         iconColor={iconColor}
                                         isPreviewingForRename={isPreviewingForRename}
+                                        isPreviewingForRecognize={isPreviewingForRecognize}
                                         showRenameMenu={true}
                                         onFileSelectButtonClick={(file) => {
                                             if (onEpisodeFileSelect) {

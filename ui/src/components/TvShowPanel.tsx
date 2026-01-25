@@ -527,6 +527,9 @@ function TvShowPanelContent() {
       || promptsContext.isRuleBasedRecognizePromptOpen
       || promptsContext.isAiRecognizePromptOpen
 
+  /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
+  const isPreviewingForRecognize = promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiRecognizePromptOpen
+
   useEffect(() => {
 
     if(!mediaMetadata) {
@@ -630,6 +633,7 @@ function TvShowPanelContent() {
           ruleName={selectedNamingRule}
           seasons={promptsContext.isRuleBasedRecognizePromptOpen ? seasonsForPreview : seasons}
           isPreviewingForRename={isPreviewingForRename}
+          isPreviewingForRecognize={isPreviewingForRecognize}
           scrollToEpisodeId={scrollToEpisodeId}
           onEpisodeFileSelect={handleOpenFilePickerForEpisode}
           isLoading={isLoading}

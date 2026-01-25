@@ -26,6 +26,8 @@ interface TMDBTVShowOverviewProps {
     ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
     isPreviewingForRename: boolean
+    /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
+    isPreviewingForRecognize?: boolean
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
     isLoading?: boolean
@@ -55,7 +57,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 
 export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
     ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, 
-        seasons, isPreviewingForRename, scrollToEpisodeId, onEpisodeFileSelect, isLoading }, ref) => {
+        seasons, isPreviewingForRename, isPreviewingForRecognize = false, scrollToEpisodeId, onEpisodeFileSelect, isLoading }, ref) => {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
     const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
     const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
@@ -499,6 +501,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                     expandedEpisodeIds={expandedEpisodeIds}
                     setExpandedEpisodeIds={setExpandedEpisodeIds}
                     isPreviewingForRename={isPreviewingForRename}
+                    isPreviewingForRecognize={isPreviewingForRecognize}
                     ruleName={ruleName}
                     seasons={seasons}
                     scrollToEpisodeId={scrollToEpisodeId}
