@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -2009,5 +2009,80 @@ describe('buildTmdbEpisodeByNFO', () => {
     expect(episode).toBeDefined()
     expect(episode?.name).toBe('')
     expect(episode?.overview).toBe('')
+  })
+})
+
+describe('buildSeasonsByRecognizeMediaFilePlan', () => {
+  it('returns SeasonModel[] with one season and one episode when plan has one recognized file and mm has tmdbTvShow and files', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        original_name: '',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        media_type: 'tv',
+        number_of_seasons: 1,
+        number_of_episodes: 1,
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 101,
+                name: 'Pilot',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 0,
+                vote_count: 0,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+        status: '',
+        type: '',
+        in_production: false,
+        last_air_date: '',
+        networks: [],
+        production_companies: [],
+      },
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+    expect(result[0].episodes[0].episode.name).toBe('Pilot')
+    expect(result[0].episodes[0].files).toContainEqual({ type: 'video', path: videoPath })
   })
 })

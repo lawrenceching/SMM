@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -306,6 +306,12 @@ function TvShowPanelContent() {
     )
     
     if (plan) {
+
+      const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
+      setSeasonsForPreview(seasons)
+
+      // TODO: expand the seasons
+
       openAiRecognizePrompt({
         status: "wait-for-ack",
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
@@ -516,7 +522,10 @@ function TvShowPanelContent() {
 
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
-  const isPreviewMode = promptsContext.isAiBasedRenameFilePromptOpen || promptsContext.isRuleBasedRenameFilePromptOpen || promptsContext.isRuleBasedRecognizePromptOpen
+  const isPreviewMode = promptsContext.isAiBasedRenameFilePromptOpen 
+      || promptsContext.isRuleBasedRenameFilePromptOpen 
+      || promptsContext.isRuleBasedRecognizePromptOpen
+      || promptsContext.isAiRecognizePromptOpen
 
   useEffect(() => {
 

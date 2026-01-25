@@ -5,6 +5,7 @@ import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/l
 import type { FileProps } from "@/lib/types";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { readFile } from "@/api/readFile";
+import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -653,4 +654,73 @@ export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDet
     }
     
     return tvShowDetails
+}
+
+/**
+ * Build SeasonModel[] from a RecognizeMediaFilePlan for preview/display.
+ * Groups plan.files by season, resolves TMDB season/episode from mm.tmdbTvShow when present,
+ * and builds FileProps (video + associated files) per episode using the plan's paths.
+ */
+export function buildSeasonsByRecognizeMediaFilePlan(mm: MediaMetadata, plan: RecognizeMediaFilePlan): SeasonModel[] {
+
+
+  const mediaFolderPath = plan.mediaFolderPath ?? mm.mediaFolderPath
+  const fileList = mm.files ?? []
+
+  if (!plan.files?.length) {
+    return []
+  }
+
+  // Group by season number, then by episode number for stable ordering
+  const bySeason = new Map<number, { season: number; episode: number; path: string }[]>()
+  for (const f of plan.files) {
+    const list = bySeason.get(f.season) ?? []
+    list.push({ season: f.season, episode: f.episode, path: f.path })
+    bySeason.set(f.season, list)
+  }
+
+  const seasonNumbers = Array.from(bySeason.keys()).sort((a, b) => a - b)
+  const result: SeasonModel[] = []
+
+  for (const seasonNumber of seasonNumbers) {
+    const entries = bySeason.get(seasonNumber)!
+    entries.sort((a, b) => a.episode - b.episode)
+
+    const tmdbSeason =
+      mm.tmdbTvShow?.seasons?.find((s) => s.season_number === seasonNumber) ??
+      createInitialTMDBSeason(seasonNumber)
+
+    const episodes = entries.map(({ episode: episodeNumber, path: videoPath }) => {
+      const tmdbEpisode =
+        tmdbSeason.episodes?.find((e) => e.episode_number === episodeNumber) ?? ({
+          id: 0,
+          name: "",
+          overview: "",
+          still_path: null,
+          air_date: "",
+          episode_number: episodeNumber,
+          season_number: seasonNumber,
+          vote_average: 0,
+          vote_count: 0,
+          runtime: 0,
+        } as TMDBEpisode)
+
+      const files: FileProps[] =
+        mediaFolderPath && fileList.length > 0
+          ? [
+              { type: "video", path: videoPath },
+              ...findAssociatedFiles(mediaFolderPath, fileList, videoPath).map((file) => ({
+                type: mapTagToFileType(file.tag),
+                path: join(mediaFolderPath, file.path),
+              })),
+            ]
+          : [{ type: "video", path: videoPath }]
+
+      return { episode: tmdbEpisode, files }
+    })
+
+    result.push({ season: tmdbSeason, episodes })
+  }
+
+  return result
 }
