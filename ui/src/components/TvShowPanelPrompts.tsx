@@ -608,7 +608,7 @@ export function usePrompts() {
     setOnRuleBasedRecognizeCancel(onCancel)
     setIsRuleBasedRecognizePromptOpen(true)
   }, [context, setIsUseNfoPromptOpen, setIsRuleBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen, setIsAiRecognizePromptOpen, setOnRuleBasedRecognizeConfirm, setOnRuleBasedRecognizeCancel, setIsRuleBasedRecognizePromptOpen])
-  
+
   return useMemo(() => ({
     openUseTmdbIdFromFolderNamePrompt,
     openUseNfoPrompt,

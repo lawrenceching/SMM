@@ -6,6 +6,7 @@ import type { FileProps } from "@/lib/types";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { readFile } from "@/api/readFile";
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -746,6 +747,100 @@ export function buildSeasonsByRecognizeMediaFilePlan(mm: MediaMetadata, plan: Re
     })
 
     result.push({ season: tmdbSeason, episodes })
+  }
+
+  return result
+}
+
+/**
+ * Build SeasonModel[] from a RenameFilesPlan for preview/display.
+ * Resolves season/episode from mm.mediaFiles by matching "from" path.
+ * Only includes entries whose "from" exists in mm.files (source file must exist).
+ * FileProps use path = source path, newPath = destination path ("to" from the plan).
+ */
+export function buildSeasonsByRenameFilesPlan(mm: MediaMetadata, plan: RenameFilesPlan): SeasonModel[] {
+  const mediaFolderPath = plan.mediaFolderPath ?? mm.mediaFolderPath
+  const fileList = mm.files ?? []
+  const mediaFiles = mm.mediaFiles ?? []
+
+  if (!plan.files?.length || !mediaFolderPath) {
+    return []
+  }
+
+  const filesSet = new Set(fileList)
+
+  const bySeasonEpisode = new Map<string, { season: number; episode: number; from: string; to: string }>()
+  for (const { from, to } of plan.files) {
+    if (!filesSet.has(from)) continue
+    const mf = mediaFiles.find((x) => x.absolutePath === from)
+    if (!mf || mf.seasonNumber === undefined || mf.episodeNumber === undefined) continue
+    const key = `${mf.seasonNumber}:${mf.episodeNumber}`
+    if (!bySeasonEpisode.has(key)) {
+      bySeasonEpisode.set(key, {
+        season: mf.seasonNumber,
+        episode: mf.episodeNumber,
+        from,
+        to,
+      })
+    }
+  }
+
+  const keys = Array.from(bySeasonEpisode.keys()).sort((a, b) => {
+    const [s1, e1] = a.split(":").map(Number)
+    const [s2, e2] = b.split(":").map(Number)
+    return s1 !== s2 ? s1 - s2 : e1 - e2
+  })
+
+  const result: SeasonModel[] = []
+  let lastSeason = -1
+  let currentSeasonModel: SeasonModel | null = null
+
+  for (const key of keys) {
+    const entry = bySeasonEpisode.get(key)!
+    const { season: seasonNumber, episode: episodeNumber, from, to } = entry
+
+    const tmdbSeason =
+      mm.tmdbTvShow?.seasons?.find((s) => s.season_number === seasonNumber) ??
+      createInitialTMDBSeason(seasonNumber)
+
+    const tmdbEpisode =
+      tmdbSeason.episodes?.find((e) => e.episode_number === episodeNumber) ?? ({
+        id: 0,
+        name: "",
+        overview: "",
+        still_path: null,
+        air_date: "",
+        episode_number: episodeNumber,
+        season_number: seasonNumber,
+        vote_average: 0,
+        vote_count: 0,
+        runtime: 0,
+      } as TMDBEpisode)
+
+    const videoFileProps: FileProps =
+      { type: "video", path: from, newPath: to }
+
+    const associated = findAssociatedFiles(mediaFolderPath, fileList, from)
+    const associatedFileProps: FileProps[] = associated.map((file) => {
+      const currentPath = join(mediaFolderPath, file.path)
+      return {
+        type: mapTagToFileType(file.tag),
+        path: currentPath,
+        newPath: newPath(mediaFolderPath, to, currentPath),
+      }
+    })
+
+    const files: FileProps[] =
+      fileList.length > 0 ? [videoFileProps, ...associatedFileProps] : [videoFileProps]
+
+    const episodeModel = { episode: tmdbEpisode, files }
+
+    if (seasonNumber !== lastSeason) {
+      currentSeasonModel = { season: tmdbSeason, episodes: [] }
+      result.push(currentSeasonModel)
+      lastSeason = seasonNumber
+    }
+    currentSeasonModel!.episodes.push(episodeModel)
   }
 
   return result

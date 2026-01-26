@@ -14,6 +14,11 @@ import {
   createEndRenameFilesTaskTool,
 } from './renameFilesTask';
 import {
+  createBeginRenameFilesTaskV2Tool,
+  createAddRenameFileToTaskV2Tool,
+  createEndRenameFilesTaskV2Tool,
+} from './renameFilesTaskV2';
+import {
   createBeginRecognizeTaskTool,
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,
@@ -33,6 +38,9 @@ export {
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
+  createBeginRenameFilesTaskV2Tool,
+  createAddRenameFileToTaskV2Tool,
+  createEndRenameFilesTaskV2Tool,
   createBeginRecognizeTaskTool,
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,

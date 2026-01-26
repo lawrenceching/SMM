@@ -172,7 +172,7 @@ Preview state is used so that while the AI recognize prompt is open, the episode
 
 ---
 
-## 8. Real-time updates (optional improvement)
+## 8. Real-time updates
 
 The backend emits **RecognizeMediaFilePlanReady** when a plan is ready. The UI does not yet subscribe to this event. To show new plans without reload:
 
@@ -197,3 +197,40 @@ The backend emits **RecognizeMediaFilePlanReady** when a plan is ready. The UI d
 | TV panel + effect    | `ui/src/components/TvShowPanel.tsx` |
 | Prompt + openers     | `ui/src/components/TvShowPanelPrompts.tsx` |
 | Preview + apply      | `ui/src/components/TvShowPanelUtils.ts` (`buildSeasonsByRecognizeMediaFilePlan`, `applyRecognizeMediaFilePlan`) |
+
+---
+
+## 10. AI-Driven Rename File V2
+
+Rename-file V2 follows the same plan-on-disk and confirm/reject pattern as recognition. The legacy rename tools (`beginRenameFilesTask`, `addRenameFileToTask`, `endRenameFilesTask`) remain unchanged and use in-memory state and blocking confirmation.
+
+### Tools and flow
+
+- **`beginRenameFilesTaskV2(mediaFolderPath)`** – Creates a plan file in `${userDataDir}/plans/` with `task: "rename-files"`, `status: "pending"`, and empty `files`. Returns `taskId`.
+- **`addRenameFileToTaskV2(taskId, from, to)`** – Appends `{ from, to }` (POSIX paths) to the plan’s `files` array.
+- **`endRenameFilesTaskV2(taskId)`** – Persists the plan and broadcasts **`RenameFilesPlanReady`** so the UI can show the review prompt.
+
+Plans use the same `plans/` directory as recognition; they are distinguished by `plan.task === "rename-files"`.
+
+### Data and APIs
+
+- **`RenameFilesPlan`** – `core/types/RenameFilesPlan.ts`: `id`, `task: "rename-files"`, `status`, `mediaFolderPath`, `files: { from, to }[]`.
+- **`RenameFilesPlanReady`** – `core/event-types.ts`: event and `{ taskId, planFilePath }`.
+- **Get pending plans** – `POST /api/getPendingPlans` response includes a `renamePlans` array of pending `RenameFilesPlan`.
+- **Update plan** – `POST /api/updatePlan` with `{ planId, status }` supports rename plans (backend tries recognition first, then rename by `planId`).
+
+### UI
+
+- **State** – `pendingRenamePlans` in the global states provider, populated from `getPendingPlans().renamePlans`.
+- **Review** – When a pending rename plan matches the current media folder, the TV Show panel builds `seasonsForPreview` via `buildSeasonsByRenameFilesPlan`, opens **openAiBasedRenameFilePrompt** with `status: "wait-for-ack"`, and shows the preview.
+- **Confirm** – Frontend builds season models from the plan, calls `startToRenameFiles(seasonsFromPlan)` (same as rule-based rename; uses `renameFile` API per file), then on success calls `updatePlan(plan.id, 'completed')` and `fetchPendingPlans()`.
+- **Cancel** – Frontend calls `updatePlan(planId, 'rejected')`.
+
+### Key files (V2 rename)
+
+| Layer / role        | Path |
+|---------------------|------|
+| Plan types          | `core/types/RenameFilesPlan.ts` |
+| Plan-ready event    | `core/event-types.ts` (`RenameFilesPlanReady`) |
+| Plan I/O + broadcast| `cli/src/tools/renameFilesToolV2.ts` |
+| AI tool wrappers    | `cli/src/tools/renameFilesTaskV2.ts` |

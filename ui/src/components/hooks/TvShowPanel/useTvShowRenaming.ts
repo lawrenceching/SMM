@@ -20,16 +20,18 @@ export function useTvShowRenaming({
 }: UseTvShowRenamingParams) {
   const latestSeasons = useLatest(seasons)
 
-  const startToRenameFiles = useCallback(async () => {
+  const startToRenameFiles = useCallback(async (seasonsOverride?: SeasonModel[]): Promise<boolean> => {
     if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
-      return;
+      return false
     }
+
+    const seasonsToUse = seasonsOverride ?? latestSeasons.current
 
     // Collect all files that need to be renamed, separating video files from associated files
     const videoFilesToRename: Array<{ from: string; to: string; type: string }> = []
     const associatedFilesToRename: Array<{ from: string; to: string; type: string }> = []
     
-    for (const season of latestSeasons.current) {
+    for (const season of seasonsToUse) {
       for (const episode of season.episodes) {
         for (const file of episode.files) {
           if (file.newPath && file.path !== file.newPath) {
@@ -72,7 +74,7 @@ export function useTvShowRenaming({
           toast.info("No files to rename")
         }
         setIsRenaming(false)
-        return
+        return false
       }
       
       // First, rename all video files
@@ -127,18 +129,20 @@ export function useTvShowRenaming({
       const skippedMessage = skippedCount > 0 ? ` (${skippedCount} skipped)` : ''
       if (errorCount === 0) {
         toast.success(`Successfully renamed ${successCount} file${successCount !== 1 ? 's' : ''} (${filteredVideoFiles.length} video, ${filteredAssociatedFiles.length} associated)${skippedMessage}`)
-      } else if (successCount > 0) {
+        return true
+      }
+      if (successCount > 0) {
         toast.warning(`Renamed ${successCount} file${successCount !== 1 ? 's' : ''}, ${errorCount} failed${skippedMessage}`)
         console.error("Rename errors:", errors)
       } else {
         toast.error(`Failed to rename ${errorCount} file${errorCount !== 1 ? 's' : ''}${skippedMessage}`)
         console.error("All rename operations failed:", errors)
       }
-
-
+      return false
     } catch (error) {
       console.error("Unexpected error during rename operation:", error)
       toast.error("An unexpected error occurred during rename operation")
+      return false
     }
   }, [mediaMetadata, latestSeasons, refreshMediaMetadata, setIsRenaming])
 

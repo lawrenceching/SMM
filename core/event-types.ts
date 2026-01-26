@@ -53,3 +53,15 @@ export interface RecognizeMediaFilePlanReadyRequestData {
    */
   planFilePath: string,
 }
+
+export const RenameFilesPlanReady = {
+  event: 'renameFilesPlanReady',
+} as const;
+
+export interface RenameFilesPlanReadyRequestData {
+  taskId: string,
+  /**
+   * Absolute path to the plan file in POSIX format
+   */
+  planFilePath: string,
+}

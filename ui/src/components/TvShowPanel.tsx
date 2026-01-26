@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, applyRecognizeMediaFilePlan } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -26,6 +26,7 @@ import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { useGlobalStates } from "@/providers/global-states-provider"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -45,7 +46,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { mediaFolderStates, pendingPlans, updatePlan } = useGlobalStates()
+  const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -308,13 +309,54 @@ function TvShowPanelContent() {
     }
   }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t])
 
-  // Use renaming hook
+  // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
   const { startToRenameFiles } = useTvShowRenaming({
     seasons,
     mediaMetadata,
     refreshMediaMetadata,
     setIsRenaming,
   })
+
+  const handleRenamePlanConfirm = useCallback(
+    async (plan: RenameFilesPlan) => {
+      if (!mediaMetadata || plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
+        toast.error("Plan does not match current media folder")
+        return
+      }
+      const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
+      const success = await startToRenameFiles(seasonsFromPlan)
+      if (success) {
+        await updatePlan(plan.id, "completed")
+        await fetchPendingPlans()
+      }
+    },
+    [mediaMetadata, startToRenameFiles, updatePlan, fetchPendingPlans]
+  )
+
+  useEffect(() => {
+    if (!mediaMetadata?.mediaFolderPath) return
+    const plan = pendingRenamePlans.find(
+      (p) =>
+        p.task === "rename-files" &&
+        p.status === "pending" &&
+        p.mediaFolderPath === mediaMetadata.mediaFolderPath
+    )
+    if (plan) {
+      const seasonsPreview = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
+      setSeasonsForPreview(seasonsPreview)
+      openAiBasedRenameFilePrompt({
+        status: "wait-for-ack",
+        onConfirm: () => handleRenamePlanConfirm(plan),
+        onCancel: async () => {
+          try {
+            await updatePlan(plan.id, "rejected")
+          } catch (error) {
+            console.error("[TvShowPanel] Error rejecting rename plan:", error)
+          }
+        },
+      })
+    }
+  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, handleRenamePlanConfirm, updatePlan])
 
   // Handle confirm button click - rename all files
   const handleAiBasedRenamePromptConfirm = useCallback(async () => {
@@ -607,7 +649,11 @@ function TvShowPanelContent() {
             onCancel: handleRuleBasedRecognizeCancel,
           })}
           ruleName={selectedNamingRule}
-          seasons={promptsContext.isRuleBasedRecognizePromptOpen ? seasonsForPreview : seasons}
+          seasons={
+            promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiBasedRenameFilePromptOpen
+              ? seasonsForPreview
+              : seasons
+          }
           isPreviewingForRename={isPreviewingForRename}
           isPreviewingForRecognize={isPreviewingForRecognize}
           scrollToEpisodeId={scrollToEpisodeId}

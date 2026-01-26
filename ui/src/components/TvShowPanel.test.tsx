@@ -230,6 +230,7 @@ vi.mock('@/providers/global-states-provider', () => ({
     mediaFolderStates: {},
     setMediaFolderStates: vi.fn(),
     pendingPlans: [],
+    pendingRenamePlans: [],
     fetchPendingPlans: vi.fn(),
     updatePlan: vi.fn(),
   })),

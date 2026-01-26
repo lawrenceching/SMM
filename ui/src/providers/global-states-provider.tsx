@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
 import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
 import { toast } from "sonner"
@@ -19,12 +20,16 @@ interface GlobalStatesContextValue {
    */
   pendingPlans: RecognizeMediaFilePlan[]
   /**
-   * Fetch pending plans from the server
+   * Array of pending rename plans (V2)
+   */
+  pendingRenamePlans: RenameFilesPlan[]
+  /**
+   * Fetch pending plans from the server (recognition and rename)
    */
   fetchPendingPlans: () => Promise<void>
   /**
-   * Update a plan's status (reject or complete). Automatically removes the plan from
-   * pendingPlans so the UI does not need to do it.
+   * Update a plan's status (reject or complete). Removes the plan from
+   * pendingPlans or pendingRenamePlans by planId.
    */
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
 }
@@ -38,6 +43,7 @@ interface GlobalStatesProviderProps {
 export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
   const [mediaFolderStates, setMediaFolderStates] = useState<Record<string, MediaFolderState>>({})
   const [pendingPlans, setPendingPlans] = useState<RecognizeMediaFilePlan[]>([])
+  const [pendingRenamePlans, setPendingRenamePlans] = useState<RenameFilesPlan[]>([])
 
   const fetchPendingPlans = useCallback(async () => {
     try {
@@ -45,19 +51,21 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
       if (response.error) {
         console.error('[GlobalStatesProvider] Error fetching pending plans:', response.error)
         setPendingPlans([])
+        setPendingRenamePlans([])
       } else {
-        setPendingPlans(response.data || [])
+        setPendingPlans(response.data ?? [])
+        setPendingRenamePlans(response.renamePlans ?? [])
       }
     } catch (error) {
       console.error('[GlobalStatesProvider] Failed to fetch pending plans:', error)
       setPendingPlans([])
+      setPendingRenamePlans([])
     }
   }, [])
 
   const updatePlan = useCallback(async (planId: string, status: UpdatePlanStatus) => {
-    // Optimistic update: remove from UI immediately so the prompt doesn't re-open
-    // before the API returns (e.g. when effect re-runs after toast/metadata update)
     setPendingPlans(prev => prev.filter(plan => plan.id !== planId))
+    setPendingRenamePlans(prev => prev.filter(plan => plan.id !== planId))
     try {
       const result = await updatePlanApi(planId, status)
       if (result.error) {
@@ -86,6 +94,7 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
     mediaFolderStates,
     setMediaFolderStates,
     pendingPlans,
+    pendingRenamePlans,
     fetchPendingPlans,
     updatePlan,
   }

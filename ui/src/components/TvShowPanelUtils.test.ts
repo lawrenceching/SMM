@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -2088,5 +2088,85 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     expect(result[0].episodes[0].episode.episode_number).toBe(1)
     expect(result[0].episodes[0].episode.name).toBe('Pilot')
     expect(result[0].episodes[0].files).toContainEqual({ type: 'video', path: videoPath })
+  })
+})
+
+describe('buildSeasonsByRenameFilesPlan', () => {
+  it('returns SeasonModel[] with path/newPath when plan has one rename, from is in mm.files, and mm has mediaFiles and tmdbTvShow', () => {
+    const mediaFolderPath = '/media/show'
+    const fromPath = '/media/show/Season 01/S01E01.mkv'
+    const toPath = '/media/show/Season 01/Show - S01E01 - Pilot.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [fromPath],
+      mediaFiles: [
+        { absolutePath: fromPath, seasonNumber: 1, episodeNumber: 1 },
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        original_name: '',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        media_type: 'tv',
+        number_of_seasons: 1,
+        number_of_episodes: 1,
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 101,
+                name: 'Pilot',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 0,
+                vote_count: 0,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+        status: '',
+        type: '',
+        in_production: false,
+        last_air_date: '',
+        networks: [],
+        production_companies: [],
+      },
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'rename-files' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ from: fromPath, to: toPath }],
+    }
+
+    const result = buildSeasonsByRenameFilesPlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+    const videoFile = result[0].episodes[0].files.find((f) => f.type === 'video')
+    expect(videoFile).toBeDefined()
+    expect(videoFile).toMatchObject({ type: 'video', path: fromPath, newPath: toPath })
   })
 })

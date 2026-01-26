@@ -2,6 +2,10 @@ import type { Hono } from 'hono';
 import { z } from 'zod/v3';
 import { logger } from '../../lib/logger';
 import { updatePlanStatus, type UpdatePlanStatus } from '../tools/recognizeMediaFilesTool';
+import {
+  updateRenamePlanStatus,
+  type UpdateRenamePlanStatus,
+} from '../tools/renameFilesToolV2';
 
 const updatePlanRequestSchema = z.object({
   planId: z.string().describe('The UUID of the plan to update'),
@@ -24,12 +28,19 @@ export async function processUpdatePlan(requestBody: unknown): Promise<UpdatePla
     }
 
     const { planId, status } = validationResult.data;
+    const statusTyped = status as UpdatePlanStatus;
 
-    await updatePlanStatus(planId, status as UpdatePlanStatus);
-
-    return {
-      data: { success: true },
-    };
+    try {
+      await updatePlanStatus(planId, statusTyped);
+      return { data: { success: true } };
+    } catch (recErr) {
+      const msg = recErr instanceof Error ? recErr.message : String(recErr);
+      if (!msg.includes('not found')) {
+        throw recErr;
+      }
+      await updateRenamePlanStatus(planId, status as UpdateRenamePlanStatus);
+      return { data: { success: true } };
+    }
   } catch (error) {
     logger.error({ error }, 'UpdatePlan processing error:');
     return {

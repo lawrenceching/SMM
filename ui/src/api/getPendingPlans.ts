@@ -1,7 +1,9 @@
 import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
+import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
 
 export interface GetPendingPlansResponseBody {
   data: RecognizeMediaFilePlan[];
+  renamePlans: RenameFilesPlan[];
   error?: string;
 }
 
@@ -33,7 +35,7 @@ export async function getPendingPlans(signal?: AbortSignal): Promise<GetPendingP
       statusText: resp.statusText,
       response: data,
     });
-  } else if (!data.data) {
+  } else if (!Array.isArray(data.data)) {
     console.error(`[getPendingPlans] unexpected response body: no data`, {
       url: resp.url,
       status: resp.status,
