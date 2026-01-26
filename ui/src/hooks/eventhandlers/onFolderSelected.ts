@@ -52,24 +52,20 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
   const { addMediaMetadata } = useMediaMetadata()
 
   const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
-    console.log('Folder type selected:', type, 'for path:', folderPath)
+    console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPath)
     const traceId = `onFolderSelected-${nextTraceId()}`
-    
     const abortController = new AbortController()
     const signal = abortController.signal
     const TIMEOUT_MS = 10000 // 10 seconds
-    
+
     // Helper function to set loading to false
     const setLoadingFalse = (pathKey: string) => {
-      setMediaFolderStates((prev) => {
-        console.log('[onFolderSelected] setting media folder state to loading: false', pathKey)
-        return {
-          ...prev,
-          [pathKey]: {
-            loading: false
-          }
+      setMediaFolderStates((prev) => ({
+        ...prev,
+        [pathKey]: {
+          loading: false
         }
-      })
+      }))
     }
 
     // Create timeout promise
@@ -91,26 +87,22 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
         const metadata = response.data
 
         if (!metadata) {
-          
-          console.log('[onFolderSelected] Failed to read media metadata, it is the first time to open this folder, try to recognize by NFO')
           const initialMetadata: MediaMetadata = {
             mediaFolderPath: Path.posix(folderPath),
             type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
           }
 
+          console.log('[onFolderSelected] Adding initial metadata:', initialMetadata)
           addMediaMetadata(initialMetadata, { traceId })
 
           pathKey = initialMetadata.mediaFolderPath as string
           loadingWasSet = true
-          setMediaFolderStates((prev) => {
-            console.log('[onFolderSelected] setting media folder state to loading: true', pathKey)
-            return {
-              ...prev,
-              [pathKey!]: {
-                loading: true
-              }
+          setMediaFolderStates((prev) => ({
+            ...prev,
+            [pathKey!]: {
+              loading: true
             }
-          })
+          }))
 
           const resp = await listFiles({
             path: folderPath,
@@ -119,6 +111,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           }, signal)
 
           if (signal.aborted) {
+            console.log('[onFolderSelected] Aborted after listFiles')
             return
           }
 
@@ -135,40 +128,54 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           initialMetadata.files = resp.data.items.map(item => Path.posix(item.path))
 
           const recognizedMetadata = await tryToRecognizeMediaFolderByNFO(initialMetadata, signal)
-          
+
           if (signal.aborted) {
+            console.log('[onFolderSelected] Aborted after tryToRecognizeMediaFolderByNFO')
             return
           }
 
           if (recognizedMetadata === undefined) {
-            console.log('[onFolderSelected] Failed to recognize media folder by NFO')
-            addMediaFolderInUserConfig(folderPath)
+            console.log('[onFolderSelected] No recognized metadata, adding initial metadata')
             addMediaMetadata(initialMetadata, { traceId })
+            console.log('[onFolderSelected] Adding initial metadata to user config')
+            addMediaFolderInUserConfig(folderPath)
             return;
           }
-          
+
           if (signal.aborted) {
+            console.log('[onFolderSelected] Aborted after addMediaMetadata')
             return
           }
 
-          console.log(`[onFolderSelected] recognizedMetadata:`, recognizedMetadata);
+          console.log('[onFolderSelected] Adding recognized metadata:', recognizedMetadata)
           await addMediaMetadata(recognizedMetadata, { traceId })
-          addMediaFolderInUserConfig(folderPath)
+          console.log('[onFolderSelected] Refreshing media metadata:', recognizedMetadata)
           await refreshMediaMetadata(recognizedMetadata, updateMediaMetadata, signal)
-          
+          console.log('[onFolderSelected] Adding recognized metadata to user config')
+          addMediaFolderInUserConfig(folderPath)
+
           if (signal.aborted) {
+            console.log('[onFolderSelected] Aborted after refreshMediaMetadata')
             return
           }
 
           return;
+        } else {
+          console.log('[onFolderSelected] Metadata already exists, skipping recognition')
         }
 
+
+        addMediaFolderInUserConfig(folderPath)
+        console.log('[onFolderSelected] Adding folder to user config')
+
         if (signal.aborted) {
+          console.log('[onFolderSelected] Aborted after adding folder to user config')
           return
         }
 
-        
+
       } catch (error) {
+        console.log('[onFolderSelected] Error:', error)
         // Only log if not aborted (timeout errors are expected)
         if (!signal.aborted) {
           console.error('Failed to read media metadata:', error)
@@ -180,7 +187,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
     // Race the main operation against the timeout
     try {
       await Promise.race([mainOperation(), timeoutPromise])
-      
+
       // If we successfully completed and set loading, set it to false
       if (loadingWasSet && pathKey && !signal.aborted) {
         setLoadingFalse(pathKey)
@@ -190,10 +197,9 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
       if (error instanceof Error && error.message.includes('timed out')) {
         console.error('[onFolderSelected] Operation timed out after 10 seconds')
       } else if (!signal.aborted) {
-        // Only log if not aborted
-        console.error('Failed to read media metadata:', error)
+        console.error('[onFolderSelected] Failed to read media metadata:', error)
       }
-      
+
       // Set loading to false if we had set it to true
       if (loadingWasSet && pathKey) {
         setLoadingFalse(pathKey)

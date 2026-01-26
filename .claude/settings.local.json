@@ -3,7 +3,9 @@
     "allow": [
       "Bash(cat /c/Users/lawrence/workspace/smm-mono/cli/package.json)",
       "Bash(cat /c/Users/lawrence/workspace/smm-mono/ui/package.json)",
-      "Bash(bun test:*)"
+      "Bash(bun test:*)",
+      "Bash(bun run test onFolderSelected.test.tsx)",
+      "Bash(bun run test:*)"
     ],
     "deny": [],
     "ask": []
