@@ -33,10 +33,10 @@
 - [x] 5.2 When a pending rename plan matches the current media folder, show a rename-plan review prompt with preview (from/to pairs) and Confirm/Cancel
 - [x] 5.3 On Confirm: execute renames (reuse existing batch-rename/validation logic where applicable), then call update-plan with status completed
 - [x] 5.4 On Cancel: call update-plan with status rejected
-- [ ] 5.5 Optionally handle `RenameFilesPlanReady` in WebSocket handler to refetch pending rename plans
+- [x] 5.5 Optionally handle `RenameFilesPlanReady` in WebSocket handler to refetch pending rename plans
 
 ## 6. Tests and docs
 
 - [x] 6.1 Add unit tests for V2 plan storage and tool layer
-- [ ] 6.2 Add unit tests for V2 AI tool wrappers
+- [x] 6.2 Add unit tests for V2 AI tool wrappers
 - [x] 6.3 Update or add documentation (e.g. `docs/AI-driven-recognition.md` or a new doc) to describe the AI-driven rename file V2 flow

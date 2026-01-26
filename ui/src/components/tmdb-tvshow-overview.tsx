@@ -85,21 +85,17 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
             // Use functional updates to get the current state values
             setExpandedSeasonIds(currentSeasonIds => {
                 savedSeasonIdsRef.current = new Set(currentSeasonIds)
-                // Expand all seasons (filter out season 0)
-                const seasonIds = new Set(
-                    tvShow.seasons!
-                        .filter(season => season.season_number > 0)
-                        .map(season => season.id)
-                )
+                // Expand all seasons (including season 0 / specials) for preview
+                const seasonIds = new Set(tvShow.seasons!.map(season => season.id))
                 return seasonIds
             })
 
             setExpandedEpisodeIds(currentEpisodeIds => {
                 savedEpisodeIdsRef.current = new Set(currentEpisodeIds)
-                // Expand all episodes
+                // Expand all episodes (including season 0)
                 const episodeIds = new Set<number>()
                 tvShow.seasons!.forEach(season => {
-                    if (season.episodes && season.season_number > 0) {
+                    if (season.episodes) {
                         season.episodes.forEach(episode => {
                             episodeIds.add(episode.id)
                         })

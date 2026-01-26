@@ -754,24 +754,23 @@ export interface HelloResponseBody {
   error?: string;
 }
 
-export interface FileRenameRequestBody {
+export interface RenameFilesRequestBody {
   /**
-   * Absolute path of media folder
+   * Batch of file renames. Paths are in platform-specific format (POSIX on Linux/macOS, Windows on Windows).
    */
-  mediaFolder: string;
+  files: Array<{ from: string; to: string }>;
   /**
-   * Absolute path of source file
+   * Optional trace id for logging/correlation.
    */
-  from: string;
-  /**
-   * Absolute path of destination
-   */
-  to: string;
+  traceId?: string;
 }
 
-
-export interface FileRenameResponseBody {
-  error?: string
+export interface RenameFilesResponseBody {
+  data?: {
+    succeeded: string[];
+    failed: Array<{ path: string; error: string }>;
+  };
+  error?: string;
 }
 
 export interface FolderRenameRequestBody {
@@ -787,30 +786,6 @@ export interface FolderRenameRequestBody {
 
 export interface FolderRenameResponseBody {
   error?: string
-}
-
-export interface FileRenameInBatchRequestBody {
-  /**
-   * Absolute path of media folder
-   */
-  mediaFolder: string;
-  /**
-   * Array of file rename operations
-   */
-  files: Array<{
-    /**
-     * Absolute path of source file
-     */
-    from: string;
-    /**
-     * Absolute path of destination
-     */
-    to: string;
-  }>;
-}
-
-export interface FileRenameInBatchResponseBody {
-  error?: string;
 }
 
 export interface NewFileNameRequestBody {

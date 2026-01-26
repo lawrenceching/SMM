@@ -9,7 +9,8 @@ import { ThemeProvider } from './providers/theme-provider'
 import { ConfigProvider, useConfig } from './providers/config-provider'
 import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
-import { GlobalStatesProvider } from './providers/global-states-provider'
+import { GlobalStatesProvider, useGlobalStates } from './providers/global-states-provider'
+import { RenameFilesPlanReady } from '@core/event-types'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
@@ -65,6 +66,7 @@ function useIsMobile() {
 function WebSocketHandlers() {
   const { reload: reloadUserConfig } = useConfig();
   const { refreshMediaMetadata, selectedMediaMetadata } = useMediaMetadata();
+  const { fetchPendingPlans } = useGlobalStates();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
@@ -162,6 +164,12 @@ function WebSocketHandlers() {
     } else if(message.event === "userConfigUpdated") {
       console.log('[WebSocketHandlers][DEBUG] userConfigUpdated received');
       reloadUserConfig();      
+    }
+
+    // Refetch pending rename plans when backend broadcasts that a new plan is ready
+    if (message.event === RenameFilesPlanReady.event) {
+      console.log('[WebSocketHandlers] Received renameFilesPlanReady, refetching pending plans');
+      void fetchPendingPlans();
     }
   });
 

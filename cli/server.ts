@@ -8,7 +8,7 @@ import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMet
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
-import { handleRenameFile } from './src/route/RenameFile';
+import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
 import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
@@ -125,7 +125,7 @@ export class Server {
     handleChatRequest(this.app);
     handleReadFile(this.app);
     handleWriteFile(this.app);
-    handleRenameFile(this.app);
+    handleRenameFiles(this.app);
     handleRenameFolder(this.app);
     handleNewFileName(this.app);
     handleReadImage(this.app);

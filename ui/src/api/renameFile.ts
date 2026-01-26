@@ -1,5 +1,8 @@
-import type { FileRenameRequestBody, FileRenameResponseBody } from '@core/types';
-
+/**
+ * Local types for legacy renameFile client.
+ * The /api/renameFile and /api/renameFileInBatch endpoints have been removed.
+ * Migrate to POST /api/renameFiles and use ui/src/api/renameFiles.ts when available.
+ */
 export interface RenameFileParams {
   /**
    * Absolute path of media folder
@@ -15,8 +18,12 @@ export interface RenameFileParams {
   to: string;
 }
 
-export async function renameFile(params: RenameFileParams): Promise<FileRenameResponseBody> {
-  const req: FileRenameRequestBody = {
+interface RenameFileResponseBody {
+  error?: string;
+}
+
+export async function renameFile(params: RenameFileParams): Promise<RenameFileResponseBody> {
+  const req = {
     mediaFolder: params.mediaFolder,
     from: params.from,
     to: params.to,
@@ -34,7 +41,7 @@ export async function renameFile(params: RenameFileParams): Promise<FileRenameRe
     throw new Error(`Failed to rename file: ${resp.statusText}`);
   }
 
-  const data: FileRenameResponseBody = await resp.json();
+  const data: RenameFileResponseBody = await resp.json();
   if (data.error) {
     throw new Error(data.error);
   }
