@@ -41,7 +41,8 @@
     "useNfoMetadata": "使用NFO文件中的媒体元数据？",
     "useTmdbIdFromFolderName": "使用文件夹名称中的TMDB ID？",
     "queryingTmdb": "正在查询TMDB...",
-    "queryTmdbFailed": "查询TMDB失败"
+    "queryTmdbFailed": "查询TMDB失败",
+    "recognizeEpisodesSuccess": "成功识别视频文件"
   },
   "assistant": {
     "open": "打开助手",

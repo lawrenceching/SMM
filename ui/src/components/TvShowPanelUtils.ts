@@ -5,8 +5,11 @@ import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/l
 import type { FileProps } from "@/lib/types";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { readFile } from "@/api/readFile";
+import { renameFiles as renameFilesApi } from "@/api/renameFiles";
+import type { UpdatePlanStatus } from "@/api/updatePlan";
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
+import { toast } from "sonner";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -844,4 +847,97 @@ export function buildSeasonsByRenameFilesPlan(mm: MediaMetadata, plan: RenameFil
   }
 
   return result
+}
+
+export async function executeRenamePlan(
+  plan: RenameFilesPlan,
+  mediaMetadata: MediaMetadata,
+  updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void,
+  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>,
+  fetchPendingPlans: () => Promise<void>
+): Promise<void> {
+  if (!mediaMetadata || plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
+    toast.error("Plan does not match current media folder")
+    return
+  }
+  const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
+  const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
+
+  const filesToRename: Array<{ from: string; to: string }> = []
+
+  for (const season of seasonsFromPlan) {
+    for (const episode of season.episodes) {
+      for (const file of episode.files) {
+        if (file.newPath && file.path !== file.newPath) {
+          filesToRename.push({
+            from: file.path,
+            to: file.newPath,
+          })
+        }
+      }
+    }
+  }
+
+  if (filesToRename.length === 0) {
+    toast.info("No files to rename")
+    await updatePlan(plan.id, "completed")
+    await fetchPendingPlans()
+    return
+  }
+
+  try {
+    const response = await renameFilesApi({
+      files: filesToRename,
+      traceId,
+    })
+
+    if (response.error) {
+      toast.error(response.error)
+      return
+    }
+
+    const succeededPaths = response.data?.succeeded ?? []
+    const failedPaths = response.data?.failed ?? []
+
+    if (succeededPaths.length === 0) {
+      toast.error(`Failed to rename ${failedPaths.length} file(s)`)
+      return
+    }
+
+    let updatedMediaFiles = mediaMetadata.mediaFiles ?? []
+    const succeededPathsSet = new Set(succeededPaths)
+
+    updatedMediaFiles = updatedMediaFiles.map((mediaFile) => {
+      if (succeededPathsSet.has(mediaFile.absolutePath)) {
+        const renameEntry = filesToRename.find((entry) => entry.from === mediaFile.absolutePath)
+        if (renameEntry) {
+          return {
+            ...mediaFile,
+            absolutePath: renameEntry.to,
+          }
+        }
+      }
+      return mediaFile
+    })
+
+    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+      ...mediaMetadata,
+      mediaFiles: updatedMediaFiles,
+    }, { traceId })
+
+    const successCount = succeededPaths.length
+    const errorCount = failedPaths.length
+
+    if (errorCount === 0) {
+      toast.success(`Successfully renamed ${successCount} file(s)`)
+    } else {
+      toast.warning(`Renamed ${successCount} file(s), ${errorCount} failed`)
+    }
+
+    await updatePlan(plan.id, "completed")
+    await fetchPendingPlans()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    toast.error(`Failed to rename files: ${errorMessage}`)
+  }
 }

@@ -41,7 +41,8 @@
     "useNfoMetadata": "Use media metadata from NFO file?",
     "useTmdbIdFromFolderName": "Use TMDB ID from folder name?",
     "queryingTmdb": "Querying TMDB...",
-    "queryTmdbFailed": "Failed to query TMDB"
+    "queryTmdbFailed": "Failed to query TMDB",
+    "recognizeEpisodesSuccess": "Successfully recognized video files"
   },
   "assistant": {
     "open": "Open Assistant",

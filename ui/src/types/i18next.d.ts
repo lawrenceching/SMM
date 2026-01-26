@@ -68,6 +68,7 @@ interface ComponentsResources {
     useTmdbIdFromFolderName: string
     queryingTmdb: string
     queryTmdbFailed: string
+    recognizeEpisodesSuccess: string
   }
   mediaFolder: {
     rename: string

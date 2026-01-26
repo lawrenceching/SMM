@@ -39,7 +39,9 @@
     "aiReviewEpisodes": "檢視已識別的劇集",
     "reviewRecognizeEpisodes": "檢視並確認已識別的劇集...",
     "useNfoMetadata": "使用NFO檔案中的媒體元資料？",
-    "useTmdbIdFromFolderName": "使用資料夾名稱中的TMDB ID？"
+    "useTmdbIdFromFolderName": "使用資料夾名稱中的TMDB ID？",
+    "queryTmdbFailed": "查詢TMDB失敗",
+    "recognizeEpisodesSuccess": "成功識別影片檔案"
   },
   "assistant": {
     "open": "開啟助手",

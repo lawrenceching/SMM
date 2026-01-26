@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -269,21 +269,33 @@ function TvShowPanelContent() {
     }
   }, [mediaMetadata, updateMediaMetadata, updatePlan])
 
+  // Get prompts context for closing prompts
+  const promptsContextForClosing = usePromptsContext()
+
+  // Wrapper for closing prompts
+  const closeAiBasedRenameFilePrompt = useCallback(() => {
+    promptsContextForClosing._setIsAiBasedRenameFilePromptOpen(false)
+  }, [promptsContextForClosing])
+
+  const closeAiRecognizePrompt = useCallback(() => {
+    promptsContextForClosing._setIsAiRecognizePromptOpen(false)
+  }, [promptsContextForClosing])
+
   // Log pending plans and open prompt if plan matches current media folder
   useEffect(() => {
     console.log('[TvShowPanel] Pending plans:', pendingPlans)
-    
+
     if (!mediaMetadata?.mediaFolderPath) {
       return
     }
 
     const plan = pendingPlans.find(
-      plan => 
-        plan.task === "recognize-media-file" && 
+      plan =>
+        plan.task === "recognize-media-file" &&
         plan.status === 'pending' &&
         plan.mediaFolderPath === mediaMetadata.mediaFolderPath
     )
-    
+
     if (plan) {
 
       const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
@@ -306,8 +318,10 @@ function TvShowPanelContent() {
           }
         }
       })
+    } else {
+      closeAiRecognizePrompt()
     }
-  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t])
+  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t, closeAiRecognizePrompt])
 
   // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
   const { startToRenameFiles } = useTvShowRenaming({
@@ -319,18 +333,12 @@ function TvShowPanelContent() {
 
   const handleRenamePlanConfirm = useCallback(
     async (plan: RenameFilesPlan) => {
-      if (!mediaMetadata || plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
-        toast.error("Plan does not match current media folder")
+      if (!mediaMetadata) {
         return
       }
-      const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
-      const success = await startToRenameFiles(seasonsFromPlan)
-      if (success) {
-        await updatePlan(plan.id, "completed")
-        await fetchPendingPlans()
-      }
+      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans)
     },
-    [mediaMetadata, startToRenameFiles, updatePlan, fetchPendingPlans]
+    [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans]
   )
 
   useEffect(() => {
@@ -355,8 +363,11 @@ function TvShowPanelContent() {
           }
         },
       })
+    } else {
+      closeAiBasedRenameFilePrompt()
+      closeAiRecognizePrompt()
     }
-  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, handleRenamePlanConfirm, updatePlan])
+  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, handleRenamePlanConfirm, updatePlan, closeAiBasedRenameFilePrompt, closeAiRecognizePrompt, promptsContextForClosing])
 
   // Handle confirm button click - rename all files
   const handleAiBasedRenamePromptConfirm = useCallback(async () => {
@@ -389,6 +400,7 @@ function TvShowPanelContent() {
   }, [mediaMetadata, latestSeasons, refreshMediaMetadata, pendingConfirmationMessage, startToRenameFiles])
 
   // Wrapper for openAiBasedRenameFilePrompt that handles status updates and callbacks
+  // TODO: do I still need this wrapper?
   const openAiBasedRenameFilePromptWithStatus = useCallback((params: {
     status: "generating" | "wait-for-ack"
     onConfirm: () => void
@@ -488,7 +500,7 @@ function TvShowPanelContent() {
   }, [mediaMetadata, updateMediaMetadata])
 
   // Handle opening file picker for episode
-  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode, _file?: { path: string; isDirectory?: boolean }) => {
+  const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode) => {
 
 
     // Validate mediaMetadata is available
@@ -530,7 +542,8 @@ function TvShowPanelContent() {
     })
     if (mediaMetadata) {
       console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
-      recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata);
+      recognizeEpisodes(seasonsForPreview, mediaMetadata, updateMediaMetadata);
+      toast.success(t('toolbar.recognizeEpisodesSuccess'))
     }
   }, [mediaMetadata, seasons, updateMediaMetadata])
 
@@ -606,7 +619,6 @@ function TvShowPanelContent() {
           const mediaFile = mediaMetadata.mediaFiles?.find(file => file.seasonNumber === season.season_number && file.episodeNumber === episode.episode_number)
           if(!mediaFile) {
             const videoFilePath = lookup(mediaMetadata.files!, season.season_number, episode.episode_number);
-            console.log(`[TvShowPanel] video file path for season ${season.season_number} episode ${episode.episode_number} is ${videoFilePath}`);
 
             if(videoFilePath !== null) {
               updateSeasonsForPreview(season.season_number, episode.episode_number, videoFilePath);
