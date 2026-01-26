@@ -6,7 +6,8 @@
       "Bash(bun test:*)",
       "Bash(bun run test onFolderSelected.test.tsx)",
       "Bash(bun run test:*)",
-      "Bash(openspec:*)"
+      "Bash(openspec:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
