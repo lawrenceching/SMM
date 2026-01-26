@@ -561,6 +561,7 @@ function TvShowPanelContent() {
   /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
   const isPreviewingForRecognize = promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiRecognizePromptOpen
 
+  // TODO: consider to reuse the recognize plan so that we can share the logic for AI based recognition.
   useEffect(() => {
 
     if(!mediaMetadata) {

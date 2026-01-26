@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
 import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
 import { toast } from "sonner"
@@ -18,7 +18,7 @@ interface GlobalStatesContextValue {
   /**
    * Array of pending recognition plans
    */
-  pendingPlans: RecognizeMediaFilePlan[]
+  pendingPlans: UIRecognizeMediaFilePlan[]
   /**
    * Array of pending rename plans (V2)
    */
@@ -42,7 +42,7 @@ interface GlobalStatesProviderProps {
 
 export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
   const [mediaFolderStates, setMediaFolderStates] = useState<Record<string, MediaFolderState>>({})
-  const [pendingPlans, setPendingPlans] = useState<RecognizeMediaFilePlan[]>([])
+  const [pendingPlans, setPendingPlans] = useState<UIRecognizeMediaFilePlan[]>([])
   const [pendingRenamePlans, setPendingRenamePlans] = useState<RenameFilesPlan[]>([])
 
   const fetchPendingPlans = useCallback(async () => {
@@ -53,7 +53,7 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
         setPendingPlans([])
         setPendingRenamePlans([])
       } else {
-        setPendingPlans(response.data ?? [])
+        setPendingPlans(response.data?.map(plan => ({ ...plan, tmp: false })) as UIRecognizeMediaFilePlan[] ?? [])
         setPendingRenamePlans(response.renamePlans ?? [])
       }
     } catch (error) {
