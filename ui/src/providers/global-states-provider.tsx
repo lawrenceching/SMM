@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
 import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
@@ -32,6 +33,12 @@ interface GlobalStatesContextValue {
    * pendingPlans or pendingRenamePlans by planId.
    */
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
+  /**
+   * Add a temporary recognition plan to global state.
+   * Temporary plans have tmp: true and are not persisted to backend.
+   * Accepts a partial plan - id, tmp, task, and status will be set automatically.
+   */
+  addTmpPlan: (plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) => void
 }
 
 const GlobalStatesContext = createContext<GlobalStatesContextValue | undefined>(undefined)
@@ -64,8 +71,21 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
   }, [])
 
   const updatePlan = useCallback(async (planId: string, status: UpdatePlanStatus) => {
-    setPendingPlans(prev => prev.filter(plan => plan.id !== planId))
-    setPendingRenamePlans(prev => prev.filter(plan => plan.id !== planId))
+    // Find the plan to check if it's temporary
+    const plan = pendingPlans.find(p => p.id === planId)
+    const isTmpPlan = plan?.tmp === true
+
+    // Remove from local state
+    setPendingPlans(prev => prev.filter(p => p.id !== planId))
+    setPendingRenamePlans(prev => prev.filter(p => p.id !== planId))
+
+    // Temporary plans don't need backend API call
+    if (isTmpPlan) {
+      console.log('[GlobalStatesProvider] Temporary plan removed from state (no API call)', { planId })
+      return
+    }
+
+    // Persistent plans call backend API
     try {
       const result = await updatePlanApi(planId, status)
       if (result.error) {
@@ -84,7 +104,27 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
       }
       throw error
     }
-  }, [fetchPendingPlans])
+  }, [fetchPendingPlans, pendingPlans])
+
+  /**
+   * Add a temporary recognition plan to global state.
+   * Temporary plans are created by the frontend for rule-based recognition
+   * and are not persisted to the backend. They have tmp: true.
+   *
+   * @param plan - The plan to add (can be RecognizeMediaFilePlan or partial plan).
+   *               The tmp flag, id, task, and status will be set automatically.
+   */
+  const addTmpPlan = useCallback((plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) => {
+    const tmpPlan: UIRecognizeMediaFilePlan = {
+      ...plan,
+      id: plan.id || crypto.randomUUID(),
+      tmp: true, // Ensure tmp flag is set to true
+      task: "recognize-media-file",
+      status: "pending",
+    } as UIRecognizeMediaFilePlan
+    setPendingPlans(prev => [...prev, tmpPlan])
+    console.log('[GlobalStatesProvider] Temporary plan added to state', { planId: tmpPlan.id, mediaFolderPath: tmpPlan.mediaFolderPath })
+  }, [])
 
   useEffect(() => {
     fetchPendingPlans()
@@ -97,6 +137,7 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
     pendingRenamePlans,
     fetchPendingPlans,
     updatePlan,
+    addTmpPlan,
   }
 
   return (

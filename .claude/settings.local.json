@@ -5,7 +5,8 @@
       "Bash(cat /c/Users/lawrence/workspace/smm-mono/ui/package.json)",
       "Bash(bun test:*)",
       "Bash(bun run test onFolderSelected.test.tsx)",
-      "Bash(bun run test:*)"
+      "Bash(bun run test:*)",
+      "Bash(openspec:*)"
     ],
     "deny": [],
     "ask": []

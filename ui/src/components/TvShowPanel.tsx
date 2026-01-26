@@ -8,7 +8,7 @@ import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
 import { sendAcknowledgement } from "@/hooks/useWebSocket"
-import type { 
+import type {
   AskForRenameFilesConfirmationResponseData,
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
@@ -25,7 +25,7 @@ import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { useGlobalStates } from "@/providers/global-states-provider"
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 
 export interface EpisodeModel {
@@ -46,7 +46,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans } = useGlobalStates()
+  const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -297,31 +297,63 @@ function TvShowPanelContent() {
     )
 
     if (plan) {
-
+      console.log('[TvShowPanel] Found plan:', plan)
       const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
+      console.log('[TvShowPanel] Seasons:', seasons)
       setSeasonsForPreview(seasons)
 
-      openAiRecognizePrompt({
-        status: "wait-for-ack",
-        confirmButtonLabel: t('toolbar.confirm') || "Confirm",
-        confirmButtonDisabled: false,
-        isRenaming: false,
-        onConfirm: () => handleAiRecognizeConfirm(plan),
-        onCancel: async () => {
-          console.log('[TvShowPanel] AI recognition cancelled')
-          try {
-            await updatePlan(plan.id, 'rejected')
-            console.log('[TvShowPanel] Plan rejected successfully')
-          } catch (error) {
-            // Error handling is done in global states provider
-            console.error('[TvShowPanel] Error rejecting plan:', error)
+      // Check if this is a temporary (rule-based) or persistent (AI-based) plan
+      if (plan.tmp) {
+        // Temporary plan - use rule-based recognition prompt
+        openRuleBasedRecognizePrompt({
+          onConfirm: () => {
+            console.log('[TvShowPanel] Rule-based recognition confirmed')
+            // Apply the recognition using the plan data
+            if (mediaMetadata) {
+              recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
+              toast.success(t('toolbar.recognizeEpisodesSuccess'))
+            }
+            // Remove the temporary plan from state
+            updatePlan(plan.id, 'completed').catch(error => {
+              console.error('[TvShowPanel] Error removing temporary plan:', error)
+            })
+          },
+          onCancel: () => {
+            console.log('[TvShowPanel] Rule-based recognition cancelled')
+            // Remove the temporary plan from state
+            updatePlan(plan.id, 'rejected').catch(error => {
+              console.error('[TvShowPanel] Error removing temporary plan:', error)
+            })
           }
-        }
-      })
+        })
+        closeAiRecognizePrompt()
+      } else {
+        // Persistent plan - use AI-based recognition prompt
+        openAiRecognizePrompt({
+          status: "wait-for-ack",
+          confirmButtonLabel: t('toolbar.confirm') || "Confirm",
+          confirmButtonDisabled: false,
+          isRenaming: false,
+          onConfirm: () => handleAiRecognizeConfirm(plan),
+          onCancel: async () => {
+            console.log('[TvShowPanel] AI recognition cancelled')
+            try {
+              await updatePlan(plan.id, 'rejected')
+              console.log('[TvShowPanel] Plan rejected successfully')
+            } catch (error) {
+              // Error handling is done in global states provider
+              console.error('[TvShowPanel] Error rejecting plan:', error)
+            }
+          }
+        })
+      }
     } else {
+      // No plan found - close both prompts
       closeAiRecognizePrompt()
+      // Note: We don't close the rule-based prompt here since it doesn't have a close callback in the current implementation
+      // This will be cleaned up in task 6.1
     }
-  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t, closeAiRecognizePrompt])
+  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, openRuleBasedRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t, closeAiRecognizePrompt, updateMediaMetadata])
 
   // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
   const { startToRenameFiles } = useTvShowRenaming({
@@ -534,22 +566,79 @@ function TvShowPanelContent() {
     startToRenameFiles()
   }, [startToRenameFiles])
 
-  const handleRuleBasedRecognizeConfirm = useCallback(() => {
-    console.log('[TvShowPanel] handleRuleBasedRecognizeConfirm CALLED', {
-      timestamp: new Date().toISOString(),
-      hasMediaMetadata: !!mediaMetadata,
-      stackTrace: new Error().stack
-    })
-    if (mediaMetadata) {
-      console.log(`[TvShowPanel] start to recognize episodes for media metadata:`, mediaMetadata);
-      recognizeEpisodes(seasonsForPreview, mediaMetadata, updateMediaMetadata);
-      toast.success(t('toolbar.recognizeEpisodesSuccess'))
+  /**
+   * Build a temporary recognition plan from the seasons preview data.
+   * This is used for rule-based recognition where the frontend creates
+   * episode-to-file mappings using the lookup utility.
+   *
+   * Note: We always use the lookup utility to find files, never rely on
+   * existing mediaMetadata.mediaFiles because they may be incorrect
+   * (file doesn't exist or mapping is wrong).
+   */
+  const buildTemporaryRecognitionPlan = useCallback(() => {
+    if (!mediaMetadata?.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
+      return null
     }
-  }, [mediaMetadata, seasons, updateMediaMetadata])
 
-  const handleRuleBasedRecognizeCancel = useCallback(() => {
-    // No-op: seasons state is no longer mutated, so no restoration needed
-  }, [])
+    const files: RecognizedFile[] = []
+
+    // Iterate through all seasons and episodes to build the file mappings
+    mediaMetadata.tmdbTvShow.seasons.forEach(season => {
+      season.episodes?.forEach(episode => {
+        // Always use lookup utility to find the file based on filename patterns
+        // Don't use existing mediaMetadata.mediaFiles as they may be incorrect
+        const videoFilePath = lookup(mediaMetadata.files || [], season.season_number, episode.episode_number)
+        if (videoFilePath) {
+          files.push({
+            season: season.season_number,
+            episode: episode.episode_number,
+            path: videoFilePath
+          })
+        }
+      })
+    })
+
+    if (files.length === 0) {
+      return null
+    }
+
+    console.log('[TvShowPanel] buildTemporaryRecognitionPlan', {
+      files,
+      mediaFolderPath: mediaMetadata.mediaFolderPath
+    })
+
+    return {
+      mediaFolderPath: mediaMetadata.mediaFolderPath,
+      files
+    }
+    
+  }, [mediaMetadata])
+
+  // Handler for rule-based recognition button click
+  const handleRuleBasedRecognizeButtonClick = useCallback(() => {
+    if (!mediaMetadata?.mediaFolderPath) {
+      toast.error("No media folder path available")
+      return
+    }
+
+    const planData = buildTemporaryRecognitionPlan()
+    if (!planData || planData.files.length === 0) {
+      toast.error("No recognized files found")
+      return
+    }
+
+    // Create and add temporary plan to global state
+    // addTmpPlan will set tmp flag, id, task, and status automatically
+    addTmpPlan({
+      mediaFolderPath: planData.mediaFolderPath,
+      files: planData.files,
+    })
+
+    console.log('[TvShowPanel] Temporary recognition plan created and added to state', {
+      fileCount: planData.files.length,
+      mediaFolderPath: planData.mediaFolderPath
+    })
+  }, [mediaMetadata, buildTemporaryRecognitionPlan, addTmpPlan])
 
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
@@ -657,13 +746,10 @@ function TvShowPanelContent() {
             onConfirm: handleRuleBasedRenameConfirm,
             onCancel: () => {},
           })}
-          onRecognizeButtonClick={() => openRuleBasedRecognizePrompt({
-            onConfirm: handleRuleBasedRecognizeConfirm,
-            onCancel: handleRuleBasedRecognizeCancel,
-          })}
+          onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
           ruleName={selectedNamingRule}
           seasons={
-            promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiBasedRenameFilePromptOpen
+            promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiBasedRenameFilePromptOpen || promptsContext.isRuleBasedRecognizePromptOpen
               ? seasonsForPreview
               : seasons
           }
