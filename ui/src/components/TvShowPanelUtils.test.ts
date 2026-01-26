@@ -2089,6 +2089,513 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     expect(result[0].episodes[0].episode.name).toBe('Pilot')
     expect(result[0].episodes[0].files).toContainEqual({ type: 'video', path: videoPath })
   })
+
+  it('returns empty array when plan.files is empty', () => {
+    const mm: MediaMetadata = {
+      mediaFolderPath: '/media/show',
+      files: [],
+      tmdbTvShow: {} as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath: '/media/show',
+      files: [],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toEqual([])
+  })
+
+  it('returns empty array when plan.files is undefined', () => {
+    const mm: MediaMetadata = {
+      mediaFolderPath: '/media/show',
+      files: [],
+      tmdbTvShow: {} as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath: '/media/show',
+      files: undefined as any,
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toEqual([])
+  })
+
+  it('handles multiple episodes in one season', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        '/media/show/Season 01/S01E01.mkv',
+        '/media/show/Season 01/S01E02.mkv',
+        '/media/show/Season 01/S01E03.mkv',
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 },
+              { id: 102, name: 'Ep 2', episode_number: 2, season_number: 1 },
+              { id: 103, name: 'Ep 3', episode_number: 3, season_number: 1 },
+            ],
+          } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [
+        { season: 1, episode: 2, path: '/media/show/Season 01/S01E02.mkv' },
+        { season: 1, episode: 1, path: '/media/show/Season 01/S01E01.mkv' },
+        { season: 1, episode: 3, path: '/media/show/Season 01/S01E03.mkv' },
+      ],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[0].episodes).toHaveLength(3)
+    // Episodes should be sorted by episode_number
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+    expect(result[0].episodes[1].episode.episode_number).toBe(2)
+    expect(result[0].episodes[2].episode.episode_number).toBe(3)
+  })
+
+  it('handles multiple seasons', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        '/media/show/Season 01/S01E01.mkv',
+        '/media/show/Season 02/S02E01.mkv',
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'S1E1', episode_number: 1, season_number: 1 }] } as any,
+          { id: 2, season_number: 2, episodes: [{ id: 201, name: 'S2E1', episode_number: 1, season_number: 2 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [
+        { season: 2, episode: 1, path: '/media/show/Season 02/S02E01.mkv' },
+        { season: 1, episode: 1, path: '/media/show/Season 01/S01E01.mkv' },
+      ],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(2)
+    // Seasons should be sorted by season_number
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[1].season.season_number).toBe(2)
+  })
+
+  it('creates default episode when episode not found in tmdbTvShow', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E05.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 },
+              // Episode 5 is missing
+            ],
+          } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 5, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].episode.episode_number).toBe(5)
+    expect(result[0].episodes[0].episode.name).toBe('')
+    expect(result[0].episodes[0].episode.id).toBe(0)
+  })
+
+  it('creates default season when season not found in tmdbTvShow', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 99/S99E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [] } as any,
+          // Season 99 is missing
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 99, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(99)
+    expect(result[0].season.name).toBe('')
+  })
+
+  it('uses plan.mediaFolderPath when mm.mediaFolderPath is undefined', () => {
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath: undefined,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath: '/media/show',
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes[0].files[0].path).toBe(videoPath)
+  })
+
+  it('includes associated files when found', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    // Associated files must share the same base name as the video file
+    // findAssociatedFiles looks for files that match: base + .extension
+    const subtitlePath = '/media/show/Season 01/S01E01.srt'
+    const nfoPath = '/media/show/Season 01/S01E01.nfo'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath, subtitlePath, nfoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].files.length).toBeGreaterThan(1)
+    expect(result[0].episodes[0].files.some(f => f.type === 'video')).toBe(true)
+    expect(result[0].episodes[0].files.some(f => f.type === 'subtitle')).toBe(true)
+    expect(result[0].episodes[0].files.some(f => f.type === 'nfo')).toBe(true)
+  })
+
+  it('returns only video file when no associated files found', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].files).toEqual([{ type: 'video', path: videoPath }])
+  })
+
+  it('returns only video file when mm.files is empty', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].files).toEqual([{ type: 'video', path: videoPath }])
+  })
+
+  it('returns only video file when mm.files is undefined', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: undefined,
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [{ id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(1)
+    expect(result[0].episodes[0].files).toEqual([{ type: 'video', path: videoPath }])
+  })
+
+  it('handles tmdbTvShow being undefined', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/Season 01/S01E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: undefined,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 1, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+  })
+
+  it('sorts episodes by episode_number within each season', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        '/media/show/S01E05.mkv',
+        '/media/show/S01E01.mkv',
+        '/media/show/S01E03.mkv',
+        '/media/show/S01E02.mkv',
+        '/media/show/S01E04.mkv',
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [{ id: 1, season_number: 1, episodes: [] } as any],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [
+        { season: 1, episode: 5, path: '/media/show/S01E05.mkv' },
+        { season: 1, episode: 1, path: '/media/show/S01E01.mkv' },
+        { season: 1, episode: 3, path: '/media/show/S01E03.mkv' },
+        { season: 1, episode: 2, path: '/media/show/S01E02.mkv' },
+        { season: 1, episode: 4, path: '/media/show/S01E04.mkv' },
+      ],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(5)
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+    expect(result[0].episodes[1].episode.episode_number).toBe(2)
+    expect(result[0].episodes[2].episode.episode_number).toBe(3)
+    expect(result[0].episodes[3].episode.episode_number).toBe(4)
+    expect(result[0].episodes[4].episode.episode_number).toBe(5)
+  })
+
+  it('sorts seasons by season_number', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        '/media/show/Season 03/S03E01.mkv',
+        '/media/show/Season 01/S01E01.mkv',
+        '/media/show/Season 02/S02E01.mkv',
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [] as any,
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [
+        { season: 3, episode: 1, path: '/media/show/Season 03/S03E01.mkv' },
+        { season: 1, episode: 1, path: '/media/show/Season 01/S01E01.mkv' },
+        { season: 2, episode: 1, path: '/media/show/Season 02/S02E01.mkv' },
+      ],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(3)
+    expect(result[0].season.season_number).toBe(1)
+    expect(result[1].season.season_number).toBe(2)
+    expect(result[2].season.season_number).toBe(3)
+  })
+
+  it('handles season 0 (Specials)', () => {
+    const mediaFolderPath = '/media/show'
+    const videoPath = '/media/show/S00E01.mkv'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoPath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 0, season_number: 0, episodes: [{ id: 1, name: 'Special', episode_number: 1, season_number: 0 }] } as any,
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [{ season: 0, episode: 1, path: videoPath }],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].season.season_number).toBe(0)
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+  })
+
+  it('includes all video files from plan even if tmdbTvShow has no matching episodes', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        '/media/show/S01E01.mkv',
+        '/media/show/S01E02.mkv',
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          { id: 1, season_number: 1, episodes: [] } as any, // No episodes
+        ],
+      } as any,
+    }
+    const plan = {
+      id: 'plan-uuid',
+      task: 'recognize-media-file' as const,
+      status: 'pending' as const,
+      mediaFolderPath,
+      files: [
+        { season: 1, episode: 1, path: '/media/show/S01E01.mkv' },
+        { season: 1, episode: 2, path: '/media/show/S01E02.mkv' },
+      ],
+    }
+
+    const result = buildSeasonsByRecognizeMediaFilePlan(mm, plan)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].episodes).toHaveLength(2)
+    // Both episodes should be created with default values
+    expect(result[0].episodes[0].episode.episode_number).toBe(1)
+    expect(result[0].episodes[1].episode.episode_number).toBe(2)
+    expect(result[0].episodes[0].episode.name).toBe('')
+    expect(result[0].episodes[1].episode.name).toBe('')
+  })
 })
 
 describe('buildSeasonsByRenameFilesPlan', () => {

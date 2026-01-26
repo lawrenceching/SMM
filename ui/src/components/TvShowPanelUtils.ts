@@ -7,7 +7,7 @@ import { parseEpisodeNfo } from "@/lib/nfo";
 import { readFile } from "@/api/readFile";
 import { renameFiles as renameFilesApi } from "@/api/renameFiles";
 import type { UpdatePlanStatus } from "@/api/updatePlan";
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan";
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 
@@ -939,5 +939,60 @@ export async function executeRenamePlan(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     toast.error(`Failed to rename files: ${errorMessage}`)
+  }
+}
+
+/**
+ * Build a temporary recognition plan from the media metadata.
+ * This is used for rule-based recognition where the frontend creates
+ * episode-to-file mappings using the lookup utility.
+ *
+ * Note: We always use the lookup utility to find files, never rely on
+ * existing mediaMetadata.mediaFiles because they may be incorrect
+ * (file doesn't exist or mapping is wrong).
+ *
+ * @param mediaMetadata - The media metadata containing files and TV show info
+ * @param lookup - Function to lookup files based on season/episode numbers
+ * @returns A partial recognition plan with file mappings, or null if no files found
+ *          The caller (addTmpPlan) will add id, task, status, and tmp fields
+ */
+export function buildTemporaryRecognitionPlan(
+  mediaMetadata: MediaMetadata,
+  lookup: (files: string[], seasonNumber: number, episodeNumber: number) => string | null
+): Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] } | null {
+  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
+    return null
+  }
+
+  const files: RecognizedFile[] = []
+
+  // Iterate through all seasons and episodes to build the file mappings
+  mediaMetadata.tmdbTvShow.seasons.forEach(season => {
+    season.episodes?.forEach(episode => {
+      // Always use lookup utility to find the file based on filename patterns
+      // Don't use existing mediaMetadata.mediaFiles as they may be incorrect
+      const videoFilePath = lookup(mediaMetadata.files || [], season.season_number, episode.episode_number)
+      if (videoFilePath) {
+        files.push({
+          season: season.season_number,
+          episode: episode.episode_number,
+          path: videoFilePath
+        })
+      }
+    })
+  })
+
+  if (files.length === 0) {
+    return null
+  }
+
+  console.log('[buildTemporaryRecognitionPlan]', {
+    files,
+    mediaFolderPath: mediaMetadata.mediaFolderPath
+  })
+
+  return {
+    mediaFolderPath: mediaMetadata.mediaFolderPath,
+    files
   }
 }

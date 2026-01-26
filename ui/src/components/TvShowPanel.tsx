@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan } from "./TvShowPanelUtils"
+import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -25,7 +25,7 @@ import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { useGlobalStates } from "@/providers/global-states-provider"
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan"
+import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 
 export interface EpisodeModel {
@@ -566,54 +566,6 @@ function TvShowPanelContent() {
     startToRenameFiles()
   }, [startToRenameFiles])
 
-  /**
-   * Build a temporary recognition plan from the seasons preview data.
-   * This is used for rule-based recognition where the frontend creates
-   * episode-to-file mappings using the lookup utility.
-   *
-   * Note: We always use the lookup utility to find files, never rely on
-   * existing mediaMetadata.mediaFiles because they may be incorrect
-   * (file doesn't exist or mapping is wrong).
-   */
-  const buildTemporaryRecognitionPlan = useCallback(() => {
-    if (!mediaMetadata?.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
-      return null
-    }
-
-    const files: RecognizedFile[] = []
-
-    // Iterate through all seasons and episodes to build the file mappings
-    mediaMetadata.tmdbTvShow.seasons.forEach(season => {
-      season.episodes?.forEach(episode => {
-        // Always use lookup utility to find the file based on filename patterns
-        // Don't use existing mediaMetadata.mediaFiles as they may be incorrect
-        const videoFilePath = lookup(mediaMetadata.files || [], season.season_number, episode.episode_number)
-        if (videoFilePath) {
-          files.push({
-            season: season.season_number,
-            episode: episode.episode_number,
-            path: videoFilePath
-          })
-        }
-      })
-    })
-
-    if (files.length === 0) {
-      return null
-    }
-
-    console.log('[TvShowPanel] buildTemporaryRecognitionPlan', {
-      files,
-      mediaFolderPath: mediaMetadata.mediaFolderPath
-    })
-
-    return {
-      mediaFolderPath: mediaMetadata.mediaFolderPath,
-      files
-    }
-    
-  }, [mediaMetadata])
-
   // Handler for rule-based recognition button click
   const handleRuleBasedRecognizeButtonClick = useCallback(() => {
     if (!mediaMetadata?.mediaFolderPath) {
@@ -621,7 +573,7 @@ function TvShowPanelContent() {
       return
     }
 
-    const planData = buildTemporaryRecognitionPlan()
+    const planData = buildTemporaryRecognitionPlan(mediaMetadata, lookup)
     if (!planData || planData.files.length === 0) {
       toast.error("No recognized files found")
       return
@@ -638,7 +590,7 @@ function TvShowPanelContent() {
       fileCount: planData.files.length,
       mediaFolderPath: planData.mediaFolderPath
     })
-  }, [mediaMetadata, buildTemporaryRecognitionPlan, addTmpPlan])
+  }, [mediaMetadata, addTmpPlan])
 
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
