@@ -2972,7 +2972,7 @@ describe('recognizeMediaFilesByRules', () => {
     }
 
     // Mock lookup function that returns video file paths based on season/episode numbers
-    const lookup = vi.fn((files: string[], seasonNumber: number, episodeNumber: number) => {
+    const lookup = vi.fn((_files: string[], seasonNumber: number, episodeNumber: number) => {
       if (seasonNumber === 1 && episodeNumber === 1) {
         return videoFilePath1
       } else if (seasonNumber === 1 && episodeNumber === 2) {
