@@ -20,6 +20,17 @@ interface ReadFileResponseBody {
 
 * POST /api/writeFile
 
+Write file content to a specified path.
+
+**Request Headers**:
+- `X-Trace-Id` (optional): String representation of numeric trace ID counter for request correlation
+
+**Example**:
+```
+Content-Type: application/json
+X-Trace-Id: 1241
+```
+
 Request body:
 ```typescript
 interface WriteFileRequestBody {
@@ -32,7 +43,33 @@ Response body:
 ```typescript
 interface WriteFileResponseBody {
   error?: string;
-}   
+}  
+```
+
+**Notes**:
+- `X-Trace-Id` is optional - missing header defaults to `0` for backend logging
+- Trace ID format is `{event_name}-{counter}` (e.g., `AiSettings-1241`), but only the numeric counter is sent in the header
+- Request body remains unchanged - no `traceId` field added
+- See `docs/trace-id-format.md` for complete trace ID usage guide
+
+**Example**:
+```json
+// Request
+{
+  "path": "C:\\Users\\lawrence\\AppData\\Roaming\\SMM\\smm.json",
+  "data": "{\"applicationLanguage\":\"zh-CN\",\"tmdb\":{...}}",
+  "mode": "overwrite"
+}
+
+// Response (success)
+{
+  "data": {}
+}
+
+// Response (error)
+{
+  "error": "Error Reason: Path is not in allowlist"
+}
 ```
 
 ### Validations

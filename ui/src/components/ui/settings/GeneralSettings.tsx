@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
+import { nextTraceId } from "@/lib/utils"
 
 export function GeneralSettings() {
   const { userConfig, setUserConfig } = useConfig()
@@ -45,11 +46,15 @@ export function GeneralSettings() {
 
   // Handle save
   const handleSave = async () => {
+    const traceId = `GeneralSettings-${nextTraceId()}`;
+    console.log(`[${traceId}] GeneralSettings: Saving general settings`)
+
     // Change i18n language if language changed
     if (applicationLanguage !== userConfig.applicationLanguage) {
+      console.log(`[${traceId}] GeneralSettings: Changing language to ${applicationLanguage}`)
       await changeLanguage(applicationLanguage)
     }
-    
+
     const updatedConfig = {
       ...userConfig,
       applicationLanguage: applicationLanguage,
@@ -60,7 +65,7 @@ export function GeneralSettings() {
         httpProxy: tmdbProxy || undefined,
       },
     }
-    setUserConfig(updatedConfig)
+    setUserConfig(traceId, updatedConfig)
   }
 
   return (

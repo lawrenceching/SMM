@@ -11,9 +11,9 @@ interface ConfigContextValue {
   userConfig: UserConfig
   isLoading: boolean
   error: Error | null
-  setUserConfig: (config: UserConfig) => void
+  setUserConfig: (traceId: string, config: UserConfig) => Promise<void>
   reload: () => void
-  addMediaFolderInUserConfig: (folder: string) => void
+  addMediaFolderInUserConfig: (traceId: string, folder: string) => Promise<void>
 }
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined)
@@ -116,7 +116,7 @@ export function ConfigProvider({
 
       const config = await readFileApi(filePath);
       console.log('[ConfigProvider] Reloaded user config', config)
-      setUserConfig(config);
+      setUserConfig(config)
       
       // Sync i18n language with config
       if (config.applicationLanguage) {
@@ -148,42 +148,75 @@ export function ConfigProvider({
     reload()
   }, [initialAppConfig])
 
-  const saveUserConfig = useCallback(async (config: UserConfig) => {
+  const saveUserConfig = useCallback(async (traceId: string, config: UserConfig) => {
+    console.log(`[${traceId}] saveUserConfig: Starting save operation`)
+
     if(!latestAppConfig.current.userDataDir) {
+      console.error(`[${traceId}] saveUserConfig: User data directory not found`)
       debugger;
       throw new Error("User data directory not found")
     }
-    
+
     // Sync i18n language if language changed
     if (config.applicationLanguage !== userConfig.applicationLanguage) {
+      console.log(`[${traceId}] saveUserConfig: Changing language to ${config.applicationLanguage}`)
       await changeLanguage(config.applicationLanguage);
     }
-    
-    writeFile(join(latestAppConfig.current.userDataDir, 'smm.json'), JSON.stringify(config))
+
+    const filePath = join(latestAppConfig.current.userDataDir, 'smm.json');
+    console.log(`[${traceId}] saveUserConfig: Writing config to ${filePath}`)
+
+    writeFile(filePath, JSON.stringify(config), traceId)
     .then(() => {
-      console.log("User config written successfully")
+      console.log(`[${traceId}] saveUserConfig: User config written successfully`)
       setUserConfig(config)
     })
     .catch((err) => {
-      console.error("Failed to write user config:", err)
+      console.error(`[${traceId}] saveUserConfig: Failed to write user config:`, err)
       setError(err instanceof Error ? err : new Error("Unknown error"))
     })
-  }, [appConfig.userDataDir, userConfig.applicationLanguage])
+  }, [appConfig.userDataDir, userConfig.applicationLanguage, latestAppConfig])
 
-  const addMediaFolderInUserConfig = useCallback((folder: string) => {
-    // Check if folder already exists
-    if (userConfig.folders.includes(folder)) {
-      return
-    }
-    
-    // Add folder to the array and save
-    const updatedConfig: UserConfig = {
-      ...userConfig,
-      folders: [...userConfig.folders, folder]
-    }
-    
-    saveUserConfig(updatedConfig)
-  }, [userConfig, saveUserConfig])
+  const addMediaFolderInUserConfig = useCallback(async (traceId: string, folder: string) => {
+    // Use functional state update to always get the latest config
+    // This avoids the closure trap where the function captures an outdated userConfig
+    setUserConfig((prevConfig) => {
+      // Check if folder already exists using the latest config
+      if (prevConfig.folders.includes(folder)) {
+        console.log(`[${traceId}] addMediaFolderInUserConfig: Folder ${folder} already exists in latest config, skipping`)
+        return prevConfig
+      }
+
+      console.log(`[${traceId}] addMediaFolderInUserConfig: Adding folder ${folder}`)
+
+      const updatedConfig: UserConfig = {
+        ...prevConfig,
+        folders: [...prevConfig.folders, folder]
+      }
+
+      console.log(`[${traceId}] addMediaFolderInUserConfig: Updated config with ${updatedConfig.folders.length} folders`)
+
+      // Also save to file
+      const userDataDir = latestAppConfig.current.userDataDir
+      if (!userDataDir) {
+        console.error(`[${traceId}] addMediaFolderInUserConfig: User data directory not found`)
+        return prevConfig
+      }
+
+      const filePath = join(userDataDir, 'smm.json');
+
+      writeFile(filePath, JSON.stringify(updatedConfig), traceId)
+        .then(() => {
+          console.log(`[${traceId}] addMediaFolderInUserConfig: User config written successfully`)
+        })
+        .catch((err) => {
+          console.error(`[${traceId}] addMediaFolderInUserConfig: Failed to write user config:`, err)
+          setError(err instanceof Error ? err : new Error("Unknown error"))
+        })
+
+      return updatedConfig
+    })
+  }, [latestAppConfig, setError])
   
   // Sync i18n language on initial load
   useEffect(() => {

@@ -36,6 +36,7 @@ async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (pat
   }
 
   const traceId = `refreshMediaMetadata-${nextTraceId()}`
+  console.log(`[${traceId}] refreshMediaMetadata: Refreshing metadata for ${mm.mediaFolderPath}`)
   updateMediaMetadata(mm.mediaFolderPath!, {
     ...mm,
     tmdbTvShow: response.data,
@@ -45,15 +46,17 @@ async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (pat
 
 }
 
-export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata, options?: { traceId?: string }) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
+export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata, options: { traceId: string }) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
 
   const { setMediaFolderStates } = useGlobalStates()
   const { addMediaFolderInUserConfig } = useConfig()
   const { addMediaMetadata } = useMediaMetadata()
 
-  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string) => {
+  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string, options?: { traceId?: string }) => {
+    const traceId = options?.traceId || `onFolderSelected-${nextTraceId()}`
+
     console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPath)
-    const traceId = `onFolderSelected-${nextTraceId()}`
+    console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
     const abortController = new AbortController()
     const signal = abortController.signal
     const TIMEOUT_MS = 10000 // 10 seconds
@@ -137,8 +140,8 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           if (recognizedMetadata === undefined) {
             console.log('[onFolderSelected] No recognized metadata, adding initial metadata')
             addMediaMetadata(initialMetadata, { traceId })
-            console.log('[onFolderSelected] Adding initial metadata to user config')
-            addMediaFolderInUserConfig(folderPath)
+            console.log(`[${traceId}] onFolderSelected: Adding initial metadata to user config`)
+            addMediaFolderInUserConfig(traceId, folderPath)
             return;
           }
 
@@ -151,8 +154,8 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           await addMediaMetadata(recognizedMetadata, { traceId })
           console.log('[onFolderSelected] Refreshing media metadata:', recognizedMetadata)
           await refreshMediaMetadata(recognizedMetadata, updateMediaMetadata, signal)
-          console.log('[onFolderSelected] Adding recognized metadata to user config')
-          addMediaFolderInUserConfig(folderPath)
+          console.log(`[${traceId}] onFolderSelected: Adding recognized metadata to user config`)
+          addMediaFolderInUserConfig(traceId, folderPath)
 
           if (signal.aborted) {
             console.log('[onFolderSelected] Aborted after refreshMediaMetadata')
@@ -161,12 +164,11 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
 
           return;
         } else {
-          console.log('[onFolderSelected] Metadata already exists, skipping recognition')
-        }
+        console.log('[onFolderSelected] Metadata already exists, skipping recognition')
+      }
 
-
-        addMediaFolderInUserConfig(folderPath)
-        console.log('[onFolderSelected] Adding folder to user config')
+      console.log(`[${traceId}] onFolderSelected: Adding folder to user config`)
+      addMediaFolderInUserConfig(traceId, folderPath)
 
         if (signal.aborted) {
           console.log('[onFolderSelected] Aborted after adding folder to user config')

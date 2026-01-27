@@ -100,3 +100,28 @@ export const logger = await createLogger();
 
 // Export a default as well for convenience
 export default logger;
+
+/**
+ * Log with trace ID context
+ * @param level Log level ('info', 'warn', 'error', 'debug')
+ * @param traceId Trace ID for request correlation
+ * @param message Log message
+ * @param data Additional data to log
+ */
+export function logWithTrace(
+  level: 'info' | 'warn' | 'error' | 'debug',
+  traceId: number,
+  message: string,
+  data?: Record<string, unknown>
+) {
+  logger[level]({ traceId, ...data }, message);
+}
+
+/**
+ * Create a child logger with trace ID bound
+ * @param traceId Trace ID to bind to the logger
+ * @returns A child logger instance with trace ID in all log entries
+ */
+export function createTraceLogger(traceId: number) {
+  return logger.child({ traceId });
+}

@@ -6,6 +6,7 @@ import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Button } from "@/components/ui/button"
 import type { AI } from "@core/types"
 import { useTranslation } from "@/lib/i18n"
+import { nextTraceId } from "@/lib/utils"
 
 const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
 
@@ -107,6 +108,9 @@ export function AiSettings() {
 
   // Handle save
   const handleSave = () => {
+    const traceId = `AiSettings-${nextTraceId()}`;
+    console.log(`[${traceId}] AiSettings: Saving AI settings`)
+
     // Build complete AIConfig with all providers, starting with existing values
     const existingAi = userConfig.ai
     const updatedAiConfig: import("@core/types").AIConfig = {
@@ -116,7 +120,7 @@ export function AiSettings() {
       glm: existingAi?.glm || { baseURL: '', apiKey: '', model: '' },
       other: existingAi?.other || { baseURL: '', apiKey: '', model: '' },
     }
-    
+
     // Update all provider configs with current form values
     aiProviders.forEach(provider => {
       const providerKey = providerKeyMap[provider]
@@ -133,7 +137,8 @@ export function AiSettings() {
       selectedAI: selectedProvider,
       ai: updatedAiConfig,
     }
-    setUserConfig(updatedConfig)
+    console.log(`[${traceId}] AiSettings: Selected AI provider: ${selectedProvider}`)
+    setUserConfig(traceId, updatedConfig)
   }
 
   const providerKey = selectedProvider.toLowerCase()

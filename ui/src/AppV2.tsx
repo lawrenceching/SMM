@@ -17,13 +17,16 @@ import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
+import { useConfig } from "./providers/config-provider"
+import { useLatest } from "react-use"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
 export default function AppV2() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-
+  const { userConfig } = useConfig()
+  const latestUserConfig = useLatest(userConfig)
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -224,7 +227,10 @@ export default function AppV2() {
           // Then open the folder type selection dialog with the selected folder path
           openOpenFolder((type: FolderType) => {
             console.log(`Selected folder type: ${type}`)
-            onFolderSelected(type, selectedFile.path)
+            const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
+            onFolderSelected(type, selectedFile.path, {
+              traceId: traceId,
+            })
           }, selectedFile.path)
         }
       })
@@ -232,7 +238,11 @@ export default function AppV2() {
       openFilePicker((file: FileItem) => {
         console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
-          onFolderSelected(type, file.path)
+          const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
+          console.log(`[AppV2] userConfig: `, latestUserConfig.current)
+          onFolderSelected(type, file.path, {
+            traceId: traceId,
+          })
         }, file.path)
       }, {
         title: "Select Folder",

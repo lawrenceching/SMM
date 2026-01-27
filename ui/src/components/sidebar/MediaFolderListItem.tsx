@@ -126,6 +126,9 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
   }, [path])
 
   const handleDeleteButtonClick = useCallback(() => {
+    const traceId = `MediaFolderListItem-${nextTraceId()}`;
+    console.log(`[${traceId}] MediaFolderListItem: Removing folder ${path}`)
+
     removeMediaMetadata(path)
 
     const newUserConfig: UserConfig = {
@@ -133,7 +136,7 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
       folders: userConfig.folders.filter((folder) => Path.posix(folder) !== path),
     }
 
-    setUserConfig(newUserConfig)
+    setUserConfig(traceId, newUserConfig)
   }, [path, userConfig, setUserConfig, removeMediaMetadata])
 
   const handleOpenInExplorerButtonClick = useCallback(async () => {
@@ -167,11 +170,14 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
 
     openRename(
       async (newName: string) => {
+        const traceId = `MediaFolderListItem-${nextTraceId()}`;
+        console.log(`[${traceId}] MediaFolderListItem: Renaming folder ${path} to ${newName}`)
+
         try {
           // Calculate the new folder path
           const parentDir = dirname(path)
           const newFolderPath = join(parentDir, newName)
-          
+
           // Call renameFolder API to rename the folder on disk
           await renameFolder({
             from: path,
@@ -179,11 +185,11 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
           })
 
           // Update the metadata with the new name and path
-          const updatedMetadata: typeof currentMetadata = { 
+          const updatedMetadata: typeof currentMetadata = {
             ...currentMetadata,
             mediaFolderPath: newFolderPath
           }
-          
+
           // Update based on media type
           if (updatedMetadata.tmdbTvShow) {
             updatedMetadata.tmdbTvShow = {
@@ -203,11 +209,11 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
           // Update user config to reflect the new folder path
           const newUserConfig: UserConfig = {
             ...userConfig,
-            folders: userConfig.folders.map((folder) => 
+            folders: userConfig.folders.map((folder) =>
               Path.posix(folder) === path ? newFolderPath : folder
             ),
           }
-          setUserConfig(newUserConfig)
+          setUserConfig(traceId, newUserConfig)
 
           // Remove old metadata entry if path changed
           if (path !== newFolderPath) {
@@ -215,7 +221,6 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
           }
 
           // Update media metadata with new path
-          const traceId = `MediaFolderListItem-handleRenameButtonClick-${nextTraceId()}`
           updateMediaMetadata(newFolderPath, updatedMetadata, { traceId })
 
           // Refresh media metadata to reflect the rename
