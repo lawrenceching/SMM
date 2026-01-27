@@ -234,6 +234,7 @@ vi.mock('@/providers/global-states-provider', () => ({
     fetchPendingPlans: vi.fn(),
     updatePlan: vi.fn(),
   })),
+  useInitializedMediaFoldersState: vi.fn(() => [[], vi.fn()]),
   GlobalStatesProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 

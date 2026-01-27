@@ -5,6 +5,7 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
 import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
 import { toast } from "sonner"
+import { createGlobalState } from "react-use"
 
 export interface MediaFolderState {
   loading: boolean
@@ -154,3 +155,9 @@ export function useGlobalStates(): GlobalStatesContextValue {
   }
   return context
 }
+
+
+/**
+ * Global states to stores the folder paths in POSIX format
+ */
+export const useInitializedMediaFoldersState = createGlobalState<string[]>([])

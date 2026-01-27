@@ -1,3 +1,4 @@
+import { isNil } from "es-toolkit"
 import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
@@ -23,7 +24,7 @@ import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
-import { useGlobalStates } from "@/providers/global-states-provider"
+import { useGlobalStates, useInitializedMediaFoldersState } from "@/providers/global-states-provider"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 
@@ -45,6 +46,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
+  const [initializedMediaFolders, setInitializedMediaFolders] = useInitializedMediaFoldersState()
   const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
@@ -591,6 +593,25 @@ function TvShowPanelContent() {
     })
   }, [mediaMetadata, addTmpPlan])
 
+  useEffect(() => {
+    if (!mediaMetadata 
+      || !mediaMetadata.mediaFolderPath) {
+      return
+    }
+
+    if(initializedMediaFolders.includes(mediaMetadata.mediaFolderPath)) {
+      return;
+    }
+
+    if(isNil(mediaMetadata.mediaFiles) || mediaMetadata.mediaFiles.every(file => isNil(file.absolutePath))) {
+      console.log(`[TvShowPanel] try to recognize media folder by rules`)
+      handleRuleBasedRecognizeButtonClick()
+      setInitializedMediaFolders([...initializedMediaFolders, mediaMetadata.mediaFolderPath])
+    } else {
+      console.log(`[TvShowPanel] media files have been recognized, no need to try to recognize again`)
+    }
+
+  }, [mediaMetadata, handleRuleBasedRecognizeButtonClick])
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
   const isPreviewingForRename = promptsContext.isAiBasedRenameFilePromptOpen 
