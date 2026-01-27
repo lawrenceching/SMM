@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -2675,5 +2675,532 @@ describe('buildSeasonsByRenameFilesPlan', () => {
     const videoFile = result[0].episodes[0].files.find((f) => f.type === 'video')
     expect(videoFile).toBeDefined()
     expect(videoFile).toMatchObject({ type: 'video', path: fromPath, newPath: toPath })
+  })
+})
+
+describe('buildSeasonsModelFromMediaMetadata', () => {
+  it('should return null when tmdbTvShow is undefined', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: undefined,
+    }
+
+    const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+
+    expect(result).toBeNull()
+  })
+
+  it('should return empty array when tmdbTvShow has no seasons', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [],
+      } as any,
+    }
+
+    const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+
+    expect(result).toEqual([])
+  })
+
+  it('should build seasons model with one season and one episode', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+      } as any,
+    }
+
+    const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+
+    expect(result).not.toBeNull()
+    expect(result).toHaveLength(1)
+    expect(result![0].season.season_number).toBe(1)
+    expect(result![0].episodes).toHaveLength(1)
+    expect(result![0].episodes[0].episode.episode_number).toBe(1)
+    expect(result![0].episodes[0].files).toEqual([]) // Files should be empty
+  })
+
+  it('should build seasons model with one season and multiple episodes', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 2,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+              {
+                id: 102,
+                name: 'Episode 2',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-08',
+                episode_number: 2,
+                season_number: 1,
+                vote_average: 8.3,
+                vote_count: 95,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+      } as any,
+    }
+
+    const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+
+    expect(result).not.toBeNull()
+    expect(result).toHaveLength(1)
+    expect(result![0].season.season_number).toBe(1)
+    expect(result![0].episodes).toHaveLength(2)
+    expect(result![0].episodes[0].episode.episode_number).toBe(1)
+    expect(result![0].episodes[1].episode.episode_number).toBe(2)
+    expect(result![0].episodes[0].files).toEqual([])
+    expect(result![0].episodes[1].files).toEqual([])
+  })
+
+  it('should build seasons model with multiple seasons', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+            ],
+          },
+          {
+            id: 2,
+            name: 'Season 2',
+            overview: '',
+            poster_path: null,
+            season_number: 2,
+            air_date: '2024-07-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 201,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-07-01',
+                episode_number: 1,
+                season_number: 2,
+                vote_average: 9.0,
+                vote_count: 120,
+                runtime: 45,
+              },
+            ],
+          },
+        ],
+      } as any,
+    }
+
+    const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+
+    expect(result).not.toBeNull()
+    expect(result).toHaveLength(2)
+    expect(result![0].season.season_number).toBe(1)
+    expect(result![1].season.season_number).toBe(2)
+    expect(result![0].episodes).toHaveLength(1)
+    expect(result![1].episodes).toHaveLength(1)
+  })
+})
+
+describe('recognizeMediaFilesByRules', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should recognize and assign video files to episodes using lookup function - happy flow', () => {
+    const mediaFolderPath = '/media/tvshow'
+    const videoFilePath1 = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
+    const videoFilePath2 = '/media/tvshow/Season 01/Show.Name.S01E02.mkv'
+    // Subtitle file must have exact same base name as video file for findAssociatedFiles to work
+    const subtitleFilePath = '/media/tvshow/Season 01/Show.Name.S01E01.srt'
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath,
+      files: [
+        videoFilePath1,
+        videoFilePath2,
+        subtitleFilePath,
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show Name',
+        original_name: 'Show Name',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 8.5,
+        vote_count: 100,
+        popularity: 10,
+        genre_ids: [],
+        origin_country: [],
+        media_type: 'tv',
+        number_of_seasons: 1,
+        number_of_episodes: 2,
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 2,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+              {
+                id: 102,
+                name: 'Episode 2',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-08',
+                episode_number: 2,
+                season_number: 1,
+                vote_average: 8.3,
+                vote_count: 95,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-08',
+        networks: [],
+        production_companies: [],
+      },
+      mediaFiles: [], // No mediaFiles assigned yet - this triggers the lookup
+    }
+
+    // Mock lookup function that returns video file paths based on season/episode numbers
+    const lookup = vi.fn((files: string[], seasonNumber: number, episodeNumber: number) => {
+      if (seasonNumber === 1 && episodeNumber === 1) {
+        return videoFilePath1
+      } else if (seasonNumber === 1 && episodeNumber === 2) {
+        return videoFilePath2
+      }
+      return null
+    })
+
+    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+
+    // Verify the function returns updated seasons
+    expect(result).not.toBeNull()
+    expect(result).toHaveLength(1)
+
+    // Verify season structure
+    expect(result![0].season.season_number).toBe(1)
+    expect(result![0].episodes).toHaveLength(2)
+
+    // Verify episode 1 has video file and associated subtitle file assigned
+    const episode1 = result![0].episodes[0]
+    expect(episode1.episode.episode_number).toBe(1)
+    expect(episode1.files).toHaveLength(2) // video + subtitle
+    expect(episode1.files.some(f => f.type === 'video' && f.path === videoFilePath1)).toBe(true)
+    expect(episode1.files.some(f => f.type === 'subtitle' && f.path === subtitleFilePath)).toBe(true)
+
+    // Verify episode 2 has video file assigned (no associated files)
+    const episode2 = result![0].episodes[1]
+    expect(episode2.episode.episode_number).toBe(2)
+    expect(episode2.files).toHaveLength(1) // only video
+    expect(episode2.files.some(f => f.type === 'video' && f.path === videoFilePath2)).toBe(true)
+
+    // Verify lookup was called for both episodes
+    expect(lookup).toHaveBeenCalledTimes(2)
+    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
+    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 2)
+
+    // Verify console logs for debugging
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] built seasons model from tmdbTvShow:',
+      expect.any(Array)
+    )
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] video file path from lookup:',
+      expect.any(String)
+    )
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] updating episode files:',
+      expect.any(Array),
+      expect.any(Array)
+    )
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] seasons for preview:',
+      expect.any(Array)
+    )
+  })
+
+  it('should return null when mediaMetadata is null', () => {
+    const result = recognizeMediaFilesByRules(null as any, vi.fn())
+    expect(result).toBeNull()
+  })
+
+  it('should return null when mediaMetadata.mediaFolderPath is undefined', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: undefined,
+      files: [],
+      tmdbTvShow: {} as any,
+    }
+    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    expect(result).toBeNull()
+  })
+
+  it('should return null when mediaMetadata.files is undefined', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: undefined,
+      tmdbTvShow: {} as any,
+    }
+    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    expect(result).toBeNull()
+  })
+
+  it('should return null when tmdbTvShow is undefined', () => {
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: '/media/tvshow',
+      files: [],
+      tmdbTvShow: undefined,
+    }
+    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    expect(result).toBeNull()
+  })
+
+  it('should always call lookup regardless of existing mediaFiles', () => {
+    const mediaFolderPath = '/media/tvshow'
+    const videoFilePath = '/media/tvshow/Show.Name.S01E01.mkv'
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath,
+      files: [videoFilePath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 },
+            ],
+          } as any,
+        ],
+      } as any,
+      // Even though mediaFile exists, lookup should still be called
+      mediaFiles: [
+        { absolutePath: videoFilePath, seasonNumber: 1, episodeNumber: 1 },
+      ],
+    }
+
+    const lookup = vi.fn(() => videoFilePath)
+
+    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+
+    // Verify the season is returned and lookup was called
+    expect(result).not.toBeNull()
+    expect(result![0].episodes[0].files).toHaveLength(1)
+    expect(result![0].episodes[0].files[0].path).toBe(videoFilePath)
+    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
+
+    // Verify console log for lookup result
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] video file path from lookup:',
+      videoFilePath
+    )
+  })
+
+  it('should handle episodes where lookup returns null', () => {
+    const mediaFolderPath = '/media/tvshow'
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath,
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { id: 101, name: 'Ep 1', episode_number: 1, season_number: 1 },
+            ],
+          } as any,
+        ],
+      } as any,
+      mediaFiles: [], // No mediaFiles assigned
+    }
+
+    // Mock lookup that returns null (file not found)
+    const lookup = vi.fn(() => null)
+
+    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+
+    // Verify the season is returned but episode has no files
+    expect(result).not.toBeNull()
+    expect(result![0].episodes[0].files).toHaveLength(0)
+    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
+  })
+
+  it('should override outdated mediaFiles with lookup result', () => {
+    const mediaFolderPath = '/media/tvshow'
+    const wrongFilePath = '/media/tvshow/wrong_file.mp4'
+    const correctFilePath = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath,
+      files: [correctFilePath, wrongFilePath],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+      } as any,
+      // mediaFiles contains outdated/wrong file for S01E01
+      mediaFiles: [
+        { absolutePath: wrongFilePath, seasonNumber: 1, episodeNumber: 1 },
+      ],
+    }
+
+    // Mock lookup that returns the correct file (overrides the outdated mediaFile)
+    const lookup = vi.fn(() => correctFilePath)
+
+    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+
+    // Verify the season is returned with the correct file from lookup
+    expect(result).not.toBeNull()
+    expect(result![0].episodes[0].files).toHaveLength(1)
+    expect(result![0].episodes[0].files[0].path).toBe(correctFilePath)
+    expect(result![0].episodes[0].files[0].path).not.toBe(wrongFilePath)
+
+    // Verify lookup was called (even though mediaFile existed)
+    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
+
+    // Verify console log for lookup result
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] video file path from lookup:',
+      correctFilePath
+    )
   })
 })

@@ -1,6 +1,7 @@
 import type { SeasonModel } from "./TvShowPanel";
 import type { MediaMetadata, MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { extname, join } from "@/lib/path";
+import { Path } from "@core/path";
 import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/lib/utils";
 import type { FileProps } from "@/lib/types";
 import { parseEpisodeNfo } from "@/lib/nfo";
@@ -10,6 +11,7 @@ import type { UpdatePlanStatus } from "@/api/updatePlan";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
+import { listFiles } from "@/api/listFiles";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -920,8 +922,37 @@ export async function executeRenamePlan(
       return mediaFile
     })
 
+    // List latest files after rename operation
+    const latestFilesResp = await listFiles({
+      path: mediaMetadata.mediaFolderPath,
+      recursively: true,
+      onlyFiles: true,
+    })
+
+    if (latestFilesResp.error) {
+      console.error(`[executeRenamePlan] Failed to list files: ${latestFilesResp.error}`)
+      toast.error(`Failed to refresh file list: ${latestFilesResp.error}`)
+      return
+    }
+
+    if (latestFilesResp.data === undefined) {
+      console.error(`[executeRenamePlan] Unexpected response: no data`)
+      toast.error(`Failed to refresh file list: no data received`)
+      return
+    }
+
+    // Handle both old format (strings) and new format (objects with path property)
+    // and convert to POSIX paths
+    const latestFiles = latestFilesResp.data.items
+      .map((i: { path?: string } | string) => {
+        const path = typeof i === 'string' ? i : (i.path ?? '');
+        return Path.posix(path);
+      })
+      .filter((path: string) => path !== '');
+
     updateMediaMetadata(mediaMetadata.mediaFolderPath, {
       ...mediaMetadata,
+      files: latestFiles,
       mediaFiles: updatedMediaFiles,
     }, { traceId })
 
@@ -994,5 +1025,127 @@ export function buildTemporaryRecognitionPlan(
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
     files
+  }
+}
+
+/**
+ * Build SeasonModel[] from mediaMetadata.tmdbTvShow
+ * This creates a new seasons model with all episodes from tmdbTvShow, initialized with empty files array.
+ *
+ * @param mediaMetadata - The media metadata containing tmdbTvShow
+ * @returns SeasonModel array with episodes from tmdbTvShow, or null if tmdbTvShow is undefined
+ */
+export function buildSeasonsModelFromMediaMetadata(mediaMetadata: MediaMetadata): SeasonModel[] | null {
+  if (!mediaMetadata.tmdbTvShow) {
+    return null
+  }
+
+  const seasons: SeasonModel[] = []
+
+  for (const tmdbSeason of mediaMetadata.tmdbTvShow.seasons || []) {
+    const episodes: Array<{ episode: TMDBEpisode; files: FileProps[] }> = []
+
+    for (const tmdbEpisode of tmdbSeason.episodes || []) {
+      episodes.push({
+        episode: tmdbEpisode,
+        files: [], // Initialize with empty files array
+      })
+    }
+
+    seasons.push({
+      season: tmdbSeason,
+      episodes,
+    })
+  }
+
+  return seasons
+}
+
+/**
+ * Recognize media files by rules and update season models for preview.
+ * This function builds a new seasons model from tmdbTvShow and populates episode files
+ * by using the lookup function to find video files for episodes that don't have mediaFiles assigned.
+ *
+ * @param mediaMetadata - The media metadata containing files and TV show info
+ * @param lookup - Function to lookup files based on season/episode numbers
+ * @returns Updated season models with recognized files, or null if mediaMetadata is invalid
+ */
+export function recognizeMediaFilesByRules(
+  mediaMetadata: MediaMetadata,
+  lookup: (files: string[], seasonNumber: number, episodeNumber: number) => string | null
+): SeasonModel[] | null {
+  if (!mediaMetadata) {
+    return null
+  }
+
+  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
+    return null
+  }
+
+  try {
+    // Build initial seasons model from tmdbTvShow
+    const seasonsForPreview = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+    if (!seasonsForPreview) {
+      return null
+    }
+
+    console.log(`[TvShowPanelUtils] built seasons model from tmdbTvShow:`, seasonsForPreview)
+
+    const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
+      // Find the matching season and episode
+      const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber)
+      if (!season) {
+        return
+      }
+
+      const episode = season.episodes.find(ep => ep.episode.episode_number === episodeNumber)
+      if (!episode) {
+        return
+      }
+
+      // Check that mediaMetadata has required properties
+      if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
+        return
+      }
+
+      // Find associated files (subtitles, audio, nfo, poster)
+      const associatedFiles = findAssociatedFiles(mediaMetadata.mediaFolderPath, mediaMetadata.files, videoFilePath)
+
+      // Build the new files array
+      const newFiles: FileProps[] = [
+        {
+          type: "video",
+          path: videoFilePath,
+        },
+        ...associatedFiles.map(file => ({
+          type: mapTagToFileType(file.tag),
+          // Convert relative path to absolute path
+          path: join(mediaMetadata.mediaFolderPath!, file.path),
+        }))
+      ]
+
+      // Update the episode's files
+      console.log(`[TvShowPanelUtils] updating episode files:`, episode.files, newFiles)
+      episode.files = newFiles
+    }
+
+    mediaMetadata.tmdbTvShow?.seasons.forEach(season => {
+      season.episodes?.forEach(episode => {
+        // Always use lookup for rule-based recognition to get fresh recognition results
+        // This handles cases where mediaFiles may be outdated or incorrect
+        const videoFilePath = lookup(mediaMetadata.files!, season.season_number, episode.episode_number)
+        console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
+
+        if (videoFilePath !== null) {
+          updateSeasonsForPreview(season.season_number, episode.episode_number, videoFilePath)
+        }
+      })
+    })
+
+    console.log(`[TvShowPanelUtils] seasons for preview:`, seasonsForPreview)
+    return seasonsForPreview
+  } catch (error) {
+    console.error('[TvShowPanelUtils] Error building seasons state from media metadata', error)
+    return null
   }
 }

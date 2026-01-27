@@ -3,8 +3,7 @@ import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
 import type { FileProps } from "@/lib/types"
-import { findAssociatedFiles, nextTraceId } from "@/lib/utils"
-import { join } from "@/lib/path"
+import { nextTraceId } from "@/lib/utils"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
 import { sendAcknowledgement } from "@/hooks/useWebSocket"
@@ -13,7 +12,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, mapTagToFileType, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
@@ -602,83 +601,24 @@ function TvShowPanelContent() {
   /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
   const isPreviewingForRecognize = promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiRecognizePromptOpen
 
-  // TODO: consider to reuse the recognize plan so that we can share the logic for AI based recognition.
   useEffect(() => {
-
-    if(!mediaMetadata) {
-      return;
+    if (!mediaMetadata) {
+      return
     }
 
-    if(!promptsContext.isRuleBasedRecognizePromptOpen) {
-      return;
+    if (!promptsContext.isRuleBasedRecognizePromptOpen) {
+      return
     }
 
+    const updatedSeasons = recognizeMediaFilesByRules(
+      mediaMetadata,
+      lookup
+    )
 
-    try {
-
-      const seasonsForPreview: SeasonModel[] = structuredClone(latestSeasons.current);
-      console.log(`[TvShowPanel] cloned seasons model:`, seasonsForPreview);
-      const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
-        // Find the matching season and episode
-        const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber);
-        if (!season) {
-          return;
-        }
-
-        const episode = season.episodes.find(ep => ep.episode.episode_number === episodeNumber);
-        if (!episode) {
-          return;
-        }
-
-        // Check that mediaMetadata has required properties
-        if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
-          return;
-        }
-
-        // Find associated files (subtitles, audio, nfo, poster)
-        const associatedFiles = findAssociatedFiles(mediaMetadata.mediaFolderPath, mediaMetadata.files, videoFilePath);
-
-        // Build the new files array
-        const newFiles: FileProps[] = [
-          {
-            type: "video",
-            path: videoFilePath,
-          },
-          ...associatedFiles.map(file => ({
-            type: mapTagToFileType(file.tag),
-            // Convert relative path to absolute path
-            path: join(mediaMetadata.mediaFolderPath!, file.path),
-          }))
-        ];
-
-        // Update the episode's files
-        episode.files = newFiles;
-      }
-
-      mediaMetadata.tmdbTvShow?.seasons.forEach(season => {
-        season.episodes?.forEach(episode => {
-
-          const mediaFile = mediaMetadata.mediaFiles?.find(file => file.seasonNumber === season.season_number && file.episodeNumber === episode.episode_number)
-          if(!mediaFile) {
-            const videoFilePath = lookup(mediaMetadata.files!, season.season_number, episode.episode_number);
-
-            if(videoFilePath !== null) {
-              updateSeasonsForPreview(season.season_number, episode.episode_number, videoFilePath);
-            }
-            
-
-          }
-        })
-      })
-
-      console.log(`[TvShowPanel] seasons for preview:`, seasonsForPreview);
-      setSeasonsForPreview(seasonsForPreview);
+    if (updatedSeasons !== null) {
+      setSeasonsForPreview(updatedSeasons)
       console.log(`[TvShowPanel] set the seasonsForPreview state`)
-    
-    } catch (error) {
-      console.error('Error building seasons state from media metadata', error);
     }
-
   }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen, latestSeasons])
 
   return (
