@@ -204,7 +204,10 @@ describe('useOnFolderSelected', () => {
       )
 
       // Verify addMediaFolderInUserConfig was called with the folder path
-      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith('/test/path')
+      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith(
+        expect.any(String),
+        '/test/path'
+      )
 
       // The loading state should be set to false after completion
       // We verify this by ensuring the promise resolves without errors
@@ -246,7 +249,10 @@ describe('useOnFolderSelected', () => {
       expect(listFiles).not.toHaveBeenCalled()
 
       // Verify addMediaFolderInUserConfig was still called even when metadata exists
-      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith('/test/path')
+      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith(
+        expect.any(String),
+        '/test/path'
+      )
     })
 
     it('should handle defined metadata response from readMediaMetadataApi', async () => {
@@ -329,7 +335,10 @@ describe('useOnFolderSelected', () => {
       expect(mockAddMediaMetadata).not.toHaveBeenCalled()
 
       // Verify addMediaFolderInUserConfig was still called
-      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith('/test/path')
+      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith(
+        expect.any(String),
+        '/test/path'
+      )
     })
 
     it('should handle undefined metadata response from readMediaMetadataApi', async () => {
@@ -405,7 +414,10 @@ describe('useOnFolderSelected', () => {
       expect(addedMetadata.type).toBe('tvshow-folder')
 
       // Verify addMediaFolderInUserConfig was called with the folder path
-      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith('/test/path')
+      expect(mockAddMediaFolderInUserConfig).toHaveBeenCalledWith(
+        expect.any(String),
+        '/test/path'
+      )
     })
   })
 
