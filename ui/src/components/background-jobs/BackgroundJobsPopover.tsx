@@ -130,16 +130,6 @@ export function BackgroundJobsPopoverContent() {
           ))
         )}
       </div>
-
-      <div className="p-2 border-t border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-        >
-          Close
-        </Button>
-      </div>
     </>
   );
 }
