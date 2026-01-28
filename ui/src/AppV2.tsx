@@ -43,6 +43,10 @@ function AppV2Content() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  // Multi-select: set of selected folder paths and the primary (drives content panel)
+  const [selectedFolderPaths, setSelectedFolderPaths] = useState<Set<string>>(new Set())
+  const [primaryFolderPath, setPrimaryFolderPath] = useState<string | undefined>(undefined)
+  const hasInitializedSelectionFromProvider = useRef(false)
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
@@ -87,6 +91,26 @@ function AppV2Content() {
     return hasWindow && hasElectron
   }, [])
 
+
+  // Sync primary folder to content panel (selectedMediaMetadata)
+  useEffect(() => {
+    if (primaryFolderPath === undefined || mediaMetadatas.length === 0) return
+    const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === primaryFolderPath)
+    if (index !== -1) setSelectedMediaMetadata(index)
+  }, [primaryFolderPath, mediaMetadatas, setSelectedMediaMetadata])
+
+  // Initialize selection from provider once (e.g. after load or restore)
+  useEffect(() => {
+    if (
+      selectedMediaMetadata?.mediaFolderPath &&
+      !hasInitializedSelectionFromProvider.current
+    ) {
+      const path = selectedMediaMetadata.mediaFolderPath
+      setPrimaryFolderPath(path)
+      setSelectedFolderPaths(new Set([path]))
+      hasInitializedSelectionFromProvider.current = true
+    }
+  }, [selectedMediaMetadata?.mediaFolderPath])
 
   useEffect(() => {
     if(selectedMediaMetadata === undefined) {
@@ -397,12 +421,33 @@ function AppV2Content() {
     return result
   }, [folders, sortOrder, filterType, searchQuery])
 
-  const handleMediaFolderListItemClick = useCallback((path: string) => {
-    const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
-    if (index !== -1) {
-      setSelectedMediaMetadata(index)
+  const onFolderClick = useCallback(
+    (path: string, modifiers: { ctrlKey: boolean; metaKey: boolean }) => {
+      const multi = modifiers.ctrlKey || modifiers.metaKey
+      if (multi) {
+        setSelectedFolderPaths((prev) => {
+          const next = new Set(prev)
+          if (next.has(path)) next.delete(path)
+          else next.add(path)
+          return next
+        })
+        setPrimaryFolderPath(path)
+      } else {
+        setSelectedFolderPaths(new Set([path]))
+        setPrimaryFolderPath(path)
+      }
+    },
+    []
+  )
+
+  const onSelectAll = useCallback(() => {
+    setSelectedFolderPaths(
+      new Set(filteredAndSortedFolders.map((f) => f.path))
+    )
+    if (filteredAndSortedFolders.length > 0) {
+      setPrimaryFolderPath(filteredAndSortedFolders[0].path)
     }
-  }, [mediaMetadatas, setSelectedMediaMetadata])
+  }, [filteredAndSortedFolders])
 
   // 最小和最大侧边栏宽度
   const MIN_SIDEBAR_WIDTH = 150
@@ -530,7 +575,10 @@ function AppV2Content() {
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
             filteredAndSortedFolders={filteredAndSortedFolders}
-            handleMediaFolderListItemClick={handleMediaFolderListItemClick}
+            selectedFolderPaths={selectedFolderPaths}
+            primaryFolderPath={primaryFolderPath}
+            onFolderClick={onFolderClick}
+            onSelectAll={onSelectAll}
           />
 
           {/* 拖拽调整大小的手柄 */}

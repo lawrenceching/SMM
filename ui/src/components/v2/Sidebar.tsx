@@ -1,9 +1,15 @@
+import { useCallback } from "react"
 import { SearchForm } from "@/components/search-form"
 import { type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
 import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
 
 export type { SortOrder, FilterType }
+
+export interface SidebarFolderClickModifiers {
+  ctrlKey: boolean
+  metaKey: boolean
+}
 
 export interface SidebarProps {
   sortOrder: SortOrder
@@ -13,9 +19,11 @@ export interface SidebarProps {
   searchQuery: string
   onSearchQueryChange: (query: string) => void
   filteredAndSortedFolders: MediaFolderListItemProps[]
-  handleMediaFolderListItemClick: (path: string) => void
+  selectedFolderPaths: Set<string>
+  primaryFolderPath: string | undefined
+  onFolderClick: (path: string, modifiers: SidebarFolderClickModifiers) => void
+  onSelectAll: () => void
 }
-
 
 export function Sidebar({
   sortOrder,
@@ -25,8 +33,21 @@ export function Sidebar({
   searchQuery,
   onSearchQueryChange,
   filteredAndSortedFolders,
-  handleMediaFolderListItemClick,
+  selectedFolderPaths,
+  primaryFolderPath,
+  onFolderClick,
+  onSelectAll,
 }: SidebarProps) {
+  const handleListKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault()
+        onSelectAll()
+      }
+    },
+    [onSelectAll]
+  )
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* 工具栏：排序和筛选按钮 */}
@@ -48,19 +69,30 @@ export function Sidebar({
         />
       </div>
 
-      {/* 列表 */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* 列表：keydown only when focus is here (Ctrl+A / Cmd+A) */}
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        tabIndex={0}
+        onKeyDown={handleListKeyDown}
+      >
         {filteredAndSortedFolders.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground text-sm">
             没有找到媒体文件夹
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col outline-none">
             {filteredAndSortedFolders.map((folder) => (
               <div key={folder.path} className="border-b border-border">
                 <MediaFolderListItemV2
                   {...folder}
-                  onClick={() => handleMediaFolderListItemClick(folder.path)}
+                  isSelected={selectedFolderPaths.has(folder.path)}
+                  isPrimary={primaryFolderPath === folder.path}
+                  onClick={(e) =>
+                    onFolderClick(folder.path, {
+                      ctrlKey: e.ctrlKey,
+                      metaKey: e.metaKey,
+                    })
+                  }
                 />
               </div>
             ))}

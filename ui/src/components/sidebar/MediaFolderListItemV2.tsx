@@ -23,12 +23,26 @@ export interface MediaFolderListItemV2Props {
    */
   path: string,
   /**
-   * Click handler for the folder item
+   * Click handler for the folder item (receives event for modifier keys)
    */
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent) => void
+  /**
+   * When provided (multi-select), overrides internal selected state for styling
+   */
+  isSelected?: boolean
+  /**
+   * When true, item is the primary selection (e.g. stronger highlight)
+   */
+  isPrimary?: boolean
 }
 
-export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderListItemV2Props) {
+export function MediaFolderListItemV2({
+  mediaName,
+  path,
+  onClick,
+  isSelected: isSelectedProp,
+  isPrimary = false,
+}: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
 
   const {
@@ -40,9 +54,12 @@ export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderLis
   const { userConfig, setUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
-  const selected = useMemo(() => {
-    return selectedMediaMetadata?.mediaFolderPath === path
-  }, [selectedMediaMetadata, path])
+  const selectedFromProvider = useMemo(
+    () => selectedMediaMetadata?.mediaFolderPath === path,
+    [selectedMediaMetadata, path]
+  )
+  const selected =
+    isSelectedProp !== undefined ? isSelectedProp : selectedFromProvider
 
   const folderName = useMemo(() => {
     return basename(path)
@@ -170,9 +187,8 @@ export function MediaFolderListItemV2({mediaName, path, onClick}: MediaFolderLis
         <div
           className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all duration-200 ease-out",
-            selected
-              ? "bg-white border-l-4 border-l-sidebar-primary"
-              : "bg-white hover:bg-gray-100"
+            selected && (isPrimary ? "border-l-4 border-l-primary bg-primary/5" : "border-l-4 border-l-sidebar-primary bg-white"),
+            !selected && "bg-white hover:bg-gray-100"
           )}
           onClick={onClick}
         >
