@@ -11,7 +11,6 @@ import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
 import { BackgroundJobsProvider, useBackgroundJobs } from "./components/background-jobs/BackgroundJobsProvider"
-import { useMockJobs } from "./components/background-jobs/useMockJobs"
 import { JobStatus } from "@/types/background-jobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
@@ -32,8 +31,6 @@ function AppV2Content() {
   const { userConfig, setUserConfig } = useConfig()
   const latestUserConfig = useLatest(userConfig)
 
-  // Initialize mock background jobs
-  useMockJobs()
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -324,9 +321,6 @@ function AppV2Content() {
         for (const subfolder of subfolders) {
           if (!subfolder.path) continue
           try {
-            // Simulate time-consuming import work for each media folder
-            await new Promise((resolve) => setTimeout(resolve, 10_000))
-
             const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
             await onFolderSelected(type, subfolder.path, { traceId })
           } catch (error) {

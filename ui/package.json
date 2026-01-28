@@ -42,7 +42,7 @@
     "@shikijs/transformers": "^3.19.0",
     "@tailwindcss/vite": "^4.1.17",
     "@tanstack/react-table": "^8.21.3",
-    "ai": "^6.0.36",
+    "ai": "^6.0.57",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
