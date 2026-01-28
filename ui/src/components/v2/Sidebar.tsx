@@ -23,6 +23,7 @@ export interface SidebarProps {
   primaryFolderPath: string | undefined
   onFolderClick: (path: string, modifiers: SidebarFolderClickModifiers) => void
   onSelectAll: () => void
+  onDeleteSelected: (paths: string[]) => void
 }
 
 export function Sidebar({
@@ -37,6 +38,7 @@ export function Sidebar({
   primaryFolderPath,
   onFolderClick,
   onSelectAll,
+  onDeleteSelected,
 }: SidebarProps) {
   const handleListKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -44,8 +46,12 @@ export function Sidebar({
         e.preventDefault()
         onSelectAll()
       }
+      if (e.key === "Delete" && selectedFolderPaths.size > 0) {
+        e.preventDefault()
+        onDeleteSelected(Array.from(selectedFolderPaths))
+      }
     },
-    [onSelectAll]
+    [onSelectAll, onDeleteSelected, selectedFolderPaths.size]
   )
 
   return (
@@ -87,6 +93,8 @@ export function Sidebar({
                   {...folder}
                   isSelected={selectedFolderPaths.has(folder.path)}
                   isPrimary={primaryFolderPath === folder.path}
+                  selectedFolderPaths={selectedFolderPaths}
+                  onDeleteSelected={onDeleteSelected}
                   onClick={(e) =>
                     onFolderClick(folder.path, {
                       ctrlKey: e.ctrlKey,

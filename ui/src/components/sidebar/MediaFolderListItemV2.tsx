@@ -34,6 +34,14 @@ export interface MediaFolderListItemV2Props {
    * When true, item is the primary selection (e.g. stronger highlight)
    */
   isPrimary?: boolean
+  /**
+   * When provided with onDeleteSelected, context menu Delete removes all selected folders
+   */
+  selectedFolderPaths?: Set<string>
+  /**
+   * When provided, context menu Delete calls this with paths to delete (e.g. all selected)
+   */
+  onDeleteSelected?: (paths: string[]) => void
 }
 
 export function MediaFolderListItemV2({
@@ -42,6 +50,8 @@ export function MediaFolderListItemV2({
   onClick,
   isSelected: isSelectedProp,
   isPrimary = false,
+  selectedFolderPaths: selectedFolderPathsProp,
+  onDeleteSelected,
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
 
@@ -78,6 +88,14 @@ export function MediaFolderListItemV2({
 
     setUserConfig(traceId, newUserConfig)
   }, [path, userConfig, setUserConfig, removeMediaMetadata])
+
+  const handleDeleteClick = useCallback(() => {
+    if (onDeleteSelected && selectedFolderPathsProp && selectedFolderPathsProp.size > 0) {
+      onDeleteSelected(Array.from(selectedFolderPathsProp))
+    } else {
+      handleDeleteButtonClick()
+    }
+  }, [onDeleteSelected, selectedFolderPathsProp, handleDeleteButtonClick])
 
   const handleOpenInExplorerButtonClick = useCallback(async () => {
     try {
@@ -212,7 +230,7 @@ export function MediaFolderListItemV2({
       <ContextMenuContent>
         <ContextMenuItem onClick={handleRenameButtonClick}>{t('mediaFolder.rename')}</ContextMenuItem>
         <ContextMenuItem onClick={handleOpenInExplorerButtonClick}>{t('mediaFolder.openInExplorer')}</ContextMenuItem>
-        <ContextMenuItem onClick={handleDeleteButtonClick}>
+        <ContextMenuItem onClick={handleDeleteClick}>
           <div className="flex items-center gap-4">
             <span>{t('mediaFolder.delete')}</span>
             <span className="text-xs text-muted-foreground">{t('mediaFolder.deleteWarning')}</span>

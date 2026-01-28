@@ -29,7 +29,7 @@ import { listFiles } from "@/api/listFiles"
 function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-  const { userConfig } = useConfig()
+  const { userConfig, setUserConfig } = useConfig()
   const latestUserConfig = useLatest(userConfig)
 
   // Initialize mock background jobs
@@ -57,7 +57,7 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata } = useMediaMetadata()
 
   // Event handlers
   const { onFolderSelected } = useEventHandlers()
@@ -449,6 +449,31 @@ function AppV2Content() {
     }
   }, [filteredAndSortedFolders])
 
+  const onDeleteSelected = useCallback(
+    (paths: string[]) => {
+      if (paths.length === 0) return
+      paths.forEach((path) => removeMediaMetadata(path))
+      const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
+      const deletedSet = new Set(paths)
+      const newFolders = userConfig.folders.filter(
+        (folder) => !deletedSet.has(Path.posix(folder))
+      )
+      setUserConfig(traceId, { ...userConfig, folders: newFolders })
+      setSelectedFolderPaths((prev) => {
+        const next = new Set(prev)
+        paths.forEach((p) => next.delete(p))
+        return next
+      })
+      if (primaryFolderPath && deletedSet.has(primaryFolderPath)) {
+        const remaining = new Set(userConfig.folders)
+        paths.forEach((p) => remaining.delete(p))
+        const firstRemaining = remaining.size > 0 ? [...remaining][0] : undefined
+        setPrimaryFolderPath(firstRemaining)
+      }
+    },
+    [userConfig, setUserConfig, removeMediaMetadata, primaryFolderPath]
+  )
+
   // 最小和最大侧边栏宽度
   const MIN_SIDEBAR_WIDTH = 150
   const MAX_SIDEBAR_WIDTH = 500
@@ -579,6 +604,7 @@ function AppV2Content() {
             primaryFolderPath={primaryFolderPath}
             onFolderClick={onFolderClick}
             onSelectAll={onSelectAll}
+            onDeleteSelected={onDeleteSelected}
           />
 
           {/* 拖拽调整大小的手柄 */}
