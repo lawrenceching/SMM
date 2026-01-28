@@ -46,6 +46,18 @@ export interface UserConfig {
    * The name of rename rule
    */
   selectedRenameRule: string
+  /**
+   * Whether to run the MCP (Model Context Protocol) server on its own port.
+   */
+  enableMcpServer?: boolean
+  /**
+   * Host to bind the MCP server to (default "127.0.0.1").
+   */
+  mcpHost?: string
+  /**
+   * Port for the MCP server (default 30001).
+   */
+  mcpPort?: number
 }
 
 /**

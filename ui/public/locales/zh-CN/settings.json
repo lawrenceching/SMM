@@ -9,7 +9,13 @@
     "tmdbApiKey": "TMDB API 密钥",
     "tmdbApiKeyPlaceholder": "请输入您的 TMDB API 密钥",
     "httpProxy": "HTTP 代理",
-    "httpProxyPlaceholder": "http://proxy.example.com:8080"
+    "httpProxyPlaceholder": "http://proxy.example.com:8080",
+    "enableMcpServer": "启用 MCP 服务器",
+    "enableMcpServerDescription": "在独立端口上运行 MCP（模型上下文协议）服务器供外部客户端连接",
+    "mcpHost": "MCP 主机",
+    "mcpHostPlaceholder": "127.0.0.1",
+    "mcpPort": "MCP 端口",
+    "mcpPortPlaceholder": "30001"
   },
   "ai": {
     "title": "AI 设置",

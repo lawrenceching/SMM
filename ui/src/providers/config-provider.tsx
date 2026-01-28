@@ -68,6 +68,9 @@ const defaultUserConfig: UserConfig = {
   selectedTMDBIntance: 'public',
   folders: [],
   selectedRenameRule: RenameRules.Plex.name,
+  enableMcpServer: false,
+  mcpHost: '127.0.0.1',
+  mcpPort: 30001,
 }
 
 export function ConfigProvider({

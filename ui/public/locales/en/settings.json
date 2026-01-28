@@ -9,7 +9,13 @@
     "tmdbApiKey": "TMDB API Key",
     "tmdbApiKeyPlaceholder": "Enter your TMDB API key",
     "httpProxy": "HTTP Proxy",
-    "httpProxyPlaceholder": "http://proxy.example.com:8080"
+    "httpProxyPlaceholder": "http://proxy.example.com:8080",
+    "enableMcpServer": "Enable MCP server",
+    "enableMcpServerDescription": "Run the MCP (Model Context Protocol) server on its own port for external clients",
+    "mcpHost": "MCP host",
+    "mcpHostPlaceholder": "127.0.0.1",
+    "mcpPort": "MCP port",
+    "mcpPortPlaceholder": "30001"
   },
   "ai": {
     "title": "AI Settings",

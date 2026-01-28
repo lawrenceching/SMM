@@ -18,6 +18,9 @@ export function GeneralSettings() {
     tmdbHost: userConfig.tmdb?.host || '',
     tmdbApiKey: userConfig.tmdb?.apiKey || '',
     tmdbProxy: userConfig.tmdb?.httpProxy || '',
+    enableMcpServer: userConfig.enableMcpServer ?? false,
+    mcpHost: userConfig.mcpHost ?? '127.0.0.1',
+    mcpPort: userConfig.mcpPort ?? 30001,
   }), [userConfig])
 
   // Track current form values
@@ -25,6 +28,9 @@ export function GeneralSettings() {
   const [tmdbHost, setTmdbHost] = useState(initialValues.tmdbHost)
   const [tmdbApiKey, setTmdbApiKey] = useState(initialValues.tmdbApiKey)
   const [tmdbProxy, setTmdbProxy] = useState(initialValues.tmdbProxy)
+  const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
+  const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
+  const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -32,6 +38,9 @@ export function GeneralSettings() {
     setTmdbHost(initialValues.tmdbHost)
     setTmdbApiKey(initialValues.tmdbApiKey)
     setTmdbProxy(initialValues.tmdbProxy)
+    setEnableMcpServer(initialValues.enableMcpServer)
+    setMcpHost(initialValues.mcpHost)
+    setMcpPort(String(initialValues.mcpPort))
   }, [initialValues])
 
   // Detect changes
@@ -40,9 +49,12 @@ export function GeneralSettings() {
       applicationLanguage !== initialValues.applicationLanguage ||
       tmdbHost !== initialValues.tmdbHost ||
       tmdbApiKey !== initialValues.tmdbApiKey ||
-      tmdbProxy !== initialValues.tmdbProxy
+      tmdbProxy !== initialValues.tmdbProxy ||
+      enableMcpServer !== initialValues.enableMcpServer ||
+      mcpHost !== initialValues.mcpHost ||
+      mcpPort !== String(initialValues.mcpPort)
     )
-  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, initialValues])
+  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, enableMcpServer, mcpHost, mcpPort, initialValues])
 
   // Handle save
   const handleSave = async () => {
@@ -55,6 +67,7 @@ export function GeneralSettings() {
       await changeLanguage(applicationLanguage)
     }
 
+    const parsedMcpPort = Number(mcpPort)
     const updatedConfig = {
       ...userConfig,
       applicationLanguage: applicationLanguage,
@@ -64,6 +77,9 @@ export function GeneralSettings() {
         apiKey: tmdbApiKey || undefined,
         httpProxy: tmdbProxy || undefined,
       },
+      enableMcpServer,
+      mcpHost: mcpHost || undefined,
+      mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
     }
     setUserConfig(traceId, updatedConfig)
   }
@@ -127,6 +143,41 @@ export function GeneralSettings() {
             onChange={(e) => setTmdbProxy(e.target.value)}
             placeholder={t('general.httpProxyPlaceholder')}
           />
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="enable-mcp-server"
+                type="checkbox"
+                checked={enableMcpServer}
+                onChange={(e) => setEnableMcpServer(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="enable-mcp-server">{t('general.enableMcpServer')}</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">{t('general.enableMcpServerDescription')}</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mcp-host">{t('general.mcpHost')}</Label>
+            <Input
+              id="mcp-host"
+              value={mcpHost}
+              onChange={(e) => setMcpHost(e.target.value)}
+              placeholder={t('general.mcpHostPlaceholder')}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mcp-port">{t('general.mcpPort')}</Label>
+            <Input
+              id="mcp-port"
+              type="number"
+              value={mcpPort}
+              onChange={(e) => setMcpPort(e.target.value)}
+              placeholder={t('general.mcpPortPlaceholder')}
+            />
+          </div>
         </div>
       </div>
 

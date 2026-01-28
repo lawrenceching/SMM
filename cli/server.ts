@@ -27,7 +27,7 @@ import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleGetPendingPlans } from './src/route/GetPendingPlans';
 import { handleUpdatePlan } from './src/route/UpdatePlan';
-import { getMcpStreamableHttpHandler } from '@/mcp/streamableHttp';
+import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import { Server as SocketIOServer } from 'socket.io';
@@ -146,12 +146,6 @@ export class Server {
     handleUpdatePlan(this.app);
     handleTmdb(this.app);
 
-    // MCP Streamable HTTP - GET and POST /mcp
-    this.app.all('/mcp', async (c) => {
-      const handler = await getMcpStreamableHttpHandler();
-      return handler(c.req.raw);
-    });
-
     // POST /api/execute - Special orchestration route for multiple tasks
     this.app.post('/api/execute', async (c) => {
       try {
@@ -238,7 +232,7 @@ export class Server {
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(`🚀 Static file server running on http://localhost:${this.port}`);
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
-    logger.info(`🔧 MCP (Streamable HTTP) available at http://localhost:${this.port}/mcp`);
+    applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
   }
 
   stop(): void {

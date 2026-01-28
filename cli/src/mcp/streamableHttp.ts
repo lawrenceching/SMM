@@ -39,7 +39,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     );
 
     const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: () => crypto.randomUUID(),
+      sessionIdGenerator: undefined,
     });
 
     await server.connect(transport);
