@@ -17,7 +17,7 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
     return null;
   }
 
-  const { getRunningJobs, jobs } = context;
+  const { getRunningJobs, jobs, isPopoverOpen, setPopoverOpen } = context;
   const runningJobs = getRunningJobs();
 
   // Don't render if no jobs at all (or only completed/failed jobs)
@@ -29,7 +29,7 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
   const isRunning = runningJobs.length > 0;
 
   return (
-    <Popover>
+    <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <button
           className={cn(

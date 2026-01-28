@@ -10,8 +10,9 @@ import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
-import { BackgroundJobsProvider } from "./components/background-jobs/BackgroundJobsProvider"
+import { BackgroundJobsProvider, useBackgroundJobs } from "./components/background-jobs/BackgroundJobsProvider"
 import { useMockJobs } from "./components/background-jobs/useMockJobs"
+import { JobStatus } from "@/types/background-jobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
@@ -56,6 +57,9 @@ function AppV2Content() {
 
   // Event handlers
   const { onFolderSelected } = useEventHandlers()
+
+  // Background jobs (optional - for "Importing Media Library" progress)
+  const backgroundJobs = useBackgroundJobs()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -259,87 +263,90 @@ function AppV2Content() {
   }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
 
   const handleOpenMediaLibraryMenuClick = useCallback(() => {
+    const runImportInBackground = async (
+      jobId: string | null,
+      libraryPath: string,
+      type: FolderType
+    ) => {
+      const updateJob = backgroundJobs?.updateJob
+      const report = (updates: Partial<{ status: JobStatus; progress: number }>) => {
+        if (jobId && updateJob) updateJob(jobId, updates)
+      }
+      try {
+        const listFilesResponse = await listFiles({
+          path: libraryPath,
+          onlyFolders: true,
+          includeHiddenFiles: false,
+        })
+
+        if (listFilesResponse.error || !listFilesResponse.data) {
+          console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
+          report({ status: JobStatus.FAILED })
+          return
+        }
+
+        const subfolders = listFilesResponse.data.items.filter(
+          (item) => item.isDirectory && item.path
+        )
+        const total = subfolders.length
+        console.log(`[AppV2] Found ${total} subfolders in media library`)
+
+        if (total === 0) {
+          report({ progress: 100, status: JobStatus.SUCCEEDED })
+          return
+        }
+
+        let completed = 0
+        for (const subfolder of subfolders) {
+          if (!subfolder.path) continue
+          try {
+            // Simulate time-consuming import work for each media folder
+            await new Promise((resolve) => setTimeout(resolve, 10_000))
+
+            const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
+            await onFolderSelected(type, subfolder.path, { traceId })
+          } catch (error) {
+            console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
+            // Continue with next folder
+          }
+          completed += 1
+          report({ progress: (completed / total) * 100 })
+        }
+
+        report({ progress: 100, status: JobStatus.SUCCEEDED })
+        console.log(`[AppV2] Finished importing ${total} folders from media library`)
+      } catch (error) {
+        console.error(`[AppV2] Import media library failed:`, error)
+        report({ status: JobStatus.FAILED })
+      }
+    }
+
+    const startImportWithJob = (libraryPath: string, type: FolderType) => {
+      if (!backgroundJobs) {
+        runImportInBackground(null, libraryPath, type)
+        return
+      }
+      const jobId = backgroundJobs.addJob('Importing Media Library')
+      backgroundJobs.updateJob(jobId, { status: JobStatus.RUNNING })
+      runImportInBackground(jobId, libraryPath, type)
+    }
+
     if (isElectron()) {
-      // First, open the native file dialog to get the media library folder path
       openNativeFileDialog().then((selectedFile) => {
         if (selectedFile) {
           console.log(`[AppV2] Selected media library: ${selectedFile.path}`)
-          // Then open the folder type selection dialog with the selected library path
-          openOpenFolder(async (type: FolderType) => {
+          openOpenFolder((type: FolderType) => {
             console.log(`[AppV2] Selected media library type: ${type} for library: ${selectedFile.path}`)
-            
-            // List all subfolders in the media library
-            const listFilesResponse = await listFiles({
-              path: selectedFile.path,
-              onlyFolders: true,
-              includeHiddenFiles: false,
-            })
-
-            if (listFilesResponse.error || !listFilesResponse.data) {
-              console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
-              return
-            }
-
-            const subfolders = listFilesResponse.data.items.filter(item => item.isDirectory && item.path)
-            console.log(`[AppV2] Found ${subfolders.length} subfolders in media library`)
-
-            // Import each subfolder sequentially
-            for (const subfolder of subfolders) {
-              if (!subfolder.path) {
-                continue // Skip folders without path
-              }
-              try {
-                const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
-                console.log(`[AppV2] Importing folder: ${subfolder.path} as type: ${type}`)
-                await onFolderSelected(type, subfolder.path, {
-                  traceId: traceId,
-                })
-              } catch (error) {
-                console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
-                // Continue with next folder
-              }
-            }
-
-            console.log(`[AppV2] Finished importing ${subfolders.length} folders from media library`)
+            startImportWithJob(selectedFile.path, type)
           }, selectedFile.path)
         }
       })
     } else {
       openFilePicker((file: FileItem) => {
         console.log(`[AppV2] Selected media library: ${file.path}`)
-        openOpenFolder(async (type: FolderType) => {
+        openOpenFolder((type: FolderType) => {
           console.log(`[AppV2] Selected media library type: ${type} for library: ${file.path}`)
-          
-          // List all subfolders in the media library
-          const listFilesResponse = await listFiles({
-            path: file.path,
-            onlyFolders: true,
-            includeHiddenFiles: false,
-          })
-
-          if (listFilesResponse.error || !listFilesResponse.data) {
-            console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
-            return
-          }
-
-          const subfolders = listFilesResponse.data.items.filter(item => item.isDirectory)
-          console.log(`[AppV2] Found ${subfolders.length} subfolders in media library`)
-
-          // Import each subfolder sequentially
-          for (const subfolder of subfolders) {
-            try {
-              const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
-              console.log(`[AppV2] Importing folder: ${subfolder.path} as type: ${type}`)
-              await onFolderSelected(type, subfolder.path, {
-                traceId: traceId,
-              })
-            } catch (error) {
-              console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
-              // Continue with next folder
-            }
-          }
-
-          console.log(`[AppV2] Finished importing ${subfolders.length} folders from media library`)
+          startImportWithJob(file.path, type)
         }, file.path)
       }, {
         title: "Select Media Library",
@@ -347,7 +354,7 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected, backgroundJobs])
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {

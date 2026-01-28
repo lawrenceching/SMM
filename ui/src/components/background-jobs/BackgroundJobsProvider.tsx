@@ -7,6 +7,8 @@ interface BackgroundJobsContextType {
   updateJob: (id: string, updates: Partial<BackgroundJob>) => void;
   abortJob: (id: string) => void;
   getRunningJobs: () => BackgroundJob[];
+  isPopoverOpen: boolean;
+  setPopoverOpen: (open: boolean) => void;
 }
 
 const BackgroundJobsContext = createContext<BackgroundJobsContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ interface BackgroundJobsProviderProps {
 
 export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps) {
   const [jobs, setJobs] = useState<BackgroundJob[]>([]);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const addJob = useCallback((name: string): string => {
     const id = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -27,6 +30,8 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
       progress: 0,
     };
     setJobs((prev) => [...prev, newJob]);
+    // Automatically open the background jobs popover when a new job is created
+    setIsPopoverOpen(true);
     return id;
   }, []);
 
@@ -58,6 +63,8 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
         updateJob,
         abortJob,
         getRunningJobs,
+        isPopoverOpen,
+        setPopoverOpen: setIsPopoverOpen,
       }}
     >
       {children}
