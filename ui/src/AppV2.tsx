@@ -10,6 +10,8 @@ import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
+import { BackgroundJobsProvider } from "./components/background-jobs/BackgroundJobsProvider"
+import { useMockJobs } from "./components/background-jobs/useMockJobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
@@ -19,14 +21,18 @@ import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { useLatest } from "react-use"
+import { listFiles } from "@/api/listFiles"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
-export default function AppV2() {
+function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { userConfig } = useConfig()
   const latestUserConfig = useLatest(userConfig)
+
+  // Initialize mock background jobs
+  useMockJobs()
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -252,6 +258,97 @@ export default function AppV2() {
     }
   }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
 
+  const handleOpenMediaLibraryMenuClick = useCallback(() => {
+    if (isElectron()) {
+      // First, open the native file dialog to get the media library folder path
+      openNativeFileDialog().then((selectedFile) => {
+        if (selectedFile) {
+          console.log(`[AppV2] Selected media library: ${selectedFile.path}`)
+          // Then open the folder type selection dialog with the selected library path
+          openOpenFolder(async (type: FolderType) => {
+            console.log(`[AppV2] Selected media library type: ${type} for library: ${selectedFile.path}`)
+            
+            // List all subfolders in the media library
+            const listFilesResponse = await listFiles({
+              path: selectedFile.path,
+              onlyFolders: true,
+              includeHiddenFiles: false,
+            })
+
+            if (listFilesResponse.error || !listFilesResponse.data) {
+              console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
+              return
+            }
+
+            const subfolders = listFilesResponse.data.items.filter(item => item.isDirectory && item.path)
+            console.log(`[AppV2] Found ${subfolders.length} subfolders in media library`)
+
+            // Import each subfolder sequentially
+            for (const subfolder of subfolders) {
+              if (!subfolder.path) {
+                continue // Skip folders without path
+              }
+              try {
+                const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
+                console.log(`[AppV2] Importing folder: ${subfolder.path} as type: ${type}`)
+                await onFolderSelected(type, subfolder.path, {
+                  traceId: traceId,
+                })
+              } catch (error) {
+                console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
+                // Continue with next folder
+              }
+            }
+
+            console.log(`[AppV2] Finished importing ${subfolders.length} folders from media library`)
+          }, selectedFile.path)
+        }
+      })
+    } else {
+      openFilePicker((file: FileItem) => {
+        console.log(`[AppV2] Selected media library: ${file.path}`)
+        openOpenFolder(async (type: FolderType) => {
+          console.log(`[AppV2] Selected media library type: ${type} for library: ${file.path}`)
+          
+          // List all subfolders in the media library
+          const listFilesResponse = await listFiles({
+            path: file.path,
+            onlyFolders: true,
+            includeHiddenFiles: false,
+          })
+
+          if (listFilesResponse.error || !listFilesResponse.data) {
+            console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
+            return
+          }
+
+          const subfolders = listFilesResponse.data.items.filter(item => item.isDirectory)
+          console.log(`[AppV2] Found ${subfolders.length} subfolders in media library`)
+
+          // Import each subfolder sequentially
+          for (const subfolder of subfolders) {
+            try {
+              const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
+              console.log(`[AppV2] Importing folder: ${subfolder.path} as type: ${type}`)
+              await onFolderSelected(type, subfolder.path, {
+                traceId: traceId,
+              })
+            } catch (error) {
+              console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
+              // Continue with next folder
+            }
+          }
+
+          console.log(`[AppV2] Finished importing ${subfolders.length} folders from media library`)
+        }, file.path)
+      }, {
+        title: "Select Media Library",
+        description: "Choose a folder containing multiple media folders",
+        selectFolder: true
+      })
+    }
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
+
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
@@ -399,6 +496,7 @@ export default function AppV2() {
         >
           <Toolbar 
             onOpenFolderMenuClick={handleOpenFolderMenuClick}
+            onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             viewSwitcherDisabled={folders.length === 0 || !selectedMediaMetadata}
@@ -524,6 +622,14 @@ export default function AppV2() {
       {/* WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch */}
       <Toaster position="bottom-right" />
     </div>
+  )
+}
+
+export default function AppV2() {
+  return (
+    <BackgroundJobsProvider>
+      <AppV2Content />
+    </BackgroundJobsProvider>
   )
 }
 

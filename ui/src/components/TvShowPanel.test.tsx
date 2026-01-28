@@ -63,6 +63,10 @@ vi.mock('./TvShowPanelPrompts', () => ({
   usePromptManager: createUsePromptManager(),
   usePromptsContext: vi.fn(() => ({
     _setAiBasedRenameFileStatus: vi.fn(),
+    _setIsAiBasedRenameFilePromptOpen: vi.fn(),
+    _setIsAiRecognizePromptOpen: vi.fn(),
+    _setIsRuleBasedRecognizePromptOpen: vi.fn(),
+    _setIsUseNfoPromptOpen: vi.fn(),
     isAiBasedRenameFilePromptOpen: false,
     isRuleBasedRenameFilePromptOpen: false,
     isRuleBasedRecognizePromptOpen: false,
@@ -72,7 +76,7 @@ vi.mock('./TvShowPanelPrompts', () => ({
 // Mock hooks (TvShowPanel imports from @/providers/media-metadata-provider)
 vi.mock('@/providers/media-metadata-provider', () => ({
   useMediaMetadata: vi.fn(() => ({
-    selectedMediaMetadata: undefined,
+    selectedMediaMetadata: mockSelectedMediaMetadata,
     updateMediaMetadata: vi.fn(),
     refreshMediaMetadata: vi.fn(),
     setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
@@ -102,6 +106,14 @@ let mockIsRuleBasedRenameFilePromptOpen = false
 let mockIsAiBasedRenameFilePromptOpen = false
 let mockIsAiRecognizePromptOpen = false
 let mockIsRuleBasedRecognizePromptOpen = false
+
+// Track global states
+let mockInitializedMediaFolders: string[] = []
+let mockSetInitializedMediaFolders: ReturnType<typeof vi.fn>
+let mockAddTmpPlan: ReturnType<typeof vi.fn>
+
+// Track media metadata
+let mockSelectedMediaMetadata: any = undefined
 
 vi.mock('./hooks/TvShowPanel/useTvShowPanelState', () => ({
   useTvShowPanelState: vi.fn(() => ({
@@ -169,6 +181,10 @@ vi.mock('@/hooks/useWebSocket', () => ({
 vi.mock('./TvShowPanelUtils', () => ({
   recognizeEpisodes: vi.fn(),
   mapTagToFileType: vi.fn((tag: string) => tag),
+  buildTemporaryRecognitionPlan: vi.fn(() => ({
+    mediaFolderPath: '/test/path',
+    files: [{ filePath: '/test/path/episode1.mkv' }],
+  })),
 }))
 
 vi.mock('@/lib/lookup', () => ({
@@ -233,8 +249,9 @@ vi.mock('@/providers/global-states-provider', () => ({
     pendingRenamePlans: [],
     fetchPendingPlans: vi.fn(),
     updatePlan: vi.fn(),
+    addTmpPlan: mockAddTmpPlan,
   })),
-  useInitializedMediaFoldersState: vi.fn(() => [[], vi.fn()]),
+  useInitializedMediaFoldersState: vi.fn(() => [mockInitializedMediaFolders, mockSetInitializedMediaFolders]),
   GlobalStatesProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
@@ -250,7 +267,7 @@ describe('TvShowPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     
-    // Reset mock setters
+    // Initialize mock setters
     mockSetIsUseNfoPromptOpen = vi.fn((value: boolean) => {
       mockIsUseNfoPromptOpen = value
     })
@@ -267,12 +284,24 @@ describe('TvShowPanel', () => {
       mockIsRuleBasedRecognizePromptOpen = value
     })
     
+    // Initialize global states mock setters
+    mockSetInitializedMediaFolders = vi.fn((folders: string[]) => {
+      mockInitializedMediaFolders = folders
+    })
+    mockAddTmpPlan = vi.fn()
+    
     // Reset prompt states
     mockIsUseNfoPromptOpen = false
     mockIsRuleBasedRenameFilePromptOpen = false
     mockIsAiBasedRenameFilePromptOpen = false
     mockIsAiRecognizePromptOpen = false
     mockIsRuleBasedRecognizePromptOpen = false
+    
+    // Reset global states
+    mockInitializedMediaFolders = []
+    
+    // Reset media metadata
+    mockSelectedMediaMetadata = undefined
   })
 
   it('should render without errors', () => {
@@ -351,5 +380,114 @@ describe('TvShowPanel', () => {
     
     // Verify the requested prompt was opened
     expect(mockSetIsRuleBasedRenameFilePromptOpen).toHaveBeenCalledWith(true)
+  })
+
+  it('should not trigger recognition when mediaMetadata is null', () => {
+    // Mock mediaMetadata to be null
+    mockSelectedMediaMetadata = null
+
+    render(<TvShowPanel />)
+    
+    // Verify no recognition was triggered
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+  })
+
+  it('should not trigger recognition when mediaMetadata.mediaFolderPath is missing', () => {
+    // Mock mediaMetadata without mediaFolderPath
+    mockSelectedMediaMetadata = {
+      mediaFolderPath: undefined,
+      mediaFiles: [],
+    }
+
+    render(<TvShowPanel />)
+    
+    // Verify no recognition was triggered
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+  })
+
+  it('should not trigger recognition when folder is already initialized', () => {
+    const testFolderPath = '/test/path'
+
+    // Mock initializedMediaFolders to already contain the folder
+    mockInitializedMediaFolders = [testFolderPath]
+
+    // Mock mediaMetadata with the same folder path
+    mockSelectedMediaMetadata = {
+      mediaFolderPath: testFolderPath,
+      mediaFiles: null,
+    }
+
+    render(<TvShowPanel />)
+    
+    // Verify no recognition was triggered
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+  })
+
+  it('should trigger rule-based recognition when media files are not recognized', () => {
+    const testFolderPath = '/test/unrecognized/path'
+
+    // Mock mediaMetadata with null mediaFiles (needs recognition)
+    mockSelectedMediaMetadata = {
+      mediaFolderPath: testFolderPath,
+      mediaFiles: null,
+    }
+
+    render(<TvShowPanel />)
+    
+    // Verify recognition was triggered (buildTemporaryRecognitionPlan returns a plan)
+    expect(mockAddTmpPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaFolderPath: '/test/path',
+      })
+    )
+    
+    // Verify folder was added to initializedMediaFolders
+    expect(mockSetInitializedMediaFolders).toHaveBeenCalledWith([testFolderPath])
+  })
+
+  it('should not trigger recognition when media files are already recognized', () => {
+    const testFolderPath = '/test/recognized/path'
+
+    // Mock mediaMetadata with recognized mediaFiles (has absolutePath)
+    mockSelectedMediaMetadata = {
+      mediaFolderPath: testFolderPath,
+      mediaFiles: [
+        { absolutePath: '/test/path/episode1.mkv' },
+        { absolutePath: '/test/path/episode2.mkv' },
+      ],
+    }
+
+    render(<TvShowPanel />)
+    
+    // Verify no recognition was triggered
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+    
+    // Verify folder was not added to initializedMediaFolders
+    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
+  })
+
+  it('should trigger recognition when all media files have nil absolutePath', () => {
+    const testFolderPath = '/test/unrecognized/path'
+
+    // Mock mediaMetadata with files but all have nil absolutePath
+    mockSelectedMediaMetadata = {
+      mediaFolderPath: testFolderPath,
+      mediaFiles: [
+        { absolutePath: null },
+        { absolutePath: null },
+      ],
+    }
+
+    render(<TvShowPanel />)
+    
+    // Verify recognition was triggered
+    expect(mockAddTmpPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaFolderPath: '/test/path',
+      })
+    )
+    
+    // Verify folder was added to initializedMediaFolders
+    expect(mockSetInitializedMediaFolders).toHaveBeenCalledWith([testFolderPath])
   })
 })

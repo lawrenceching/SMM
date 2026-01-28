@@ -137,9 +137,10 @@ function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
 
 interface MenuProps {
   onOpenFolderMenuClick?: () => void
+  onOpenMediaLibraryMenuClick?: () => void
 }
 
-export function Menu({onOpenFolderMenuClick}: MenuProps) {
+export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
   const { configDialog } = useDialogs()
   const { t } = useTranslation('components')
 
@@ -153,6 +154,10 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
         {
           name: t('menu.openFolder'),
           onClick: () => { onOpenFolderMenuClick?.() }
+        },
+        {
+          name: t('menu.openMediaLibrary'),
+          onClick: () => { onOpenMediaLibraryMenuClick?.() }
         },
         {
           name: t('menu.openAppDataFolder'),

@@ -39,6 +39,7 @@ interface ComponentsResources {
     view: string
     help: string
     openFolder: string
+    openMediaLibrary: string
     openAppDataFolder: string
     config: string
     cleanUp: string

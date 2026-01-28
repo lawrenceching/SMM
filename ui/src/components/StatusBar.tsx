@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import { useConfig } from "@/providers/config-provider"
 import { useWebSocket } from "@/hooks/useWebSocket"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
+import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
 
 interface StatusBarProps {
     className?: string
@@ -33,6 +34,7 @@ export function StatusBar({className, message}: StatusBarProps) {
             </div>
             <div className="flex-1">{message}</div>
             <div className="flex items-center gap-2">
+                <BackgroundJobsIndicator />
                 <span className="font-medium">{appConfig.version}</span>
             </div>
         </div>
