@@ -10,7 +10,6 @@ import { useGlobalStates } from "@/providers/global-states-provider"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
-import { preprocessMediaFolder } from "@/lib/preprocess-media-folder"
 
 
 async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void, signal?: AbortSignal) {

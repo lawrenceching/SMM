@@ -1,12 +1,13 @@
-import type { MediaMetadata, TMDBMovie } from "@core/types";
+import type { MediaMetadata, TMDBMovie, TMDBTVShow } from "@core/types";
 import { searchTmdb, getTvShowById } from "@/api/tmdb";
 import { basename } from "./path";
 
 
-interface RecognizeMediaFolderResult {
+export interface RecognizeMediaFolderResult {
     success: boolean;
-    type: 'tv' | 'movie' | null;
-    metadata: Partial<MediaMetadata> | null;
+    type?: 'tv' | 'movie' | null;
+    tmdbTvShow?: TMDBTVShow;
+    tmdbMovie?: TMDBMovie;
 }
 
 export async function tryToRecognizeMediaFolderByFolderName(
@@ -26,73 +27,54 @@ export async function tryToRecognizeMediaFolderByFolderName(
                 tvError: tvResponse.error,
                 movieError: movieResponse.error
             });
-            return { success: false, type: null, metadata: null };
+            return { success: false };
         }
 
-        // Combine both result sets
-        const allResults = [...tvResponse.results, ...movieResponse.results];
+        // Store results separately
+        const tvShowSearchResults = tvResponse.results as TMDBTVShow[];
+        const movieSearchResults = movieResponse.results as TMDBMovie[];
 
-        // Filter duplicate results by TMDB ID
-        const uniqueResults = allResults.filter((item, index, self) =>
-            index === self.findIndex(t => t.id === item.id)
-        );
 
-        // Only proceed if exactly one unique result is found
-        if (uniqueResults.length !== 1) {
-            console.log('[tryToRecognizeMediaFolderByFolderName] Found', uniqueResults.length, 'results for folder:', folderName);
-            return { success: false, type: null, metadata: null };
-        }
-
-        const result = uniqueResults[0];
-
-        // Distinguish between TV shows and movies
-        if ('name' in result) {
-            // It's a TV show - fetch full details including seasons and episodes
-            const tvShowDetailsResponse = await getTvShowById(result.id, language);
-
-            if (tvShowDetailsResponse.error || !tvShowDetailsResponse.data) {
-                console.error('[tryToRecognizeMediaFolderByFolderName] Failed to fetch TV show details:', {
-                    tmdbId: result.id,
-                    error: tvShowDetailsResponse.error
-                });
-                return { success: false, type: null, metadata: null };
+        for(const item of tvShowSearchResults) {
+            console.log(`[tryToRecognizeMediaFolderByFolderName] TV result: ${item.name} ${item.id}`)
+            if(folderName === item.name) {
+                return {
+                    success: true,
+                    type: 'tv',
+                    tmdbTvShow: item,
+                }
             }
-
-            return {
-                success: true,
-                type: 'tv',
-                metadata: {
-                    tmdbTvShow: tvShowDetailsResponse.data,
-                    tmdbMediaType: 'tv',
-                    type: 'tvshow-folder'
-                }
-            };
-        } else if ('title' in result) {
-            // It's a movie - use the search result directly
-            return {
-                success: true,
-                type: 'movie',
-                metadata: {
-                    tmdbMovie: result as TMDBMovie,
-                    tmdbMediaType: 'movie',
-                    type: 'movie-folder'
-                }
-            };
         }
 
-        // Unknown result type
-        console.warn('[tryToRecognizeMediaFolderByFolderName] Unknown result type:', result);
-        return { success: false, type: null, metadata: null };
+        // Log movie results
+        movieSearchResults.forEach(item => {
+            console.log(`[tryToRecognizeMediaFolderByFolderName] Movie result: ${item.title} ${item.id}`)
+        });
+
+        for(const item of movieSearchResults) {
+            console.log(`[tryToRecognizeMediaFolderByFolderName] Movie result: ${item.title} ${item.id}`)
+            if(folderName === item.title) {
+                return {
+                    success: true,
+                    type: 'movie',
+                    tmdbMovie: item,
+                }
+            }
+        }
+
+        return {
+            success: false,
+        }        
 
     } catch (error) {
         console.error('[tryToRecognizeMediaFolderByFolderName] Exception:', error);
-        return { success: false, type: null, metadata: null };
+        return { success: false };
     }
 }
 
-export async function preprocessMediaFolder(folderPath: string) {
+export async function preprocessMediaFolder(folderPath: string): Promise<RecognizeMediaFolderResult> {
 
-
+    console.log(`[preprocessMediaFolder] preprocess media folder: ${folderPath}`)
     // TODO: try to recognize media folder by NFO
 
     // TODO: try to recognize media folder by TMDB ID in folder name
@@ -107,10 +89,12 @@ export async function preprocessMediaFolder(folderPath: string) {
     const result = await tryToRecognizeMediaFolderByFolderName(folderName, 'zh-CN');
     if(result.success) {
         if(result.type === 'tv') {
-            console.log(`[preprocessMediaFolder] successfully recognized media folder: ${result.metadata?.tmdbTvShow?.name} ${result.metadata?.tmdbTvShow?.id}`)
+            console.log(`[preprocessMediaFolder] successfully recognized media folder: ${result.tmdbTvShow?.name} ${result.tmdbTvShow?.id}`)
+            
         } else if(result.type === 'movie') {
-            console.log(`[preprocessMediaFolder] successfully recognized media folder: ${result.metadata?.tmdbMovie?.title} ${result.metadata?.tmdbMovie?.id}`)
+            console.log(`[preprocessMediaFolder] successfully recognized media folder: ${result.tmdbMovie?.title} ${result.tmdbMovie?.id}`)
         }
-        
     }
+
+    return result;
 }

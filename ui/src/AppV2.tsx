@@ -22,6 +22,9 @@ import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { useLatest } from "react-use"
 import { listFiles } from "@/api/listFiles"
+import { preprocessMediaFolder, type RecognizeMediaFolderResult } from "./lib/preprocess-media-folder"
+import type { TmdbTvShowResponseBody } from "@core/types"
+import { getTvShowById } from "./api/tmdb"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -270,7 +273,53 @@ function AppV2Content() {
         console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
           const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
-          console.log(`[AppV2] userConfig: `, latestUserConfig.current)
+          preprocessMediaFolder(file.path)
+          .then((result: RecognizeMediaFolderResult) => {
+
+            if(result.success) {
+
+              if(result.type === 'tv') {
+
+                if(result.tmdbTvShow?.id === undefined) {
+                  console.error(`[AppV2] successful recognition result, but the tmdbTvShow.id is undefined`)
+                  return;
+                }
+
+                getTvShowById(result.tmdbTvShow?.id, 'zh-CN').then((response: TmdbTvShowResponseBody) => {
+
+                  if(response.error) {
+                    console.error(`[${traceId}] failed to get TMDB TV show details by TMDB ID from recognition result: ${response.error}`)
+                    return;
+                  }
+
+                  if(response.data === undefined) {
+                    console.error(`[${traceId}] failed to get TMDB TV show details by TMDB ID from recognition result: response.data is undefined`)
+                    return;
+                  }
+
+                  updateMediaMetadata(file.path, {
+                    ...selectedMediaMetadata,
+                    tmdbTvShow: response.data,
+                    type: 'tvshow-folder',
+                  }, { traceId })
+                })
+
+                
+              } else if(result.type === 'movie') {
+                updateMediaMetadata(file.path, {
+                  ...selectedMediaMetadata,
+                  tmdbMovie: result.tmdbMovie,
+                  type: 'movie-folder',
+                }, { traceId })
+              } else {
+                console.error(`[AppV2] successful recognition result, but the type is null`)
+              }
+
+            } else {
+              console.log(`[AppV2] failed to recognize media folder: ${file.path}`)
+            }
+
+          })
           onFolderSelected(type, file.path, {
             traceId: traceId,
           })
