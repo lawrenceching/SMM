@@ -666,6 +666,7 @@ export function FileExplorer({
   }
 
   const handleItemDoubleClick = async (file: FileItem) => {
+    console.log('[FileExplorer] handleItemDoubleClick:', file)
     // Double-click: open image files or navigate into folder
     if (!file.isDirectory && isImageFile(file.name)) {
       // Open image file with system default application
