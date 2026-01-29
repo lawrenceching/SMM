@@ -1,4 +1,4 @@
-import { preprocessMediaFolder } from "./lib/preprocess-media-folder"
+import { preprocessMediaFolder } from "./lib/preProcessMediaFolder"
 import type { MediaMetadata } from "@core/types"
 import { getTvShowById } from "./api/tmdb"
 

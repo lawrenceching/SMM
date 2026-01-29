@@ -255,7 +255,7 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata, signal?
         return undefined
     }
 
-    const resp = await readFile(nfoFilePath, signal)
+    const resp = await readFile(Path.toPlatformPath(nfoFilePath), signal)
 
     if(resp.error) {
         console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read tvshow.nfo file: ${nfoFilePath}`, resp.error)

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getTmdbIdFromFolderName, doPreprocessMediaFolder } from './AppV2Utils'
-import { preprocessMediaFolder } from './lib/preprocess-media-folder'
+import { preprocessMediaFolder } from './lib/preProcessMediaFolder'
 import { getTvShowById } from './api/tmdb'
 import type { MediaMetadata, TMDBTVShowDetails } from '@core/types'
 
