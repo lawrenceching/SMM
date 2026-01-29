@@ -136,6 +136,21 @@
         "prompt": "按 Plex 規則整理當前媒體資料夾\nPlex 規則為:\n{季目錄名}/{電視劇/動畫名} - S{季數}E{集數} - {標題}.{檔案後綴名}"
       }
     }
+  },
+  "statusBar": {
+    "mcp": {
+      "serverOn": "MCP伺服器已開啟",
+      "serverOff": "MCP伺服器已關閉",
+      "title": "MCP伺服器",
+      "subtitle": "模型上下文協定",
+      "turnOff": "關閉MCP伺服器",
+      "turnOn": "開啟MCP伺服器",
+      "address": "地址",
+      "protocol": "協定",
+      "protocolValue": "串流HTTP",
+      "disabledMessage": "在設定 → 常規中啟用MCP以在獨立連接埠上公開伺服器。",
+      "documentation": "文件"
+    }
   }
 }
 

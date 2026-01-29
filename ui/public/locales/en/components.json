@@ -137,6 +137,21 @@
         "prompt": "Organize the current media folder according to Plex rules\nPlex rules are:\n{SeasonFolder}/{TV Show/Anime Name} - S{Season}E{Episode} - {Title}.{Extension}"
       }
     }
+  },
+  "statusBar": {
+    "mcp": {
+      "serverOn": "MCP server on",
+      "serverOff": "MCP server off",
+      "title": "MCP Server",
+      "subtitle": "Model Context Protocol",
+      "turnOff": "Turn MCP server off",
+      "turnOn": "Turn MCP server on",
+      "address": "Address",
+      "protocol": "Protocol",
+      "protocolValue": "Streamable HTTP",
+      "disabledMessage": "Enable MCP in Settings → General to expose the server on its own port.",
+      "documentation": "Documentation"
+    }
   }
 }
 

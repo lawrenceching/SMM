@@ -137,6 +137,21 @@
         "prompt": "按 Plex 规则整理当前媒体文件夹\nPlex 规则为:\n{季目录名}/{电视剧/动画名} - S{季数}E{集数} - {标题}.{文件后缀名}"
       }
     }
+  },
+  "statusBar": {
+    "mcp": {
+      "serverOn": "MCP服务器已开启",
+      "serverOff": "MCP服务器已关闭",
+      "title": "MCP服务器",
+      "subtitle": "模型上下文协议",
+      "turnOff": "关闭MCP服务器",
+      "turnOn": "开启MCP服务器",
+      "address": "地址",
+      "protocol": "协议",
+      "protocolValue": "流式HTTP",
+      "disabledMessage": "在设置 → 常规中启用MCP以在独立端口上暴露服务器。",
+      "documentation": "文档"
+    }
   }
 }
 
