@@ -194,7 +194,7 @@ export function ConfigProvider({
 
       const updatedConfig: UserConfig = {
         ...prevConfig,
-        folders: [...prevConfig.folders, folder]
+        folders: [...new Set([...prevConfig.folders, folder])]
       }
 
       console.log(`[${traceId}] addMediaFolderInUserConfig: Updated config with ${updatedConfig.folders.length} folders`)

@@ -3,7 +3,7 @@ import { tryToRecognizeMediaFolderByNFO } from "./recognizeMediaFolderByNFO";
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
 import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes";
 
-export async function preprocessMediaFolder(folderPath: string, signal?: AbortSignal): Promise<RecognizeMediaFolderResult> {
+export async function preProcessMediaFolder(folderPath: string, signal?: AbortSignal): Promise<RecognizeMediaFolderResult> {
 
     console.log(`[preprocessMediaFolder] preprocess media folder: ${folderPath}`)
     

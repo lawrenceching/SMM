@@ -1,9 +1,13 @@
 import type { ReadFileRequestBody, ReadFileResponseBody, UserConfig } from '@core/types';
 
 
-export async function readFile(path: string, signal?: AbortSignal): Promise<ReadFileResponseBody> {
+export async function readFile(path: string, signal?: AbortSignal, options?: {requireValidate?: boolean}): Promise<ReadFileResponseBody> {
   const req: ReadFileRequestBody = {
     path: path,
+  }
+
+  if(options?.requireValidate === false) {
+    req.requireValidPath = false;
   }
 
   const resp = await fetch('/api/readFile', {

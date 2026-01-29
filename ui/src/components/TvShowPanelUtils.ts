@@ -280,7 +280,7 @@ export async function tryToRecognizeMediaFolderByNFO(_mm: MediaMetadata, signal?
         if (signal?.aborted) {
             return undefined
         }
-        const resp = await readFile(episodeNfoFile, signal)
+        const resp = await readFile(episodeNfoFile, signal, { requireValidate: false})
         if(resp.error) {
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to read episode NFO file: ${episodeNfoFile}`, resp.error)
             continue

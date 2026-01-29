@@ -1,6 +1,7 @@
-import { preprocessMediaFolder } from "./lib/preProcessMediaFolder"
+import { preProcessMediaFolder } from "./lib/preProcessMediaFolder"
 import type { MediaMetadata } from "@core/types"
 import { getTvShowById } from "./api/tmdb"
+import { minimize } from "./lib/log";
 
 /**
  * For a folder name like:
@@ -10,18 +11,17 @@ import { getTvShowById } from "./api/tmdb"
  * This method will extract and return the TMDB ID
  */
 export function getTmdbIdFromFolderName(folderName: string): string | null {
-  // Match patterns like (tmdbid=123456) or {tmdbid=123456}
-  const match = folderName.match(/[\(\{]\s*tmdbid\s*=\s*(\d+)\s*[\}\)]/i);
+  // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
+  const match = folderName.match(/[\(\{\[]\s*tmdbid\s*=\s*(\d+)\s*[\}\)\]]/i);
   return match ? match[1] : null;
 }
 
 export async function doPreprocessMediaFolder(
   filePath: string,
   traceId: string,
-  selectedMediaMetadata: MediaMetadata | undefined,
   updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void
 ) {
-  const result = await preprocessMediaFolder(filePath)
+  const result = await preProcessMediaFolder(filePath)
 
   if(result.success) {
 
@@ -44,8 +44,12 @@ export async function doPreprocessMediaFolder(
         return;
       }
 
+      console.log(`[${traceId}] successful recognized media folder, update media metadata`, {
+        folder: filePath,
+        tmdbId: result.tmdbTvShow?.id,
+        tvShowName: result.tmdbTvShow?.name,
+      })
       updateMediaMetadata(filePath, {
-        ...selectedMediaMetadata,
         tmdbTvShow: response.data,
         type: 'tvshow-folder',
       }, { traceId })
@@ -53,7 +57,6 @@ export async function doPreprocessMediaFolder(
       
     } else if(result.type === 'movie') {
       updateMediaMetadata(filePath, {
-        ...selectedMediaMetadata,
         tmdbMovie: result.tmdbMovie,
         type: 'movie-folder',
       }, { traceId })

@@ -30,14 +30,16 @@ export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFi
     const posixPath = Path.posix(filePath);
     const resolvedPath = path.posix.resolve(posixPath);
     
-
-    // Validate path is in allowlist
-    const isAllowed = await validatePathIsInAllowlist(resolvedPath);
-    if (!isAllowed) {
-      return {
-        error: `Path "${filePath}" is not in the allowlist`,
-      };
+    if(body.requireValidPath === undefined || body.requireValidPath === true) {
+      // Validate path is in allowlist
+      const isAllowed = await validatePathIsInAllowlist(resolvedPath);
+      if (!isAllowed) {
+        return {
+          error: `Path "${filePath}" is not in the allowlist`,
+        };
+      }
     }
+
     
     // Resolve to absolute path for file operations
     const platformPath = Path.toPlatformPath(resolvedPath);

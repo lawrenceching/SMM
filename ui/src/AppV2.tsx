@@ -29,8 +29,7 @@ import { doPreprocessMediaFolder } from "./AppV2Utils"
 function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-  const { userConfig, setUserConfig } = useConfig()
-  const latestUserConfig = useLatest(userConfig)
+  const { userConfig, setUserConfig, addMediaFolderInUserConfig } = useConfig()
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
@@ -271,7 +270,8 @@ function AppV2Content() {
         console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
           const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
-          doPreprocessMediaFolder(file.path, traceId, selectedMediaMetadata, updateMediaMetadata)
+          // TODO: need to wait until 
+          doPreprocessMediaFolder(file.path, traceId, updateMediaMetadata)
           onFolderSelected(type, file.path, {
             traceId: traceId,
           })
