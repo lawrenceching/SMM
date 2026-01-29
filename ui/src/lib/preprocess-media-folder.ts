@@ -84,7 +84,7 @@ export async function preprocessMediaFolder(folderPath: string): Promise<Recogni
     const folderName = basename(folderPath);
     if(folderName === undefined) {
         console.error('[preprocessMediaFolder] folder name is undefined')
-        return
+        return { success: false }
     }
     const result = await tryToRecognizeMediaFolderByFolderName(folderName, 'zh-CN');
     if(result.success) {
