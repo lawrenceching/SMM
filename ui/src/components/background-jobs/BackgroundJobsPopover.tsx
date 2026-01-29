@@ -3,7 +3,7 @@ import { useBackgroundJobs } from './BackgroundJobsProvider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { JobStatus } from '@/types/background-jobs';
+import type { JobStatus } from '@/types/background-jobs';
 import { cn } from '@/lib/utils';
 
 export function BackgroundJobsPopoverContent() {
@@ -16,47 +16,47 @@ export function BackgroundJobsPopoverContent() {
 
   const { jobs, abortJob } = context;
 
-  const getStatusIcon = (status: JobStatus) => {
+   const getStatusIcon = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.PENDING:
+      case 'pending':
         return <Clock className="h-3 w-3" />;
-      case JobStatus.RUNNING:
+      case 'running':
         return <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />;
-      case JobStatus.SUCCEEDED:
+      case 'succeeded':
         return <CheckCircle2 className="h-3 w-3" />;
-      case JobStatus.FAILED:
+      case 'failed':
         return <XCircle className="h-3 w-3" />;
-      case JobStatus.ABORTED:
+      case 'aborted':
         return <StopCircle className="h-3 w-3" />;
     }
   };
 
-  const getStatusVariant = (status: JobStatus) => {
+   const getStatusVariant = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.PENDING:
+      case 'pending':
         return 'outline';
-      case JobStatus.RUNNING:
+      case 'running':
         return 'default';
-      case JobStatus.SUCCEEDED:
+      case 'succeeded':
         return 'outline';
-      case JobStatus.FAILED:
+      case 'failed':
         return 'destructive';
-      case JobStatus.ABORTED:
+      case 'aborted':
         return 'secondary';
     }
   };
 
-  const getStatusColor = (status: JobStatus) => {
+   const getStatusColor = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.PENDING:
+      case 'pending':
         return 'text-yellow-600 dark:text-yellow-400';
-      case JobStatus.RUNNING:
+      case 'running':
         return 'text-blue-600 dark:text-blue-400';
-      case JobStatus.SUCCEEDED:
+      case 'succeeded':
         return 'text-green-600 dark:text-green-400';
-      case JobStatus.FAILED:
+      case 'failed':
         return 'text-red-600 dark:text-red-400';
-      case JobStatus.ABORTED:
+      case 'aborted':
         return 'text-gray-600 dark:text-gray-400';
     }
   };
@@ -66,8 +66,8 @@ export function BackgroundJobsPopoverContent() {
       <div className="p-4 border-b border-border">
         <h3 className="text-sm font-semibold">Background Jobs</h3>
         <p className="text-xs text-muted-foreground mt-1">
-          {jobs.filter(j => j.status === JobStatus.RUNNING).length} running,
-          {jobs.filter(j => j.status === JobStatus.PENDING).length} pending
+           {jobs.filter(j => j.status === 'running').length} running,
+          {jobs.filter(j => j.status === 'pending').length} pending
         </p>
       </div>
 
@@ -94,27 +94,27 @@ export function BackgroundJobsPopoverContent() {
                     </Badge>
                   </div>
 
-                  {job.status === JobStatus.RUNNING && (
+                   {job.status === 'running' && (
                     <div className="space-y-1">
                       <Progress value={job.progress} className="h-1.5" />
                       <p className="text-xs text-muted-foreground">{Math.round(job.progress)}%</p>
                     </div>
                   )}
 
-                  {job.status === JobStatus.SUCCEEDED && (
+                   {job.status === 'succeeded' && (
                     <p className="text-xs text-muted-foreground">Completed successfully</p>
                   )}
 
-                  {job.status === JobStatus.FAILED && (
+                   {job.status === 'failed' && (
                     <p className="text-xs text-destructive">Job failed</p>
                   )}
 
-                  {job.status === JobStatus.ABORTED && (
+                   {job.status === 'aborted' && (
                     <p className="text-xs text-muted-foreground">Aborted by user</p>
                   )}
                 </div>
 
-                {job.status === JobStatus.RUNNING && (
+                 {job.status === 'running' && (
                   <Button
                     variant="ghost"
                     size="icon-sm"

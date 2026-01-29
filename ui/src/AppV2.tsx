@@ -11,7 +11,7 @@ import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
 import { BackgroundJobsProvider, useBackgroundJobs } from "./components/background-jobs/BackgroundJobsProvider"
-import { JobStatus } from "@/types/background-jobs"
+import type { JobStatus } from "@/types/background-jobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
@@ -302,7 +302,7 @@ function AppV2Content() {
 
         if (listFilesResponse.error || !listFilesResponse.data) {
           console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
-          report({ status: JobStatus.FAILED })
+          report({ status: 'failed' })
           return
         }
 
@@ -313,7 +313,7 @@ function AppV2Content() {
         console.log(`[AppV2] Found ${total} subfolders in media library`)
 
         if (total === 0) {
-          report({ progress: 100, status: JobStatus.SUCCEEDED })
+           report({ progress: 100, status: 'succeeded' })
           return
         }
 
@@ -331,11 +331,11 @@ function AppV2Content() {
           report({ progress: (completed / total) * 100 })
         }
 
-        report({ progress: 100, status: JobStatus.SUCCEEDED })
+         report({ progress: 100, status: 'succeeded' })
         console.log(`[AppV2] Finished importing ${total} folders from media library`)
       } catch (error) {
         console.error(`[AppV2] Import media library failed:`, error)
-        report({ status: JobStatus.FAILED })
+         report({ status: 'failed' })
       }
     }
 
@@ -345,7 +345,7 @@ function AppV2Content() {
         return
       }
       const jobId = backgroundJobs.addJob('Importing Media Library')
-      backgroundJobs.updateJob(jobId, { status: JobStatus.RUNNING })
+       backgroundJobs.updateJob(jobId, { status: 'running' })
       runImportInBackground(jobId, libraryPath, type)
     }
 

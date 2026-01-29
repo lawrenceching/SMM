@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import type { BackgroundJob, JobStatus } from '@/types/background-jobs';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import type { BackgroundJob } from '@/types/background-jobs';
 
 interface BackgroundJobsContextType {
   jobs: BackgroundJob[];
@@ -26,7 +26,7 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
     const newJob: BackgroundJob = {
       id,
       name,
-      status: 'pending' as JobStatus,
+      status: 'pending',
       progress: 0,
     };
     setJobs((prev) => [...prev, newJob]);
@@ -45,7 +45,7 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
     setJobs((prev) =>
       prev.map((job) =>
         job.id === id && job.status === 'running'
-          ? { ...job, status: 'aborted' as JobStatus }
+           ? { ...job, status: 'aborted' }
           : job
       )
     );

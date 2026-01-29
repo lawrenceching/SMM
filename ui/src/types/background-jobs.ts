@@ -1,13 +1,7 @@
 /**
- * Background job status enumeration
+ * Background job status type
  */
-export enum JobStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  FAILED = 'failed',
-  SUCCEEDED = 'succeeded',
-  ABORTED = 'aborted',
-}
+export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted';
 
 /**
  * Background job interface

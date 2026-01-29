@@ -3,7 +3,7 @@ import { useBackgroundJobs } from './BackgroundJobsProvider';
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { JobStatus } from '@/types/background-jobs';
+
 
 interface BackgroundJobsIndicatorProps {
   className?: string;
@@ -21,7 +21,7 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
   const runningJobs = getRunningJobs();
 
   // Don't render if no jobs at all (or only completed/failed jobs)
-  const activeJobs = jobs.filter(j => j.status === JobStatus.RUNNING || j.status === JobStatus.PENDING);
+   const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'pending');
   if (jobs.length === 0 || activeJobs.length === 0) {
     return null;
   }
