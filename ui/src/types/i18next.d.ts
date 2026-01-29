@@ -94,6 +94,19 @@ interface ComponentsResources {
     scrape: string
     notAvailable: string
   }
+  movie: {
+    searchPlaceholder: string
+    searchPlaceholderUnrecognized: string
+    overview: string
+    genres: string
+    genreLabel: string
+    rename: string
+    scrape: string
+    notAvailable: string
+    searchNoResults: string
+    searchFailed: string
+    noMediaPathError: string
+  }
   episodeFile: {
     rename: string
     renameSuccess: string
@@ -118,6 +131,12 @@ interface ComponentsResources {
     statusBar: string
     searchStatus: string
     folderContents: string
+    goToParent: string
+    drives: string
+    drivesStatus: string
+    driveSelector: string
+    driveSelectorPlaceholder: string
+    home: string
   }
   episodeSection: {
     notAvailable: string
@@ -137,6 +156,8 @@ interface ComponentsResources {
     welcome: {
       title: string
       subtitle: string
+      configNotComplete: string
+      openSettings: string
     }
     suggestions: {
       recognizeVideoFiles: {
@@ -149,6 +170,21 @@ interface ComponentsResources {
         label: string
         prompt: string
       }
+    }
+  }
+  statusBar: {
+    mcp: {
+      serverOn: string
+      serverOff: string
+      title: string
+      subtitle: string
+      turnOff: string
+      turnOn: string
+      address: string
+      protocol: string
+      protocolValue: string
+      disabledMessage: string
+      documentation: string
     }
   }
 }
@@ -239,6 +275,12 @@ interface SettingsResources {
     tmdbApiKeyPlaceholder: string
     httpProxy: string
     httpProxyPlaceholder: string
+    enableMcpServer: string
+    enableMcpServerDescription: string
+    mcpHost: string
+    mcpHostPlaceholder: string
+    mcpPort: string
+    mcpPortPlaceholder: string
   }
   ai: {
     title: string

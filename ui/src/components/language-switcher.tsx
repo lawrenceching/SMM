@@ -10,6 +10,7 @@ import {
 import { useConfig } from "@/providers/config-provider"
 import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
+import { nextTraceId } from "@/lib/utils"
 
 export function LanguageSwitcher() {
   const { userConfig, setUserConfig } = useConfig()
@@ -19,7 +20,8 @@ export function LanguageSwitcher() {
   const handleLanguageChange = async (lang: SupportedLanguage) => {
     await changeLanguage(lang)
     // Update user config
-    setUserConfig({
+    const traceId = `LanguageSwitcher-${nextTraceId()}`
+    setUserConfig(traceId, {
       ...userConfig,
       applicationLanguage: lang,
     })
