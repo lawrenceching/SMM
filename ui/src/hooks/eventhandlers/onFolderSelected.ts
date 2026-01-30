@@ -48,14 +48,17 @@ async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (pat
 
 }
 
-export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata, options: { traceId: string }) => void, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void) {
+export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadata, options: { traceId: string }) => void, _updateMediaMetadata: (path: string, metadata: UIMediaMetadata, options?: { traceId?: string }) => void) {
 
   const { setMediaFolderStates } = useGlobalStates()
   const { addMediaFolderInUserConfig } = useConfig()
-  const { addMediaMetadata } = useMediaMetadata()
+  const { addMediaMetadata, updateMediaMetadata } = useMediaMetadata()
 
   const onFolderSelected = useCallback(async (type: FolderType, folderPathInPlatform: string, options?: { traceId?: string }) => {
     const traceId = options?.traceId || `onFolderSelected-${nextTraceId()}`
+
+    console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatform} to user config`)
+    addMediaFolderInUserConfig(traceId, folderPathInPlatform)
 
     console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatform)
     console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
@@ -91,7 +94,11 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
         const response = await readMediaMetadataApi(folderPathInPlatform, signal)
         const metadata = response.data
 
-        if (!metadata) {
+        if (!metadata
+          || (metadata.type === 'tvshow-folder' && metadata.tmdbTvShow === undefined)
+          || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
+
+        ) {
           const initialMetadata: UIMediaMetadata = {
             mediaFolderPath: Path.posix(folderPathInPlatform),
             type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
@@ -135,13 +142,49 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
 
           initialMetadata.files = resp.data.items.map(item => Path.posix(item.path))
           try {
+            
+            // updateMediaMetadata(initialMetadata.mediaFolderPath!, {
+            //   ...initialMetadata,
+            //   status: 'initializing',
+            // }, { traceId })
             // pass signal.aborted to doPreprocessMediaFolder
-            doPreprocessMediaFolder(folderPathInPlatform, traceId, updateMediaMetadata)
+            await doPreprocessMediaFolder(folderPathInPlatform, {
+              traceId,
+              onSuccess: (opt) => {
+                updateMediaMetadata(initialMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
+                  return {
+                    ...mm,
+                    ...opt,
+                    status: 'ok',
+                  }
+                }, { traceId })
+              },
+              onError: (error) => {
+                console.error(`[${traceId}] Failed to preprocess media folder:`, error)
+                updateMediaMetadata(initialMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
+                  return {
+                    ...mm,
+                    status: 'ok',
+                  }
+                }, { traceId })
+              },
+            })
           } catch (error) {
             console.error(`[${traceId}] Failed to preprocess media folder:`, error)
+          } finally {
+            // updateMediaMetadata(initialMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
+            //   return {
+            //     ...mm,
+            //     status: 'ok',
+            //   }
+            // }, { traceId })
           }
           
         } else {
+          addMediaMetadata({
+            ...metadata,
+            status: 'ok',
+          }, { traceId })
           console.log('[onFolderSelected] Metadata already exists, skipping recognition')
         }
 
@@ -182,7 +225,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
         setLoadingFalse(pathKey)
       }
     }
-  }, [addMediaMetadata, updateMediaMetadata, setMediaFolderStates])
+  }, [addMediaFolderInUserConfig, addMediaMetadata, updateMediaMetadata, setMediaFolderStates])
 
   return onFolderSelected
 }

@@ -1,7 +1,7 @@
-import type { MediaMetadata } from "@core/types";
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { isNil } from "es-toolkit";
 
-export function minimize(mm: MediaMetadata): any {
+export function minimize(mm: UIMediaMetadata): any {
     return {
         mediaFolderPath: mm.mediaFolderPath,
         type: mm.type,
@@ -15,5 +15,6 @@ export function minimize(mm: MediaMetadata): any {
             id: mm.tmdbMovie?.id,
             title: mm.tmdbMovie?.title,
         },
+        status: mm.status,
     }
 }

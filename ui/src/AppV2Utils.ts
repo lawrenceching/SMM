@@ -1,8 +1,10 @@
 import { preProcessMediaFolder } from "./lib/preProcessMediaFolder"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata, TMDBMovie, TMDBTVShowDetails } from "@core/types"
 import { getTvShowById } from "./api/tmdb"
 import { minimize } from "./lib/log";
 import { Path } from "@core/path";
+import type { UIMediaMetadata } from "./types/UIMediaMetadata";
+import { delay } from "es-toolkit";
 
 /**
  * For a folder name like:
@@ -17,13 +19,19 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
   return match ? match[1] : null;
 }
 
+export interface doPreprocessMediaFolderOnSuccessCallbackOptions {
+  tmdbTvShow?: TMDBTVShowDetails;
+  tmdbMovie?: TMDBMovie;
+}
+
+
+
 export async function doPreprocessMediaFolder(
   folderPathInPlatform: string,
-  traceId: string,
-  updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void
+  options?: { traceId?: string, onSuccess?: (options: doPreprocessMediaFolderOnSuccessCallbackOptions) => void, onError?: (error: Error) => void }
 ) {
-  const result = await preProcessMediaFolder(folderPathInPlatform)
-  const folderPathInPosix = Path.posix(folderPathInPlatform);
+  const result = await preProcessMediaFolder(folderPathInPlatform);
+  const traceId = options?.traceId || `doPreprocessMediaFolder`
 
   if(result.success) {
 
@@ -51,19 +59,12 @@ export async function doPreprocessMediaFolder(
         tmdbId: result.tmdbTvShow?.id,
         tvShowName: result.tmdbTvShow?.name,
       })
-      updateMediaMetadata(folderPathInPosix, {
-        tmdbTvShow: response.data,
-        type: 'tvshow-folder',
-      }, { traceId })
-
-      
+      options?.onSuccess?.({ tmdbTvShow: response.data })
     } else if(result.type === 'movie') {
-      updateMediaMetadata(folderPathInPosix, {
-        tmdbMovie: result.tmdbMovie,
-        type: 'movie-folder',
-      }, { traceId })
+      options?.onSuccess?.({ tmdbMovie: result.tmdbMovie })
     } else {
       console.error(`[AppV2Utils] successful recognition result, but the type is null`)
+      options?.onError?.(new Error(`unknown media folder type: ${result.type}`))
     }
 
   } else {

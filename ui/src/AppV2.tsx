@@ -380,6 +380,7 @@ function AppV2Content() {
         mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
         path: metadata.mediaFolderPath,
         mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
+        status: metadata.status,
       } as MediaFolderListItemProps
     })
   }, [mediaMetadatas])

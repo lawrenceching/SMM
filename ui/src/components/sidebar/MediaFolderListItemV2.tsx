@@ -14,6 +14,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 
 export interface MediaFolderListItemV2Props {
@@ -42,6 +43,10 @@ export interface MediaFolderListItemV2Props {
    * When provided, context menu Delete calls this with paths to delete (e.g. all selected)
    */
   onDeleteSelected?: (paths: string[]) => void
+  /**
+   * Status of the media metadata initialization
+   */
+  status?: 'idle' | 'initializing' | 'ok' | 'folder_not_found'
 }
 
 export function MediaFolderListItemV2({
@@ -52,6 +57,7 @@ export function MediaFolderListItemV2({
   isPrimary = false,
   selectedFolderPaths: selectedFolderPathsProp,
   onDeleteSelected,
+  status,
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
 
@@ -225,6 +231,10 @@ export function MediaFolderListItemV2({
               {folderName}
             </p>
           </div>
+          {/* Status indicator */}
+          {status === 'initializing' && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+          )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
