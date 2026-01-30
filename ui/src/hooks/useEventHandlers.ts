@@ -1,17 +1,38 @@
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
-import { useOnFolderSelected } from "./eventhandlers/onFolderSelected"
+import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type UIEventHandler, type UIEvent } from "@/types/EventHandlerTypes"
+import { useInitializeMediaFolderEventHandler } from "./eventhandlers/useInitializeMediaFolderEventHandler"
 import { useDialogs } from "@/providers/dialog-provider"
+import { useMemo } from "react"
 
 export function useEventHandlers() {
-  const { addMediaMetadata, updateMediaMetadata } = useMediaMetadata()
-  const { configDialog } = useDialogs()
 
-  const onFolderSelected = useOnFolderSelected(addMediaMetadata, updateMediaMetadata)
+  const { configDialog } = useDialogs()
+  const intializeMediaFolderEventHandler = useInitializeMediaFolderEventHandler()
+
+  const handlers = useMemo<Record<string, UIEventHandler[]>>(() => {
+    return {
+      [EVENT_ON_MEDIA_FOLDER_IMPORTED]: [
+        {
+          name: 'initializeMediaFolder',
+          handler: intializeMediaFolderEventHandler,
+        },
+      ],
+    }
+  }, [])
+
+  const postEvent = (event: UIEvent) => {
+    console.log(`[useEventHandlers] dispatch event`, event)
+    const handler = handlers[event.name]
+    if(handler) {
+      handler.forEach((h: UIEventHandler) => h.handler(event))
+    } else {
+      console.error(`[useEventHandlers] No handler found for event: ${event.name}`)
+    }
+  }
 
   const onRequireToOpenConfigDialog = () => {
     const [openConfig] = configDialog
     openConfig("ai")
   }
 
-  return { onFolderSelected, onRequireToOpenConfigDialog }
+  return { onRequireToOpenConfigDialog, postEvent }
 }

@@ -14,58 +14,25 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
 import { isNotNil } from "es-toolkit"
+import type { OnMediaFolderImportedEventData, UIEvent } from "@/types/EventHandlerTypes"
 
-
-async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void, signal?: AbortSignal) {
-  const tmdbId = mm.tmdbTvShow?.id;
-  if (tmdbId === undefined) {
-    console.error('[onFolderSelected] Failed to refresh media metadata, tmdbId is undefined')
-    return;
-  }
-
-  // TODO: set media language
-  const response = await getTvShowById(tmdbId, 'zh-CN', signal);
-  if (response.error) {
-    console.error("[onFolderSelected] Failed to get TV show details:", response.error)
-    return
-  }
-
-  if (!response.data) {
-    console.error("[onFolderSelected] No TV show data returned")
-    return
-  }
-
-  if (signal?.aborted) {
-    return
-  }
-
-  const traceId = `refreshMediaMetadata-${nextTraceId()}`
-  console.log(`[${traceId}] refreshMediaMetadata: Refreshing metadata for ${mm.mediaFolderPath}`)
-  updateMediaMetadata(mm.mediaFolderPath!, {
-    ...mm,
-    tmdbTvShow: response.data,
-    tmdbMediaType: 'tv',
-    type: 'tvshow-folder',
-  }, { traceId })
-
-}
-
-export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadata, options: { traceId: string }) => void, _updateMediaMetadata: (path: string, metadata: UIMediaMetadata, options?: { traceId?: string }) => void) {
+export function useInitializeMediaFolderEventHandler() {
 
   const { setMediaFolderStates } = useGlobalStates()
   const { addMediaFolderInUserConfig } = useConfig()
   const { addMediaMetadata, updateMediaMetadata } = useMediaMetadata()
 
-  const onFolderSelected = useCallback(async (type: FolderType, folderPathInPlatform: string, options?: { traceId?: string }) => {
-    const traceId = options?.traceId || `onFolderSelected-${nextTraceId()}`
+  const onFolderImported = useCallback(async (event: UIEvent) => {
+    const data = event.data as OnMediaFolderImportedEventData
+    const { type, folderPathInPlatformFormat } = data
+    const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
 
-    console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatform} to user config`)
-    addMediaFolderInUserConfig(traceId, folderPathInPlatform)
+    console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatformFormat} to user config`)
+    addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
-    const mm = await createInitialMediaMetadata(folderPathInPlatform, { traceId })
+    const mm = await createInitialMediaMetadata(folderPathInPlatformFormat, { traceId })
 
-
-    console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatform)
+    console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatformFormat)
     console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
     const abortController = new AbortController()
     const signal = abortController.signal
@@ -96,7 +63,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
     // Main operation promise
     const mainOperation = async () => {
       try {
-        const response = await readMediaMetadataApi(folderPathInPlatform, signal)
+        const response = await readMediaMetadataApi(folderPathInPlatformFormat, signal)
         const metadata = response.data
 
         if (!metadata
@@ -110,7 +77,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
           }
           
           addMediaMetadata(mm, { traceId })
-          addMediaFolderInUserConfig(traceId, folderPathInPlatform)
+          addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
           pathKey = mm.mediaFolderPath as string
           loadingWasSet = true
@@ -211,5 +178,5 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
     }
   }, [addMediaFolderInUserConfig, addMediaMetadata, updateMediaMetadata, setMediaFolderStates])
 
-  return onFolderSelected
+  return onFolderImported
 }

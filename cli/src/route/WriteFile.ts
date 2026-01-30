@@ -121,10 +121,17 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       };
     }
   } catch (error) {
-    logger.error({ traceId, error }, `doWriteFile: Unexpected error`);
-    return {
-      error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
+    // Ensure error has enumerable properties for proper logging
+    const loggableError = error instanceof Error
+      ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        }
+      : { error };
+
+    logger.error({ traceId, error: loggableError }, `doWriteFile: Unexpected error`);
+
   }
 }
 

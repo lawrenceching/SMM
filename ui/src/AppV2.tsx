@@ -21,6 +21,7 @@ import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { listFiles } from "@/api/listFiles"
+import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -55,7 +56,7 @@ function AppV2Content() {
   const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata, updateMediaMetadataStatus } = useMediaMetadata()
 
   // Event handlers
-  const { onFolderSelected } = useEventHandlers()
+  const { postEvent } = useEventHandlers()
 
   // Background jobs (optional - for "Importing Media Library" progress)
   const backgroundJobs = useBackgroundJobs()
@@ -257,8 +258,14 @@ function AppV2Content() {
           openOpenFolder((type: FolderType) => {
             console.log(`Selected folder type: ${type}`)
             const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
-            onFolderSelected(type, selectedFile.path, {
+            const data: OnMediaFolderImportedEventData = {
+              type: type,
+              folderPathInPlatformFormat: selectedFile.path,
               traceId: traceId,
+            }
+            postEvent({
+              name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
+              data,
             })
           }, selectedFile.path)
         }
@@ -267,9 +274,16 @@ function AppV2Content() {
       openFilePicker((file: FileItem) => {
         console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
+          console.log(`Selected folder type: ${type}`)
           const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
-          onFolderSelected(type, file.path, {
+          const data: OnMediaFolderImportedEventData = {
+            type: type,
+            folderPathInPlatformFormat: file.path,
             traceId: traceId,
+          }
+          postEvent({
+            name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
+            data,
           })
         }, file.path)
       }, {
@@ -278,7 +292,7 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected])
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
 
   const handleOpenMediaLibraryMenuClick = useCallback(() => {
     const runImportInBackground = async (
@@ -319,7 +333,15 @@ function AppV2Content() {
           if (!subfolder.path) continue
           try {
             const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
-            await onFolderSelected(type, subfolder.path, { traceId })
+            const data: OnMediaFolderImportedEventData = {
+              type: type,
+              folderPathInPlatformFormat: subfolder.path,
+              traceId: traceId,
+            }
+            postEvent({
+              name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
+              data,
+            })
           } catch (error) {
             console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
             // Continue with next folder
@@ -369,7 +391,7 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, onFolderSelected, backgroundJobs])
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, backgroundJobs])
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {

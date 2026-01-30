@@ -20,6 +20,10 @@ export async function validatePathIsInAllowlist(filePath: string): Promise<boole
   const userConfig = await getUserConfig();
   const folders = userConfig.folders;
   for (const folder of folders) {
+    if(folder === null) {
+      console.error(`illegal value in user config, null value in folders`);
+      continue;
+    }
     allowlist.push(Path.posix(folder));
   }
 
