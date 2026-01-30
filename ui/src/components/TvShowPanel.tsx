@@ -48,7 +48,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
+  const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
@@ -66,10 +66,6 @@ function TvShowPanelContent() {
   const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt, openAiRecognizePrompt } = usePrompts()
 
   const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
-
-  const isLoading = useMemo(() => {
-    return mediaFolderStates[mediaMetadata?.mediaFolderPath ?? '']?.loading ?? false
-  }, [mediaFolderStates, mediaMetadata?.mediaFolderPath])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -704,7 +700,7 @@ function TvShowPanelContent() {
           isPreviewingForRecognize={isPreviewingForRecognize}
           scrollToEpisodeId={scrollToEpisodeId}
           onEpisodeFileSelect={handleOpenFilePickerForEpisode}
-          isLoading={isLoading}
+          isLoading={mediaMetadata?.status === 'initializing'}
         />
       </div>
     </div>

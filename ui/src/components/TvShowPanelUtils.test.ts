@@ -2586,7 +2586,9 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   it('should build seasons model with one season and one episode', () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
-      files: [],
+      files: [
+        '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+      ],
       status: 'ok',
       tmdbTvShow: {
         id: 1,
@@ -2617,6 +2619,13 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
           },
         ],
       } as any,
+      mediaFiles: [
+        {
+          absolutePath: '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
     }
 
     const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
@@ -2626,13 +2635,18 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
     expect(result![0].season.season_number).toBe(1)
     expect(result![0].episodes).toHaveLength(1)
     expect(result![0].episodes[0].episode.episode_number).toBe(1)
-    expect(result![0].episodes[0].files).toEqual([]) // Files should be empty
+    expect(result![0].episodes[0].files).toHaveLength(1)
+    expect(result![0].episodes[0].files[0].type).toBe('video')
+    expect(result![0].episodes[0].files[0].path).toBe('/media/tvshow/Season 01/Show.Name.S01E01.mkv')
   })
 
   it('should build seasons model with one season and multiple episodes', () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
-      files: [],
+      files: [
+        '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+        '/media/tvshow/Season 01/Show.Name.S01E02.mkv',
+      ],
       status: 'ok',
       tmdbTvShow: {
         id: 1,
@@ -2675,6 +2689,18 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
           },
         ],
       } as any,
+      mediaFiles: [
+        {
+          absolutePath: '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+        {
+          absolutePath: '/media/tvshow/Season 01/Show.Name.S01E02.mkv',
+          seasonNumber: 1,
+          episodeNumber: 2,
+        },
+      ],
     }
 
     const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
@@ -2685,14 +2711,21 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
     expect(result![0].episodes).toHaveLength(2)
     expect(result![0].episodes[0].episode.episode_number).toBe(1)
     expect(result![0].episodes[1].episode.episode_number).toBe(2)
-    expect(result![0].episodes[0].files).toEqual([])
-    expect(result![0].episodes[1].files).toEqual([])
+    expect(result![0].episodes[0].files).toHaveLength(1)
+    expect(result![0].episodes[0].files[0].type).toBe('video')
+    expect(result![0].episodes[0].files[0].path).toBe('/media/tvshow/Season 01/Show.Name.S01E01.mkv')
+    expect(result![0].episodes[1].files).toHaveLength(1)
+    expect(result![0].episodes[1].files[0].type).toBe('video')
+    expect(result![0].episodes[1].files[0].path).toBe('/media/tvshow/Season 01/Show.Name.S01E02.mkv')
   })
 
   it('should build seasons model with multiple seasons', () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
-      files: [],
+      files: [
+        '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+        '/media/tvshow/Season 02/Show.Name.S02E01.mkv',
+      ],
       status: 'ok',
       tmdbTvShow: {
         id: 1,
@@ -2746,6 +2779,18 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
           },
         ],
       } as any,
+      mediaFiles: [
+        {
+          absolutePath: '/media/tvshow/Season 01/Show.Name.S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+        {
+          absolutePath: '/media/tvshow/Season 02/Show.Name.S02E01.mkv',
+          seasonNumber: 2,
+          episodeNumber: 1,
+        },
+      ],
     }
 
     const result = buildSeasonsModelFromMediaMetadata(mediaMetadata)
@@ -2756,6 +2801,12 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
     expect(result![1].season.season_number).toBe(2)
     expect(result![0].episodes).toHaveLength(1)
     expect(result![1].episodes).toHaveLength(1)
+    expect(result![0].episodes[0].files).toHaveLength(1)
+    expect(result![0].episodes[0].files[0].type).toBe('video')
+    expect(result![0].episodes[0].files[0].path).toBe('/media/tvshow/Season 01/Show.Name.S01E01.mkv')
+    expect(result![1].episodes[0].files).toHaveLength(1)
+    expect(result![1].episodes[0].files[0].type).toBe('video')
+    expect(result![1].episodes[0].files[0].path).toBe('/media/tvshow/Season 02/Show.Name.S02E01.mkv')
   })
 })
 

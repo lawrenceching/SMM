@@ -12,11 +12,7 @@ export interface MediaFolderState {
 }
 
 interface GlobalStatesContextValue {
-  /**
-   * A record from media folder path in POSIX format to media folder state
-   */
-  mediaFolderStates: Record<string, MediaFolderState>
-  setMediaFolderStates: React.Dispatch<React.SetStateAction<Record<string, MediaFolderState>>>
+
   /**
    * Array of pending recognition plans
    */
@@ -132,8 +128,6 @@ export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
   }, [fetchPendingPlans])
 
   const value: GlobalStatesContextValue = {
-    mediaFolderStates,
-    setMediaFolderStates,
     pendingPlans,
     pendingRenamePlans,
     fetchPendingPlans,

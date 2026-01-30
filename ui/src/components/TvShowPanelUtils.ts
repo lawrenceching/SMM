@@ -1029,6 +1029,7 @@ export function buildTemporaryRecognitionPlan(
   }
 }
 
+
 /**
  * Build SeasonModel[] from mediaMetadata.tmdbTvShow
  * This creates a new seasons model with all episodes from tmdbTvShow, initialized with empty files array.
@@ -1058,6 +1059,21 @@ export function buildSeasonsModelFromMediaMetadata(mediaMetadata: UIMediaMetadat
       episodes,
     })
   }
+
+  seasons.forEach(season => {
+    const seasonNumber = season.season.season_number
+    season.episodes.forEach(episode => {
+      const episodeNumber = episode.episode.episode_number
+
+      const mediaFile = mediaMetadata.mediaFiles?.find(mf => mf.seasonNumber === seasonNumber && mf.episodeNumber === episodeNumber)
+      const videoFile = mediaFile?.absolutePath
+
+      if(videoFile) {
+        episode.files.push(...buildFileProps(mediaMetadata, seasonNumber, episodeNumber))
+      }
+    })
+  })
+  
 
   return seasons
 }
@@ -1089,6 +1105,13 @@ export function recognizeMediaFilesByRules(
     if (!seasonsForPreview) {
       return null
     }
+
+    // reset files for preview
+    seasonsForPreview.forEach(season => {
+      season.episodes.forEach(episode => {
+        episode.files = []
+      })
+    })
 
     console.log(`[TvShowPanelUtils] built seasons model from tmdbTvShow:`, seasonsForPreview)
 

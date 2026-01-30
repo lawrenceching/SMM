@@ -4,6 +4,7 @@ import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMediaFilesByRules } from "./components/TvShowPanelUtils";
 import { lookup } from "./lib/lookup";
+import { recognizeMediaFiles } from "./lib/recognizeMediaFiles";
 
 /**
  * For a folder name like:
@@ -30,12 +31,14 @@ export async function doPreprocessMediaFolder(
   const traceId = options?.traceId || `doPreprocessMediaFolder`
 
   if(mm?.type === 'tvshow-folder' && mm?.tmdbTvShow !== undefined) {
-    const recognizedMediaFiles = recognizeMediaFilesByRules(mm, lookup)
+
+    console.log(`[${traceId}] recognizing media files by rules`)
+    const recognizedMediaFiles = recognizeMediaFiles(mm)
     if (recognizedMediaFiles) {
-      mm.mediaFiles = recognizedMediaFiles.map((season: any) => ({
-        absolutePath: season.videoFilePath,
-        seasonNumber: season.season,
-        episodeNumber: season.episode,
+      mm.mediaFiles = recognizedMediaFiles.map((i) => ({
+        absolutePath: i.videoFilePath,
+        seasonNumber: i.season,
+        episodeNumber: i.episode,
       }));
     }
 
@@ -43,6 +46,7 @@ export async function doPreprocessMediaFolder(
       folder: folderPathInPlatformFormat,
       tmdbId: mm.tmdbTvShow?.id,
       tvShowName: mm.tmdbTvShow.name,
+      mediaFiles: mm.mediaFiles,
     })
     options?.onSuccess?.(mm)
   } else if(mm?.type === 'movie-folder' && mm?.tmdbMovie !== undefined) {

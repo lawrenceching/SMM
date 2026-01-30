@@ -14,9 +14,8 @@ import { Path } from "@core/path"
 
 export function useInitializeMediaFolderEventHandler() {
 
-  const { setMediaFolderStates } = useGlobalStates()
   const { addMediaFolderInUserConfig } = useConfig()
-  const { addMediaMetadata, updateMediaMetadata } = useMediaMetadata()
+  const { addMediaMetadata, updateMediaMetadata, getMediaMetadata } = useMediaMetadata()
   const backgroundJobs = useBackgroundJobs()
 
   const onFolderImported = useCallback(async (event: UIEvent) => {
@@ -24,7 +23,12 @@ export function useInitializeMediaFolderEventHandler() {
     const { type, folderPathInPlatformFormat } = data
 
     // Get or create traceId - we'll use the job ID as traceId
-    const initialTraceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
+    const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
+
+    if(getMediaMetadata(folderPathInPlatformFormat)?.status === 'initializing') {
+      console.log(`[${traceId}] onFolderSelected: Folder ${folderPathInPlatformFormat} is already initializing, skipping`)
+      return
+    }
 
     // Create background job at the start of initialization
     let jobId: string | null = null
@@ -33,8 +37,6 @@ export function useInitializeMediaFolderEventHandler() {
       status: 'running',
       progress: 0,
     })
-
-    const traceId = jobId || initialTraceId
 
     console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatformFormat} to user config`)
     addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
@@ -65,20 +67,6 @@ export function useInitializeMediaFolderEventHandler() {
       }
     }
 
-    // Helper function to set loading to false
-    const setLoadingFalse = (pathKey: string) => {
-      setMediaFolderStates((prev) => ({
-        ...prev,
-        [pathKey]: {
-          loading: false
-        }
-      }))
-    }
-
-    // Track if we set loading to true (so we know to set it to false on timeout/error)
-    let pathKey: string | null = null
-    let loadingWasSet = false
-
     // Main operation promise
     const mainOperation = async () => {
       try {
@@ -106,16 +94,6 @@ export function useInitializeMediaFolderEventHandler() {
 
           addMediaMetadata(mm, { traceId })
           addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
-
-          pathKey = mm.mediaFolderPath as string
-          loadingWasSet = true
-          // TODO: deprecate the media folder state and use UIMediaMetadata
-          setMediaFolderStates((prev) => ({
-            ...prev,
-            [pathKey!]: {
-              loading: true
-            }
-          }))
 
           if (signal.aborted) {
             console.log('[onFolderSelected] Aborted after listFiles')
@@ -199,10 +177,7 @@ export function useInitializeMediaFolderEventHandler() {
       await Promise.race([mainOperation(), timeoutPromise])
       
 
-      // If we successfully completed and set loading, set it to false
-      if (loadingWasSet && pathKey && !signal.aborted) {
-        setLoadingFalse(pathKey)
-      }
+
     } catch (error) {
       // Handle timeout or other errors
       if (error instanceof Error && error.message.includes('timed out')) {
@@ -212,12 +187,8 @@ export function useInitializeMediaFolderEventHandler() {
         console.error('[onFolderSelected] Failed to read media metadata:', error)
       }
 
-      // Set loading to false if we had set it to true
-      if (loadingWasSet && pathKey) {
-        setLoadingFalse(pathKey)
-      }
     }
-  }, [addMediaFolderInUserConfig, addMediaMetadata, updateMediaMetadata, setMediaFolderStates, backgroundJobs])
+  }, [addMediaFolderInUserConfig, addMediaMetadata, updateMediaMetadata, backgroundJobs])
 
   return onFolderImported
 }

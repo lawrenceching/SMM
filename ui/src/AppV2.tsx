@@ -24,6 +24,7 @@ import { listFiles } from "@/api/listFiles"
 import { EVENT_APP_START_UP, EVENT_ON_MEDIA_FOLDER_IMPORTED, EVENT_ON_MEDIA_FOLDER_SELECTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
 import { useLatest, useMount } from "react-use"
 import { isNotNil } from "es-toolkit"
+import { Loader2 } from "lucide-react"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
