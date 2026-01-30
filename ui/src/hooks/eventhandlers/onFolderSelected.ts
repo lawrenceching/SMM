@@ -12,6 +12,8 @@ import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
+import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
+import { isNotNil } from "es-toolkit"
 
 
 async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void, signal?: AbortSignal) {
@@ -60,6 +62,9 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
     console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatform} to user config`)
     addMediaFolderInUserConfig(traceId, folderPathInPlatform)
 
+    const mm = await createInitialMediaMetadata(folderPathInPlatform, { traceId })
+
+
     console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatform)
     console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
     const abortController = new AbortController()
@@ -99,17 +104,15 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
           || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
 
         ) {
-          const initialMetadata: UIMediaMetadata = {
-            mediaFolderPath: Path.posix(folderPathInPlatform),
-            type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
-            status: 'initializing',
+          
+          if(isNotNil(metadata)) {
+            mm.type = metadata.type
           }
-
-          console.log('[onFolderSelected] Adding initial metadata:', initialMetadata)
-          addMediaMetadata(initialMetadata, { traceId })
+          
+          addMediaMetadata(mm, { traceId })
           addMediaFolderInUserConfig(traceId, folderPathInPlatform)
 
-          pathKey = initialMetadata.mediaFolderPath as string
+          pathKey = mm.mediaFolderPath as string
           loadingWasSet = true
           // TODO: deprecate the media folder state and use UIMediaMetadata
           setMediaFolderStates((prev) => ({
@@ -119,49 +122,30 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: UIMediaMetadat
             }
           }))
 
-          const resp = await listFiles({
-            path: folderPathInPlatform,
-            recursively: true,
-            onlyFiles: true,
-          }, signal)
 
           if (signal.aborted) {
             console.log('[onFolderSelected] Aborted after listFiles')
             return
           }
 
-          if (resp.error) {
-            console.error('[onFolderSelected] Failed to list files:', resp.error)
-            return;
-          }
-
-          if (resp.data === undefined) {
-            console.error('[onFolderSelected] Failed to list files:', resp)
-            return;
-          }
-
-          initialMetadata.files = resp.data.items.map(item => Path.posix(item.path))
           try {
             
-            // updateMediaMetadata(initialMetadata.mediaFolderPath!, {
-            //   ...initialMetadata,
-            //   status: 'initializing',
-            // }, { traceId })
+            updateMediaMetadata(mm.mediaFolderPath!, {
+              ...mm,
+              status: 'initializing',
+            }, { traceId })
             // pass signal.aborted to doPreprocessMediaFolder
-            await doPreprocessMediaFolder(folderPathInPlatform, {
+            await doPreprocessMediaFolder(mm, {
               traceId,
-              onSuccess: (opt) => {
-                updateMediaMetadata(initialMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
-                  return {
-                    ...mm,
-                    ...opt,
-                    status: 'ok',
-                  }
+              onSuccess: (mm) => {
+                updateMediaMetadata(mm.mediaFolderPath!, {
+                  ...mm,
+                  status: 'ok',
                 }, { traceId })
               },
               onError: (error) => {
                 console.error(`[${traceId}] Failed to preprocess media folder:`, error)
-                updateMediaMetadata(initialMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
+                updateMediaMetadata(mm.mediaFolderPath!, (mm: UIMediaMetadata) => {
                   return {
                     ...mm,
                     status: 'ok',

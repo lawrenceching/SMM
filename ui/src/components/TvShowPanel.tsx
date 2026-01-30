@@ -606,6 +606,8 @@ function TvShowPanelContent() {
     if(isNil(mediaMetadata.mediaFiles) || mediaMetadata.mediaFiles.every(file => isNil(file.absolutePath))) {
       console.log(`[TvShowPanel] try to recognize media folder by rules`)
       handleRuleBasedRecognizeButtonClick()
+
+      // TODO: deprecated
       setInitializedMediaFolders([...initializedMediaFolders, mediaMetadata.mediaFolderPath])
     } else {
       console.log(`[TvShowPanel] media files have been recognized, no need to try to recognize again`)

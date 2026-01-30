@@ -20,9 +20,7 @@ import { LocalFilePanel } from "./components/LocalFilePanel"
 import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
-import { useLatest } from "react-use"
 import { listFiles } from "@/api/listFiles"
-import { doPreprocessMediaFolder } from "./AppV2Utils"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 

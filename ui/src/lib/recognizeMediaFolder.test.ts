@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { preProcessMediaFolder } from './preProcessMediaFolder'
+import { recognizeMediaFolder } from './recognizeMediaFolder'
 import type { TMDBTVShow, TMDBMovie } from '@core/types'
 
-// Mock the recognition functions
+// Mock recognition functions
 vi.mock('./recognizeMediaFolderByNFO', () => ({
   tryToRecognizeMediaFolderByNFO: vi.fn(),
 }))
@@ -19,7 +19,7 @@ import { tryToRecognizeMediaFolderByNFO } from './recognizeMediaFolderByNFO'
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from './recognizeMediaFolderByTmdbIdInFolderName'
 import { tryToRecognizeMediaFolderByFolderName } from './recognizeMediaFolderByFolderName'
 
-describe('preProcessMediaFolder', () => {
+describe('recognizeMediaFolder', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
@@ -74,7 +74,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.type).toBe('tv')
@@ -84,7 +84,7 @@ describe('preProcessMediaFolder', () => {
     expect(tryToRecognizeMediaFolderByFolderName).not.toHaveBeenCalled()
     
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] successfully recognized media folder by NFO: ${mockTvShow.name} ${mockTvShow.id}`
+      `[recognizeMediaFolder] successfully recognized media folder by NFO: ${mockTvShow.name} ${mockTvShow.id}`
     )
   })
 
@@ -101,7 +101,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.type).toBe('tv')
@@ -111,7 +111,7 @@ describe('preProcessMediaFolder', () => {
     expect(tryToRecognizeMediaFolderByFolderName).not.toHaveBeenCalled()
     
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] successfully recognized media folder by TMDB ID in folder name: ${mockTvShow.name} ${mockTvShow.id}`
+      `[recognizeMediaFolder] successfully recognized media folder by TMDB ID in folder name: ${mockTvShow.name} ${mockTvShow.id}`
     )
   })
 
@@ -132,7 +132,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.type).toBe('tv')
@@ -142,7 +142,7 @@ describe('preProcessMediaFolder', () => {
     expect(tryToRecognizeMediaFolderByFolderName).toHaveBeenCalledWith(folderPath, 'zh-CN')
     
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] successfully recognized media folder by folder name: ${mockTvShow.name} ${mockTvShow.id}`
+      `[recognizeMediaFolder] successfully recognized media folder by folder name: ${mockTvShow.name} ${mockTvShow.id}`
     )
   })
 
@@ -163,7 +163,7 @@ describe('preProcessMediaFolder', () => {
       tmdbMovie: mockMovie,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.type).toBe('movie')
@@ -188,7 +188,7 @@ describe('preProcessMediaFolder', () => {
       success: false,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(false)
     expect(result.type).toBeUndefined()
@@ -209,13 +209,13 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.tmdbTvShow).toEqual(mockTvShow)
     
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`,
       testError
     )
     
@@ -238,13 +238,13 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(true)
     expect(result.tmdbTvShow).toEqual(mockTvShow)
     
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`,
       testError
     )
     
@@ -265,12 +265,12 @@ describe('preProcessMediaFolder', () => {
 
     vi.mocked(tryToRecognizeMediaFolderByFolderName).mockRejectedValue(testError)
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(false)
     
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByFolderName:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByFolderName:`,
       testError
     )
   })
@@ -286,7 +286,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    await preProcessMediaFolder(folderPath, signal)
+    await recognizeMediaFolder(folderPath, signal)
 
     expect(tryToRecognizeMediaFolderByNFO).toHaveBeenCalledWith(folderPath, signal)
   })
@@ -306,12 +306,12 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    await preProcessMediaFolder(folderPath, signal)
+    await recognizeMediaFolder(folderPath, signal)
 
     expect(tryToRecognizeMediaFolderByTmdbIdInFolderName).toHaveBeenCalledWith(folderPath, signal)
   })
 
-  it('should log preprocessing start message', async () => {
+  it('should log recognition start message', async () => {
     const folderPath = '/media/tvshows/Test Show'
     
     vi.mocked(tryToRecognizeMediaFolderByNFO).mockResolvedValue({
@@ -326,10 +326,10 @@ describe('preProcessMediaFolder', () => {
       success: false,
     })
 
-    await preProcessMediaFolder(folderPath)
+    await recognizeMediaFolder(folderPath)
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] preprocess media folder: ${folderPath}`
+      `[recognizeMediaFolder] recognize media folder: ${folderPath}`
     )
   })
 
@@ -343,20 +343,20 @@ describe('preProcessMediaFolder', () => {
     vi.mocked(tryToRecognizeMediaFolderByTmdbIdInFolderName).mockRejectedValue(testError2)
     vi.mocked(tryToRecognizeMediaFolderByFolderName).mockRejectedValue(testError3)
 
-    const result = await preProcessMediaFolder(folderPath)
+    const result = await recognizeMediaFolder(folderPath)
 
     expect(result.success).toBe(false)
     expect(consoleErrorSpy).toHaveBeenCalledTimes(3)
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`,
       testError1
     )
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`,
       testError2
     )
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      `[preprocessMediaFolder] Error in tryToRecognizeMediaFolderByFolderName:`,
+      `[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByFolderName:`,
       testError3
     )
   })
@@ -370,7 +370,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    await preProcessMediaFolder(folderPath)
+    await recognizeMediaFolder(folderPath)
 
     expect(tryToRecognizeMediaFolderByNFO).toHaveBeenCalledTimes(1)
     expect(tryToRecognizeMediaFolderByTmdbIdInFolderName).not.toHaveBeenCalled()
@@ -390,7 +390,7 @@ describe('preProcessMediaFolder', () => {
       tmdbTvShow: mockTvShow,
     })
 
-    await preProcessMediaFolder(folderPath)
+    await recognizeMediaFolder(folderPath)
 
     expect(tryToRecognizeMediaFolderByNFO).toHaveBeenCalledTimes(1)
     expect(tryToRecognizeMediaFolderByTmdbIdInFolderName).toHaveBeenCalledTimes(1)

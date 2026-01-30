@@ -1,10 +1,12 @@
-import { preProcessMediaFolder } from "./lib/preProcessMediaFolder"
+import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import type { MediaMetadata, TMDBMovie, TMDBTVShowDetails } from "@core/types"
 import { getTvShowById } from "./api/tmdb"
 import { minimize } from "./lib/log";
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { delay } from "es-toolkit";
+import { lookup, recognizeMediaFiles } from "./lib/lookup";
+import { buildTemporaryRecognitionPlan, recognizeEpisodes } from "./components/TvShowPanelUtils";
 
 /**
  * For a folder name like:
@@ -19,18 +21,15 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
   return match ? match[1] : null;
 }
 
-export interface doPreprocessMediaFolderOnSuccessCallbackOptions {
-  tmdbTvShow?: TMDBTVShowDetails;
-  tmdbMovie?: TMDBMovie;
-}
-
-
 
 export async function doPreprocessMediaFolder(
-  folderPathInPlatform: string,
-  options?: { traceId?: string, onSuccess?: (options: doPreprocessMediaFolderOnSuccessCallbackOptions) => void, onError?: (error: Error) => void }
+  mm: UIMediaMetadata,
+  options?: { traceId?: string, onSuccess?: (mm: UIMediaMetadata) => void, onError?: (error: Error) => void }
 ) {
-  const result = await preProcessMediaFolder(folderPathInPlatform);
+
+  const folderPathInPlatformFormat = Path.toPlatformPath(mm.mediaFolderPath!)
+
+  const result = await recognizeMediaFolder(folderPathInPlatformFormat);
   const traceId = options?.traceId || `doPreprocessMediaFolder`
 
   if(result.success) {
@@ -54,20 +53,30 @@ export async function doPreprocessMediaFolder(
         return;
       }
 
+      mm.tmdbTvShow = response.data;
+      mm.type = 'tvshow-folder';
+      
+      const recognizedMediaFiles = recognizeMediaFiles(mm)
+      mm.mediaFiles = recognizedMediaFiles.map(item => ({
+        absolutePath: item.videoFilePath,
+        seasonNumber: item.season,
+        episodeNumber: item.episode,
+      }));
+
       console.log(`[${traceId}] successful recognized media folder, update media metadata`, {
-        folder: folderPathInPlatform,
-        tmdbId: result.tmdbTvShow?.id,
-        tvShowName: result.tmdbTvShow?.name,
+        folder: folderPathInPlatformFormat,
+        tmdbId: mm.tmdbTvShow?.id,
+        tvShowName: mm.tmdbTvShow.name,
       })
-      options?.onSuccess?.({ tmdbTvShow: response.data })
+      options?.onSuccess?.(mm)
     } else if(result.type === 'movie') {
-      options?.onSuccess?.({ tmdbMovie: result.tmdbMovie })
+      options?.onSuccess?.(mm)
     } else {
       console.error(`[AppV2Utils] successful recognition result, but the type is null`)
       options?.onError?.(new Error(`unknown media folder type: ${result.type}`))
     }
 
   } else {
-    console.log(`[AppV2Utils] failed to recognize media folder: ${folderPathInPlatform}`)
+    console.log(`[AppV2Utils] failed to recognize media folder: ${folderPathInPlatformFormat}`)
   }
 }
