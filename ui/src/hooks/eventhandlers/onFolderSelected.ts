@@ -10,6 +10,8 @@ import { useGlobalStates } from "@/providers/global-states-provider"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { doPreprocessMediaFolder } from "@/AppV2Utils"
 
 
 async function refreshMediaMetadata(mm: MediaMetadata, updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void, signal?: AbortSignal) {
@@ -52,10 +54,10 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
   const { addMediaFolderInUserConfig } = useConfig()
   const { addMediaMetadata } = useMediaMetadata()
 
-  const onFolderSelected = useCallback(async (type: FolderType, folderPath: string, options?: { traceId?: string }) => {
+  const onFolderSelected = useCallback(async (type: FolderType, folderPathInPlatform: string, options?: { traceId?: string }) => {
     const traceId = options?.traceId || `onFolderSelected-${nextTraceId()}`
 
-    console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPath)
+    console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatform)
     console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
     const abortController = new AbortController()
     const signal = abortController.signal
@@ -86,20 +88,23 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
     // Main operation promise
     const mainOperation = async () => {
       try {
-        const response = await readMediaMetadataApi(folderPath, signal)
+        const response = await readMediaMetadataApi(folderPathInPlatform, signal)
         const metadata = response.data
 
         if (!metadata) {
-          const initialMetadata: MediaMetadata = {
-            mediaFolderPath: Path.posix(folderPath),
+          const initialMetadata: UIMediaMetadata = {
+            mediaFolderPath: Path.posix(folderPathInPlatform),
             type: type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder",
+            status: 'initializing',
           }
 
           console.log('[onFolderSelected] Adding initial metadata:', initialMetadata)
           addMediaMetadata(initialMetadata, { traceId })
+          addMediaFolderInUserConfig(traceId, folderPathInPlatform)
 
           pathKey = initialMetadata.mediaFolderPath as string
           loadingWasSet = true
+          // TODO: deprecate the media folder state and use UIMediaMetadata
           setMediaFolderStates((prev) => ({
             ...prev,
             [pathKey!]: {
@@ -108,7 +113,7 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           }))
 
           const resp = await listFiles({
-            path: folderPath,
+            path: folderPathInPlatform,
             recursively: true,
             onlyFiles: true,
           }, signal)
@@ -129,46 +134,16 @@ export function useOnFolderSelected(_addMediaMetadata: (metadata: MediaMetadata,
           }
 
           initialMetadata.files = resp.data.items.map(item => Path.posix(item.path))
-
-          const recognizedMetadata = await tryToRecognizeMediaFolderByNFO(initialMetadata, signal)
-
-          if (signal.aborted) {
-            console.log('[onFolderSelected] Aborted after tryToRecognizeMediaFolderByNFO')
-            return
+          try {
+            // pass signal.aborted to doPreprocessMediaFolder
+            doPreprocessMediaFolder(folderPathInPlatform, traceId, updateMediaMetadata)
+          } catch (error) {
+            console.error(`[${traceId}] Failed to preprocess media folder:`, error)
           }
-
-          if (recognizedMetadata === undefined) {
-            console.log('[onFolderSelected] No recognized metadata, adding initial metadata')
-            addMediaMetadata(initialMetadata, { traceId })
-            console.log(`[${traceId}] onFolderSelected: Adding initial metadata to user config`)
-            addMediaFolderInUserConfig(traceId, folderPath)
-            return;
-          }
-
-          if (signal.aborted) {
-            console.log('[onFolderSelected] Aborted after addMediaMetadata')
-            return
-          }
-
-          console.log('[onFolderSelected] Adding recognized metadata:', recognizedMetadata)
-          await addMediaMetadata(recognizedMetadata, { traceId })
-          console.log('[onFolderSelected] Refreshing media metadata:', recognizedMetadata)
-          await refreshMediaMetadata(recognizedMetadata, updateMediaMetadata, signal)
-          console.log(`[${traceId}] onFolderSelected: Adding recognized metadata to user config`)
-          addMediaFolderInUserConfig(traceId, folderPath)
-
-          if (signal.aborted) {
-            console.log('[onFolderSelected] Aborted after refreshMediaMetadata')
-            return
-          }
-
-          return;
+          
         } else {
-        console.log('[onFolderSelected] Metadata already exists, skipping recognition')
-      }
-
-      console.log(`[${traceId}] onFolderSelected: Adding folder to user config`)
-      addMediaFolderInUserConfig(traceId, folderPath)
+          console.log('[onFolderSelected] Metadata already exists, skipping recognition')
+        }
 
         if (signal.aborted) {
           console.log('[onFolderSelected] Aborted after adding folder to user config')

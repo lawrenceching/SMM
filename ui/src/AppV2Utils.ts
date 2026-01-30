@@ -2,6 +2,7 @@ import { preProcessMediaFolder } from "./lib/preProcessMediaFolder"
 import type { MediaMetadata } from "@core/types"
 import { getTvShowById } from "./api/tmdb"
 import { minimize } from "./lib/log";
+import { Path } from "@core/path";
 
 /**
  * For a folder name like:
@@ -17,11 +18,12 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
 }
 
 export async function doPreprocessMediaFolder(
-  filePath: string,
+  folderPathInPlatform: string,
   traceId: string,
   updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void
 ) {
-  const result = await preProcessMediaFolder(filePath)
+  const result = await preProcessMediaFolder(folderPathInPlatform)
+  const folderPathInPosix = Path.posix(folderPathInPlatform);
 
   if(result.success) {
 
@@ -45,18 +47,18 @@ export async function doPreprocessMediaFolder(
       }
 
       console.log(`[${traceId}] successful recognized media folder, update media metadata`, {
-        folder: filePath,
+        folder: folderPathInPlatform,
         tmdbId: result.tmdbTvShow?.id,
         tvShowName: result.tmdbTvShow?.name,
       })
-      updateMediaMetadata(filePath, {
+      updateMediaMetadata(folderPathInPosix, {
         tmdbTvShow: response.data,
         type: 'tvshow-folder',
       }, { traceId })
 
       
     } else if(result.type === 'movie') {
-      updateMediaMetadata(filePath, {
+      updateMediaMetadata(folderPathInPosix, {
         tmdbMovie: result.tmdbMovie,
         type: 'movie-folder',
       }, { traceId })
@@ -65,6 +67,6 @@ export async function doPreprocessMediaFolder(
     }
 
   } else {
-    console.log(`[AppV2Utils] failed to recognize media folder: ${filePath}`)
+    console.log(`[AppV2Utils] failed to recognize media folder: ${folderPathInPlatform}`)
   }
 }

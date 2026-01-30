@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useMemo } from "react"
-import type { MediaMetadata } from "@core/types"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useConfig } from "./config-provider"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 import localStorages from "@/lib/localStorages"
@@ -9,16 +9,16 @@ import { Path } from "@core/path"
 import { writeMediaMetadata } from "@/api/writeMediaMetadata"
 
 interface MediaMetadataContextValue {
-  mediaMetadatas: MediaMetadata[]
-  addMediaMetadata: (metadata: MediaMetadata, options?: { traceId?: string }) => void
-  updateMediaMetadata: (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => void
+  mediaMetadatas: UIMediaMetadata[]
+  addMediaMetadata: (metadata: UIMediaMetadata, options?: { traceId?: string }) => void
+  updateMediaMetadata: (path: string, metadata: UIMediaMetadata, options?: { traceId?: string }) => void
   /**
    * @param path POSIX
    * @returns 
    */
   removeMediaMetadata: (path: string) => void
-  getMediaMetadata: (path: string) => MediaMetadata | undefined
-  selectedMediaMetadata: MediaMetadata | undefined
+  getMediaMetadata: (path: string) => UIMediaMetadata | undefined
+  selectedMediaMetadata: UIMediaMetadata | undefined
   setSelectedMediaMetadata: (index: number) => void
   /**
    * Set selected media metadata by media folder path
@@ -34,13 +34,19 @@ interface MediaMetadataContextValue {
    * Reload all media metadata from the server for all folders in userConfig
    */
   reloadMediaMetadatas: (options?: { traceId?: string }) => Promise<void>
+  /**
+   * Update the status of a media metadata by folder path
+   * @param folderPath POSIX format folder path
+   * @param status The new status to set
+   */
+  updateMediaMetadataStatus: (folderPath: string, status: UIMediaMetadata['status']) => void
 }
 
 const MediaMetadataContext = createContext<MediaMetadataContextValue | undefined>(undefined)
 
 interface MediaMetadataProviderProps {
   children: ReactNode
-  initialMediaMetadatas?: MediaMetadata[]
+  initialMediaMetadatas?: UIMediaMetadata[]
 }
 
 
@@ -49,10 +55,10 @@ export function MediaMetadataProvider({
   children,
   initialMediaMetadatas = [],
 }: MediaMetadataProviderProps) {
-  const [mediaMetadatas, setMediaMetadatas] = useState<MediaMetadata[]>(initialMediaMetadatas)
+  const [mediaMetadatas, setMediaMetadatas] = useState<UIMediaMetadata[]>(initialMediaMetadatas)
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
   const { userConfig } = useConfig()
-  const selectedMediaMetadata: MediaMetadata | undefined = useMemo(() => {
+  const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() => {
     if (selectedIndex < 0 || selectedIndex >= mediaMetadatas.length) {
       return undefined
     }
@@ -79,9 +85,13 @@ export function MediaMetadataProvider({
    * Internal function to add media metadata to the list.
    * It will check if the metadata already exists in the list, if it does, it will update the metadata, otherwise it will add the metadata to the list.
    */
-  const _addMediaMetadata = useCallback((metadata: MediaMetadata) => {
+  const _addMediaMetadata = useCallback((metadata: UIMediaMetadata) => {
     setMediaMetadatas((prev) => {
       // Check if metadata with the same path already exists
+      console.log(`[MediaMetadataProvider] finding media metadata`, {
+        prev: prev,
+        current: metadata,
+      })
       const existingIndex = prev.findIndex(
         (m) => m.mediaFolderPath === metadata.mediaFolderPath
       )
@@ -97,7 +107,7 @@ export function MediaMetadataProvider({
     })
   }, [])
 
-  const addMediaMetadata = useCallback((metadata: MediaMetadata, { traceId }: { traceId?: string} = {}) => {
+  const addMediaMetadata = useCallback((metadata: UIMediaMetadata, { traceId }: { traceId?: string} = {}) => {
     writeMediaMetadata(metadata, { traceId })
       .then(() => {
         _addMediaMetadata(metadata)
@@ -108,9 +118,9 @@ export function MediaMetadataProvider({
       })
   }, [_addMediaMetadata])
 
-  const updateMediaMetadata = useCallback((path: string, metadata: MediaMetadata, { traceId }: { traceId?: string} = {}) => {
+  const updateMediaMetadata = useCallback((path: string, metadata: UIMediaMetadata, { traceId }: { traceId?: string} = {}) => {
     // Ensure metadata.mediaFolderPath is set to the provided path if not already set
-    const metadataToUpdate: MediaMetadata = {
+    const metadataToUpdate: UIMediaMetadata = {
       ...metadata,
       mediaFolderPath: metadata.mediaFolderPath || path
     }
@@ -149,7 +159,7 @@ export function MediaMetadataProvider({
     const traceId = `MediaMetadataProvider-refreshMediaMetadata-${nextTraceId()}`
     readMediaMetadataV2(path, { traceId })
       .then((response) => {
-        _addMediaMetadata(response)
+        _addMediaMetadata({ ...response, status: 'idle' })
       })
       .catch((error) => {
         console.error(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Error refreshing media metadata for ${path}:`, error)
@@ -162,11 +172,27 @@ export function MediaMetadataProvider({
       return readMediaMetadataV2(Path.posix(path), { traceId })
     })
     const responses = await Promise.all(promises)
-    const mediaMetadatas: MediaMetadata[] = responses
+    const mediaMetadatas: UIMediaMetadata[] = responses.map(m => ({
+      ...m,
+      status: 'idle' as const
+    }))
 
     console.log(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Reloaded media metadata`, mediaMetadatas)
     setMediaMetadatas(mediaMetadatas)
   }, [userConfig])
+
+  const updateMediaMetadataStatus = useCallback((folderPath: string, status: UIMediaMetadata['status']) => {
+    setMediaMetadatas((prev) => {
+      const index = prev.findIndex((m) => m.mediaFolderPath === folderPath)
+      if (index < 0) {
+        console.warn(`[MediaMetadataProvider] No media metadata found for path: ${folderPath}`)
+        return prev
+      }
+      const updated = [...prev]
+      updated[index] = { ...updated[index], status }
+      return updated
+    })
+  }, [])
 
   useEffect(() => {
     const traceId = `MediaMetadataProvider-useEffect-${nextTraceId()}`
@@ -183,7 +209,8 @@ export function MediaMetadataProvider({
     setSelectedMediaMetadata,
     setSelectedMediaMetadataByMediaFolderPath,
     refreshMediaMetadata,
-    reloadMediaMetadatas
+    reloadMediaMetadatas,
+    updateMediaMetadataStatus
   }
 
   return (

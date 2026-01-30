@@ -54,7 +54,7 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata, updateMediaMetadataStatus } = useMediaMetadata()
 
   // Event handlers
   const { onFolderSelected } = useEventHandlers()
@@ -270,8 +270,6 @@ function AppV2Content() {
         console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
           const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
-          // TODO: need to wait until 
-          doPreprocessMediaFolder(file.path, traceId, updateMediaMetadata)
           onFolderSelected(type, file.path, {
             traceId: traceId,
           })
