@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, tryToRecognizeMediaFolderByNFO } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, tryToRecognizeMediaFolderByNFO, buildSeasonsModelFromMediaMetadata } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
@@ -606,6 +606,7 @@ function TvShowPanelContent() {
       return;
     }
 
+    // try recognizing media folder
     (async () => {
 
       if(mm.type === undefined || (mm.tmdbTvShow === undefined && mm.tmdbMovie === undefined)) {
@@ -630,6 +631,11 @@ function TvShowPanelContent() {
 
     })()
     
+    // build season model
+    const seasons = buildSeasonsModelFromMediaMetadata(mm)
+    if(seasons !== null) {
+      setSeasons(seasons)
+    }
   }, [])
 
   useEffect(() => {
@@ -648,12 +654,14 @@ function TvShowPanelContent() {
   /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
   const isPreviewingForRecognize = promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiRecognizePromptOpen
 
+
   useEffect(() => {
     if (!mediaMetadata) {
       return
     }
 
-    if (!promptsContext.isRuleBasedRecognizePromptOpen) {
+    // Recognize only when the RuleBasedRecognizePrompt is opened
+    if(!promptsContext.isRuleBasedRecognizePromptOpen) {
       return
     }
 
@@ -666,7 +674,7 @@ function TvShowPanelContent() {
       setSeasonsForPreview(updatedSeasons)
       console.log(`[TvShowPanel] set the seasonsForPreview state`)
     }
-  }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen, latestSeasons])
+  }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen])
 
   return (
     <div className='p-1 w-full h-full relative'>

@@ -23,6 +23,10 @@ export async function deleteMediaMetadata(path: string): Promise<void> {
 
   const data: DeleteMediaMetadataResponseBody = await resp.json();
   if (data.error) {
+    if(data.error.startsWith('Metadata Not Found')) {
+      console.warn(`[deleteMediaMetadata] ${data.error}`)
+      return;
+    }
     throw new Error(`Failed to delete media metadata: ${data.error}`);
   }
 }

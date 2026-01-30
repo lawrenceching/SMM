@@ -2,7 +2,7 @@ import { useCallback } from "react"
 import { useLatest } from "react-use"
 import { toast } from "sonner"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../../TvShowPanel"
+import type { SeasonModel } from "../TvShowPanel"
 import { renameFile } from "@/api/renameFile"
 
 interface UseTvShowRenamingParams {

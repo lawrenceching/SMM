@@ -45,9 +45,6 @@ export async function recognizeMediaFolder(_in_mm: UIMediaMetadata, signal?: Abo
                 console.log(`[recognizeMediaFolder] successfully recognized movie by TMDB ID in folder name: ${ret.tmdbMovie.title} ${ret.tmdbMovie.id}`)
                 mm.tmdbMovie = ret.tmdbMovie;
             }
-            if(ret.tmdbTvShow !== undefined || ret.tmdbMovie !== undefined) {
-                return mm;
-            }
         } catch (error) {
             console.error(`[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`, error)
         }

@@ -1,7 +1,7 @@
 import type { MediaMetadata } from "@core/types";
 
 export interface UIMediaMetadataProps {
-    status: 'idle' | 'initializing' | 'ok' | 'folder_not_found',
+    status: 'idle' | 'initializing' | 'ok' | 'folder_not_found' | 'error_loading_metadata',
 }
 
 export type UIMediaMetadata = MediaMetadata & UIMediaMetadataProps;

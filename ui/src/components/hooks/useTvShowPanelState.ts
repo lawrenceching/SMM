@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import type { SeasonModel } from "../../TvShowPanel"
-import { buildFileProps } from "../../TvShowPanelUtils"
-import { loadNfo } from "@/helpers/loadNfo"
-import { usePromptsContext } from "../../TvShowPanelPrompts"
+import type { SeasonModel } from "../TvShowPanel"
+import { usePromptsContext } from "../TvShowPanelPrompts"
 
 interface UseTvShowPanelStateParams {
   mediaMetadata: UIMediaMetadata | undefined

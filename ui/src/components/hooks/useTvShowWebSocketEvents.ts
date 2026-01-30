@@ -5,8 +5,8 @@ import type {
   AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../../TvShowPanel"
-import { renameFiles } from "../../TvShowPanelUtils"
+import type { SeasonModel } from "../TvShowPanel"
+import { renameFiles } from "../TvShowPanelUtils"
 
 interface UseTvShowWebSocketEventsParams {
   mediaMetadata: MediaMetadata | undefined

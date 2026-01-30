@@ -5,6 +5,7 @@ import { useConfig } from "./providers/config-provider";
 import { useEffect } from "react";
 import { isNotNil } from "es-toolkit";
 import { readMediaMetadataApi } from "./api/readMediaMatadata";
+import { Path } from "@core/path";
 
 /**
  * This component is used to initialize the app
@@ -37,10 +38,18 @@ export function AppInitializer() {
                 const resp = await readMediaMetadataApi(folder)
                 if(resp.error) {
                     console.error(`[useAppStartUpEventHandler] Failed to read media metadata for folder: ${folder}`, resp.error)
+                    addMediaMetadata({
+                        mediaFolderPath: Path.posix(folder),
+                        status: 'error_loading_metadata',
+                    })
                     continue
                 }
                 if(resp.data === undefined) {
                     console.error(`[useAppStartUpEventHandler] Failed to read media metadata for folder: ${folder}`, resp.error)
+                    addMediaMetadata({
+                        mediaFolderPath: Path.posix(folder),
+                        status: 'error_loading_metadata',
+                    })
                     continue
                 }
                 const mm = resp.data

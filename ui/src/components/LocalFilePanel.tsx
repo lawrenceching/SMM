@@ -4,7 +4,7 @@ import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
 
 export interface LocalFilePanelProps {
@@ -12,32 +12,20 @@ export interface LocalFilePanelProps {
 }
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
-  const { getMediaMetadata, updateMediaMetadata } = useMediaMetadata()
+  const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
 
-  // Convert mediaFolderPath to POSIX format for metadata lookup
-  const mediaFolderPathInPosix = useMemo(() => {
-    if (!mediaFolderPath) return undefined
-    return Path.posix(mediaFolderPath)
-  }, [mediaFolderPath])
-
-  // Get current media metadata
-  const currentMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
-    if (!mediaFolderPathInPosix) return undefined
-    return getMediaMetadata(mediaFolderPathInPosix)
-  }, [mediaFolderPathInPosix, getMediaMetadata])
-
   // Initialize mediaType from existing metadata
   useEffect(() => {
-    if (currentMediaMetadata?.type) {
+    if (selectedMediaMetadata?.type) {
       // Convert MediaMetadata.type to MediaType
-      if (currentMediaMetadata.type === "tvshow-folder") {
+      if (selectedMediaMetadata.type === "tvshow-folder") {
         setMediaType("tvshow")
-      } else if (currentMediaMetadata.type === "movie-folder") {
+      } else if (selectedMediaMetadata.type === "movie-folder") {
         setMediaType("movie")
-      } else if (currentMediaMetadata.type === "music-folder") {
+      } else if (selectedMediaMetadata.type === "music-folder") {
         setMediaType("music")
       } else {
         setMediaType("unknown")
@@ -45,7 +33,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
     } else {
       setMediaType("unknown")
     }
-  }, [currentMediaMetadata])
+  }, [selectedMediaMetadata])
 
   // Update current path when mediaFolderPath changes
   useEffect(() => {
@@ -56,7 +44,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
 
   // Handle confirm button click
   const handleConfirm = () => {
-    if (!mediaFolderPathInPosix) {
+    if (!selectedMediaMetadata?.mediaFolderPath) {
       console.warn("[LocalFilePanel] Cannot update media metadata: missing path")
       return
     }
@@ -76,16 +64,15 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
       metadataType = "music-folder"
     }
 
-    // Update or create media metadata
-    const updatedMetadata: UIMediaMetadata = {
-      ...(currentMediaMetadata || {}),
-      type: metadataType,
-      mediaFolderPath: mediaFolderPathInPosix,
-      status: currentMediaMetadata?.status || 'ok' as const,
-    }
 
     const traceId = `LocalFilePanel-handleConfirm-${nextTraceId()}`
-    updateMediaMetadata(mediaFolderPathInPosix, updatedMetadata, { traceId })
+    updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, (prev) => {
+      return {
+        ...prev,
+        type: metadataType,
+        ...extractUIMediaMetadataProps(prev),
+      }
+    }, { traceId })
     console.log(`[LocalFilePanel] Updated media type to: ${metadataType}`)
   }
 
@@ -100,12 +87,12 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
       }}
     >
       {/* Warning bar - only shown when media type is unknown */}
-      {mediaType === "unknown" && (
+      {mediaType === "unknown" && selectedMediaMetadata?.status === 'ok' && (
         <UnknownMediaTypeWarning
           mediaType={mediaType}
           onMediaTypeChange={setMediaType}
           onConfirm={handleConfirm}
-          disabled={!mediaFolderPathInPosix}
+          disabled={!selectedMediaMetadata?.mediaFolderPath}
         />
       )}
 

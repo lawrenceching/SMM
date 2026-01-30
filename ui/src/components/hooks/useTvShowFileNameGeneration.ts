@@ -1,11 +1,11 @@
 import { useCallback, useEffect } from "react"
 import { useLatest } from "react-use"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../../TvShowPanel"
+import type { SeasonModel } from "../TvShowPanel"
 import { newFileName } from "@/api/newFileName"
-import { newPath } from "../../TvShowPanelUtils"
+import { newPath } from "../TvShowPanelUtils"
 import { join } from "@/lib/path"
-import { usePromptsContext } from "../../TvShowPanelPrompts"
+import { usePromptsContext } from "../TvShowPanelPrompts"
 
 interface UseTvShowFileNameGenerationParams {
   seasons: SeasonModel[]
