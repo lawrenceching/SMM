@@ -61,62 +61,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     prevMediaFolderPathRef.current = currentPath
   }, [mediaMetadata?.mediaFolderPath, setIsUseNfoPromptOpen, setLoadedNfoData, setIsUseTmdbidFromFolderNamePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName])
 
-  // Build seasons state from media metadata
-  useEffect(() => {
-    if(mediaMetadata === undefined) {
-      return;
-    }
-
-    // Only try to infer media type once per mediaFolderPath
-    const currentPath = mediaMetadata.mediaFolderPath
-    const hasProcessedThisPath = processedMediaFolderPathRef.current === currentPath
-    
-    if(mediaMetadata.tmdbTvShow === undefined && !hasProcessedThisPath) {
-      console.log(`[useTvShowPanelState] trying to infer to media type`);
-      // Mark this path as processed
-      processedMediaFolderPathRef.current = currentPath
-      
-      if(mediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
-        // Read NFO file before opening prompt
-        loadNfo(mediaMetadata).then(tmdbTvShowDetails => {
-          if (tmdbTvShowDetails !== undefined) {
-            openUseNfoPromptRef.current({
-              nfoData: tmdbTvShowDetails,
-              // Callbacks will be set when opening from TvShowPanel
-            })
-          }
-        })
-      }
-    }
-
-    setSeasons(() => {
-      if(!mediaMetadata) {
-        return [];
-      }
-
-      if(mediaMetadata.tmdbTvShow?.seasons === undefined) {
-        return [];
-      }
-
-
-      const newSeasons = mediaMetadata.tmdbTvShow.seasons.map(season => {
-        return {
-          season: season,
-          episodes: season.episodes?.map(episode => {
-            const files = buildFileProps(mediaMetadata as any, season.season_number, episode.episode_number);
-            return {
-              episode: episode,
-              files: files
-            };
-          }) || []
-        };
-      });
-
-
-      return newSeasons;
-    })
-
-  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, mediaMetadata?.mediaFiles])
 
   // Reset scrollToEpisodeId after scrolling completes
   useEffect(() => {

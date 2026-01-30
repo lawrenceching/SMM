@@ -2,14 +2,12 @@ import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type UIEventHandler, type UIEvent, EVEN
 import { useInitializeMediaFolderEventHandler } from "./eventhandlers/useInitializeMediaFolderEventHandler"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useMemo } from "react"
-import { useMediaFolderSelectedEventHanlder } from "./eventhandlers/useMediaFolderSelectedEventHandler"
 
 export function useEventHandlers() {
 
   const { configDialog } = useDialogs()
 
   const intializeMediaFolderEventHandler = useInitializeMediaFolderEventHandler()
-  const mediaFolderSelectedEventHandler = useMediaFolderSelectedEventHanlder()
 
   const handlers = useMemo<Record<string, UIEventHandler[]>>(() => {
     return {
@@ -27,8 +25,8 @@ export function useEventHandlers() {
       ],
       [EVENT_ON_MEDIA_FOLDER_SELECTED]: [
         {
-          name: 'initializeMediaFolder',
-          handler: mediaFolderSelectedEventHandler,
+          name: 'mediaFolderSelected',
+          handler: async (): Promise<void> => {},
         },
       ],
     }

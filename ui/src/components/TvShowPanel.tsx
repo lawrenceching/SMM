@@ -13,20 +13,22 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, tryToRecognizeMediaFolderByNFO } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
-import { useTvShowPanelState } from "./hooks/TvShowPanel/useTvShowPanelState"
-import { useTvShowFileNameGeneration } from "./hooks/TvShowPanel/useTvShowFileNameGeneration"
-import { useTvShowRenaming } from "./hooks/TvShowPanel/useTvShowRenaming"
-import { useTvShowWebSocketEvents } from "./hooks/TvShowPanel/useTvShowWebSocketEvents"
+import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
+import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
+import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
+import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
 import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
-import { useGlobalStates, useInitializedMediaFoldersState } from "@/providers/global-states-provider"
+import { useGlobalStates } from "@/providers/global-states-provider"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -46,7 +48,6 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const [initializedMediaFolders, setInitializedMediaFolders] = useInitializedMediaFoldersState()
   const { mediaFolderStates, pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
   const { 
     selectedMediaMetadata: mediaMetadata, 
@@ -594,27 +595,49 @@ function TvShowPanelContent() {
     })
   }, [mediaMetadata, addTmpPlan])
 
-  useEffect(() => {
-    if (!mediaMetadata 
-      || !mediaMetadata.mediaFolderPath) {
-      return
-    }
+  const handleMediaFolderSelected = useCallback((mm: UIMediaMetadata) => {
 
-    if(initializedMediaFolders.includes(mediaMetadata.mediaFolderPath)) {
+    if(mm.mediaFolderPath === undefined) {
+      console.error('[TvShowPanel] handleMediaFolderSelected: media folder path is undefined')
       return;
     }
 
-    if(isNil(mediaMetadata.mediaFiles) || mediaMetadata.mediaFiles.every(file => isNil(file.absolutePath))) {
-      console.log(`[TvShowPanel] try to recognize media folder by rules`)
-      handleRuleBasedRecognizeButtonClick()
-
-      // TODO: deprecated
-      setInitializedMediaFolders([...initializedMediaFolders, mediaMetadata.mediaFolderPath])
-    } else {
-      console.log(`[TvShowPanel] media files have been recognized, no need to try to recognize again`)
+    if(mm.status !== 'ok') {
+      return;
     }
 
-  }, [mediaMetadata, handleRuleBasedRecognizeButtonClick])
+    (async () => {
+
+      if(mm.type === undefined || (mm.tmdbTvShow === undefined && mm.tmdbMovie === undefined)) {
+        
+        const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mm)
+        if(recognized !== undefined) {
+          openRuleBasedRecognizePrompt({
+            onConfirm: () => {
+              updateMediaMetadata(mm.mediaFolderPath!, (prev: UIMediaMetadata) => {
+                return {
+                  ...prev,
+                  ...recognized,
+                  ...extractUIMediaMetadataProps(prev),
+                }
+              })
+            },
+            onCancel: () => {},
+          })
+        }
+        
+      }
+
+    })()
+    
+  }, [])
+
+  useEffect(() => {
+    if (!mediaMetadata) {
+      return
+    }
+    handleMediaFolderSelected(mediaMetadata)
+  }, [mediaMetadata])
 
   // Get prompt states for preview mode calculation (promptsContext already declared above)
   const isPreviewingForRename = promptsContext.isAiBasedRenameFilePromptOpen 

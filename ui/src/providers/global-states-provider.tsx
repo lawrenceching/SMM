@@ -155,9 +155,3 @@ export function useGlobalStates(): GlobalStatesContextValue {
   }
   return context
 }
-
-
-/**
- * Global states to stores the folder paths in POSIX format
- */
-export const useInitializedMediaFoldersState = createGlobalState<string[]>([])
