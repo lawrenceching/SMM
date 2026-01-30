@@ -155,6 +155,7 @@ function TvShowPanelContent() {
     handleUseTmdbidFromFolderNameConfirmRef.current = handleUseTmdbidFromFolderNameConfirm
   }, [openUseTmdbIdFromFolderNamePrompt, handleUseTmdbidFromFolderNameConfirm])
 
+
   useEffect(() => {
     if(mediaMetadata?.mediaFolderPath === undefined) {
       return

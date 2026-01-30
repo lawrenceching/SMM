@@ -14,4 +14,11 @@ export interface OnMediaFolderImportedEventData {
     traceId?: string;
 }
 
+export interface OnMediaFolderSelectedEventData {
+    mediaFolderPath: string;
+    traceId?: string;
+}
+
+export const EVENT_APP_START_UP = 'onAppStartUp'
 export const EVENT_ON_MEDIA_FOLDER_IMPORTED = 'onMediaFolderImported'
+export const EVENT_ON_MEDIA_FOLDER_SELECTED = 'onMediaFolderSelected'

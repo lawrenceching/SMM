@@ -1,19 +1,34 @@
-import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type UIEventHandler, type UIEvent } from "@/types/EventHandlerTypes"
+import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type UIEventHandler, type UIEvent, EVENT_APP_START_UP, EVENT_ON_MEDIA_FOLDER_SELECTED } from "@/types/EventHandlerTypes"
 import { useInitializeMediaFolderEventHandler } from "./eventhandlers/useInitializeMediaFolderEventHandler"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useMemo } from "react"
+import { useMediaFolderSelectedEventHanlder } from "./eventhandlers/useMediaFolderSelectedEventHandler"
 
 export function useEventHandlers() {
 
   const { configDialog } = useDialogs()
+
   const intializeMediaFolderEventHandler = useInitializeMediaFolderEventHandler()
+  const mediaFolderSelectedEventHandler = useMediaFolderSelectedEventHanlder()
 
   const handlers = useMemo<Record<string, UIEventHandler[]>>(() => {
     return {
+      [EVENT_APP_START_UP]: [
+        {
+          name: 'appStartUp',
+          handler: async (): Promise<void> => {},
+        },
+      ],
       [EVENT_ON_MEDIA_FOLDER_IMPORTED]: [
         {
           name: 'initializeMediaFolder',
           handler: intializeMediaFolderEventHandler,
+        },
+      ],
+      [EVENT_ON_MEDIA_FOLDER_SELECTED]: [
+        {
+          name: 'initializeMediaFolder',
+          handler: mediaFolderSelectedEventHandler,
         },
       ],
     }

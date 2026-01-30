@@ -21,7 +21,9 @@ import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { listFiles } from "@/api/listFiles"
-import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
+import { EVENT_APP_START_UP, EVENT_ON_MEDIA_FOLDER_IMPORTED, EVENT_ON_MEDIA_FOLDER_SELECTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
+import { useLatest, useMount } from "react-use"
+import { isNotNil } from "es-toolkit"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -29,6 +31,7 @@ function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { userConfig, setUserConfig } = useConfig()
+  const latestUserConfig = useLatest(userConfig)
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
@@ -53,7 +56,7 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, removeMediaMetadata } = useMediaMetadata()
 
   // Event handlers
   const { postEvent } = useEventHandlers()
@@ -87,6 +90,11 @@ function AppV2Content() {
     return hasWindow && hasElectron
   }, [])
 
+  useMount(() => {
+    postEvent({
+      name: EVENT_APP_START_UP,
+    })
+  })
 
   // Sync primary folder to content panel (selectedMediaMetadata)
   useEffect(() => {
@@ -113,29 +121,22 @@ function AppV2Content() {
       return;
     }
 
-    if(selectedMediaMetadata.tmdbTvShow !== undefined) {
-      return;
-    }
-
     if(selectedMediaMetadata.mediaFolderPath === undefined) {
       console.error('[AppV2] selectedMediaMetadata.mediaFolderPath is undefined')
       return;
     }
 
-    if(selectedMediaMetadata.type === undefined) {
-      // 1. start to get TMDB id from folder name
-      
-
-      // 2. start to find tvshow.nfo
-      if(selectedMediaMetadata.files?.some(file => file.endsWith('/tvshow.nfo'))) {
-        console.log(`[AppV2] found tvshow.info, indicating this folder is a TV show`);  
-        const traceId = `AppV2-updateMediaMetadata-${nextTraceId()}`
-        updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, {
-          ...selectedMediaMetadata,
-          type: "tvshow-folder",
-        }, { traceId })
-      }
+    if(selectedMediaMetadata.status !== 'ok') {
+      return;
     }
+
+    postEvent({
+      name: EVENT_ON_MEDIA_FOLDER_SELECTED,
+      data: {
+        traceId: `MediaFolderSelected:${nextTraceId()}`,
+        mediaFolderPath: selectedMediaMetadata.mediaFolderPath,
+      },
+    })
 
   }, [selectedMediaMetadata])
 

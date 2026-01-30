@@ -78,6 +78,8 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
  */
 export function useBackgroundJobs() {
   const context = useContext(BackgroundJobsContext);
-  // Don't throw error, just return undefined to handle cases where provider is not present
+  if (context === undefined) {
+    throw new Error("useBackgroundJobs must be used within a GlobalStatesProvider")
+  }
   return context;
 }
