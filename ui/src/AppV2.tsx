@@ -470,9 +470,11 @@ function AppV2Content() {
       paths.forEach((path) => removeMediaMetadata(path))
       const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
       const deletedSet = new Set(paths)
-      const newFolders = userConfig.folders.filter(
-        (folder) => !deletedSet.has(Path.posix(folder))
-      )
+      const newFolders = userConfig.folders
+        .filter(f => isNotNil(f))
+        .filter(
+          (folder) => !deletedSet.has(Path.posix(folder))
+        )
       setUserConfig(traceId, { ...userConfig, folders: newFolders })
       setSelectedFolderPaths((prev) => {
         const next = new Set(prev)
