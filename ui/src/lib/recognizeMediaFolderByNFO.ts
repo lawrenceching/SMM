@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types";
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { tryToRecognizeMediaFolderByNFO as doTryToRecognizeMediaFolderByNFO } from "@/components/TvShowPanelUtils";
 import { listFiles } from "@/api/listFiles";
 import { Path } from "@core/path";
@@ -17,9 +17,10 @@ export async function tryToRecognizeMediaFolderByNFO(folderPath: string, signal?
     }
     const files = resp.data.items.map(item => Path.posix(item.path))
 
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
         mediaFolderPath: folderPath,
         files: files,
+        status: 'idle',
     }
     const mmRecognizedByNFO = await doTryToRecognizeMediaFolderByNFO(mm, signal)
     if(mmRecognizedByNFO !== undefined) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from './recognizeMediaFolderByTmdbIdInFolderName'
-import type { TMDBTVShow } from '@core/types'
+import type { TMDBTVShowDetails } from '@core/types'
 
 // Mock the dependencies
 vi.mock('@/api/tmdb', () => ({
@@ -31,9 +31,10 @@ describe('tryToRecognizeMediaFolderByTmdbIdInFolderName', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  const mockTvShow: TMDBTVShow = {
+  const mockTvShow: TMDBTVShowDetails = {
     id: 12345,
     name: 'Test TV Show',
+    original_name: 'Test TV Show',
     overview: 'A test TV show',
     first_air_date: '2020-01-01',
     poster_path: '/poster.jpg',
@@ -42,8 +43,21 @@ describe('tryToRecognizeMediaFolderByTmdbIdInFolderName', () => {
     vote_count: 100,
     genre_ids: [1, 2],
     origin_country: ['US'],
-    original_name: 'Test TV Show',
     popularity: 100.5,
+    // TMDBTVShowDetails required properties
+    number_of_seasons: 3,
+    number_of_episodes: 30,
+    seasons: [
+      { id: 1, name: 'Season 1', season_number: 1, episode_count: 10, poster_path: null, air_date: '2020-01-01', overview: 'Season 1 overview' },
+      { id: 2, name: 'Season 2', season_number: 2, episode_count: 10, poster_path: null, air_date: '2021-01-01', overview: 'Season 2 overview' },
+      { id: 3, name: 'Season 3', season_number: 3, episode_count: 10, poster_path: null, air_date: '2022-01-01', overview: 'Season 3 overview' },
+    ],
+    status: 'Returning Series',
+    type: 'Scripted',
+    in_production: true,
+    last_air_date: '2022-12-31',
+    networks: [{ id: 1, name: 'Test Network', logo_path: '/logo.jpg' }],
+    production_companies: [{ id: 1, name: 'Test Studio', logo_path: '/studio.jpg' }],
   }
 
   it('should return success result when TV show is found by TMDB ID', async () => {

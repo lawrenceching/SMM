@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react"
-import type { MediaMetadata } from "@core/types"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { SeasonModel } from "../../TvShowPanel"
 import { buildFileProps } from "../../TvShowPanelUtils"
 import { loadNfo } from "@/helpers/loadNfo"
 import { usePromptsContext } from "../../TvShowPanelPrompts"
 
 interface UseTvShowPanelStateParams {
-  mediaMetadata: MediaMetadata | undefined
+  mediaMetadata: UIMediaMetadata | undefined
   toolbarOptions: Array<{ value: "plex" | "emby"; label: string }>
   usePrompts: {
     openUseNfoPrompt: (params: {
@@ -103,7 +103,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
         return {
           season: season,
           episodes: season.episodes?.map(episode => {
-            const files = buildFileProps(mediaMetadata, season.season_number, episode.episode_number);
+            const files = buildFileProps(mediaMetadata as any, season.season_number, episode.episode_number);
             return {
               episode: episode,
               files: files

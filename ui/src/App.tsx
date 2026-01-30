@@ -194,9 +194,12 @@ function AppLayout() {
         }
         metadata.type = folderTypeMap[type]
 
-        // Add the metadata to the list
+        // Add the metadata to the list with default status
         const traceId = `App-handleFolderSelected-${nextTraceId()}`
-        addMediaMetadata(metadata, { traceId })
+        addMediaMetadata({
+          ...metadata,
+          status: 'ok' as const
+        }, { traceId })
 
         // Select the newly added folder
         pendingFolderPathRef.current = folderPath

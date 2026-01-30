@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { Nfo, parseEpisodeNfo } from './nfo'
 
 describe('Nfo', () => {
@@ -293,9 +291,19 @@ describe('Nfo', () => {
 
   describe('fromXml', () => {
     it('should parse XML file and create Nfo instance with all fields', async () => {
-      // Read the test NFO file (path relative to project root)
-      const testFilePath = join(process.cwd(), '../test/media/古见同学有交流障碍症/tvshow.nfo')
-      const xmlContent = readFileSync(testFilePath, 'utf-8')
+      // Inline test NFO content (no file system access needed)
+      const xmlContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <id>123876</id>
+  <title>古见同学有交流障碍症</title>
+  <originaltitle>古見さんは、コミュ症です。</originaltitle>
+  <showtitle>古见同学有交流障碍症</showtitle>
+  <plot>万人迷的美少女古见同学患有社交恐惧症。她极不擅长与人沟通，总是苦恼着「该如何开口跟人交谈？」「交谈之后又该怎么办？」只野同学和患有这种症状的古见同学变成了朋友，两人的心灵逐渐相通并且做了某项约定。从此之后，只野会不知不觉地傻笑，但偶尔，胸口也会隐隐刺痛。让人一看就中毒的社交恐惧症女主角喜剧在此揭开序幕！</plot>
+  <fanart>https://image.tmdb.org/t/p/w1280/2bHGk7j4OD21qeXRRDYrKVhxzRc.jpg</fanart>
+  <tmdbid>123876</tmdbid>
+  <thumb aspect="poster">https://image.tmdb.org/t/p/w500/cJzKPkkr2rQczoT8gcdvV44Uh4Y.jpg</thumb>
+  <thumb aspect="poster" season="1" type="season">https://image.tmdb.org/t/p/w500/hLtPx2WgRGhpoHgrGonSNpkJBmB.jpg</thumb>
+</tvshow>`
       
       // Parse the XML
       const nfo = await Nfo.fromXml(xmlContent)

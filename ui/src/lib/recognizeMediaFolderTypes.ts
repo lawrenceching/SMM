@@ -1,4 +1,4 @@
-import type { MediaMetadata, TMDBMovie, TMDBTVShow } from "@core/types";
+import type { TMDBMovie, TMDBTVShow } from "@core/types";
 
 export interface RecognizeMediaFolderResult {
     success: boolean;

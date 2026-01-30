@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, tryToRecognizeMediaFolderByNFO, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
-import { readFile } from '@/api/readFile'
-import { parseEpisodeNfo } from '@/lib/nfo'
+import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
@@ -660,7 +659,7 @@ describe('newPath', () => {
 })
 
 describe('buildFileProps', () => {
-  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
+  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): UIMediaMetadata => ({
     mediaFolderPath: '/media/tvshow',
     mediaFiles: [
       {
@@ -674,8 +673,9 @@ describe('buildFileProps', () => {
       '/media/tvshow/season1/episode1.en.srt',
       '/media/tvshow/season1/episode1.nfo',
     ],
+    status: 'ok',
     ...overrides,
-  } as MediaMetadata)
+  } as UIMediaMetadata)
 
   it('should build file props for valid media metadata', () => {
     const mm = createMockMediaMetadata()
@@ -1182,7 +1182,7 @@ describe('updateMediaFileMetadatas', () => {
 describe('recognizeEpisodes', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
-  let mockUpdateMediaMetadata: ReturnType<typeof vi.fn>
+  let mockUpdateMediaMetadata: any
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -1248,10 +1248,11 @@ describe('recognizeEpisodes', () => {
     ],
   })
 
-  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
+  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): UIMediaMetadata => ({
     mediaFolderPath: '/media/tvshow',
+    status: 'ok',
     ...overrides,
-  } as MediaMetadata)
+  } as UIMediaMetadata)
 
   it('should recognize episodes and call updateMediaMetadata with correct metadata', async () => {
     const seasons: SeasonModel[] = [
@@ -1875,9 +1876,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('returns SeasonModel[] with one season and one episode when plan has one recognized file and mm has tmdbTvShow and files', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -1946,9 +1948,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   })
 
   it('returns empty array when plan.files is empty', () => {
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath: '/media/show',
       files: [],
+      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const plan = {
@@ -1965,9 +1968,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   })
 
   it('returns empty array when plan.files is undefined', () => {
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath: '/media/show',
       files: [],
+      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const plan = {
@@ -1985,13 +1989,14 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('handles multiple episodes in one season', () => {
     const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         '/media/show/Season 01/S01E01.mkv',
         '/media/show/Season 01/S01E02.mkv',
         '/media/show/Season 01/S01E03.mkv',
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2033,12 +2038,13 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('handles multiple seasons', () => {
     const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         '/media/show/Season 01/S01E01.mkv',
         '/media/show/Season 02/S02E01.mkv',
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2070,9 +2076,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('creates default episode when episode not found in tmdbTvShow', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E05.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2108,9 +2115,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('creates default season when season not found in tmdbTvShow', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 99/S99E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2137,9 +2145,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('uses plan.mediaFolderPath when mm.mediaFolderPath is undefined', () => {
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath: undefined,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2169,9 +2178,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     // findAssociatedFiles looks for files that match: base + .extension
     const subtitlePath = '/media/show/Season 01/S01E01.srt'
     const nfoPath = '/media/show/Season 01/S01E01.nfo'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath, subtitlePath, nfoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2201,9 +2211,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('returns only video file when no associated files found', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2230,9 +2241,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('returns only video file when mm.files is empty', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2259,9 +2271,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('returns only video file when mm.files is undefined', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: undefined,
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2288,9 +2301,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('handles tmdbTvShow being undefined', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: undefined,
     }
     const plan = {
@@ -2310,7 +2324,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('sorts episodes by episode_number within each season', () => {
     const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         '/media/show/S01E05.mkv',
@@ -2319,6 +2333,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/S01E02.mkv',
         '/media/show/S01E04.mkv',
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2352,13 +2367,14 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('sorts seasons by season_number', () => {
     const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         '/media/show/Season 03/S03E01.mkv',
         '/media/show/Season 01/S01E01.mkv',
         '/media/show/Season 02/S02E01.mkv',
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2388,9 +2404,10 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('handles season 0 (Specials)', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/S00E01.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoPath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2416,12 +2433,13 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('includes all video files from plan even if tmdbTvShow has no matching episodes', () => {
     const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         '/media/show/S01E01.mkv',
         '/media/show/S01E02.mkv',
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2458,9 +2476,10 @@ describe('buildSeasonsByRenameFilesPlan', () => {
     const mediaFolderPath = '/media/show'
     const fromPath = '/media/show/Season 01/S01E01.mkv'
     const toPath = '/media/show/Season 01/Show - S01E01 - Pilot.mkv'
-    const mm: MediaMetadata = {
+    const mm: UIMediaMetadata = {
       mediaFolderPath,
       files: [fromPath],
+      status: 'ok',
       mediaFiles: [
         { absolutePath: fromPath, seasonNumber: 1, episodeNumber: 1 },
       ],
@@ -2535,9 +2554,10 @@ describe('buildSeasonsByRenameFilesPlan', () => {
 
 describe('buildSeasonsModelFromMediaMetadata', () => {
   it('should return null when tmdbTvShow is undefined', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: undefined,
     }
 
@@ -2547,9 +2567,10 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   })
 
   it('should return empty array when tmdbTvShow has no seasons', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2563,9 +2584,10 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   })
 
   it('should build seasons model with one season and one episode', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2608,9 +2630,10 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   })
 
   it('should build seasons model with one season and multiple episodes', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2667,9 +2690,10 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   })
 
   it('should build seasons model with multiple seasons', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2756,13 +2780,14 @@ describe('recognizeMediaFilesByRules', () => {
     // Subtitle file must have exact same base name as video file for findAssociatedFiles to work
     const subtitleFilePath = '/media/tvshow/Season 01/Show.Name.S01E01.srt'
 
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath,
       files: [
         videoFilePath1,
         videoFilePath2,
         subtitleFilePath,
       ],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show Name',
@@ -2890,9 +2915,10 @@ describe('recognizeMediaFilesByRules', () => {
   })
 
   it('should return null when mediaMetadata.mediaFolderPath is undefined', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: undefined,
       files: [],
+      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
@@ -2900,9 +2926,10 @@ describe('recognizeMediaFilesByRules', () => {
   })
 
   it('should return null when mediaMetadata.files is undefined', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: undefined,
+      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
@@ -2910,9 +2937,10 @@ describe('recognizeMediaFilesByRules', () => {
   })
 
   it('should return null when tmdbTvShow is undefined', () => {
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
+      status: 'ok',
       tmdbTvShow: undefined,
     }
     const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
@@ -2923,9 +2951,10 @@ describe('recognizeMediaFilesByRules', () => {
     const mediaFolderPath = '/media/tvshow'
     const videoFilePath = '/media/tvshow/Show.Name.S01E01.mkv'
 
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath,
       files: [videoFilePath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2965,9 +2994,10 @@ describe('recognizeMediaFilesByRules', () => {
   it('should handle episodes where lookup returns null', () => {
     const mediaFolderPath = '/media/tvshow'
 
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath,
       files: [],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -3000,9 +3030,10 @@ describe('recognizeMediaFilesByRules', () => {
     const wrongFilePath = '/media/tvshow/wrong_file.mp4'
     const correctFilePath = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
 
-    const mediaMetadata: MediaMetadata = {
+    const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath,
       files: [correctFilePath, wrongFilePath],
+      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',

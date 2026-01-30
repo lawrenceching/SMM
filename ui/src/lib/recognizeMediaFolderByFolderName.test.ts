@@ -68,10 +68,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [mockTvShow, { ...mockTvShow, id: 54321, name: 'Other TV Show' }],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
 
@@ -94,10 +100,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [mockMovie, { ...mockMovie, id: 54321, title: 'Other Movie' }],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
 
@@ -118,10 +130,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [mockTvShow],
+        page: 1,
+        total_pages: 1,
+        total_results: 1,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
 
@@ -142,6 +160,9 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
           { ...mockTvShow, name: 'Similar TV Show 1' },
           { ...mockTvShow, name: 'Similar TV Show 2' },
         ],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
       .mockResolvedValueOnce({
@@ -149,6 +170,9 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
           { ...mockMovie, title: 'Similar Movie 1' },
           { ...mockMovie, title: 'Similar Movie 2' },
         ],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
 
@@ -180,10 +204,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: tvError,
       })
       .mockResolvedValueOnce({
         results: [mockMovie],
+        page: 1,
+        total_pages: 1,
+        total_results: 1,
         error: undefined,
       })
 
@@ -205,10 +235,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: movieError,
       })
 
@@ -231,10 +267,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: tvError,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: movieError,
       })
 
@@ -260,10 +302,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: tvShows,
+        page: 1,
+        total_pages: 1,
+        total_results: tvShows.length,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
 
@@ -294,10 +342,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: movies,
+        page: 1,
+        total_pages: 1,
+        total_results: movies.length,
         error: undefined,
       })
 
@@ -342,10 +396,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
           mockTvShow, // 'Test TV Show' - should NOT match
           { ...mockTvShow, name: 'TEST TV SHOW', id: 54321 }, // Should match
         ],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
 
@@ -364,6 +424,9 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
       .mockResolvedValueOnce({
@@ -371,6 +434,9 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
           mockMovie, // 'Test Movie' - should NOT match
           { ...mockMovie, title: 'TEST MOVIE', id: 54321 }, // Should match
         ],
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
         error: undefined,
       })
 
@@ -394,10 +460,16 @@ describe('tryToRecognizeMediaFolderByFolderName', () => {
     vi.mocked(searchTmdb)
       .mockResolvedValueOnce({
         results: [mockJapaneseTvShow],
+        page: 1,
+        total_pages: 1,
+        total_results: 1,
         error: undefined,
       })
       .mockResolvedValueOnce({
         results: [],
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
         error: undefined,
       })
 

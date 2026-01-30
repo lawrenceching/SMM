@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useMemo } from "react"
-import { extractUIMediaMetadataProps, type UIMediaMetadata, type UIMediaMetadataProps } from "@/types/UIMediaMetadata"
+import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useConfig } from "./config-provider"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 import localStorages from "@/lib/localStorages"

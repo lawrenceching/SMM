@@ -2,12 +2,13 @@ import { makeAssistantTool, tool } from "@assistant-ui/react";
 import { z } from 'zod/v3';
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useEffect } from "react";
-import type { MediaFileMetadata, MediaMetadata } from "@core/types";
+import type { MediaFileMetadata } from "@core/types";
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { Path } from "@core/path";
 import { nextTraceId } from "@/lib/utils";
 
-let mediaMetadatas: MediaMetadata[] = [];
-let updateMediaMetadata: (path: string, mediaMetadata: MediaMetadata, options?: { traceId?: string }) => void = () => {};
+let mediaMetadatas: UIMediaMetadata[] = [];
+let updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void = () => {};
 
 function updateMediaFileMetadatas(
     mediaFiles: MediaFileMetadata[], 
@@ -119,7 +120,7 @@ export function MatchEpisodeTool() {
 
     useEffect(() => {
         mediaMetadatas = mediaMetadatasFromProvider;
-        updateMediaMetadata = updateMediaMetadataFromProvider;
+        updateMediaMetadata = updateMediaMetadataFromProvider as typeof updateMediaMetadata;
     }, [mediaMetadatasFromProvider]);
     
     return <>

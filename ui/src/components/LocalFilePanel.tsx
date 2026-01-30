@@ -4,7 +4,7 @@ import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
-import type { MediaMetadata } from "@core/types"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
 
 export interface LocalFilePanelProps {
@@ -24,7 +24,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   }, [mediaFolderPath])
 
   // Get current media metadata
-  const currentMediaMetadata = useMemo(() => {
+  const currentMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
     if (!mediaFolderPathInPosix) return undefined
     return getMediaMetadata(mediaFolderPathInPosix)
   }, [mediaFolderPathInPosix, getMediaMetadata])
@@ -77,10 +77,11 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
     }
 
     // Update or create media metadata
-    const updatedMetadata: MediaMetadata = {
+    const updatedMetadata: UIMediaMetadata = {
       ...(currentMediaMetadata || {}),
       type: metadataType,
       mediaFolderPath: mediaFolderPathInPosix,
+      status: currentMediaMetadata?.status || 'ok' as const,
     }
 
     const traceId = `LocalFilePanel-handleConfirm-${nextTraceId()}`

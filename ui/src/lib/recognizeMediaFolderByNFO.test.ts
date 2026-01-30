@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tryToRecognizeMediaFolderByNFO } from './recognizeMediaFolderByNFO'
-import type { MediaMetadata, TMDBTVShow } from '@core/types'
+import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 // Mock the dependencies
 vi.mock('@/api/listFiles', () => ({
@@ -34,7 +34,7 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  const mockTvShow: TMDBTVShow = {
+  const mockTvShow = {
     id: 12345,
     name: 'Test TV Show',
     overview: 'A test TV show',
@@ -47,6 +47,15 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
     origin_country: ['US'],
     original_name: 'Test TV Show',
     popularity: 100.5,
+    number_of_seasons: 2,
+    number_of_episodes: 20,
+    seasons: [],
+    status: 'Returning Series',
+    type: 'Scripted',
+    in_production: true,
+    last_air_date: '2024-01-01',
+    networks: [],
+    production_companies: [],
   }
 
   const mockFiles = [
@@ -73,12 +82,13 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
       error: undefined,
     })
 
-    const recognizedMetadata: MediaMetadata = {
+    const recognizedMetadata: UIMediaMetadata = {
       mediaFolderPath: folderPath,
       files: mockFiles,
       type: 'tvshow-folder',
       tmdbTvShow: mockTvShow,
       tmdbMediaType: 'tv',
+      status: 'ok',
     }
     vi.mocked(doTryToRecognizeMediaFolderByNFO).mockResolvedValue(recognizedMetadata)
 
@@ -124,7 +134,7 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
       error: undefined,
     })
 
-    const recognizedMetadata: MediaMetadata = {
+    const recognizedMetadata: UIMediaMetadata = {
       mediaFolderPath: folderPath,
       files: mockMovieFiles,
       type: 'movie-folder',
@@ -144,6 +154,7 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
         video: false,
       },
       tmdbMediaType: 'movie',
+      status: 'ok',
     }
     vi.mocked(doTryToRecognizeMediaFolderByNFO).mockResolvedValue(recognizedMetadata)
 
@@ -175,11 +186,12 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
       error: undefined,
     })
 
-    const recognizedMetadata: MediaMetadata = {
+    const recognizedMetadata: UIMediaMetadata = {
       mediaFolderPath: folderPath,
       files: mockFiles,
       type: 'tvshow-folder',
       tmdbTvShow: mockTvShow,
+      status: 'ok',
     }
     vi.mocked(doTryToRecognizeMediaFolderByNFO).mockResolvedValue(recognizedMetadata)
 
@@ -281,11 +293,12 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
       error: undefined,
     })
 
-    const recognizedMetadata: MediaMetadata = {
+    const recognizedMetadata: UIMediaMetadata = {
       mediaFolderPath: folderPath,
       files: posixFiles,
       type: 'tvshow-folder',
       tmdbTvShow: mockTvShow,
+      status: 'ok',
     }
     vi.mocked(doTryToRecognizeMediaFolderByNFO).mockResolvedValue(recognizedMetadata)
 
@@ -313,11 +326,12 @@ describe('tryToRecognizeMediaFolderByNFO', () => {
       error: undefined,
     })
 
-    const recognizedMetadata: MediaMetadata = {
+    const recognizedMetadata: UIMediaMetadata = {
       mediaFolderPath: folderPath,
       files: [],
       type: 'tvshow-folder',
       tmdbTvShow: mockTvShow,
+      status: 'ok',
     }
     vi.mocked(doTryToRecognizeMediaFolderByNFO).mockResolvedValue(recognizedMetadata)
 

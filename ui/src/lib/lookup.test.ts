@@ -233,6 +233,7 @@ describe('matchesEpisodePattern', () => {
 describe('recognizeMediaFiles', () => {
   it('should return empty array when mm.files is undefined', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       tmdbTvShow: {
         id: 12345,
         name: 'Test TV Show',
@@ -277,6 +278,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should return empty array when mm.tmdbTvShow is undefined', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/S01E01.mkv',
       ],
@@ -288,6 +290,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should return matched episodes when files match SXXEYY pattern', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/S01E01.mkv',
         '/media/tvshows/Test Show/S01E02.mkv',
@@ -365,6 +368,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should return matched episodes when files match Chinese pattern', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/第1季第1集.mkv',
         '/media/tvshows/Test Show/第1季第2集.mkv',
@@ -424,6 +428,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should return empty array when no files match patterns', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/SomeRandomVideo.mkv',
         '/media/tvshows/Test Show/AnotherFile.mp4',
@@ -473,6 +478,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should handle non-video files in files array', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/S01E01.mkv',
         '/media/tvshows/Test Show/S01E01.srt',
@@ -524,6 +530,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should return empty array when seasons array is empty', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/S01E01.mkv',
       ],
@@ -558,6 +565,7 @@ describe('recognizeMediaFiles', () => {
 
   it('should handle episodes array being undefined', () => {
     const mockMetadata: UIMediaMetadata = {
+      status: 'ok',
       files: [
         '/media/tvshows/Test Show/S01E01.mkv',
       ],

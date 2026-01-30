@@ -261,7 +261,7 @@ function TvShowPanelContent() {
 
     try {
       await updatePlan(plan.id, 'completed')
-      applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata, { traceId })
+      applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as any, { traceId })
       console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
       toast.success(`Applied recognition for ${plan.files.length} file(s)`)
     } catch (error) {
@@ -311,7 +311,7 @@ function TvShowPanelContent() {
             console.log('[TvShowPanel] Rule-based recognition confirmed')
             // Apply the recognition using the plan data
             if (mediaMetadata) {
-              recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
+              recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata as any)
               toast.success(t('toolbar.recognizeEpisodesSuccess'))
             }
             // Remove the temporary plan from state
@@ -369,7 +369,7 @@ function TvShowPanelContent() {
       if (!mediaMetadata) {
         return
       }
-      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans)
+      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata as any, updatePlan, fetchPendingPlans)
     },
     [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans]
   )

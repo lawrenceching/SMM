@@ -28,7 +28,7 @@ import { EVENT_ON_MEDIA_FOLDER_IMPORTED, type OnMediaFolderImportedEventData } f
 function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-  const { userConfig, setUserConfig, addMediaFolderInUserConfig } = useConfig()
+  const { userConfig, setUserConfig } = useConfig()
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
@@ -53,7 +53,7 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata, updateMediaMetadataStatus } = useMediaMetadata()
+  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, updateMediaMetadata, removeMediaMetadata } = useMediaMetadata()
 
   // Event handlers
   const { postEvent } = useEventHandlers()
@@ -667,10 +667,11 @@ function AppV2Content() {
             </div>
           )}
           {folders.length > 0 && selectedMediaMetadata && (
-            console.log(`[DEBUG] selectedMediaMetadata: `, selectedMediaMetadata),
             <>
+              {console.log(`[DEBUG] selectedMediaMetadata: `, selectedMediaMetadata)}
               {viewMode === "metadata" && (
                 <>
+
                   {selectedMediaMetadata.type === "tvshow-folder" && (
                     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                       <TvShowPanel />

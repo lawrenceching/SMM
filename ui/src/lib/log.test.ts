@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import type { MediaMetadata } from '@core/types'
+import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { minimize } from './log'
 
 describe('minimize', () => {
-  const mockTvShowMetadata: MediaMetadata = {
+  const mockTvShowMetadata: UIMediaMetadata = {
+    status: 'ok',
     mediaFolderPath: '/media/tvshows/Test Show',
     type: 'tvshow-folder',
     tmdbTvShow: {
@@ -32,7 +33,8 @@ describe('minimize', () => {
     files: ['file1.mkv', 'file2.mkv', 'file3.mkv'],
   }
 
-  const mockMovieMetadata: MediaMetadata = {
+  const mockMovieMetadata: UIMediaMetadata = {
+    status: 'ok',
     mediaFolderPath: '/media/movies/Test Movie',
     type: 'movie-folder',
     tmdbMovie: {
@@ -88,7 +90,8 @@ describe('minimize', () => {
   })
 
   it('should handle metadata with undefined files', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Test Show',
       type: 'tvshow-folder',
       tmdbTvShow: {
@@ -127,7 +130,8 @@ describe('minimize', () => {
   })
 
   it('should handle metadata with null files', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/movies/Test Movie',
       type: 'movie-folder',
       tmdbMovie: {
@@ -158,7 +162,8 @@ describe('minimize', () => {
   })
 
   it('should handle empty files array', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Empty Show',
       type: 'tvshow-folder',
       tmdbTvShow: {
@@ -193,7 +198,7 @@ describe('minimize', () => {
   })
 
   it('should handle empty metadata', () => {
-    const metadata: MediaMetadata = {}
+    const metadata: UIMediaMetadata = { status: 'ok' }
 
     const result = minimize(metadata)
 
@@ -212,7 +217,8 @@ describe('minimize', () => {
   })
 
   it('should handle metadata with only tmdbTvShow', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Only Show',
       type: 'tvshow-folder',
       tmdbTvShow: {
@@ -257,7 +263,8 @@ describe('minimize', () => {
   })
 
   it('should handle metadata with only tmdbMovie', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/movies/Only Movie',
       type: 'movie-folder',
       tmdbMovie: {
@@ -294,7 +301,8 @@ describe('minimize', () => {
   })
 
   it('should handle metadata with neither tmdbTvShow nor tmdbMovie', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/unknown',
       type: 'music-folder',
       files: ['song.mp3'],
@@ -317,7 +325,8 @@ describe('minimize', () => {
   })
 
   it('should handle single file in files array', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/movies/Single File',
       type: 'movie-folder',
       files: ['single.mkv'],
@@ -329,7 +338,8 @@ describe('minimize', () => {
   })
 
   it('should handle many files in files array', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Multi File Show',
       type: 'tvshow-folder',
       files: [
@@ -347,7 +357,8 @@ describe('minimize', () => {
   })
 
   it('should correctly extract name from tmdbTvShow', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Named Show',
       type: 'tvshow-folder',
       tmdbTvShow: {
@@ -381,7 +392,8 @@ describe('minimize', () => {
   })
 
   it('should minimize TV show metadata with partial TMDB data', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/tvshows/Partial Show',
       type: 'tvshow-folder',
       tmdbTvShow: {
@@ -419,7 +431,8 @@ describe('minimize', () => {
   })
 
   it('should minimize movie metadata with partial TMDB data', () => {
-    const metadata: MediaMetadata = {
+    const metadata: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/movies/Partial Movie',
       type: 'movie-folder',
       tmdbMovie: {
