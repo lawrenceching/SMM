@@ -17,6 +17,14 @@ This file lists all features provided by SMM.
 * Sidebar - Multiple Deletion
 * Sidebar - Open in File Explorer
 * AI Tools - listFiles
+* AI Tools - isFolderExist
+* AI Tools - getMediaFolders
+* AI Tools - getApplicationContext
+* AI Tools - getMediaMetadata
+* AI Tools - getEpisodes
+* AI Tools - renameFolder
+* AI Tools - Rename Media Files - beginRenameFilesTaskV2/addRenameFileToTaskV2/endRenameFilesTaskV2
+* AI Tools - Recognize Media Files - beginRecognizeTask/addRecognizedMediaFile/endRecognizeTask
 * MCP Server - listFiles
 * StatusBar - Folder Path
 * StatusBar - MCP Indicator and Popover
