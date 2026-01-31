@@ -5,7 +5,6 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { getPendingPlans } from "@/api/getPendingPlans"
 import { updatePlan as updatePlanApi, type UpdatePlanStatus } from "@/api/updatePlan"
 import { toast } from "sonner"
-import { createGlobalState } from "react-use"
 
 export interface MediaFolderState {
   loading: boolean
@@ -45,7 +44,6 @@ interface GlobalStatesProviderProps {
 }
 
 export function GlobalStatesProvider({ children }: GlobalStatesProviderProps) {
-  const [mediaFolderStates, setMediaFolderStates] = useState<Record<string, MediaFolderState>>({})
   const [pendingPlans, setPendingPlans] = useState<UIRecognizeMediaFilePlan[]>([])
   const [pendingRenamePlans, setPendingRenamePlans] = useState<RenameFilesPlan[]>([])
 

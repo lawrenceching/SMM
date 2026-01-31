@@ -1,6 +1,5 @@
 import { useCallback } from "react"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
-import { useGlobalStates } from "@/providers/global-states-provider"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"

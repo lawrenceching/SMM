@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { nextTraceId } from "@/lib/utils"
-import { Path } from "@core/path"
-import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { extractUIMediaMetadataProps } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
 
 export interface LocalFilePanelProps {

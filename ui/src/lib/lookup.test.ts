@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { matchesEpisodePattern } from './lookup'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 describe('matchesEpisodePattern', () => {
   describe('Pattern 1: SXXEYY formats', () => {

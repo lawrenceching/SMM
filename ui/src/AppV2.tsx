@@ -22,9 +22,8 @@ import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { listFiles } from "@/api/listFiles"
 import { EVENT_APP_START_UP, EVENT_ON_MEDIA_FOLDER_IMPORTED, EVENT_ON_MEDIA_FOLDER_SELECTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
-import { useLatest, useMount } from "react-use"
+import { useMount } from "react-use"
 import { isNotNil } from "es-toolkit"
-import { Loader2 } from "lucide-react"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -32,7 +31,6 @@ function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { userConfig, setUserConfig } = useConfig()
-  const latestUserConfig = useLatest(userConfig)
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)

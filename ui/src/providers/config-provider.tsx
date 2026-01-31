@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
-import { readFile, readFileApi } from "@/api/readFile"
+import { readFile } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
 import { changeLanguage } from "@/lib/i18n"
 import { useLatest } from "react-use"

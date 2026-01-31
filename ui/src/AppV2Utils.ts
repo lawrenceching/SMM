@@ -1,9 +1,6 @@
 import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
-import { getTvShowById } from "./api/tmdb"
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
-import { recognizeMediaFilesByRules } from "./components/TvShowPanelUtils";
-import { lookup } from "./lib/lookup";
 import { recognizeMediaFiles } from "./lib/recognizeMediaFiles";
 
 /**
