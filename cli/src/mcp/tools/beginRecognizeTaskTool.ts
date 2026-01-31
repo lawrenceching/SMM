@@ -9,23 +9,36 @@ import type { RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { McpToolResponse } from "./mcpToolBase";
 
 export interface BeginRecognizeTaskParams {
+  /** Path to the media folder for recognition task */
   mediaFolderPath: string;
 }
 
 export interface AddRecognizedFileParams {
+  /** ID of the existing recognition task */
   taskId: string;
+  /** Season number for the recognized file */
   season: number;
+  /** Episode number for the recognized file */
   episode: number;
+  /** File path of the recognized media file */
   path: string;
 }
 
 export interface EndRecognizeTaskParams {
+  /** ID of the recognition task to finalize and execute */
   taskId: string;
 }
 
 /**
  * Begin a media file recognition task for a media folder.
  * Returns a task ID that must be used for subsequent operations.
+ * 
+ * @param params - Tool parameters containing media folder path
+ * @param params.mediaFolderPath - Path to the media folder for recognition
+ * @returns Promise resolving to MCP tool response with task ID or error
+ * 
+ * This creates a new recognition task that can accept multiple recognized files
+ * before being finalized. Use the returned taskId with add-recognized-file and end-recognize-task.
  */
 export async function handleBeginRecognizeTask(params: BeginRecognizeTaskParams): Promise<McpToolResponse> {
   const { mediaFolderPath } = params;
@@ -54,7 +67,17 @@ export async function handleBeginRecognizeTask(params: BeginRecognizeTaskParams)
 }
 
 /**
- * Add a recognized media file to an existing task.
+ * Add a recognized file to an existing recognition task.
+ * 
+ * @param params - Tool parameters containing task ID and file information
+ * @param params.taskId - ID of the existing recognition task
+ * @param params.season - Season number for the recognized file
+ * @param params.episode - Episode number for the recognized file
+ * @param params.path - File path of the recognized media file
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * This adds a single recognized file to an existing batch recognition task.
+ * Multiple files can be added to the same task before finalization.
  */
 export async function handleAddRecognizedFile(params: AddRecognizedFileParams): Promise<McpToolResponse> {
   const { taskId, season, episode, path: filePath } = params;
@@ -110,6 +133,13 @@ export async function handleAddRecognizedFile(params: AddRecognizedFileParams): 
 
 /**
  * End a recognition task and finalize the plan.
+ * 
+ * @param params - Tool parameters containing task ID
+ * @param params.taskId - ID of recognition task to finalize and execute
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * This finalizes a batch recognition task and creates the recognition plan.
+ * The task must contain at least one recognized file to be successfully ended.
  */
 export async function handleEndRecognizeTask(params: EndRecognizeTaskParams): Promise<McpToolResponse> {
   const { taskId } = params;

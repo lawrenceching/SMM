@@ -4,11 +4,19 @@ import { unlink } from "fs/promises";
 import type { McpToolResponse } from "./mcpToolBase";
 
 export interface DeleteMediaMetadataParams {
+  /** Path to the media folder whose metadata should be deleted */
   mediaFolderPath: string;
 }
 
 /**
  * Delete cached media metadata for a folder.
+ * 
+ * @param params - Tool parameters containing folder path
+ * @param params.mediaFolderPath - Path to the media folder whose metadata should be deleted
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * Note: This permanently removes the metadata cache file for the specified folder.
+ * If no metadata cache exists for the folder, the operation still succeeds.
  */
 export async function handleDeleteMediaMetadata(params: DeleteMediaMetadataParams): Promise<McpToolResponse> {
   const { mediaFolderPath } = params;

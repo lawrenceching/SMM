@@ -9,22 +9,34 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import type { McpToolResponse } from "./mcpToolBase";
 
 export interface BeginRenameTaskParams {
+  /** Path to the media folder for the batch rename operation */
   mediaFolderPath: string;
 }
 
 export interface AddRenameFileParams {
+  /** ID of the existing rename task */
   taskId: string;
+  /** Current file path to be renamed */
   from: string;
+  /** New file path after rename */
   to: string;
 }
 
 export interface EndRenameTaskParams {
+  /** ID of the rename task to finalize and execute */
   taskId: string;
 }
 
 /**
  * Begin a batch rename task for a media folder.
  * Returns a task ID that must be used for subsequent operations.
+ * 
+ * @param params - Tool parameters containing media folder path
+ * @param params.mediaFolderPath - Path to the media folder for batch rename
+ * @returns Promise resolving to MCP tool response with task ID or error
+ * 
+ * This creates a new rename task that can accept multiple file rename operations
+ * before being finalized. Use the returned taskId with add-rename-file and end-rename-task.
  */
 export async function handleBeginRenameTask(params: BeginRenameTaskParams): Promise<McpToolResponse> {
   const { mediaFolderPath } = params;
@@ -54,6 +66,15 @@ export async function handleBeginRenameTask(params: BeginRenameTaskParams): Prom
 
 /**
  * Add a file rename operation to an existing task.
+ * 
+ * @param params - Tool parameters containing task ID and file paths
+ * @param params.taskId - ID of the existing rename task
+ * @param params.from - Current file path to be renamed
+ * @param params.to - New file path after rename
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * This adds a single file rename operation to an existing batch rename task.
+ * Multiple files can be added to the same task before finalization.
  */
 export async function handleAddRenameFile(params: AddRenameFileParams): Promise<McpToolResponse> {
   const { taskId, from, to } = params;
@@ -96,6 +117,13 @@ export async function handleAddRenameFile(params: AddRenameFileParams): Promise<
 
 /**
  * End a batch rename task and finalize the plan.
+ * 
+ * @param params - Tool parameters containing task ID
+ * @param params.taskId - ID of the rename task to finalize and execute
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * This finalizes a batch rename task and executes all queued file rename operations.
+ * The task must contain at least one file rename operation to be successfully ended.
  */
 export async function handleEndRenameTask(params: EndRenameTaskParams): Promise<McpToolResponse> {
   const { taskId } = params;

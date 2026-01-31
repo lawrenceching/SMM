@@ -3,18 +3,28 @@ import { listFiles } from "@/utils/files";
 import type { McpToolResponse } from "./mcpToolBase";
 
 export interface ListFilesParams {
-  path: string;
+  /** Path to the directory to list files from */
+  folderPath: string;
+  /** Whether to list files recursively (default: false) */
+  recursive?: boolean;
+  /** Filter pattern for files/folders (supports wildcards) */
+  filter?: string;
 }
 
 /**
- * List all files in a media folder recursively.
+ * List files and folders in a directory with optional filtering.
  * Accepts paths in both POSIX and Windows format.
- * Returns file paths in POSIX format.
+ * 
+ * @param params - Tool parameters containing folder path and options
+ * @param params.folderPath - Path to the directory to list
+ * @param params.recursive - Whether to list files recursively (default: false)
+ * @param params.filter - Filter pattern for files/folders (supports wildcards)
+ * @returns Promise resolving to MCP tool response with file listing or error
  */
 export async function handleListFiles(params: ListFilesParams): Promise<McpToolResponse> {
-  const { path } = params;
+  const { folderPath } = params;
 
-  if (!path || typeof path !== "string" || path.trim() === "") {
+  if (!folderPath || typeof folderPath !== "string" || folderPath.trim() === "") {
     return {
       content: [{ type: "text" as const, text: "Invalid path: path must be a non-empty string" }],
       isError: true,
@@ -22,11 +32,8 @@ export async function handleListFiles(params: ListFilesParams): Promise<McpToolR
   }
 
   try {
-    const normalizedPath = Path.toPlatformPath(path);
-    const folderPath = new Path(normalizedPath);
-
-    // Check if path exists and is a directory
-    const files = await listFiles(folderPath, true);
+    const normalizedPath = Path.toPlatformPath(folderPath);
+    const files = await listFiles(new Path(normalizedPath), true);
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify({ files, count: files.length }) }],

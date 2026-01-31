@@ -3,6 +3,15 @@ import type { McpToolResponse } from "./mcpToolBase";
 
 /**
  * Get application context including configured media folders and settings.
+ * 
+ * @returns Promise resolving to MCP tool response with application context or error
+ * 
+ * Returns comprehensive configuration information including:
+ * - AI provider selection
+ * - Application language settings
+ * - Configured media folders
+ * - Selected rename rules
+ * - TMDB API configuration
  */
 export async function handleGetApplicationContext(): Promise<McpToolResponse> {
   try {

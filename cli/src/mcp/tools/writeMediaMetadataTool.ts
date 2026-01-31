@@ -5,12 +5,20 @@ import type { MediaMetadata } from "@core/types";
 import type { McpToolResponse } from "./mcpToolBase";
 
 export interface WriteMediaMetadataParams {
+  /** Media metadata object to write (must include mediaFolderPath) */
   metadata: MediaMetadata;
 }
 
 /**
- * Write media metadata to the cache.
- * Requires mediaFolderPath in the metadata object.
+ * Write or update media metadata for a folder. This will create or overwrite the metadata cache.
+ * 
+ * @param params - Tool parameters containing metadata object
+ * @param params.metadata - The metadata object to write (must include mediaFolderPath)
+ * @returns Promise resolving to MCP tool response with success confirmation or error
+ * 
+ * Note: This is a destructive operation that will overwrite any existing metadata
+ * for the specified folder. The mediaFolderPath in the metadata determines
+ * where the cache file will be stored.
  */
 export async function handleWriteMediaMetadata(params: WriteMediaMetadataParams): Promise<McpToolResponse> {
   const { metadata } = params;
