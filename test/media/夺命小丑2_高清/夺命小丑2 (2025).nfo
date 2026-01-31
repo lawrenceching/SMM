@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--created on 2026-01-31 19:41:10 by tinyMediaManager 5.1.5 for PLEX-->
+<movie>
+  <title>夺命小丑2</title>
+  <originaltitle>The Jester 2</originaltitle>
+  <sorttitle/>
+  <epbookmark/>
+  <year>2025</year>
+  <ratings>
+    <rating default="false" max="10" name="themoviedb">
+      <value>6.3</value>
+      <votes>45</votes>
+    </rating>
+  </ratings>
+  <userrating>0</userrating>
+  <top250>0</top250>
+  <set>
+    <name>夺命小丑（系列）</name>
+    <overview>夺命小丑（系列）</overview>
+  </set>
+  <plot>当青少年魔术师Max在万圣节之夜与阴险的小丑擦肩而过时，她必须智取一个超自然杀手，他的魔法太真实了，他的伎俩总是沾上鲜血。</plot>
+  <outline>当青少年魔术师Max在万圣节之夜与阴险的小丑擦肩而过时，她必须智取一个超自然杀手，他的魔法太真实了，他的伎俩总是沾上鲜血。</outline>
+  <tagline/>
+  <runtime>87</runtime>
+  <thumb aspect="poster">https://image.tmdb.org/t/p/original/47dsw1jSOV0Be5zmy7CtLhYpqU.jpg</thumb>
+  <thumb aspect="clearlogo">https://image.tmdb.org/t/p/original/qQIwIKvk189q6xR7PTTU4p7GwAI.png</thumb>
+  <fanart>
+    <thumb>https://image.tmdb.org/t/p/original/4NRqVQGFHkuaAdhnDIY4I5oY5ui.jpg</thumb>
+  </fanart>
+  <mpaa>NR</mpaa>
+  <certification>NR</certification>
+  <id>tt37334010</id>
+  <tmdbid>1519168</tmdbid>
+  <uniqueid default="false" type="tmdb">1519168</uniqueid>
+  <uniqueid default="false" type="tmdbSet">1526352</uniqueid>
+  <uniqueid default="true" type="imdb">tt37334010</uniqueid>
+  <country>美国</country>
+  <status/>
+  <code/>
+  <premiered>2025-09-15</premiered>
+  <watched>false</watched>
+  <playcount>0</playcount>
+  <genre>Horror</genre>
+  <genre>Thriller</genre>
+  <genre>Crime</genre>
+  <studio>Traverse Terror</studio>
+  <studio>Epic Pictures</studio>
+  <credits tmdbid="2735733">Colin Krawchuk</credits>
+  <director tmdbid="2735733">Colin Krawchuk</director>
+  <actor>
+    <name>Michael Sheffield</name>
+    <role>The Jester</role>
+    <thumb>https://image.tmdb.org/t/p/h632/746gVMQooBk3oXYME0zP0BTEF6j.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2735738</profile>
+    <tmdbid>2735738</tmdbid>
+  </actor>
+  <actor>
+    <name>Kaitlyn Trentham</name>
+    <role>Max</role>
+    <profile>https://www.themoviedb.org/person/5593265</profile>
+    <tmdbid>5593265</tmdbid>
+  </actor>
+  <actor>
+    <name>Dingani Beza</name>
+    <role>Willie</role>
+    <profile>https://www.themoviedb.org/person/1904469</profile>
+    <tmdbid>1904469</tmdbid>
+  </actor>
+  <actor>
+    <name>Hassen Kacem</name>
+    <role>Logan</role>
+    <profile>https://www.themoviedb.org/person/5593263</profile>
+    <tmdbid>5593263</tmdbid>
+  </actor>
+  <actor>
+    <name>Jessica Ambuehl</name>
+    <role>Mom</role>
+    <profile>https://www.themoviedb.org/person/2786862</profile>
+    <tmdbid>2786862</tmdbid>
+  </actor>
+  <actor>
+    <name>Charles Mckee</name>
+    <role>Diner Patron</role>
+    <profile>https://www.themoviedb.org/person/5611097</profile>
+    <tmdbid>5611097</tmdbid>
+  </actor>
+  <actor>
+    <name>Patrick Loree</name>
+    <role>Darren</role>
+    <profile>https://www.themoviedb.org/person/5656535</profile>
+    <tmdbid>5656535</tmdbid>
+  </actor>
+  <producer tmdbid="62345">
+    <name>Patrick Ewald</name>
+    <role>Producer</role>
+    <profile>https://www.themoviedb.org/person/62345</profile>
+  </producer>
+  <producer tmdbid="1369103">
+    <name>Cole Payne</name>
+    <role>Producer</role>
+    <profile>https://www.themoviedb.org/person/1369103</profile>
+  </producer>
+  <producer tmdbid="2259979">
+    <name>Jake Heineke</name>
+    <role>Producer</role>
+    <profile>https://www.themoviedb.org/person/2259979</profile>
+  </producer>
+  <trailer>plugin://plugin.video.youtube/play/?video_id=7ogVp-d-CdE</trailer>
+  <languages>英语</languages>
+  <dateadded>2026-01-31 19:40:56</dateadded>
+  <fileinfo>
+    <streamdetails>
+      <video>
+        <codec/>
+        <aspect>0.0</aspect>
+        <width>0</width>
+        <height>0</height>
+        <durationinseconds>0</durationinseconds>
+      </video>
+    </streamdetails>
+  </fileinfo>
+  <!--tinyMediaManager meta data-->
+  <source>UNKNOWN</source>
+  <edition>NONE</edition>
+  <original_filename>夺命小丑2 (2025).mp4</original_filename>
+  <user_note/>
+</movie>

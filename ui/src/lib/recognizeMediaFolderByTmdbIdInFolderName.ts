@@ -1,7 +1,6 @@
 import { getMovieById, getTvShowById } from "@/api/tmdb";
 import { basename } from "./path";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
-import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes";
 import type { TMDBMovie, TMDBTVShowDetails } from "@core/types";
 
 export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: string, signal?: AbortSignal): Promise<{

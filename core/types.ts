@@ -472,7 +472,12 @@ export interface MediaMetadata {
   poster?: string,
 
   /**
-   * Stores the recognised media files
+   * Stores the recognized media files
+   * 
+   * For TV Show, mediaFiles are video files for each episode
+   * 
+   * For Movie, mediaFiles contains only one item, which is the video file. 
+   *   seasonNumber and episodeNumber properties should be ignored no matter what values they are.
    */
   mediaFiles?: MediaFileMetadata[],
   /**

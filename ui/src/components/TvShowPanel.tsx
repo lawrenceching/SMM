@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, tryToRecognizeMediaFolderByNFO, buildSeasonsModelFromMediaMetadata } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, tryToRecognizeTvShowFolderByNFO, buildSeasonsModelFromMediaMetadata } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"

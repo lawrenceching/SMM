@@ -239,7 +239,7 @@ function createInitialTMDBSeason(seasonNumber: number): TMDBSeason {
  * @param signal optional AbortSignal to cancel the operation
  * @returns return undefined if not recognizable
  */
-export async function tryToRecognizeMediaFolderByNFO(_mm: UIMediaMetadata, signal?: AbortSignal): Promise<UIMediaMetadata | undefined> {
+export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, signal?: AbortSignal): Promise<UIMediaMetadata | undefined> {
 
     const mm = structuredClone(_mm)
     
