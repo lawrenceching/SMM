@@ -25,7 +25,7 @@ This file lists all features provided by SMM.
 * AI Tools - renameFolder
 * AI Tools - Rename Media Files - beginRenameFilesTaskV2/addRenameFileToTaskV2/endRenameFilesTaskV2
 * AI Tools - Recognize Media Files - beginRecognizeTask/addRecognizedMediaFile/endRecognizeTask
-* MCP Server - listFiles
+* MCP Server - get-media-folders
 * StatusBar - Folder Path
 * StatusBar - MCP Indicator and Popover
 * StatusBar - App Version
