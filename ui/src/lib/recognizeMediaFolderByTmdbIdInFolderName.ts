@@ -1,4 +1,4 @@
-import { getTvShowById } from "@/api/tmdb";
+import { getMovieById, getTvShowById } from "@/api/tmdb";
 import { basename } from "./path";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes";
@@ -38,10 +38,20 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
         }
     }
     
-    // TODO: get movie by TMDB ID
-    console.log(`[tryToRecognizeMediaFolderByTmdbIdInFolderName] TODO: get movie by TMDB ID: ${tmdbIdNumber}`)
-
-    return { }
+    // Try to get movie by TMDB ID
+    const movieResp = await getMovieById(tmdbIdNumber, 'zh-CN', signal);
+    if (movieResp.error) {
+        console.error('[tryToRecognizeMediaFolderByTmdbIdInFolderName] failed to get movie by ID:', movieResp.error);
+        return {};
+    }
+    if (movieResp.data === undefined) {
+        console.error('[tryToRecognizeMediaFolderByTmdbIdInFolderName] failed to get movie by ID:', movieResp);
+        return {};
+    }
+    console.log(`[tryToRecognizeMediaFolderByTmdbIdInFolderName] successfully recognized movie by TMDB ID in folder name: ${movieResp.data?.title} ${movieResp.data?.id}`);
+    return {
+        tmdbMovie: movieResp.data,
+    };
 
 
 }

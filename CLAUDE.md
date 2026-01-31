@@ -9,6 +9,16 @@ Simple Media Manager (SMM) is a cross-platform media library manager powered by 
 
 ## Architecture
 
+** Desktop App **
+
+1. Electron main process starts the CLI process
+2. CLI process serves the frontend HTML and backend API
+3. Electron open window by loading frontend HTML served by CLI process
+
+** Docker Image **
+
+1. CLI process serves the frontend HTML and backend API
+
 ### Workspace Structure
 
 The project is organized as a monorepo with four main workspaces:

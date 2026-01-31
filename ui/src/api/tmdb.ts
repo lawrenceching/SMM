@@ -1,4 +1,4 @@
-import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbTvShowResponseBody } from '@core/types';
+import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody } from '@core/types';
 
 /**
  * Search TMDB for movies or TV shows
@@ -60,6 +60,37 @@ export async function getTvShowById(
   }
 
   const data: TmdbTvShowResponseBody = await resp.json();
+  return data;
+}
+
+/**
+ * Get movie by TMDB ID
+ */
+export async function getMovieById(
+  id: number,
+  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  signal?: AbortSignal
+): Promise<TmdbMovieResponseBody> {
+  const queryParams = new URLSearchParams();
+  if (language) {
+    queryParams.append('language', language);
+  }
+  const queryString = queryParams.toString();
+  const url = `/api/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
+
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal,
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Failed to get movie: ${resp.statusText}`);
+  }
+
+  const data: TmdbMovieResponseBody = await resp.json();
   return data;
 }
 
