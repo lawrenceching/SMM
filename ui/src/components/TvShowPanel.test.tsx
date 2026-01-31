@@ -176,6 +176,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/hooks/useWebSocket', () => ({
   sendAcknowledgement: vi.fn(),
+  useWebSocketEvent: vi.fn(),
 }))
 
 vi.mock('./TvShowPanelUtils', () => ({
@@ -423,7 +424,7 @@ describe('TvShowPanel', () => {
     expect(mockAddTmpPlan).not.toHaveBeenCalled()
   })
 
-  it('should trigger rule-based recognition when media files are not recognized', () => {
+  it('should not trigger automatic recognition when media files are not recognized', () => {
     const testFolderPath = '/test/unrecognized/path'
 
     // Mock mediaMetadata with null mediaFiles (needs recognition)
@@ -433,16 +434,11 @@ describe('TvShowPanel', () => {
     }
 
     render(<TvShowPanel />)
-    
-    // Verify recognition was triggered (buildTemporaryRecognitionPlan returns a plan)
-    expect(mockAddTmpPlan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mediaFolderPath: '/test/path',
-      })
-    )
-    
-    // Verify folder was added to initializedMediaFolders
-    expect(mockSetInitializedMediaFolders).toHaveBeenCalledWith([testFolderPath])
+
+    // Note: Recognition is triggered by user clicking the Recognize button, not automatically
+    // This test verifies that no automatic recognition happens on render
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 
   it('should not trigger recognition when media files are already recognized', () => {
@@ -466,7 +462,7 @@ describe('TvShowPanel', () => {
     expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 
-  it('should trigger recognition when all media files have nil absolutePath', () => {
+  it('should not trigger automatic recognition when media files have nil absolutePath', () => {
     const testFolderPath = '/test/unrecognized/path'
 
     // Mock mediaMetadata with files but all have nil absolutePath
@@ -479,15 +475,10 @@ describe('TvShowPanel', () => {
     }
 
     render(<TvShowPanel />)
-    
-    // Verify recognition was triggered
-    expect(mockAddTmpPlan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mediaFolderPath: '/test/path',
-      })
-    )
-    
-    // Verify folder was added to initializedMediaFolders
-    expect(mockSetInitializedMediaFolders).toHaveBeenCalledWith([testFolderPath])
+
+    // Note: Recognition is triggered by user clicking the Recognize button, not automatically
+    // This test verifies that no automatic recognition happens on render
+    expect(mockAddTmpPlan).not.toHaveBeenCalled()
+    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 })
