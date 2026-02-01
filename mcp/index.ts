@@ -20,8 +20,9 @@ server.registerTool(
         .string()
         .describe("Mathematical expression to evaluate (e.g., '2 + 2', '10 * 5')"),
     },
-  },
-  async ({ expression }) => {
+  } as any,
+  async (args: any) => {
+    const { expression } = args;
     try {
       // Safe evaluation of simple math expressions
       const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, "");
@@ -98,8 +99,9 @@ server.registerPrompt(
         .default("friendly")
         .describe("Tone of the greeting"),
     },
-  },
-  async ({ name, tone = "friendly" }) => {
+  } as any,
+  async (args: any) => {
+    const { name, tone = "friendly" } = args;
     const greetings = {
       formal: `Good day, ${name}. I hope this message finds you well. How may I assist you today?`,
       casual: `Hey ${name}! What's up?`,
