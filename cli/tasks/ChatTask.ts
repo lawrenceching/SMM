@@ -106,22 +106,11 @@ export async function processChatRequest(request: Request): Promise<Response> {
         ...frontendTools(tools),
         getApplicationContext: getApplicationContextTool(clientId, abortSignal),
         isFolderExist: { ...isFolderExistTool, execute: (args: any) => isFolderExistTool.execute(args, abortSignal) },
-        // getSelectedMediaMetadata: createGetSelectedMediaMetadataTool(clientId, abortSignal),
         getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: { ...getMediaFoldersTool, execute: (args: any) => getMediaFoldersTool.execute(args, abortSignal) },
         listFilesInMediaFolder: { ...listFilesInMediaFolderTool, execute: (args: any) => listFilesInMediaFolderTool.execute(args, abortSignal) },
-        // matchEpisode: { ...matchEpisodeTool, execute: (args: any) => matchEpisodeTool.execute(args, abortSignal) },
-
-        // deprecate the matchEpisodesInBatch
-        // matchEpisodesInBatch: createMatchEpisodesInBatchTool(clientId, abortSignal),
-
-        // renameFilesInBatch: createRenameFilesInBatchTool(clientId, abortSignal),
         renameFolder: createRenameFolderTool(clientId, abortSignal),
-        // askForConfirmation: createAskForConfirmationTool(clientId, abortSignal),
-        // beginRenameFilesTask: createBeginRenameFilesTaskTool(clientId, abortSignal),
-        // addRenameFileToTask: createAddRenameFileToTaskTool(clientId, abortSignal),
-        // endRenameFilesTask: createEndRenameFilesTaskTool(clientId, abortSignal),
         beginRenameFilesTaskV2: createBeginRenameFilesTaskV2Tool(clientId, abortSignal),
         addRenameFileToTaskV2: createAddRenameFileToTaskV2Tool(clientId, abortSignal),
         endRenameFilesTaskV2: createEndRenameFilesTaskV2Tool(clientId, abortSignal),

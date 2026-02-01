@@ -1,5 +1,5 @@
 import { getUserConfig } from "@/utils/config";
-import { getMcpStreamableHttpHandler } from "./streamableHttp";
+import { getMcpStreamableHttpHandler } from "./mcp";
 import { logger } from "../../lib/logger";
 
 const DEFAULT_MCP_HOST = "127.0.0.1";

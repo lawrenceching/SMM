@@ -1,4 +1,5 @@
 import { getUserConfig } from "@/utils/config";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
  * MCP tool handler for get-media-folders.
@@ -22,4 +23,16 @@ export async function handleGetMediaFolders(): Promise<{
       isError: true,
     };
   }
+}
+
+export function registerGetMediaFoldersTool(server: McpServer) {
+  server.registerTool(
+    "get-media-folders",
+    {
+      description: "Returns the SMM-managed media folder paths from user config (userConfig.folders).",
+    },
+    async () => {
+      return handleGetMediaFolders();
+    }
+  );
 }

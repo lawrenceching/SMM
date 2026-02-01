@@ -49,7 +49,7 @@ graph TB
 | Component | File | Responsibility |
 |-----------|------|----------------|
 | MCP Server Manager | `mcpServerManager.ts` | Manages server lifecycle based on user config |
-| Streamable HTTP Handler | `streamableHttp.ts` | Creates and configures HTTP-based MCP server |
+| Streamable HTTP Handler | `mcp.ts` | Creates and configures HTTP-based MCP server |
 | Stdio Server | `server.ts` | Standalone stdio-based MCP server for subprocess clients |
 | Tool Handlers | `getMediaFoldersTool.ts` | Implementation of individual MCP tools |
 
@@ -58,7 +58,7 @@ graph TB
 ```
 cli/src/mcp/
 ├── mcpServerManager.ts      # Server lifecycle management
-├── streamableHttp.ts        # HTTP transport implementation
+├── mcp.ts        # HTTP transport implementation
 ├── server.ts                # Stdio transport implementation
 ├── getMediaFoldersTool.ts   # Tool implementation
 └── getMediaFoldersTool.test.ts  # Unit tests
@@ -97,7 +97,7 @@ The `applyMcpConfig` function is called whenever the user configuration changes.
 
 ### Streamable HTTP Transport
 
-The `streamableHttp.ts` module implements the Streamable HTTP transport for MCP. This is the primary transport mechanism used when running SMM as a server.
+The `mcp.ts` module implements the Streamable HTTP transport for MCP. This is the primary transport mechanism used when running SMM as a server.
 
 Key design patterns:
 
@@ -106,7 +106,7 @@ Key design patterns:
 3. **Stateless Mode**: The server runs without session IDs, making each request independent
 
 ```typescript
-// Key pattern in streamableHttp.ts
+// Key pattern in mcp.ts
 
 export async function getMcpStreamableHttpHandler(): Promise<
   (req: Request) => Promise<Response>
@@ -336,7 +336,7 @@ export async function handleExampleTool(): Promise<{
 
 ### Step 2: Register the Tool in HTTP Server
 
-Update `cli/src/mcp/streamableHttp.ts` to register the new tool:
+Update `cli/src/mcp/mcp.ts` to register the new tool:
 
 ```typescript
 // In getMcpStreamableHttpHandler function, after creating the server instance:
@@ -491,7 +491,7 @@ export async function handleCountMediaFiles(): Promise<{
 }
 ```
 
-Then register it in both `streamableHttp.ts` and `server.ts`:
+Then register it in both `mcp.ts` and `server.ts`:
 
 ```typescript
 server.registerTool(
