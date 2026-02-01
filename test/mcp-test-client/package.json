@@ -1,0 +1,18 @@
+{
+  "name": "mcp-test-client",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/mcp": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "bin": {
+    "smm-mcp-test": "index.ts"
+  }
+}
