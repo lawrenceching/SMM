@@ -79,7 +79,7 @@ export function registerWriteMediaMetadataTool(server: McpServer): void {
           mediaFolderPath: z.string(),
           mediaName: z.string(),
           type: z.string(),
-          tmdbTvShow: z.record(z.unknown()),
+          tmdbTvShow: z.record(z.string(), z.unknown()),
         }).describe("The media metadata object to write"),
       },
     } as any,
