@@ -1877,6 +1877,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -1949,6 +1950,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('returns empty array when plan.files is empty', () => {
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/show',
       files: [],
       status: 'ok',
@@ -1969,6 +1971,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
 
   it('returns empty array when plan.files is undefined', () => {
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: '/media/show',
       files: [],
       status: 'ok',
@@ -1990,6 +1993,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('handles multiple episodes in one season', () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [
         '/media/show/Season 01/S01E01.mkv',
@@ -2039,6 +2043,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('handles multiple seasons', () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [
         '/media/show/Season 01/S01E01.mkv',
@@ -2077,6 +2082,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E05.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -2116,6 +2122,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 99/S99E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -2146,6 +2153,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('uses plan.mediaFolderPath when mm.mediaFolderPath is undefined', () => {
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath: undefined,
       files: [videoPath],
       status: 'ok',
@@ -2179,6 +2187,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const subtitlePath = '/media/show/Season 01/S01E01.srt'
     const nfoPath = '/media/show/Season 01/S01E01.nfo'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath, subtitlePath, nfoPath],
       status: 'ok',
@@ -2212,6 +2221,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -2242,6 +2252,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [],
       status: 'ok',
@@ -2272,6 +2283,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: undefined,
       status: 'ok',
@@ -2302,6 +2314,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/Season 01/S01E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -2325,6 +2338,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('sorts episodes by episode_number within each season', () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [
         '/media/show/S01E05.mkv',
@@ -2368,6 +2382,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('sorts seasons by season_number', () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [
         '/media/show/Season 03/S03E01.mkv',
@@ -2405,6 +2420,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
     const mediaFolderPath = '/media/show'
     const videoPath = '/media/show/S00E01.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [videoPath],
       status: 'ok',
@@ -2434,6 +2450,7 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('includes all video files from plan even if tmdbTvShow has no matching episodes', () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [
         '/media/show/S01E01.mkv',
@@ -2477,6 +2494,7 @@ describe('buildSeasonsByRenameFilesPlan', () => {
     const fromPath = '/media/show/Season 01/S01E01.mkv'
     const toPath = '/media/show/Season 01/Show - S01E01 - Pilot.mkv'
     const mm: UIMediaMetadata = {
+      status: 'ok',
       mediaFolderPath,
       files: [fromPath],
       status: 'ok',
