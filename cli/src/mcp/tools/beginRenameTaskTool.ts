@@ -176,17 +176,10 @@ export function registerBeginRenameTaskTool(server: McpServer): void {
     {
       description: "Begin a batch rename task for a media folder. Returns a task ID for use with add-rename-file and end-rename-task.",
       inputSchema: {
-        type: "object",
-        properties: {
-          mediaFolderPath: {
-            type: "string",
-            description: "The absolute path of the media folder",
-          },
-        },
-        required: ["mediaFolderPath"],
+        mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
     } as any,
-    async (args: BeginRenameTaskParams) => {
+    async (args: any) => {
       return handleBeginRenameTask(args);
     }
   );
@@ -201,25 +194,12 @@ export function registerAddRenameFileTool(server: McpServer): void {
     {
       description: "Add a file rename operation to an existing rename task.",
       inputSchema: {
-        type: "object",
-        properties: {
-          taskId: {
-            type: "string",
-            description: "The task ID from begin-rename-task",
-          },
-          from: {
-            type: "string",
-            description: "The current absolute path of the file to rename",
-          },
-          to: {
-            type: "string",
-            description: "The new absolute path for the file",
-          },
-        },
-        required: ["taskId", "from", "to"],
+        taskId: z.string().describe("The task ID from begin-rename-task"),
+        from: z.string().describe("The current absolute path of the file to rename"),
+        to: z.string().describe("The new absolute path for the file"),
       },
     } as any,
-    async (args: AddRenameFileParams) => {
+    async (args: any) => {
       return handleAddRenameFile(args);
     }
   );
@@ -234,17 +214,10 @@ export function registerEndRenameTaskTool(server: McpServer): void {
     {
       description: "End a batch rename task and finalize the plan. The task must have at least one file.",
       inputSchema: {
-        type: "object",
-        properties: {
-          taskId: {
-            type: "string",
-            description: "The task ID from begin-rename-task",
-          },
-        },
-        required: ["taskId"],
+        taskId: z.string().describe("The task ID from begin-rename-task"),
       },
     } as any,
-    async (args: EndRenameTaskParams) => {
+    async (args: any) => {
       return handleEndRenameTask(args);
     }
   );

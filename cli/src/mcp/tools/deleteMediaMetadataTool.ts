@@ -69,17 +69,10 @@ export function registerDeleteMediaMetadataTool(server: McpServer): void {
     {
       description: "Delete cached media metadata for a folder.",
       inputSchema: {
-        type: "object",
-        properties: {
-          mediaFolderPath: {
-            type: "string",
-            description: "The absolute path of the media folder",
-          },
-        },
-        required: ["mediaFolderPath"],
+        mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
     } as any,
-    async (args: DeleteMediaMetadataParams) => {
+    async (args: any) => {
       return handleDeleteMediaMetadata(args);
     }
   );

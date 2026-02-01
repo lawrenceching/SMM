@@ -192,17 +192,10 @@ export function registerBeginRecognizeTaskTool(server: McpServer): void {
     {
       description: "Begin a media file recognition task for a media folder. Returns a task ID for use with add-recognized-file and end-recognize-task.",
       inputSchema: {
-        type: "object",
-        properties: {
-          mediaFolderPath: {
-            type: "string",
-            description: "The absolute path of the media folder",
-          },
-        },
-        required: ["mediaFolderPath"],
+        mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
     } as any,
-    async (args: BeginRecognizeTaskParams) => {
+    async (args: any) => {
       return handleBeginRecognizeTask(args);
     }
   );
@@ -217,29 +210,13 @@ export function registerAddRecognizedFileTool(server: McpServer): void {
     {
       description: "Add a recognized media file to an existing recognition task.",
       inputSchema: {
-        type: "object",
-        properties: {
-          taskId: {
-            type: "string",
-            description: "The task ID from begin-recognize-task",
-          },
-          season: {
-            type: "number",
-            description: "The season number of the episode",
-          },
-          episode: {
-            type: "number",
-            description: "The episode number",
-          },
-          path: {
-            type: "string",
-            description: "The absolute path of the media file",
-          },
-        },
-        required: ["taskId", "season", "episode", "path"],
+        taskId: z.string().describe("The task ID from begin-recognize-task"),
+        season: z.number().describe("The season number of the episode"),
+        episode: z.number().describe("The episode number"),
+        path: z.string().describe("The absolute path of the media file"),
       },
     } as any,
-    async (args: AddRecognizedFileParams) => {
+    async (args: any) => {
       return handleAddRecognizedFile(args);
     }
   );
@@ -254,17 +231,10 @@ export function registerEndRecognizeTaskTool(server: McpServer): void {
     {
       description: "End a recognition task and finalize the plan. The task must have at least one recognized file.",
       inputSchema: {
-        type: "object",
-        properties: {
-          taskId: {
-            type: "string",
-            description: "The task ID from begin-recognize-task",
-          },
-        },
-        required: ["taskId"],
+        taskId: z.string().describe("The task ID from begin-recognize-task"),
       },
     } as any,
-    async (args: EndRecognizeTaskParams) => {
+    async (args: any) => {
       return handleEndRecognizeTask(args);
     }
   );

@@ -75,24 +75,15 @@ export function registerWriteMediaMetadataTool(server: McpServer): void {
     {
       description: "Write media metadata to the cache. Requires metadata object with mediaFolderPath.",
       inputSchema: {
-        type: "object",
-        properties: {
-          metadata: {
-            type: "object",
-            description: "The media metadata object to write",
-            properties: {
-              mediaFolderPath: { type: "string" },
-              mediaName: { type: "string" },
-              type: { type: "string" },
-              tmdbTvShow: { type: "object" },
-            },
-            required: ["mediaFolderPath"],
-          },
-        },
-        required: ["metadata"],
+        metadata: z.object({
+          mediaFolderPath: z.string(),
+          mediaName: z.string(),
+          type: z.string(),
+          tmdbTvShow: z.record(z.unknown()),
+        }).describe("The media metadata object to write"),
       },
     } as any,
-    async (args: WriteMediaMetadataParams) => {
+    async (args: any) => {
       return handleWriteMediaMetadata(args);
     }
   );

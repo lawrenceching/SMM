@@ -58,17 +58,10 @@ export function registerListFilesTool(server: McpServer): void {
     {
       description: "List all files in a media folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format.",
       inputSchema: {
-        type: "object",
-        properties: {
-          folderPath: {
-            type: "string",
-            description: "The absolute path of the folder to list files from",
-          },
-        },
-        required: ["folderPath"],
+        folderPath: z.string().describe("The absolute path of the folder to list files from"),
       },
     } as any,
-    async (args: ListFilesParams) => {
+    async (args: any) => {
       return handleListFiles(args);
     }
   );

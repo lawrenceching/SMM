@@ -113,21 +113,11 @@ export function registerRenameFolderTool(server: McpServer): void {
     {
       description: "Rename a media folder. This is a destructive operation - the folder will be renamed on disk and metadata cache will be updated.",
       inputSchema: {
-        type: "object",
-        properties: {
-          from: {
-            type: "string",
-            description: "The current absolute path of the folder to rename",
-          },
-          to: {
-            type: "string",
-            description: "The new absolute path for the folder",
-          },
-        },
-        required: ["from", "to"],
+        from: z.string().describe("The current absolute path of the folder to rename"),
+        to: z.string().describe("The new absolute path for the folder"),
       },
     } as any,
-    async (args: RenameFolderParams) => {
+    async (args: any) => {
       return handleRenameFolder(args);
     }
   );

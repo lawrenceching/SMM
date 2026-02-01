@@ -83,17 +83,10 @@ export function registerGetMediaMetadataTool(server: McpServer): void {
     {
       description: "Get cached media metadata for a folder. Returns metadata including type, TMDB ID, name, and seasons.",
       inputSchema: {
-        type: "object",
-        properties: {
-          mediaFolderPath: {
-            type: "string",
-            description: "The absolute path of the media folder",
-          },
-        },
-        required: ["mediaFolderPath"],
+        mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
     } as any,
-    async (args: GetMediaMetadataParams) => {
+    async (args: any) => {
       return handleGetMediaMetadata(args);
     }
   );

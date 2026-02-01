@@ -58,17 +58,10 @@ export function registerIsFolderExistTool(server: McpServer): void {
     {
       description: "Check if a folder exists at the specified path. Accepts paths in POSIX or Windows format.",
       inputSchema: {
-        type: "object",
-        properties: {
-          path: {
-            type: "string",
-            description: "The absolute path of the folder to check",
-          },
-        },
-        required: ["path"],
+        path: z.string().describe("The absolute path of the folder to check"),
       },
     } as any,
-    async (args: IsFolderExistParams) => {
+    async (args: any) => {
       return handleIsFolderExist(args);
     }
   );

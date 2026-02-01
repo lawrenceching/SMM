@@ -102,17 +102,10 @@ export function registerGetEpisodesTool(server: McpServer): void {
     {
       description: "Get all episodes for a TV show media folder. Returns a flat array of all episodes across all seasons.",
       inputSchema: {
-        type: "object",
-        properties: {
-          mediaFolderPath: {
-            type: "string",
-            description: "The absolute path of the TV show media folder",
-          },
-        },
-        required: ["mediaFolderPath"],
+        mediaFolderPath: z.string().describe("The absolute path of the TV show media folder"),
       },
     } as any,
-    async (args: GetEpisodesParams) => {
+    async (args: any) => {
       return handleGetEpisodes(args);
     }
   );
