@@ -7,6 +7,8 @@ import {
 } from "@/tools/recognizeMediaFilesTool";
 import type { RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface BeginRecognizeTaskParams {
   /** Path to the media folder for recognition task */
@@ -32,11 +34,11 @@ export interface EndRecognizeTaskParams {
 /**
  * Begin a media file recognition task for a media folder.
  * Returns a task ID that must be used for subsequent operations.
- * 
+ *
  * @param params - Tool parameters containing media folder path
  * @param params.mediaFolderPath - Path to the media folder for recognition
  * @returns Promise resolving to MCP tool response with task ID or error
- * 
+ *
  * This creates a new recognition task that can accept multiple recognized files
  * before being finalized. Use the returned taskId with add-recognized-file and end-recognize-task.
  */
@@ -68,14 +70,14 @@ export async function handleBeginRecognizeTask(params: BeginRecognizeTaskParams)
 
 /**
  * Add a recognized file to an existing recognition task.
- * 
+ *
  * @param params - Tool parameters containing task ID and file information
  * @param params.taskId - ID of the existing recognition task
  * @param params.season - Season number for the recognized file
  * @param params.episode - Episode number for the recognized file
  * @param params.path - File path of the recognized media file
  * @returns Promise resolving to MCP tool response with success confirmation or error
- * 
+ *
  * This adds a single recognized file to an existing batch recognition task.
  * Multiple files can be added to the same task before finalization.
  */
@@ -133,11 +135,11 @@ export async function handleAddRecognizedFile(params: AddRecognizedFileParams): 
 
 /**
  * End a recognition task and finalize the plan.
- * 
+ *
  * @param params - Tool parameters containing task ID
  * @param params.taskId - ID of recognition task to finalize and execute
  * @returns Promise resolving to MCP tool response with success confirmation or error
- * 
+ *
  * This finalizes a batch recognition task and creates the recognition plan.
  * The task must contain at least one recognized file to be successfully ended.
  */
@@ -179,4 +181,91 @@ export async function handleEndRecognizeTask(params: EndRecognizeTaskParams): Pr
       isError: true,
     };
   }
+}
+
+/**
+ * Register the begin-recognize-task tool with the MCP server.
+ */
+export function registerBeginRecognizeTaskTool(server: McpServer): void {
+  server.registerTool(
+    "begin-recognize-task",
+    {
+      description: "Begin a media file recognition task for a media folder. Returns a task ID for use with add-recognized-file and end-recognize-task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mediaFolderPath: {
+            type: "string",
+            description: "The absolute path of the media folder",
+          },
+        },
+        required: ["mediaFolderPath"],
+      },
+    } as any,
+    async (args: BeginRecognizeTaskParams) => {
+      return handleBeginRecognizeTask(args);
+    }
+  );
+}
+
+/**
+ * Register the add-recognized-file tool with the MCP server.
+ */
+export function registerAddRecognizedFileTool(server: McpServer): void {
+  server.registerTool(
+    "add-recognized-file",
+    {
+      description: "Add a recognized media file to an existing recognition task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: {
+            type: "string",
+            description: "The task ID from begin-recognize-task",
+          },
+          season: {
+            type: "number",
+            description: "The season number of the episode",
+          },
+          episode: {
+            type: "number",
+            description: "The episode number",
+          },
+          path: {
+            type: "string",
+            description: "The absolute path of the media file",
+          },
+        },
+        required: ["taskId", "season", "episode", "path"],
+      },
+    } as any,
+    async (args: AddRecognizedFileParams) => {
+      return handleAddRecognizedFile(args);
+    }
+  );
+}
+
+/**
+ * Register the end-recognize-task tool with the MCP server.
+ */
+export function registerEndRecognizeTaskTool(server: McpServer): void {
+  server.registerTool(
+    "end-recognize-task",
+    {
+      description: "End a recognition task and finalize the plan. The task must have at least one recognized file.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: {
+            type: "string",
+            description: "The task ID from begin-recognize-task",
+          },
+        },
+        required: ["taskId"],
+      },
+    } as any,
+    async (args: EndRecognizeTaskParams) => {
+      return handleEndRecognizeTask(args);
+    }
+  );
 }

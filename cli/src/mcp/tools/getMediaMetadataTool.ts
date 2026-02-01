@@ -4,6 +4,8 @@ import { findMediaMetadata, writeMediaMetadata } from "@/utils/mediaMetadata";
 import { listFiles } from "@/utils/files";
 import type { MediaMetadata } from "@core/types";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface GetMediaMetadataParams {
   mediaFolderPath: string;
@@ -70,4 +72,29 @@ export async function handleGetMediaMetadata(params: GetMediaMetadataParams): Pr
       isError: true,
     };
   }
+}
+
+/**
+ * Register the get-media-metadata tool with the MCP server.
+ */
+export function registerGetMediaMetadataTool(server: McpServer): void {
+  server.registerTool(
+    "get-media-metadata",
+    {
+      description: "Get cached media metadata for a folder. Returns metadata including type, TMDB ID, name, and seasons.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mediaFolderPath: {
+            type: "string",
+            description: "The absolute path of the media folder",
+          },
+        },
+        required: ["mediaFolderPath"],
+      },
+    } as any,
+    async (args: GetMediaMetadataParams) => {
+      return handleGetMediaMetadata(args);
+    }
+  );
 }

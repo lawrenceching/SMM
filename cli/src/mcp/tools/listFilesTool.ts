@@ -1,6 +1,8 @@
 import { Path } from "@core/path";
 import { listFiles } from "@/utils/files";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface ListFilesParams {
   /** Path to the directory to list files from */
@@ -14,7 +16,7 @@ export interface ListFilesParams {
 /**
  * List files and folders in a directory with optional filtering.
  * Accepts paths in both POSIX and Windows format.
- * 
+ *
  * @param params - Tool parameters containing folder path and options
  * @param params.folderPath - Path to the directory to list
  * @param params.recursive - Whether to list files recursively (default: false)
@@ -45,4 +47,29 @@ export async function handleListFiles(params: ListFilesParams): Promise<McpToolR
       isError: true,
     };
   }
+}
+
+/**
+ * Register the list-files tool with the MCP server.
+ */
+export function registerListFilesTool(server: McpServer): void {
+  server.registerTool(
+    "list-files",
+    {
+      description: "List all files in a media folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          folderPath: {
+            type: "string",
+            description: "The absolute path of the folder to list files from",
+          },
+        },
+        required: ["folderPath"],
+      },
+    } as any,
+    async (args: ListFilesParams) => {
+      return handleListFiles(args);
+    }
+  );
 }

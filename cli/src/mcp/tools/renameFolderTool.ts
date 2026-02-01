@@ -3,6 +3,8 @@ import { rename } from "node:fs/promises";
 import { Path } from "@core/path";
 import { metadataCacheFilePath } from "@/route/mediaMetadata/utils";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface RenameFolderParams {
   from: string;
@@ -100,4 +102,33 @@ export async function handleRenameFolder(params: RenameFolderParams): Promise<Mc
       isError: true,
     };
   }
+}
+
+/**
+ * Register the rename-folder tool with the MCP server.
+ */
+export function registerRenameFolderTool(server: McpServer): void {
+  server.registerTool(
+    "rename-folder",
+    {
+      description: "Rename a media folder. This is a destructive operation - the folder will be renamed on disk and metadata cache will be updated.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          from: {
+            type: "string",
+            description: "The current absolute path of the folder to rename",
+          },
+          to: {
+            type: "string",
+            description: "The new absolute path for the folder",
+          },
+        },
+        required: ["from", "to"],
+      },
+    } as any,
+    async (args: RenameFolderParams) => {
+      return handleRenameFolder(args);
+    }
+  );
 }

@@ -2,6 +2,8 @@ import { Path } from "@core/path";
 import { metadataCacheFilePath } from "@/route/mediaMetadata/utils";
 import { unlink } from "fs/promises";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface DeleteMediaMetadataParams {
   /** Path to the media folder whose metadata should be deleted */
@@ -10,11 +12,11 @@ export interface DeleteMediaMetadataParams {
 
 /**
  * Delete cached media metadata for a folder.
- * 
+ *
  * @param params - Tool parameters containing folder path
  * @param params.mediaFolderPath - Path to the media folder whose metadata should be deleted
  * @returns Promise resolving to MCP tool response with success confirmation or error
- * 
+ *
  * Note: This permanently removes the metadata cache file for the specified folder.
  * If no metadata cache exists for the folder, the operation still succeeds.
  */
@@ -56,4 +58,29 @@ export async function handleDeleteMediaMetadata(params: DeleteMediaMetadataParam
       isError: true,
     };
   }
+}
+
+/**
+ * Register the delete-media-metadata tool with the MCP server.
+ */
+export function registerDeleteMediaMetadataTool(server: McpServer): void {
+  server.registerTool(
+    "delete-media-metadata",
+    {
+      description: "Delete cached media metadata for a folder.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mediaFolderPath: {
+            type: "string",
+            description: "The absolute path of the media folder",
+          },
+        },
+        required: ["mediaFolderPath"],
+      },
+    } as any,
+    async (args: DeleteMediaMetadataParams) => {
+      return handleDeleteMediaMetadata(args);
+    }
+  );
 }

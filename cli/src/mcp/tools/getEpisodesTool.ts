@@ -2,6 +2,8 @@ import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface GetEpisodesParams {
   mediaFolderPath: string;
@@ -89,4 +91,29 @@ export async function handleGetEpisodes(params: GetEpisodesParams): Promise<McpT
       isError: true,
     };
   }
+}
+
+/**
+ * Register the get-episodes tool with the MCP server.
+ */
+export function registerGetEpisodesTool(server: McpServer): void {
+  server.registerTool(
+    "get-episodes",
+    {
+      description: "Get all episodes for a TV show media folder. Returns a flat array of all episodes across all seasons.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mediaFolderPath: {
+            type: "string",
+            description: "The absolute path of the TV show media folder",
+          },
+        },
+        required: ["mediaFolderPath"],
+      },
+    } as any,
+    async (args: GetEpisodesParams) => {
+      return handleGetEpisodes(args);
+    }
+  );
 }

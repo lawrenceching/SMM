@@ -1,1 +1,8 @@
-export { handleBeginRecognizeTask, handleAddRecognizedFile, handleEndRecognizeTask } from "./beginRecognizeTaskTool";
+export {
+  handleBeginRecognizeTask,
+  handleAddRecognizedFile,
+  handleEndRecognizeTask,
+  registerBeginRecognizeTaskTool,
+  registerAddRecognizedFileTool,
+  registerEndRecognizeTaskTool,
+} from "./beginRecognizeTaskTool";

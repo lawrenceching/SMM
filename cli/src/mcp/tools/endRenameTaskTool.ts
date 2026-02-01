@@ -1,1 +1,8 @@
-export { handleBeginRenameTask, handleAddRenameFile, handleEndRenameTask } from "./beginRenameTaskTool";
+export {
+  handleBeginRenameTask,
+  handleAddRenameFile,
+  handleEndRenameTask,
+  registerBeginRenameTaskTool,
+  registerAddRenameFileTool,
+  registerEndRenameTaskTool,
+} from "./beginRenameTaskTool";

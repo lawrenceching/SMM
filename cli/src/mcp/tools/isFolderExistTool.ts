@@ -1,6 +1,8 @@
 import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface IsFolderExistParams {
   path: string;
@@ -45,4 +47,29 @@ export async function handleIsFolderExist(params: IsFolderExistParams): Promise<
       isError: true,
     };
   }
+}
+
+/**
+ * Register the is-folder-exist tool with the MCP server.
+ */
+export function registerIsFolderExistTool(server: McpServer): void {
+  server.registerTool(
+    "is-folder-exist",
+    {
+      description: "Check if a folder exists at the specified path. Accepts paths in POSIX or Windows format.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "The absolute path of the folder to check",
+          },
+        },
+        required: ["path"],
+      },
+    } as any,
+    async (args: IsFolderExistParams) => {
+      return handleIsFolderExist(args);
+    }
+  );
 }

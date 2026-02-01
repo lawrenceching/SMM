@@ -7,6 +7,8 @@ import {
 } from "@/tools/renameFilesToolV2";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import type { McpToolResponse } from "./mcpToolBase";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 export interface BeginRenameTaskParams {
   /** Path to the media folder for the batch rename operation */
@@ -30,11 +32,11 @@ export interface EndRenameTaskParams {
 /**
  * Begin a batch rename task for a media folder.
  * Returns a task ID that must be used for subsequent operations.
- * 
+ *
  * @param params - Tool parameters containing media folder path
  * @param params.mediaFolderPath - Path to the media folder for batch rename
  * @returns Promise resolving to MCP tool response with task ID or error
- * 
+ *
  * This creates a new rename task that can accept multiple file rename operations
  * before being finalized. Use the returned taskId with add-rename-file and end-rename-task.
  */
@@ -66,13 +68,13 @@ export async function handleBeginRenameTask(params: BeginRenameTaskParams): Prom
 
 /**
  * Add a file rename operation to an existing task.
- * 
+ *
  * @param params - Tool parameters containing task ID and file paths
  * @param params.taskId - ID of the existing rename task
  * @param params.from - Current file path to be renamed
  * @param params.to - New file path after rename
  * @returns Promise resolving to MCP tool response with success confirmation or error
- * 
+ *
  * This adds a single file rename operation to an existing batch rename task.
  * Multiple files can be added to the same task before finalization.
  */
@@ -117,11 +119,11 @@ export async function handleAddRenameFile(params: AddRenameFileParams): Promise<
 
 /**
  * End a batch rename task and finalize the plan.
- * 
+ *
  * @param params - Tool parameters containing task ID
  * @param params.taskId - ID of the rename task to finalize and execute
  * @returns Promise resolving to MCP tool response with success confirmation or error
- * 
+ *
  * This finalizes a batch rename task and executes all queued file rename operations.
  * The task must contain at least one file rename operation to be successfully ended.
  */
@@ -163,4 +165,87 @@ export async function handleEndRenameTask(params: EndRenameTaskParams): Promise<
       isError: true,
     };
   }
+}
+
+/**
+ * Register the begin-rename-task tool with the MCP server.
+ */
+export function registerBeginRenameTaskTool(server: McpServer): void {
+  server.registerTool(
+    "begin-rename-task",
+    {
+      description: "Begin a batch rename task for a media folder. Returns a task ID for use with add-rename-file and end-rename-task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mediaFolderPath: {
+            type: "string",
+            description: "The absolute path of the media folder",
+          },
+        },
+        required: ["mediaFolderPath"],
+      },
+    } as any,
+    async (args: BeginRenameTaskParams) => {
+      return handleBeginRenameTask(args);
+    }
+  );
+}
+
+/**
+ * Register the add-rename-file tool with the MCP server.
+ */
+export function registerAddRenameFileTool(server: McpServer): void {
+  server.registerTool(
+    "add-rename-file",
+    {
+      description: "Add a file rename operation to an existing rename task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: {
+            type: "string",
+            description: "The task ID from begin-rename-task",
+          },
+          from: {
+            type: "string",
+            description: "The current absolute path of the file to rename",
+          },
+          to: {
+            type: "string",
+            description: "The new absolute path for the file",
+          },
+        },
+        required: ["taskId", "from", "to"],
+      },
+    } as any,
+    async (args: AddRenameFileParams) => {
+      return handleAddRenameFile(args);
+    }
+  );
+}
+
+/**
+ * Register the end-rename-task tool with the MCP server.
+ */
+export function registerEndRenameTaskTool(server: McpServer): void {
+  server.registerTool(
+    "end-rename-task",
+    {
+      description: "End a batch rename task and finalize the plan. The task must have at least one file.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: {
+            type: "string",
+            description: "The task ID from begin-rename-task",
+          },
+        },
+        required: ["taskId"],
+      },
+    } as any,
+    async (args: EndRenameTaskParams) => {
+      return handleEndRenameTask(args);
+    }
+  );
 }
