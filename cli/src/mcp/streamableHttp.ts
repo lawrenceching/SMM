@@ -187,19 +187,15 @@ export async function getMcpStreamableHttpHandler(): Promise<
       }
     );
 
-    server.registerTool(
-      "get-application-context",
-      {
-        description: "Get application context including configured media folders and settings.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      } as any,
-      async () => {
-        return handleGetApplicationContext();
-      }
-    );
+server.registerTool(
+  "get-application-context",
+  {
+    description: "Get application context including configured media folders and settings.",
+  },
+  async () => {
+    return handleGetApplicationContext();
+  }
+);
 
     // Rename tools
     server.registerTool(
