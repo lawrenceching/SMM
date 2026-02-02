@@ -105,7 +105,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
       tools: {
         ...frontendTools(tools),
         getApplicationContext: agentTools.getApplicationContext(clientId),
-        isFolderExist: { ...isFolderExistTool, execute: (args: any) => isFolderExistTool.execute(args, abortSignal) },
+        isFolderExist: agentTools.isFolderExist(clientId),
         getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: agentTools.getMediaFolders(clientId),
