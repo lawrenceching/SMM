@@ -7,7 +7,8 @@ import { dirname } from "path";
 
 // Import tool handlers directly for integration testing
 import { handleListFiles } from "@/tools/listFiles";
-import { handleGetMediaMetadata, handleWriteMediaMetadata, handleDeleteMediaMetadata } from "./tools";
+import { handleGetMediaMetadata } from "@/tools/getMediaMetadata";
+import { handleWriteMediaMetadata, handleDeleteMediaMetadata } from "./tools";
 import { handleBeginRecognizeTask, handleAddRecognizedFile, handleEndRecognizeTask } from "./tools/beginRecognizeTaskTool";
 import { handleBeginRenameTask, handleAddRenameFile, handleEndRenameTask } from "./tools/beginRenameTaskTool";
 

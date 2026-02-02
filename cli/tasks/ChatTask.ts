@@ -17,7 +17,6 @@ import {
 } from '../src/tools';
 import { agentTools } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
-import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
 import { logger } from '../lib/logger';
 import { getUserConfig } from '@/utils/config';
 import { createAIProvider } from '../lib/ai-provider';
@@ -105,7 +104,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
         ...frontendTools(tools),
         getApplicationContext: agentTools.getApplicationContext(clientId),
         isFolderExist: agentTools.isFolderExist(clientId),
-        getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
+        getMediaMetadata: agentTools.getMediaMetadata(clientId, abortSignal),
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: agentTools.getMediaFolders(clientId),
         listFilesInMediaFolder: agentTools.listFiles(clientId),
