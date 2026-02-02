@@ -7,7 +7,7 @@ import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
 import { createRenameFilesInBatchTool } from './renameFilesInBatch';
 import { createRenameFolderTool } from './renameFolder';
 import { createAskForConfirmationTool } from './askForConfirmation';
-import { getApplicationContextTool } from './getApplicationContext';
+import { getApplicationContextAgentTool, getApplicationContextMcpTool } from './getApplicationContext';
 import {
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
@@ -34,7 +34,6 @@ export {
   createRenameFilesInBatchTool,
   createRenameFolderTool,
   createAskForConfirmationTool,
-  getApplicationContextTool,
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
@@ -45,5 +44,15 @@ export {
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,
   createGetEpisodesTool,
+
+  
 };
+
+export const agentTools = {
+  getApplicationContext: getApplicationContextAgentTool,
+}
+
+export const mcpTools = {
+  getApplicationContext: getApplicationContextMcpTool,
+}
 

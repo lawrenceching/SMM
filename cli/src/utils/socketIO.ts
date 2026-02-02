@@ -130,6 +130,41 @@ export function broadcast(message: WebSocketMessage): void {
 
 
 /**
+ * Helper function to find clientId from a socket's rooms
+ * @param socket The socket to check
+ * @returns The clientId (room name) if found, null otherwise
+ */
+const getClientIdFromSocket = (socket: Socket): string | null => {
+  const rooms = Array.from(socket.rooms);
+  // Find the room that's not the socket's own ID (which is auto-joined)
+  return rooms.find(room => room !== socket.id) || null;
+};
+
+/**
+ * Get the first available socket connection with a valid clientId
+ * @returns Object containing the socket and clientId, or null if no sockets available
+ */
+export function getFirstAvailableSocket(): { socket: Socket; clientId: string } | null {
+  if (!io) {
+    return null;
+  }
+
+  const sockets = Array.from(io.sockets.sockets.values());
+  if (sockets.length === 0) {
+    return null;
+  }
+
+  for (const socket of sockets) {
+    const foundClientId = getClientIdFromSocket(socket);
+    if (foundClientId) {
+      return { socket, clientId: foundClientId };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Find a socket by clientId (room name)
  * @param clientId Optional clientId (room name). If undefined, finds the first available socket connection.
  * @returns Object containing the socket and the clientId used
@@ -139,30 +174,6 @@ export function findSocketByClientId(clientId?: string): { socket: Socket; clien
   if (!io) {
     throw new Error('Socket.IO instance not initialized');
   }
-
-  // Helper function to find clientId from a socket's rooms
-  const getClientIdFromSocket = (socket: Socket): string | null => {
-    const rooms = Array.from(socket.rooms);
-    // Find the room that's not the socket's own ID (which is auto-joined)
-    return rooms.find(room => room !== socket.id) || null;
-  };
-
-  // Helper function to get the first available socket and its clientId
-  const getFirstAvailableSocket = (): { socket: Socket; clientId: string } | null => {
-    const sockets = Array.from(io!.sockets.sockets.values());
-    if (sockets.length === 0) {
-      return null;
-    }
-
-    for (const socket of sockets) {
-      const foundClientId = getClientIdFromSocket(socket);
-      if (foundClientId) {
-        return { socket, clientId: foundClientId };
-      }
-    }
-
-    return null;
-  };
 
   // If clientId is provided, try to find socket in that room
   if (clientId) {

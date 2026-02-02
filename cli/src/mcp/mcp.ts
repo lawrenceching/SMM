@@ -36,6 +36,7 @@ import {
   registerEndRecognizeTaskTool,
 } from "./tools/beginRecognizeTaskTool";
 import { registerCalculateTool } from "./tools/calculateTool";
+import { mcpTools } from "@/tools";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -62,7 +63,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
       }
     );
 
-    registerCalculateTool(server);
+    registerGetApplicationContextTool(server);
     registerGetMediaFoldersTool(server);
     registerIsFolderExistTool(server);
     registerListFilesTool(server);
@@ -70,7 +71,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     registerWriteMediaMetadataTool(server);
     registerDeleteMediaMetadataTool(server);
     registerGetEpisodesTool(server);
-    registerGetApplicationContextTool(server);
+    // registerGetApplicationContextTool(server);
     registerRenameFolderTool(server);
     registerBeginRenameTaskTool(server);
     registerAddRenameFileTool(server);

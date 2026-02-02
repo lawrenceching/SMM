@@ -6,7 +6,6 @@ import {
   listFilesInMediaFolderTool,
   createMatchEpisodesInBatchTool,
   createRenameFolderTool,
-  getApplicationContextTool,
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
@@ -18,6 +17,7 @@ import {
   createEndRecognizeTaskTool,
   createGetEpisodesTool,
 } from '../src/tools';
+import { agentTools } from '../src/tools';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
 import { createGetMediaMetadataTool } from '@/tools/getMediaMetadata';
 import { logger } from '../lib/logger';
@@ -97,6 +97,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
     const modelMessages = await convertToModelMessages(messages || []);
 
     logger.debug({ selectedAI: userConfig.selectedAI, model: model || defaultModel }, 'Using AI model configuration');
+
     const result = streamText({
       model: aiProvider.chatModel(model || defaultModel),
       messages: modelMessages,
@@ -104,7 +105,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
       abortSignal: abortSignal,
       tools: {
         ...frontendTools(tools),
-        getApplicationContext: getApplicationContextTool(clientId, abortSignal),
+        getApplicationContext: agentTools.getApplicationContext(clientId),
         isFolderExist: { ...isFolderExistTool, execute: (args: any) => isFolderExistTool.execute(args, abortSignal) },
         getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),

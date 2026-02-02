@@ -1,6 +1,7 @@
 import { getUserConfig } from "@/utils/config";
 import type { McpToolResponse } from "./mcpToolBase";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { mcpTools } from "@/tools";
 
 /**
  * Get application context including configured media folders and settings.
@@ -42,13 +43,16 @@ export async function handleGetApplicationContext(): Promise<McpToolResponse> {
  * Register the get-application-context tool with the MCP server.
  */
 export function registerGetApplicationContextTool(server: McpServer): void {
+  const tool = mcpTools.getApplicationContext();
   server.registerTool(
-    "get-application-context",
+    tool.toolName,
     {
-      description: "Get application context including configured media folders and settings.",
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      outputSchema: tool.outputSchema,
     },
     async () => {
-      return handleGetApplicationContext();
+      return await tool.execute({ path: '' });
     }
   );
 }
