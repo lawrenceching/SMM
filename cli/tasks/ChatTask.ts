@@ -2,7 +2,6 @@ import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from 
 import { config } from 'dotenv';
 import {
   isFolderExistTool,
-  listFilesInMediaFolderTool,
   createMatchEpisodesInBatchTool,
   createRenameFolderTool,
   createBeginRenameFilesTaskTool,
@@ -109,7 +108,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
         getMediaMetadata: createGetMediaMetadataTool(clientId, abortSignal),
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: agentTools.getMediaFolders(clientId),
-        listFilesInMediaFolder: { ...listFilesInMediaFolderTool, execute: (args: any) => listFilesInMediaFolderTool.execute(args, abortSignal) },
+        listFilesInMediaFolder: agentTools.listFiles(clientId),
         renameFolder: createRenameFolderTool(clientId, abortSignal),
         beginRenameFilesTaskV2: createBeginRenameFilesTaskV2Tool(clientId, abortSignal),
         addRenameFileToTaskV2: createAddRenameFileToTaskV2Tool(clientId, abortSignal),

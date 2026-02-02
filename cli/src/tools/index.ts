@@ -1,7 +1,7 @@
 import { isFolderExistTool, isFolderExistAgentTool, isFolderExistMcpTool } from './isFolderExist';
 import { createGetSelectedMediaMetadataTool } from './getSelectedMediaMetadata';
 import { getMediaFoldersTool, getMediaFoldersAgentTool, getMediaFoldersMcpTool } from './getMediaFolders';
-import { listFilesInMediaFolderTool } from './listFilesInMediaFolder';
+import { listFilesTool, listFilesAgentTool, listFilesMcpTool } from './listFiles';
 import { matchEpisodeTool } from './matchEpisode';
 import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
 import { createRenameFilesInBatchTool } from './renameFilesInBatch';
@@ -28,7 +28,7 @@ export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
   getMediaFoldersTool,
-  listFilesInMediaFolderTool,
+  listFilesTool,
   matchEpisodeTool,
   createMatchEpisodesInBatchTool,
   createRenameFilesInBatchTool,
@@ -45,18 +45,20 @@ export {
   createEndRecognizeTaskTool,
   createGetEpisodesTool,
 
-  
+
 };
 
 export const agentTools = {
   getApplicationContext: getApplicationContextAgentTool,
   getMediaFolders: getMediaFoldersAgentTool,
   isFolderExist: isFolderExistAgentTool,
+  listFiles: listFilesAgentTool,
 }
 
 export const mcpTools = {
   getApplicationContext: getApplicationContextMcpTool,
   getMediaFolders: getMediaFoldersMcpTool,
   isFolderExist: isFolderExistMcpTool,
+  listFiles: listFilesMcpTool,
 }
 

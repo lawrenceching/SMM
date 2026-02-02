@@ -6,8 +6,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 
 // Import tool handlers directly for integration testing
-import { handleIsFolderExist } from "./tools/isFolderExistTool";
-import { handleListFiles } from "./tools/listFilesTool";
+import { handleListFiles } from "@/tools/listFiles";
 import { handleGetMediaMetadata, handleWriteMediaMetadata, handleDeleteMediaMetadata } from "./tools";
 import { handleBeginRecognizeTask, handleAddRecognizedFile, handleEndRecognizeTask } from "./tools/beginRecognizeTaskTool";
 import { handleBeginRenameTask, handleAddRenameFile, handleEndRenameTask } from "./tools/beginRenameTaskTool";
@@ -77,7 +76,7 @@ describe("MCP Server Integration Tests", () => {
     });
 
     it("listFiles tool should accept path parameter", async () => {
-      const result = await handleListFiles({ path: testMediaDir });
+      const result = await handleListFiles({ folderPath: testMediaDir });
       expect(result.content).toBeDefined();
       expect(result.content.length).toBeGreaterThan(0);
     });
@@ -445,7 +444,7 @@ describe("MCP Server Integration Tests", () => {
     });
 
     it("should reject empty path for listFiles", async () => {
-      const result = await handleListFiles({ path: "" });
+      const result = await handleListFiles({ folderPath: "" });
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Invalid path");
     });
