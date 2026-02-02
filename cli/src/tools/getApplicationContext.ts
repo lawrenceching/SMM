@@ -70,8 +70,6 @@ export const getTool = function (clientId?: string): ToolDefinition {
   }
 }
 
-
-
 export function getApplicationContextAgentTool(clientId: string) {
   return {
     description: getTool(clientId).description,

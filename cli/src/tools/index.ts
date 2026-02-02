@@ -1,6 +1,6 @@
 import { isFolderExistTool } from './isFolderExist';
 import { createGetSelectedMediaMetadataTool } from './getSelectedMediaMetadata';
-import { getMediaFoldersTool } from './getMediaFolders';
+import { getMediaFoldersTool, getMediaFoldersAgentTool, getMediaFoldersMcpTool } from './getMediaFolders';
 import { listFilesInMediaFolderTool } from './listFilesInMediaFolder';
 import { matchEpisodeTool } from './matchEpisode';
 import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
@@ -50,9 +50,11 @@ export {
 
 export const agentTools = {
   getApplicationContext: getApplicationContextAgentTool,
+  getMediaFolders: getMediaFoldersAgentTool,
 }
 
 export const mcpTools = {
   getApplicationContext: getApplicationContextMcpTool,
+  getMediaFolders: getMediaFoldersMcpTool,
 }
 
