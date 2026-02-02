@@ -69,9 +69,14 @@ export async function getMcpStreamableHttpHandler(): Promise<
     registerGetMediaFoldersTool(server);
     registerIsFolderExistTool(server);
     registerListFilesTool(server);
-    registerGetMediaMetadataTool(server);
-    registerWriteMediaMetadataTool(server);
-    registerDeleteMediaMetadataTool(server);
+
+    // Media Metadata is too large for AI to handle
+    // I'm going to break it down into smaller tools
+    // Therefore the media metadata tools are disabled for now
+    // registerGetMediaMetadataTool(server);
+    // registerWriteMediaMetadataTool(server);
+    // registerDeleteMediaMetadataTool(server);
+    
     registerGetEpisodesTool(server);
     // registerGetApplicationContextTool(server);
     registerRenameFolderTool(server);
