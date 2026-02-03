@@ -47,6 +47,47 @@ interface MediaMetadataContextValue {
 
 const MediaMetadataContext = createContext<MediaMetadataContextValue | undefined>(undefined)
 
+/**
+ * Compares two UIMediaMetadata objects to determine if core MediaMetadata properties have changed.
+ * UI-specific properties (like 'status') are excluded from the comparison.
+ * @returns true if any MediaMetadata property has changed, false if only UI properties changed
+ */
+function hasMediaMetadataChanged(
+  current: UIMediaMetadata | undefined,
+  updated: UIMediaMetadata
+): boolean {
+  // If there's no current metadata, consider it as changed (needs to be written)
+  if (!current) {
+    return true
+  }
+
+  // Keys that are UI-specific and should not trigger a file write
+  const uiOnlyKeys: (keyof UIMediaMetadata)[] = ['status']
+
+  // Compare all keys in the updated object
+  for (const key of Object.keys(updated) as (keyof UIMediaMetadata)[]) {
+    // Skip UI-only keys
+    if (uiOnlyKeys.includes(key)) {
+      continue
+    }
+
+    const currentValue = current[key]
+    const updatedValue = updated[key]
+
+    // Handle arrays (e.g., mediaFiles, seasons)
+    if (Array.isArray(currentValue) && Array.isArray(updatedValue)) {
+      if (JSON.stringify(currentValue) !== JSON.stringify(updatedValue)) {
+        return true
+      }
+    } else if (currentValue !== updatedValue) {
+      // Handle null/undefined/primitive value differences
+      return true
+    }
+  }
+
+  return false
+}
+
 interface MediaMetadataProviderProps {
   children: ReactNode
   initialMediaMetadatas?: UIMediaMetadata[]
@@ -59,7 +100,7 @@ export function MediaMetadataProvider({
   initialMediaMetadatas = [],
 }: MediaMetadataProviderProps) {
   const [mediaMetadatas, setMediaMetadatas] = useState<UIMediaMetadata[]>(initialMediaMetadatas)
-  const latestMediaMetadata = useLatest(mediaMetadatas)
+  const latestMediaMetadatas = useLatest(mediaMetadatas)
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
   const { userConfig } = useConfig()
   const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() => {
@@ -130,7 +171,7 @@ export function MediaMetadataProvider({
     console.log(`[updateMediaMetadata][${traceId ? ` [${traceId}]` : ''}] Updating media metadata for ${path}`)
 
     // Get current metadata for callback case
-    const currentMetadata = latestMediaMetadata.current.find((m) => m.mediaFolderPath === path)
+    const currentMetadata = latestMediaMetadatas.current.find((m) => m.mediaFolderPath === path)
 
     // Determine the metadata to update
     let metadataToUpdate: UIMediaMetadata
@@ -152,6 +193,17 @@ export function MediaMetadataProvider({
       mediaFolderPath: metadataToUpdate.mediaFolderPath || path
     }
 
+    // Compare currentMetadata and metadataToUpdate to determine if we need to persist to file
+    const mediaMetadataChanged = hasMediaMetadataChanged(currentMetadata, metadataToUpdate)
+
+    if (!mediaMetadataChanged) {
+      // Only UI properties (like status) were updated, no need to write to file
+      console.log(`[updateMediaMetadata][${traceId ? ` [${traceId}]` : ''}] Only UI properties updated, skipping file write`)
+      _addOrUpdateMediaMetadata(metadataToUpdate)
+      return
+    }
+
+    // MediaMetadata properties were updated, persist to file and update UI state
     console.log(`[updateMediaMetadata][${traceId ? ` [${traceId}]` : ''}] write media metadata file: ${path}`, minimize(metadataToUpdate))
     writeMediaMetadata(metadataToUpdate, { traceId })
       .then(() => {
@@ -199,7 +251,7 @@ export function MediaMetadataProvider({
     console.log(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Reloading media metadata`, userConfig.folders)
     const promises = userConfig.folders.map((path) => {
       const folderPathInPosix = Path.posix(path)
-      const currentMediaMetadata = latestMediaMetadata.current.find((m) => m.mediaFolderPath === folderPathInPosix)
+      const currentMediaMetadata = latestMediaMetadatas.current.find((m) => m.mediaFolderPath === folderPathInPosix)
       if(!currentMediaMetadata) {
         return
       }
