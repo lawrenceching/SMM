@@ -5,7 +5,7 @@ import { metadataCacheFilePath } from "@/route/mediaMetadata/utils";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
-import { acknowledge } from "@/utils/socketIO";
+import { acknowledge, broadcast } from "@/utils/socketIO";
 import { renameFolderInMediaMetadata } from "@core/mediaMetadata";
 import logger from "../../lib/logger";
 import { renameFolderInUserConfig } from "@core/userConfig";
@@ -262,6 +262,11 @@ export async function handleRenameFolder(
       traceId,
       file: "tools/renameFolder.ts"
     }, "renamed media folder")
+
+    broadcast({
+      event: 'userConfigUpdated',
+      data: {}
+    });
 
     
     const resp = createSuccessResponse({ renamed: true, from: fromPlatformPath, to: toPlatformPath });
