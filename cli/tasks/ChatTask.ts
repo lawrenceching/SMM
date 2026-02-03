@@ -3,7 +3,6 @@ import { config } from 'dotenv';
 import {
   isFolderExistTool,
   createMatchEpisodesInBatchTool,
-  createRenameFolderTool,
   createBeginRenameFilesTaskTool,
   createAddRenameFileToTaskTool,
   createEndRenameFilesTaskTool,
@@ -108,7 +107,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
         getEpisodes: createGetEpisodesTool(clientId, abortSignal),
         getMediaFolders: agentTools.getMediaFolders(clientId),
         listFilesInMediaFolder: agentTools.listFiles(clientId),
-        renameFolder: createRenameFolderTool(clientId, abortSignal),
+        renameFolder: agentTools.renameFolder(clientId, abortSignal),
         beginRenameFilesTaskV2: createBeginRenameFilesTaskV2Tool(clientId, abortSignal),
         addRenameFileToTaskV2: createAddRenameFileToTaskV2Tool(clientId, abortSignal),
         endRenameFilesTaskV2: createEndRenameFilesTaskV2Tool(clientId, abortSignal),

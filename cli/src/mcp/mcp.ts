@@ -76,8 +76,8 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // registerGetMediaMetadataTool(server);
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
-    
-    registerGetEpisodesTool(server);
+
+    // registerGetEpisodesTool(server);
     // registerGetApplicationContextTool(server);
     registerRenameFolderTool(server);
     registerBeginRenameTaskTool(server);

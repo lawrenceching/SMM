@@ -3,11 +3,8 @@ import { createGetSelectedMediaMetadataTool } from './getSelectedMediaMetadata';
 import { getMediaFoldersTool, getMediaFoldersAgentTool, getMediaFoldersMcpTool } from './getMediaFolders';
 import { listFilesTool, listFilesAgentTool, listFilesMcpTool } from './listFiles';
 import { getMediaMetadataAgentTool, getMediaMetadataMcpTool } from './getMediaMetadata';
+import { createRenameFolderTool, renameFolderAgentTool, renameFolderMcpTool } from './renameFolder';
 import { matchEpisodeTool } from './matchEpisode';
-import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
-import { createRenameFilesInBatchTool } from './renameFilesInBatch';
-import { createRenameFolderTool } from './renameFolder';
-import { createAskForConfirmationTool } from './askForConfirmation';
 import { getApplicationContextAgentTool, getApplicationContextMcpTool } from './getApplicationContext';
 import {
   createBeginRenameFilesTaskTool,
@@ -55,6 +52,7 @@ export const agentTools = {
   isFolderExist: isFolderExistAgentTool,
   listFiles: listFilesAgentTool,
   getMediaMetadata: getMediaMetadataAgentTool,
+  renameFolder: renameFolderAgentTool,
 }
 
 export const mcpTools = {
@@ -63,5 +61,6 @@ export const mcpTools = {
   isFolderExist: isFolderExistMcpTool,
   listFiles: listFilesMcpTool,
   getMediaMetadata: getMediaMetadataMcpTool,
+  renameFolder: renameFolderMcpTool,
 }
 

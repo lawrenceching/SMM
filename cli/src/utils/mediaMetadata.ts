@@ -1,10 +1,9 @@
 import type { MediaMetadata } from "@core/types"
 import { Path } from "@core/path"
 import { metadataCacheFilePath } from "../route/mediaMetadata/utils"
-import pino from "pino"
 import { unlink } from "fs/promises"
-
-const logger = pino()
+import { logger } from "../../lib/logger"
+import { rename } from "fs/promises"
 
 /**
  * Find media metadata by the media folder path.
@@ -46,10 +45,27 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
     await Bun.write(metadataFilePath, JSON.stringify(mediaMetadata, null, 2))
 }
 
-export async function deleteMediaMetadataFile(mediaFolderPath: string): Promise<void> {
-    const metadataFilePath = metadataCacheFilePath(mediaFolderPath)
+export async function deleteMediaMetadataFile(mediaFolderPathInPosix: string): Promise<void> {
+    const metadataFilePath = metadataCacheFilePath(mediaFolderPathInPosix)
     logger.info({
         metadataFilePath,
     }, '[deleteMediaMetadataFile] Deleting media metadata file');
     await unlink(metadataFilePath)
+}
+
+export async function renameMediaMetadataCacheFile(
+    fromInPosix: string, 
+    toInPosix: string, 
+    traceId: { traceId: string }): Promise<void> {
+        
+    const fromFilePath = metadataCacheFilePath(fromInPosix)
+    const toFilePath = metadataCacheFilePath(toInPosix)
+    await rename(fromFilePath, toFilePath)
+
+    logger.info({
+        fromInPosix,
+        toInPosix,
+        traceId,
+        file: "utils/mediaMetadata.ts"
+    }, 'renamed media metadata cache file');
 }

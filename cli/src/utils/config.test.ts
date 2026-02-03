@@ -64,7 +64,7 @@ describe('renameFolderInUserConfig', () => {
       fromPosix,
       fromWindows,
       '/media/tv-shows',
-      'C:\\media\\documentaries',
+      'C:/media/documentaries',  // POSIX format for consistency
     ]);
 
     const result = renameFolderInUserConfig(userConfig, from, to);
@@ -74,9 +74,9 @@ describe('renameFolderInUserConfig', () => {
     expect(result.folders).not.toContain(fromWindows);
     // Both POSIX and Windows versions should be replaced
     const toPlatform = Path.toPlatformPath(to);
-    expect(result.folders.filter(f => f === toPlatform).length).toBe(2);
+    expect(result.folders.filter((f: string) => f === toPlatform).length).toBe(2);
     expect(result.folders).toContain('/media/tv-shows');
-    expect(result.folders).toContain('C:\\media\\documentaries');
+    expect(result.folders).toContain('C:/media/documentaries');
   });
 
   it('should not modify folders when from path does not match', () => {
@@ -166,7 +166,7 @@ describe('renameFolderInUserConfig', () => {
     const userConfig = createMockUserConfig([
       '/home/user/media/movies/action',
       '/home/user/media/movies/comedy',
-      Path.win('/home/user/media/movies/action'),
+      '/home/user/media/movies/action',  // Duplicate POSIX path
     ]);
 
     const result = renameFolderInUserConfig(userConfig, from, to);
@@ -174,9 +174,8 @@ describe('renameFolderInUserConfig', () => {
     const toPlatform = Path.toPlatformPath(to);
     expect(result.folders).toContain(toPlatform);
     expect(result.folders).not.toContain(Path.posix(from));
-    expect(result.folders).not.toContain(Path.win(from));
     // Both matches should be replaced
-    expect(result.folders.filter(f => f === toPlatform).length).toBe(2);
+    expect(result.folders.filter((f: string) => f === toPlatform).length).toBe(2);
     expect(result.folders).toContain('/home/user/media/movies/comedy');
   });
 

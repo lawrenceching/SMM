@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { handleRenameFolder } from "./renameFolderTool";
+import { handleRenameFolder } from "@/tools/renameFolder";
 
 mock.module("node:fs/promises", () => ({
   stat: () => mock(),
@@ -19,48 +19,48 @@ mock.module("@/route/mediaMetadata/utils", () => ({
 
 describe("handleRenameFolder", () => {
   it("returns error for invalid 'from' parameter", async () => {
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-    
-    const result = await reimportedHandler({ from: "", to: "/valid/path" });
+    const result = await handleRenameFolder({ from: "", to: "/valid/path" });
     
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Invalid path: 'from' must be a non-empty string");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Invalid path: 'from' must be a non-empty string");
   });
 
   it("returns error for whitespace-only 'from' parameter", async () => {
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-    
-    const result = await reimportedHandler({ from: "   ", to: "/valid/path" });
+    const result = await handleRenameFolder({ from: "   ", to: "/valid/path" });
     
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Invalid path: 'from' must be a non-empty string");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Invalid path: 'from' must be a non-empty string");
   });
 
   it("returns error for undefined 'from' parameter", async () => {
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-    
-    const result = await reimportedHandler({ from: undefined as any, to: "/valid/path" });
+    const result = await handleRenameFolder({ from: undefined as any, to: "/valid/path" });
     
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Invalid path: 'from' must be a non-empty string");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Invalid path: 'from' must be a non-empty string");
   });
 
   it("returns error for invalid 'to' parameter", async () => {
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-    
-    const result = await reimportedHandler({ from: "/valid/path", to: "" });
+    const result = await handleRenameFolder({ from: "/valid/path", to: "" });
     
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Invalid path: 'to' must be a non-empty string");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Invalid path: 'to' must be a non-empty string");
   });
 
   it("returns error for whitespace-only 'to' parameter", async () => {
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-    
-    const result = await reimportedHandler({ from: "/valid/path", to: "   " });
+    const result = await handleRenameFolder({ from: "/valid/path", to: "   " });
     
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Invalid path: 'to' must be a non-empty string");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Invalid path: 'to' must be a non-empty string");
   });
 
   it("returns error when source folder does not exist", async () => {
@@ -72,12 +72,12 @@ describe("handleRenameFolder", () => {
       rename: () => Promise.resolve(),
     }));
 
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-
-    const result = await reimportedHandler({ from: "/nonexistent/folder", to: "/new/folder" });
+    const result = await handleRenameFolder({ from: "/nonexistent/folder", to: "/new/folder" });
 
     expect(result.isError).toBeUndefined();
-    const parsed = JSON.parse(result.content[0].text);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(result.content[0]?.text || "{}");
     expect(parsed.renamed).toBe(false);
     expect(parsed.error).toBe("Source folder not found");
   });
@@ -92,12 +92,12 @@ describe("handleRenameFolder", () => {
       rename: () => Promise.resolve(),
     }));
 
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-
-    const result = await reimportedHandler({ from: "/path/to/file.txt", to: "/new/path" });
+    const result = await handleRenameFolder({ from: "/path/to/file.txt", to: "/new/path" });
 
     expect(result.isError).toBeUndefined();
-    const parsed = JSON.parse(result.content[0].text);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(result.content[0]?.text || "{}");
     expect(parsed.renamed).toBe(false);
     expect(parsed.error).toBe("Source path is not a directory");
   });
@@ -119,12 +119,12 @@ describe("handleRenameFolder", () => {
       rename: () => Promise.resolve(),
     }));
 
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-
-    const result = await reimportedHandler({ from: "/source/folder", to: "/existing/destination" });
+    const result = await handleRenameFolder({ from: "/source/folder", to: "/existing/destination" });
 
     expect(result.isError).toBeUndefined();
-    const parsed = JSON.parse(result.content[0].text);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(result.content[0]?.text || "{}");
     expect(parsed.renamed).toBe(false);
     expect(parsed.error).toBe("Destination folder already exists");
   });
@@ -169,12 +169,12 @@ describe("handleRenameFolder", () => {
     const tempBunFile = (path: string) => mockFile;
     (Bun as any).file = tempBunFile;
 
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-
-    const result = await reimportedHandler({ from: "/source/folder", to: "/new/destination" });
+    const result = await handleRenameFolder({ from: "/source/folder", to: "/new/destination" });
 
     expect(result.isError).toBeUndefined();
-    const parsed = JSON.parse(result.content[0].text);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(result.content[0]?.text || "{}");
     expect(parsed.renamed).toBe(true);
     expect(parsed.from).toBe("/source/folder");
     expect(parsed.to).toBe("/new/destination");
@@ -192,11 +192,11 @@ describe("handleRenameFolder", () => {
       rename: () => Promise.resolve(),
     }));
 
-    const { handleRenameFolder: reimportedHandler } = await import("./renameFolderTool");
-
-    const result = await reimportedHandler({ from: "/source/folder", to: "/new/destination" });
+    const result = await handleRenameFolder({ from: "/source/folder", to: "/new/destination" });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Error renaming folder: Unexpected error");
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+    expect(result.content[0]?.text).toContain("Error renaming folder: Unexpected error");
   });
 });

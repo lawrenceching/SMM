@@ -1,5 +1,8 @@
 {
   "name": "core",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

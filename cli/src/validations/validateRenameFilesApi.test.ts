@@ -59,8 +59,8 @@ describe('validateRenameFilesRequest', () => {
     const result = await validateRenameFilesRequest(files);
     expect(result.valid).toHaveLength(0);
     expect(result.failed).toHaveLength(1);
-    expect(result.failed[0].error).toBe('from and to are required');
-    expect(result.failed[0].path).toBe('/media/test/renamed.txt'); // from || to || ''
+    expect(result.failed[0]?.error).toBe('from and to are required');
+    expect(result.failed[0]?.path).toBe('/media/test/renamed.txt'); // from || to || ''
   });
 
   it('fails when to is empty', async () => {
@@ -68,8 +68,8 @@ describe('validateRenameFilesRequest', () => {
     const result = await validateRenameFilesRequest(files);
     expect(result.valid).toHaveLength(0);
     expect(result.failed).toHaveLength(1);
-    expect(result.failed[0].error).toBe('from and to are required');
-    expect(result.failed[0].path).toBe('/media/test/file.txt'); // from || to || ''
+    expect(result.failed[0]?.error).toBe('from and to are required');
+    expect(result.failed[0]?.path).toBe('/media/test/file.txt'); // from || to || ''
   });
 
   it('fails when from is only whitespace', async () => {
@@ -77,7 +77,7 @@ describe('validateRenameFilesRequest', () => {
     const result = await validateRenameFilesRequest(files);
     expect(result.valid).toHaveLength(0);
     expect(result.failed).toHaveLength(1);
-    expect(result.failed[0].error).toBe('from and to are required');
+    expect(result.failed[0]?.error).toBe('from and to are required');
   });
 
   it('splits valid and failed when some entries pass and some fail', async () => {
@@ -90,10 +90,10 @@ describe('validateRenameFilesRequest', () => {
     expect(result.valid).toHaveLength(1);
     expect(result.valid[0]).toEqual({ from: '/media/test/a.txt', to: '/media/test/a2.txt' });
     expect(result.failed).toHaveLength(2);
-    expect(result.failed[0].path).toBe('/outside/file.txt');
-    expect(result.failed[0].error).toBe('Source path is not under any opened media folder');
-    expect(result.failed[1].path).toBe('/media/test/sub/b2.txt');
-    expect(result.failed[1].error).toBe('Destination must be in the same folder as the source');
+    expect(result.failed[0]?.path).toBe('/outside/file.txt');
+    expect(result.failed[0]?.error).toBe('Source path is not under any opened media folder');
+    expect(result.failed[1]?.path).toBe('/media/test/sub/b2.txt');
+    expect(result.failed[1]?.error).toBe('Destination must be in the same folder as the source');
   });
 
   it('uses multiple folders when from is under second folder', async () => {
@@ -111,7 +111,7 @@ describe('validateRenameFilesRequest', () => {
     const result = await validateRenameFilesRequest(files);
     expect(result.valid).toHaveLength(0);
     expect(result.failed).toHaveLength(1);
-    expect(result.failed[0].error).toBe('Source path is not under any opened media folder');
+    expect(result.failed[0]?.error).toBe('Source path is not under any opened media folder');
   });
 
   it('accepts path equal to folder (edge case: file at folder root)', async () => {

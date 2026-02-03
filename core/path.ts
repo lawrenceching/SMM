@@ -90,7 +90,7 @@ export class Path {
             if(this.unc) {
                 return this._uncPath()
             } else {
-                if(this.root[0].length !== 1) {
+                if(this.root[0]?.length !== 1) {
                     // UNC path
                     return this._uncPath()
                 }

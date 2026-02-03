@@ -1,7 +1,9 @@
 import type { UserConfig } from "@core/types";
+import { renameFolderInUserConfig } from "@core/userConfig";
 import path from "path";
-import { Path } from "@core/path";
 import os from "os";
+
+export { renameFolderInUserConfig };
 
 /**
  * Returns the directory path for user configuration files.
@@ -85,23 +87,3 @@ export async function writeUserConfig(userConfig: UserConfig): Promise<void> {
     await file.write(JSON.stringify(userConfig, null, 2));
 }
 
-/**
- * 
- * @param userConfig - the user config to rename the folder in
- * @param from - the source folder path in POSIX format
- * @param to - the destination folder path in POSIX format
- * @returns 
- */
-export function renameFolderInUserConfig(userConfig: UserConfig, from: string, to: string): UserConfig {
-    const actualFromPosix = Path.posix(from);
-    const actualFromWindows = Path.win(from);
-    const actualTo = Path.toPlatformPath(to);
-
-    return {
-        ...userConfig,
-        folders: userConfig.folders
-          .map(folder => folder === actualFromPosix ? actualTo : folder)
-          .map(folder => folder === actualFromWindows ? actualTo : folder)
-          ,
-    }
-}

@@ -39,6 +39,14 @@ export interface UserConfig {
    * The opened media folder paths in SMM. Path is in Platform-specific format.
    */
   folders: string[]
+  /**
+   * Rename rules for media files
+   */
+  renameRules: string[]
+  /**
+   * Whether dry run mode is enabled
+   */
+  dryRun: boolean
   ai?: AIConfig
   selectedAI?: AI
   selectedTMDBIntance?: TMDBInstance
@@ -422,6 +430,16 @@ export interface MediaFileMetadata {
    * Only available for TV Show media files
    */
   episodeNumber?: number,
+
+  /**
+   * Paths to subtitle files associated with this media file
+   */
+  subtitleFilePaths?: string[],
+
+  /**
+   * Paths to audio track files associated with this media file
+   */
+  audioFilePaths?: string[],
 }
 
 export type TMDBMediaType = 'movie' | 'tv'

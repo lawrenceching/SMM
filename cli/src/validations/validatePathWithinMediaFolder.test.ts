@@ -80,7 +80,7 @@ describe('validatePathWithinMediaFolder', () => {
     const result = validatePathWithinMediaFolder('/C/media/test', tasks);
     expect(result.isValid).toBe(false);
     expect(result.invalidPaths).toHaveLength(1);
-    expect(result.invalidPaths[0].type).toBe('source');
+    expect(result.invalidPaths[0]?.type).toBe('source');
   });
 
   it('handles paths with special characters', () => {
@@ -91,7 +91,7 @@ describe('validatePathWithinMediaFolder', () => {
     const result = validatePathWithinMediaFolder(mediaFolderPath, tasks);
     expect(result.isValid).toBe(false);
     expect(result.invalidPaths).toHaveLength(1);
-    expect(result.invalidPaths[0].type).toBe('destination');
+    expect(result.invalidPaths[0]?.type).toBe('destination');
   });
 
   it('handles nested subdirectories', () => {
@@ -102,7 +102,7 @@ describe('validatePathWithinMediaFolder', () => {
     const result = validatePathWithinMediaFolder(mediaFolderPath, tasks);
     expect(result.isValid).toBe(false);
     expect(result.invalidPaths).toHaveLength(1);
-    expect(result.invalidPaths[0].type).toBe('destination');
+    expect(result.invalidPaths[0]?.type).toBe('destination');
   });
 
   it('recognizes parent folder paths as outside', () => {
@@ -112,6 +112,6 @@ describe('validatePathWithinMediaFolder', () => {
     const result = validatePathWithinMediaFolder(mediaFolderPath, tasks);
     expect(result.isValid).toBe(false);
     expect(result.invalidPaths).toHaveLength(1);
-    expect(result.invalidPaths[0].type).toBe('destination');
+    expect(result.invalidPaths[0]?.type).toBe('destination');
   });
 });
