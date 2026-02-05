@@ -9,7 +9,7 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 
 export function GeneralSettings() {
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
   
   // Track initial values
@@ -81,7 +81,7 @@ export function GeneralSettings() {
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
     }
-    setUserConfig(traceId, updatedConfig)
+    setAndSaveUserConfig(traceId, updatedConfig)
   }
 
   return (

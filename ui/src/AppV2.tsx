@@ -30,7 +30,7 @@ import { isNotNil } from "es-toolkit"
 function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
@@ -474,7 +474,7 @@ function AppV2Content() {
         .filter(
           (folder) => !deletedSet.has(Path.posix(folder))
         )
-      setUserConfig(traceId, { ...userConfig, folders: newFolders })
+      setAndSaveUserConfig(traceId, { ...userConfig, folders: newFolders })
       setSelectedFolderPaths((prev) => {
         const next = new Set(prev)
         paths.forEach((p) => next.delete(p))
@@ -487,7 +487,7 @@ function AppV2Content() {
         setPrimaryFolderPath(firstRemaining)
       }
     },
-    [userConfig, setUserConfig, removeMediaMetadata, primaryFolderPath]
+    [userConfig, setAndSaveUserConfig, removeMediaMetadata, primaryFolderPath]
   )
 
   // 最小和最大侧边栏宽度

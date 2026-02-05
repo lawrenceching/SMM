@@ -41,7 +41,7 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
     getMediaMetadata, 
     refreshMediaMetadata, 
     selectedMediaMetadata } = useMediaMetadata()
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
   const selected = useMemo(() => {
@@ -136,8 +136,8 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
       folders: userConfig.folders.filter((folder) => Path.posix(folder) !== path),
     }
 
-    setUserConfig(traceId, newUserConfig)
-  }, [path, userConfig, setUserConfig, removeMediaMetadata])
+    setAndSaveUserConfig(traceId, newUserConfig)
+  }, [path, userConfig, setAndSaveUserConfig, removeMediaMetadata])
 
   const handleOpenInExplorerButtonClick = useCallback(async () => {
     try {
@@ -213,7 +213,7 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
               Path.posix(folder) === path ? newFolderPath : folder
             ),
           }
-          setUserConfig(traceId, newUserConfig)
+          setAndSaveUserConfig(traceId, newUserConfig)
 
           // Remove old metadata entry if path changed
           if (path !== newFolderPath) {
@@ -239,7 +239,7 @@ export function MediaFolderListItem({mediaName, path, mediaType, onClick}: Media
         suggestions: suggestions.length > 0 ? suggestions : undefined
       }
     )
-  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setUserConfig])
+  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setAndSaveUserConfig])
 
   return (
     <div 

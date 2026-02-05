@@ -24,7 +24,7 @@ const providerKeyMap: Record<AI, keyof NonNullable<import("@core/types").AIConfi
 }
 
 export function AiSettings() {
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
   
   // Get initial values
@@ -138,7 +138,7 @@ export function AiSettings() {
       ai: updatedAiConfig,
     }
     console.log(`[${traceId}] AiSettings: Selected AI provider: ${selectedProvider}`)
-    setUserConfig(traceId, updatedConfig)
+    setAndSaveUserConfig(traceId, updatedConfig)
   }
 
   const providerKey = selectedProvider.toLowerCase()

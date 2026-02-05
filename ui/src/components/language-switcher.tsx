@@ -13,7 +13,7 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 
 export function LanguageSwitcher() {
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
   const { i18n } = useTranslation()
   const currentLanguage = (userConfig.applicationLanguage || i18n.language) as SupportedLanguage
 
@@ -21,7 +21,7 @@ export function LanguageSwitcher() {
     await changeLanguage(lang)
     // Update user config
     const traceId = `LanguageSwitcher-${nextTraceId()}`
-    setUserConfig(traceId, {
+    setAndSaveUserConfig(traceId, {
       ...userConfig,
       applicationLanguage: lang,
     })

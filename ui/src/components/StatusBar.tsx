@@ -17,7 +17,7 @@ interface StatusBarProps {
 }
 
 export function StatusBar({className, message}: StatusBarProps) {
-    const { appConfig, userConfig, setUserConfig } = useConfig()
+    const { appConfig, userConfig, setAndSaveUserConfig } = useConfig()
     const { status } = useWebSocket()
     const { t } = useTranslation('components')
     
@@ -34,7 +34,7 @@ export function StatusBar({className, message}: StatusBarProps) {
 
     const handleMcpToggle = () => {
         const traceId = `StatusBar-MCP-toggle-${nextTraceId()}`
-        setUserConfig(traceId, { ...userConfig, enableMcpServer: !mcpEnabled })
+        setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: !mcpEnabled })
     }
 
     return (
