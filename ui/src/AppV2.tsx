@@ -17,13 +17,11 @@ import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
-import { useEventHandlers } from "@/hooks/useEventHandlers"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { listFiles } from "@/api/listFiles"
-import { EVENT_APP_START_UP, EVENT_ON_MEDIA_FOLDER_IMPORTED, EVENT_ON_MEDIA_FOLDER_SELECTED, type OnMediaFolderImportedEventData } from "./types/EventHandlerTypes"
-import { useMount } from "react-use"
 import { isNotNil } from "es-toolkit"
+import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "./types/eventTypes"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -57,9 +55,6 @@ function AppV2Content() {
   // Media metadata
   const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, removeMediaMetadata } = useMediaMetadata()
 
-  // Event handlers
-  const { postEvent } = useEventHandlers()
-
   // Background jobs (optional - for "Importing Media Library" progress)
   const backgroundJobs = useBackgroundJobs()
 
@@ -88,12 +83,6 @@ function AppV2Content() {
     
     return hasWindow && hasElectron
   }, [])
-
-  useMount(() => {
-    postEvent({
-      name: EVENT_APP_START_UP,
-    })
-  })
 
   // Sync primary folder to content panel (selectedMediaMetadata)
   useEffect(() => {
@@ -128,14 +117,6 @@ function AppV2Content() {
     if(selectedMediaMetadata.status !== 'ok') {
       return;
     }
-
-    postEvent({
-      name: EVENT_ON_MEDIA_FOLDER_SELECTED,
-      data: {
-        traceId: `MediaFolderSelected:${nextTraceId()}`,
-        mediaFolderPath: selectedMediaMetadata.mediaFolderPath,
-      },
-    })
 
   }, [selectedMediaMetadata])
 
@@ -263,10 +244,8 @@ function AppV2Content() {
               folderPathInPlatformFormat: selectedFile.path,
               traceId: traceId,
             }
-            postEvent({
-              name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
-              data,
-            })
+
+            document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
           }, selectedFile.path)
         }
       })
@@ -281,10 +260,8 @@ function AppV2Content() {
             folderPathInPlatformFormat: file.path,
             traceId: traceId,
           }
-          postEvent({
-            name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
-            data,
-          })
+
+          document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
         }, file.path)
       }, {
         title: "Select Folder",
@@ -338,10 +315,7 @@ function AppV2Content() {
               folderPathInPlatformFormat: subfolder.path,
               traceId: traceId,
             }
-            postEvent({
-              name: EVENT_ON_MEDIA_FOLDER_IMPORTED,
-              data,
-            })
+            document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
           } catch (error) {
             console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
             // Continue with next folder
@@ -726,9 +700,7 @@ function AppV2Content() {
 
 export default function AppV2() {
   return (
-    <BackgroundJobsProvider>
       <AppV2Content />
-    </BackgroundJobsProvider>
   )
 }
 

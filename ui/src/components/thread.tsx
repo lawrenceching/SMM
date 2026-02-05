@@ -29,9 +29,9 @@ import { useMemo, type FC } from "react";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
-import { useEventHandlers } from "@/hooks/useEventHandlers";
 import { useConfig } from "@/providers/config-provider";
 import type { AI, AIConfig } from "@core/types";
+import { useDialogs } from "@/providers/dialog-provider";
 
 export const Thread: FC = () => {
   const { userConfig } = useConfig();
@@ -117,7 +117,8 @@ interface ThreadWelcomeProps {
 
 const ThreadWelcome: FC<ThreadWelcomeProps> = ({ ready }) => {
   const { t } = useTranslation('components');
-  const { onRequireToOpenConfigDialog } = useEventHandlers();
+  const { configDialog } = useDialogs()
+  const [ openConfig ] = configDialog;
   const { userConfig } = useConfig();
   
   return (
@@ -142,7 +143,7 @@ const ThreadWelcome: FC<ThreadWelcomeProps> = ({ ready }) => {
                 {t('thread.welcome.configNotComplete' as any, { selectedAI: userConfig.selectedAI || '' }) as string}
               </p>
               <p>
-                <a onClick={onRequireToOpenConfigDialog} className="cursor-pointer underline hover:text-foreground font-bold">
+                <a onClick={() => openConfig('ai')} className="cursor-pointer underline hover:text-foreground font-bold">
                   {t('thread.welcome.openSettings' as any) as string}
                 </a>
               </p>

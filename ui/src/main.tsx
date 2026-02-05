@@ -16,7 +16,8 @@ import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
 import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
 import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
-
+import { MediaFolderImportedEventHandler } from './components/eventlisteners/MediaFolderImportedEventHandler.tsx'
+import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
 // Hook to detect mobile screen
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -239,6 +240,7 @@ function AppSwitcher() {
       <WebSocketHandlers />
       <SocketIoUserConfigFolderRenamedEventListener />
       <PingEventListener />
+      <MediaFolderImportedEventHandler />
     </>
   )
 }
@@ -250,8 +252,10 @@ createRoot(document.getElementById('root')!).render(
         <MediaMetadataProvider>
           <GlobalStatesProvider>
             <DialogProvider>
-              <AppInitializer />
-              <AppSwitcher />
+              <BackgroundJobsProvider>
+                <AppInitializer />
+                <AppSwitcher />
+              </BackgroundJobsProvider>
             </DialogProvider>
           </GlobalStatesProvider>
         </MediaMetadataProvider>
