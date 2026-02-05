@@ -1880,7 +1880,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -1953,7 +1952,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath: '/media/show',
       files: [],
-      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const plan = {
@@ -1974,7 +1972,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath: '/media/show',
       files: [],
-      status: 'ok',
       tmdbTvShow: {} as any,
     }
     const plan = {
@@ -2000,7 +1997,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/Season 01/S01E02.mkv',
         '/media/show/Season 01/S01E03.mkv',
       ],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2049,7 +2045,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/Season 01/S01E01.mkv',
         '/media/show/Season 02/S02E01.mkv',
       ],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2085,7 +2080,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2125,7 +2119,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2156,7 +2149,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath: undefined,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2190,7 +2182,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath, subtitlePath, nfoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2224,7 +2215,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2255,7 +2245,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2286,7 +2275,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: undefined,
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2317,7 +2305,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: undefined,
     }
     const plan = {
@@ -2347,7 +2334,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/S01E02.mkv',
         '/media/show/S01E04.mkv',
       ],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2389,7 +2375,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/Season 01/S01E01.mkv',
         '/media/show/Season 02/S02E01.mkv',
       ],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2423,7 +2408,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [videoPath],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2456,7 +2440,6 @@ describe('buildSeasonsByRecognizeMediaFilePlan', () => {
         '/media/show/S01E01.mkv',
         '/media/show/S01E02.mkv',
       ],
-      status: 'ok',
       tmdbTvShow: {
         id: 1,
         name: 'Show',
@@ -2497,7 +2480,6 @@ describe('buildSeasonsByRenameFilesPlan', () => {
       status: 'ok',
       mediaFolderPath,
       files: [fromPath],
-      status: 'ok',
       mediaFiles: [
         { absolutePath: fromPath, seasonNumber: 1, episodeNumber: 1 },
       ],

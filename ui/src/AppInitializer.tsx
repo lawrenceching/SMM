@@ -1,8 +1,7 @@
-import { useLatest, useMount } from "react-use"
+import { useMount } from "react-use"
 import localStorages from "./lib/localStorages";
 import { useMediaMetadata } from "./providers/media-metadata-provider";
 import { useConfig } from "./providers/config-provider";
-import { useEffect } from "react";
 import { isNotNil } from "es-toolkit";
 import { readMediaMetadataApi } from "./api/readMediaMatadata";
 import { Path } from "@core/path";
