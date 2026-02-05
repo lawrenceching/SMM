@@ -1,3 +1,4 @@
+import { ping } from "@/events/ping";
 import pino from "pino"
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 
@@ -38,6 +39,7 @@ export function initializeSocketIO(io: SocketIOServer): void {
 
     // Send "hello" event immediately when connection is established
     socket.emit('hello');
+
     logger.info({
       socketId: socket.id,
       event: 'hello'
@@ -87,6 +89,10 @@ export function initializeSocketIO(io: SocketIOServer): void {
         error: error.message
       }, 'socket.io connection error');
     });
+
+    // setInterval(() => {
+    //   ping();
+    // }, 1000);
   });
 
   logger.info('Socket.IO connection handlers initialized');

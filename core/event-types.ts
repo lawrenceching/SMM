@@ -1,3 +1,4 @@
+import type { UserConfig } from "./types";
 
 export const AskForRenameFilesConfirmation = {
   event: 'askForRenameFilesConfirmation',
@@ -65,3 +66,28 @@ export interface RenameFilesPlanReadyRequestData {
    */
   planFilePath: string,
 }
+
+/* User config updated event: Start */
+
+export const USER_CONFIG_UPDATED_EVENT = 'userConfigUpdated'
+
+export interface UserConfigUpdatedEventData {
+  property: keyof UserConfig,
+  old: any
+  new: any
+}
+
+export const USER_CONFIG_FOLDER_RENAMED_EVENT = 'userConfig.folderRenamed'
+
+export interface UserConfigFolderRenamedEventData {
+  /**
+   * Absolute path in platform-specific format
+   */
+  from: string,
+  /**
+   * Absolute path in platform-specific format
+   */
+  to: string,
+}
+
+/* User config updated event: End */

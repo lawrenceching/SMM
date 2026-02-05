@@ -1,8 +1,8 @@
 import { acknowledge } from "../utils/socketIO";
 import { 
   AskForRenameFilesConfirmation,
-  AskForRenameFilesConfirmationRequestData,
-  AskForRenameFilesConfirmationResponseData,
+  type AskForRenameFilesConfirmationRequestData,
+  type AskForRenameFilesConfirmationResponseData,
 } from "@core/event-types";
 
 export async function askForRenameFilesConfirmation(

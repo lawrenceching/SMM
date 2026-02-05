@@ -12,6 +12,7 @@ import { renameFolderInUserConfig } from "@core/userConfig";
 import { nextTraceId } from "@/utils/traceId";
 import { getUserConfig, writeUserConfig } from "@/utils/config";
 import { deleteMediaMetadataFile, renameMediaMetadataCacheFile } from "@/utils/mediaMetadata";
+import { broadcastUserConfigFolderRenamedEvent } from "@/events/userConfigUpdatedEvent";
 
 export interface RenameFolderParams {
   from: string;
@@ -263,11 +264,10 @@ export async function handleRenameFolder(
       file: "tools/renameFolder.ts"
     }, "renamed media folder")
 
-    broadcast({
-      event: 'userConfigUpdated',
-      data: {}
+    broadcastUserConfigFolderRenamedEvent({
+      from: fromPlatformPath,
+      to: toPlatformPath,
     });
-
     
     const resp = createSuccessResponse({ renamed: true, from: fromPlatformPath, to: toPlatformPath });
     logger.info({

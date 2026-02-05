@@ -7,6 +7,8 @@ import { useLatest } from "react-use"
 import { hello } from "@/api/hello"
 import { defaultUserConfig, readUserConfig } from "@/api/readUserConfig"
 
+const debug = true;
+
 interface ReloadCallback {
   onSuccess?: (config: UserConfig) => void | Promise<void>
   onError?: (error: Error) => void | Promise<void>
@@ -15,6 +17,7 @@ interface ReloadCallback {
 interface ConfigContextValue {
   appConfig: AppConfig
   userConfig: UserConfig
+  setUserConfig: (config: UserConfig | ((prevConfig: UserConfig) => UserConfig)) => void
   isLoading: boolean
   error: Error | null
   setAndSaveUserConfig: (traceId: string, config: UserConfig) => Promise<void>
@@ -37,6 +40,13 @@ export function ConfigProvider({
   const [userConfig, setUserConfig] = useState<UserConfig>(defaultUserConfig)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+
+  if(debug) {
+    useEffect(() => {
+      console.log('[ConfigProvider] userConfig', userConfig)
+    }, [userConfig])
+  }
+  
 
   const reload = useCallback(async (callback?: ReloadCallback) => {
     try {
@@ -163,6 +173,7 @@ export function ConfigProvider({
   const value: ConfigContextValue = {
     appConfig,
     userConfig,
+    setUserConfig,
     isLoading,
     error,
     setAndSaveUserConfig: saveUserConfig,

@@ -9,6 +9,7 @@ import { Path } from "@core/path";
 import type { UserConfig } from "@core/types";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { listFiles } from "./api/listFiles";
+import { loadUIMediaMetadata } from "./lib/mediaMetadataUtils";
 
 
 export async function buildMediaMetadata(folders: string[], setMediaMetadatas: (mediaMetadatas: UIMediaMetadata[]) => void) {
@@ -26,55 +27,16 @@ export async function buildMediaMetadata(folders: string[], setMediaMetadatas: (
     // Update UI to display the folders in Sidebar
     setMediaMetadatas(mediaMetadatas);
 
-    const promises = mediaMetadatas.map(async (mm: UIMediaMetadata, index: number) => {
+    const promises = mediaMetadatas.map(async (_: UIMediaMetadata, index: number) => {
 
-        try {
-
-            const resp = await readMediaMetadataApi(validFolders[index])
-            if (resp.error) {
-                console.error(`[buildMediaMetadata] Failed to read media metadata for folder: ${mm.mediaFolderPath}`, resp.error)
-                return
+        await loadUIMediaMetadata(validFolders[index], {
+            readMediaMetadataApi: readMediaMetadataApi,
+            listFilesApi: listFiles,
+            callback: (mm: UIMediaMetadata) => {
+                mediaMetadatas[index] = {...mm};
+                setMediaMetadatas([...mediaMetadatas])
             }
-            if (resp.data === undefined) {
-                console.error(`[buildMediaMetadata] Failed to read media metadata for folder: ${mm.mediaFolderPath}`, resp.error)
-                return
-            }
-
-            mediaMetadatas[index] = {
-                ...resp.data,
-                status: 'loading',
-            }
-            console.log(`[AppInitializer] loaded media metadata for folder: ${validFolders[index]}`)
-
-            setMediaMetadatas([...mediaMetadatas])
-
-            const listFilesResp = await listFiles({ path: validFolders[index], recursively: true, onlyFiles: true })
-            if (listFilesResp.error) {
-                console.error(`[buildMediaMetadata] Failed to list files for folder: ${mm.mediaFolderPath}`, listFilesResp.error)
-                return
-            }
-            if (listFilesResp.data === undefined) {
-                console.error(`[buildMediaMetadata] Failed to list files for folder: ${mm.mediaFolderPath}`, listFilesResp.error)
-                return
-            }
-
-            mediaMetadatas[index] = {
-                ...mediaMetadatas[index],
-                files: listFilesResp.data.items.map(item => Path.posix(item.path)),
-                status: 'ok',
-            }
-            console.log(`[AppInitializer] loaded files for folder: ${validFolders[index]}`)
-            setMediaMetadatas([...mediaMetadatas])
-
-        } catch (error) {
-            console.error(`[buildMediaMetadata] Failed to read media metadata for folder: ${mm.mediaFolderPath}`, error)
-            mediaMetadatas[index] = {
-                ...mm,
-                status: 'error_loading_metadata',
-            }
-            setMediaMetadatas([...mediaMetadatas])
-            return
-        }
+        })
 
     })
 

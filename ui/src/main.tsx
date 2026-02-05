@@ -10,10 +10,12 @@ import { ConfigProvider, useConfig } from './providers/config-provider'
 import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { GlobalStatesProvider, useGlobalStates } from './providers/global-states-provider'
-import { RenameFilesPlanReady } from '@core/event-types'
+import { RenameFilesPlanReady, USER_CONFIG_FOLDER_RENAMED_EVENT } from '@core/event-types'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
+import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
+import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
 
 // Hook to detect mobile screen
 function useIsMobile() {
@@ -171,6 +173,10 @@ function WebSocketHandlers() {
       console.log('[WebSocketHandlers] Received renameFilesPlanReady, refetching pending plans');
       void fetchPendingPlans();
     }
+
+    document.dispatchEvent(new CustomEvent('socket.io_' + USER_CONFIG_FOLDER_RENAMED_EVENT, {
+      detail: message.data,
+    }));
   });
 
   return (
@@ -231,6 +237,8 @@ function AppSwitcher() {
       {/* 渲染对应的组件 */}
       {useAppV2 ? <AppV2 /> : <App />}
       <WebSocketHandlers />
+      <SocketIoUserConfigFolderRenamedEventListener />
+      <PingEventListener />
     </>
   )
 }

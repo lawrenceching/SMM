@@ -23,4 +23,5 @@
 1. AI Assistant
 2. MCP Tool (by external AI Assistant)
 
-When `userConfig.folders` was changed, backend emit "userConfigUpdate"
+When `userConfig.folders` was changed, backend broadcast "userConfigUpdate" event (see `cli/src/events/userConfigUpdatedEvent.ts`).
+
