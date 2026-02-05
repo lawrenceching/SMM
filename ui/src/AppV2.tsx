@@ -396,6 +396,7 @@ function AppV2Content() {
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
+      console.log(`[AppV2] mediaMetadatas: `, metadata)
       return {
         mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
         path: metadata.mediaFolderPath,

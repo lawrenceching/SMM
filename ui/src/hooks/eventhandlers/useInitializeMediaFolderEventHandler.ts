@@ -11,6 +11,7 @@ import type { OnMediaFolderImportedEventData, UIEvent } from "@/types/EventHandl
 import { useBackgroundJobs } from "@/components/background-jobs/BackgroundJobsProvider"
 import { Path } from "@core/path"
 
+// TODO: migrate to AppInitializer
 export function useInitializeMediaFolderEventHandler() {
 
   const { addMediaFolderInUserConfig } = useConfig()

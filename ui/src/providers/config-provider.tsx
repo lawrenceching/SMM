@@ -1,156 +1,87 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
-import { RenameRules, type AppConfig, type UserConfig } from "@core/types"
+import { type AppConfig, type HelloResponseBody, type UserConfig } from "@core/types"
 import { join } from "@/lib/path"
-import { readFile } from "@/api/readFile"
 import { writeFile } from "@/api/writeFile"
 import { changeLanguage } from "@/lib/i18n"
 import { useLatest } from "react-use"
+import { hello } from "@/api/hello"
+import { defaultUserConfig, readUserConfig } from "@/api/readUserConfig"
+
+interface ReloadCallback {
+  onSuccess?: (config: UserConfig) => void | Promise<void>
+  onError?: (error: Error) => void | Promise<void>
+}
 
 interface ConfigContextValue {
   appConfig: AppConfig
   userConfig: UserConfig
   isLoading: boolean
   error: Error | null
-  setUserConfig: (traceId: string, config: UserConfig) => Promise<void>
-  reload: () => void
+  setAndSaveUserConfig: (traceId: string, config: UserConfig) => Promise<void>
+  reload: (callback?: ReloadCallback) => void
   addMediaFolderInUserConfig: (traceId: string, folder: string) => Promise<void>
 }
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined)
 
 interface ConfigProviderProps {
-  appConfig?: AppConfig
-  userConfig?: UserConfig
   children: React.ReactNode
 }
 
-interface HelloResponse {
-  uptime: number;
-  version: string;
-  userDataDir: string;
-}
-
-const defaultUserConfig: UserConfig = {
-  applicationLanguage: 'zh-CN',
-  tmdb: {
-    host: '',
-    apiKey: '',
-    httpProxy: ''
-  },
-  ai: {
-    deepseek: {
-      baseURL: 'https://api.deepseek.com',
-      apiKey: '',
-      model: 'deepseek-chat'
-    },
-    openAI: {
-      baseURL: 'https://api.openai.com/v1',
-      apiKey: '',
-      model: 'gpt-4o'
-    },
-    openrouter: {
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: '',
-      model: 'deepseek/deepseek-chat'
-    },
-    glm: {
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-      apiKey: '',
-      model: 'GLM-4.5'
-    },
-    other: {
-      baseURL: '',
-      apiKey: '',
-      model: ''
-    }
-  },
-  selectedAI: 'DeepSeek',
-  selectedTMDBIntance: 'public',
-  folders: [],
-  selectedRenameRule: RenameRules.Plex.name,
-  enableMcpServer: false,
-  mcpHost: '127.0.0.1',
-  mcpPort: 30001,
-}
-
 export function ConfigProvider({
-  appConfig: initialAppConfig,
-  userConfig: initialUserConfig = defaultUserConfig,
   children,
 }: ConfigProviderProps) {
-  const [appConfig, setAppConfig] = useState<AppConfig>(
-    initialAppConfig || { version: "unknown" }
+  const [appConfig, setAppConfig] = useState<AppConfig>({ version: "unknown" }
   )
   const latestAppConfig = useLatest(appConfig)
-  const [userConfig, setUserConfig] = useState<UserConfig>(initialUserConfig || defaultUserConfig)
-  const [isLoading, setIsLoading] = useState(!initialAppConfig)
+  const [userConfig, setUserConfig] = useState<UserConfig>(defaultUserConfig)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (callback?: ReloadCallback) => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // TODO: use the hello.ts
-      
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: "hello" }),
-      })
+      const data: HelloResponseBody = await hello()
+      console.log(`[ConfigProvider] Reloaded user data directory: ${data.userDataDir}`)
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch app config: ${response.statusText}`)
-      }
-
-      const data: HelloResponse = await response.json()
-      const userDataDir = data.userDataDir;
-      console.log(`[ConfigProvider] Reloaded user data directory: ${userDataDir}`)
+      // Update appConfig with userDataDir and version
       setAppConfig((prev) => {
         return {
           ...prev,
-          userDataDir: userDataDir,
+          userDataDir: data.userDataDir,
+          version: data.version,
         }
       })
 
-      const filePath = join(userDataDir, 'smm.json');
-
-      const resp = await readFile(filePath);
-      const config = resp.data ? JSON.parse(resp.data) as UserConfig : defaultUserConfig;
+      // Use readUserConfig to load user config
+      const config = await readUserConfig(data);
       console.log('[ConfigProvider] Reloaded user config', config)
       setUserConfig(config)
-      
+
       // Sync i18n language with config
       if (config.applicationLanguage) {
         await changeLanguage(config.applicationLanguage);
       }
 
-      // Map HelloResponse to AppConfig
-      setAppConfig((prev) => {
-        return {
-          ...prev,
-          version: data.version,
-        }
-      })
+      // Call onSuccess callback if provided
+      if (callback?.onSuccess) {
+        await callback.onSuccess(config)
+      }
     } catch (err) {
+      const error = err instanceof Error ? err : new Error("Unknown error")
       console.error("Failed to fetch app config:", err)
-      setError(err instanceof Error ? err : new Error("Unknown error"))
-      // Keep the fallback version
+      setError(error)
+
+      // Call onError callback if provided
+      if (callback?.onError) {
+        await callback.onError(error)
+      }
     } finally {
       setIsLoading(false)
     }
   }, [])
-
-  useEffect(() => {
-    // Only fetch if no initial config provided
-    if (initialAppConfig) {
-      return
-    }
-
-    reload()
-  }, [initialAppConfig])
 
   const saveUserConfig = useCallback(async (traceId: string, config: UserConfig) => {
     console.log(`[${traceId}] saveUserConfig: Starting save operation`)
@@ -234,7 +165,7 @@ export function ConfigProvider({
     userConfig,
     isLoading,
     error,
-    setUserConfig: saveUserConfig,
+    setAndSaveUserConfig: saveUserConfig,
     reload,
     addMediaFolderInUserConfig,
   }

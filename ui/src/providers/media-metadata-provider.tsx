@@ -13,6 +13,7 @@ import { minimize } from "@/lib/log"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: UIMediaMetadata[]
+  setMediaMetadatas: (value: UIMediaMetadata[] | ((prev: UIMediaMetadata[]) => UIMediaMetadata[])) => void
   addMediaMetadata: (metadata: UIMediaMetadata, options?: { traceId?: string }) => void
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
   /**
@@ -93,7 +94,7 @@ interface MediaMetadataProviderProps {
   initialMediaMetadatas?: UIMediaMetadata[]
 }
 
-
+const debug: boolean = true;
 
 export function MediaMetadataProvider({
   children,
@@ -111,9 +112,12 @@ export function MediaMetadataProvider({
     return mediaMetadatas[selectedIndex]
   }, [mediaMetadatas, selectedIndex])
 
-  useEffect(() => {
-    console.log(`[MediaMetadataProvider] mediaMetadatas changed`, mediaMetadatas)
-  }, [mediaMetadatas])
+  if(debug) {
+    useEffect(() => {
+      console.log(`[MediaMetadataProvider] mediaMetadatas: `, mediaMetadatas)
+    }, [mediaMetadatas])
+  }
+  
 
   const setSelectedMediaMetadata = useCallback((index: number) => {
     setSelectedIndex(index)
@@ -295,7 +299,8 @@ export function MediaMetadataProvider({
     setSelectedMediaMetadataByMediaFolderPath,
     refreshMediaMetadata,
     reloadMediaMetadatas,
-    updateMediaMetadataStatus
+    updateMediaMetadataStatus,
+    setMediaMetadatas
   }
 
   return (

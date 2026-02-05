@@ -46,7 +46,7 @@ export interface MediaFolderListItemV2Props {
   /**
    * Status of the media metadata initialization
    */
-  status?: 'idle' | 'initializing' | 'ok' | 'folder_not_found'
+  status?: 'idle' | 'initializing' | 'ok' | 'folder_not_found' | 'loading'
 }
 
 export function MediaFolderListItemV2({
@@ -67,7 +67,7 @@ export function MediaFolderListItemV2({
     getMediaMetadata,
     refreshMediaMetadata,
     selectedMediaMetadata } = useMediaMetadata()
-  const { userConfig, setUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
   const selectedFromProvider = useMemo(
@@ -92,8 +92,8 @@ export function MediaFolderListItemV2({
       folders: userConfig.folders.filter((folder) => Path.posix(folder) !== path),
     }
 
-    setUserConfig(traceId, newUserConfig)
-  }, [path, userConfig, setUserConfig, removeMediaMetadata])
+    setAndSaveUserConfig(traceId, newUserConfig)
+  }, [path, userConfig, setAndSaveUserConfig, removeMediaMetadata])
 
   const handleDeleteClick = useCallback(() => {
     if (onDeleteSelected && selectedFolderPathsProp && selectedFolderPathsProp.size > 0) {
@@ -177,7 +177,7 @@ export function MediaFolderListItemV2({
               Path.posix(folder) === path ? newFolderPath : folder
             ),
           }
-          setUserConfig(traceId, newUserConfig)
+          setAndSaveUserConfig(traceId, newUserConfig)
 
           // Remove old metadata entry if path changed
           if (path !== newFolderPath) {
@@ -203,7 +203,7 @@ export function MediaFolderListItemV2({
         suggestions: suggestions.length > 0 ? suggestions : undefined
       }
     )
-  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setUserConfig])
+  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setAndSaveUserConfig])
 
   return (
     <ContextMenu>
@@ -232,7 +232,7 @@ export function MediaFolderListItemV2({
             </p>
           </div>
           {/* Status indicator */}
-          {status === 'initializing' && (
+          {(status === 'initializing' || status === 'loading') && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
           )}
         </div>

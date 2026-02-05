@@ -237,7 +237,7 @@ vi.mock('@/providers/config-provider', () => ({
     },
     isLoading: false,
     error: null,
-    setUserConfig: vi.fn(),
+    setAndSaveUserConfig: vi.fn(),
     reload: vi.fn(),
   })),
 }))
