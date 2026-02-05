@@ -1,0 +1,5 @@
+{
+  "get-app-context": {
+    "description": "Get SMM context:\n  * The media folder user selected/focused on SMM UI\n  * The language in user preferences"
+  }
+}

@@ -65,7 +65,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
       }
     );
 
-    registerGetApplicationContextTool(server);
+    await registerGetApplicationContextTool(server);
     registerGetMediaFoldersTool(server);
     registerIsFolderExistTool(server);
     registerListFilesTool(server);

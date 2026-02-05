@@ -3,9 +3,10 @@ import { mcpTools } from "@/tools";
 
 /**
  * Register the get-application-context tool with the MCP server.
+ * Note: This is async because tool descriptions are loaded via i18n.
  */
-export function registerGetApplicationContextTool(server: McpServer): void {
-  const tool = mcpTools.getApplicationContext();
+export async function registerGetApplicationContextTool(server: McpServer): Promise<void> {
+  const tool = await mcpTools.getApplicationContext();
   server.registerTool(
     tool.toolName,
     {

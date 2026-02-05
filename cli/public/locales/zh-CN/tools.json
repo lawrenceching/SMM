@@ -1,0 +1,5 @@
+{
+  "get-app-context": {
+    "description": "获取 SMM 上下文：\n  * 用户在 SMM UI 上选择/聚焦的媒体文件夹\n  * 用户偏好设置中的语言"
+  }
+}

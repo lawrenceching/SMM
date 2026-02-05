@@ -171,6 +171,77 @@ Built-in rename rules for different media servers:
 
 Variables available: `SEASON`, `SEASON_P2`, `EPISODE`, `EPISODE_P2`, `NAME`, `TV_SHOW_NAME`, `EXTENSION`, `TMDB_ID`, `RELEASE_YEAR`, `SEASON_FOLDER`, `SEASON_FOLDER_P2`, `SEASON_FOLDER_SHORT`
 
+### Internationalization (i18n) in CLI Backend
+
+The CLI backend module uses i18next for internationalizing MCP tool descriptions.
+
+**Infrastructure:**
+- i18next with i18next-fs-backend for loading translations from JSON files
+- Translation files: `cli/public/locales/{lng}/tools.json`
+- Supported languages: English (en), Simplified Chinese (zh-CN)
+- Default language: English with fallback to English for missing translations
+
+**Adding i18n to a New Tool:**
+
+1. Add translation keys to `cli/public/locales/en/tools.json`:
+   ```json
+   {
+     "your-tool-name": {
+       "description": "Your tool description in English"
+     }
+   }
+   ```
+
+2. Add translations to other language files (e.g., `zh-CN/tools.json`)
+
+3. In your tool file (`cli/src/tools/yourTool.ts`):
+   ```typescript
+   import { getLocalizedToolDescription } from '@/i18n/helpers';
+
+   export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
+     const description = await getLocalizedToolDescription('your-tool-name', clientId);
+
+     return {
+       toolName: 'your-tool-name',
+       description: description,
+       // ... rest of tool definition
+     };
+   }
+
+   export async function yourToolAgentTool(clientId: string) {
+     const tool = await getTool(clientId);
+     return {
+       description: tool.description,
+       // ... rest of tool wrapper
+     };
+   }
+
+   export async function yourToolMcpTool() {
+     return getTool();
+   }
+   ```
+
+4. Update the MCP registration function in `cli/src/mcp/tools/yourToolTool.ts` to be async:
+   ```typescript
+   export async function registerYourTool(server: McpServer): Promise<void> {
+     const tool = await mcpTools.yourTool();
+     server.registerTool(/* ... */);
+   }
+   ```
+
+**Helper Functions:**
+- `getToolLanguage(clientId?: string): Promise<string>` - Gets user's language preference
+- `getLocalizedToolDescription(toolName: string, clientId?: string): Promise<string>` - Gets localized description
+
+**Translation File Structure:**
+```
+cli/public/locales/
+  en/
+    tools.json       # English translations
+  zh-CN/
+    tools.json       # Simplified Chinese translations
+```
+
 ## Build System
 
 - **UI**: Vite + TypeScript + Tailwind CSS + Shadcn UI

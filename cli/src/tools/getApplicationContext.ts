@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ToolDefinition } from './types';
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase';
 import { getUserConfig } from '@/utils/config';
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 
 async function getLanguage() {
@@ -32,13 +33,13 @@ async function getSelectedMediaFolder(_clientId?: string) {
 
 }
 
-export const getTool = function (clientId?: string): ToolDefinition {
+export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on user's language preference
+  const description = await getLocalizedToolDescription('get-app-context');
+
   return {
     toolName: 'get-app-context',
-    description: `Get SMM context:
-  * The media folder user selected/focused on SMM UI
-  * The language in user preferences
-  `,
+    description: description,
     inputSchema: z.object({}),
     outputSchema: z.object({
       selectedMediaFolder: z.string().describe("The path of the media folder that user selected in UI."),
@@ -70,15 +71,35 @@ export const getTool = function (clientId?: string): ToolDefinition {
   }
 }
 
-export function getApplicationContextAgentTool(clientId: string) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * Pattern for adding i18n to other tools:
+ * 1. Import getLocalizedToolDescription from '@/i18n/helpers'
+ * 2. Make getTool function async
+ * 3. Call getLocalizedToolDescription('tool-name')
+ * 4. Make these export functions async as well
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Promise resolving to localized tool definition
+ */
+export async function getApplicationContextAgentTool(clientId: string) {
+  const tool = await getTool(clientId);
   return {
-    description: getTool(clientId).description,
-    inputSchema: getTool(clientId).inputSchema,
-    outputSchema: getTool(clientId).outputSchema,
-    execute: (args: any) => getTool(clientId).execute(args),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
+    execute: (args: any) => tool.execute(args),
   }
 }
 
-export function getApplicationContextMcpTool() {
+/**
+ * Returns a tool definition with English description for MCP server usage.
+ * MCP tools use English as the default language (no clientId context).
+ *
+ * @returns Promise resolving to tool definition with English description
+ */
+export async function getApplicationContextMcpTool() {
   return getTool();
 }
