@@ -67,6 +67,15 @@ export interface RenameFilesPlanReadyRequestData {
   planFilePath: string,
 }
 
+export const MEDIA_METADATA_UPDATED_EVENT = 'mediaMetadataUpdated'
+
+export interface MediaMetadataUpdatedEventData {
+  /**
+   * Folder path in POSIX format
+   */
+  folderPath?: string,
+}
+
 /* User config updated event: Start */
 
 export const USER_CONFIG_UPDATED_EVENT = 'userConfigUpdated'

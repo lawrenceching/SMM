@@ -6,17 +6,20 @@ import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
-import { ConfigProvider, useConfig } from './providers/config-provider'
+import { ConfigProvider } from './providers/config-provider'
 import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
-import { GlobalStatesProvider, useGlobalStates } from './providers/global-states-provider'
-import { RenameFilesPlanReady, USER_CONFIG_FOLDER_RENAMED_EVENT } from '@core/event-types'
+import { GlobalStatesProvider } from './providers/global-states-provider'
+import { USER_CONFIG_FOLDER_RENAMED_EVENT } from '@core/event-types'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
 import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
 import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
 import { MediaFolderImportedEventHandler } from './components/eventlisteners/MediaFolderImportedEventHandler.tsx'
+import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/RenameFilesPlanReadyEventListener.tsx'
+import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
+import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
 // Hook to detect mobile screen
 function useIsMobile() {
@@ -67,9 +70,7 @@ function useIsMobile() {
 
 // WebSocketHandlers component - shared across all app views
 function WebSocketHandlers() {
-  const { reload: reloadUserConfig } = useConfig();
-  const { refreshMediaMetadata, selectedMediaMetadata } = useMediaMetadata();
-  const { fetchPendingPlans } = useGlobalStates();
+  const { selectedMediaMetadata } = useMediaMetadata();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
@@ -89,18 +90,6 @@ function WebSocketHandlers() {
       console.log('[WebSocketHandlers][DEBUG] getSelectedMediaMetadata acknowledgement sent');
     }
     
-    // Handle mediaMetadataUpdated event (no acknowledgement needed)
-    if (message.event === "mediaMetadataUpdated") {
-      const folderPath = message.data?.folderPath;
-      if (folderPath) {
-        console.log(`[WebSocketHandlers] Received mediaMetadataUpdated event for folder: ${folderPath}`);
-        refreshMediaMetadata(folderPath);
-      } else {
-        console.warn(`[WebSocketHandlers] mediaMetadataUpdated event missing folderPath in data:`, message.data);
-        reloadUserConfig();
-      }
-    }
-
     // Handle askForConfirmation event with Socket.IO acknowledgement
     if (message.event === "askForConfirmation") {
       console.log('[WebSocketHandlers][DEBUG] askForConfirmation received', {
@@ -164,15 +153,6 @@ function WebSocketHandlers() {
           </div>
         ),
       });
-    } else if(message.event === "userConfigUpdated") {
-      console.log('[WebSocketHandlers][DEBUG] userConfigUpdated received');
-      reloadUserConfig();      
-    }
-
-    // Refetch pending rename plans when backend broadcasts that a new plan is ready
-    if (message.event === RenameFilesPlanReady.event) {
-      console.log('[WebSocketHandlers] Received renameFilesPlanReady, refetching pending plans');
-      void fetchPendingPlans();
     }
 
     document.dispatchEvent(new CustomEvent('socket.io_' + USER_CONFIG_FOLDER_RENAMED_EVENT, {
@@ -182,6 +162,19 @@ function WebSocketHandlers() {
 
   return (
     <></>
+  )
+}
+
+function EventListeners() {
+  return (
+    <>
+      <SocketIoUserConfigFolderRenamedEventListener />
+      <PingEventListener />
+      <RenameFilesPlanReadyEventListener />
+      <UserConfigUpdatedEventListener />
+      <MediaMetadataUpdatedEventListener />
+      <MediaFolderImportedEventHandler />
+    </>
   )
 }
 
@@ -198,6 +191,7 @@ function AppSwitcher() {
       <>
         <AppNavigation />
         <WebSocketHandlers />
+        <EventListeners />
       </>
     )
   }
@@ -238,9 +232,7 @@ function AppSwitcher() {
       {/* 渲染对应的组件 */}
       {useAppV2 ? <AppV2 /> : <App />}
       <WebSocketHandlers />
-      <SocketIoUserConfigFolderRenamedEventListener />
-      <PingEventListener />
-      <MediaFolderImportedEventHandler />
+      <EventListeners />
     </>
   )
 }
