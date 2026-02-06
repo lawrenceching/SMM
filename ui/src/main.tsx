@@ -155,9 +155,10 @@ function WebSocketHandlers() {
       });
     }
 
-    document.dispatchEvent(new CustomEvent('socket.io_' + USER_CONFIG_FOLDER_RENAMED_EVENT, {
+    document.dispatchEvent(new CustomEvent('socket.io_' + message.event, {
       detail: message.data,
     }));
+    console.log(`Dispatched event: socket.io_${message.event}`)
   });
 
   return (

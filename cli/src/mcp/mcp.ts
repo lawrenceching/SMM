@@ -25,6 +25,10 @@ import {
   registerAddRecognizedFileTool,
   registerEndRecognizeTaskTool,
 } from "./tools/beginRecognizeTaskTool";
+import { registerGetEpisodesTool } from "./tools/getEpisodesTool";
+import {
+  registerGetEpisodeTool,
+} from "./tools/getEpisodeTool";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -72,6 +76,8 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerBeginRecognizeTaskTool(server);
     await registerAddRecognizedFileTool(server);
     await registerEndRecognizeTaskTool(server);
+    // await registerGetEpisodesTool(server);
+    await registerGetEpisodeTool(server);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       // sessionIdGenerator: () => crypto.randomUUID(),
