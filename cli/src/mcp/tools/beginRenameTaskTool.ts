@@ -5,6 +5,7 @@ import {
   endRenameFilesTaskV2,
   getRenameTask,
 } from "@/tools/renameFilesToolV2";
+import { extname } from "path";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import type { McpToolResponse } from "./mcpToolBase";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,7 +19,7 @@ import { videoFileExtensions } from "@core/utils";
  * @returns true if the file has a video extension, false otherwise
  */
 function isVideoFile(filePath: string): boolean {
-  const extension = Path.extname(filePath).toLowerCase();
+  const extension = extname(filePath).toLowerCase();
   return videoFileExtensions.includes(extension);
 }
 
@@ -200,7 +201,7 @@ export async function registerBeginRenameTaskTool(server: McpServer): Promise<vo
   const tool = await createBeginRenameFilesTaskV2Tool('mcp');
 
   server.registerTool(
-    "begin-rename-task",
+    "begin-rename-episode-video-file-task",
     {
       description: tool.description,
       inputSchema: {
@@ -220,7 +221,7 @@ export async function registerAddRenameFileTool(server: McpServer): Promise<void
   const tool = await createAddRenameFileToTaskV2Tool('mcp');
 
   server.registerTool(
-    "add-rename-file",
+    "add-rename-episode-video-file",
     {
       description: tool.description,
       inputSchema: {
@@ -242,7 +243,7 @@ export async function registerEndRenameTaskTool(server: McpServer): Promise<void
   const tool = await createEndRenameFilesTaskV2Tool('mcp');
 
   server.registerTool(
-    "end-rename-task",
+    "end-rename-episode-video-file-task",
     {
       description: tool.description,
       inputSchema: {

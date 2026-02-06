@@ -28,9 +28,9 @@ import {
   registerRenameFolderTool,
 } from "./tools/renameFolderTool";
 import {
-  registerBeginRenameTaskTool,
-  registerAddRenameFileTool,
-  registerEndRenameTaskTool,
+  registerBeginRenameTaskTool as registerBeginRenameEpisodeVideoFileTaskTool,
+  registerAddRenameFileTool as registerAddRenameEpisodeVideoFileTool,
+  registerEndRenameTaskTool as registerEndRenameEpisodeVideoTaskTool,
 } from "./tools/beginRenameTaskTool";
 import {
   registerBeginRecognizeTaskTool,
@@ -80,9 +80,9 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // registerGetEpisodesTool(server);
     // registerGetApplicationContextTool(server);
     await registerRenameFolderTool(server);
-    await registerBeginRenameTaskTool(server);
-    await registerAddRenameFileTool(server);
-    await registerEndRenameTaskTool(server);
+    await registerBeginRenameEpisodeVideoFileTaskTool(server);
+    await registerAddRenameEpisodeVideoFileTool(server);
+    await registerEndRenameEpisodeVideoTaskTool(server);
     await registerBeginRecognizeTaskTool(server);
     await registerAddRecognizedFileTool(server);
     await registerEndRecognizeTaskTool(server);

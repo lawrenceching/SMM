@@ -21,13 +21,13 @@
     "description": "Begin a rename files task for a media folder. Call this first, then addRenameFileToTask for each file, then endRenameFilesTask. The user will be asked to confirm before files are renamed. Returns a task ID to use with addRenameFileToTask and endRenameFilesTask."
   },
   "add-rename-file-to-task": {
-    "description": "Add a file rename (from/to) to an existing rename task. Call this after beginRenameFilesTask for each file to rename. You DO NOT need to add thumbnail, subtitle, or nfo files; they are renamed when the main video is renamed."
+    "description": "Add video file to rename. This tool is only for video file that linked to an episode."
   },
   "end-rename-task": {
-    "description": "End a rename task and execute all queued rename operations. Call this after adding all files with addRenameFileToTask. The task must have at least one file. The user will be asked to confirm before files are renamed."
+    "description": "End the construction of the task. SMM will process the task in its own process."
   },
   "begin-rename-task-v2": {
-    "description": "Begin a rename files task V2 for a media folder. This tool creates a new plan that is saved to disk. You can then add rename operations with addRenameFileToTaskV2 and finish with endRenameFilesTaskV2. The user will review the plan in the UI and confirm or cancel; the chat is not blocked. Use this instead of beginRenameFilesTask when you want a plan-then-confirm flow like recognition. Call this first, then addRenameFileToTaskV2 for each file, then endRenameFilesTaskV2. Returns a task ID to use with addRenameFileToTaskV2 and endRenameFilesTaskV2."
+    "description": "Begin a rename task for episode video file in a media folder. This tool is only for video files. This tool returns a task id, which is required for subsequent add-rename-episode-video-file and end-rename-episode-video-file-task calls."
   },
   "add-rename-file-to-task-v2": {
     "description": "Add a file rename (from/to) to an existing rename task V2. Call this after beginRenameFilesTaskV2 for each file to rename. You DO NOT need to add thumbnail, subtitle, or nfo files; they are renamed when the main video is renamed."

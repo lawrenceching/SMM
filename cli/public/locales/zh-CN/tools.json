@@ -27,7 +27,7 @@
     "description": "结束重命名任务并执行所有排队的重命名操作。在使用 addRenameFileToTask 添加所有文件后调用此工具。任务必须至少包含一个文件。用户将被要求确认后才会重命名文件。"
   },
   "begin-rename-task-v2": {
-    "description": "为媒体文件夹开始重命名文件任务 V2。此工具创建一个保存到磁盘的新计划。您可以使用 addRenameFileToTaskV2 添加重命名操作，并使用 endRenameFilesTaskV2 完成。用户将在 UI 中查看计划并确认或取消；聊天不会被阻塞。当您想要像识别那样的计划-然后-确认流程时，请使用此工具而不是 beginRenameFilesTask。首先调用此工具，然后为每个文件调用 addRenameFileToTaskV2，最后调用 endRenameFilesTaskV2。返回一个任务 ID，用于 addRenameFileToTaskV2 和 endRenameFilesTaskV2。"
+    "description": "为媒体文件夹中的剧集视频文件开始重命名任务。此工具仅适用于视频文件。此工具返回任务 ID，该 ID 是后续 add-rename-episode-video-file 和 end-rename-episode-video-file-task 调用所必需的。"
   },
   "add-rename-file-to-task-v2": {
     "description": "将文件重命名（从/到）添加到现有的重命名任务 V2。在 beginRenameFilesTaskV2 之后为每个要重命名的文件调用此工具。您不需要添加缩略图、字幕或 nfo 文件；它们会在主视频重命名时一起重命名。"
