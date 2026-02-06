@@ -9,6 +9,18 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import type { McpToolResponse } from "./mcpToolBase";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { createBeginRenameFilesTaskV2Tool, createAddRenameFileToTaskV2Tool, createEndRenameFilesTaskV2Tool } from "@/tools/renameFilesTaskV2";
+import { videoFileExtensions } from "@core/utils";
+
+/**
+ * Check if a file path has a video file extension.
+ * @param filePath - The file path to check
+ * @returns true if the file has a video extension, false otherwise
+ */
+function isVideoFile(filePath: string): boolean {
+  const extension = Path.extname(filePath).toLowerCase();
+  return videoFileExtensions.includes(extension);
+}
 
 export interface BeginRenameTaskParams {
   /** Path to the media folder for the batch rename operation */
@@ -78,7 +90,7 @@ export async function handleBeginRenameTask(params: BeginRenameTaskParams): Prom
  * This adds a single file rename operation to an existing batch rename task.
  * Multiple files can be added to the same task before finalization.
  */
-export async function handleAddRenameFile(params: AddRenameFileParams): Promise<McpToolResponse> {
+export async function handleAddRenameEpisodeVideoFile(params: AddRenameFileParams): Promise<McpToolResponse> {
   const { taskId, from, to } = params;
 
   if (!taskId || typeof taskId !== "string") {
@@ -98,6 +110,20 @@ export async function handleAddRenameFile(params: AddRenameFileParams): Promise<
   if (!to || typeof to !== "string") {
     return {
       content: [{ type: "text" as const, text: "Invalid path: 'to' must be a non-empty string" }],
+      isError: true,
+    };
+  }
+
+  if (!isVideoFile(from)) {
+    return {
+      content: [{ type: "text" as const, text: "Invalid path: 'from' must be a video file" }],
+      isError: true,
+    };
+  }
+
+  if (!isVideoFile(to)) {
+    return {
+      content: [{ type: "text" as const, text: "Invalid path: 'to' must be a video file" }],
       isError: true,
     };
   }
@@ -170,11 +196,13 @@ export async function handleEndRenameTask(params: EndRenameTaskParams): Promise<
 /**
  * Register the begin-rename-task tool with the MCP server.
  */
-export function registerBeginRenameTaskTool(server: McpServer): void {
+export async function registerBeginRenameTaskTool(server: McpServer): Promise<void> {
+  const tool = await createBeginRenameFilesTaskV2Tool('mcp');
+
   server.registerTool(
     "begin-rename-task",
     {
-      description: "Begin a batch rename task for a media folder. Returns a task ID for use with add-rename-file and end-rename-task.",
+      description: tool.description,
       inputSchema: {
         mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
@@ -188,11 +216,13 @@ export function registerBeginRenameTaskTool(server: McpServer): void {
 /**
  * Register the add-rename-file tool with the MCP server.
  */
-export function registerAddRenameFileTool(server: McpServer): void {
+export async function registerAddRenameFileTool(server: McpServer): Promise<void> {
+  const tool = await createAddRenameFileToTaskV2Tool('mcp');
+
   server.registerTool(
     "add-rename-file",
     {
-      description: "Add a file rename operation to an existing rename task.",
+      description: tool.description,
       inputSchema: {
         taskId: z.string().describe("The task ID from begin-rename-task"),
         from: z.string().describe("The current absolute path of the file to rename"),
@@ -200,7 +230,7 @@ export function registerAddRenameFileTool(server: McpServer): void {
       },
     } as any,
     async (args: any) => {
-      return handleAddRenameFile(args);
+      return handleAddRenameEpisodeVideoFile(args);
     }
   );
 }
@@ -208,11 +238,13 @@ export function registerAddRenameFileTool(server: McpServer): void {
 /**
  * Register the end-rename-task tool with the MCP server.
  */
-export function registerEndRenameTaskTool(server: McpServer): void {
+export async function registerEndRenameTaskTool(server: McpServer): Promise<void> {
+  const tool = await createEndRenameFilesTaskV2Tool('mcp');
+
   server.registerTool(
     "end-rename-task",
     {
-      description: "End a batch rename task and finalize the plan. The task must have at least one file.",
+      description: tool.description,
       inputSchema: {
         taskId: z.string().describe("The task ID from begin-rename-task"),
       },

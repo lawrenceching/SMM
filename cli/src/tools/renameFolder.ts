@@ -13,6 +13,7 @@ import { nextTraceId } from "@/utils/traceId";
 import { getUserConfig, writeUserConfig } from "@/utils/config";
 import { deleteMediaMetadataFile, renameMediaMetadataCacheFile } from "@/utils/mediaMetadata";
 import { broadcastUserConfigFolderRenamedEvent } from "@/events/userConfigUpdatedEvent";
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 export interface RenameFolderParams {
   from: string;
@@ -292,10 +293,13 @@ export async function handleRenameFolder(
   }
 }
 
-export function getTool(abortSignal?: AbortSignal): ToolDefinition {
+export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('rename-folder');
+
   return {
     toolName: "rename-folder",
-    description: "Rename a media folder. This is a destructive operation - the folder will be renamed on disk and metadata cache will be updated.",
+    description: description,
     inputSchema: z.object({
       from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
       to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
@@ -312,24 +316,20 @@ export function getTool(abortSignal?: AbortSignal): ToolDefinition {
   };
 }
 
-export function renameFolderAgentTool(clientId: string, abortSignal?: AbortSignal) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @param abortSignal - Optional abort signal for request cancellation
+ * @returns Promise resolving to localized tool definition
+ */
+export async function renameFolderAgentTool(clientId: string, abortSignal?: AbortSignal) {
+  const tool = await getTool(abortSignal);
   return {
-    description: `Rename a media folder in SMM.
-This tool accepts the source folder path and destination folder path.
-This tool should ONLY be used to rename FOLDER, NOT FILE
-This tool will update media metadata accordingly.
-
-Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".`,
-    inputSchema: z.object({
-      from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
-      to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
-    }),
-    outputSchema: z.object({
-      renamed: z.boolean().describe("Whether the folder was successfully renamed"),
-      from: z.string().describe("The source path after normalization"),
-      to: z.string().describe("The destination path after normalization"),
-      error: z.string().optional().describe("Error message if rename failed"),
-    }),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
     execute: async (args: { from: string; to: string }) => {
       if (abortSignal?.aborted) {
         throw new Error("Request was aborted");
@@ -376,7 +376,13 @@ Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".`,
   };
 }
 
-export function renameFolderMcpTool() {
+/**
+ * Returns a tool definition with localized description for MCP server usage.
+ * MCP tools use the global user's language preference.
+ *
+ * @returns Promise resolving to tool definition
+ */
+export async function renameFolderMcpTool() {
   return getTool();
 }
 

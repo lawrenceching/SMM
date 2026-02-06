@@ -10,7 +10,7 @@ import { handleListFiles } from "@/tools/listFiles";
 import { handleGetMediaMetadata } from "@/tools/getMediaMetadata";
 import { handleWriteMediaMetadata, handleDeleteMediaMetadata } from "./tools";
 import { handleBeginRecognizeTask, handleAddRecognizedFile, handleEndRecognizeTask } from "./tools/beginRecognizeTaskTool";
-import { handleBeginRenameTask, handleAddRenameFile, handleEndRenameTask } from "./tools/beginRenameTaskTool";
+import { handleBeginRenameTask, handleAddRenameEpisodeVideoFile, handleEndRenameTask } from "./tools/beginRenameTaskTool";
 
 describe("MCP Server Integration Tests", () => {
   let tempDir: string;
@@ -64,7 +64,7 @@ describe("MCP Server Integration Tests", () => {
     it("should have all rename task tools available", async () => {
       // Test that rename task handlers are properly exported
       expect(typeof handleBeginRenameTask).toBe("function");
-      expect(typeof handleAddRenameFile).toBe("function");
+      expect(typeof handleAddRenameEpisodeVideoFile).toBe("function");
       expect(typeof handleEndRenameTask).toBe("function");
     });
   });
@@ -155,7 +155,7 @@ describe("MCP Server Integration Tests", () => {
       const beginParsed = JSON.parse(beginResult.content[0].text);
 
       // Add a rename operation
-      const result = await handleAddRenameFile({
+      const result = await handleAddRenameEpisodeVideoFile({
         taskId: beginParsed.taskId,
         from: path.join(testMediaDir, "S01E01.mkv"),
         to: path.join(testMediaDir, "Test Show - S01E01.mkv"),
@@ -169,7 +169,7 @@ describe("MCP Server Integration Tests", () => {
       const beginResult = await handleBeginRenameTask({ mediaFolderPath: testMediaDir });
       const beginParsed = JSON.parse(beginResult.content[0].text);
 
-      await handleAddRenameFile({
+      await handleAddRenameEpisodeVideoFile({
         taskId: beginParsed.taskId,
         from: path.join(testMediaDir, "S01E01.mkv"),
         to: path.join(testMediaDir, "Test Show - S01E01.mkv"),
@@ -390,14 +390,14 @@ describe("MCP Server Integration Tests", () => {
         const taskId = beginParsed.taskId;
 
         // Step 2: Add rename operations
-        const addResult1 = await handleAddRenameFile({
+        const addResult1 = await handleAddRenameEpisodeVideoFile({
           taskId,
           from: path.join(testMediaDir, "S01E01.mkv"),
           to: path.join(testMediaDir, "Test Show - S01E01.mkv"),
         });
         expect(addResult1.isError).toBeUndefined();
 
-        const addResult2 = await handleAddRenameFile({
+        const addResult2 = await handleAddRenameEpisodeVideoFile({
           taskId,
           from: path.join(testMediaDir, "S01E02.mkv"),
           to: path.join(testMediaDir, "Test Show - S01E02.mkv"),
@@ -427,7 +427,7 @@ describe("MCP Server Integration Tests", () => {
 
       it("should reject task operations with invalid taskId", async () => {
         // Add file to non-existent task
-        const addResult = await handleAddRenameFile({
+        const addResult = await handleAddRenameEpisodeVideoFile({
           taskId: "invalid-task-id",
           from: path.join(testMediaDir, "S01E01.mkv"),
           to: path.join(testMediaDir, "renamed.mkv"),

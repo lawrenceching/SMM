@@ -3,9 +3,10 @@ import { mcpTools } from "@/tools";
 
 /**
  * Register the list-files tool with the MCP server.
+ * Note: This is async because tool descriptions are loaded via i18n.
  */
-export function registerListFilesTool(server: McpServer): void {
-  const tool = mcpTools.listFiles();
+export async function registerListFilesTool(server: McpServer): Promise<void> {
+  const tool = await mcpTools.listFiles();
   server.registerTool(
     tool.toolName,
     {

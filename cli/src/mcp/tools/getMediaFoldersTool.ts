@@ -3,9 +3,10 @@ import { mcpTools } from "@/tools";
 
 /**
  * Register the get-media-folders tool with the MCP server.
+ * Note: This is async because tool descriptions are loaded via i18n.
  */
-export function registerGetMediaFoldersTool(server: McpServer): void {
-  const tool = mcpTools.getMediaFolders();
+export async function registerGetMediaFoldersTool(server: McpServer): Promise<void> {
+  const tool = await mcpTools.getMediaFolders();
   server.registerTool(
     tool.toolName,
     {

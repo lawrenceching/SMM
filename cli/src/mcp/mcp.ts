@@ -66,26 +66,26 @@ export async function getMcpStreamableHttpHandler(): Promise<
     );
 
     await registerGetApplicationContextTool(server);
-    registerGetMediaFoldersTool(server);
-    registerIsFolderExistTool(server);
-    registerListFilesTool(server);
+    await registerGetMediaFoldersTool(server);
+    await registerIsFolderExistTool(server);
+    await registerListFilesTool(server);
 
     // Media Metadata is too large for AI to handle
     // I'm going to break it down into smaller tools
     // Therefore the media metadata tools are disabled for now
-    // registerGetMediaMetadataTool(server);
+    // await registerGetMediaMetadataTool(server);
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
 
     // registerGetEpisodesTool(server);
     // registerGetApplicationContextTool(server);
-    registerRenameFolderTool(server);
-    registerBeginRenameTaskTool(server);
-    registerAddRenameFileTool(server);
-    registerEndRenameTaskTool(server);
-    registerBeginRecognizeTaskTool(server);
-    registerAddRecognizedFileTool(server);
-    registerEndRecognizeTaskTool(server);
+    await registerRenameFolderTool(server);
+    await registerBeginRenameTaskTool(server);
+    await registerAddRenameFileTool(server);
+    await registerEndRenameTaskTool(server);
+    await registerBeginRecognizeTaskTool(server);
+    await registerAddRecognizedFileTool(server);
+    await registerEndRecognizeTaskTool(server);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       // sessionIdGenerator: () => crypto.randomUUID(),

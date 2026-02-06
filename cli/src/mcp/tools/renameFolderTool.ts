@@ -3,9 +3,10 @@ import { mcpTools } from "@/tools";
 
 /**
  * Register the rename-folder tool with the MCP server.
+ * Note: This is async because tool descriptions are loaded via i18n.
  */
-export function registerRenameFolderTool(server: McpServer): void {
-  const tool = mcpTools.renameFolder();
+export async function registerRenameFolderTool(server: McpServer): Promise<void> {
+  const tool = await mcpTools.renameFolder();
   server.registerTool(
     tool.toolName,
     {

@@ -8,17 +8,15 @@ import {
   getTask,
 } from './recognizeMediaFilesTool';
 import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan';
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 const logger = pino();
 
-export const createBeginRecognizeTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Begin a media file recognition task for a media folder.
-This tool creates a new task that allows you to collect multiple recognized media files before presenting the complete plan to the user for review.
-You should call this tool first, then use addRecognizedMediaFile to add recognized files, and finally call endRecognizeTask to notify the UI that the plan is ready.
+export const createBeginRecognizeTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('begin-recognize-task');
 
-Example: Begin a recognition task for folder "/path/to/media/folder".
-This tool returns a task ID that you must use with addRecognizedMediaFile and endRecognizeTask.
-`,
+  return {
+  description: description,
   toolName: 'beginRecognizeTask',
   inputSchema: z.object({
     mediaFolderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
@@ -56,15 +54,14 @@ This tool returns a task ID that you must use with addRecognizedMediaFile and en
       return { error: `Error Reason: Failed to create task: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
-});
+  };
+};
 
-export const createAddRecognizedMediaFileTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Add a recognized media file to an existing recognition task.
-This tool adds a single recognized file (with season, episode, and path) to a task that was created with beginRecognizeTask.
-You can call this tool multiple times to add multiple files to the same task.
+export const createAddRecognizedMediaFileTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('add-recognized-media-file');
 
-Example: Add a recognized file to task "task-id-123" with season 1, episode 5, and path "/path/to/file.mp4".
-`,
+  return {
+  description: description,
   toolName: 'addRecognizedMediaFile',
   inputSchema: z.object({
     taskId: z.string().describe("The task ID returned from beginRecognizeTask"),
@@ -123,14 +120,14 @@ Example: Add a recognized file to task "task-id-123" with season 1, episode 5, a
       return { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
-});
+  };
+};
 
-export const createEndRecognizeTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `End a recognition task and notify the UI that the plan is ready for review.
-This tool reads the final recognition plan and broadcasts a Socket.IO event to notify the UI.
+export const createEndRecognizeTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('end-recognize-task');
 
-Example: End task "task-id-123" to notify the UI that the recognition plan is ready.
-`,
+  return {
+  description: description,
   toolName: 'endRecognizeTask',
   inputSchema: z.object({
     taskId: z.string().describe("The task ID returned from beginRecognizeTask"),
@@ -197,4 +194,5 @@ Example: End task "task-id-123" to notify the UI that the recognition plan is re
       }, '[tool][endRecognizeTask] ended');
     }
   },
-});
+  };
+};

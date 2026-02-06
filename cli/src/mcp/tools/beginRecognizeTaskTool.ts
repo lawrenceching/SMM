@@ -9,6 +9,7 @@ import type { RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { McpToolResponse } from "./mcpToolBase";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { createBeginRecognizeTaskTool, createAddRecognizedMediaFileTool, createEndRecognizeTaskTool } from "@/tools/recognizeMediaFilesTask";
 
 export interface BeginRecognizeTaskParams {
   /** Path to the media folder for recognition task */
@@ -186,11 +187,13 @@ export async function handleEndRecognizeTask(params: EndRecognizeTaskParams): Pr
 /**
  * Register the begin-recognize-task tool with the MCP server.
  */
-export function registerBeginRecognizeTaskTool(server: McpServer): void {
+export async function registerBeginRecognizeTaskTool(server: McpServer): Promise<void> {
+  const tool = await createBeginRecognizeTaskTool('mcp');
+
   server.registerTool(
     "begin-recognize-task",
     {
-      description: "Begin a media file recognition task for a media folder. Returns a task ID for use with add-recognized-file and end-recognize-task.",
+      description: tool.description,
       inputSchema: {
         mediaFolderPath: z.string().describe("The absolute path of the media folder"),
       },
@@ -204,11 +207,13 @@ export function registerBeginRecognizeTaskTool(server: McpServer): void {
 /**
  * Register the add-recognized-file tool with the MCP server.
  */
-export function registerAddRecognizedFileTool(server: McpServer): void {
+export async function registerAddRecognizedFileTool(server: McpServer): Promise<void> {
+  const tool = await createAddRecognizedMediaFileTool('mcp');
+
   server.registerTool(
     "add-recognized-file",
     {
-      description: "Add a recognized media file to an existing recognition task.",
+      description: tool.description,
       inputSchema: {
         taskId: z.string().describe("The task ID from begin-recognize-task"),
         season: z.number().describe("The season number of the episode"),
@@ -225,11 +230,13 @@ export function registerAddRecognizedFileTool(server: McpServer): void {
 /**
  * Register the end-recognize-task tool with the MCP server.
  */
-export function registerEndRecognizeTaskTool(server: McpServer): void {
+export async function registerEndRecognizeTaskTool(server: McpServer): Promise<void> {
+  const tool = await createEndRecognizeTaskTool('mcp');
+
   server.registerTool(
     "end-recognize-task",
     {
-      description: "End a recognition task and finalize the plan. The task must have at least one recognized file.",
+      description: tool.description,
       inputSchema: {
         taskId: z.string().describe("The task ID from begin-recognize-task"),
       },

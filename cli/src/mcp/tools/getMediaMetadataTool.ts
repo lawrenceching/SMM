@@ -3,9 +3,10 @@ import { mcpTools } from "@/tools";
 
 /**
  * Register the get-media-metadata tool with the MCP server.
+ * Note: This is async because tool descriptions are loaded via i18n.
  */
-export function registerGetMediaMetadataTool(server: McpServer): void {
-  const tool = mcpTools.getMediaMetadata();
+export async function registerGetMediaMetadataTool(server: McpServer): Promise<void> {
+  const tool = await mcpTools.getMediaMetadata();
   server.registerTool(
     tool.toolName,
     {

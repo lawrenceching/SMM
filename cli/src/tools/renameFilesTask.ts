@@ -13,23 +13,22 @@ import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import type { MediaMetadata } from '@core/types';
 import { AskForRenameFilesConfirmation } from '@core/event-types';
 import { acknowledge } from '../utils/socketIO';
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 const logger = pino();
 
 
-export const createBeginRenameFilesTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Begin a rename files task for a media folder.
-This tool creates a new task that allows you to collect multiple file rename operations before executing them all at once.
-You should call this tool first, then use addRenameFileToTask to add files to rename, and finally call endRenameFilesTask to execute all renames.
+export const createBeginRenameFilesTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('begin-rename-task');
 
-Example: Begin a rename task for folder "/path/to/media/folder".
-This tool returns a task ID that you must use with addRenameFileToTask and endRenameFilesTask.
-`,
-  toolName: 'beginRenameFilesTask',
-  inputSchema: z.object({
-    mediaFolderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
-  }),
-  execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
+  return {
+    description: description,
+    toolName: 'beginRenameFilesTask',
+    inputSchema: z.object({
+      mediaFolderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
+    }),
+    execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
     // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
     if (abortSignal?.aborted) {
       throw new Error('Request was aborted');
@@ -74,27 +73,26 @@ This tool returns a task ID that you must use with addRenameFileToTask and endRe
       return { error: `Error Reason: Failed to create task: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
-});
+};
+};
 
-export const createAddRenameFileToTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Add a file rename operation to an existing rename task.
-This tool adds a single file rename (from/to paths) to a task that was created with beginRenameFilesTask.
-You can call this tool multiple times to add multiple files to the same task.
+export const createAddRenameFileToTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('add-rename-file-to-task');
 
-Example: Add a rename operation to task "task-id-123" to rename "/path/to/old-file.mp4" to "/path/to/new-file.mp4".
-Note: you **DO NOT** need to rename the corresponding thumbnail, subtitle and nfo files. They will be renamed automatically when the main video file is renamed.
-`,
-  toolName: 'addRenameFileToTask',
-  inputSchema: z.object({
-    taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
-    from: z.string().describe("The current absolute path of the file to rename, it can be POSIX format or Windows format. ONLY accept video file."),
-    to: z.string().describe("The new absolute path for the file, it can be POSIX format or Windows format"),
-  }),
-  execute: async ({ taskId, from, to }: {
-    taskId: string;
-    from: string;
-    to: string;
-  }) => {
+  return {
+    description: description,
+    toolName: 'addRenameFileToTask',
+    inputSchema: z.object({
+      taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
+      from: z.string().describe("The current absolute path of the file to rename, it can be POSIX format or Windows format. ONLY accept video file."),
+      to: z.string().describe("The new absolute path for the file, it can be POSIX format or Windows format"),
+    }),
+    execute: async ({ taskId, from, to }: {
+      taskId: string;
+      from: string;
+      to: string;
+    }) => {
     // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
     if (abortSignal?.aborted) {
       throw new Error('Request was aborted');
@@ -133,20 +131,20 @@ Note: you **DO NOT** need to rename the corresponding thumbnail, subtitle and nf
       return { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
-});
+};
+};
 
-export const createEndRenameFilesTaskTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `End a rename files task and execute all collected rename operations.
-This tool validates all rename operations in the task, asks for user confirmation, and then executes all renames.
-After execution, it updates the media metadata and cleans up the task.
+export const createEndRenameFilesTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('end-rename-task');
 
-Example: End task "task-id-123" to execute all collected rename operations.
-`,
-  toolName: 'endRenameFilesTask',
-  inputSchema: z.object({
-    taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
-  }),
-  execute: async ({ taskId }: { taskId: string }) => {
+  return {
+    description: description,
+    toolName: 'endRenameFilesTask',
+    inputSchema: z.object({
+      taskId: z.string().describe("The task ID returned from beginRenameFilesTask"),
+    }),
+    execute: async ({ taskId }: { taskId: string }) => {
     // TODO: Implement abort handling - check abortSignal and cancel ongoing operations
     if (abortSignal?.aborted) {
       throw new Error('Request was aborted');
@@ -366,5 +364,6 @@ Example: End task "task-id-123" to execute all collected rename operations.
       }, '[tool][endRenameFilesTask] ended');
     }
   },
-});
+};
+};
 

@@ -1,6 +1,6 @@
 export {
   handleBeginRenameTask,
-  handleAddRenameFile,
+  handleAddRenameEpisodeVideoFile as handleAddRenameFile,
   handleEndRenameTask,
   registerBeginRenameTaskTool,
   registerAddRenameFileTool,

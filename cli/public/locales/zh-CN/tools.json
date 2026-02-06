@@ -1,5 +1,47 @@
 {
   "get-app-context": {
     "description": "获取 SMM 上下文：\n  * 用户在 SMM UI 上选择/聚焦的媒体文件夹\n  * 用户偏好设置中的语言"
+  },
+  "is-folder-exist": {
+    "description": "检查指定路径的文件夹是否存在。接受 POSIX 或 Windows 格式的路径。"
+  },
+  "get-media-folders": {
+    "description": "获取 SMM 管理的媒体文件夹。返回文件夹路径数组。"
+  },
+  "list-files": {
+    "description": "递归列出文件夹中的所有文件。接受 POSIX 或 Windows 格式的路径。以 POSIX 格式返回文件路径。支持可选的过滤模式来过滤结果。"
+  },
+  "get-media-metadata": {
+    "description": "获取文件夹的缓存媒体元数据。返回元数据，包括类型、TMDB ID、名称和季数。"
+  },
+  "rename-folder": {
+    "description": "重命名媒体文件夹。这是一个破坏性操作 - 文件夹将在磁盘上重命名，元数据缓存将被更新。"
+  },
+  "begin-rename-task": {
+    "description": "为媒体文件夹开始重命名文件任务。首先调用此工具，然后为每个文件调用 addRenameFileToTask，最后调用 endRenameFilesTask。用户将被要求确认后才会重命名文件。返回一个任务 ID，用于 addRenameFileToTask 和 endRenameFilesTask。"
+  },
+  "add-rename-file-to-task": {
+    "description": "将文件重命名（从/到）添加到现有的重命名任务。在 beginRenameFilesTask 之后为每个要重命名的文件调用此工具。您不需要添加缩略图、字幕或 nfo 文件；它们会在主视频重命名时一起重命名。"
+  },
+  "end-rename-task": {
+    "description": "结束重命名任务并执行所有排队的重命名操作。在使用 addRenameFileToTask 添加所有文件后调用此工具。任务必须至少包含一个文件。用户将被要求确认后才会重命名文件。"
+  },
+  "begin-rename-task-v2": {
+    "description": "为媒体文件夹开始重命名文件任务 V2。此工具创建一个保存到磁盘的新计划。您可以使用 addRenameFileToTaskV2 添加重命名操作，并使用 endRenameFilesTaskV2 完成。用户将在 UI 中查看计划并确认或取消；聊天不会被阻塞。当您想要像识别那样的计划-然后-确认流程时，请使用此工具而不是 beginRenameFilesTask。首先调用此工具，然后为每个文件调用 addRenameFileToTaskV2，最后调用 endRenameFilesTaskV2。返回一个任务 ID，用于 addRenameFileToTaskV2 和 endRenameFilesTaskV2。"
+  },
+  "add-rename-file-to-task-v2": {
+    "description": "将文件重命名（从/到）添加到现有的重命名任务 V2。在 beginRenameFilesTaskV2 之后为每个要重命名的文件调用此工具。您不需要添加缩略图、字幕或 nfo 文件；它们会在主视频重命名时一起重命名。"
+  },
+  "end-rename-task-v2": {
+    "description": "结束重命名任务 V2 并通知 UI 计划已准备好审查。计划已持久化，用户将在 UI 中看到确认/取消提示。聊天不会被阻塞。在使用 addRenameFileToTaskV2 添加所有文件后调用此工具。任务必须至少包含一个文件。"
+  },
+  "begin-recognize-task": {
+    "description": "为媒体文件夹开始媒体文件识别任务。此工具创建一个新任务，允许您在向用户展示完整计划之前收集多个已识别的媒体文件。您应该首先调用此工具，然后使用 addRecognizedMediaFile 添加已识别的文件，最后调用 endRecognizeTask 通知 UI 计划已准备好。示例：为文件夹 \"/path/to/media/folder\" 开始识别任务。此工具返回一个任务 ID，您必须将其用于 addRecognizedMediaFile 和 endRecognizeTask。"
+  },
+  "add-recognized-media-file": {
+    "description": "将已识别的媒体文件添加到现有的识别任务。此工具将单个已识别文件（带有季、集和路径）添加到使用 beginRecognizeTask 创建的任务中。您可以多次调用此工具以将多个文件添加到同一任务。示例：将已识别的文件添加到任务 \"task-id-123\"，季为 1，集为 5，路径为 \"/path/to/file.mp4\"。"
+  },
+  "end-recognize-task": {
+    "description": "结束识别任务并通知 UI 计划已准备好审查。此工具读取最终的识别计划并广播 Socket.IO 事件以通知 UI。示例：结束任务 \"task-id-123\" 以通知 UI 识别计划已准备好。"
   }
 }

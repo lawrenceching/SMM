@@ -3,6 +3,7 @@ import { listFiles } from "@/utils/files";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 interface ListFilesParams {
   /** Path to the directory to list files from */
@@ -38,11 +39,13 @@ export async function handleListFiles(params: ListFilesParams): Promise<ReturnTy
   }
 }
 
-export function getTool(clientId?: string): ToolDefinition {
+export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('list-files');
+
   return {
     toolName: "list-files",
-    description:
-      "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format. Supports optional filter pattern for filtering results.",
+    description: description,
     inputSchema: z.object({
       folderPath: z.string().describe("The absolute path of the folder to list files from"),
       recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
@@ -58,16 +61,30 @@ export function getTool(clientId?: string): ToolDefinition {
   };
 }
 
-export function listFilesAgentTool(clientId: string) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Promise resolving to localized tool definition
+ */
+export async function listFilesAgentTool(clientId: string) {
+  const tool = await getTool(clientId);
   return {
-    description: getTool(clientId).description,
-    inputSchema: getTool(clientId).inputSchema,
-    outputSchema: getTool(clientId).outputSchema,
-    execute: (args: any) => getTool(clientId).execute(args),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
+    execute: (args: any) => tool.execute(args),
   };
 }
 
-export function listFilesMcpTool() {
+/**
+ * Returns a tool definition with localized description for MCP server usage.
+ * MCP tools use the global user's language preference.
+ *
+ * @returns Promise resolving to tool definition
+ */
+export async function listFilesMcpTool() {
   return getTool();
 }
 

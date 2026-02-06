@@ -8,16 +8,15 @@ import {
   getRenameTask,
 } from './renameFilesToolV2'
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils'
+import { getLocalizedToolDescription } from '@/i18n/helpers'
 
 const logger = pino()
 
-export const createBeginRenameFilesTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Begin a rename files task V2 for a media folder.
-This tool creates a new plan that is saved to disk. You can then add rename operations with addRenameFileToTaskV2 and finish with endRenameFilesTaskV2.
-The user will review the plan in the UI and confirm or cancel; the chat is not blocked.
-Use this instead of beginRenameFilesTask when you want a plan-then-confirm flow like recognition.
-Call this first, then addRenameFileToTaskV2 for each file, then endRenameFilesTaskV2.
-Returns a task ID to use with addRenameFileToTaskV2 and endRenameFilesTaskV2.`,
+export const createBeginRenameFilesTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('begin-rename-task-v2');
+
+  return {
+  description: description,
   toolName: 'beginRenameFilesTaskV2',
   inputSchema: z.object({
     mediaFolderPath: z
@@ -68,12 +67,14 @@ Returns a task ID to use with addRenameFileToTaskV2 and endRenameFilesTaskV2.`,
       }
     }
   },
-})
+  };
+};
 
-export const createAddRenameFileToTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Add a file rename (from/to) to an existing rename task V2.
-Call this after beginRenameFilesTaskV2 for each file to rename.
-You DO NOT need to add thumbnail, subtitle, or nfo files; they are renamed when the main video is renamed.`,
+export const createAddRenameFileToTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('add-rename-file-to-task-v2');
+
+  return {
+  description: description,
   toolName: 'addRenameFileToTaskV2',
   inputSchema: z.object({
     taskId: z.string().describe('The task ID from beginRenameFilesTaskV2'),
@@ -128,12 +129,14 @@ You DO NOT need to add thumbnail, subtitle, or nfo files; they are renamed when 
       }
     }
   },
-})
+  };
+};
 
-export const createEndRenameFilesTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `End a rename task V2 and notify the UI that the plan is ready for review.
-The plan is persisted and the user will see a confirm/cancel prompt in the UI. The chat is not blocked.
-Call this after adding all files with addRenameFileToTaskV2. The task must have at least one file.`,
+export const createEndRenameFilesTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
+  const description = await getLocalizedToolDescription('end-rename-task-v2');
+
+  return {
+  description: description,
   toolName: 'endRenameFilesTaskV2',
   inputSchema: z.object({
     taskId: z.string().describe('The task ID from beginRenameFilesTaskV2'),
@@ -179,4 +182,5 @@ Call this after adding all files with addRenameFileToTaskV2. The task must have 
       }
     }
   },
-})
+  };
+};

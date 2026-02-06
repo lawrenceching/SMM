@@ -6,6 +6,7 @@ import type { MediaMetadata } from "@core/types";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 export interface GetMediaMetadataParams {
   mediaFolderPath: string;
@@ -67,10 +68,13 @@ export async function handleGetMediaMetadata(
   }
 }
 
-export function getTool(abortSignal?: AbortSignal): ToolDefinition {
+export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('get-media-metadata');
+
   return {
     toolName: "get-media-metadata",
-    description: "Get cached media metadata for a folder. Returns metadata including type, TMDB ID, name, and seasons.",
+    description: description,
     inputSchema: z.object({
       mediaFolderPath: z.string().describe("The absolute path of the media folder"),
     }),
@@ -119,15 +123,30 @@ export function getTool(abortSignal?: AbortSignal): ToolDefinition {
   };
 }
 
-export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortSignal) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @param abortSignal - Optional abort signal for request cancellation
+ * @returns Promise resolving to localized tool definition
+ */
+export async function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortSignal) {
+  const tool = await getTool(abortSignal);
   return {
-    description: getTool(abortSignal).description,
-    inputSchema: getTool(abortSignal).inputSchema,
-    outputSchema: getTool(abortSignal).outputSchema,
-    execute: (args: any) => getTool(abortSignal).execute(args),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
+    execute: (args: any) => tool.execute(args),
   };
 }
 
-export function getMediaMetadataMcpTool() {
+/**
+ * Returns a tool definition with localized description for MCP server usage.
+ * MCP tools use the global user's language preference.
+ *
+ * @returns Promise resolving to tool definition
+ */
+export async function getMediaMetadataMcpTool() {
   return getTool();
 }

@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import type { ToolDefinition } from './types';
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase';
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 interface IsFolderExistResult {
   exists: boolean;
@@ -33,10 +34,13 @@ async function checkFolderExists(path: string): Promise<IsFolderExistResult> {
   }
 }
 
-export function getTool(clientId?: string): ToolDefinition {
+export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('is-folder-exist');
+
   return {
     toolName: 'is-folder-exist',
-    description: 'Check if a folder exists at the specified path. Accepts paths in POSIX or Windows format.',
+    description: description,
     inputSchema: z.object({
       path: z.string().describe("The absolute path of the folder to check"),
     }),
@@ -62,16 +66,30 @@ export function getTool(clientId?: string): ToolDefinition {
   };
 }
 
-export function isFolderExistAgentTool(clientId: string) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Promise resolving to localized tool definition
+ */
+export async function isFolderExistAgentTool(clientId: string) {
+  const tool = await getTool(clientId);
   return {
-    description: getTool(clientId).description,
-    inputSchema: getTool(clientId).inputSchema,
-    outputSchema: getTool(clientId).outputSchema,
-    execute: (args: any) => getTool(clientId).execute(args),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
+    execute: (args: any) => tool.execute(args),
   };
 }
 
-export function isFolderExistMcpTool() {
+/**
+ * Returns a tool definition with English description for MCP server usage.
+ * MCP tools use the global user's language preference.
+ *
+ * @returns Promise resolving to tool definition
+ */
+export async function isFolderExistMcpTool() {
   return getTool();
 }
 

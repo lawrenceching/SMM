@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { handleBeginRenameTask, handleAddRenameFile, handleEndRenameTask } from "./beginRenameTaskTool";
+import { handleBeginRenameTask, handleAddRenameEpisodeVideoFile, handleEndRenameTask } from "./beginRenameTaskTool";
 
 mock.module("@core/path", () => ({
   Path: {
@@ -86,7 +86,7 @@ describe("handleBeginRenameTask", () => {
 
 describe("handleAddRenameFile", () => {
   it("returns error for invalid taskId", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: "", from: "/source", to: "/dest" });
     
@@ -95,7 +95,7 @@ describe("handleAddRenameFile", () => {
   });
 
   it("returns error for undefined taskId", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: undefined as any, from: "/source", to: "/dest" });
     
@@ -104,7 +104,7 @@ describe("handleAddRenameFile", () => {
   });
 
   it("returns error for invalid 'from' parameter", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: "valid-task-id", from: "", to: "/dest" });
     
@@ -113,7 +113,7 @@ describe("handleAddRenameFile", () => {
   });
 
   it("returns error for undefined 'from' parameter", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: "valid-task-id", from: undefined as any, to: "/dest" });
     
@@ -122,7 +122,7 @@ describe("handleAddRenameFile", () => {
   });
 
   it("returns error for invalid 'to' parameter", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: "valid-task-id", from: "/source", to: "" });
     
@@ -131,7 +131,7 @@ describe("handleAddRenameFile", () => {
   });
 
   it("returns error for undefined 'to' parameter", async () => {
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
     
     const result = await reimportedHandler({ taskId: "valid-task-id", from: "/source", to: undefined as any });
     
@@ -149,7 +149,7 @@ describe("handleAddRenameFile", () => {
       getRenameTask: () => Promise.resolve(undefined),
     }));
 
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
 
     const result = await reimportedHandler({ 
       taskId, 
@@ -173,7 +173,7 @@ describe("handleAddRenameFile", () => {
       getRenameTask: () => Promise.resolve(undefined),
     }));
 
-    const { handleAddRenameFile: reimportedHandler } = await import("./beginRenameTaskTool");
+    const { handleAddRenameEpisodeVideoFile: reimportedHandler } = await import("./beginRenameTaskTool");
 
     const result = await reimportedHandler({ 
       taskId: "nonexistent-task", 

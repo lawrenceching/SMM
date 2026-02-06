@@ -3,6 +3,7 @@ import { executeHelloTask } from '../../tasks/HelloTask';
 import { join } from 'path';
 import type { ToolDefinition } from './types';
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase';
+import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 async function getMediaFoldersList(): Promise<string[]> {
   const { userDataDir } = await executeHelloTask();
@@ -10,10 +11,13 @@ async function getMediaFoldersList(): Promise<string[]> {
   return obj.folders || [];
 }
 
-export function getTool(clientId?: string): ToolDefinition {
+export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
+  // Use i18n to get localized tool description based on global user's language preference
+  const description = await getLocalizedToolDescription('get-media-folders');
+
   return {
     toolName: 'get-media-folders',
-    description: 'Get the media folders that are managed by SMM. Returns an array of folder paths.',
+    description: description,
     inputSchema: z.object({}),
     outputSchema: z.object({
       folders: z.array(z.string()).describe('Array of media folder paths managed by SMM'),
@@ -34,16 +38,30 @@ export function getTool(clientId?: string): ToolDefinition {
   };
 }
 
-export function getMediaFoldersAgentTool(clientId: string) {
+/**
+ * Returns a tool definition with localized description for AI agent usage.
+ * The description is localized based on the global user's language preference.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Promise resolving to localized tool definition
+ */
+export async function getMediaFoldersAgentTool(clientId: string) {
+  const tool = await getTool(clientId);
   return {
-    description: getTool(clientId).description,
-    inputSchema: getTool(clientId).inputSchema,
-    outputSchema: getTool(clientId).outputSchema,
-    execute: (args: any) => getTool(clientId).execute(args),
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    outputSchema: tool.outputSchema,
+    execute: (args: any) => tool.execute(args),
   };
 }
 
-export function getMediaFoldersMcpTool() {
+/**
+ * Returns a tool definition with localized description for MCP server usage.
+ * MCP tools use the global user's language preference.
+ *
+ * @returns Promise resolving to tool definition
+ */
+export async function getMediaFoldersMcpTool() {
   return getTool();
 }
 
