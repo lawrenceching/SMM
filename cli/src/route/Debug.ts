@@ -6,6 +6,7 @@ import { getUserConfigPath } from '../utils/config';
 import { mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { unlink, rm } from 'fs/promises';
 import { existsSync } from 'fs';
+import { endRenameFilesTaskV2, readRenamePlanFile, getPlanFilePath } from '../tools/renameFilesToolV2';
 
 interface DebugApiResponseBody {
   success: boolean;
@@ -67,6 +68,12 @@ const endRenameFilesTaskSchema = debugRequestBaseSchema.extend({
   clientId: z.string().optional(),
 });
 
+// Schema for renameFilesPlanReady function
+const renameFilesPlanReadySchema = debugRequestBaseSchema.extend({
+  name: z.literal('renameFilesPlanReady'),
+  taskId: z.string().min(1, 'Task ID is required'),
+});
+
 // Schema for cleanUp function
 const cleanUpSchema = debugRequestBaseSchema.extend({
   name: z.literal('cleanUp'),
@@ -80,6 +87,7 @@ const debugRequestSchema = z.discriminatedUnion('name', [
   beginRenameFilesTaskSchema,
   addRenameFileToTaskSchema,
   endRenameFilesTaskSchema,
+  renameFilesPlanReadySchema,
   cleanUpSchema,
   // Add more schemas here as new debug functions are added
 ]);
@@ -303,6 +311,39 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           return {
             success: false,
             error: `Failed to execute endRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          };
+        }
+      }
+
+      case 'renameFilesPlanReady': {
+        try {
+          console.log(`[DebugAPI] Executing renameFilesPlanReady:`, {
+            taskId: validatedBody.taskId
+          });
+          
+          const plan = await readRenamePlanFile(validatedBody.taskId);
+          
+          if (plan) {
+            plan.status = 'pending';
+            const planFilePath = getPlanFilePath(validatedBody.taskId);
+            await Bun.write(planFilePath, JSON.stringify(plan, null, 2));
+            console.log(`[DebugAPI] Reset plan status to pending`);
+          } else {
+            console.log(`[DebugAPI] Plan not found, proceeding with endRenameFilesTaskV2`);
+          }
+          
+          await endRenameFilesTaskV2(validatedBody.taskId);
+          
+          console.log(`[DebugAPI] renameFilesPlanReady completed successfully`);
+          
+          return {
+            success: true,
+          };
+        } catch (error) {
+          console.error(`[DebugAPI] Error executing renameFilesPlanReady:`, error);
+          return {
+            success: false,
+            error: `Failed to execute renameFilesPlanReady: ${error instanceof Error ? error.message : 'Unknown error'}`,
           };
         }
       }

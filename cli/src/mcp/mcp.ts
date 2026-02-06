@@ -10,18 +10,6 @@ import {
   registerListFilesTool,
 } from "./tools/listFilesTool";
 import {
-  registerGetMediaMetadataTool,
-} from "./tools/getMediaMetadataTool";
-import {
-  registerWriteMediaMetadataTool,
-} from "./tools/writeMediaMetadataTool";
-import {
-  registerDeleteMediaMetadataTool,
-} from "./tools/deleteMediaMetadataTool";
-import {
-  registerGetEpisodesTool,
-} from "./tools/getEpisodesTool";
-import {
   registerGetApplicationContextTool,
 } from "./tools/getApplicationContextTool";
 import {
@@ -37,8 +25,6 @@ import {
   registerAddRecognizedFileTool,
   registerEndRecognizeTaskTool,
 } from "./tools/beginRecognizeTaskTool";
-import { registerCalculateTool } from "./tools/calculateTool";
-import { mcpTools } from "@/tools";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 

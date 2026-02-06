@@ -17,7 +17,7 @@ function getPlansDir(): string {
   return path.join(userDataDir, 'plans')
 }
 
-function getPlanFilePath(taskId: string): string {
+export function getPlanFilePath(taskId: string): string {
   const plansDir = getPlansDir()
   return path.join(plansDir, `${taskId}.plan.json`)
 }
@@ -27,7 +27,7 @@ async function ensurePlansDirExists(): Promise<void> {
   await mkdir(plansDir, { recursive: true })
 }
 
-async function readRenamePlanFile(taskId: string): Promise<RenameFilesPlan | null> {
+export async function readRenamePlanFile(taskId: string): Promise<RenameFilesPlan | null> {
   const planFilePath = getPlanFilePath(taskId)
   const file = Bun.file(planFilePath)
 
@@ -62,7 +62,7 @@ export async function beginRenameFilesTaskV2(mediaFolderPath: string): Promise<s
   }
 
   await ensurePlansDirExists()
-  const planFilePath = getPlanFilePath(taskId)
+  const planFilePath = await getPlanFilePath(taskId)
   await Bun.write(planFilePath, JSON.stringify(plan, null, 2))
 
   return taskId

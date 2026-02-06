@@ -271,6 +271,20 @@ curl -X POST http://localhost:30000/debug \
 - The function returns validation errors if any rename operations are invalid
 - After execution, the task is removed from memory
 
+### Simulate Rename Plan Ready
+
+Simulate MCP client call `"end-rename-episode-video-file-task"` MCP tool.
+
+```bash
+curl -X POST http://localhost:30000/debug \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "renameFilesPlanReady",
+    "taskId": "8d4b0237-e2d3-4eea-a175-881426bf5e95"
+  }'
+```
+
+
 ### cleanUp
 
 The cleanUp function allows developers to clean up user configuration and media metadata cache. This is useful for testing, debugging, and resolving configuration issues. It deletes:
