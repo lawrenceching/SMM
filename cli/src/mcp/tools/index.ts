@@ -22,3 +22,9 @@ export * from "./endRenameTaskTool";
 export * from "./beginRecognizeTaskTool";
 export * from "./addRecognizedFileTool";
 export * from "./endRecognizeTaskTool";
+
+// How-to guides
+export * from "./howToRenameEpisodeVideoFilesTool";
+
+// How-to guides
+export * from "./howToRenameEpisodeVideoFilesTool";

@@ -29,6 +29,9 @@ import { registerGetEpisodesTool } from "./tools/getEpisodesTool";
 import {
   registerGetEpisodeTool,
 } from "./tools/getEpisodeTool";
+import {
+  registerHowToRenameEpisodeVideoFilesTool,
+} from "./tools/howToRenameEpisodeVideoFilesTool";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -45,8 +48,9 @@ export async function getMcpStreamableHttpHandler(): Promise<
   handlerPromise = (async () => {
     const server = new McpServer(
       {
-        name: "smm",
+        name: "Simple Media Manager (SMM)",
         version: "1.0.0",
+        description: "Simple Media Manager (SMM) exposes tools to query media from TMDB and manage media folder in SMM ",
       },
       {
         capabilities: {
@@ -78,6 +82,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerEndRecognizeTaskTool(server);
     // await registerGetEpisodesTool(server);
     await registerGetEpisodeTool(server);
+    await registerHowToRenameEpisodeVideoFilesTool(server);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       // sessionIdGenerator: () => crypto.randomUUID(),

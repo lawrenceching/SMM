@@ -43,5 +43,8 @@
   },
   "end-recognize-task": {
     "description": "End a recognition task and notify the UI that the plan is ready for review. This tool reads the final recognition plan and broadcasts a Socket.IO event to notify the UI. Example: End task \"task-id-123\" to notify the UI that the recognition plan is ready."
+  },
+  "how-to-rename-episode-video-files": {
+    "description": "The instruction for renaming episode video files. Call this tool when user ask to rename files or episode."
   }
 }
