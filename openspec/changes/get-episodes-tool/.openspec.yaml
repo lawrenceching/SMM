@@ -1,0 +1,24 @@
+schema: default
+changeId: get-episodes-tool
+created: 2026-02-07T00:00:00.000Z
+applyRequires:
+  - create-getepisodesmcptool
+  - create-getepisodesmcp-tool-registration
+  - register-get-episodes-tool-in-mcp-server
+  - fix-mcp-tools-index-export
+artifacts:
+  - id: create-getepisodesmcptool
+    status: done
+    dependsOn: []
+  - id: create-getepisodesmcp-tool-registration
+    status: done
+    dependsOn:
+      - create-getepisodesmcptool
+  - id: register-get-episodes-tool-in-mcp-server
+    status: done
+    dependsOn:
+      - create-getepisodesmcp-tool-registration
+  - id: fix-mcp-tools-index-export
+    status: done
+    dependsOn:
+      - create-getepisodesmcp-tool-registration

@@ -21,7 +21,7 @@ import {
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,
 } from './recognizeMediaFilesTask';
-import { createGetEpisodesTool } from './getEpisodes';
+import { createGetEpisodesTool, getEpisodesMcpTool } from './getEpisodes';
 import { createGetEpisodeTool, getEpisodeAgentTool, getEpisodeMcpTool } from './getEpisode';
 import { howToRenameEpisodeVideoFilesMcpTool } from './howToRenameEpisodeVideoFiles';
 export {
@@ -66,5 +66,6 @@ export const mcpTools = {
   getMediaMetadata: getMediaMetadataMcpTool,
   renameFolder: renameFolderMcpTool,
   getEpisode: getEpisodeMcpTool,
+  getEpisodes: getEpisodesMcpTool,
   howToRenameEpisodeVideoFiles: howToRenameEpisodeVideoFilesMcpTool,
 }

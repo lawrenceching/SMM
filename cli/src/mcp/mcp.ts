@@ -71,8 +71,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
 
-    // registerGetEpisodesTool(server);
-    // registerGetApplicationContextTool(server);
+    await registerGetEpisodesTool(server);
     await registerRenameFolderTool(server);
     await registerBeginRenameEpisodeVideoFileTaskTool(server);
     await registerAddRenameEpisodeVideoFileTool(server);
@@ -80,7 +79,6 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerBeginRecognizeTaskTool(server);
     await registerAddRecognizedFileTool(server);
     await registerEndRecognizeTaskTool(server);
-    // await registerGetEpisodesTool(server);
     await registerGetEpisodeTool(server);
     await registerHowToRenameEpisodeVideoFilesTool(server);
 

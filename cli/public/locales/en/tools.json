@@ -46,5 +46,8 @@
   },
   "how-to-rename-episode-video-files": {
     "description": "The instruction for renaming episode video files. Call this tool when user ask to rename files or episode."
+  },
+  "get-episodes": {
+    "description": "Get all episodes for a TV show with their video file paths. Combines TMDB episode data with local media file paths. For each episode, returns season, episode number, title, and video file path (which may be undefined if the episode hasn't been recognized yet)."
   }
 }
