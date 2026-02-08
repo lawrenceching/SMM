@@ -148,17 +148,20 @@ export async function handleGetEpisode(
 
     const absolutePath = matchingEpisode.absolutePath;
 
+    // Convert POSIX path to platform-specific path for MCP client
+    const platformPath = Path.toPlatformPath(absolutePath);
+
     logger.info({
       traceId,
       mediaFolderPath: mediaFolderPath,
       season,
       episode,
-      videoFilePath: absolutePath,
+      videoFilePath: platformPath,
       file: "tools/getEpisode.ts"
     }, `[MCP] get-episode tool: found episode S${season}E${episode}`)
 
     const response = createSuccessResponse({
-      videoFilePath: absolutePath,
+      videoFilePath: platformPath,
       season,
       episode,
       message: "succeeded"
@@ -199,7 +202,7 @@ export async function getTool(abortSignal?: AbortSignal): Promise<ToolDefinition
       episode: z.number().describe("The episode number"),
     }),
     outputSchema: z.object({
-      videoFilePath: z.string().describe("The absolute path of the video file in POSIX format"),
+      videoFilePath: z.string().describe("The absolute path of the video file in platform-specific format (Windows or POSIX)"),
       season: z.number().describe("The season number"),
       episode: z.number().describe("The episode number"),
       message: z.string().describe("Status message: 'succeeded' or error message"),

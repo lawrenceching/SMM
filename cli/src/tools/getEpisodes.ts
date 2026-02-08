@@ -107,10 +107,13 @@ export async function handleGetEpisodes(
         const key = `${season.season_number}:${tmdbEpisode.episode_number}`;
         const videoFilePath = episodeToVideoMap.get(key);
 
+        // Convert POSIX path to platform-specific path for MCP client
+        const platformPath = videoFilePath ? Path.toPlatformPath(videoFilePath) : undefined;
+
         episodes.push({
           season: season.season_number,
           episode: tmdbEpisode.episode_number,
-          videoFilePath: videoFilePath, // May be undefined - valid case!
+          videoFilePath: platformPath, // May be undefined - valid case!
         });
       }
     }
