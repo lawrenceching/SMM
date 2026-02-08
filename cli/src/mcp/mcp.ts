@@ -38,6 +38,15 @@ import {
 import {
   registerHowToRecognizeEpisodeVideoFilesTool,
 } from "./tools/howToRecognizeEpisodeVideoFilesTool";
+import {
+  registerTmdbSearchTool,
+} from "./tools/tmdbSearchTool";
+import {
+  registerTmdbGetMovieTool,
+} from "./tools/tmdbGetMovieTool";
+import {
+  registerTmdbGetTvShowTool,
+} from "./tools/tmdbGetTvShowTool";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -92,6 +101,10 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerGetEpisodeTool(server);
     await registerGetEpisodesTool(server);
     
+    await registerTmdbSearchTool(server);
+    await registerTmdbGetMovieTool(server);
+    await registerTmdbGetTvShowTool(server);
+
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       // sessionIdGenerator: () => crypto.randomUUID(),

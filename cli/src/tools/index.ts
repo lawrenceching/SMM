@@ -26,6 +26,9 @@ import { createGetEpisodeTool, getEpisodeAgentTool, getEpisodeMcpTool } from './
 import { howToRenameEpisodeVideoFilesMcpTool } from './howToRenameEpisodeVideoFiles';
 import { readmeMcpTool } from './readme';
 import { howToRecognizeEpisodeVideoFilesMcpTool } from './howToRecognizeEpisodeVideoFiles';
+import { tmdbSearchMcpTool } from './tmdbSearch';
+import { tmdbGetMovieMcpTool } from './tmdbGetMovie';
+import { tmdbGetTvShowMcpTool } from './tmdbGetTvShow';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
@@ -50,7 +53,9 @@ export {
   howToRenameEpisodeVideoFilesMcpTool,
   readmeMcpTool,
   howToRecognizeEpisodeVideoFilesMcpTool,
-
+  tmdbSearchMcpTool,
+  tmdbGetMovieMcpTool,
+  tmdbGetTvShowMcpTool,
 };
 
 export const agentTools = {
@@ -74,4 +79,7 @@ export const mcpTools = {
   howToRenameEpisodeVideoFiles: howToRenameEpisodeVideoFilesMcpTool,
   readme: readmeMcpTool,
   howToRecognizeEpisodeVideoFiles: howToRecognizeEpisodeVideoFilesMcpTool,
+  tmdbSearch: tmdbSearchMcpTool,
+  tmdbGetMovie: tmdbGetMovieMcpTool,
+  tmdbGetTvShow: tmdbGetTvShowMcpTool,
 }

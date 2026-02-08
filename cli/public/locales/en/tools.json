@@ -55,5 +55,14 @@
   },
   "how-to-recognize-episode-video-files": {
     "description": "The instruction for recognizing episode video files. Call this tool when user ask to recognize files or episode."
+  },
+  "tmdb-search": {
+    "description": "Search TMDB (The Movie Database) for movies or TV shows by keyword. Returns matching results with title, release year, overview, and TMDB ID."
+  },
+  "tmdb-get-movie": {
+    "description": "Retrieve detailed movie information from TMDB by TMDB ID. Includes title, overview, release date, runtime, genres, poster images, and more."
+  },
+  "tmdb-get-tv-show": {
+    "description": "Retrieve detailed TV show information from TMDB by TMDB ID, including all seasons and episodes with their titles, overviews, air dates, and more."
   }
 }

@@ -49,5 +49,14 @@
   },
   "how-to-recognize-episode-video-files": {
     "description": "识别季集视频文件的说明. 当用户要求识别文件或季集时, 调用此工具"
+  },
+  "tmdb-search": {
+    "description": "在 TMDB（电影数据库）中按关键字搜索电影或电视剧。返回匹配结果，包括标题、发行年份、概述和 TMDB ID。"
+  },
+  "tmdb-get-movie": {
+    "description": "通过 TMDB ID 从 TMDB 检索详细的电影信息。包括标题、概述、发行日期、时长、类型、海报图片等。"
+  },
+  "tmdb-get-tv-show": {
+    "description": "通过 TMDB ID 从 TMDB 检索详细的电视剧信息，包括所有季和集的标题、概述、播出日期等。"
   }
 }
