@@ -52,5 +52,8 @@
   },
   "readme": {
     "description": "MUST call this tool to get SMM MCP tools document before calling other SMM MCP tools"
+  },
+  "how-to-recognize-episode-video-files": {
+    "description": "The instruction for recognizing episode video files. Call this tool when user ask to recognize files or episode."
   }
 }

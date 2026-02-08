@@ -25,6 +25,7 @@ import { createGetEpisodesTool, getEpisodesMcpTool } from './getEpisodes';
 import { createGetEpisodeTool, getEpisodeAgentTool, getEpisodeMcpTool } from './getEpisode';
 import { howToRenameEpisodeVideoFilesMcpTool } from './howToRenameEpisodeVideoFiles';
 import { readmeMcpTool } from './readme';
+import { howToRecognizeEpisodeVideoFilesMcpTool } from './howToRecognizeEpisodeVideoFiles';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,
@@ -48,6 +49,7 @@ export {
   createGetEpisodeTool,
   howToRenameEpisodeVideoFilesMcpTool,
   readmeMcpTool,
+  howToRecognizeEpisodeVideoFilesMcpTool,
 
 };
 
@@ -71,4 +73,5 @@ export const mcpTools = {
   getEpisodes: getEpisodesMcpTool,
   howToRenameEpisodeVideoFiles: howToRenameEpisodeVideoFilesMcpTool,
   readme: readmeMcpTool,
+  howToRecognizeEpisodeVideoFiles: howToRecognizeEpisodeVideoFilesMcpTool,
 }

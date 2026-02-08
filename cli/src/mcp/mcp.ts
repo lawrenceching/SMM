@@ -35,6 +35,9 @@ import {
 import {
   registerReadmeTool,
 } from "./tools/readmeTool";
+import {
+  registerHowToRecognizeEpisodeVideoFilesTool,
+} from "./tools/howToRecognizeEpisodeVideoFilesTool";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -76,7 +79,8 @@ export async function getMcpStreamableHttpHandler(): Promise<
 
     await registerReadmeTool(server);
     await registerHowToRenameEpisodeVideoFilesTool(server);
-    
+    await registerHowToRecognizeEpisodeVideoFilesTool(server);
+
 
     await registerRenameFolderTool(server);
     await registerBeginRenameEpisodeVideoFileTaskTool(server);

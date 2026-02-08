@@ -46,5 +46,8 @@
   },
   "readme": {
     "description": "在调用 SMM MCP 工具前, 必须调用本工具获取 SMM 工具的说明文档"
+  },
+  "how-to-recognize-episode-video-files": {
+    "description": "识别季集视频文件的说明. 当用户要求识别文件或季集时, 调用此工具"
   }
 }
