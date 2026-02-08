@@ -9,6 +9,7 @@ import path from 'path'
 import { mkdir, readdir, stat } from 'fs/promises'
 import { Path } from '@core/path'
 import pino from 'pino'
+import { findMediaMetadata } from '@/utils/mediaMetadata'
 
 const logger = pino()
 
@@ -84,6 +85,16 @@ export async function addRenameFileToTaskV2(
 
   const fromPosix = Path.posix(from)
   const toPosix = Path.posix(to)
+
+  const mm = await findMediaMetadata(plan.mediaFolderPath)
+  if (!mm) {
+    throw new Error(`Media metadata not found for media folder: ${plan.mediaFolderPath}`)
+  }
+
+  const mediaFile = (mm.mediaFiles ?? []).find( mf => mf.absolutePath === fromPosix )
+  if(!mediaFile) {
+    throw new Error(`Not Episode Video File`)
+  }
 
   plan.files.push({ from: fromPosix, to: toPosix })
 

@@ -32,6 +32,9 @@ import {
 import {
   registerHowToRenameEpisodeVideoFilesTool,
 } from "./tools/howToRenameEpisodeVideoFilesTool";
+import {
+  registerReadmeTool,
+} from "./tools/readmeTool";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -71,6 +74,10 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
 
+    await registerReadmeTool(server);
+    await registerHowToRenameEpisodeVideoFilesTool(server);
+    
+
     await registerRenameFolderTool(server);
     await registerBeginRenameEpisodeVideoFileTaskTool(server);
     await registerAddRenameEpisodeVideoFileTool(server);
@@ -80,7 +87,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerEndRecognizeTaskTool(server);
     await registerGetEpisodeTool(server);
     await registerGetEpisodesTool(server);
-    await registerHowToRenameEpisodeVideoFilesTool(server);
+    
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       // sessionIdGenerator: () => crypto.randomUUID(),

@@ -43,5 +43,8 @@
   },
   "end-recognize-task": {
     "description": "结束识别任务并通知 UI 计划已准备好审查。此工具读取最终的识别计划并广播 Socket.IO 事件以通知 UI。示例：结束任务 \"task-id-123\" 以通知 UI 识别计划已准备好。"
+  },
+  "readme": {
+    "description": "在调用 SMM MCP 工具前, 必须调用本工具获取 SMM 工具的说明文档"
   }
 }

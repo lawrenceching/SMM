@@ -15,7 +15,8 @@ AI助手应该参考一下步骤:
 
 1. 当用户没有指定媒体目录时, 使用 "get-app-context" 工具获取 SMM 软件中用户当前选中的目录
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
-3. 使用 "get-episodes" 工具获取需要重命名的视频文件
+3. 使用 "get-episodes" 工具获取需要季集视频文件
+4. 思考重命名命名方案
 5. 使用 "begin-rename-episode-video-file-task" 工具开始重命名任务
 6. 使用 "add-rename-episode-video-file-to-task" 工具添加需要重命名的文件
 7. 使用 "end-rename-episode-video-file-task" 工具结束重命名任务
