@@ -71,7 +71,6 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
 
-    await registerGetEpisodesTool(server);
     await registerRenameFolderTool(server);
     await registerBeginRenameEpisodeVideoFileTaskTool(server);
     await registerAddRenameEpisodeVideoFileTool(server);
@@ -80,6 +79,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerAddRecognizedFileTool(server);
     await registerEndRecognizeTaskTool(server);
     await registerGetEpisodeTool(server);
+    await registerGetEpisodesTool(server);
     await registerHowToRenameEpisodeVideoFilesTool(server);
 
     const transport = new WebStandardStreamableHTTPServerTransport({

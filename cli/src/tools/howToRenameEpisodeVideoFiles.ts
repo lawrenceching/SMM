@@ -5,11 +5,17 @@ import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 const guidelines = `# 如何使用 SMM MCP tool 重命名媒体文件
 
-当用户要求重命名视频文件或媒体文件, 或整理视频文件的目录结构, AI助手应该参考一下步骤:
+当用户要求重命名视频文件或媒体文件, 或整理视频文件的目录结构, 表示用户想执行此操作.
+
+视频文件或媒体文件, 指的是SMM已经识别的视频文件, 即"get-episodes"工具返回的视频文件.
+媒体文件夹内的其他视频文件**不是**本操作的目标
+
+
+AI助手应该参考一下步骤:
 
 1. 当用户没有指定媒体目录时, 使用 "get-app-context" 工具获取 SMM 软件中用户当前选中的目录
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
-3. 使用 "get-episode" 工具获取每一集的本地视频文件路径
+3. 使用 "get-episodes" 工具获取需要重命名的视频文件
 5. 使用 "begin-rename-episode-video-file-task" 工具开始重命名任务
 6. 使用 "add-rename-episode-video-file-to-task" 工具添加需要重命名的文件
 7. 使用 "end-rename-episode-video-file-task" 工具结束重命名任务
