@@ -57,15 +57,21 @@ export async function handleGetMediaMetadata(
   try {
     const normalizedPath = Path.toPlatformPath(mediaFolderPath);
 
+    // Build base response data
+    const baseData: GetMediaMetadataResponseData = {
+      mediaFolderPath: normalizedPath,
+      type: "tvshow-folder",
+    };
+
     // Check if folder exists
     try {
       const stats = await stat(normalizedPath);
       if (!stats.isDirectory()) {
-        return createSuccessResponse({ error: "Path is not a directory" });
+        return createSuccessResponse({ data: { ...baseData }, error: "Path is not a directory" });
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return createSuccessResponse({ error: "Folder not found" });
+        return createSuccessResponse({ data: { ...baseData }, error: "Folder not found" });
       }
       throw error;
     }
@@ -75,7 +81,7 @@ export async function handleGetMediaMetadata(
     const metadata = await findMediaMetadata(posixPath);
 
     if (!metadata) {
-      return createSuccessResponse({ error: "No metadata cached for this folder" });
+      return createSuccessResponse({ data: { ...baseData }, error: "No metadata cached for this folder" });
     }
 
     // Build GetMediaMetadataResponseData from metadata
@@ -103,7 +109,7 @@ export async function handleGetMediaMetadata(
       data.tmdbTvShow = "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配电视剧或动画"
     }
 
-    return createSuccessResponse({ ...data });
+    return createSuccessResponse({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return createErrorResponse(`Error reading media metadata: ${message}`);
@@ -121,42 +127,30 @@ export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolD
       mediaFolderPath: z.string().describe("The absolute path of the media folder"),
     }),
     outputSchema: z.object({
-      metadata: z
-        .object({
-          mediaFolderPath: z.string().describe("The path of the media folder"),
-          type: z.enum(["tvshow-folder", "movie-folder", "music-folder"]).describe("The type of the media folder"),
-          mediaName: z.string().optional().describe("The name of the media"),
-          tmdbId: z.number().optional().describe("The TMDB ID"),
-          tmdbTvShow: z
-            .object({
-              id: z.number().describe("TMDB show ID"),
-              name: z.string().describe("Show name"),
-              poster_path: z.string().nullable().describe("Poster path"),
-              backdrop_path: z.string().nullable().describe("Backdrop path"),
-              seasons: z
-                .array(
+      data: z.object({
+        mediaFolderPath: z.string().describe("The path of the media folder"),
+        type: z.enum(["tvshow-folder", "movie-folder", "music-folder"]).describe("The type of the media folder"),
+        tmdbTvShow: z.union([
+          z.object({
+            tmdbId: z.number().describe("TMDB ID"),
+            name: z.string().describe("Show name"),
+            seasons: z.array(
+              z.object({
+                seasonNumber: z.number().describe("Season number"),
+                seasonName: z.string().describe("Season name"),
+                episodes: z.array(
                   z.object({
-                    season_number: z.number().describe("Season number"),
-                    name: z.string().describe("Season name"),
-                    episode_count: z.number().describe("Number of episodes"),
-                    episodes: z
-                      .array(
-                        z.object({
-                          episode_number: z.number().describe("Episode number"),
-                          name: z.string().describe("Episode name"),
-                        })
-                      )
-                      .describe("Episodes in the season"),
+                    seasonNumber: z.number().describe("Season number"),
+                    episodeNumber: z.number().describe("Episode number"),
+                    episodeName: z.string().describe("Episode name"),
                   })
-                )
-                .describe("Seasons"),
-            })
-            .optional()
-            .describe("TMDB TV show data"),
-        })
-        .optional()
-        .describe("Media metadata"),
-      files: z.array(z.string()).describe("List of files in the folder"),
+                ).describe("Episodes in the season"),
+              })
+            ).describe("Seasons"),
+          }),
+          z.string(),
+        ]).optional().describe("TMDB TV show data or message if not recognized"),
+      }).describe("Media metadata response data"),
       error: z.string().optional().describe("Error message if not found"),
     }),
     execute: async (args: { mediaFolderPath: string }) => {
