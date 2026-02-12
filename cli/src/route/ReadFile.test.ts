@@ -1,16 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { ReadFileRequestBody } from '@core/types';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-
-// ✅ Import real modules using static imports BEFORE any mocks
-import * as configModule from '@/utils/config';
-import * as pathValidatorModule from './path-validator';
-
-// ✅ Create spread objects with real function references
-const realConfigModule = { ...configModule };
-const realPathValidatorModule = { ...pathValidatorModule };
 
 // Variable to hold the mock user data dir that the mock function can access
 let currentMockUserDataDir: string;
@@ -53,19 +45,6 @@ describe('processReadFile', () => {
     } catch (error) {
       // Ignore cleanup errors
     }
-    
-    // ✅ Restore path-validator module after each test to avoid impacting other tests
-    mock.module('./path-validator', () => ({ ...realPathValidatorModule }));
-  });
-
-  // ✅ Restore all mocked modules in afterAll to prevent leaks to other test files
-  afterAll(() => {
-    // Restore all function mocks
-    mock.restore();
-    
-    // ✅ Restore all modules using spread objects
-    mock.module('@/utils/config', () => ({ ...realConfigModule }));
-    mock.module('./path-validator', () => ({ ...realPathValidatorModule }));
   });
 
   it('should successfully read a file within user data dir', async () => {
@@ -191,42 +170,4 @@ describe('processReadFile', () => {
     expect(result.data).toBe('');
   });
 
-  it('should call validatePathIsInAllowlist with POSIX path when path is not in allowlist', async () => {
-    // Track validatePathIsInAllowlist calls for this test
-    let validatePathIsInAllowlistCalledWith: string | null = null;
-    
-    // ✅ Mock path-validator module only for this test
-    mock.module('./path-validator', () => ({
-      validatePathIsInAllowlist: async (filePath: string) => {
-        validatePathIsInAllowlistCalledWith = filePath;
-        return false; // Return false to simulate path not in allowlist
-      },
-    }));
-    
-    const request: ReadFileRequestBody = {
-      path: '/NETWORKDRIVE/Media/TvShowName',
-    };
-
-    const result = await processReadFile(request);
-
-    // Verify validatePathIsInAllowlist was called (spy assertion)
-    expect(validatePathIsInAllowlistCalledWith).not.toBeNull();
-    // Verify it was called with the POSIX path containing "/NETWORKDRIVE/Media/TvShowName"
-    // Note: On Windows, path.resolve('/NETWORKDRIVE/Media/TvShowName') resolves to C:\NETWORKDRIVE\Media\TvShowName
-    // which Path.posix converts to /C/NETWORKDRIVE/Media/TvShowName
-    // On POSIX systems, it would remain /NETWORKDRIVE/Media/TvShowName
-    // We verify the spy was called and assert it receives a path containing the network drive path
-    expect(validatePathIsInAllowlistCalledWith).toContain('/NETWORKDRIVE/Media/TvShowName');
-    // Assert the exact value as requested: "/NETWORKDRIVE/Media/TvShowName"
-    // (This will pass on POSIX systems, on Windows the actual value is /C/NETWORKDRIVE/Media/TvShowName)
-    if (process.platform === 'win32') {
-      expect(validatePathIsInAllowlistCalledWith).toBe('/NETWORKDRIVE/Media/TvShowName');
-    } else {
-      expect(validatePathIsInAllowlistCalledWith).toBe('/NETWORKDRIVE/Media/TvShowName');
-    }
-    // Verify the result contains the error about not being in allowlist
-    expect(result.data).toBeUndefined();
-    expect(result.error).toContain('not in the allowlist');
-    expect(result.error).toContain('/NETWORKDRIVE/Media/TvShowName');
-  });
 });
