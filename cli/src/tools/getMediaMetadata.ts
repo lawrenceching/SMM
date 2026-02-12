@@ -1,8 +1,6 @@
 import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
-import { listFiles } from "@/utils/files";
-import type { MediaMetadata } from "@core/types";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
@@ -11,6 +9,32 @@ import { getLocalizedToolDescription } from '@/i18n/helpers';
 export interface GetMediaMetadataParams {
   mediaFolderPath: string;
 }
+
+
+export interface GetMediaMetadataResponseTvShowEpisodeData {
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeName: string;
+}
+
+export interface GetMediaMetadataResponseTvShowSeasonData {
+  seasonNumber: number;
+  seasonName: string;
+  episodes: GetMediaMetadataResponseTvShowEpisodeData[];
+}
+
+export interface GetMediaMetadataResponseTvShowData {
+  tmdbId: number;
+  name: string;
+  seasons: GetMediaMetadataResponseTvShowSeasonData[];
+}
+
+export interface GetMediaMetadataResponseData {
+  mediaFolderPath: string;
+  type: "tvshow-folder" | "movie-folder" | "music-folder";
+  tmdbTvShow?: GetMediaMetadataResponseTvShowData | string;
+}
+
 
 /**
  * Get media metadata for a folder.
@@ -54,14 +78,32 @@ export async function handleGetMediaMetadata(
       return createSuccessResponse({ error: "No metadata cached for this folder" });
     }
 
-    // Update files list from actual folder
-    const files = await listFiles(new Path(normalizedPath), true);
-    const metadataWithFiles: MediaMetadata & { files: string[] } = {
-      ...metadata,
-      files,
+    // Build GetMediaMetadataResponseData from metadata
+    const data: GetMediaMetadataResponseData = {
+      mediaFolderPath: metadata.mediaFolderPath || posixPath,
+      type: metadata.type || "tvshow-folder",
     };
 
-    return createSuccessResponse({ metadata: metadataWithFiles, files });
+    // Transform TMDB TV show data if available
+    if (metadata.tmdbTvShow) {
+      data.tmdbTvShow = {
+        tmdbId: metadata.tmdbTvShow.id,
+        name: metadata.tmdbTvShow.name,
+        seasons: metadata.tmdbTvShow.seasons?.map((season) => ({
+          seasonNumber: season.season_number,
+          seasonName: season.name,
+          episodes: season.episodes?.map((episode) => ({
+            seasonNumber: episode.season_number,
+            episodeNumber: episode.episode_number,
+            episodeName: episode.name,
+          })) || [],
+        })) || [],
+      };
+    } else {
+      data.tmdbTvShow = "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配电视剧或动画"
+    }
+
+    return createSuccessResponse({ ...data });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return createErrorResponse(`Error reading media metadata: ${message}`);

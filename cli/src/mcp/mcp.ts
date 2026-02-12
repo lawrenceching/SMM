@@ -47,6 +47,7 @@ import {
 import {
   registerTmdbGetTvShowTool,
 } from "./tools/tmdbGetTvShowTool";
+import { registerGetMediaMetadataTool } from "./tools";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
@@ -82,7 +83,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
     // Media Metadata is too large for AI to handle
     // I'm going to break it down into smaller tools
     // Therefore the media metadata tools are disabled for now
-    // await registerGetMediaMetadataTool(server);
+    await registerGetMediaMetadataTool(server);
     // registerWriteMediaMetadataTool(server);
     // registerDeleteMediaMetadataTool(server);
 
@@ -92,7 +93,7 @@ export async function getMcpStreamableHttpHandler(): Promise<
 
 
     await registerRenameFolderTool(server);
-    
+
     await registerBeginRenameEpisodeVideoFileTaskTool(server);
     await registerAddRenameEpisodeVideoFileTool(server);
     await registerEndRenameEpisodeVideoTaskTool(server);
