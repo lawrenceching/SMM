@@ -92,12 +92,15 @@ export async function getMcpStreamableHttpHandler(): Promise<
 
 
     await registerRenameFolderTool(server);
+    
     await registerBeginRenameEpisodeVideoFileTaskTool(server);
     await registerAddRenameEpisodeVideoFileTool(server);
     await registerEndRenameEpisodeVideoTaskTool(server);
+
     await registerBeginRecognizeTaskTool(server);
     await registerAddRecognizedFileTool(server);
     await registerEndRecognizeTaskTool(server);
+
     await registerGetEpisodeTool(server);
     await registerGetEpisodesTool(server);
     
