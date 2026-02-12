@@ -1,4 +1,5 @@
 import { Path } from "@core/path";
+import { videoFileExtensions } from "@core/utils";
 import { listFiles } from "@/utils/files";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
@@ -12,6 +13,17 @@ interface ListFilesParams {
   recursive?: boolean;
   /** Filter pattern for files/folders (supports wildcards) */
   filter?: string;
+  /** Whether to return only video files (default: false) */
+  videoFileOnly?: boolean;
+}
+
+/**
+ * Check if a file path has a video file extension.
+ */
+function isVideoFile(filePath: string): boolean {
+  const path = new Path(filePath);
+  const ext = path.name().substring(path.name().lastIndexOf('.')).toLowerCase();
+  return videoFileExtensions.includes(ext);
 }
 
 /**
@@ -19,7 +31,7 @@ interface ListFilesParams {
  * Accepts paths in both POSIX and Windows format.
  */
 export async function handleListFiles(params: ListFilesParams): Promise<ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>> {
-  const { folderPath } = params;
+  const { folderPath, videoFileOnly } = params;
 
   if (!folderPath || typeof folderPath !== "string" || folderPath.trim() === "") {
     return createErrorResponse("Invalid path: path must be a non-empty string");
@@ -27,7 +39,12 @@ export async function handleListFiles(params: ListFilesParams): Promise<ReturnTy
 
   try {
     const normalizedPath = Path.toPlatformPath(folderPath);
-    const files = await listFiles(new Path(normalizedPath), true);
+    let files = await listFiles(new Path(normalizedPath), true);
+
+    // Filter for video files only if requested
+    if (videoFileOnly) {
+      files = files.filter(isVideoFile);
+    }
 
     return createSuccessResponse({
       files,
@@ -50,12 +67,13 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
       folderPath: z.string().describe("The absolute path of the folder to list files from"),
       recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
       filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
+      videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
     }),
     outputSchema: z.object({
       files: z.array(z.string()).describe("Array of file paths"),
       count: z.number().describe("Number of files listed"),
     }),
-    execute: async (args: { folderPath: string; recursive?: boolean; filter?: string }) => {
+    execute: async (args: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }) => {
       return handleListFiles(args);
     },
   };
@@ -95,8 +113,9 @@ export const listFilesTool = {
     folderPath: z.string().describe("The absolute path of the folder to list files from"),
     recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
     filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
+    videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
   }),
-  execute: async ({ folderPath, recursive, filter }: { folderPath: string; recursive?: boolean; filter?: string }, abortSignal?: AbortSignal) => {
+  execute: async ({ folderPath, recursive, filter, videoFileOnly }: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }, abortSignal?: AbortSignal) => {
     if (abortSignal?.aborted) {
       throw new Error("Request was aborted");
     }
@@ -107,7 +126,12 @@ export const listFilesTool = {
 
     try {
       const normalizedPath = Path.toPlatformPath(folderPath);
-      const files = await listFiles(new Path(normalizedPath), true);
+      let files = await listFiles(new Path(normalizedPath), true);
+
+      // Filter for video files only if requested
+      if (videoFileOnly) {
+        files = files.filter(isVideoFile);
+      }
 
       return {
         files,
