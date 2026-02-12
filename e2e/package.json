@@ -6,6 +6,7 @@
   "devDependencies": {
     "@testing-library/webdriverio": "^3.2.1",
     "@types/bun": "latest",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^25.0.6",
     "@wdio/cli": "^9.23.0",
     "@wdio/globals": "^9.23.0",
@@ -20,5 +21,8 @@
   },
   "scripts": {
     "wdio": "wdio run ./wdio.conf.ts"
+  },
+  "dependencies": {
+    "es-toolkit": "^1.44.0"
   }
 }

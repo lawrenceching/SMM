@@ -38,7 +38,8 @@ export function StatusBar({className, message}: StatusBarProps) {
     }
 
     return (
-        <div 
+        <div
+            data-testid="status-bar"
             className={cn(
                 "h-8 w-full flex gap-2 items-center",
                 "bg-muted/50 border-t border-border",
@@ -48,7 +49,9 @@ export function StatusBar({className, message}: StatusBarProps) {
             )}
         >
             <div className="flex items-center gap-2">
-                <ConnectionStatusIndicator status={connectionStatus} />
+                <div data-testid="connection-status-indicator">
+                    <ConnectionStatusIndicator status={connectionStatus} />
+                </div>
             </div>
             <div className="flex-1">{message}</div>
             <div className="flex items-center gap-2">
@@ -56,6 +59,7 @@ export function StatusBar({className, message}: StatusBarProps) {
                     <PopoverTrigger asChild>
                         <button
                             type="button"
+                            data-testid="mcp-toggle-button"
                             className={cn(
                                 "flex items-center justify-center rounded p-0.5 transition-colors hover:bg-muted",
                                 mcpEnabled ? "text-primary" : "text-muted-foreground/50"
@@ -140,8 +144,10 @@ export function StatusBar({className, message}: StatusBarProps) {
                         </div>
                     </PopoverContent>
                 </Popover>
-                <BackgroundJobsIndicator />
-                <span className="font-medium">{appConfig.version}</span>
+                <div data-testid="background-jobs-indicator">
+                    <BackgroundJobsIndicator />
+                </div>
+                <span className="font-medium" data-testid="app-version">{appConfig.version}</span>
             </div>
         </div>
     )
