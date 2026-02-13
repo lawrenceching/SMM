@@ -20,8 +20,9 @@
     "typescript": "^5"
   },
   "scripts": {
+    "test": "bun run wdio",
     "wdio": "wdio run ./wdio.conf.ts",
-    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/overview.e2e.ts"
+    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/import-tvshow-folder.e2e.ts"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
