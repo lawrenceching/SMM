@@ -1,8 +1,8 @@
-import { browser, expect } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 import { before, beforeEach, afterEach } from 'mocha'
 import StatusBar from '../componentobjects/StatusBar'
+import Sidebar from '../componentobjects/Sidebar'
 import { createBeforeHook } from '../lib/testbed'
-import { delay } from 'es-toolkit'
 
 describe('UI Components', () => {
 
@@ -36,5 +36,24 @@ describe('UI Components', () => {
         expect(version.length).toBeGreaterThan(0)
 
         console.log('App version:', version)
+    })
+
+    it('Sidebar components are displayed', async () => {
+        // Verify Sidebar is displayed
+        expect(await Sidebar.isDisplayed()).toBe(true)
+
+        // Verify sort button is displayed
+        expect(await Sidebar.isSortButtonDisplayed()).toBe(true)
+
+        // Verify filter button is displayed
+        expect(await Sidebar.isFilterButtonDisplayed()).toBe(true)
+
+        // Verify search input is displayed
+        expect(await Sidebar.isSearchInputDisplayed()).toBe(true)
+
+        // Verify empty state message is displayed (no folders imported yet)
+        expect(await Sidebar.isEmptyStateMessageDisplayed()).toBe(true)
+
+        console.log('Sidebar components verified successfully')
     })
 })
