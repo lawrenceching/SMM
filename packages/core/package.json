@@ -1,0 +1,19 @@
+{
+  "name": "@smm/core",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared TypeScript code for Simple Media Manager",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "es-toolkit": "^1.42.0",
+    "filenamify": "^7.0.1",
+    "slash": "^5.1.0"
+  }
+}

@@ -3,11 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "cli",
-    "core",
-    "ui",
-    "electron"
+    "packages/*"
   ],
   "scripts": {
     "dev:ui": "bun --filter ui dev",
@@ -17,8 +13,14 @@
     "build:cli": "cd cli && bun run build",
     "build:ui": "cd ui && bun run build",
     "build:electron": "cd electron && npm run build",
+    "build:core": "cd packages/core && bun run typecheck",
     "test": "bun test",
+    "test:core": "cd packages/core && bun test",
     "test:cli": "cd cli && bun test",
-    "test:ui": "cd ui && bun run test"
+    "test:ui": "cd ui && bun run test",
+    "typecheck": "bun run typecheck:core && bun run typecheck:cli && bun run typecheck:ui",
+    "typecheck:core": "cd packages/core && bun run typecheck",
+    "typecheck:cli": "cd cli && bun run typecheck",
+    "typecheck:ui": "cd ui && bun run typecheck"
   }
 }
