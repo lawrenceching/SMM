@@ -1,52 +1,57 @@
-import { browser, expect } from '@wdio/globals'
-import Menu from '../componentobjects/Menu'
-import Page from '../pageobjects/page'
-import StatusBar from '../componentobjects/StatusBar'
+/**
+ * Template for E2E Test Files
+ *
+ * This file serves as a template/reference for creating new e2e tests.
+ * Use the testbed module for common setup:
+ *
+ * - createBeforeHook() - Creates a before hook with common setup
+ * - resetUserConfig() - Reset user config to default state
+ * - setupTestMediaFolders() - Set up test media folders
+ *
+ * Example usage:
+ * ```
+ * import { before, beforeEach, afterEach } from 'mocha'
+ * import { createBeforeHook } from '../lib/testbed'
+ *
+ * describe('My Tests', () => {
+ *     before(createBeforeHook())
+ *     beforeEach(async () => { ... })
+ *     afterEach(async () => { ... })
+ * })
+ * ```
+ */
+import { browser } from '@wdio/globals'
+import { before, beforeEach, afterEach } from 'mocha'
+import { createBeforeHook, setupTestMediaFolders } from '../lib/testbed'
 
-describe('AppV2', () => {
+describe('AppV2 (Template)', () => {
 
-    // Runs before each test in this describe block
+    before(createBeforeHook({
+        // Uncomment if you need test media folders:
+        // setupMediaFolders: true
+    }))
+
     beforeEach(async () => {
         console.log('Setup before each test')
-        // Navigate to base state if needed
     })
 
-     // Runs after each test in this describe block
-     afterEach(async () => {
+    afterEach(async () => {
         console.log('Cleanup after each test')
     })
 
+    // ========================================================================
+    // EXAMPLE TEST - Copy and modify for your needs
+    // ========================================================================
 
-
-    it('UI Components', async () => {
-        Page.open()
-
-        // Wait for the app to load
-        await browser.waitUntil(async () => {
-            return await StatusBar.isDisplayed()
-        }, {
-            timeout: 10000,
-            timeoutMsg: 'Status bar was not displayed after 10 seconds'
-        })
-
-        // Verify StatusBar is displayed
-        expect(await StatusBar.isDisplayed()).toBe(true)
-
-        // Verify connection status indicator is displayed
-        expect(await StatusBar.isConnectionStatusDisplayed()).toBe(true)
-
-        // Verify MCP toggle button is displayed
-        expect(await StatusBar.isMcpToggleDisplayed()).toBe(true)
-
-        // Verify background jobs indicator is displayed
-        expect(await StatusBar.isBackgroundJobsIndicatorDisplayed()).toBe(true)
-
-        // Verify app version is displayed and contains text
-        const version = await StatusBar.getVersion()
-        expect(version).toBeTruthy()
-        expect(version.length).toBeGreaterThan(0)
-
-        console.log('App version:', version)
+    it('Example Test', async () => {
+        // Example: Test StatusBar is displayed
+        // const { default: StatusBar } = await import('../componentobjects/StatusBar')
+        // await browser.waitUntil(async () => {
+        //     return await StatusBar.isDisplayed()
+        // }, {
+        //     timeout: 10000,
+        //     timeoutMsg: 'Status bar was not displayed after 10 seconds'
+        // })
+        // expect(await StatusBar.isDisplayed()).toBe(true)
     })
 })
-

@@ -20,9 +20,11 @@
     "typescript": "^5"
   },
   "scripts": {
-    "wdio": "wdio run ./wdio.conf.ts"
+    "wdio": "wdio run ./wdio.conf.ts",
+    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/overview.e2e.ts"
   },
   "dependencies": {
+    "dotenv": "^17.3.1",
     "es-toolkit": "^1.44.0"
   }
 }
