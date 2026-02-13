@@ -1,0 +1,24 @@
+{
+  "name": "simple-media-manager",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "cli",
+    "core",
+    "ui",
+    "electron"
+  ],
+  "scripts": {
+    "dev:ui": "bun --filter ui dev",
+    "dev:cli": "bun --filter cli dev",
+    "dev:electron": "cd electron && npm run dev",
+    "build": "bun run build:cli && bun run build:ui",
+    "build:cli": "cd cli && bun run build",
+    "build:ui": "cd ui && bun run build",
+    "build:electron": "cd electron && npm run build",
+    "test": "bun test",
+    "test:cli": "cd cli && bun test",
+    "test:ui": "cd ui && bun run test"
+  }
+}
