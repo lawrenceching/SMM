@@ -27,6 +27,13 @@
     "noPropertyAccessFromIndexSignature": false,
 
     // Include mocha and node types for test hooks and fs/path/os modules
-    "types": ["mocha", "node"]
+    "types": ["mocha", "node"],
+
+    // Monorepo paths
+    "baseUrl": ".",
+    "paths": {
+      "@smm/core": ["../../packages/core/types.ts"],
+      "@smm/core/*": ["../../packages/core/*"]
+    }
   }
 }

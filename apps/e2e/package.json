@@ -14,12 +14,11 @@
     "@wdio/mocha-framework": "^9.23.0",
     "@wdio/spec-reporter": "^9.20.0",
     "expect-webdriverio": "^5.6.1",
+    "typescript": "^5.0.0",
     "wdio-wait-for": "^3.1.1"
   },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "test": "bun run wdio",
     "wdio": "wdio run ./wdio.conf.ts",
     "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/import-tvshow-folder.e2e.ts"

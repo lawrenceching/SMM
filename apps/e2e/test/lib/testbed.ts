@@ -10,7 +10,7 @@ import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { browser } from '@wdio/globals'
 import dotenv from 'dotenv'
-import type { UserConfig } from '../../../core/types'
+import type { UserConfig } from '@smm/core/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
