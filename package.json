@@ -8,21 +8,22 @@
   "scripts": {
     "dev:ui": "bun --filter ui dev",
     "dev:cli": "bun --filter cli dev",
-    "dev:electron": "cd electron && npm run dev",
+    "dev:electron": "cd apps/electron && bun run dev",
     "build": "bun run build:cli && bun run build:ui",
     "build:cli": "cd apps/cli && bun run build",
-    "build:ui": "cd ui && bun run build",
-    "build:electron": "cd electron && npm run build",
+    "build:ui": "cd apps/ui && bun run build",
+    "build:electron": "cd apps/electron && bun run build",
     "build:core": "cd packages/core && bun run typecheck",
     "test": "bun test",
     "test:core": "cd packages/core && bun test",
     "test:cli": "cd apps/cli && bun test",
-    "test:ui": "cd ui && bun test",
+    "test:ui": "cd apps/ui && bun test",
     "test:e2e": "cd apps/e2e && bun run test",
-    "typecheck": "bun run typecheck:core && bun run typecheck:cli && bun run typecheck:ui && bun run typecheck:e2e",
+    "typecheck": "bun run typecheck:core && bun run typecheck:cli && bun run typecheck:ui && bun run typecheck:e2e && bun run typecheck:electron",
     "typecheck:core": "cd packages/core && bun run typecheck",
     "typecheck:cli": "cd apps/cli && bun run typecheck",
     "typecheck:ui": "cd apps/ui && bun run typecheck",
-    "typecheck:e2e": "cd apps/e2e && bun run typecheck"
+    "typecheck:e2e": "cd apps/e2e && bun run typecheck",
+    "typecheck:electron": "cd apps/electron && bun run typecheck"
   }
 }

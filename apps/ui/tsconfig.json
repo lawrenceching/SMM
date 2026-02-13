@@ -9,7 +9,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@core/*": ["../packages/core/*"]
+      "@core/*": ["../../packages/core/*"],
+      "@smm/core": ["../../packages/core/types.ts"],
+      "@smm/core/*": ["../../packages/core/*"]
     }
   }
 }
