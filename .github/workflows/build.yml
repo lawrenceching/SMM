@@ -4,18 +4,22 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'ui/**'
-      - 'cli/**'
-      - 'electron/**'
+      - 'apps/ui/**'
+      - 'apps/cli/**'
+      - 'apps/electron/**'
+      - 'packages/core/**'
+      - 'packages/utils/**'
       - 'Dockerfile'
       - '.dockerignore'
       - '.github/workflows/build.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'ui/**'
-      - 'cli/**'
-      - 'electron/**'
+      - 'apps/ui/**'
+      - 'apps/cli/**'
+      - 'apps/electron/**'
+      - 'packages/core/**'
+      - 'packages/utils/**'
       - 'Dockerfile'
       - '.dockerignore'
       - '.github/workflows/build.yml'
@@ -53,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./ui
+        working-directory: ./apps/ui
     
     steps:
       - name: Checkout code
@@ -65,7 +69,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies for core module
-        run: cd ../core/ && bun install --frozen-lockfile
+        run: cd ../packages/core/ && bun install --frozen-lockfile
       
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -80,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-dist
-          path: ui/dist
+          path: apps/ui/dist
           retention-days: 7
 
   build-cli:
@@ -88,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./cli
+        working-directory: ./apps/cli
     
     steps:
       - name: Checkout code
@@ -100,7 +104,7 @@ jobs:
           bun-version: latest
       
       - name: Install dependencies for core module
-        run: cd ../core/ && bun install --frozen-lockfile
+        run: cd ../packages/core/ && bun install --frozen-lockfile
       
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -115,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cli-dist
-          path: cli/dist
+          path: apps/cli/dist
           retention-days: 7
 
   build-docker:
@@ -162,7 +166,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./electron
+        working-directory: ./apps/electron
     
     steps:
       - name: Checkout code
@@ -178,25 +182,25 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: electron/package-lock.json
+          cache-dependency-path: apps/electron/package-lock.json
       
       - name: Install dependencies for core module
-        run: cd ../core/ && bun install --frozen-lockfile
+        run: cd ../packages/core/ && bun install --frozen-lockfile
       
       - name: Install dependencies for cli module
-        run: cd ../cli/ && bun install --frozen-lockfile
+        run: cd ../apps/cli/ && bun install --frozen-lockfile
 
       - name: Install dependencies for ui module
-        run: cd ../ui/ && bun install --frozen-lockfile
+        run: cd ../apps/ui/ && bun install --frozen-lockfile
 
       - name: Install dependencies for electron module
         run: npm install --frozen-lockfile
 
       - name: Build cli
-        run: cd ../cli/ && bun run build
+        run: cd ../apps/cli/ && bun run build
       
       - name: Build ui
-        run: cd ../ui/ && bun run build
+        run: cd ../apps/ui/ && bun run build
       
       - name: Build Electron (${{ matrix.platform }})
         run: npm run ${{ matrix.build-command }}
@@ -211,18 +215,18 @@ jobs:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-        working-directory: ./electron
+        working-directory: ./apps/electron
       
       - name: Upload Electron distribution artifacts
         uses: actions/upload-artifact@v4
         with:
           name: smm-v${{ steps.version-info.outputs.version }}-${{ steps.version-info.outputs.short_sha }}-${{ matrix.platform }}
           path: |
-            electron/dist/*.exe
-            electron/dist/*.dmg
-            electron/dist/*.AppImage
-            electron/dist/*.deb
-            electron/dist/*.snap
+            apps/electron/dist/*.exe
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.AppImage
+            apps/electron/dist/*.deb
+            apps/electron/dist/*.snap
           retention-days: 30
 
   release-electron:
