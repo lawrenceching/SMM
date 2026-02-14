@@ -5,6 +5,7 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@ai-sdk/mcp": "latest",
     "@types/bun": "latest",
     "socket.io-client": "^4.8.3",
     "typescript": "^5"

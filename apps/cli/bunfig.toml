@@ -1,4 +1,7 @@
 [test]
+# Run only unit tests in src/ directory (exclude e2e tests in test/ folder)
+# E2E tests (test-mcp.test.ts) require external MCP server running
+root = "./src"
 # Enable code coverage reporting
 # Generate coverage reports in text and lcov formats
 # lcov format is required for VSCode Coverage Gutters extension
