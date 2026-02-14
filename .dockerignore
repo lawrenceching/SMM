@@ -24,8 +24,8 @@ build/
 .DS_Store
 
 # Electron build artifacts
-electron/dist/
-electron/out/
+apps/electron/dist/
+apps/electron/out/
 
 # Test files
 *.test.ts
