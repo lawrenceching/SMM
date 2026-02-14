@@ -2,6 +2,6 @@ import { $ } from "bun";
 
 
 await Promise.all([
-  $`cd ui && bun dev`,
-  $`cd cli && bun dev | pino-pretty`,
+  $`cd apps/ui && bun dev`,
+  $`cd apps/cli && bun dev | pino-pretty`,
 ]);

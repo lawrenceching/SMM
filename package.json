@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"bun run dev:ui\" \"bun run dev:cli\"",
     "dev:ui": "bun --filter ui dev",
     "dev:cli": "bun --filter cli dev",
     "dev:electron": "cd apps/electron && bun run dev",
@@ -25,5 +26,8 @@
     "typecheck:ui": "cd apps/ui && bun run typecheck",
     "typecheck:e2e": "cd apps/e2e && bun run typecheck",
     "typecheck:electron": "cd apps/electron && bun run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

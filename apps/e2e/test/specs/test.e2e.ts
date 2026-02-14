@@ -10,7 +10,6 @@
  *
  * Example usage:
  * ```
- * import { before, beforeEach, afterEach } from 'mocha'
  * import { createBeforeHook } from '../lib/testbed'
  *
  * describe('My Tests', () => {
@@ -21,7 +20,6 @@
  * ```
  */
 import { browser } from '@wdio/globals'
-import { before, beforeEach, afterEach } from 'mocha'
 import { createBeforeHook, setupTestMediaFolders } from '../lib/testbed'
 
 describe('AppV2 (Template)', () => {

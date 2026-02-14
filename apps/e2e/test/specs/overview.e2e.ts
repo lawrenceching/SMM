@@ -1,5 +1,4 @@
 import { expect } from '@wdio/globals'
-import { before, beforeEach, afterEach } from 'mocha'
 import StatusBar from '../componentobjects/StatusBar'
 import Sidebar from '../componentobjects/Sidebar'
 import { createBeforeHook } from '../lib/testbed'

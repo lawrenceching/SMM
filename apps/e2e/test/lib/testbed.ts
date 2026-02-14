@@ -8,7 +8,6 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { browser } from '@wdio/globals'
 import dotenv from 'dotenv'
 import type { UserConfig } from '@smm/core/types'
 
@@ -71,7 +70,7 @@ export function setupTestMediaFolders(): void {
     console.log(`Created tmp folder: ${tmpDir}`)
 
     // 2. Copy `test/media` to tmp folder (project root test/media, not e2e/test/media)
-    const testMediaPath = path.resolve(__dirname, '..', '..', '..', 'test', 'media')
+    const testMediaPath = path.resolve(__dirname, '..', '..', '..', '..', 'test', 'media')
     const targetMediaPath = path.join(tmpDir, 'media')
 
     // Recursive copy function
@@ -128,6 +127,9 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
     const { setupMediaFolders = false, customSetup } = options
 
     return async function() {
+        // Import browser dynamically inside the hook to ensure it's fully initialized
+        const { browser } = await import('@wdio/globals')
+
         // Set up test media folders if requested
         if (setupMediaFolders) {
             setupTestMediaFolders()

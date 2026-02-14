@@ -4,7 +4,6 @@ import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
-import { before, beforeEach, afterEach } from 'mocha'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 
