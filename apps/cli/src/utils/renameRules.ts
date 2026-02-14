@@ -1,4 +1,3 @@
-import { logger } from 'hono/logger';
 import { extname } from 'path';
 import vm from 'vm';
 interface ExecutionContext {
