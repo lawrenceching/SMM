@@ -31,7 +31,7 @@
     "zod": "^4.1.8"
   },
   "scripts": {
-    "dev": "bun run index.ts",
+    "dev": "bun run index.ts | pino-pretty",
     "dev:prd-ui": "bun run index.ts --staticDir \"C:\\Users\\lawrence\\AppData\\Local\\Programs\\SMM\\resources\\public\" --port 30000",
     "start": "bun run index.ts",
     "mcp": "bun run src/mcp/server.ts",

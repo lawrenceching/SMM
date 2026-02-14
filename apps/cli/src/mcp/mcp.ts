@@ -110,13 +110,19 @@ export async function getMcpStreamableHttpHandler(): Promise<
     await registerTmdbGetTvShowTool(server);
 
 
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      // sessionIdGenerator: () => crypto.randomUUID(),
-    });
+    // Stateless mode — each request needs a fresh transport.
+    // Close the previous transport connection first so server.connect()
+    // can attach a new one (the server keeps its tool registrations).
+    await server.connect(
+      new WebStandardStreamableHTTPServerTransport({})
+    );
 
-    await server.connect(transport);
-
-    return (req: Request) => transport.handleRequest(req);
+    return async (req: Request) => {
+      await server.close();
+      const transport = new WebStandardStreamableHTTPServerTransport({});
+      await server.connect(transport);
+      return transport.handleRequest(req);
+    };
   })();
   return handlerPromise;
 }
