@@ -1,5 +1,5 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useEffect } from "react";
 import type { MediaMetadata } from "@core/types";

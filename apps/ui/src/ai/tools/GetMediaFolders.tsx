@@ -1,6 +1,6 @@
 import { readFileApi } from "@/api/readFile";
 import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { hello } from "@/api/hello";
 import { join } from "@/lib/path";
 import type { UserConfig } from "@core/types";
