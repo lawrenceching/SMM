@@ -86,13 +86,29 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
  * @param clientId - Socket.IO client ID (for tool execution, not language)
  * @returns Promise resolving to localized tool definition
  */
-export async function listFilesAgentTool(clientId: string) {
-  const tool = await getTool(clientId);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Tool definition (synchronous)
+ */
+export function listFilesAgentTool(clientId: string) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
-    execute: (args: any) => tool.execute(args),
+    description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format.",
+    inputSchema: z.object({
+      folderPath: z.string().describe("The absolute path of the folder to list files from"),
+      recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
+      filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
+      videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
+    }),
+    outputSchema: z.object({
+      files: z.array(z.string()).describe("Array of file paths"),
+      count: z.number().describe("Number of files listed"),
+    }),
+    execute: async (args: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }) => {
+      return handleListFiles(args);
+    },
   };
 }
 

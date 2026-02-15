@@ -73,13 +73,38 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
  * @param clientId - Socket.IO client ID (for tool execution, not language)
  * @returns Promise resolving to localized tool definition
  */
-export async function isFolderExistAgentTool(clientId: string) {
-  const tool = await getTool(clientId);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Tool definition (synchronous)
+ */
+export function isFolderExistAgentTool(clientId: string) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
-    execute: (args: any) => tool.execute(args),
+    description: "Check if a folder exists in the file system.",
+    inputSchema: z.object({
+      path: z.string().describe("The absolute path of the folder to check"),
+    }),
+    outputSchema: z.object({
+      exists: z.boolean().describe("Whether the folder exists"),
+      path: z.string().describe("The normalized path that was checked"),
+      reason: z.string().optional().describe("Reason for non-existence or non-directory"),
+    }),
+    execute: async ({ path }: { path: string }) => {
+      try {
+        const result = await checkFolderExists(path);
+        if (!result.exists && result.reason) {
+          return createSuccessResponse(result);
+        }
+        return createSuccessResponse(result);
+      } catch (error) {
+        console.error('[isFolderExist] Error:', error);
+        return createErrorResponse(
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    },
   };
 }
 

@@ -84,14 +84,45 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
  * @param clientId - Socket.IO client ID (for tool execution, not language)
  * @returns Promise resolving to localized tool definition
  */
-export async function getApplicationContextAgentTool(clientId: string) {
-  const tool = await getTool(clientId);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Tool definition (synchronous)
+ */
+export function getApplicationContextAgentTool(clientId: string) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
-    execute: (args: any) => tool.execute(args),
-  }
+    description: "Get SMM context including selected media folder path and user language preference.",
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      selectedMediaFolder: z.string().describe("The path of the media folder that user selected in UI."),
+      language: z.string().describe("The language in user preferences."),
+    }),
+    execute: async (args: any) => {
+      let _clientId = clientId;
+
+      if(_clientId === undefined) {
+        const socket = getFirstAvailableSocket();
+        if(socket === null) {
+          return createErrorResponse('No active Socket.IO connections available');
+        }
+        _clientId = socket.clientId;
+      }
+
+      try {
+        return createSuccessResponse({
+          selectedMediaFolder: await getSelectedMediaFolder(_clientId),
+          language: await getLanguage()
+        });
+      } catch (error) {
+        console.error('[GetSelectedMediaMetadataTask] Error:', error);
+        return createErrorResponse(
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    },
+  };
 }
 
 /**

@@ -167,13 +167,92 @@ export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolD
  * @param abortSignal - Optional abort signal for request cancellation
  * @returns Promise resolving to localized tool definition
  */
-export async function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortSignal) {
-  const tool = await getTool(abortSignal);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @param abortSignal - Optional abort signal for request cancellation
+ * @returns Tool definition (synchronous)
+ */
+export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortSignal) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
-    execute: (args: any) => tool.execute(args),
+    description: "Get cached media metadata for a folder, including TMDB TV show or movie information.",
+    inputSchema: z.object({
+      mediaFolderPath: z.string().describe("The absolute path of the media folder"),
+    }),
+    outputSchema: z.object({
+      mediaFolderPath: z.string(),
+      type: z.string(),
+      tmdbTvShow: z.any().optional(),
+      tmdbMovie: z.any().optional(),
+      error: z.string().optional(),
+    }),
+    execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
+      if (abortSignal?.aborted) {
+        throw new Error('Request was aborted');
+      }
+
+      if (!mediaFolderPath || typeof mediaFolderPath !== "string" || mediaFolderPath.trim() === "") {
+        return createErrorResponse("Invalid path: mediaFolderPath must be a non-empty string");
+      }
+
+      try {
+        const normalizedPath = Path.toPlatformPath(mediaFolderPath);
+
+        const baseData: GetMediaMetadataResponseData = {
+          mediaFolderPath: normalizedPath,
+          type: "tvshow-folder",
+        };
+
+        try {
+          const stats = await stat(normalizedPath);
+          if (!stats.isDirectory()) {
+            return createSuccessResponse({ data: { ...baseData }, error: "Path is not a directory" });
+          }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            return createSuccessResponse({ data: { ...baseData }, error: "Folder not found" });
+          }
+          throw error;
+        }
+
+        const posixPath = Path.posix(mediaFolderPath);
+        const metadata = await findMediaMetadata(posixPath);
+
+        if (!metadata) {
+          return createSuccessResponse({ data: { ...baseData }, error: "No metadata cached for this folder" });
+        }
+
+        const data: GetMediaMetadataResponseData = {
+          mediaFolderPath: metadata.mediaFolderPath || posixPath,
+          type: metadata.type || "tvshow-folder",
+        };
+
+        if (metadata.tmdbTvShow) {
+          data.tmdbTvShow = {
+            tmdbId: metadata.tmdbTvShow.id,
+            name: metadata.tmdbTvShow.name,
+            seasons: metadata.tmdbTvShow.seasons?.map((season) => ({
+              seasonNumber: season.season_number,
+              seasonName: season.name,
+              episodes: season.episodes?.map((episode) => ({
+                seasonNumber: episode.season_number,
+                episodeNumber: episode.episode_number,
+                episodeName: episode.name,
+              })) || [],
+            })) || [],
+          };
+        } else {
+          data.tmdbTvShow = "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配电视剧或动画"
+        }
+
+        return createSuccessResponse({ data });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return createErrorResponse(`Error reading media metadata: ${message}`);
+      }
+    },
   };
 }
 

@@ -324,12 +324,32 @@ export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolD
  * @param abortSignal - Optional abort signal for request cancellation
  * @returns Promise resolving to localized tool definition
  */
-export async function renameFolderAgentTool(clientId: string, abortSignal?: AbortSignal) {
-  const tool = await getTool(abortSignal);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @param abortSignal - Optional abort signal for request cancellation
+ * @returns Tool definition (synchronous)
+ */
+export function renameFolderAgentTool(clientId: string, abortSignal?: AbortSignal) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
+    description: `Rename a media folder in SMM.
+This tool accepts the source folder path and destination folder path.
+This tool should ONLY be used to rename FOLDER, NOT FILE
+This tool will update media metadata accordingly.
+
+Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".`,
+    inputSchema: z.object({
+      from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
+      to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
+    }),
+    outputSchema: z.object({
+      renamed: z.boolean().describe("Whether the folder was successfully renamed"),
+      from: z.string().describe("The source path after normalization"),
+      to: z.string().describe("The destination path after normalization"),
+      error: z.string().optional().describe("Error message if rename failed"),
+    }),
     execute: async (args: { from: string; to: string }) => {
       if (abortSignal?.aborted) {
         throw new Error("Request was aborted");

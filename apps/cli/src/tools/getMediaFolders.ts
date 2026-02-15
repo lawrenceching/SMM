@@ -45,13 +45,33 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
  * @param clientId - Socket.IO client ID (for tool execution, not language)
  * @returns Promise resolving to localized tool definition
  */
-export async function getMediaFoldersAgentTool(clientId: string) {
-  const tool = await getTool(clientId);
+/**
+ * Returns a tool definition for AI agent usage.
+ * Uses fixed English description for synchronous return.
+ *
+ * @param clientId - Socket.IO client ID (for tool execution, not language)
+ * @returns Tool definition (synchronous)
+ */
+export function getMediaFoldersAgentTool(clientId: string) {
   return {
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    outputSchema: tool.outputSchema,
-    execute: (args: any) => tool.execute(args),
+    description: "Get the list of media folders managed by SMM.",
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      folders: z.array(z.string()).describe('Array of media folder paths managed by SMM'),
+    }),
+    execute: async () => {
+      try {
+        const folders = await getMediaFoldersList();
+        return createSuccessResponse({
+          folders: folders,
+        });
+      } catch (error) {
+        console.error('[getMediaFolders] Error:', error);
+        return createErrorResponse(
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    },
   };
 }
 

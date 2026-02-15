@@ -12,11 +12,11 @@ import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 const logger = pino();
 
-export const createBeginRecognizeTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('begin-recognize-task');
-
+export const createBeginRecognizeTaskTool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `Begin a recognition task for identifying media files.
+This tool creates a task that can be used to add media files for recognition.
+Use addRecognizedMediaFile to add files, then endRecognizeTask to execute.`,
   toolName: 'beginRecognizeTask',
   inputSchema: z.object({
     mediaFolderPath: z.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format"),
@@ -34,7 +34,7 @@ export const createBeginRecognizeTaskTool = async (clientId: string, abortSignal
 
     try {
       const taskId = await beginRecognizeTask(folderPathInPosix);
-      
+
       logger.info({
         taskId,
         mediaFolderPath: folderPathInPosix,
@@ -57,11 +57,11 @@ export const createBeginRecognizeTaskTool = async (clientId: string, abortSignal
   };
 };
 
-export const createAddRecognizedMediaFileTool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('add-recognized-media-file');
-
+export const createAddRecognizedMediaFileTool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `Add a recognized media file to a recognition task.
+This tool adds a single video file to an existing task created by beginRecognizeTask.
+Provide the task ID, season number, episode number, and file path.`,
   toolName: 'addRecognizedMediaFile',
   inputSchema: z.object({
     taskId: z.string().describe("The task ID returned from beginRecognizeTask"),
@@ -123,11 +123,10 @@ export const createAddRecognizedMediaFileTool = async (clientId: string, abortSi
   };
 };
 
-export const createEndRecognizeTaskTool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('end-recognize-task');
-
+export const createEndRecognizeTaskTool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `End a recognition task and execute the recognition.
+This tool finalizes the task created by beginRecognizeTask and processes all added media files.`,
   toolName: 'endRecognizeTask',
   inputSchema: z.object({
     taskId: z.string().describe("The task ID returned from beginRecognizeTask"),
@@ -143,7 +142,7 @@ export const createEndRecognizeTaskTool = async (clientId: string, abortSignal?:
 
     try {
       const task = await getTask(taskId);
-      
+
       if (!task) {
         logger.error({
           taskId,

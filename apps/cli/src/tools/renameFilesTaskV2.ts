@@ -12,11 +12,11 @@ import { getLocalizedToolDescription } from '@/i18n/helpers'
 
 const logger = pino()
 
-export const createBeginRenameFilesTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('begin-rename-task-v2');
-
+export const createBeginRenameFilesTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `Begin a rename task V2 for batch renaming media files.
+This tool creates a task that can be used to add multiple files for renaming.
+Use addRenameFileToTaskV2 to add files, then endRenameFilesTaskV2 to execute.`,
   toolName: 'beginRenameFilesTaskV2',
   inputSchema: z.object({
     mediaFolderPath: z
@@ -70,11 +70,11 @@ export const createBeginRenameFilesTaskV2Tool = async (clientId: string, abortSi
   };
 };
 
-export const createAddRenameFileToTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('add-rename-file-to-task-v2');
-
+export const createAddRenameFileToTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `Add a file to a rename task V2.
+This tool adds a single file to an existing task created by beginRenameFilesTaskV2.
+Provide the task ID, current file path, and new file path.`,
   toolName: 'addRenameFileToTaskV2',
   inputSchema: z.object({
     taskId: z.string().describe('The task ID from beginRenameFilesTaskV2'),
@@ -132,11 +132,10 @@ export const createAddRenameFileToTaskV2Tool = async (clientId: string, abortSig
   };
 };
 
-export const createEndRenameFilesTaskV2Tool = async (clientId: string, abortSignal?: AbortSignal) => {
-  const description = await getLocalizedToolDescription('end-rename-task-v2');
-
+export const createEndRenameFilesTaskV2Tool = (clientId: string, abortSignal?: AbortSignal) => {
   return {
-  description: description,
+  description: `End a rename task V2 and execute the batch rename operation.
+This tool finalizes the task created by beginRenameFilesTaskV2 and executes all pending file renames.`,
   toolName: 'endRenameFilesTaskV2',
   inputSchema: z.object({
     taskId: z.string().describe('The task ID from beginRenameFilesTaskV2'),
