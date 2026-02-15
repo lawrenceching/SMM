@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
-import { setupTestMediaFolders, resetUserConfig } from '@smm/test';
+import { setupTestMediaFolders, resetUserConfig, prepareMediaMetadata } from '@smm/test';
 import { join } from 'node:path';
+import { Path } from '@core/path';
 
 const MCP_SERVER_URL = 'http://localhost:30001/mcp';
 
@@ -11,12 +12,16 @@ const folderName = '古见同学有交流障碍症';
 // Set up test media folders before all tests
 beforeAll(async () => {
   const { mediaDir } = setupTestMediaFolders();
+  const mediaFolderPathInPlatformFormat = join(mediaDir, folderName);
+  const mediaFolderPathInPosixFormat = Path.posix(mediaFolderPathInPlatformFormat);
   await resetUserConfig(undefined, { 
     folders: [
-      join(mediaDir, folderName),
+      mediaFolderPathInPlatformFormat,
     ],
     enableMcpServer: true 
   });
+
+  await prepareMediaMetadata(mediaFolderPathInPosixFormat, '古见同学有交流障碍症.metadata.json')
 });
 
 /**

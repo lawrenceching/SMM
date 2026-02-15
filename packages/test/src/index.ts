@@ -118,6 +118,21 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
     console.log(`Reset user config at: ${userConfigPath}`)
 }
 
+export async function prepareMediaMetadata(mediaFolderPathInPosix: string, mediaMetadataFileNameInTestFolder: string) {
+    const { appDataDir } = await hello()
+    const mediaMetadataDir = path.join(appDataDir, 'metadata')
+    if(!fs.existsSync(mediaMetadataDir)) {
+        fs.mkdirSync(mediaMetadataDir, { recursive: true })
+    }
+
+    const srcMediaMetadataFilePath = path.resolve(__dirname, '..', '..', '..', 'test', 'configs', mediaMetadataFileNameInTestFolder)
+    const filename = mediaFolderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const dstMediaMetadataFilePath = path.join(mediaMetadataDir, filename)
+    console.log(`copy from ${srcMediaMetadataFilePath} to ${dstMediaMetadataFilePath}`)
+    fs.copyFileSync(srcMediaMetadataFilePath, dstMediaMetadataFilePath)
+    console.log(`Prepared media metadata file: ${dstMediaMetadataFilePath}`)
+}
+
 /**
  * Response from the hello API endpoint
  */
