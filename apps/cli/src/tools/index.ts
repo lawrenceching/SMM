@@ -5,6 +5,9 @@ import { listFilesTool, listFilesAgentTool, listFilesMcpTool } from './listFiles
 import { getMediaMetadataAgentTool, getMediaMetadataMcpTool } from './getMediaMetadata';
 import { createRenameFolderTool, renameFolderAgentTool, renameFolderMcpTool } from './renameFolder';
 import { matchEpisodeTool } from './matchEpisode';
+import { createMatchEpisodesInBatchTool } from './matchEpisodesInBatch';
+import { createRenameFilesInBatchTool } from './renameFilesInBatch';
+import { createAskForConfirmationTool } from './askForConfirmation';
 import { getApplicationContextAgentTool, getApplicationContextMcpTool } from './getApplicationContext';
 import {
   createBeginRenameFilesTaskTool,

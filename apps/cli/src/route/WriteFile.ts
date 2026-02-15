@@ -132,6 +132,9 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
 
     logger.error({ traceId, error: loggableError }, `doWriteFile: Unexpected error`);
 
+    return {
+      error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
   }
 }
 

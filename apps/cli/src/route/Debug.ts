@@ -215,7 +215,7 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           
           const { createBeginRenameFilesTaskTool } = await import('../tools/renameFilesTask');
           const clientId = validatedBody.clientId || '';
-          const tool = createBeginRenameFilesTaskTool(clientId);
+          const tool = await createBeginRenameFilesTaskTool(clientId);
           
           const result = await tool.execute({
             mediaFolderPath: validatedBody.mediaFolderPath,
@@ -252,7 +252,7 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           
           const { createAddRenameFileToTaskTool } = await import('../tools/renameFilesTask');
           const clientId = validatedBody.clientId || '';
-          const tool = createAddRenameFileToTaskTool(clientId);
+          const tool = await createAddRenameFileToTaskTool(clientId);
           
           const result = await tool.execute({
             taskId: validatedBody.taskId,
@@ -289,7 +289,7 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           
           const { createEndRenameFilesTaskTool } = await import('../tools/renameFilesTask');
           const clientId = validatedBody.clientId || '';
-          const tool = createEndRenameFilesTaskTool(clientId);
+          const tool = await createEndRenameFilesTaskTool(clientId);
           
           const result = await tool.execute({
             taskId: validatedBody.taskId,

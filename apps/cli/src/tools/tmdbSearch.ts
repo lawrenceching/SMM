@@ -31,13 +31,13 @@ async function handleTmdbSearch(params: TmdbSearchParams): Promise<ReturnType<ty
   }
 
   try {
-    const result = await search({ keyword, type, language, baseURL });
+    const result = await search({ keyword, type, language: language || 'en-US', baseURL });
 
     if (result.error) {
       return createErrorResponse(result.error);
     }
 
-    return createSuccessResponse(result);
+    return createSuccessResponse(result as unknown as { [x: string]: unknown });
   } catch (error) {
     console.error('[tmdbSearch] Error:', error);
     return createErrorResponse(error instanceof Error ? error.message : 'Unknown error occurred while searching TMDB');

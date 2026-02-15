@@ -267,7 +267,7 @@ export async function getAllPendingRenamePlans(): Promise<RenameFilesPlan[]> {
           content.task === 'rename-files' &&
           content.status === 'pending'
         ) {
-          pending.push(content as RenameFilesPlan)
+          pending.push(content as unknown as RenameFilesPlan)
         }
       } catch (error) {
         logger.warn(

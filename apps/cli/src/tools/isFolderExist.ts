@@ -53,9 +53,9 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
       try {
         const result = await checkFolderExists(path);
         if (!result.exists && result.reason) {
-          return createSuccessResponse(result);
+          return createSuccessResponse(result as unknown as { [x: string]: unknown });
         }
-        return createSuccessResponse(result);
+        return createSuccessResponse(result as unknown as { [x: string]: unknown });
       } catch (error) {
         console.error('[isFolderExist] Error:', error);
         return createErrorResponse(
@@ -95,9 +95,9 @@ export function isFolderExistAgentTool(clientId: string) {
       try {
         const result = await checkFolderExists(path);
         if (!result.exists && result.reason) {
-          return createSuccessResponse(result);
+          return createSuccessResponse(result as unknown as { [x: string]: unknown });
         }
-        return createSuccessResponse(result);
+        return createSuccessResponse(result as unknown as { [x: string]: unknown });
       } catch (error) {
         console.error('[isFolderExist] Error:', error);
         return createErrorResponse(

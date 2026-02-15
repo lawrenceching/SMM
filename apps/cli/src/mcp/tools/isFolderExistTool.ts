@@ -14,8 +14,8 @@ export async function registerIsFolderExistTool(server: McpServer): Promise<void
       inputSchema: tool.inputSchema,
       outputSchema: tool.outputSchema,
     },
-    async (args: { path: string }) => {
-      return await tool.execute(args);
+    async (args: unknown) => {
+      return await tool.execute(args as { path: string });
     }
   );
 }

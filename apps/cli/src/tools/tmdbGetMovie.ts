@@ -31,7 +31,7 @@ async function handleTmdbGetMovie(params: TmdbGetMovieParams): Promise<ReturnTyp
       return createErrorResponse(result.error);
     }
 
-    return createSuccessResponse(result);
+    return createSuccessResponse(result as unknown as { [x: string]: unknown });
   } catch (error) {
     console.error('[tmdbGetMovie] Error:', error);
     return createErrorResponse(error instanceof Error ? error.message : 'Unknown error occurred while fetching movie from TMDB');

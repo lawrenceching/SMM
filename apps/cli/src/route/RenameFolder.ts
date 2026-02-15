@@ -20,7 +20,7 @@ export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: s
     
     // Check if the source path is in the user's configured folders
     const fromPath = Path.toPlatformPath(body.from);
-    const folderEntry = userConfig.folders.find((folder: { path: string }) => folder.path === fromPath);
+    const folderEntry = userConfig.folders.find((folder: string) => folder === fromPath);
     
     if (!folderEntry) {
       logger.error({

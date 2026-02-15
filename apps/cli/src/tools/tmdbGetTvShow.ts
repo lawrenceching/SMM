@@ -31,7 +31,7 @@ async function handleTmdbGetTvShow(params: TmdbGetTvShowParams): Promise<ReturnT
       return createErrorResponse(result.error);
     }
 
-    return createSuccessResponse(result);
+    return createSuccessResponse(result as unknown as { [x: string]: unknown });
   } catch (error) {
     console.error('[tmdbGetTvShow] Error:', error);
     return createErrorResponse(error instanceof Error ? error.message : 'Unknown error occurred while fetching TV show from TMDB');

@@ -26,7 +26,9 @@
     "typecheck:cli": "cd apps/cli && bun run typecheck",
     "typecheck:ui": "cd apps/ui && bun run typecheck",
     "typecheck:e2e": "cd apps/e2e && bun run typecheck",
-    "typecheck:electron": "cd apps/electron && bun run typecheck"
+    "typecheck:electron": "cd apps/electron && bun run typecheck",
+    "ci": "bun run build && bun run test && bun run typecheck",
+    "ci:cli": "cd apps/cli && bun run test && bun run typecheck"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
