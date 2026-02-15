@@ -315,6 +315,75 @@ describe('MCP Server - GetAppContextTool', () => {
   });
 })
 
+describe('MCP Server - GetMediaMetadataTool', () => {
+  it('should return media metadata for the test folder', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-media-metadata'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-media-metadata tool not found');
+    }
+
+    // Execute the tool with the test media folder
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const result = await executeTool(tool, { mediaFolderPath: folderPath });
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { data: { mediaFolderPath, type, tmdbTvShow }, error?: string }
+    expect(innerResponse.data).toBeDefined();
+    expect(innerResponse.data.mediaFolderPath).toBeDefined();
+    expect(innerResponse.data.type).toBeDefined();
+    // The test folder should have metadata cached (prepared in beforeAll)
+    expect(innerResponse.data.tmdbTvShow).toBeDefined();
+    // tmdbTvShow should be an object (not a string meaning unrecognized)
+    expect(typeof innerResponse.data.tmdbTvShow === 'object').toBe(true);
+  });
+
+  it('should return error when folder does not exist', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-media-metadata'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-media-metadata tool not found');
+    }
+
+    // Execute the tool with a non-existing path (cross-platform approach)
+    const { mediaDir } = setupTestMediaFolders();
+    const nonExistingPath = join(mediaDir, 'non-existing-folder-that-does-not-exist');
+    const result = await executeTool(tool, { mediaFolderPath: nonExistingPath });
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { data: { mediaFolderPath, type }, error?: string }
+    expect(innerResponse.data).toBeDefined();
+    expect(innerResponse.data.mediaFolderPath).toBeDefined();
+    // Should indicate folder not found in error
+    expect(innerResponse.error).toContain('Folder not found');
+  });
+})
+
 // Cleanup after all tests
 afterAll(async () => {
   if (mcpClient) {
