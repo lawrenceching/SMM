@@ -24,7 +24,10 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env.local') })
  *
  * Use this function only for tests that require actual media files
  */
-export function setupTestMediaFolders(): void {
+export function setupTestMediaFolders(): {
+    tmpDir: string,
+    mediaDir: string,
+} {
     const tmpDir = path.join(os.tmpdir(), 'smm-test-media')
 
     // 1. Create or recreate tmp folder
@@ -64,6 +67,11 @@ export function setupTestMediaFolders(): void {
 
     copyRecursiveSync(testMediaPath, targetMediaPath)
     console.log(`Copied test/media to ${targetMediaPath}`)
+
+    return {
+        tmpDir,
+        mediaDir: targetMediaPath,
+    }
 }
 
 /**

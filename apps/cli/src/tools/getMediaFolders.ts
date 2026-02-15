@@ -8,6 +8,7 @@ import { getLocalizedToolDescription } from '@/i18n/helpers';
 async function getMediaFoldersList(): Promise<string[]> {
   const { userDataDir } = await executeHelloTask();
   const obj = await Bun.file(join(userDataDir, 'smm.json')).json();
+  console.log('>>> obj', obj);
   return obj.folders || [];
 }
 
