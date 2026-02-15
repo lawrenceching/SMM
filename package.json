@@ -15,6 +15,7 @@
     "build:ui": "cd apps/ui && bun run build",
     "build:electron": "cd apps/electron && bun run build",
     "build:core": "cd packages/core && bun run typecheck",
+    "build:docker": "docker buildx build --progress=plain -t smm:latest .",
     "test": "bun test",
     "test:core": "cd packages/core && bun test",
     "test:cli": "cd apps/cli && bun test",
