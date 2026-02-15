@@ -384,6 +384,72 @@ describe('MCP Server - GetMediaMetadataTool', () => {
   });
 })
 
+describe('MCP Server - GetEpisodeTool', () => {
+  it('should return video file path for existing episode', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-episode'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-episode tool not found');
+    }
+
+    // Execute the tool with the test media folder and a valid episode
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const result = await executeTool(tool, { mediaFolderPath: folderPath, season: 1, episode: 1 });
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { videoFilePath, season, episode, message } - no data wrapper
+    expect(innerResponse.videoFilePath).toBeDefined();
+    expect(innerResponse.season).toBe(1);
+    expect(innerResponse.episode).toBe(1);
+    expect(innerResponse.message).toBe('succeeded');
+  });
+
+  it('should return error when episode does not exist', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-episode'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-episode tool not found');
+    }
+
+    // Execute the tool with a non-existing episode (Season 99, Episode 99)
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const result = await executeTool(tool, { mediaFolderPath: folderPath, season: 99, episode: 99 });
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { videoFilePath, season, episode, message } - no data wrapper
+    expect(innerResponse.videoFilePath).toBe('');
+    expect(innerResponse.season).toBe(99);
+    expect(innerResponse.episode).toBe(99);
+    expect(innerResponse.message).toContain('not found');
+  });
+})
+
 // Cleanup after all tests
 afterAll(async () => {
   if (mcpClient) {
