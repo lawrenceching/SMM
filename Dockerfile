@@ -4,35 +4,11 @@ FROM oven/bun:1.3.5 AS builder
 WORKDIR /build
 
 # Copy workspace files needed for building
-COPY packages/core/ ./packages/core/
-COPY apps/ui/ ./apps/ui/
-COPY apps/cli/ ./apps/cli/
+COPY . .
 
-# Install dependencies for all modules
-WORKDIR /build/packages/core
 RUN bun install --frozen-lockfile
-
-WORKDIR /build/apps/ui
-RUN bun install --frozen-lockfile
-
-WORKDIR /build/apps/cli
-RUN bun install --frozen-lockfile
-
-# Build UI
-WORKDIR /build/apps/ui
-RUN bun run build
-
-# Build CLI (set NODE_ENV=production to prevent pino-pretty from being loaded)
-WORKDIR /build/apps/cli
 ENV NODE_ENV=production
 RUN bun run build
-
-# Verify the binary exists and check its properties
-RUN ls -lah /build/apps/cli/dist/ && \
-    test -f /build/apps/cli/dist/cli && \
-    echo "✓ Binary exists" && \
-    file /build/apps/cli/dist/cli && \
-    ldd /build/apps/cli/dist/cli 2>/dev/null || echo "Binary is static or ldd not available"
 
 # Final stage - Use Debian slim with tini for proper signal handling
 # Bun's compiled executables are built against glibc from Debian/Ubuntu
