@@ -171,18 +171,11 @@ jobs:
         with:
           bun-version: latest
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/electron/package-lock.json
-      
       - name: Install all dependencies
         run: bun install --frozen-lockfile
 
       - name: Install electron dependencies
-        run: cd apps/electron && npm install --frozen-lockfile
+        run: cd apps/electron && bun install --frozen-lockfile
 
       - name: Build cli
         run: cd apps/cli && bun run build
@@ -191,7 +184,7 @@ jobs:
         run: cd apps/ui && bun run build
 
       - name: Build Electron (${{ matrix.platform }})
-        run: cd apps/electron && npm run ${{ matrix.build-command }}
+        run: cd apps/electron && bun run ${{ matrix.build-command }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
