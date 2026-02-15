@@ -450,6 +450,87 @@ describe('MCP Server - GetEpisodeTool', () => {
   });
 })
 
+describe('MCP Server - GetEpisodesTool', () => {
+  it('should return all episodes for the test TV show folder', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-episodes'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-episodes tool not found');
+    }
+
+    // Execute the tool with the test media folder
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const result = await executeTool(tool, { mediaFolderPath: folderPath });
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { episodes, totalCount, showName, numberOfSeasons } - no data wrapper
+    expect(innerResponse.episodes).toBeDefined();
+    expect(Array.isArray(innerResponse.episodes)).toBe(true);
+    // Test folder should have episodes (prepared in beforeAll)
+    expect(innerResponse.episodes.length).toBeGreaterThan(0);
+    expect(innerResponse.totalCount).toBeDefined();
+    expect(innerResponse.totalCount).toBeGreaterThan(0);
+    expect(innerResponse.showName).toBeDefined();
+    expect(innerResponse.numberOfSeasons).toBeDefined();
+    // Each episode should have season, episode, and optionally videoFilePath
+    const firstEpisode = innerResponse.episodes[0];
+    expect(firstEpisode.season).toBeDefined();
+    expect(firstEpisode.episode).toBeDefined();
+  });
+
+  it('should return error when media folder does not exist', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-episodes'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-episodes tool not found');
+    }
+
+    // Execute the tool with a non-existing path
+    const { mediaDir } = setupTestMediaFolders();
+    const nonExistingPath = join(mediaDir, 'non-existing-folder-that-does-not-exist');
+    const result = await executeTool(tool, { mediaFolderPath: nonExistingPath });
+
+    // Verify response - error responses have isError: true
+    expect(result.isError).toBe(true);
+  });
+
+  it('should return error when folder is not a TV show', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-episodes'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-episodes tool not found');
+    }
+
+    // Execute the tool with an empty/non-TV-show folder
+    // We use a media folder path that exists but doesn't have TV show metadata
+    const { mediaDir } = setupTestMediaFolders();
+    const emptyFolderPath = mediaDir; // The parent media directory (not a TV show folder)
+    const result = await executeTool(tool, { mediaFolderPath: emptyFolderPath });
+
+    // Verify response - error responses have isError: true
+    expect(result.isError).toBe(true);
+  });
+})
+
 // Cleanup after all tests
 afterAll(async () => {
   if (mcpClient) {
