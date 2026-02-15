@@ -138,6 +138,41 @@ describe('MCP Server - HowToRecognizeEpisodeVideoFilesTool', () => {
   });
 });
 
+describe('MCP Server - TmdbSearchTool', () => {
+
+
+})
+
+describe('MCP Server - GetAppContextTool', () => {
+  it('should return app context with selected media folder and language', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const tool = tools['get-app-context'];
+
+    expect(tool).toBeDefined();
+    if (!tool) {
+      throw new Error('get-app-context tool not found');
+    }
+
+    // Execute the tool
+    const result = await executeTool(tool);
+
+    // Verify response
+    expect(result.isError).toBe(false);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
+
+    const textContent = result.content.find((c) => c.type === "text" && c.text);
+    expect(textContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { selectedMediaFolder: "...", language: "..." }
+    expect(innerResponse.selectedMediaFolder).toContain('古见同学有交流障碍症');
+    expect(innerResponse.language).toBe('en');
+  });
+})
+
 // Cleanup after all tests
 afterAll(async () => {
   if (mcpClient) {
