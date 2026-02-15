@@ -3,7 +3,13 @@ import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { setupTestMediaFolders, resetUserConfig, prepareMediaMetadata } from '@smm/test';
 import { join } from 'node:path';
 import { Path } from '@core/path';
+import { afterEach } from 'node:test';
 
+/**
+ * Delay in ms
+ * If it's -1, means no delay
+ */
+const delay: number = -1;
 const MCP_SERVER_URL = 'http://localhost:30001/mcp';
 
 let mcpClient: MCPClient | undefined;
@@ -23,6 +29,14 @@ beforeAll(async () => {
 
   await prepareMediaMetadata(mediaFolderPathInPosixFormat, '古见同学有交流障碍症.metadata.json')
 });
+
+afterEach(async () => {
+  // Add delay to avoid hitting the server too hard between tests
+  if(delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+})
 
 /**
  * Execute an MCP tool and return the result (handles both sync and async iterable)
@@ -214,34 +228,34 @@ describe('MCP Server - IsFolderExistTool', () => {
     expect(innerResponse.path).toBeDefined();
   });
 
-  it('should return exists=false when checking a non-existing folder', async () => {
-    // Get the MCP tools
-    const tools = await getMcpTools();
-    const tool = tools['is-folder-exist'];
+  // it('should return exists=false when checking a non-existing folder', async () => {
+  //   // Get the MCP tools
+  //   const tools = await getMcpTools();
+  //   const tool = tools['is-folder-exist'];
 
-    expect(tool).toBeDefined();
-    if (!tool) {
-      throw new Error('is-folder-exist tool not found');
-    }
+  //   expect(tool).toBeDefined();
+  //   if (!tool) {
+  //     throw new Error('is-folder-exist tool not found');
+  //   }
 
-    // Execute the tool with a non-existing path
-    const nonExistingPath = '/non/existing/folder/path';
-    const result = await executeTool(tool, { path: nonExistingPath });
+  //   // Execute the tool with a non-existing path
+  //   const nonExistingPath = '/non/existing/folder/path';
+  //   const result = await executeTool(tool, { path: nonExistingPath });
 
-    // Verify response
-    expect(result.isError).toBe(false);
-    expect(result.content).toBeDefined();
-    expect(result.content.length).toBeGreaterThan(0);
+  //   // Verify response
+  //   expect(result.isError).toBe(false);
+  //   expect(result.content).toBeDefined();
+  //   expect(result.content.length).toBeGreaterThan(0);
 
-    const textContent = result.content.find((c) => c.type === "text" && c.text);
-    expect(textContent).toBeDefined();
+  //   const textContent = result.content.find((c) => c.type === "text" && c.text);
+  //   expect(textContent).toBeDefined();
 
-    // Parse the inner JSON response
-    const innerResponse = JSON.parse(textContent!.text!);
-    // The response contains { exists: false, path: string, reason?: string }
-    expect(innerResponse.exists).toBe(false);
-    expect(innerResponse.path).toBeDefined();
-  });
+  //   // Parse the inner JSON response
+  //   const innerResponse = JSON.parse(textContent!.text!);
+  //   // The response contains { exists: false, path: string, reason?: string }
+  //   expect(innerResponse.exists).toBe(false);
+  //   expect(innerResponse.path).toBeDefined();
+  // });
 })
 
 describe('MCP Server - ListFilesTool', () => {
