@@ -313,14 +313,20 @@ describe('MCP Server - GetAppContextTool', () => {
     // Execute the tool
     const result = await executeTool(tool);
 
-    // Verify response - expect error because no SMM UI is open in test
-    expect(result.isError).toBe(true);
+    // Verify response
+    expect(result.isError).toBe(false);
     expect(result.content).toBeDefined();
     expect(result.content.length).toBeGreaterThan(0);
 
     const textContent = result.content.find((c) => c.type === "text" && c.text);
     expect(textContent).toBeDefined();
-    expect(textContent!.text).toBe("User didn't open the SMM UI");
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { selectedMediaFolder: "...", language: "..." }
+    // TODO: the selectedMediaFolder requires to open the browser and select the folder
+    // expect(innerResponse.selectedMediaFolder).toContain(folderName);
+    expect(innerResponse.language).toBe('en');
   });
 })
 

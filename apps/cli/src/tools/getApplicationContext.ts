@@ -50,7 +50,7 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
       if(clientId === undefined) {
         const socket = getFirstAvailableSocket();
         if(socket === null) {
-          return createErrorResponse('User didn\'t open the SMM UI');
+          return createErrorResponse('No active Socket.IO connections available');
         }
         clientId = socket.clientId;
       }
