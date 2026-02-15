@@ -1,0 +1,19 @@
+{
+  "name": "@smm/test",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
+  }
+}

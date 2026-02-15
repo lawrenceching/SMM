@@ -30,7 +30,9 @@
       "@/*": ["./src/*"],
       "@core/*": ["../../packages/core/*"],
       "@smm/core": ["../../packages/core/types.ts"],
-      "@smm/core/*": ["../../packages/core/*"]
+      "@smm/core/*": ["../../packages/core/*"],
+      "@smm/test": ["../../packages/test/src/index.ts"],
+      "@smm/test/*": ["../../packages/test/*"]
     }
   }
 }

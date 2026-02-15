@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
+import { setupTestMediaFolders, resetUserConfig } from '@smm/test';
 
 const MCP_SERVER_URL = 'http://localhost:30001/mcp';
 
 let mcpClient: MCPClient | undefined;
+
+// Set up test media folders before all tests
+beforeAll(async () => {
+  setupTestMediaFolders();
+  await resetUserConfig(undefined, { enableMcpServer: true });
+});
 
 /**
  * Execute an MCP tool and return the result (handles both sync and async iterable)

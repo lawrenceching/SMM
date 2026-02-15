@@ -188,6 +188,17 @@
         "typescript": "^5.0.0",
       },
     },
+    "packages/test": {
+      "name": "@smm/test",
+      "version": "1.0.0",
+      "dependencies": {
+        "dotenv": "^17.3.1",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.0.0",
+      },
+    },
     "packages/utils": {
       "name": "@smm/utils",
       "version": "1.0.0",
@@ -665,6 +676,8 @@
     "@sindresorhus/merge-streams": ["@sindresorhus/merge-streams@4.0.0", "", {}, "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="],
 
     "@smm/core": ["@smm/core@workspace:packages/core"],
+
+    "@smm/test": ["@smm/test@workspace:packages/test"],
 
     "@smm/utils": ["@smm/utils@workspace:packages/utils"],
 
