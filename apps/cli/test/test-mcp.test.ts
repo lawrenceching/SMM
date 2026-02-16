@@ -4,6 +4,7 @@ import { setupTestMediaFolders, resetUserConfig, prepareMediaMetadata } from '@s
 import { join } from 'node:path';
 import { Path } from '@core/path';
 import { afterEach } from 'node:test';
+import type { GetPendingPlansResponseBody } from '@/route/GetPendingPlans';
 
 /**
  * Delay in ms
@@ -596,6 +597,122 @@ describe('MCP Server - GetEpisodesTool', () => {
 
     // Verify response - error responses have isError: true
     expect(result.isError).toBe(true);
+  });
+})
+
+describe('MCP Server - BeginRenameEpisodeVideoFileTaskTool, AddRenameEpisodeVideoFileTool, EndRenameEpisodeVideoTaskTool', () => {
+  it('should create a rename task, add two files, end task, and verify pending task exists', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const beginTaskTool = tools['begin-rename-episode-video-file-task'];
+    const addRenameFileTool = tools['add-rename-episode-video-file'];
+    const endTaskTool = tools['end-rename-episode-video-file-task'];
+
+    expect(beginTaskTool).toBeDefined();
+    if (!beginTaskTool) {
+      throw new Error('begin-rename-episode-video-file-task tool not found');
+    }
+    expect(addRenameFileTool).toBeDefined();
+    if (!addRenameFileTool) {
+      throw new Error('add-rename-episode-video-file tool not found');
+    }
+    expect(endTaskTool).toBeDefined();
+    if (!endTaskTool) {
+      throw new Error('end-rename-episode-video-file-task tool not found');
+    }
+
+    // Step 1: Begin rename task
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const resultBegin = await executeTool(beginTaskTool, { mediaFolderPath: folderPath });
+
+    // Verify begin task response
+    expect(resultBegin.isError).toBe(false);
+    expect(resultBegin.content).toBeDefined();
+    expect(resultBegin.content.length).toBeGreaterThan(0);
+
+    const beginTextContent = resultBegin.content.find((c) => c.type === "text" && c.text);
+    expect(beginTextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const beginInnerResponse = JSON.parse(beginTextContent!.text!);
+    expect(beginInnerResponse.success).toBe(true);
+    expect(beginInnerResponse.taskId).toBeDefined();
+
+    const taskId = beginInnerResponse.taskId;
+
+    // Step 2: Add first file rename (S01E01)
+    const episode1From = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E01.mkv');
+    const episode1To = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E01 - 交流01「我想说话」.mkv');
+    const resultAdd1 = await executeTool(addRenameFileTool, { taskId, from: episode1From, to: episode1To });
+
+    // Verify add rename file response
+    expect(resultAdd1.isError).toBe(false);
+    expect(resultAdd1.content).toBeDefined();
+    expect(resultAdd1.content.length).toBeGreaterThan(0);
+
+    const add1TextContent = resultAdd1.content.find((c) => c.type === "text" && c.text);
+    expect(add1TextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const add1InnerResponse = JSON.parse(add1TextContent!.text!);
+    expect(add1InnerResponse.success).toBe(true);
+
+    // Step 3: Add second file rename (S01E02)
+    const episode2From = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E02.mkv');
+    const episode2To = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E02 - 交流02「我叫古见」.mkv');
+    const resultAdd2 = await executeTool(addRenameFileTool, { taskId, from: episode2From, to: episode2To });
+
+    // Verify add rename file response
+    expect(resultAdd2.isError).toBe(false);
+    expect(resultAdd2.content).toBeDefined();
+    expect(resultAdd2.content.length).toBeGreaterThan(0);
+
+    const add2TextContent = resultAdd2.content.find((c) => c.type === "text" && c.text);
+    expect(add2TextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const add2InnerResponse = JSON.parse(add2TextContent!.text!);
+    expect(add2InnerResponse.success).toBe(true);
+
+    // Step 4: End rename task
+    const resultEnd = await executeTool(endTaskTool, { taskId });
+
+    // Verify end task response
+    expect(resultEnd.isError).toBe(false);
+    expect(resultEnd.content).toBeDefined();
+    expect(resultEnd.content.length).toBeGreaterThan(0);
+
+    const endTextContent = resultEnd.content.find((c) => c.type === "text" && c.text);
+    expect(endTextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const endInnerResponse = JSON.parse(endTextContent!.text!);
+    expect(endInnerResponse.success).toBe(true);
+    expect(endInnerResponse.taskId).toBe(taskId);
+    expect(endInnerResponse.fileCount).toBe(2);
+
+    // Step 5: Call getPendingPlans API to verify there's one pending task
+    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPendingPlans', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const pendingPlansData = await pendingPlansResponse.json() as GetPendingPlansResponseBody;
+
+    // Verify pending plans response
+    expect(pendingPlansData.renamePlans).toBeDefined();
+    expect(Array.isArray(pendingPlansData.renamePlans)).toBe(true);
+    expect(pendingPlansData.renamePlans.length).toBe(1);
+
+    // Verify the pending task contains our two files
+    const pendingTask = pendingPlansData.renamePlans[0];
+    expect(pendingTask).toBeDefined();
+    if (pendingTask) {
+      expect(pendingTask.files).toBeDefined();
+      expect(pendingTask.files.length).toBe(2);
+    }
   });
 })
 
