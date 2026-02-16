@@ -1,8 +1,11 @@
 # Builder stage - Build UI and CLI using Node.js and pnpm
 FROM node:22-alpine AS builder
 
-# Install pnpm globally
+# Install pnpm globally via corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Install bun via npm
+RUN npm install -g bun
 
 WORKDIR /build
 
