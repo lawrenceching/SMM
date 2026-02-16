@@ -5,7 +5,7 @@
   "description": "Shared TypeScript code for Simple Media Manager",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "pnpm test"
   },
   "devDependencies": {
     "@types/bun": "latest",

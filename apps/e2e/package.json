@@ -19,7 +19,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun run wdio",
+    "test": "pnpm run wdio",
     "wdio": "wdio run ./wdio.conf.ts",
     "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/import-tvshow-folder.e2e.ts"
   },

@@ -1,5 +1,4 @@
 {
-    "bun.test.enable": false,
     "vitest.nodeEnv": {
         "NODE_ENV": "test"
     }

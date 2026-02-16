@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run index.ts",
-    "check": "bun tsc --noEmit",
-    "start": "bun run index.ts"
+    "dev": "pnpm run index.ts",
+    "check": "pnpm tsc --noEmit",
+    "start": "pnpm run index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

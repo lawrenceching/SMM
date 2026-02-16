@@ -1,32 +1,37 @@
-# Builder stage - Build UI and CLI using Bun
-FROM oven/bun:1.3.5 AS builder
+# Builder stage - Build UI and CLI using Node.js and pnpm
+FROM node:22-alpine AS builder
+
+# Install pnpm globally
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /build
 
 # Copy workspace files needed for building
 COPY . .
 
-RUN bun install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 ENV NODE_ENV=production
-RUN bun run build
+RUN pnpm run build
 
 # Final stage - Use Debian slim with tini for proper signal handling
-# Bun's compiled executables are built against glibc from Debian/Ubuntu
-# This ensures library compatibility (can't use Alpine/musl as Bun executables need glibc)
+# Use Node.js runtime for the built application
 FROM debian:bookworm-slim
 
-# Install tini (init system for proper signal handling) and ca-certificates
+# Install Node.js runtime and tini (init system for proper signal handling)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    wget && \
-    wget -O /usr/local/bin/tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-amd64 && \
-    chmod +x /usr/local/bin/tini && \
-    apt-get purge -y wget && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+    wget \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && wget -O /usr/local/bin/tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-amd64 \
+    && chmod +x /usr/local/bin/tini \
+    && apt-get purge -y wget curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy CLI executable
+# Copy CLI build output
 COPY --from=builder /build/apps/cli/dist/cli /app/cli
 
 # Ensure executable has proper permissions
@@ -47,4 +52,3 @@ EXPOSE 30000
 # Use tini as entrypoint for proper signal handling (Ctrl+C support)
 ENTRYPOINT ["/usr/local/bin/tini", "--"]
 CMD ["/app/cli", "--staticDir", "/app/public", "--port", "30000"]
-
