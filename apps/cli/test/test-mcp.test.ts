@@ -692,7 +692,7 @@ describe('MCP Server - BeginRenameEpisodeVideoFileTaskTool, AddRenameEpisodeVide
     expect(endInnerResponse.taskId).toBe(taskId);
     expect(endInnerResponse.fileCount).toBe(2);
 
-    // Step 5: Call getPendingPlans API to verify there's one pending task
+    // Step 5: Call getPendingPlans API to verify there's a pending task with our files
     const pendingPlansResponse = await fetch('http://localhost:30000/api/getPendingPlans', {
       method: 'POST',
       headers: {
@@ -704,14 +704,132 @@ describe('MCP Server - BeginRenameEpisodeVideoFileTaskTool, AddRenameEpisodeVide
     // Verify pending plans response
     expect(pendingPlansData.renamePlans).toBeDefined();
     expect(Array.isArray(pendingPlansData.renamePlans)).toBe(true);
-    expect(pendingPlansData.renamePlans.length).toBe(1);
+    // Verify our specific files exist in any pending plan
+    const episode1FromPosix = Path.posix(episode1From);
+    const episode1ToPosix = Path.posix(episode1To);
+    const ourTask = pendingPlansData.renamePlans.find(p => 
+      p.files.some(f => f.from === episode1FromPosix && f.to === episode1ToPosix)
+    );
+    expect(ourTask).toBeDefined();
+    if (ourTask) {
+      expect(ourTask.files).toBeDefined();
+      expect(ourTask.files.length).toBe(2);
+    }
+  });
+})
 
-    // Verify the pending task contains our two files
-    const pendingTask = pendingPlansData.renamePlans[0];
-    expect(pendingTask).toBeDefined();
-    if (pendingTask) {
-      expect(pendingTask.files).toBeDefined();
-      expect(pendingTask.files.length).toBe(2);
+describe('MCP Server - BeginRecognizeTaskTool, AddRecognizedFileTool, EndRecognizeTaskTool', () => {
+  it('should create a recognize task, add two files, end task, and verify pending task exists', async () => {
+    // Get the MCP tools
+    const tools = await getMcpTools();
+    const beginTaskTool = tools['begin-recognize-task'];
+    const addRecognizedFileTool = tools['add-recognized-file'];
+    const endTaskTool = tools['end-recognize-task'];
+
+    expect(beginTaskTool).toBeDefined();
+    if (!beginTaskTool) {
+      throw new Error('begin-recognize-task tool not found');
+    }
+    expect(addRecognizedFileTool).toBeDefined();
+    if (!addRecognizedFileTool) {
+      throw new Error('add-recognized-file tool not found');
+    }
+    expect(endTaskTool).toBeDefined();
+    if (!endTaskTool) {
+      throw new Error('end-recognize-task tool not found');
+    }
+
+    // Step 1: Begin recognize task
+    const { mediaDir } = setupTestMediaFolders();
+    const folderPath = join(mediaDir, folderName);
+    const resultBegin = await executeTool(beginTaskTool, { mediaFolderPath: folderPath });
+
+    // Verify begin task response
+    expect(resultBegin.isError).toBe(false);
+    expect(resultBegin.content).toBeDefined();
+    expect(resultBegin.content.length).toBeGreaterThan(0);
+
+    const beginTextContent = resultBegin.content.find((c) => c.type === "text" && c.text);
+    expect(beginTextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const beginInnerResponse = JSON.parse(beginTextContent!.text!);
+    expect(beginInnerResponse.success).toBe(true);
+    expect(beginInnerResponse.taskId).toBeDefined();
+
+    const taskId = beginInnerResponse.taskId;
+
+    // Step 2: Add first recognized file (S01E01)
+    const episode1Path = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E01.mkv');
+    const resultAdd1 = await executeTool(addRecognizedFileTool, { taskId, season: 1, episode: 1, path: episode1Path });
+
+    // Verify add recognized file response
+    expect(resultAdd1.isError).toBe(false);
+    expect(resultAdd1.content).toBeDefined();
+    expect(resultAdd1.content.length).toBeGreaterThan(0);
+
+    const add1TextContent = resultAdd1.content.find((c) => c.type === "text" && c.text);
+    expect(add1TextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const add1InnerResponse = JSON.parse(add1TextContent!.text!);
+    expect(add1InnerResponse.success).toBe(true);
+
+    // Step 3: Add second recognized file (S01E02)
+    const episode2Path = join(folderPath, 'Season 01', '古见同学有交流障碍症 - S01E02.mkv');
+    const resultAdd2 = await executeTool(addRecognizedFileTool, { taskId, season: 1, episode: 2, path: episode2Path });
+
+    // Verify add recognized file response
+    expect(resultAdd2.isError).toBe(false);
+    expect(resultAdd2.content).toBeDefined();
+    expect(resultAdd2.content.length).toBeGreaterThan(0);
+
+    const add2TextContent = resultAdd2.content.find((c) => c.type === "text" && c.text);
+    expect(add2TextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const add2InnerResponse = JSON.parse(add2TextContent!.text!);
+    expect(add2InnerResponse.success).toBe(true);
+
+    // Step 4: End recognize task
+    const resultEnd = await executeTool(endTaskTool, { taskId });
+
+    // Verify end task response
+    expect(resultEnd.isError).toBe(false);
+    expect(resultEnd.content).toBeDefined();
+    expect(resultEnd.content.length).toBeGreaterThan(0);
+
+    const endTextContent = resultEnd.content.find((c) => c.type === "text" && c.text);
+    expect(endTextContent).toBeDefined();
+
+    // Parse the inner JSON response
+    const endInnerResponse = JSON.parse(endTextContent!.text!);
+    expect(endInnerResponse.success).toBe(true);
+    expect(endInnerResponse.taskId).toBe(taskId);
+    expect(endInnerResponse.fileCount).toBe(2);
+
+    // Step 5: Call getPendingPlans API to verify there's a pending task with our files
+    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPendingPlans', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const pendingPlansData = await pendingPlansResponse.json() as GetPendingPlansResponseBody;
+
+    // Verify pending plans response - should have our recognize task in data array
+    expect(pendingPlansData.data).toBeDefined();
+    expect(Array.isArray(pendingPlansData.data)).toBe(true);
+    // Verify our specific files exist in any pending plan
+    const episode1PathPosix = Path.posix(episode1Path);
+    const episode2PathPosix = Path.posix(episode2Path);
+    const ourTask = pendingPlansData.data.find(p => 
+      p.files.some(f => f.path === episode1PathPosix && f.season === 1 && f.episode === 1)
+    );
+    expect(ourTask).toBeDefined();
+    if (ourTask) {
+      expect(ourTask.files).toBeDefined();
+      expect(ourTask.files.length).toBe(2);
     }
   });
 })
