@@ -21,35 +21,44 @@ const folderName = '古见同学有交流障碍症';
  * Returns true if UI is open, false otherwise
  */
 async function isUiOpen(): Promise<boolean> {
-  try {
-    const client = await createMCPClient({
-      transport: {
-        type: "http",
-        url: MCP_SERVER_URL,
-      },
-    });
-    const tools = await client.tools();
-    const tool = tools['get-app-context'];
-    if (!tool) {
+  console.log('[isUiOpen] checking if UI is open');
+  const client = await createMCPClient({
+    transport: {
+      type: "http",
+      url: MCP_SERVER_URL,
+    },
+  });
+  const tools = await client.tools();
+  const tool = tools['get-app-context'];
+  if (!tool) {
+    throw new Error('[get-app-context] tool not found');
+  }
+  const result = await tool.execute({}, { messages: [], toolCallId: 'precheck' });
+
+  console.log('[get-app-context] ' + JSON.stringify(result, null, 2));
+
+  // Handle AsyncIterable case
+  if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
+    let content: Array<{ type: string; text?: string }> = [];
+    for await (const chunk of result as AsyncIterable<{ content?: typeof content }>) {
+      if (chunk.content) {
+        content = chunk.content as typeof content;
+      }
+    }
+    const hasNoUiText = content.some(c => c.type === "text" && c.text?.includes("User didn't open the SMM UI"));
+    if (hasNoUiText) {
       return false;
     }
-    const result = await tool.execute({}, { messages: [], toolCallId: 'precheck' });
-    
-    // Handle AsyncIterable case
-    if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
-      let content: Array<{ type: string; text?: string }> = [];
-      for await (const chunk of result as AsyncIterable<{ content?: typeof content }>) {
-        if (chunk.content) {
-          content = chunk.content as typeof content;
-        }
-      }
-      return !content.some(c => c.type === "text" && c.text?.includes("User didn't open the SMM UI"));
-    }
-    
-    return !result.isError;
-  } catch {
-    return false;
+    // UI is open - return true
+    return true;
   }
+
+  // If there's an error, throw
+  if (result.isError) {
+    throw new Error('[get-app-context] tool returned error: ' + JSON.stringify(result));
+  }
+
+  return true;
 }
 
 // Set up test media folders before all tests
@@ -63,6 +72,7 @@ beforeAll(async () => {
   const { mediaDir } = setupTestMediaFolders();
   const mediaFolderPathInPlatformFormat = join(mediaDir, folderName);
   const mediaFolderPathInPosixFormat = Path.posix(mediaFolderPathInPlatformFormat);
+  // TODO: use the backend API to reset user config, instead of using the resetUserConfig function which override the config file
   await resetUserConfig(undefined, { 
     folders: [
       mediaFolderPathInPlatformFormat,

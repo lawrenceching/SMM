@@ -39,6 +39,7 @@
     "build": "bun run scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "test:mcp": "bun test ./test/test-mcp.test.ts"
   }
 }
