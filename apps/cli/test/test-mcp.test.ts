@@ -15,8 +15,51 @@ const MCP_SERVER_URL = 'http://localhost:30001/mcp';
 let mcpClient: MCPClient | undefined;
 
 const folderName = '古见同学有交流障碍症';
+
+/**
+ * Check if the SMM UI is open by calling GetAppContext tool
+ * Returns true if UI is open, false otherwise
+ */
+async function isUiOpen(): Promise<boolean> {
+  try {
+    const client = await createMCPClient({
+      transport: {
+        type: "http",
+        url: MCP_SERVER_URL,
+      },
+    });
+    const tools = await client.tools();
+    const tool = tools['get-app-context'];
+    if (!tool) {
+      return false;
+    }
+    const result = await tool.execute({}, { messages: [], toolCallId: 'precheck' });
+    
+    // Handle AsyncIterable case
+    if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
+      let content: Array<{ type: string; text?: string }> = [];
+      for await (const chunk of result as AsyncIterable<{ content?: typeof content }>) {
+        if (chunk.content) {
+          content = chunk.content as typeof content;
+        }
+      }
+      return !content.some(c => c.type === "text" && c.text?.includes("User didn't open the SMM UI"));
+    }
+    
+    return !result.isError;
+  } catch {
+    return false;
+  }
+}
+
 // Set up test media folders before all tests
 beforeAll(async () => {
+  // Check if SMM UI is open
+  const uiOpen = await isUiOpen();
+  if (!uiOpen) {
+    throw new Error('Precondition failed: This test requires developer/tester to open the SMM UI and select one media folder before executing the tests');
+  }
+
   const { mediaDir } = setupTestMediaFolders();
   const mediaFolderPathInPlatformFormat = join(mediaDir, folderName);
   const mediaFolderPathInPosixFormat = Path.posix(mediaFolderPathInPlatformFormat);
@@ -313,14 +356,20 @@ describe('MCP Server - GetAppContextTool', () => {
     // Execute the tool
     const result = await executeTool(tool);
 
-    // Verify response - expect error because no SMM UI is open in test
-    expect(result.isError).toBe(true);
+    // Verify response
+    expect(result.isError).toBe(false);
     expect(result.content).toBeDefined();
     expect(result.content.length).toBeGreaterThan(0);
 
     const textContent = result.content.find((c) => c.type === "text" && c.text);
     expect(textContent).toBeDefined();
-    expect(textContent!.text).toBe("User didn't open the SMM UI");
+
+    // Parse the inner JSON response
+    const innerResponse = JSON.parse(textContent!.text!);
+    // The response contains { selectedMediaFolder: "...", language: "..." }
+    // TODO: the selectedMediaFolder requires to open the browser and select the folder
+    // expect(innerResponse.selectedMediaFolder).toContain(folderName);
+    expect(innerResponse.language).toBe('en');
   });
 })
 
