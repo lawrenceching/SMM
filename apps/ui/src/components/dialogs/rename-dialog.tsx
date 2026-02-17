@@ -60,7 +60,7 @@ export function RenameDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent showCloseButton={true} className="max-w-md">
+      <DialogContent showCloseButton={true} className="max-w-md" data-testid="rename-dialog">
         <DialogHeader>
           <DialogTitle>{defaultTitle}</DialogTitle>
           <DialogDescription>{defaultDescription}</DialogDescription>
@@ -76,18 +76,20 @@ export function RenameDialog({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
+              data-testid="rename-dialog-input"
             />
           </div>
           {suggestions && suggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">{t('rename.suggestions')}</span>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5" data-testid="rename-dialog-suggestions">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion)}
                     className="text-left px-2 py-1 rounded text-xs border bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer whitespace-nowrap"
+                    data-testid={`rename-dialog-suggestion-${index}`}
                   >
                     {suggestion}
                   </button>
@@ -97,10 +99,10 @@ export function RenameDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" onClick={handleCancel} data-testid="rename-dialog-cancel">
             {t('cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={handleConfirm} disabled={!newName.trim() || newName.trim() === (initialValue || "").trim()}>
+          <Button onClick={handleConfirm} disabled={!newName.trim() || newName.trim() === (initialValue || "").trim()} data-testid="rename-dialog-confirm">
             {t('confirm', { ns: 'common' })}
           </Button>
         </DialogFooter>

@@ -37,7 +37,7 @@ export function StatusBar({className, message}: StatusBarProps) {
                     <ConnectionStatusIndicator status={connectionStatus} />
                 </div>
             </div>
-            <div className="flex-1">{message}</div>
+            <div className="flex-1" data-testid="status-bar-message">{message}</div>
             <div className="flex items-center gap-2">
                 <McpIndicator />
                 <div data-testid="background-jobs-indicator">

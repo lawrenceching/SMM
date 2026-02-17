@@ -1,6 +1,12 @@
 /// <reference types="@wdio/globals/types" />
 
-import { browser, Key } from '@wdio/globals'
+import { browser } from '@wdio/globals'
+
+// Key constants for keyboard simulation
+const Key = {
+    Ctrl: '\uE009',
+    Backspace: '\uE003'
+}
 
 class Sidebar {
     /**
@@ -88,6 +94,16 @@ class Sidebar {
         await folderElement.waitForExist({ timeout: 5000 })
 
         return folderElement
+    }
+
+    /**
+     * Click on a folder by its name to select it
+     * @param folderName The name of the folder to click
+     */
+    async clickFolder(folderName: string): Promise<void> {
+        const folderElement = await this.getFolderByName(folderName)
+        await folderElement.waitForClickable({ timeout: 5000 })
+        await folderElement.click()
     }
 
     /**
@@ -301,6 +317,79 @@ class Sidebar {
             timeout,
             timeoutMsg: `Expected at least ${minCount} folders to be loaded in sidebar after ${timeout}ms`
         })
+    }
+
+    /**
+     * Get the folder item container element by folder name
+     * This returns the parent div containing the folder (for context menu interactions)
+     * @param folderName The name of the folder
+     */
+    async getFolderItemContainer(folderName: string): Promise<ChainablePromiseElement> {
+        // Find the parent div that contains the h5 with the folder name
+        const container = $(`//div[contains(@class, 'group') and contains(@class, 'relative')]//h5[text()="${folderName}"]/ancestor::div[contains(@class, 'group')][1]`)
+        await container.waitForExist({ timeout: 5000 })
+        return container
+    }
+
+    /**
+     * Right-click on a folder to open its context menu
+     * @param folderName The name of the folder to right-click
+     */
+    async rightClickFolder(folderName: string): Promise<void> {
+        const folderElement = await this.getFolderByName(folderName)
+        await folderElement.waitForExist({ timeout: 5000 })
+        await folderElement.click({ button: 'right' })
+    }
+
+    /**
+     * Check if the folder context menu is displayed
+     */
+    async isContextMenuDisplayed(): Promise<boolean> {
+        const contextMenu = $('[data-testid="folder-context-menu"]')
+        return await contextMenu.isExisting()
+    }
+
+    /**
+     * Wait for the context menu to be displayed
+     * @param timeout Timeout in milliseconds (default: 5000)
+     */
+    async waitForContextMenu(timeout: number = 5000): Promise<boolean> {
+        return await browser.waitUntil(async () => {
+            return await this.isContextMenuDisplayed()
+        }, {
+            timeout,
+            timeoutMsg: `Context menu was not displayed after ${timeout}ms`
+        })
+    }
+
+    /**
+     * Click on the "Rename" option in the context menu
+     */
+    async clickContextMenuRename(): Promise<void> {
+        await this.waitForContextMenu()
+        const renameOption = $('[data-testid="context-menu-rename"]')
+        await renameOption.waitForClickable({ timeout: 5000 })
+        await renameOption.click()
+    }
+
+    /**
+     * Click on the "Delete" option in the context menu
+     */
+    async clickContextMenuDelete(): Promise<void> {
+        await this.waitForContextMenu()
+        const deleteOption = $('[data-testid="context-menu-delete"]')
+        await deleteOption.waitForClickable({ timeout: 5000 })
+        await deleteOption.click()
+    }
+
+    /**
+     * Click on the "Open in Explorer" option in the context menu
+     */
+    async clickContextMenuOpenInExplorer(): Promise<void> {
+        await this.waitForContextMenu()
+        const openOption = $('[data-testid="context-menu-open-in-explorer"]')
+        await openOption.waitForClickable({ timeout: 5000 })
+        await openOption.click()
     }
 }
 

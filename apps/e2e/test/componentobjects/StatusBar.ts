@@ -277,6 +277,23 @@ class StatusBar {
             return false
         }
     }
+
+    /**
+     * Get the displayed message in the status bar
+     */
+    async getMessage(): Promise<string> {
+        const messageElement = await $('[data-testid="status-bar-message"]')
+        return await messageElement.getText()
+    }
+
+    /**
+     * Check if the status bar message contains the given text
+     * @param text The text to search for
+     */
+    async messageContains(text: string): Promise<boolean> {
+        const message = await this.getMessage()
+        return message.includes(text)
+    }
 }
 
 export default new StatusBar();

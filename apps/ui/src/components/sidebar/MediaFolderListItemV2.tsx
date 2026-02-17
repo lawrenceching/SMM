@@ -237,10 +237,10 @@ export function MediaFolderListItemV2({
           )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={handleRenameButtonClick}>{t('mediaFolder.rename')}</ContextMenuItem>
-        <ContextMenuItem onClick={handleOpenInExplorerButtonClick}>{t('mediaFolder.openInExplorer')}</ContextMenuItem>
-        <ContextMenuItem onClick={handleDeleteClick}>
+      <ContextMenuContent data-testid="folder-context-menu">
+        <ContextMenuItem onClick={handleRenameButtonClick} data-testid="context-menu-rename">{t('mediaFolder.rename')}</ContextMenuItem>
+        <ContextMenuItem onClick={handleOpenInExplorerButtonClick} data-testid="context-menu-open-in-explorer">{t('mediaFolder.openInExplorer')}</ContextMenuItem>
+        <ContextMenuItem onClick={handleDeleteClick} data-testid="context-menu-delete">
           <div className="flex items-center gap-4">
             <span>{t('mediaFolder.delete')}</span>
             <span className="text-xs text-muted-foreground">{t('mediaFolder.deleteWarning')}</span>
