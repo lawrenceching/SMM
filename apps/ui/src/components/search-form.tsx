@@ -11,13 +11,15 @@ interface SearchFormProps extends React.ComponentProps<"form"> {
   value?: string
   onValueChange?: (value: string) => void
   placeholder?: string
+  testId?: string
 }
 
-export function SearchForm({ 
-  value, 
-  onValueChange, 
+export function SearchForm({
+  value,
+  onValueChange,
   placeholder = "Search media folders...",
-  ...props 
+  testId = "sidebar-search-input",
+  ...props
 }: SearchFormProps) {
   return (
     <form {...props}>
@@ -28,6 +30,7 @@ export function SearchForm({
           </Label>
           <SidebarInput
             id="search"
+            data-testid={testId}
             placeholder={placeholder}
             className="pl-8"
             value={value}

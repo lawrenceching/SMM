@@ -1,6 +1,6 @@
 /// <reference types="@wdio/globals/types" />
 
-import { browser } from '@wdio/globals'
+import { browser, Key } from '@wdio/globals'
 
 class Sidebar {
     /**
@@ -188,6 +188,51 @@ class Sidebar {
      */
     async getSearchInput(): Promise<ChainablePromiseElement> {
         return $('input[placeholder="搜索媒体文件夹..."]')
+    }
+
+    /**
+     * Search for folders by entering text in the search input
+     * Uses keyboard simulation to properly trigger React onChange events
+     * @param query The search query to enter
+     */
+    async search(query: string): Promise<void> {
+        const searchInput = await this.getSearchInput()
+        await searchInput.waitForExist({ timeout: 5000 })
+        await searchInput.click()
+
+        // Clear existing text using keyboard shortcuts to trigger React events
+        await browser.keys([Key.Ctrl, 'a'])
+        await browser.keys([Key.Backspace])
+
+        // Small delay to let React process the change
+        await browser.pause(100)
+
+        // Type the new query character by character to trigger onChange
+        if (query.length > 0) {
+            await browser.keys(query)
+        }
+    }
+
+    /**
+     * Clear the search input
+     * Uses keyboard simulation to properly trigger React onChange events
+     */
+    async clearSearch(): Promise<void> {
+        const searchInput = await this.getSearchInput()
+        await searchInput.waitForExist({ timeout: 5000 })
+        await searchInput.click()
+
+        // Select all and delete using keyboard to trigger React events
+        await browser.keys([Key.Ctrl, 'a'])
+        await browser.keys([Key.Backspace])
+    }
+
+    /**
+     * Get the current search query value
+     */
+    async getSearchValue(): Promise<string> {
+        const searchInput = await this.getSearchInput()
+        return await searchInput.getValue()
     }
 
     /**
