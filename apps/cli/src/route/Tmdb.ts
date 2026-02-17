@@ -64,7 +64,7 @@ async function getTmdbConfig(baseURL?: string): Promise<{
   // Get TMDB configuration
   const tmdbConfig = userConfig.tmdb;
   const apiKey = tmdbConfig?.apiKey;
-  let host = baseURL || tmdbConfig?.host || 'https://tmdb.imlc.me';
+  let host = baseURL || tmdbConfig?.host || 'https://tmdb-mcp-server.imlc.me/3';
   const httpProxy = tmdbConfig?.httpProxy;
 
   // Normalize host URL (remove trailing slash if present)
