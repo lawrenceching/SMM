@@ -16,6 +16,7 @@ export function ConfigDialog({ isOpen, onClose, initialTab }: ConfigDialogProps)
           height: '90vh'
         }}
         showCloseButton={true}
+        data-testid="config-dialog"
       >
         <ConfigPanel initialTab={initialTab} />
       </DialogContent>

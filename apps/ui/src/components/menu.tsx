@@ -68,7 +68,7 @@ export interface MenuTemplate {
   submenu: MenuContentItem[]
 }
 
-function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
+function renderMenuItem(item: MenuContentItem, index: number, menuLabel?: string): React.ReactNode {
   if ("type" in item && item.type === "separator") {
     return <MenubarSeparator key={`separator-${index}`} />
   }
@@ -117,6 +117,11 @@ function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
 
   // Regular menu item
   const menuItem = item as MenuItem
+  // Generate test ID from menu label and item name (e.g., "menu-smm-config")
+  const testId = menuLabel && menuItem.name
+    ? `menu-${menuLabel.toLowerCase()}-${menuItem.name.toLowerCase().replace(/\s+/g, '-')}`
+    : undefined
+
   return (
     <MenubarItem
       key={`item-${index}`}
@@ -124,6 +129,7 @@ function renderMenuItem(item: MenuContentItem, index: number): React.ReactNode {
       inset={menuItem.inset}
       variant={menuItem.variant}
       onClick={menuItem.onClick}
+      data-testid={testId}
     >
       {menuItem.icon && <span className="mr-2">{menuItem.icon}</span>}
       {menuItem.name}
@@ -226,12 +232,12 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   ]
 
   return (
-    <Menubar>
+    <Menubar data-testid="app-menubar">
       {template.map((menu) => (
         <MenubarMenu key={menu.label}>
-          <MenubarTrigger>{menu.label}</MenubarTrigger>
-          <MenubarContent>
-            {menu.submenu.map((item, index) => renderMenuItem(item, index))}
+          <MenubarTrigger data-testid={`menu-trigger-${menu.label.toLowerCase()}`}>{menu.label}</MenubarTrigger>
+          <MenubarContent data-testid={`menu-content-${menu.label.toLowerCase()}`}>
+            {menu.submenu.map((item, index) => renderMenuItem(item, index, menu.label))}
           </MenubarContent>
         </MenubarMenu>
       ))}
