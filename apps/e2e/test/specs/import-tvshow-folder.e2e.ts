@@ -45,6 +45,9 @@ describe('Import Media Folder', () => {
             await delay(10 * 1000)
         }
 
+        // Import media folder will trigger async media folder initialization, wait for it to complete
+        await delay(5 * 1000)
+
         // Wait for the folder to appear in the sidebar
         const folderName = '古见同学有交流障碍症'
         console.log(`Waiting for folder "${folderName}" to appear in sidebar...`)

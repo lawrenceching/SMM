@@ -55,9 +55,9 @@ export function Sidebar({
   )
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full" data-testid="sidebar-container">
       {/* 工具栏：排序和筛选按钮 */}
-      <div className="py-2 px-3 border-b border-border bg-background">
+      <div className="py-2 px-3 border-b border-border bg-background" data-testid="sidebar-toolbar">
         <MediaFolderToolbar
           sortOrder={sortOrder}
           onSortOrderChange={onSortOrderChange}
@@ -67,7 +67,7 @@ export function Sidebar({
       </div>
 
       {/* 搜索框 */}
-      <div className="py-2 px-3 border-b border-border bg-background">
+      <div className="py-2 px-3 border-b border-border bg-background" data-testid="sidebar-search">
         <SearchForm
           value={searchQuery}
           onValueChange={onSearchQueryChange}
@@ -80,15 +80,16 @@ export function Sidebar({
         className="flex-1 overflow-y-auto overflow-x-hidden"
         tabIndex={0}
         onKeyDown={handleListKeyDown}
+        data-testid="sidebar-folder-list"
       >
         {filteredAndSortedFolders.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground text-sm">
+          <div className="p-4 text-center text-muted-foreground text-sm" data-testid="sidebar-empty-state">
             没有找到媒体文件夹
           </div>
         ) : (
-          <div className="flex flex-col outline-none">
-            {filteredAndSortedFolders.map((folder) => (
-              <div key={folder.path} className="border-b border-border">
+          <div className="flex flex-col outline-none" data-testid="sidebar-folder-items">
+            {filteredAndSortedFolders.map((folder, index) => (
+              <div key={folder.path} className="border-b border-border" data-testid={`sidebar-folder-item-${index}`}>
                 <MediaFolderListItemV2
                   {...folder}
                   isSelected={selectedFolderPaths.has(folder.path)}

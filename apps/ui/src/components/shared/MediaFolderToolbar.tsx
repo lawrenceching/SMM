@@ -54,6 +54,7 @@ export function MediaFolderToolbar({
           <Select value={sortOrder} onValueChange={onSortOrderChange}>
             <SelectTrigger
               size="sm"
+              data-testid="sort-select-trigger"
               className={cn(
                 "h-8 w-8 p-0 justify-center",
                 "[&>svg:last-child]:hidden"
@@ -62,9 +63,9 @@ export function MediaFolderToolbar({
               <ArrowUpDown className="h-4 w-4" />
               <span className="sr-only">排序</span>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alphabetical">按字母顺序</SelectItem>
-              <SelectItem value="reverse-alphabetical">按字母倒序</SelectItem>
+            <SelectContent data-testid="sort-select-content">
+              <SelectItem value="alphabetical" data-testid="sort-option-alphabetical">按字母顺序</SelectItem>
+              <SelectItem value="reverse-alphabetical" data-testid="sort-option-reverse-alphabetical">按字母倒序</SelectItem>
             </SelectContent>
           </Select>
         </TooltipTrigger>
@@ -78,6 +79,7 @@ export function MediaFolderToolbar({
           <Select value={filterType} onValueChange={onFilterTypeChange}>
             <SelectTrigger
               size="sm"
+              data-testid="filter-select-trigger"
               className={cn(
                 "h-8 w-8 p-0 justify-center",
                 "[&>svg:last-child]:hidden"
@@ -86,11 +88,11 @@ export function MediaFolderToolbar({
               <Filter className="h-4 w-4" />
               <span className="sr-only">筛选</span>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部类型</SelectItem>
-              <SelectItem value="tvshow">电视剧</SelectItem>
-              <SelectItem value="movie">电影</SelectItem>
-              <SelectItem value="music">音乐</SelectItem>
+            <SelectContent data-testid="filter-select-content">
+              <SelectItem value="all" data-testid="filter-option-all">全部类型</SelectItem>
+              <SelectItem value="tvshow" data-testid="filter-option-tvshow">电视剧</SelectItem>
+              <SelectItem value="movie" data-testid="filter-option-movie">电影</SelectItem>
+              <SelectItem value="music" data-testid="filter-option-music">音乐</SelectItem>
             </SelectContent>
           </Select>
         </TooltipTrigger>
