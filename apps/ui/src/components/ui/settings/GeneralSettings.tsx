@@ -85,7 +85,7 @@ export function GeneralSettings() {
   }
 
   return (
-    <div className="space-y-6 p-6 relative">
+    <div className="space-y-6 p-6 relative" data-testid="general-settings">
       <div>
         <h2 className="text-2xl font-semibold mb-4">{t('title')}</h2>
         <p className="text-muted-foreground mb-6">
@@ -96,16 +96,16 @@ export function GeneralSettings() {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="language">{t('general.language')}</Label>
-          <Select 
-            value={applicationLanguage} 
+          <Select
+            value={applicationLanguage}
             onValueChange={(value) => setApplicationLanguage(value as SupportedLanguage)}
           >
-            <SelectTrigger id="language">
+            <SelectTrigger id="language" data-testid="setting-language-trigger">
               <SelectValue placeholder={t('general.languageDescription')} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent data-testid="setting-language-content">
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.code} value={lang.code}>
+                <SelectItem key={lang.code} value={lang.code} data-testid={`setting-language-option-${lang.code}`}>
                   {lang.name}
                 </SelectItem>
               ))}
@@ -121,6 +121,7 @@ export function GeneralSettings() {
             value={tmdbHost}
             onChange={(e) => setTmdbHost(e.target.value)}
             placeholder={t('general.tmdbHostPlaceholder')}
+            data-testid="setting-tmdb-host"
           />
         </div>
 
@@ -132,6 +133,7 @@ export function GeneralSettings() {
             value={tmdbApiKey}
             onChange={(e) => setTmdbApiKey(e.target.value)}
             placeholder={t('general.tmdbApiKeyPlaceholder')}
+            data-testid="setting-tmdb-api-key"
           />
         </div>
 
@@ -142,6 +144,7 @@ export function GeneralSettings() {
             value={tmdbProxy}
             onChange={(e) => setTmdbProxy(e.target.value)}
             placeholder={t('general.httpProxyPlaceholder')}
+            data-testid="setting-tmdb-proxy"
           />
         </div>
 
@@ -154,6 +157,7 @@ export function GeneralSettings() {
                 checked={enableMcpServer}
                 onChange={(e) => setEnableMcpServer(e.target.checked)}
                 className="h-4 w-4 rounded border-input"
+                data-testid="setting-enable-mcp-server"
               />
               <Label htmlFor="enable-mcp-server">{t('general.enableMcpServer')}</Label>
             </div>
@@ -166,6 +170,7 @@ export function GeneralSettings() {
               value={mcpHost}
               onChange={(e) => setMcpHost(e.target.value)}
               placeholder={t('general.mcpHostPlaceholder')}
+              data-testid="setting-mcp-host"
             />
           </div>
           <div className="space-y-2">
@@ -176,6 +181,7 @@ export function GeneralSettings() {
               value={mcpPort}
               onChange={(e) => setMcpPort(e.target.value)}
               placeholder={t('general.mcpPortPlaceholder')}
+              data-testid="setting-mcp-port"
             />
           </div>
         </div>
@@ -183,7 +189,7 @@ export function GeneralSettings() {
 
       {hasChanges && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} data-testid="settings-save-button">
             {t('save', { ns: 'common' })}
           </Button>
         </div>

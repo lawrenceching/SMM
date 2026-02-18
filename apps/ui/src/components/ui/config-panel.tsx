@@ -15,7 +15,7 @@ interface ConfigPanelSidebarProps {
 
 function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps) {
   const { t } = useTranslation('settings')
-  
+
   const menuItems: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
     { id: "general", label: t('sidebar.general'), icon: <Settings className="h-4 w-4" /> },
     { id: "ai", label: t('sidebar.ai'), icon: <Bot className="h-4 w-4" /> },
@@ -24,7 +24,7 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
   ]
 
   return (
-    <Sidebar collapsible="none" className="border-r h-full flex flex-col">
+    <Sidebar collapsible="none" className="border-r h-full flex flex-col" data-testid="config-sidebar">
       <SidebarHeader />
       <SidebarContent className="flex-1">
         <SidebarGroup>
@@ -35,6 +35,7 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
                 <SidebarMenuButton
                   isActive={activeTab === item.id}
                   onClick={() => onTabChange(item.id)}
+                  data-testid={`config-tab-${item.id}`}
                 >
                   {item.icon}
                   <span>{item.label}</span>

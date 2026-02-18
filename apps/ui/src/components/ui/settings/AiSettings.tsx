@@ -144,7 +144,7 @@ export function AiSettings() {
   const providerKey = selectedProvider.toLowerCase()
 
   return (
-    <div className="space-y-6 p-6 relative">
+    <div className="space-y-6 p-6 relative" data-testid="ai-settings">
       <div>
         <h2 className="text-2xl font-semibold mb-4">{t('ai.title')}</h2>
         <p className="text-muted-foreground mb-6">
@@ -163,12 +163,13 @@ export function AiSettings() {
             searchPlaceholder={t('ai.searchPlaceholder')}
             emptyText={t('ai.noProviderFound')}
             className="w-full"
+            data-testid="setting-ai-provider"
           />
         </div>
 
         <div className="space-y-4 p-4 border rounded-lg">
           <h3 className="font-semibold text-lg">{t('ai.configuration', { provider: selectedProvider })}</h3>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor={`${providerKey}-baseurl`}>{t('ai.baseUrl')}</Label>
@@ -177,6 +178,7 @@ export function AiSettings() {
                 value={currentConfig.baseURL}
                 onChange={(e) => updateConfig(selectedProvider, 'baseURL', e.target.value)}
                 placeholder={t('ai.baseUrlPlaceholder')}
+                data-testid="setting-ai-base-url"
               />
             </div>
 
@@ -188,6 +190,7 @@ export function AiSettings() {
                 value={currentConfig.apiKey}
                 onChange={(e) => updateConfig(selectedProvider, 'apiKey', e.target.value)}
                 placeholder={t('ai.apiKeyPlaceholder')}
+                data-testid="setting-ai-api-key"
               />
             </div>
 
@@ -198,6 +201,7 @@ export function AiSettings() {
                 value={currentConfig.model}
                 onChange={(e) => updateConfig(selectedProvider, 'model', e.target.value)}
                 placeholder={t('ai.modelPlaceholder')}
+                data-testid="setting-ai-model"
               />
             </div>
           </div>
@@ -206,7 +210,7 @@ export function AiSettings() {
 
       {hasChanges && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} data-testid="settings-save-button">
             {t('save', { ns: 'common' })}
           </Button>
         </div>

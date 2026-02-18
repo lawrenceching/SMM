@@ -24,6 +24,8 @@ import { Path } from "@core/path"
 
 export interface MenuItem {
   name: string
+  /** Unique identifier used for id and data-testid attributes */
+  id?: string
   onClick?: () => void
   icon?: React.ReactNode
   shortcut?: string
@@ -117,19 +119,22 @@ function renderMenuItem(item: MenuContentItem, index: number, menuLabel?: string
 
   // Regular menu item
   const menuItem = item as MenuItem
-  // Generate test ID from menu label and item name (e.g., "menu-smm-config")
-  const testId = menuLabel && menuItem.name
-    ? `menu-${menuLabel.toLowerCase()}-${menuItem.name.toLowerCase().replace(/\s+/g, '-')}`
-    : undefined
+  // Use id for both id and data-testid if provided, otherwise generate from menu label and item name
+  const itemId = menuItem.id
+    ? `menu-${menuLabel?.toLowerCase()}-${menuItem.id}`
+    : (menuLabel && menuItem.name
+      ? `menu-${menuLabel.toLowerCase()}-${menuItem.name.toLowerCase().replace(/\s+/g, '-')}`
+      : undefined)
 
   return (
     <MenubarItem
       key={`item-${index}`}
+      id={itemId}
       disabled={menuItem.disabled}
       inset={menuItem.inset}
       variant={menuItem.variant}
       onClick={menuItem.onClick}
-      data-testid={testId}
+      data-testid={itemId}
     >
       {menuItem.icon && <span className="mr-2">{menuItem.icon}</span>}
       {menuItem.name}
@@ -159,14 +164,17 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
       submenu: [
         {
           name: t('menu.openFolder'),
+          id: 'open-folder',
           onClick: () => { onOpenFolderMenuClick?.() }
         },
         {
           name: t('menu.openMediaLibrary'),
+          id: 'open-media-library',
           onClick: () => { onOpenMediaLibraryMenuClick?.() }
         },
         {
           name: t('menu.openAppDataFolder'),
+          id: 'open-app-data-folder',
           onClick: async () => {
             try {
               const result = await hello()
@@ -199,12 +207,14 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
         },
         {
           name: t('menu.config'),
+          id: 'config',
           onClick: () => {
             openConfig()
           }
         },
         {
           name: t('menu.cleanUp'),
+          id: 'clean-up',
           onClick: async () => {
             try {
               const result = await cleanUp()
@@ -223,6 +233,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
         },
         {
           name: t('menu.exit'),
+          id: 'exit',
           onClick: () => {
             console.log("Exit")
           }

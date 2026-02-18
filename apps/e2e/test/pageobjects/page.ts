@@ -12,6 +12,13 @@ class Page {
     public open (url?: string) {
         return browser.url(url ?? `http://localhost:5173`)
     }
+
+    /**
+    * Refreshes the current page
+    */
+    public async refresh() {
+        await browser.refresh()
+    }
 }
 
 export default new Page();

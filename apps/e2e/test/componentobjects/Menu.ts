@@ -83,6 +83,8 @@ class Menu {
      */
     async clickConfigMenuItem(): Promise<void> {
         await this.waitForSmmMenuContent()
+        // Wait for menu animation to complete
+        await browser.pause(200)
         const item = await this.configMenuItem
         await item.waitForClickable({ timeout: 5000 })
         await item.click()
