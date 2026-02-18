@@ -140,6 +140,64 @@ class StatusBar {
     }
 
     /**
+     * Get the MCP popover element
+     */
+    get mcpPopover() {
+        return $('[data-testid="mcp-popover"]')
+    }
+
+    /**
+     * Get the MCP address link element
+     */
+    get mcpAddressLink() {
+        return $('[data-testid="mcp-address"]')
+    }
+
+    /**
+     * Get the MCP switch button element
+     */
+    get mcpSwitch() {
+        return $('[data-testid="mcp-switch"]')
+    }
+
+    /**
+     * Check if MCP popover is open
+     */
+    async isMcpPopoverOpen(): Promise<boolean> {
+        try {
+            return await this.mcpPopover.isDisplayed()
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * Get MCP address text
+     */
+    async getMcpAddress(): Promise<string> {
+        return await this.mcpAddressLink.getText()
+    }
+
+    /**
+     * Click MCP switch to toggle MCP server
+     */
+    async clickMcpSwitch(): Promise<void> {
+        await this.mcpSwitch.click()
+    }
+
+    /**
+     * Wait for MCP popover to appear
+     */
+    async waitForMcpPopover(timeout: number = 5000): Promise<boolean> {
+        try {
+            await this.mcpPopover.waitForDisplayed({ timeout })
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /**
      * Check if background jobs indicator is displayed
      */
     async isBackgroundJobsIndicatorDisplayed(): Promise<boolean> {
