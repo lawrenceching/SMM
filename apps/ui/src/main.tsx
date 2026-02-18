@@ -16,6 +16,7 @@ import { AppInitializer } from './AppInitializer'
 import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
 import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
 import { MediaFolderImportedEventHandler } from './components/eventlisteners/MediaFolderImportedEventHandler.tsx'
+import { FixedDelayBackgroundJobHandler } from './components/eventlisteners/FixedDelayBackgroundJobHandler.tsx'
 import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/RenameFilesPlanReadyEventListener.tsx'
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
@@ -174,6 +175,7 @@ function EventListeners() {
       <UserConfigUpdatedEventListener />
       <MediaMetadataUpdatedEventListener />
       <MediaFolderImportedEventHandler />
+      <FixedDelayBackgroundJobHandler />
     </>
   )
 }

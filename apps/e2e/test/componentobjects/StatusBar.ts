@@ -35,6 +35,76 @@ class StatusBar {
     }
 
     /**
+     * Get the background jobs trigger button (inside indicator)
+     */
+    get backgroundJobsTriggerButton() {
+        return $('[data-testid="background-jobs-trigger-button"]')
+    }
+
+    /**
+     * Get the background jobs count element
+     */
+    get backgroundJobsCount() {
+        return $('[data-testid="background-jobs-count"]')
+    }
+
+    /**
+     * Get the background jobs popover content
+     */
+    get backgroundJobsPopover() {
+        return $('[data-testid="background-jobs-list"]')
+    }
+
+    /**
+     * Get the background jobs popover header
+     */
+    get backgroundJobsPopoverHeader() {
+        return $('[data-testid="background-jobs-header"]')
+    }
+
+    /**
+     * Get the background jobs popover title
+     */
+    get backgroundJobsPopoverTitle() {
+        return $('[data-testid="background-jobs-title"]')
+    }
+
+    /**
+     * Get running jobs count text from popover
+     */
+    get backgroundJobsRunningCount() {
+        return $('[data-testid="background-jobs-subtitle"]')
+    }
+
+    /**
+     * Get all background job items in the popover
+     */
+    get backgroundJobItems() {
+        return $$('[data-testid^="background-job-"]')
+    }
+
+    /**
+     * Get background job item by ID
+     */
+    backgroundJobItem(jobId: string) {
+        return $(`[data-testid="background-job-${jobId}"]`)
+    }
+
+    /**
+     * Get abort button for a specific job by ID
+     */
+    backgroundJobAbortButton(jobId: string) {
+        return $(`[data-testid="background-job-${jobId}-abort-button"]`)
+    }
+
+    /**
+     * Get job status badge by job ID
+     */
+    backgroundJobStatusBadge(jobId: string) {
+        return $(`[data-testid="background-job-${jobId}-status-badge"]`)
+    }
+
+    /**
      * Check if the status bar is displayed
      */
     async isDisplayed(): Promise<boolean> {
@@ -74,6 +144,80 @@ class StatusBar {
      */
     async isBackgroundJobsIndicatorDisplayed(): Promise<boolean> {
         return await this.backgroundJobsIndicator.isDisplayed()
+    }
+
+    /**
+     * Click the background jobs indicator to open popover
+     */
+    async clickBackgroundJobsIndicator(): Promise<void> {
+        await this.backgroundJobsTriggerButton.click()
+    }
+
+    /**
+     * Get background jobs indicator text (running count or completed count)
+     */
+    async getBackgroundJobsIndicatorText(): Promise<string> {
+        const button = await this.backgroundJobsTriggerButton
+        return await button.getText()
+    }
+
+    /**
+     * Check if background jobs popover is open
+     */
+    async isBackgroundJobsPopoverOpen(): Promise<boolean> {
+        try {
+            const popover = await this.backgroundJobsPopover
+            return await popover.isDisplayed()
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * Get the background jobs popover title text
+     */
+    async getBackgroundJobsPopoverTitle(): Promise<string> {
+        return await this.backgroundJobsPopoverTitle.getText()
+    }
+
+    /**
+     * Get running and pending jobs count from popover subtitle
+     */
+    async getBackgroundJobsCounts(): Promise<{ running: number; pending: number }> {
+        const text = await this.backgroundJobsRunningCount.getText()
+        const runningMatch = text.match(/(\d+)\s*running/)
+        const pendingMatch = text.match(/(\d+)\s*pending/)
+        return {
+            running: runningMatch && runningMatch[1] ? parseInt(runningMatch[1], 10) : 0,
+            pending: pendingMatch && pendingMatch[1] ? parseInt(pendingMatch[1], 10) : 0
+        }
+    }
+
+    /**
+     * Get the number of background job items displayed
+     */
+    async getBackgroundJobItemsCount(): Promise<number> {
+        return await this.backgroundJobItems.length
+    }
+
+    /**
+     * Click abort button for a specific job by ID
+     */
+    async abortBackgroundJob(jobId: string): Promise<void> {
+        const abortBtn = await this.backgroundJobAbortButton(jobId)
+        await abortBtn.click()
+    }
+
+    /**
+     * Wait for background jobs popover to appear
+     */
+    async waitForBackgroundJobsPopover(timeout: number = 5000): Promise<boolean> {
+        try {
+            await this.backgroundJobsPopover.waitForDisplayed({ timeout })
+            return true
+        } catch {
+            return false
+        }
     }
 }
 

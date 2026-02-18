@@ -32,6 +32,7 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
     <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <button
+          data-testid="background-jobs-trigger-button"
           className={cn(
             'flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200',
             className
@@ -40,13 +41,13 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
         >
           {isRunning ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-              <span className="text-xs font-medium text-blue-500">{runningJobs.length}</span>
+              <Loader2 data-testid="background-jobs-loading-icon" className="h-4 w-4 animate-spin text-blue-500" />
+              <span data-testid="background-jobs-count" className="text-xs font-medium text-blue-500">{runningJobs.length}</span>
             </>
           ) : (
             <>
-              <CircleCheck className="h-4 w-4 text-green-500" />
-              <span className="text-xs font-medium text-green-500">{activeJobs.length}</span>
+              <CircleCheck data-testid="background-jobs-completed-icon" className="h-4 w-4 text-green-500" />
+              <span data-testid="background-jobs-count" className="text-xs font-medium text-green-500">{activeJobs.length}</span>
             </>
           )}
         </button>

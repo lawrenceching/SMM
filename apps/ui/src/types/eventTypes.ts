@@ -6,3 +6,11 @@ export interface OnMediaFolderImportedEventData {
     traceId?: string;
 }
 
+export const UI_FixedDelayBackgroundJobEvent = 'ui.fixedDelayBackgroundJob'
+
+export interface OnFixedDelayBackgroundJobEventData {
+    delay: number;
+    name?: string;
+    traceId?: string;
+}
+

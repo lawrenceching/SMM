@@ -63,59 +63,61 @@ export function BackgroundJobsPopoverContent() {
 
   return (
     <>
-      <div className="p-4 border-b border-border">
-        <h3 className="text-sm font-semibold">Background Jobs</h3>
-        <p className="text-xs text-muted-foreground mt-1">
+      <div data-testid="background-jobs-header" className="p-4 border-b border-border">
+        <h3 data-testid="background-jobs-title" className="text-sm font-semibold">Background Jobs</h3>
+        <p data-testid="background-jobs-subtitle" className="text-xs text-muted-foreground mt-1">
            {jobs.filter(j => j.status === 'running').length} running,
           {jobs.filter(j => j.status === 'pending').length} pending
         </p>
       </div>
 
-      <div className="max-h-80 overflow-y-auto">
+      <div data-testid="background-jobs-list" className="max-h-80 overflow-y-auto">
         {jobs.length === 0 ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
+          <div data-testid="background-jobs-empty" className="p-4 text-center text-sm text-muted-foreground">
             No background jobs
           </div>
         ) : (
           jobs.map((job) => (
             <div
               key={job.id}
+              data-testid={`background-job-${job.id}`}
               className="p-4 border-b border-border last:border-0 hover:bg-accent/50 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={cn('text-xs font-medium', getStatusColor(job.status))}>
+                    <span data-testid={`background-job-${job.id}-status-icon`} className={cn('text-xs font-medium', getStatusColor(job.status))}>
                       {getStatusIcon(job.status)}
                     </span>
-                    <h4 className="text-sm font-medium truncate">{job.name}</h4>
-                    <Badge variant={getStatusVariant(job.status)} className="text-xs">
+                    <h4 data-testid={`background-job-${job.id}-name`} className="text-sm font-medium truncate">{job.name}</h4>
+                    <Badge data-testid={`background-job-${job.id}-status-badge`} variant={getStatusVariant(job.status)} className="text-xs">
                       {job.status}
                     </Badge>
                   </div>
 
                    {job.status === 'running' && (
-                    <div className="space-y-1">
+                    <div data-testid={`background-job-${job.id}-progress`} className="space-y-1">
                       <Progress value={job.progress} className="h-1.5" />
                       <p className="text-xs text-muted-foreground">{Math.round(job.progress)}%</p>
                     </div>
                   )}
 
                    {job.status === 'succeeded' && (
-                    <p className="text-xs text-muted-foreground">Completed successfully</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">Completed successfully</p>
                   )}
 
                    {job.status === 'failed' && (
-                    <p className="text-xs text-destructive">Job failed</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-destructive">Job failed</p>
                   )}
 
                    {job.status === 'aborted' && (
-                    <p className="text-xs text-muted-foreground">Aborted by user</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">Aborted by user</p>
                   )}
                 </div>
 
                  {job.status === 'running' && (
                   <Button
+                    data-testid={`background-job-${job.id}-abort-button`}
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => abortJob(job.id)}
