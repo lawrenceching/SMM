@@ -52,7 +52,11 @@ export const config: WebdriverIO.Config = {
     // https://saucelabs.com/platform/platform-configurator
     //
     capabilities: [{
-        browserName: 'chrome'
+        browserName: 'chrome',
+        // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
+        'goog:chromeOptions': {
+            args: ['--disable-gpu', '--no-sandbox']
+        }
     }],
 
     //
@@ -186,8 +190,39 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<String>} specs        List of spec file paths that are to be run
      * @param {object}         browser      instance of created browser/device session
      */
-    // before: function (capabilities, specs) {
-    // },
+    before: function (capabilities, specs) {
+        // 先订阅 BiDi 协议的 log 事件
+        browser.sessionSubscribe({ events: ['log.entryAdded'] });
+
+        // 监听浏览器 console 事件并输出到控制台
+        // WebdriverIO v9 需要使用 BiDi 协议的 log.entryAdded 事件
+        browser.on('log.entryAdded', (logEntry) => {
+            const logType = logEntry.type || 'info';
+            const logText = logEntry.text || '';
+            const timestamp = new Date().toISOString();
+
+            switch (logType) {
+                case 'error':
+                    console.error(`[BROWSER CONSOLE ERROR] ${timestamp} - ${logText}`);
+                    break;
+                case 'warning':
+                case 'warn':
+                    console.warn(`[BROWSER CONSOLE WARN] ${timestamp} - ${logText}`);
+                    break;
+                case 'info':
+                    console.log(`[BROWSER CONSOLE INFO] ${timestamp} - ${logText}`);
+                    break;
+                default:
+                    console.log(`[BROWSER CONSOLE] ${timestamp} - ${logText}`);
+            }
+        });
+
+        // 监听浏览器页面错误
+        browser.on('pageerror', (error) => {
+            const errorMessage = error.message || String(error);
+            console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
+        });
+    },
     /**
      * Runs before a WebdriverIO command gets executed.
      * @param {string} commandName hook command name
