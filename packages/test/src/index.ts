@@ -162,6 +162,31 @@ export async function hello(): Promise<HelloResponse> {
     return data
 }
 
+export async function getAppDataDir(): Promise<string> {
+    const data = await hello()
+    return data.appDataDir
+}
+
+export async function getMetadataDir(): Promise<string> {
+    const appDataDir = await getAppDataDir()
+    return path.join(appDataDir, 'metadata')
+}
+
+/**
+ * Remove the metadata directory if it exists.
+ * This is useful to clean up metadata files from previous tests.
+ * @returns The path to the metadata directory that was removed (or would be removed)
+ */
+export async function removeMetadataDir(): Promise<string | null> {
+    const metadataDir = await getMetadataDir()
+    if (fs.existsSync(metadataDir)) {
+        fs.rmSync(metadataDir, { recursive: true, force: true })
+        console.log(`Removed metadata directory: ${metadataDir}`)
+        return metadataDir
+    }
+    return null
+}
+
 /**
  * Get the user config path by calling hello() API
  * @returns The path to the user config file (smm.json)

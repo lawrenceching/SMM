@@ -22,10 +22,11 @@ export async function doPreprocessMediaFolder(
   options?: { traceId?: string, onSuccess?: (mm: UIMediaMetadata) => void, onError?: (error: Error) => void }
 ) {
 
+  const traceId = options?.traceId || `doPreprocessMediaFolder`
+
   const folderPathInPlatformFormat = Path.toPlatformPath(_in_mm.mediaFolderPath!)
 
   const mm = await recognizeMediaFolder(_in_mm);
-  const traceId = options?.traceId || `doPreprocessMediaFolder`
 
   if(mm?.type === 'tvshow-folder' && mm?.tmdbTvShow !== undefined) {
 

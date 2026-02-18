@@ -7,10 +7,10 @@
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig, getUserConfigPath } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, prepareMediaMetadata } from '@smm/test'
 
 // Re-export for convenience
-export { setupTestMediaFolders, resetUserConfig, getUserConfigPath }
+export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir }
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -47,6 +47,10 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
     return async function() {
         // Import browser dynamically inside the hook to ensure it's fully initialized
         const { browser } = await import('@wdio/globals')
+
+        const metadataDir = await getMetadataDir();
+        // Remove metadata directory if it exists. The metadata dir may contain files from previous tests.
+        await removeMetadataDir();
 
         // Set up test media folders if requested
         if (setupMediaFolders) {

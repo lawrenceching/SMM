@@ -88,11 +88,12 @@ export function MediaFolderImportedEventHandler() {
                         const response = await readMediaMetadataApi(folderPathInPlatformFormat, signal)
                         const metadata = response.data
 
-                        if (!metadata
+                        const isMetadataIncomplete = !metadata
+                            || !metadata.type
                             || (metadata.type === 'tvshow-folder' && metadata.tmdbTvShow === undefined)
                             || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
 
-                        ) {
+                        if (isMetadataIncomplete) {
 
                             if (isNotNil(metadata)) {
                                 mm.type = metadata.type
