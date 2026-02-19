@@ -8,7 +8,8 @@ import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
 import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, prepareMediaMetadata } from '@smm/test'
-
+import { Path } from '@smm/core'
+import type { UserConfig } from '@smm/core/types'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir }
 
@@ -26,6 +27,7 @@ export interface TestBedBeforeOptions {
     setupMediaFolders?: boolean
     /** Custom setup function to run after basic setup */
     customSetup?: () => Promise<void>
+    userConfig?: Partial<UserConfig>
 }
 
 /**
@@ -42,24 +44,28 @@ export interface TestBedBeforeOptions {
  * @returns A before hook function for Mocha describe blocks
  */
 export function createBeforeHook(options: TestBedBeforeOptions = {}) {
-    const { setupMediaFolders = false, customSetup } = options
+    const { setupMediaFolders = false, customSetup, userConfig } = options
 
     return async function() {
         // Import browser dynamically inside the hook to ensure it's fully initialized
         const { browser } = await import('@wdio/globals')
 
-        const metadataDir = await getMetadataDir();
         // Remove metadata directory if it exists. The metadata dir may contain files from previous tests.
         await removeMetadataDir();
+        
 
         // Set up test media folders if requested
         if (setupMediaFolders) {
-            setupTestMediaFolders()
+            const { mediaDir, tmpDir } = setupTestMediaFolders()
+            console.log(`setup media folder for testing: tmpDir=${tmpDir}, mediaDir=${mediaDir}`)
+            const tvshowFolderPlatformPath = path.join(mediaDir, '古见同学有交流障碍症');
+            const tvshowFolderPosixPath = Path.posix(tvshowFolderPlatformPath);
+            await prepareMediaMetadata(tvshowFolderPosixPath, '古见同学有交流障碍症.metadata.json')
         }
 
         // Get user config path and reset user config
         const userConfigPath = await getUserConfigPath()
-        await resetUserConfig(userConfigPath)
+        await resetUserConfig(userConfigPath, userConfig)
 
         // Import Page dynamically to avoid circular dependencies
         const { default: Page } = await import('../pageobjects/page')
@@ -77,14 +83,18 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
         })
         console.log('StatusBar is displayed, page is ready for testing')
 
-        // Check Sidebar is in initial state (no folders displayed)
-        await browser.waitUntil(async () => {
-            return await Sidebar.isInInitialState()
-        }, {
-            timeout: 5000,
-            timeoutMsg: 'Sidebar was not in initial state after 5 seconds'
-        })
-        console.log('Sidebar is in initial state (no folders displayed)')
+        if((userConfig?.folders?.length ?? 0) === 0) {
+            console.log('No folders configured, checking if Sidebar is in initial state (no folders displayed)')
+            // Check Sidebar is in initial state (no folders displayed)
+            await browser.waitUntil(async () => {
+                return await Sidebar.isInInitialState()
+            }, {
+                timeout: 5000,
+                timeoutMsg: 'Sidebar was not in initial state after 5 seconds'
+            })
+            console.log('Sidebar is in initial state (no folders displayed)')
+        }
+        
 
         // Run custom setup if provided
         if (customSetup) {

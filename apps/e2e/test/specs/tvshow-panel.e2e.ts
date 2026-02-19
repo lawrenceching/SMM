@@ -1,33 +1,22 @@
 import { expect } from '@wdio/globals'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import { fileURLToPath } from 'node:url'
-import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 
-const __filename = fileURLToPath(import.meta.url)
 const FOLDER_NAME = '古见同学有交流障碍症'
 
 describe('TvShowPanel', () => {
 
-    before(createBeforeHook({ setupMediaFolders: true }))
+    before(createBeforeHook({ 
+        setupMediaFolders: true,
+        userConfig: {
+            folders: [path.join(os.tmpdir(), 'smm-test-media', 'media', FOLDER_NAME)]
+        }
+     }))
 
     it('should display TvShowPanel elements when folder is selected', async function() {
-        this.timeout(2 * 60 * 1000)
-        const testMediaFolder = path.join(os.tmpdir(), 'smm-test-media', 'media', FOLDER_NAME)
-
-        // Import the media folder
-        console.log(`Importing media folder: ${testMediaFolder}`)
-        await Menu.importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: testMediaFolder,
-            traceId: 'e2eTest:TvShowPanel'
-        })
-
-        await delay(10 * 1000)
-
         // Wait for the folder to appear in the sidebar
         console.log(`Waiting for folder "${FOLDER_NAME}" to appear in sidebar...`)
         const isFolderDisplayed = await Sidebar.waitForFolder(FOLDER_NAME, 60000)

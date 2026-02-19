@@ -8,7 +8,7 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import type { UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/core/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -118,7 +118,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
     console.log(`Reset user config at: ${userConfigPath}`)
 }
 
-export async function prepareMediaMetadata(mediaFolderPathInPosix: string, mediaMetadataFileNameInTestFolder: string) {
+export async function prepareMediaMetadata(mediaFolderPathInPosix: string, mediaMetadataFileNameInTestFolder: string): Promise<string> {
     const { appDataDir } = await hello()
     const mediaMetadataDir = path.join(appDataDir, 'metadata')
     if(!fs.existsSync(mediaMetadataDir)) {
@@ -126,11 +126,15 @@ export async function prepareMediaMetadata(mediaFolderPathInPosix: string, media
     }
 
     const srcMediaMetadataFilePath = path.resolve(__dirname, '..', '..', '..', 'test', 'configs', mediaMetadataFileNameInTestFolder)
-    const filename = mediaFolderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const filename = mediaFolderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')  + '.json'
     const dstMediaMetadataFilePath = path.join(mediaMetadataDir, filename)
-    console.log(`copy from ${srcMediaMetadataFilePath} to ${dstMediaMetadataFilePath}`)
-    fs.copyFileSync(srcMediaMetadataFilePath, dstMediaMetadataFilePath)
+
+    const text = fs.readFileSync(srcMediaMetadataFilePath, 'utf-8')
+    const metadata = JSON.parse(text) as MediaMetadata
+    metadata.mediaFolderPath = mediaFolderPathInPosix
+    fs.writeFileSync(dstMediaMetadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8')
     console.log(`Prepared media metadata file: ${dstMediaMetadataFilePath}`)
+    return dstMediaMetadataFilePath
 }
 
 /**

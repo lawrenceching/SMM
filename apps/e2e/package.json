@@ -24,6 +24,8 @@
     "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/ConfigDialog-Settings.e2e.ts"
   },
   "dependencies": {
+    "@smm/core": "workspace:*",
+    "@smm/test": "workspace:*",
     "dotenv": "^17.3.1",
     "es-toolkit": "^1.44.0"
   }

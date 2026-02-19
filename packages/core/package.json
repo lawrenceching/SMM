@@ -2,6 +2,11 @@
   "name": "@smm/core",
   "version": "1.0.0",
   "type": "module",
+  "main": "./path.ts",
+  "exports": {
+    ".": "./path.ts",
+    "./*": "./*"
+  },
   "description": "Shared TypeScript code for Simple Media Manager",
   "scripts": {
     "typecheck": "tsc --noEmit",

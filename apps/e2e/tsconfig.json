@@ -32,7 +32,7 @@
     // Monorepo paths
     "baseUrl": ".",
     "paths": {
-      "@smm/core": ["../../packages/core/types.ts"],
+      "@smm/core": ["../../packages/core/path.ts"],
       "@smm/core/*": ["../../packages/core/*"],
       "@smm/test": ["../../packages/test/src/index.ts"],
       "@smm/test/*": ["../../packages/test/*"]

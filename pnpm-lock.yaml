@@ -87,6 +87,12 @@ importers:
 
   apps/e2e:
     dependencies:
+      '@smm/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@smm/test':
+        specifier: workspace:*
+        version: link:../../packages/test
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
