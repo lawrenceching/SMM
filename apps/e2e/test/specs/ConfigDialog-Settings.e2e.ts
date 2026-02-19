@@ -461,5 +461,119 @@ describe('Config Dialog Settings', () => {
         })
     })
 
+    describe('General Settings - Turn on/off MCP server', () => {
+        it('should toggle MCP server via settings and verify connectivity', async function() {
+            if (slowdown) {
+                this.timeout(120 * 1000)
+            }
+
+            // Step 1: Open config dialog
+            console.log('Opening config dialog...')
+            await Menu.openConfigDialog()
+            await ConfigDialog.waitForDisplayed()
+            expect(await ConfigDialog.isDisplayed()).toBe(true)
+
+            // Step 2: Enable MCP server via settings toggle
+            console.log('Enabling MCP server...')
+            await ConfigDialog.toggleMcpServer(true)
+
+            if (slowdown) {
+                await delay(1000)
+            }
+
+            // Step 3: Save settings
+            console.log('Saving settings...')
+            await saveAndCloseDialog()
+
+            // Wait for MCP server to start
+            console.log('Waiting for MCP server to start...')
+            await delay(3000)
+
+            // Step 4: Open MCP popover in status bar to get MCP address
+            console.log('Opening MCP popover to get server address...')
+            await StatusBar.clickMcpToggle()
+            
+            const isPopoverOpen = await StatusBar.waitForMcpPopover(5000)
+            expect(isPopoverOpen).toBe(true)
+
+            const mcpAddress = await StatusBar.getMcpAddress()
+            console.log(`MCP Address: ${mcpAddress}`)
+            expect(mcpAddress).toContain('http://')
+
+            // Step 5: Verify MCP server is running by fetching the address
+            console.log('Verifying MCP server is running...')
+            const isMcpRunning = await browser.executeAsync(async (address, done) => {
+                try {
+                    const response = await fetch(address, { 
+                        method: 'GET',
+                        mode: 'no-cors'
+                    })
+                    done(true)
+                } catch {
+                    done(false)
+                }
+            }, mcpAddress)
+            
+            expect(isMcpRunning).toBe(true)
+            console.log('MCP server is running')
+
+            // Close the popover
+            await StatusBar.clickMcpToggle()
+            await delay(500)
+
+            if (slowdown) {
+                await delay(1000)
+            }
+
+            // Step 6: Disable MCP server via settings
+            console.log('Disabling MCP server...')
+            await Menu.openConfigDialog()
+            await ConfigDialog.waitForDisplayed()
+            
+            await ConfigDialog.toggleMcpServer(false)
+
+            if (slowdown) {
+                await delay(1000)
+            }
+
+            // Step 7: Save settings
+            console.log('Saving settings...')
+            await saveAndCloseDialog()
+
+            // Wait for MCP server to stop
+            console.log('Waiting for MCP server to stop...')
+            await delay(3000)
+
+            // Step 8: Verify MCP server is not running
+            console.log('Verifying MCP server is offline...')
+            const isMcpStopped = await browser.executeAsync(async (address, done) => {
+                try {
+                    const controller = new AbortController()
+                    const timeoutId = setTimeout(() => controller.abort(), 2000)
+                    
+                    await fetch(address, { 
+                        method: 'GET',
+                        signal: controller.signal
+                    })
+                    clearTimeout(timeoutId)
+                    done(true) // Server still running
+                } catch (error: any) {
+                    if (error.name === 'AbortError') {
+                        done(false)
+                    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                        done(false)
+                    } else {
+                        done(false)
+                    }
+                }
+            }, mcpAddress)
+            
+            expect(isMcpStopped).toBe(false)
+            console.log('MCP server is offline')
+
+            console.log('MCP server toggle test completed successfully')
+        })
+    })
+
 
 })

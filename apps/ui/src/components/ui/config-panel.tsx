@@ -19,7 +19,8 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
   const menuItems: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
     { id: "general", label: t('sidebar.general'), icon: <Settings className="h-4 w-4" /> },
     { id: "ai", label: t('sidebar.ai'), icon: <Bot className="h-4 w-4" /> },
-    { id: "rename-rules", label: t('sidebar.renameRules'), icon: <FileText className="h-4 w-4" /> },
+    // Disable Rename Rules as this feature is going to deprecate
+    // { id: "rename-rules", label: t('sidebar.renameRules'), icon: <FileText className="h-4 w-4" /> },
     { id: "feedback", label: t('sidebar.feedback'), icon: <MessageSquare className="h-4 w-4" /> },
   ]
 
