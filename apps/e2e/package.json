@@ -13,6 +13,7 @@
     "@wdio/local-runner": "^9.23.0",
     "@wdio/mocha-framework": "^9.23.0",
     "@wdio/spec-reporter": "^9.20.0",
+    "cross-env": "^7.0.3",
     "expect-webdriverio": "^5.6.1",
     "typescript": "^5.0.0",
     "wdio-wait-for": "^3.1.1"
@@ -21,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run wdio",
     "wdio": "wdio run ./wdio.conf.ts",
-    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/ConfigDialog-Settings.e2e.ts"
+    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/tmp.e2e.ts"
   },
   "dependencies": {
     "@smm/core": "workspace:*",

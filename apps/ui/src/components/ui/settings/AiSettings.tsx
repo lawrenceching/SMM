@@ -164,6 +164,7 @@ export function AiSettings() {
             emptyText={t('ai.noProviderFound')}
             className="w-full"
             data-testid="setting-ai-provider"
+            optionDataTestIdPrefix="setting-ai-provider"
           />
         </div>
 

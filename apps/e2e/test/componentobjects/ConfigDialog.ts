@@ -109,7 +109,7 @@ class ConfigDialog {
      * Get the AI provider combobox trigger
      */
     get aiProviderTrigger() {
-        return $('[data-testid="setting-ai-provider"] button')
+        return $('[data-testid="setting-ai-provider"] [role="combobox"]')
     }
 
     /**
@@ -346,8 +346,8 @@ class ConfigDialog {
 
         await browser.pause(200)
 
-        // Find and click the provider option
-        const option = $(`[data-testid="setting-ai-provider"] [data-value="${provider}"]`)
+        // Find and click the provider option using data-testid with provider name
+        const option = $(`[data-testid="setting-ai-provider-option-${provider}"]`)
         await option.waitForClickable({ timeout: 5000 })
         await option.click()
     }
@@ -392,6 +392,14 @@ class ConfigDialog {
      */
     async getAiModel(): Promise<string> {
         return await this.getInputValue(this.aiModelInput)
+    }
+
+    /**
+     * Get the current selected AI provider
+     */
+    async getSelectedAiProvider(): Promise<string> {
+        const trigger = await this.aiProviderTrigger
+        return (await trigger.getText()) as string
     }
 
     // ==================== Save & Close ====================
