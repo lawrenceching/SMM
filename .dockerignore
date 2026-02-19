@@ -27,13 +27,13 @@ build/
 apps/electron/dist/
 apps/electron/out/
 
-# Test files
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
+# Test files (but not workspace packages)
+apps/e2e/test/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
 **/__tests__/
-**/test/
 
 # Documentation (not needed in build)
 *.md

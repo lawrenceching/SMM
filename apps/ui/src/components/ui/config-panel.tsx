@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Settings, Bot, FileText, MessageSquare } from "lucide-react"
+import { Settings, Bot, MessageSquare } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarProvider, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./sidebar"
 import { GeneralSettings } from "./settings/GeneralSettings"
 import { AiSettings } from "./settings/AiSettings"

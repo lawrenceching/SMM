@@ -55,7 +55,27 @@ export const config: WebdriverIO.Config = {
         browserName: 'chrome',
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
-            args: ['--disable-gpu', '--no-sandbox']
+            args: [
+                '--disable-gpu',
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-software-rasterizer',
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--disable-translate',
+                '--headless=new',
+                '--metrics-recording-only',
+                '--mute-audio',
+                '--no-first-run',
+                '--safebrowsing-disable-auto-update',
+                // 容器环境需要禁用沙箱
+                '--disable-setuid-sandbox',
+                // 允许所有来源（开发环境）
+                '--allow-running-insecure-content',
+                '--unsafely-treat-insecure-origin-as-secure=http://*'
+            ]
         }
     }],
 
