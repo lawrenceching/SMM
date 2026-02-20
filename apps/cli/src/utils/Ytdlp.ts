@@ -2,6 +2,7 @@ import { getUserConfig } from "./config";
 import path from "path";
 import os from "os";
 import fs from "fs";
+import { execSync } from "child_process";
 
 /**
  * Returns the SMM installation data directory path.
@@ -77,4 +78,34 @@ export async function discoverYtdlp(): Promise<string | undefined> {
   }
 
   return undefined;
+}
+
+/**
+ * Result of getting yt-dlp version
+ */
+export interface YtdlpVersionResult {
+  version?: string;
+  error?: string;
+}
+
+/**
+ * Gets the yt-dlp version by executing yt-dlp --version
+ * @returns The version string if successful, or error message if failed
+ */
+export async function getYtdlpVersion(): Promise<YtdlpVersionResult> {
+  const ytdlpPath = await discoverYtdlp();
+
+  if (!ytdlpPath) {
+    return { error: "yt-dlp executable not found" };
+  }
+
+  try {
+    const version = execSync(`"${ytdlpPath}" --version`, {
+      encoding: "utf-8",
+      timeout: 10000,
+    });
+    return { version: version.trim() };
+  } catch {
+    return { error: "failed to execute yt-dlp" };
+  }
 }

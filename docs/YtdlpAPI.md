@@ -41,3 +41,44 @@ yt-dlp is discovered in the following order:
    - Windows: `%LOCALAPPDATA%\SMM`
    - macOS: `~/Library/Application Support/SMM`
    - Linux: `~/.local/share/SMM`
+
+## GET /api/ytdlp/version
+
+Gets the yt-dlp version by executing `yt-dlp --version`.
+
+### Request
+
+No request body required.
+
+### Response
+
+On success:
+
+```json
+{
+  "version": "2023.10.10"
+}
+```
+
+If yt-dlp executable not found:
+
+```json
+{
+  "error": "yt-dlp executable not found"
+}
+```
+
+If command execution failed:
+
+```json
+{
+  "error": "failed to execute yt-dlp"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `version` | string? | The yt-dlp version string |
+| `error` | string? | Error message if yt-dlp not found or execution failed |
