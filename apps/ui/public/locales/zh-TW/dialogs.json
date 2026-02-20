@@ -26,7 +26,12 @@
     "folderLabel": "下載資料夾",
     "folderPlaceholder": "選擇下載資料夾...",
     "downloading": "下載中...",
-    "start": "開始"
+    "start": "開始",
+    "validation": {
+      "URL_EMPTY": "請輸入影片 URL",
+      "URL_INVALID": "請輸入有效的 URL",
+      "URL_PLATFORM_NOT_ALLOWED": "僅支援 YouTube 和 Bilibili 連結"
+    }
   },
   "scrape": {
     "title": "擷取元資料",

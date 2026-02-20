@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { FolderOpen } from "lucide-react"
 import {
   Dialog,
@@ -15,6 +15,7 @@ import type { DownloadVideoDialogProps, FileItem } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { downloadYtdlpVideo } from "@/api/ytdlp"
 import { toast } from "sonner"
+import { validateDownloadUrl } from "@core/download-video-validators"
 
 export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: DownloadVideoDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
@@ -22,13 +23,43 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [downloadFolder, setDownloadFolder] = useState("")
   const [progress, setProgress] = useState(0)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
+  const [urlTouched, setUrlTouched] = useState(false)
+
+  const runUrlValidation = useCallback((value: string) => {
+    const result = validateDownloadUrl(value)
+    if (!result.valid) {
+      setUrlError(t(`downloadVideo.validation.${result.error}` as 'downloadVideo.validation.URL_EMPTY'))
+    } else {
+      setUrlError(null)
+    }
+  }, [t])
+
+  const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value)
+    if (urlTouched) {
+      runUrlValidation(value)
+    }
+  }
+
+  const handleUrlBlur = () => {
+    setUrlTouched(true)
+    runUrlValidation(url)
+  }
 
   const handleStart = async () => {
-    if (url.trim() && downloadFolder.trim()) {
+    const validation = validateDownloadUrl(url.trim())
+    if (!validation.valid) {
+      setUrlError(t(`downloadVideo.validation.${validation.error}` as 'downloadVideo.validation.URL_EMPTY'))
+      return
+    }
+
+    if (downloadFolder.trim()) {
       setIsDownloading(true)
       setProgress(0)
 
-      // Call the ytdlp API to start download
       const result = await downloadYtdlpVideo({
         url: url.trim(),
         folder: downloadFolder.trim(),
@@ -53,6 +84,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
     setDownloadFolder("")
     setProgress(0)
     setIsDownloading(false)
+    setUrlError(null)
+    setUrlTouched(false)
     onClose()
   }
 
@@ -77,11 +110,16 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
             <Input
               id="url"
               type="url"
-              placeholder="https://example.com/video.mp4"
+              placeholder="https://www.youtube.com/watch?v=..."
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              onBlur={handleUrlBlur}
               disabled={isDownloading}
+              className={urlError ? "border-destructive" : ""}
             />
+            {urlError && (
+              <p className="text-sm text-destructive">{urlError}</p>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="downloadFolder">{t('downloadVideo.folderLabel')}</Label>
@@ -119,7 +157,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
           <Button variant="outline" onClick={handleCancel} disabled={isDownloading}>
             {t('cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={handleStart} disabled={!url.trim() || !downloadFolder.trim() || isDownloading}>
+          <Button onClick={handleStart} disabled={!isUrlValid || !downloadFolder.trim() || isDownloading}>
             {isDownloading ? t('downloadVideo.downloading') : t('downloadVideo.start')}
           </Button>
         </div>

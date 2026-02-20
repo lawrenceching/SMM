@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 import { downloadYtdlpVideo, type YtdlpDownloadRequestData } from '../../utils/Ytdlp';
 import { logger } from '../../../lib/logger';
+import { validateDownloadUrl } from '@core/download-video-validators';
 
 export interface YtdlpDownloadResponseData {
   success?: boolean;
@@ -15,6 +16,11 @@ export interface YtdlpDownloadResponseData {
 export async function processYtdlpDownload(
   body: YtdlpDownloadRequestData
 ): Promise<YtdlpDownloadResponseData> {
+  const validation = validateDownloadUrl(body.url ?? '');
+  if (!validation.valid) {
+    return { error: validation.error };
+  }
+
   try {
     return await downloadYtdlpVideo(body);
   } catch (error) {

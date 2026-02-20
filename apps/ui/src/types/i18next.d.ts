@@ -218,6 +218,11 @@ interface DialogsResources {
     folderPlaceholder: string
     downloading: string
     start: string
+    validation: {
+      URL_EMPTY: string
+      URL_INVALID: string
+      URL_PLATFORM_NOT_ALLOWED: string
+    }
   }
   scrape: {
     title: string

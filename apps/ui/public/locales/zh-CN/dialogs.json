@@ -26,7 +26,12 @@
     "folderLabel": "下载文件夹",
     "folderPlaceholder": "选择下载文件夹...",
     "downloading": "下载中...",
-    "start": "开始"
+    "start": "开始",
+    "validation": {
+      "URL_EMPTY": "请输入视频 URL",
+      "URL_INVALID": "请输入有效的 URL",
+      "URL_PLATFORM_NOT_ALLOWED": "仅支持 YouTube 和 Bilibili 链接"
+    }
   },
   "scrape": {
     "title": "刮削元数据",

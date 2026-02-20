@@ -26,7 +26,12 @@
     "folderLabel": "Download Folder",
     "folderPlaceholder": "Select download folder...",
     "downloading": "Downloading...",
-    "start": "Start"
+    "start": "Start",
+    "validation": {
+      "URL_EMPTY": "Please enter a video URL",
+      "URL_INVALID": "Please enter a valid URL",
+      "URL_PLATFORM_NOT_ALLOWED": "Only YouTube and Bilibili URLs are supported"
+    }
   },
   "scrape": {
     "title": "Scrape Metadata",
