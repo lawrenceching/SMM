@@ -152,11 +152,11 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
-  const { configDialog } = useDialogs()
+  const { configDialog, downloadVideoDialog } = useDialogs()
   const { t } = useTranslation('components')
 
-  // const [openDownloadVideo] = downloadVideoDialog
   const [openConfig] = configDialog
+  const [openDownloadVideo] = downloadVideoDialog
 
   const template: MenuTemplate[] = [
     {
@@ -193,15 +193,15 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
             }
           }
         },
-        // {
-        //   name: t('menu.downloadVideo'),
-        //   onClick: () => {
-        //     openDownloadVideo((url: string, downloadFolder: string) => {
-        //       console.log(`Downloading video from ${url} to ${downloadFolder}`)
-        //       // TODO: Implement video download logic
-        //     })
-        //   }
-        // },
+        {
+          name: t('menu.downloadVideo'),
+          id: 'download-video',
+          onClick: () => {
+            openDownloadVideo((url: string, downloadFolder: string) => {
+              console.log(`Downloading video from ${url} to ${downloadFolder}`)
+            })
+          }
+        },
         {
           type: "separator"
         },

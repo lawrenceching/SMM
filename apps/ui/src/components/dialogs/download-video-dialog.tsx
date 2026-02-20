@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import type { DownloadVideoDialogProps, FileItem } from "./types"
 import { useTranslation } from "@/lib/i18n"
+import { downloadYtdlpVideo } from "@/api/ytdlp"
+import { toast } from "sonner"
 
 export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: DownloadVideoDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
@@ -21,12 +23,28 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [progress, setProgress] = useState(0)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (url.trim() && downloadFolder.trim()) {
       setIsDownloading(true)
       setProgress(0)
+
+      // Call the ytdlp API to start download
+      const result = await downloadYtdlpVideo({
+        url: url.trim(),
+        folder: downloadFolder.trim(),
+      })
+
+      setIsDownloading(false)
+      setProgress(100)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else if (result.success) {
+        toast.success(`Downloaded to: ${result.path}`)
+        onClose()
+      }
+
       onStart(url.trim(), downloadFolder.trim())
-      // TODO: Update progress based on actual download progress
     }
   }
 
