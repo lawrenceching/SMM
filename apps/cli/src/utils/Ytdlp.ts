@@ -2,7 +2,7 @@ import { getUserConfig } from "./config";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { execSync } from "child_process";
+import { spawn, execSync } from "child_process";
 
 /**
  * Returns the SMM installation data directory path.
@@ -107,5 +107,115 @@ export async function getYtdlpVersion(): Promise<YtdlpVersionResult> {
     return { version: version.trim() };
   } catch {
     return { error: "failed to execute yt-dlp" };
+  }
+}
+
+/**
+ * Allowed yt-dlp arguments for download
+ */
+const ALLOWED_ARGS = ["--write-thumbnail", "--embed-thumbnail"];
+
+/**
+ * Request data for yt-dlp download
+ */
+export interface YtdlpDownloadRequestData {
+  url: string;
+  args?: string[];
+  folder?: string;
+}
+
+/**
+ * Result of yt-dlp download
+ */
+export interface YtdlpDownloadResult {
+  success?: boolean;
+  error?: string;
+  path?: string;
+}
+
+/**
+ * Validates that only allowed arguments are provided
+ * @param args - Array of command-line arguments
+ * @returns true if all args are allowed, false otherwise
+ */
+function validateArgs(args?: string[]): boolean {
+  if (!args || args.length === 0) {
+    return true;
+  }
+  return args.every((arg) => ALLOWED_ARGS.includes(arg));
+}
+
+/**
+ * Downloads a video using yt-dlp
+ * @param request - Download request containing url and optional args
+ * @returns Result with success or error
+ */
+export async function downloadYtdlpVideo(
+  request: YtdlpDownloadRequestData
+): Promise<YtdlpDownloadResult> {
+  // Validate URL
+  if (!request.url) {
+    return { error: "url is required" };
+  }
+
+  // Validate args
+  if (request.args && !validateArgs(request.args)) {
+    return {
+      error: `Only allowed args are: ${ALLOWED_ARGS.join(", ")}`,
+    };
+  }
+
+  // Discover yt-dlp
+  const ytdlpPath = await discoverYtdlp();
+  if (!ytdlpPath) {
+    return { error: "yt-dlp executable not found" };
+  }
+
+  // Build command arguments
+  const cmdArgs = [ytdlpPath];
+
+  // Add output directory (default to ~/Downloads)
+  const outputDir = request.folder || path.join(os.homedir(), "Downloads");
+  const outputTemplate = path.join(outputDir, "%(title)s [%(id)s].%(ext)s");
+  cmdArgs.push("--output", outputTemplate);
+
+  // Add --print to get the final filepath after post-processing
+  cmdArgs.push("--print", "after_move:filepath");
+
+  cmdArgs.push(request.url);
+  if (request.args && request.args.length > 0) {
+    cmdArgs.push(...request.args);
+  }
+
+  // Execute yt-dlp
+  let downloadedPath = "";
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(ytdlpPath, cmdArgs.slice(1), {
+        stdio: ["inherit", "pipe", "inherit"],
+      });
+      let stdout = "";
+      child.stdout?.on("data", (data) => {
+        stdout += data.toString();
+      });
+      child.on("close", (code) => {
+        if (code === 0) {
+          // Parse the output to get the filepath (last non-empty line)
+          const lines = stdout.trim().split("\n").filter((l) => l.trim());
+          downloadedPath = lines[lines.length - 1]?.trim() || outputDir;
+          resolve();
+        } else {
+          reject(new Error(`yt-dlp exited with code ${code}`));
+        }
+      });
+      child.on("error", reject);
+    });
+    return { success: true, path: downloadedPath };
+  } catch (error) {
+    return {
+      error: `yt-dlp download failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
   }
 }

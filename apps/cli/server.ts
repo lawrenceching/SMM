@@ -29,6 +29,7 @@ import { handleGetPendingPlans } from './src/route/GetPendingPlans';
 import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { handleYtdlpDiscover } from './src/route/ytdlp/Discover';
 import { handleYtdlpVersion } from './src/route/ytdlp/Version';
+import { handleYtdlpDownload } from './src/route/ytdlp/Download';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -172,6 +173,7 @@ export class Server {
     handleUpdatePlan(this.app);
     handleYtdlpDiscover(this.app);
     handleYtdlpVersion(this.app);
+    handleYtdlpDownload(this.app);
     handleTmdb(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks
