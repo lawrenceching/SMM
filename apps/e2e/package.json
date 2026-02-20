@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run wdio",
     "wdio": "wdio run ./wdio.conf.ts",
-    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/tmp.e2e.ts"
+    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/BackgroundJob.e2e.ts"
   },
   "dependencies": {
     "@smm/core": "workspace:*",

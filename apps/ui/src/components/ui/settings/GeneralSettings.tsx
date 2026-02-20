@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button"
 import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
+import { useDialogs } from "@/providers/dialog-provider"
+import type { FileItem } from "@/components/dialogs/types"
 
 export function GeneralSettings() {
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
-  
+  const { filePickerDialog } = useDialogs()
+  const [openFilePicker] = filePickerDialog
+
   // Track initial values
   const initialValues = useMemo(() => ({
     applicationLanguage: userConfig.applicationLanguage || 'zh-CN',
@@ -21,6 +25,8 @@ export function GeneralSettings() {
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
     mcpPort: userConfig.mcpPort ?? 30001,
+    ytdlpExecutablePath: userConfig.ytdlpExecutablePath || '',
+    ffmpegExecutablePath: userConfig.ffmpegExecutablePath || '',
   }), [userConfig])
 
   // Track current form values
@@ -31,6 +37,8 @@ export function GeneralSettings() {
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
+  const [ytdlpExecutablePath, setYtdlpExecutablePath] = useState(initialValues.ytdlpExecutablePath)
+  const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -41,6 +49,8 @@ export function GeneralSettings() {
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
+    setYtdlpExecutablePath(initialValues.ytdlpExecutablePath)
+    setFfmpegExecutablePath(initialValues.ffmpegExecutablePath)
   }, [initialValues])
 
   // Detect changes
@@ -52,9 +62,11 @@ export function GeneralSettings() {
       tmdbProxy !== initialValues.tmdbProxy ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
-      mcpPort !== String(initialValues.mcpPort)
+      mcpPort !== String(initialValues.mcpPort) ||
+      ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
+      ffmpegExecutablePath !== initialValues.ffmpegExecutablePath
     )
-  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, enableMcpServer, mcpHost, mcpPort, initialValues])
+  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
 
   // Handle save
   const handleSave = async () => {
@@ -80,6 +92,8 @@ export function GeneralSettings() {
       enableMcpServer,
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
+      ytdlpExecutablePath: ytdlpExecutablePath || undefined,
+      ffmpegExecutablePath: ffmpegExecutablePath || undefined,
     }
     setAndSaveUserConfig(traceId, updatedConfig)
   }
@@ -183,6 +197,67 @@ export function GeneralSettings() {
               placeholder={t('general.mcpPortPlaceholder')}
               data-testid="setting-mcp-port"
             />
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="font-semibold text-lg">{t('general.externalTools')}</h3>
+          <p className="text-sm text-muted-foreground">{t('general.externalToolsDescription')}</p>
+          <div className="space-y-2">
+            <Label htmlFor="ytdlp-executable-path">{t('general.ytdlpExecutablePath')}</Label>
+            <div className="flex gap-2">
+              <Input
+                id="ytdlp-executable-path"
+                value={ytdlpExecutablePath}
+                onChange={(e) => setYtdlpExecutablePath(e.target.value)}
+                placeholder={t('general.ytdlpExecutablePathPlaceholder')}
+                data-testid="setting-ytdlp-executable-path"
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  openFilePicker((file: FileItem) => {
+                    setYtdlpExecutablePath(file.path)
+                  }, {
+                    title: t('general.selectYtdlpExecutable'),
+                    description: t('general.selectYtdlpExecutableDescription'),
+                    selectFolder: false,
+                  })
+                }}
+                data-testid="setting-ytdlp-browse"
+              >
+                {t('general.browse')}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ffmpeg-executable-path">{t('general.ffmpegExecutablePath')}</Label>
+            <div className="flex gap-2">
+              <Input
+                id="ffmpeg-executable-path"
+                value={ffmpegExecutablePath}
+                onChange={(e) => setFfmpegExecutablePath(e.target.value)}
+                placeholder={t('general.ffmpegExecutablePathPlaceholder')}
+                data-testid="setting-ffmpeg-executable-path"
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  openFilePicker((file: FileItem) => {
+                    setFfmpegExecutablePath(file.path)
+                  }, {
+                    title: t('general.selectFfmpegExecutable'),
+                    description: t('general.selectFfmpegExecutableDescription'),
+                    selectFolder: false,
+                  })
+                }}
+                data-testid="setting-ffmpeg-browse"
+              >
+                {t('general.browse')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

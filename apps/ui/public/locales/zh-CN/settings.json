@@ -15,7 +15,18 @@
     "mcpHost": "MCP 主机",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP 端口",
-    "mcpPortPlaceholder": "30001"
+    "mcpPortPlaceholder": "30001",
+    "externalTools": "外部工具",
+    "externalToolsDescription": "配置外部可执行工具的路径",
+    "ytdlpExecutablePath": "yt-dlp 可执行文件路径",
+    "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "selectYtdlpExecutable": "选择 yt-dlp 可执行文件",
+    "selectYtdlpExecutableDescription": "选择 yt-dlp 可执行文件",
+    "ffmpegExecutablePath": "ffmpeg 可执行文件路径",
+    "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
+    "selectFfmpegExecutable": "选择 ffmpeg 可执行文件",
+    "selectFfmpegExecutableDescription": "选择 ffmpeg 可执行文件",
+    "browse": "浏览"
   },
   "ai": {
     "title": "AI 设置",

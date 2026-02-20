@@ -66,6 +66,16 @@ export interface UserConfig {
    * Port for the MCP server (default 30001).
    */
   mcpPort?: number
+
+  /**
+   * Path to the yt-dlp executable file.
+   */
+  ytdlpExecutablePath?: string
+
+  /**
+   * Path to the ffmpeg executable file.
+   */
+  ffmpegExecutablePath?: string
 }
 
 /**

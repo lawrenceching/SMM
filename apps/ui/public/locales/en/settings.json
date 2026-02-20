@@ -15,7 +15,18 @@
     "mcpHost": "MCP host",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP port",
-    "mcpPortPlaceholder": "30001"
+    "mcpPortPlaceholder": "30001",
+    "externalTools": "External Tools",
+    "externalToolsDescription": "Configure paths to external executable tools",
+    "ytdlpExecutablePath": "yt-dlp Executable Path",
+    "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "selectYtdlpExecutable": "Select yt-dlp Executable",
+    "selectYtdlpExecutableDescription": "Choose the yt-dlp executable file",
+    "ffmpegExecutablePath": "ffmpeg Executable Path",
+    "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
+    "selectFfmpegExecutable": "Select ffmpeg Executable",
+    "selectFfmpegExecutableDescription": "Choose the ffmpeg executable file",
+    "browse": "Browse"
   },
   "ai": {
     "title": "AI Settings",
