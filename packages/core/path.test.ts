@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Path, split } from './path';
 
 describe('split', () => {

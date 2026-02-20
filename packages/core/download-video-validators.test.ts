@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect } from 'vitest'
 import {
   validateDownloadUrl,
   ALLOWED_HOSTNAMES,
@@ -33,6 +33,12 @@ describe('validateDownloadUrl', () => {
 
     it('should reject URL with invalid protocol', () => {
       const result = validateDownloadUrl('http1s://www.bilibili.com/video/BV1TyZqBcEJb')
+      expect(result).toEqual({ valid: false, error: URL_INVALID })
+    })
+
+    it('should reject URL with no hostname', () => {
+      // https:// or http:// with no host parses but has empty hostname
+      const result = validateDownloadUrl('https://')
       expect(result).toEqual({ valid: false, error: URL_INVALID })
     })
 

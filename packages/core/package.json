@@ -10,11 +10,13 @@
   "description": "Shared TypeScript code for Simple Media Manager",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "pnpm test"
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "es-toolkit": "^1.42.0",

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { renameFolderInMediaMetadata } from './mediaMetadata';
 import type { MediaMetadata } from './types';
 
@@ -35,9 +35,9 @@ describe('renameFolderInMediaMetadata', () => {
     });
 
     it('should not rename mediaFolderPath when it is null', () => {
-      const metadata: MediaMetadata = {
+      const metadata = {
         mediaFolderPath: null,
-      };
+      } as unknown as MediaMetadata;
 
       const result = renameFolderInMediaMetadata(metadata, '/media/tvshow', '/media/newname');
 
