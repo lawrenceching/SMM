@@ -20,8 +20,8 @@ interface MediaMetadataContextValue {
    * @param path POSIX
    * @returns
    */
-  removeMediaMetadata: (path: string) => void
-  getMediaMetadata: (path: string) => UIMediaMetadata | undefined
+  removeMediaMetadata: (pathInPosix: string) => void
+  getMediaMetadata: (pathInPosix: string) => UIMediaMetadata | undefined
   selectedMediaMetadata: UIMediaMetadata | undefined
   setSelectedMediaMetadata: (index: number) => void
   /**

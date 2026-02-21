@@ -1,3 +1,4 @@
+import { Path } from "./path";
 import type { MediaMetadata } from "./types";
 
 /**
@@ -59,4 +60,18 @@ export function renameFolderInMediaMetadata(mediaMetadata: MediaMetadata, from: 
     }
 
     return result;
+}
+
+export function createMediaMetadata(
+    folderPathInPlatformFormat: string, 
+    type: "music-folder" | "tvshow-folder" | "movie-folder",
+    props: Partial<MediaMetadata> = {}) {
+
+    const mm: MediaMetadata = {
+        mediaFolderPath: Path.posix(folderPathInPlatformFormat),
+        type,
+        ...props,
+    }
+
+    return mm;
 }

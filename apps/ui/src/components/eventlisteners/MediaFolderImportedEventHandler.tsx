@@ -11,6 +11,7 @@ import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
 import { isNotNil } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
+import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 
 export function MediaFolderImportedEventHandler() {
 
@@ -27,14 +28,27 @@ export function MediaFolderImportedEventHandler() {
             (async () => {
                 const data = event.detail as OnMediaFolderImportedEventData
                 const { type, folderPathInPlatformFormat } = data
-
                 // Get or create traceId - we'll use the job ID as traceId
                 const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
+
+                if(type === 'music') {
+                    await initializeMusicFolder(folderPathInPlatformFormat, {
+                        addMediaFolderInUserConfig,
+                        getMediaMetadata: (folderInPlatformPath: string) => {
+                            return getMediaMetadata(Path.posix(folderInPlatformPath));
+                        },
+                        addMediaMetadata,
+                        traceId,
+                    });
+                    return;
+                }
 
                 if (getMediaMetadata(folderPathInPlatformFormat)?.status === 'initializing') {
                     console.log(`[${traceId}] onFolderSelected: Folder ${folderPathInPlatformFormat} is already initializing, skipping`)
                     return
                 }
+
+                addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
                 // Create background job at the start of initialization
                 let jobId: string | null = null
@@ -44,10 +58,10 @@ export function MediaFolderImportedEventHandler() {
                     progress: 0,
                 })
 
-                console.log(`[${traceId}] onFolderSelected: Adding folder ${folderPathInPlatformFormat} to user config`)
-                addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
-
-                const mm = await createInitialMediaMetadata(folderPathInPlatformFormat, { traceId })
+                const mm = await createInitialMediaMetadata(
+                    folderPathInPlatformFormat, 
+                    type === 'tvshow' ? 'tvshow-folder' : 'movie-folder',
+                    { traceId })
 
                 console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatformFormat)
                 console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)

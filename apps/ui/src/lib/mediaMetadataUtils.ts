@@ -3,13 +3,19 @@ import type { MediaMetadata } from "@core/types";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { Path } from "@core/path";
 import type { readMediaMetadataApi } from "@/api/readMediaMatadata";
+import { createMediaMetadata } from "@core/mediaMetadata";
 
-export async function createInitialMediaMetadata(folderPathInPlatformFormat: string, options?: { traceId?: string, abortSignal?: AbortSignal }): Promise<UIMediaMetadata> {
+export async function createInitialMediaMetadata(
+  folderPathInPlatformFormat: string, 
+  type: "music-folder" | "tvshow-folder" | "movie-folder",
+  options?: { traceId?: string, abortSignal?: AbortSignal, mediaMetadataProps?: Partial<UIMediaMetadata> }
+): Promise<UIMediaMetadata> {
   
   const mm: UIMediaMetadata = {
-    mediaFolderPath: Path.posix(folderPathInPlatformFormat),
     status: 'idle',
-  }
+    ...createMediaMetadata(folderPathInPlatformFormat, type),
+    ...options?.mediaMetadataProps
+  };
 
   const files = await listFiles({ path: folderPathInPlatformFormat, recursively: true, onlyFiles: true }, options?.abortSignal)
   if(files.error) {
