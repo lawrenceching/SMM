@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Shuffle, 
-  Repeat, 
-  Volume2, 
-  VolumeX, 
-  Search,
-  Filter,
-  SortAsc,
-  MoreVertical,
-  Music
-} from 'lucide-react';
+import { MediaPlayerToolbar, type Genre, type SortBy } from './MediaPlayerToolbar';
+import { MediaPlayerTrackList } from './MediaPlayerTrackList';
+import { MediaPlayerControlBar } from './MediaPlayerControlBar';
 
 export interface Track {
   id: number;
@@ -26,9 +14,12 @@ export interface Track {
   addedDate: Date;
 }
 
+export type MediaPlayerMode = 'view' | 'player';
+
 export interface MediaPlayerProps {
   tracks?: Track[];
   className?: string;
+  mode?: MediaPlayerMode;
 }
 
 const DEFAULT_TRACKS: Track[] = [
@@ -46,24 +37,10 @@ const DEFAULT_TRACKS: Track[] = [
   { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", album: "Classics", duration: 412, genre: "classical", thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12') },
 ];
 
-const GENRES = ['all', 'pop', 'rock', 'electronic', 'jazz', 'classical'] as const;
-const SORT_OPTIONS = [
-  { value: 'title', label: 'Title (A-Z)' },
-  { value: 'title-desc', label: 'Title (Z-A)' },
-  { value: 'artist', label: 'Artist (A-Z)' },
-  { value: 'duration', label: 'Duration' },
-  { value: 'recent', label: 'Recently Added' }
-] as const;
-
-type Genre = typeof GENRES[number];
-type SortBy = typeof SORT_OPTIONS[number]['value'];
-
-export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPlayerProps) {
+export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view' }: MediaPlayerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterGenre, setFilterGenre] = useState<Genre>('all');
   const [sortBy, setSortBy] = useState<SortBy>('recent');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
   
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -195,6 +172,7 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (mode === 'view') return;
     if (e.target instanceof HTMLInputElement) return;
 
     switch (e.key) {
@@ -219,7 +197,7 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
         toggleMute();
         break;
     }
-  }, [togglePlay, playNext, playPrevious, toggleMute]);
+  }, [mode, togglePlay, playNext, playPrevious, toggleMute]);
 
   useEffect(() => {
     if (progressIntervalRef.current) {
@@ -254,6 +232,8 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
   }, [isPlaying, currentTrack, repeat, playNext]);
 
   useEffect(() => {
+    if (mode === 'view') return;
+
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
 
@@ -283,10 +263,7 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [togglePlay, playNext, playPrevious, toggleMute]);
-
-  const currentProgressTime = currentTrack ? (progress / 100) * currentTrack.duration : 0;
-  const displayVolume = isMuted ? 0 : volume;
+  }, [mode, togglePlay, playNext, playPrevious, toggleMute]);
 
   return (
     <div 
@@ -295,96 +272,12 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
       role="application"
       aria-label="Music Player"
     >
-      <header className="flex-shrink-0 bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-primary flex items-center justify-center">
-              <Music className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-foreground">MusicBox</h1>
-          </div>
-
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search music..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
-                aria-label="Search music"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowFilterDropdown(!showFilterDropdown);
-                  setShowSortDropdown(false);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground hover:border-primary focus:outline-none focus:border-primary transition-colors duration-200"
-                aria-haspopup="true"
-                aria-expanded={showFilterDropdown}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Filter</span>
-                <SortAsc className="w-4 h-4" />
-              </button>
-              {showFilterDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
-                  {GENRES.map(genre => (
-                    <button
-                      key={genre}
-                      onClick={() => {
-                        setFilterGenre(genre);
-                        setShowFilterDropdown(false);
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors duration-200 capitalize"
-                    >
-                      {genre === 'all' ? 'All Genres' : genre}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowSortDropdown(!showSortDropdown);
-                  setShowFilterDropdown(false);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground hover:border-primary focus:outline-none focus:border-primary transition-colors duration-200"
-                aria-haspopup="true"
-                aria-expanded={showSortDropdown}
-              >
-                <SortAsc className="w-4 h-4" />
-                <span>Sort</span>
-                <SortAsc className="w-4 h-4" />
-              </button>
-              {showSortDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
-                  {SORT_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setSortBy(option.value);
-                        setShowSortDropdown(false);
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors duration-200"
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <MediaPlayerToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onFilterChange={setFilterGenre}
+        onSortChange={setSortBy}
+      />
 
       <main className="flex-1 overflow-y-auto px-6 py-4">
         <div className="mb-4 flex items-center justify-between">
@@ -394,201 +287,37 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '' }: MediaPl
           </span>
         </div>
 
-        {filteredTracks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Music className="w-16 h-16 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-lg">No tracks found</p>
-            <p className="text-muted-foreground/60 text-sm mt-1">Try adjusting your search or filter</p>
-          </div>
-        ) : (
-          <div className="space-y-1" role="list" aria-label="Music tracks">
-            {filteredTracks.map((track, index) => (
-              <div
-                key={track.id}
-                onClick={() => playTrack(track)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    playTrack(track);
-                  }
-                }}
-                className={`group flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-muted transition-colors duration-200 cursor-pointer ${
-                  currentTrack?.id === track.id ? 'bg-muted' : ''
-                }`}
-                role="listitem"
-                tabIndex={0}
-              >
-                <div className="w-8 text-center flex-shrink-0">
-                  {currentTrack?.id === track.id && isPlaying ? (
-                    <div className="flex items-center justify-center gap-0.5 h-4">
-                      {[0, 1, 2, 3].map((i) => (
-                        <span
-                          key={i}
-                          className="w-0.5 bg-green-500 rounded-full animate-pulse"
-                          style={{
-                            animationDelay: `${i * 0.15}s`,
-                            height: `${4 + Math.random() * 12}px`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  ) : currentTrack?.id === track.id ? (
-                    <Play className="w-5 h-5 mx-auto text-green-500" />
-                  ) : (
-                    <span className="text-sm text-muted-foreground group-hover:hidden">{index + 1}</span>
-                  )}
-                  {currentTrack?.id !== track.id && (
-                    <Play className="w-5 h-5 mx-auto text-foreground hidden group-hover:block" />
-                  )}
-                </div>
-                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-secondary">
-                  <img 
-                    src={track.thumbnail} 
-                    alt={`${track.album} cover`} 
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate ${
-                    currentTrack?.id === track.id ? 'text-green-500' : 'text-foreground'
-                  }`}>
-                    {track.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-                </div>
-                <div className="w-32 text-xs text-muted-foreground truncate hidden sm:block">{track.album}</div>
-                <div className="w-16 text-sm text-muted-foreground text-right">{formatTime(track.duration)}</div>
-                <button
-                  className="p-2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all duration-200"
-                  aria-label="More options"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <MediaPlayerTrackList
+          filteredTracks={filteredTracks}
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          mode={mode}
+          onTrackClick={playTrack}
+          formatTime={formatTime}
+        />
       </main>
 
-      <footer className="flex-shrink-0 bg-card border-t border-border px-6 py-4">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4 w-72">
-            <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {currentTrack ? (
-                <img 
-                  src={currentTrack.thumbnail} 
-                  alt={`${currentTrack.album} cover`} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Music className="w-6 h-6 text-muted-foreground" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {currentTrack?.title || 'Select a track'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {currentTrack?.artist || '--'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col items-center gap-2">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShuffle(!shuffle)}
-                className={`p-2 transition-colors duration-200 ${
-                  shuffle ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                aria-label="Shuffle"
-              >
-                <Shuffle className="w-5 h-5" />
-              </button>
-              <button
-                onClick={playPrevious}
-                className="p-2 text-foreground hover:text-green-500 transition-colors duration-200"
-                aria-label="Previous track"
-              >
-                <SkipBack className="w-6 h-6" />
-              </button>
-              <button
-                onClick={togglePlay}
-                disabled={isLoading}
-                className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-500/90 transition-all duration-200 shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-              >
-                {isLoading ? (
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="w-6 h-6" />
-                ) : (
-                  <Play className="w-6 h-6 ml-0.5" />
-                )}
-              </button>
-              <button
-                onClick={playNext}
-                className="p-2 text-foreground hover:text-green-500 transition-colors duration-200"
-                aria-label="Next track"
-              >
-                <SkipForward className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setRepeat(!repeat)}
-                className={`p-2 transition-colors duration-200 ${
-                  repeat ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                aria-label="Repeat"
-              >
-                <Repeat className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="w-full max-w-xl flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-10 text-right">
-                {formatTime(currentProgressTime)}
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={progress}
-                onChange={(e) => handleProgressChange(parseFloat(e.target.value))}
-                className="flex-1 h-1 bg-border rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-400 transition-colors"
-                aria-label="Track progress"
-              />
-              <span className="text-xs text-muted-foreground w-10">
-                {currentTrack ? formatTime(currentTrack.duration) : '0:00'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 w-48">
-            <button
-              onClick={toggleMute}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted || displayVolume === 0 ? (
-                <VolumeX className="w-5 h-5" />
-              ) : (
-                <Volume2 className="w-5 h-5" />
-              )}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={displayVolume}
-              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-              className="flex-1 h-1 bg-border rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-400 transition-colors"
-              aria-label="Volume"
-            />
-          </div>
-        </div>
-      </footer>
+      {mode === 'player' && (
+        <MediaPlayerControlBar
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          isLoading={isLoading}
+          progress={progress}
+          volume={volume}
+          isMuted={isMuted}
+          shuffle={shuffle}
+          repeat={repeat}
+          onTogglePlay={togglePlay}
+          onPlayNext={playNext}
+          onPlayPrevious={playPrevious}
+          onProgressChange={handleProgressChange}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={toggleMute}
+          onToggleShuffle={() => setShuffle(!shuffle)}
+          onToggleRepeat={() => setRepeat(!repeat)}
+          formatTime={formatTime}
+        />
+      )}
     </div>
   );
 }
