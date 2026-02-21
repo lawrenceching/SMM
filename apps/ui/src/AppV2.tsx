@@ -22,6 +22,7 @@ import { useConfig } from "./providers/config-provider"
 import { listFiles } from "@/api/listFiles"
 import { isNotNil } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "./types/eventTypes"
+import { MusicPanel } from "./components/MusicPanel"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -659,7 +660,15 @@ function AppV2Content() {
                       <MoviePanel />
                     </div>
                   )}
-                  {selectedMediaMetadata.type !== "tvshow-folder" && selectedMediaMetadata.type !== "movie-folder" && (
+                  {selectedMediaMetadata.type === "music-folder" && (
+                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                      <MusicPanel />
+                    </div>
+                  )}
+
+                  {selectedMediaMetadata.type !== "tvshow-folder" 
+                  && selectedMediaMetadata.type !== "movie-folder"
+                  && selectedMediaMetadata.type !== "music-folder" && (
                     <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
                   )}
                 </>
