@@ -277,6 +277,8 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'v
         onSearchChange={setSearchQuery}
         onFilterChange={setFilterGenre}
         onSortChange={setSortBy}
+        filterValue={filterGenre}
+        sortValue={sortBy}
       />
 
       <main className="flex-1 overflow-y-auto px-6 py-4">
