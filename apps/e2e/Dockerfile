@@ -13,6 +13,7 @@
 FROM node:22-bookworm
 
 # Set environment variables
+ENV BUILD_ENV=docker
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=development
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

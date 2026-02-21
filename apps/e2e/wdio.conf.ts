@@ -1,3 +1,23 @@
+const chromeOptionsForDockerEnv: string[] = [
+    '--disable-dev-shm-usage',
+    '--disable-software-rasterizer',
+    '--disable-extensions',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--disable-sync',
+    '--disable-translate',
+    '--headless=new',
+    '--metrics-recording-only',
+    '--mute-audio',
+    '--no-first-run',
+    '--safebrowsing-disable-auto-update',
+    // 容器环境需要禁用沙箱
+    '--disable-setuid-sandbox',
+    // 允许所有来源（开发环境）
+    '--allow-running-insecure-content',
+    '--unsafely-treat-insecure-origin-as-secure=http://*'
+]
+
 export const config: WebdriverIO.Config = {
     //
     // ====================
@@ -55,27 +75,16 @@ export const config: WebdriverIO.Config = {
         browserName: 'chrome',
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
-            args: [
-                '--disable-gpu',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-software-rasterizer',
-                '--disable-extensions',
-                '--disable-background-networking',
-                '--disable-default-apps',
-                '--disable-sync',
-                '--disable-translate',
-                '--headless=new',
-                '--metrics-recording-only',
-                '--mute-audio',
-                '--no-first-run',
-                '--safebrowsing-disable-auto-update',
-                // 容器环境需要禁用沙箱
-                '--disable-setuid-sandbox',
-                // 允许所有来源（开发环境）
-                '--allow-running-insecure-content',
-                '--unsafely-treat-insecure-origin-as-secure=http://*'
-            ]
+            args: process.env.BUILD_ENV === 'docker'
+                ? [
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    ...chromeOptionsForDockerEnv
+                ]
+                : [
+                    '--disable-gpu',
+                    '--no-sandbox',
+                ]
         }
     }],
 
@@ -211,6 +220,9 @@ export const config: WebdriverIO.Config = {
      * @param {object}         browser      instance of created browser/device session
      */
     before: function (capabilities, specs) {
+        const browserLogEnabled = process.env.BROWSER_LOG_ENABLED === 'true';
+        if (!browserLogEnabled) return;
+
         // 先订阅 BiDi 协议的 log 事件
         browser.sessionSubscribe({ events: ['log.entryAdded'] });
 
