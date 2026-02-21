@@ -15,7 +15,9 @@
       "mcp__chrome-devtools__take_snapshot",
       "mcp__chrome-devtools__navigate_page",
       "mcp__chrome-devtools__fill",
-      "mcp__chrome-devtools__press_key"
+      "mcp__chrome-devtools__press_key",
+      "Bash(pnpm install)",
+      "Bash(pnpm run test)"
     ],
     "deny": [],
     "ask": []

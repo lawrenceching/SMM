@@ -7,8 +7,10 @@
   "devDependencies": {
     "@ai-sdk/mcp": "latest",
     "@types/bun": "latest",
+    "@vitest/coverage-v8": "^4.0.18",
     "socket.io-client": "^4.8.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.11",
@@ -38,8 +40,9 @@
     "mcp": "bun run src/mcp/server.ts",
     "build": "bun run scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "test:mcp": "bun test ./test/test-mcp.test.ts"
   }
 }

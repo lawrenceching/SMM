@@ -1,11 +1,11 @@
-import { describe, it, expect, mock } from 'bun:test'
+import { describe, it, expect, vi } from 'vitest'
 import { processYtdlpDownload } from './Download'
 
-mock.module('../../utils/Ytdlp', () => ({
+vi.mock('../../utils/Ytdlp', () => ({
   downloadYtdlpVideo: async () => ({ success: true, path: '/tmp/video.mp4' }),
 }))
 
-mock.module('../../../lib/logger', () => ({
+vi.mock('../../../lib/logger', () => ({
   logger: { error: () => {} },
 }))
 
