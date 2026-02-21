@@ -143,6 +143,7 @@ jobs:
 
   build-docker:
     name: Build Docker Image
+    needs: [build-ui, build-cli]
     runs-on: ubuntu-latest
     
     steps:
