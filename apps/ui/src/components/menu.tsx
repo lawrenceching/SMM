@@ -194,6 +194,27 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           }
         },
         {
+          name: t('menu.openLogFolder'),
+          id: 'open-log-folder',
+          onClick: async () => {
+            try {
+              const result = await hello()
+              if (result.error) {
+                toast.error(result.error)
+                return
+              }
+              // Convert platform path to POSIX format
+              const posixPath = Path.isWindows() ? Path.posix(result.logDir) : result.logDir
+              const openResult = await openInFileManagerApi(posixPath)
+              if (openResult.error) {
+                toast.error(openResult.error)
+              }
+            } catch (error) {
+              toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            }
+          }
+        },
+        {
           name: t('menu.downloadVideo'),
           id: 'download-video',
           onClick: () => {

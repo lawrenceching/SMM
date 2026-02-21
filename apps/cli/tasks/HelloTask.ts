@@ -2,7 +2,7 @@ import { APP_VERSION } from '../src/version';
 import os from 'os';
 import path from 'path';
 import type { HelloResponseBody } from '@core/types';
-import { getUserDataDir } from '@/utils/config';
+import { getLogDir, getUserDataDir } from '@/utils/config';
 
 /**
  * Returns the directory path for application data files (e.g., metadata cache).
@@ -42,5 +42,6 @@ export async function executeHelloTask(): Promise<HelloResponseBody> {
     version: APP_VERSION,
     userDataDir: getUserDataDir(),
     appDataDir: getAppDataDir(),
+    logDir: getLogDir(),
   }
 }

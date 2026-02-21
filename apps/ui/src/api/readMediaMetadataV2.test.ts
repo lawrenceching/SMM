@@ -60,6 +60,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return the media metadata file content
@@ -108,6 +109,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return FileNotFoundError
@@ -155,6 +157,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return FileNotFoundError (blank metadata scenario)
@@ -193,6 +196,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return a non-FileNotFoundError error
@@ -249,6 +253,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return no data (data is undefined)
@@ -300,6 +305,7 @@ describe('readMediaMetadataV2', () => {
       version: '1.0.0',
       userDataDir: '/user/data',
       appDataDir: appDataDir,
+      logDir: '/app/logs',
     })
 
     // Mock readFile() to return empty string data

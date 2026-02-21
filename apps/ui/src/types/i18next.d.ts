@@ -41,6 +41,7 @@ interface ComponentsResources {
     openFolder: string
     openMediaLibrary: string
     openAppDataFolder: string
+    openLogFolder: string
     config: string
     cleanUp: string
     exit: string

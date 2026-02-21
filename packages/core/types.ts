@@ -798,6 +798,11 @@ export interface HelloResponseBody {
   appDataDir: string;
 
   /**
+   * path in platform-specific format
+   */
+  logDir: string;
+
+  /**
    * error message when the hello task fails (e.g. validation, server error)
    */
   error?: string;
