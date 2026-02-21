@@ -17,7 +17,9 @@
       "mcp__chrome-devtools__fill",
       "mcp__chrome-devtools__press_key",
       "Bash(pnpm install)",
-      "Bash(pnpm run test)"
+      "Bash(pnpm run test)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm changeset init:*)"
     ],
     "deny": [],
     "ask": []

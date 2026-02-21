@@ -29,9 +29,13 @@
     "typecheck:e2e": "cd apps/e2e && pnpm run typecheck",
     "typecheck:electron": "cd apps/electron && pnpm run typecheck",
     "ci": "pnpm run build && pnpm run test && pnpm run typecheck",
-    "ci:cli": "cd apps/cli && pnpm run test && pnpm run typecheck"
+    "ci:cli": "cd apps/cli && pnpm run test && pnpm run typecheck",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "concurrently": "^9.2.1"
   }
 }
