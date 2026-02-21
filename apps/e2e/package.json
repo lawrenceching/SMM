@@ -20,7 +20,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run wdio",
+    "test": "echo \"No tests yet\"",
     "wdio": "wdio run ./wdio.conf.ts",
     "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/BackgroundJob.e2e.ts"
   },

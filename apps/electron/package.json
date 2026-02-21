@@ -18,7 +18,8 @@
     "build:unpack": "pnpm run build && electron-builder --dir",
     "build:win": "pnpm run build && electron-builder --win",
     "build:mac": "pnpm run build && electron-builder --mac",
-    "build:linux": "pnpm run build && electron-builder --linux"
+    "build:linux": "pnpm run build && electron-builder --linux",
+    "test": "echo \"No tests yet\""
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

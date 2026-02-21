@@ -17,7 +17,7 @@
     "build:core": "cd packages/core && pnpm run typecheck",
     "build:docker": "docker buildx build --progress=plain -t smm:latest .",
     "build:e2e": "docker build -t smm-e2e:test -f apps/e2e/Dockerfile .",
-    "test": "pnpm test",
+    "test": "pnpm -r test",
     "test:core": "cd packages/core && pnpm test",
     "test:cli": "cd apps/cli && pnpm test",
     "test:ui": "cd apps/ui && pnpm test",

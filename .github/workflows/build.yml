@@ -52,8 +52,33 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run all tests
+        run: pnpm -r test
+
   build-ui:
     name: Build UI
+    needs: [test]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,9 +96,6 @@ jobs:
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: cd apps/ui && pnpm run test
-      
       - name: Build UI
         run: cd apps/ui && pnpm run build
       
@@ -86,6 +108,7 @@ jobs:
 
   build-cli:
     name: Build CLI
+    needs: [test]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -108,9 +131,6 @@ jobs:
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: cd apps/cli && pnpm run test:coverage
-      
       - name: Build CLI
         run: cd apps/cli && pnpm run build
       
