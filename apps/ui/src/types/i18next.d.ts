@@ -286,6 +286,17 @@ interface SettingsResources {
     mcpHostPlaceholder: string
     mcpPort: string
     mcpPortPlaceholder: string
+    externalTools: string
+    externalToolsDescription: string
+    ytdlpExecutablePath: string
+    ytdlpExecutablePathPlaceholder: string
+    selectYtdlpExecutable: string
+    selectYtdlpExecutableDescription: string
+    ffmpegExecutablePath: string
+    ffmpegExecutablePathPlaceholder: string
+    selectFfmpegExecutable: string
+    selectFfmpegExecutableDescription: string
+    browse: string
   }
   ai: {
     title: string
