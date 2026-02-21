@@ -40,6 +40,7 @@ interface ComponentsResources {
     help: string
     openFolder: string
     openMediaLibrary: string
+    developer: string
     openAppDataFolder: string
     openLogFolder: string
     config: string

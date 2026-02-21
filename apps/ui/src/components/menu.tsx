@@ -172,48 +172,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'open-media-library',
           onClick: () => { onOpenMediaLibraryMenuClick?.() }
         },
-        {
-          name: t('menu.openAppDataFolder'),
-          id: 'open-app-data-folder',
-          onClick: async () => {
-            try {
-              const result = await hello()
-              if (result.error) {
-                toast.error(result.error)
-                return
-              }
-              // Convert platform path to POSIX format
-              const posixPath = Path.isWindows() ? Path.posix(result.appDataDir) : result.appDataDir
-              const openResult = await openInFileManagerApi(posixPath)
-              if (openResult.error) {
-                toast.error(openResult.error)
-              }
-            } catch (error) {
-              toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
-            }
-          }
-        },
-        {
-          name: t('menu.openLogFolder'),
-          id: 'open-log-folder',
-          onClick: async () => {
-            try {
-              const result = await hello()
-              if (result.error) {
-                toast.error(result.error)
-                return
-              }
-              // Convert platform path to POSIX format
-              const posixPath = Path.isWindows() ? Path.posix(result.logDir) : result.logDir
-              const openResult = await openInFileManagerApi(posixPath)
-              if (openResult.error) {
-                toast.error(openResult.error)
-              }
-            } catch (error) {
-              toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
-            }
-          }
-        },
+        
         {
           name: t('menu.downloadVideo'),
           id: 'download-video',
@@ -224,9 +183,6 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           }
         },
         {
-          type: "separator"
-        },
-        {
           name: t('menu.config'),
           id: 'config',
           onClick: () => {
@@ -234,20 +190,74 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           }
         },
         {
-          name: t('menu.cleanUp'),
-          id: 'clean-up',
-          onClick: async () => {
-            try {
-              const result = await cleanUp()
-              if (result.success) {
-                toast.success('Clean up completed successfully')
-              } else {
-                toast.error(result.error || 'Clean up failed')
+          type: "separator"
+        },
+        {
+          type: "submenu",
+          name: t('menu.developer'),
+          items: [
+            {
+              name: t('menu.openAppDataFolder'),
+              id: 'open-app-data-folder',
+              onClick: async () => {
+                try {
+                  const result = await hello()
+                  if (result.error) {
+                    toast.error(result.error)
+                    return
+                  }
+                  // Convert platform path to POSIX format
+                  const posixPath = Path.isWindows() ? Path.posix(result.appDataDir) : result.appDataDir
+                  const openResult = await openInFileManagerApi(posixPath)
+                  if (openResult.error) {
+                    toast.error(openResult.error)
+                  }
+                } catch (error) {
+                  toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                }
               }
-            } catch (error) {
-              toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            },
+            {
+              name: t('menu.openLogFolder'),
+              id: 'open-log-folder',
+              onClick: async () => {
+                try {
+                  const result = await hello()
+                  if (result.error) {
+                    toast.error(result.error)
+                    return
+                  }
+                  // Convert platform path to POSIX format
+                  const posixPath = Path.isWindows() ? Path.posix(result.logDir) : result.logDir
+                  const openResult = await openInFileManagerApi(posixPath)
+                  if (openResult.error) {
+                    toast.error(openResult.error)
+                  }
+                } catch (error) {
+                  toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                }
+              }
+            },
+            {
+              type: "separator"
+            },
+            {
+              name: t('menu.cleanUp'),
+              id: 'clean-up',
+              onClick: async () => {
+                try {
+                  const result = await cleanUp()
+                  if (result.success) {
+                    toast.success('Clean up completed successfully')
+                  } else {
+                    toast.error(result.error || 'Clean up failed')
+                  }
+                } catch (error) {
+                  toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                }
+              }
             }
-          }
+          ]
         },
         {
           type: "separator"
