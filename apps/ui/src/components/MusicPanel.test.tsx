@@ -1,288 +1,673 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MusicPanel } from './MusicPanel'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { MusicPanel } from './MusicPanel';
+import { useMediaMetadata } from '@/providers/media-metadata-provider';
+import { useDialogs } from '@/providers/dialog-provider';
+import { toast } from 'sonner';
+import { openFile } from '@/api/openFile';
+import type { Track } from './MediaPlayer';
+import { Path } from '@core/path';
 
-let mockSelectedMediaMetadata: UIMediaMetadata | undefined = undefined
+vi.mock('@/providers/media-metadata-provider');
+vi.mock('@/providers/dialog-provider');
+vi.mock('@/api/openFile');
+vi.mock('sonner');
 
-vi.mock('@/providers/media-metadata-provider', () => ({
-  useMediaMetadata: vi.fn(() => ({
-    selectedMediaMetadata: mockSelectedMediaMetadata,
-    updateMediaMetadata: vi.fn(),
-    refreshMediaMetadata: vi.fn(),
-    setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-  })),
-}))
+const mockTrack: Track = {
+  id: 1,
+  title: 'Test Song',
+  artist: 'Test Artist',
+  album: 'Test Album',
+  duration: 180,
+  genre: 'pop',
+  thumbnail: 'https://example.com/thumbnail.jpg',
+  addedDate: new Date('2024-01-01'),
+  path: '/path/to/song.mp3',
+};
 
-vi.mock('./MediaPlayer', () => ({
-  MediaPlayer: vi.fn(({ tracks }: { tracks: any }) => (
-    <div data-testid="media-player" data-tracks={tracks === undefined ? 'undefined' : JSON.stringify(tracks)}>
-      MediaPlayer
-    </div>
-  )),
-}))
+const mockSelectedMediaMetadata = {
+  mediaFolderPath: '/media/music',
+  files: ['/media/music/song1.mp3', '/media/music/song2.mp3'],
+  status: 'ok' as const,
+};
 
 describe('MusicPanel', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockSelectedMediaMetadata = undefined
-  })
+    vi.clearAllMocks();
+    
+    vi.mocked(useMediaMetadata).mockReturnValue({
+      selectedMediaMetadata: mockSelectedMediaMetadata,
+      updateMediaMetadata: vi.fn(),
+      refreshMediaMetadata: vi.fn(),
+      mediaMetadatas: [],
+      setMediaMetadatas: vi.fn(),
+      addMediaMetadata: vi.fn(),
+      removeMediaMetadata: vi.fn(),
+      getMediaMetadata: vi.fn(),
+      setSelectedMediaMetadata: vi.fn(),
+      setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
+      reloadMediaMetadatas: vi.fn(),
+      updateMediaMetadataStatus: vi.fn(),
+    });
 
-  it('should render without errors', () => {
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    expect(mediaPlayer).toBeInTheDocument()
-  })
+    vi.mocked(useDialogs).mockReturnValue({
+      filePropertyDialog: [vi.fn(), vi.fn()],
+      downloadVideoDialog: [vi.fn(), vi.fn()],
+      confirmationDialog: [vi.fn(), vi.fn()],
+      spinnerDialog: [vi.fn(), vi.fn()],
+      configDialog: [vi.fn(), vi.fn()],
+      openFolderDialog: [vi.fn(), vi.fn()],
+      filePickerDialog: [vi.fn(), vi.fn()],
+      mediaSearchDialog: [vi.fn(), vi.fn()],
+      renameDialog: [vi.fn(), vi.fn()],
+      scrapeDialog: [vi.fn(), vi.fn()],
+    });
 
-  it('should render MediaPlayer with undefined tracks when selectedMediaMetadata is undefined', () => {
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    expect(mediaPlayer).toBeInTheDocument()
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    expect(tracksData).toBe('undefined')
-  })
+    vi.mocked(toast).mockImplementation(() => 'test-id');
 
-  it('should render MediaPlayer with tracks when selectedMediaMetadata is defined', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album',
-      type: 'music-folder',
-      files: [
-        '/media/music/album/song1.mp3',
-        '/media/music/album/song2.mp3',
-      ],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    expect(mediaPlayer).toBeInTheDocument()
-    
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    expect(tracksData).toBeDefined()
-    const parsedTracks = JSON.parse(tracksData!)
-    expect(parsedTracks).toHaveLength(2)
-  })
+    vi.mocked(openFile).mockResolvedValue({
+      data: {} as any,
+      error: undefined,
+    });
 
-  it('should create tracks from selectedMediaMetadata', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album',
-      type: 'music-folder',
-      mediaName: 'My Album',
-      files: [
-        '/media/music/album/song1.mp3',
-        '/media/music/album/song1.jpg',
-      ],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(1)
-    expect(parsedTracks[0].id).toBe(0)
-    expect(parsedTracks[0].title).toBe('song1.mp3')
-    expect(parsedTracks[0].artist).toBe('')
-    expect(parsedTracks[0].album).toBe('')
-    expect(parsedTracks[0].thumbnail).toBe('file:///media/music/album/song1.jpg')
-  })
+    vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
+  });
 
-  it('should have correct container structure', () => {
-    const { container } = render(<MusicPanel />)
-    
-    const containerDiv = container.firstChild as HTMLElement
-    expect(containerDiv).toBeInTheDocument()
-    expect(containerDiv).toHaveStyle({
-      flex: '1',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-    })
-  })
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-  it('should update tracks when selectedMediaMetadata changes', () => {
-    const initialMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album1',
-      type: 'music-folder',
-      files: ['/media/music/album1/song1.mp3'],
-    }
-    
-    mockSelectedMediaMetadata = initialMetadata
-    
-    const { rerender } = render(<MusicPanel />)
-    
-    let mediaPlayer = screen.getByTestId('media-player')
-    let tracksData = mediaPlayer.getAttribute('data-tracks')
-    let parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(1)
-    expect(parsedTracks[0].title).toBe('song1.mp3')
-    
-    const updatedMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album2',
-      type: 'music-folder',
-      files: ['/media/music/album2/song2.mp3'],
-    }
-    
-    mockSelectedMediaMetadata = updatedMetadata
-    rerender(<MusicPanel />)
-    
-    mediaPlayer = screen.getByTestId('media-player')
-    tracksData = mediaPlayer.getAttribute('data-tracks')
-    parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(1)
-    expect(parsedTracks[0].title).toBe('song2.mp3')
-  })
+  describe('Event Handling - Track Open', () => {
+    it('should call openFile API when track:open event is received with valid path', async () => {
+      renderHook(() => MusicPanel());
 
-  it('should handle empty files array', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/empty-album',
-      type: 'music-folder',
-      files: [],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toEqual([])
-  })
+      await act(async () => {
+        const event = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
 
-  it('should handle files being undefined', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album',
-      type: 'music-folder',
-      files: undefined,
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toEqual([])
-  })
+      expect(openFile).toHaveBeenCalledWith(mockTrack.path);
+    });
 
-  it('should filter out non-media files', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album',
-      type: 'music-folder',
-      files: [
-        '/media/music/album/song1.mp3',
-        '/media/music/album/lyrics.txt',
-        '/media/music/album/info.md',
-      ],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(1)
-    expect(parsedTracks[0].title).toBe('song1.mp3')
-  })
+    it('should show error toast when track:open event has no path', async () => {
+      renderHook(() => MusicPanel());
 
-  it('should handle video files', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/videos',
-      type: 'music-folder',
-      files: [
-        '/media/music/videos/video1.mp4',
-        '/media/music/videos/video2.mkv',
-      ],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(2)
-    expect(parsedTracks[0].title).toBe('video1.mp4')
-    expect(parsedTracks[1].title).toBe('video2.mkv')
-  })
+      await act(async () => {
+        const event = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: undefined,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
 
-  it('should handle mixed audio and video files', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/mixed',
-      type: 'music-folder',
-      files: [
-        '/media/music/mixed/song1.mp3',
-        '/media/music/mixed/video1.mp4',
-        '/media/music/mixed/song2.flac',
-      ],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(3)
-    expect(parsedTracks[0].title).toBe('video1.mp4')
-    expect(parsedTracks[1].title).toBe('song1.mp3')
-    expect(parsedTracks[2].title).toBe('song2.flac')
-  })
+      expect(openFile).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('does not have an associated file path')
+      );
+    });
 
-  it('should convert musicFiles to tracks with correct properties', () => {
-    const testMediaMetadata: UIMediaMetadata = {
-      status: 'ok',
-      mediaFolderPath: '/media/music/album',
-      type: 'music-folder',
-      mediaName: 'Test Album',
-      files: ['/media/music/album/song1.mp3'],
-    }
-    
-    mockSelectedMediaMetadata = testMediaMetadata
-    
-    render(<MusicPanel />)
-    
-    const mediaPlayer = screen.getByTestId('media-player')
-    const tracksData = mediaPlayer.getAttribute('data-tracks')
-    const parsedTracks = JSON.parse(tracksData!)
-    
-    expect(parsedTracks).toHaveLength(1)
-    expect(parsedTracks[0].id).toBe(0)
-    expect(parsedTracks[0].title).toBe('song1.mp3')
-    expect(parsedTracks[0].artist).toBe('')
-    expect(parsedTracks[0].album).toBe('')
-    expect(parsedTracks[0].duration).toBe(0)
-    expect(parsedTracks[0].genre).toBe('unknown')
-    expect(parsedTracks[0].thumbnail).toBe('https://picsum.photos/seed/default/200')
-    expect(parsedTracks[0].addedDate).toBeDefined()
-  })
-})
+    it('should show error toast when openFile API fails', async () => {
+      const mockError = new Error('Failed to open file');
+      vi.mocked(openFile).mockRejectedValue(mockError);
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to open file')
+      );
+    });
+
+    it('should handle successful file open', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[MusicPanel] Successfully opened file:',
+        mockTrack.path
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Event Handling - Track Delete', () => {
+    it('should update media metadata when track:delete event is received', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockSelectedMediaMetadata.files[0],
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      const updateMediaMetadataMock = vi.mocked(useMediaMetadata).mock.results[0]?.value.updateMediaMetadata;
+      expect(updateMediaMetadataMock).toHaveBeenCalledWith(
+        mockSelectedMediaMetadata.mediaFolderPath,
+        expect.any(Function)
+      );
+    });
+
+    it('should show error toast when track:delete event has no path', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: undefined,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('does not have an associated file path')
+      );
+    });
+
+    it('should show error toast when no media metadata is selected', async () => {
+      vi.mocked(useMediaMetadata).mockReturnValue({
+        selectedMediaMetadata: undefined,
+        updateMediaMetadata: vi.fn(),
+        refreshMediaMetadata: vi.fn(),
+        mediaMetadatas: [],
+        setMediaMetadatas: vi.fn(),
+        addMediaMetadata: vi.fn(),
+        removeMediaMetadata: vi.fn(),
+        getMediaMetadata: vi.fn(),
+        setSelectedMediaMetadata: vi.fn(),
+        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
+        reloadMediaMetadatas: vi.fn(),
+        updateMediaMetadataStatus: vi.fn(),
+      });
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'No media folder is currently selected.'
+      );
+    });
+
+    it('should show error toast when file is not found in media metadata', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: '/nonexistent/path/song.mp3',
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('is not in the current media folder')
+      );
+    });
+
+    it('should show success toast after successful deletion', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockSelectedMediaMetadata.files[0],
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('has been removed from the media folder')
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[MusicPanel] Successfully deleted track:',
+        mockTrack.title
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle multiple file deletions', async () => {
+      const multiFileMetadata = {
+        ...mockSelectedMediaMetadata,
+        files: ['/media/music/song1.mp3', '/media/music/song2.mp3', '/media/music/song3.mp3'],
+      };
+
+      const updateMediaMetadataMock = vi.fn();
+      vi.mocked(useMediaMetadata).mockReturnValue({
+        selectedMediaMetadata: multiFileMetadata,
+        updateMediaMetadata: updateMediaMetadataMock,
+        refreshMediaMetadata: vi.fn(),
+        mediaMetadatas: [],
+        setMediaMetadatas: vi.fn(),
+        addMediaMetadata: vi.fn(),
+        removeMediaMetadata: vi.fn(),
+        getMediaMetadata: vi.fn(),
+        setSelectedMediaMetadata: vi.fn(),
+        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
+        reloadMediaMetadatas: vi.fn(),
+        updateMediaMetadataStatus: vi.fn(),
+      });
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: '/media/music/song1.mp3',
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(updateMediaMetadataMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('Event Handling - Track Properties', () => {
+    it('should open properties dialog when track:properties event is received', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.filePropertyDialog[0];
+      expect(filePropertyDialogMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.any(Number),
+          title: expect.any(String),
+        })
+      );
+    });
+
+    it('should show error toast when track is not found', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: 999,
+            timestamp: Date.now(),
+            trackPath: '/nonexistent/path/song.mp3',
+            trackTitle: 'Nonexistent Song',
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('could not be found')
+      );
+    });
+
+    it('should log success when properties dialog is opened', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[MusicPanel] Opened properties dialog for track:',
+        mockTrack.title
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle errors when opening properties dialog', async () => {
+      const mockError = new Error('Failed to open dialog');
+      vi.mocked(useDialogs).mockReturnValue({
+        filePropertyDialog: [vi.fn(() => {
+          throw mockError;
+        }), vi.fn()],
+        downloadVideoDialog: [vi.fn(), vi.fn()],
+        confirmationDialog: [vi.fn(), vi.fn()],
+        spinnerDialog: [vi.fn(), vi.fn()],
+        configDialog: [vi.fn(), vi.fn()],
+        openFolderDialog: [vi.fn(), vi.fn()],
+        filePickerDialog: [vi.fn(), vi.fn()],
+        mediaSearchDialog: [vi.fn(), vi.fn()],
+        renameDialog: [vi.fn(), vi.fn()],
+        scrapeDialog: [vi.fn(), vi.fn()],
+      });
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to open dialog')
+      );
+    });
+  });
+
+  describe('Event Listener Management', () => {
+    it('should register event listeners on mount', () => {
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+
+      renderHook(() => MusicPanel());
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith('track:open', expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith('track:delete', expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith('track:properties', expect.any(Function));
+
+      addEventListenerSpy.mockRestore();
+    });
+
+    it('should remove event listeners on unmount', () => {
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
+
+      const { unmount } = renderHook(() => MusicPanel());
+
+      unmount();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('track:open', expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('track:delete', expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('track:properties', expect.any(Function));
+
+      removeEventListenerSpy.mockRestore();
+    });
+
+    it('should handle multiple events sequentially', async () => {
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const openEvent = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(openEvent);
+
+        const deleteEvent = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(deleteEvent);
+
+        const propertiesEvent = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(propertiesEvent);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(openFile).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle errors gracefully in track open', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(openFile).mockRejectedValue(new Error('Network error'));
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:open', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('Could not open')
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle errors gracefully in track delete', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(useMediaMetadata).mockReturnValue({
+        selectedMediaMetadata: mockSelectedMediaMetadata,
+        updateMediaMetadata: vi.fn(() => {
+          throw new Error('Update failed');
+        }),
+        refreshMediaMetadata: vi.fn(),
+        mediaMetadatas: [],
+        setMediaMetadatas: vi.fn(),
+        addMediaMetadata: vi.fn(),
+        removeMediaMetadata: vi.fn(),
+        getMediaMetadata: vi.fn(),
+        setSelectedMediaMetadata: vi.fn(),
+        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
+        reloadMediaMetadatas: vi.fn(),
+        updateMediaMetadataStatus: vi.fn(),
+      });
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockSelectedMediaMetadata.files[0],
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('Update failed')
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle errors gracefully in track properties', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:properties', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockTrack.path,
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+});

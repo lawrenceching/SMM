@@ -14,9 +14,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { useTranslation } from '@/lib/i18n';
-import { useDialogs } from '@/providers/dialog-provider';
-import { openFile } from '@/api/openFile';
-import { Path } from '@core/path';
+import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent } from '@/lib/musicEvents';
 
 export interface MediaPlayerTrackListProps {
   filteredTracks: Track[];
@@ -53,28 +51,22 @@ function TrackListItem({
   onTrackDelete
 }: TrackListItemProps) {
   const { t } = useTranslation('components');
-  const [openFileProperty] = useDialogs().filePropertyDialog;
   const isActive = currentTrack?.id === track.id;
   const showPlayButton = isActive && isPlaying && mode === 'player';
   const showPauseIcon = isActive && mode === 'player';
 
-  const handleOpen = async () => {
-    if (track.path) {
-      try {
-        await openFile(Path.toPlatformPath(track.path));
-      } catch (error) {
-        console.error('[MediaPlayerTrackList] Failed to open file:', error);
-      }
-    }
+  const handleOpen = () => {
+    emitTrackOpenEvent(track);
     onTrackOpen?.(track);
   };
 
   const handleDelete = () => {
+    emitTrackDeleteEvent(track);
     onTrackDelete?.(track);
   };
 
   const handleProperties = () => {
-    openFileProperty(track);
+    emitTrackPropertiesEvent(track);
   };
 
   return (
