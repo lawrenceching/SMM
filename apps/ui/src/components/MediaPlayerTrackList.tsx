@@ -71,11 +71,11 @@ export function MediaPlayerTrackList({
               <Play className="w-5 h-5 mx-auto text-foreground hidden group-hover:block" />
             )}
           </div>
-          <div className="w-[120px] h-[60px] rounded overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-secondary">
-            <Image 
-              url={track.thumbnail} 
-              alt={`${track.album} cover`} 
-              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='50'%3E%3Crect width='200' height='50' fill='%23333'/%3E%3C/svg%3E"
+          <div className="w-[120px] h-[60px] rounded overflow-hidden flex-shrink-0 from-primary to-secondary">
+            <Image
+              url={track.thumbnail}
+              alt={`${track.album} cover`}
+              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3C/svg%3E"
               className="w-full h-full object-cover"
             />
           </div>
