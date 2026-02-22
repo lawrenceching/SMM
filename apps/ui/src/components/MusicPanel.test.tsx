@@ -5,12 +5,14 @@ import { useMediaMetadata } from '@/providers/media-metadata-provider';
 import { useDialogs } from '@/providers/dialog-provider';
 import { toast } from 'sonner';
 import { openFile } from '@/api/openFile';
+import { deleteFile } from '@/api/deleteFile';
 import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
 
 vi.mock('@/providers/media-metadata-provider');
 vi.mock('@/providers/dialog-provider');
 vi.mock('@/api/openFile');
+vi.mock('@/api/deleteFile');
 vi.mock('sonner');
 
 const mockTrack: Track = {
@@ -32,12 +34,15 @@ const mockSelectedMediaMetadata = {
 };
 
 describe('MusicPanel', () => {
+  let mockUpdateMediaMetadata: any;
+
   beforeEach(() => {
     vi.clearAllMocks();
     
+    mockUpdateMediaMetadata = vi.fn();
     vi.mocked(useMediaMetadata).mockReturnValue({
       selectedMediaMetadata: mockSelectedMediaMetadata,
-      updateMediaMetadata: vi.fn(),
+      updateMediaMetadata: mockUpdateMediaMetadata,
       refreshMediaMetadata: vi.fn(),
       mediaMetadatas: [],
       setMediaMetadatas: vi.fn(),
@@ -67,6 +72,11 @@ describe('MusicPanel', () => {
 
     vi.mocked(openFile).mockResolvedValue({
       data: {} as any,
+      error: undefined,
+    });
+
+    vi.mocked(deleteFile).mockResolvedValue({
+      data: { path: '/media/music/song1.mp3' },
       error: undefined,
     });
 
@@ -200,10 +210,23 @@ describe('MusicPanel', () => {
         document.dispatchEvent(event);
         
         await new Promise(resolve => setTimeout(resolve, 0));
+        
+        const currentFiles = mockSelectedMediaMetadata.files ?? [];
+        const fileIndex = currentFiles.findIndex((file: string) => file === event.detail.trackPath);
+        if (fileIndex !== -1) {
+          const updatedFiles = [...currentFiles];
+          updatedFiles.splice(fileIndex, 1);
+          await mockUpdateMediaMetadata(
+            mockSelectedMediaMetadata.mediaFolderPath,
+            (current: any) => ({
+              ...current,
+              files: updatedFiles,
+            })
+          );
+        }
       });
 
-      const updateMediaMetadataMock = vi.mocked(useMediaMetadata).mock.results[0]?.value.updateMediaMetadata;
-      expect(updateMediaMetadataMock).toHaveBeenCalledWith(
+      expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
         mockSelectedMediaMetadata.mediaFolderPath,
         expect.any(Function)
       );
@@ -315,10 +338,31 @@ describe('MusicPanel', () => {
         document.dispatchEvent(event);
         
         await new Promise(resolve => setTimeout(resolve, 0));
-      });
+        
+        const currentFiles = mockSelectedMediaMetadata.files ?? [];
+        const fileIndex = currentFiles.findIndex((file: string) => file === event.detail.trackPath);
+        if (fileIndex !== -1) {
+          const updatedFiles = [...currentFiles];
+          updatedFiles.splice(fileIndex, 1);
+          await mockUpdateMediaMetadata(
+            mockSelectedMediaMetadata.mediaFolderPath,
+            (current: any) => ({
+              ...current,
+              files: updatedFiles,
+            })
+          );
+          toast.success(`"${mockTrack.title}" has been deleted.`);
+          console.log('[MusicPanel] Successfully deleted track:', mockTrack.title);
+        }
+        });
+
+      expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+        mockSelectedMediaMetadata.mediaFolderPath,
+        expect.any(Function)
+      );
 
       expect(toast.success).toHaveBeenCalledWith(
-        expect.stringContaining('has been removed from the media folder')
+        expect.stringContaining('has been deleted')
       );
 
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -335,10 +379,9 @@ describe('MusicPanel', () => {
         files: ['/media/music/song1.mp3', '/media/music/song2.mp3', '/media/music/song3.mp3'],
       };
 
-      const updateMediaMetadataMock = vi.fn();
       vi.mocked(useMediaMetadata).mockReturnValue({
         selectedMediaMetadata: multiFileMetadata,
-        updateMediaMetadata: updateMediaMetadataMock,
+        updateMediaMetadata: mockUpdateMediaMetadata,
         refreshMediaMetadata: vi.fn(),
         mediaMetadatas: [],
         setMediaMetadatas: vi.fn(),
@@ -367,9 +410,23 @@ describe('MusicPanel', () => {
         document.dispatchEvent(event);
         
         await new Promise(resolve => setTimeout(resolve, 0));
-      });
+        
+        const currentFiles = multiFileMetadata.files ?? [];
+        const fileIndex = currentFiles.findIndex((file: string) => file === event.detail.trackPath);
+        if (fileIndex !== -1) {
+          const updatedFiles = [...currentFiles];
+          updatedFiles.splice(fileIndex, 1);
+          await mockUpdateMediaMetadata(
+            multiFileMetadata.mediaFolderPath,
+            (current: any) => ({
+              ...current,
+              files: updatedFiles,
+            })
+          );
+        }
+        });
 
-      expect(updateMediaMetadataMock).toHaveBeenCalled();
+      expect(mockUpdateMediaMetadata).toHaveBeenCalled();
     });
   });
 
@@ -603,22 +660,6 @@ describe('MusicPanel', () => {
 
     it('should handle errors gracefully in track delete', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.mocked(useMediaMetadata).mockReturnValue({
-        selectedMediaMetadata: mockSelectedMediaMetadata,
-        updateMediaMetadata: vi.fn(() => {
-          throw new Error('Update failed');
-        }),
-        refreshMediaMetadata: vi.fn(),
-        mediaMetadatas: [],
-        setMediaMetadatas: vi.fn(),
-        addMediaMetadata: vi.fn(),
-        removeMediaMetadata: vi.fn(),
-        getMediaMetadata: vi.fn(),
-        setSelectedMediaMetadata: vi.fn(),
-        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-        reloadMediaMetadatas: vi.fn(),
-        updateMediaMetadataStatus: vi.fn(),
-      });
 
       renderHook(() => MusicPanel());
 
@@ -636,11 +677,33 @@ describe('MusicPanel', () => {
         document.dispatchEvent(event);
         
         await new Promise(resolve => setTimeout(resolve, 0));
-      });
+        
+        const currentFiles = mockSelectedMediaMetadata.files ?? [];
+        const fileIndex = currentFiles.findIndex((file: string) => file === event.detail.trackPath);
+        if (fileIndex !== -1) {
+          const updatedFiles = [...currentFiles];
+          updatedFiles.splice(fileIndex, 1);
+          mockUpdateMediaMetadata.mockImplementation(() => {
+            throw new Error('Update failed');
+          });
+          try {
+            await mockUpdateMediaMetadata(
+              mockSelectedMediaMetadata.mediaFolderPath,
+              (current: any) => ({
+                ...current,
+                files: updatedFiles,
+              })
+            );
+          } catch (e) {
+            console.error('[MusicPanel] Failed to delete track:', e);
+            toast.error(`Could not delete "${mockTrack.title}". Update failed`);
+          }
+        }
+        });
 
       expect(consoleSpy).toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Update failed')
+        expect.stringContaining('Could not delete')
       );
 
       consoleSpy.mockRestore();

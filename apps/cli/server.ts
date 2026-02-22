@@ -23,6 +23,7 @@ import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
+import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleGetPendingPlans } from './src/route/GetPendingPlans';
@@ -167,6 +168,7 @@ export class Server {
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);
+    handleDeleteFile(this.app);
     handleScrapeRequest(this.app);
     handleDebugRequest(this.app);
     handleGetPendingPlans(this.app);

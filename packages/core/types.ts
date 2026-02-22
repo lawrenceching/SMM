@@ -863,3 +863,17 @@ export interface GetFileNameResponseBody {
   error?: string
 }
 
+export interface DeleteFileRequestBody {
+  /**
+   * The absolute path to the file to delete (in platform-specific format)
+   */
+  path: string
+}
+
+export interface DeleteFileResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}
+
