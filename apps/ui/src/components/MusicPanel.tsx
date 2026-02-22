@@ -185,7 +185,7 @@ export function MusicPanel() {
 
   return (
     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <MediaPlayer tracks={tracks} />
+      <MediaPlayer tracks={tracks} destinationFolder={selectedMediaMetadata?.mediaFolderPath} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { FolderOpen } from "lucide-react"
 import {
   Dialog,
@@ -17,7 +17,7 @@ import { downloadYtdlpVideo } from "@/api/ytdlp"
 import { toast } from "sonner"
 import { validateDownloadUrl } from "@core/download-video-validators"
 
-export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker }: DownloadVideoDialogProps) {
+export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker, destinationFolder }: DownloadVideoDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
@@ -25,6 +25,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [isDownloading, setIsDownloading] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [urlTouched, setUrlTouched] = useState(false)
+
+  useEffect(() => {
+    if (isOpen && destinationFolder) {
+      setDownloadFolder(destinationFolder)
+    }
+  }, [isOpen, destinationFolder])
 
   const runUrlValidation = useCallback((value: string) => {
     const result = validateDownloadUrl(value)

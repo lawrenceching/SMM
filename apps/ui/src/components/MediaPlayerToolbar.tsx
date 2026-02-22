@@ -1,6 +1,8 @@
 import { SearchForm } from './search-form';
 import { FilterButton } from './shared/FilterButton';
 import { SortingButton } from './shared/SortingButton';
+import { Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const GENRES = ['all', 'pop', 'rock', 'electronic', 'jazz', 'classical'] as const;
 const SORT_OPTIONS = [
@@ -21,6 +23,11 @@ export interface MediaPlayerToolbarProps {
   onSortChange: (sortBy: SortBy) => void;
   filterValue?: Genre;
   sortValue: SortBy;
+  downloadVideoDialog?: [
+    open: (onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => void,
+    close: () => void
+  ];
+  destinationFolder?: string;
 }
 
 export function MediaPlayerToolbar({
@@ -29,7 +36,9 @@ export function MediaPlayerToolbar({
   onFilterChange,
   onSortChange,
   filterValue,
-  sortValue
+  sortValue,
+  downloadVideoDialog,
+  destinationFolder
 }: MediaPlayerToolbarProps) {
   const filterOptions = GENRES.map(genre => ({
     value: genre,
@@ -38,12 +47,18 @@ export function MediaPlayerToolbar({
 
   const sortOptions = SORT_OPTIONS.map(option => ({ ...option }));
 
+  const handleDownloadClick = () => {
+    if (downloadVideoDialog) {
+      const [openDownloadVideo] = downloadVideoDialog;
+      openDownloadVideo((url, folder) => {
+        console.log(`Starting download: ${url} to ${folder}`);
+      }, destinationFolder);
+    }
+  };
+
   return (
     <header className="flex-shrink-0 bg-card/80 backdrop-blur-sm border-b border-border px-2 py-2">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-        </div>
-
         <div className="flex-1 max-w-md">
           <SearchForm
             value={searchQuery}
@@ -54,6 +69,17 @@ export function MediaPlayerToolbar({
         </div>
 
         <div className="flex items-center gap-2">
+          {downloadVideoDialog && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleDownloadClick}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download
+            </Button>
+          )}
           {onFilterChange && filterValue !== undefined && (
             <FilterButton
               value={filterValue}

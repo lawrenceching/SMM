@@ -54,6 +54,7 @@ export interface DownloadVideoDialogProps {
   onClose: () => void
   onStart: (url: string, downloadFolder: string) => void
   onOpenFilePicker: (onSelect: (file: FileItem) => void) => void
+  destinationFolder?: string
 }
 
 export interface MediaSearchDialogProps {

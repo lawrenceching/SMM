@@ -45,7 +45,7 @@ interface DialogContextValue {
     closeFilePicker: () => void
   ]
   downloadVideoDialog: [
-    openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void) => void,
+    openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => void,
     closeDownloadVideo: () => void
   ]
   mediaSearchDialog: [
@@ -98,6 +98,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Download video dialog state
   const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
   const [downloadVideoOnStart, setDownloadVideoOnStart] = useState<((url: string, downloadFolder: string) => void) | null>(null)
+  const [downloadVideoDestinationFolder, setDownloadVideoDestinationFolder] = useState<string | undefined>(undefined)
 
   // Media search dialog state
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
@@ -198,8 +199,9 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeFilePicker()
   }, [filePickerOnSelect, closeFilePicker])
 
-  const openDownloadVideo = useCallback((onStart: (url: string, downloadFolder: string) => void) => {
+  const openDownloadVideo = useCallback((onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => {
     setDownloadVideoOnStart(() => onStart)
+    setDownloadVideoDestinationFolder(destinationFolder)
     setIsDownloadVideoOpen(true)
   }, [])
 
@@ -207,6 +209,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsDownloadVideoOpen(false)
     setTimeout(() => {
       setDownloadVideoOnStart(null)
+      setDownloadVideoDestinationFolder(undefined)
     }, 200)
   }, [])
 
@@ -324,6 +327,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onClose={closeDownloadVideo}
         onStart={handleDownloadStart}
         onOpenFilePicker={openFilePicker}
+        destinationFolder={downloadVideoDestinationFolder}
       />
       <MediaSearchDialog
         isOpen={isMediaSearchOpen}
