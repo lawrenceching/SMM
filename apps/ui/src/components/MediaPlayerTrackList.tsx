@@ -1,5 +1,6 @@
 import { Play, MoreVertical, Music } from 'lucide-react';
 import type { Track } from './MediaPlayer';
+import Image from './Image';
 
 export interface MediaPlayerTrackListProps {
   filteredTracks: Track[];
@@ -70,12 +71,12 @@ export function MediaPlayerTrackList({
               <Play className="w-5 h-5 mx-auto text-foreground hidden group-hover:block" />
             )}
           </div>
-          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-secondary">
-            <img 
-              src={track.thumbnail} 
+          <div className="w-[120px] h-[60px] rounded overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-secondary">
+            <Image 
+              url={track.thumbnail} 
               alt={`${track.album} cover`} 
+              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='50'%3E%3Crect width='200' height='50' fill='%23333'/%3E%3C/svg%3E"
               className="w-full h-full object-cover"
-              loading="lazy"
             />
           </div>
           <div className="flex-1 min-w-0">
