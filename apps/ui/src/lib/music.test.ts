@@ -860,7 +860,7 @@ describe('convertMusicFilesToTracks', () => {
       id: 0,
       title: 'Song 1',
       artist: 'Artist 1',
-      album: 'Unknown Album',
+      album: '',
       duration: 180,
       genre: 'unknown',
       thumbnail: 'file:///media/music/song1.jpg',
@@ -886,7 +886,7 @@ describe('convertMusicFilesToTracks', () => {
     expect(result[0].title).toBe('song1.mp3')
   })
 
-  it('should use "Unknown Artist" when artist is undefined', () => {
+  it('should use empty string when artist is undefined', () => {
     const musicFiles: MusicFileProps[] = [
       {
         type: 'audio',
@@ -901,7 +901,7 @@ describe('convertMusicFilesToTracks', () => {
     
     const result = convertMusicFilesToTracks(musicFiles)
     
-    expect(result[0].artist).toBe('Unknown Artist')
+    expect(result[0].artist).toBe('')
   })
 
   it('should use default thumbnail when thumbnailUri is undefined', () => {

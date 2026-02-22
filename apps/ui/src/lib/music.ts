@@ -87,8 +87,8 @@ export function convertMusicFilesToTracks(musicFiles: MusicFileProps[]): Track[]
     return musicFiles.map((file, index) => ({
         id: index,
         title: file.title || file.filename,
-        artist: file.artist || "Unknown Artist",
-        album: "Unknown Album",
+        artist: file.artist || "",
+        album: "",
         duration: file.duration || 0,
         genre: "unknown",
         thumbnail: (!file.thumbnailUri || file.thumbnailUri === 'file://undefined') ? "https://picsum.photos/seed/default/200" : file.thumbnailUri,

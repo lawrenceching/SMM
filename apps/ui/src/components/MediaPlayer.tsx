@@ -282,13 +282,6 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'v
       />
 
       <main className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-foreground">Your Library</h2>
-          <span className="text-sm text-muted-foreground">
-            {filteredTracks.length} track{filteredTracks.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
         <MediaPlayerTrackList
           filteredTracks={filteredTracks}
           currentTrack={currentTrack}
