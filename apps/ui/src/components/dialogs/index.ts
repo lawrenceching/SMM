@@ -8,6 +8,7 @@ export { RenameDialog } from "./rename-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
 export { FilePropertyDialog } from "./file-property-dialog"
+export { DeleteTrackDialog } from "./delete-track-dialog"
 
 export type {
   DialogConfig,
@@ -25,5 +26,6 @@ export type {
   ScrapeDialogProps,
   TrackProperties,
   FilePropertyDialogProps,
+  DeleteTrackDialogProps,
 } from "./types"
 

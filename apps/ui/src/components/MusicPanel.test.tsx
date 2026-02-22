@@ -428,6 +428,70 @@ describe('MusicPanel', () => {
 
       expect(mockUpdateMediaMetadata).toHaveBeenCalled();
     });
+
+    it('should close dialog when user clicks confirm and delete is successful', async () => {
+      const mockOpenConfirmation = vi.fn();
+      const mockCloseConfirmation = vi.fn();
+
+      vi.mocked(useDialogs).mockReturnValue({
+        filePropertyDialog: [vi.fn(), vi.fn()],
+        downloadVideoDialog: [vi.fn(), vi.fn()],
+        confirmationDialog: [mockOpenConfirmation, mockCloseConfirmation],
+        spinnerDialog: [vi.fn(), vi.fn()],
+        configDialog: [vi.fn(), vi.fn()],
+        openFolderDialog: [vi.fn(), vi.fn()],
+        filePickerDialog: [vi.fn(), vi.fn()],
+        mediaSearchDialog: [vi.fn(), vi.fn()],
+        renameDialog: [vi.fn(), vi.fn()],
+        scrapeDialog: [vi.fn(), vi.fn()],
+      });
+
+      vi.mocked(deleteFile).mockResolvedValue({
+        data: { path: mockSelectedMediaMetadata.files[0] },
+        error: undefined,
+      });
+
+      vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
+
+      renderHook(() => MusicPanel());
+
+      await act(async () => {
+        const event = new CustomEvent('track:delete', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            trackId: mockTrack.id,
+            timestamp: Date.now(),
+            trackPath: mockSelectedMediaMetadata.files[0],
+            trackTitle: mockTrack.title,
+          },
+        });
+        document.dispatchEvent(event);
+        
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(mockOpenConfirmation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Delete Track',
+        })
+      );
+
+      const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
+      const onConfirmCallback = dialogConfig.content.props.onConfirm;
+
+      await act(async () => {
+        await onConfirmCallback();
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(deleteFile).toHaveBeenCalledWith(mockSelectedMediaMetadata.files[0]);
+      expect(mockUpdateMediaMetadata).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('has been deleted')
+      );
+      expect(mockCloseConfirmation).toHaveBeenCalled();
+    });
   });
 
   describe('Event Handling - Track Properties', () => {

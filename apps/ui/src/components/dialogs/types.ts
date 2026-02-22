@@ -79,6 +79,12 @@ export interface OpenFolderDialogProps {
   folderPath?: string
 }
 
+export interface DeleteTrackDialogProps {
+  trackTitle: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
 export interface Task {
   name: string
   status: "pending" | "running" | "completed" | "failed"
