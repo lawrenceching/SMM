@@ -8,6 +8,7 @@ import {
   ContextMenuTrigger,
 } from './ui/context-menu';
 import { useTranslation } from '@/lib/i18n';
+import { useDialogs } from '@/providers/dialog-provider';
 
 export interface MediaPlayerTrackListProps {
   filteredTracks: Track[];
@@ -18,7 +19,6 @@ export interface MediaPlayerTrackListProps {
   formatTime: (seconds: number) => string;
   onTrackOpen?: (track: Track) => void;
   onTrackDelete?: (track: Track) => void;
-  onTrackProperties?: (track: Track) => void;
 }
 
 interface TrackListItemProps {
@@ -31,7 +31,6 @@ interface TrackListItemProps {
   formatTime: (seconds: number) => string;
   onTrackOpen?: (track: Track) => void;
   onTrackDelete?: (track: Track) => void;
-  onTrackProperties?: (track: Track) => void;
 }
 
 function TrackListItem({
@@ -43,10 +42,10 @@ function TrackListItem({
   onTrackClick,
   formatTime,
   onTrackOpen,
-  onTrackDelete,
-  onTrackProperties
+  onTrackDelete
 }: TrackListItemProps) {
   const { t } = useTranslation('components');
+  const [openFileProperty] = useDialogs().filePropertyDialog;
   const isActive = currentTrack?.id === track.id;
   const showPlayButton = isActive && isPlaying && mode === 'player';
   const showPauseIcon = isActive && mode === 'player';
@@ -60,7 +59,7 @@ function TrackListItem({
   };
 
   const handleProperties = () => {
-    onTrackProperties?.(track);
+    openFileProperty(track);
   };
 
   return (
@@ -157,8 +156,7 @@ export function MediaPlayerTrackList({
   onTrackClick,
   formatTime,
   onTrackOpen,
-  onTrackDelete,
-  onTrackProperties
+  onTrackDelete
 }: MediaPlayerTrackListProps) {
   const { t } = useTranslation('components');
 
@@ -186,7 +184,6 @@ export function MediaPlayerTrackList({
           formatTime={formatTime}
           onTrackOpen={onTrackOpen}
           onTrackDelete={onTrackDelete}
-          onTrackProperties={onTrackProperties}
         />
       ))}
     </div>

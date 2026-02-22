@@ -93,3 +93,20 @@ export interface ScrapeDialogProps {
   mediaMetadata?: MediaMetadata
 }
 
+export interface TrackProperties {
+  id: number
+  title: string
+  artist: string
+  album: string
+  duration: number
+  genre: string
+  thumbnail: string
+  addedDate: Date
+}
+
+export interface FilePropertyDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  track: TrackProperties
+}
+

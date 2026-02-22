@@ -77,6 +77,15 @@
   "errors": {
     "providerError": "useDialogs 必須在 DialogProvider 內使用",
     "fileAlreadyExists": "檔案已存在"
+  },
+  "fileProperty": {
+    "title": "標題",
+    "artist": "藝術家",
+    "album": "專輯",
+    "genre": "流派",
+    "duration": "時長",
+    "estimatedSize": "預計大小",
+    "addedDate": "添加日期"
   }
 }
 

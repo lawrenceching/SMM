@@ -11,10 +11,12 @@ import {
   RenameDialog,
   OpenFolderDialog,
   ScrapeDialog,
+  FilePropertyDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
   type Task,
+  type TrackProperties,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
 
@@ -57,6 +59,10 @@ interface DialogContextValue {
   scrapeDialog: [
     openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => void,
     closeScrape: () => void
+  ]
+  filePropertyDialog: [
+    openFileProperty: (track: TrackProperties) => void,
+    closeFileProperty: () => void
   ]
 }
 
@@ -105,6 +111,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Scrape dialog state
   const [isScrapeOpen, setIsScrapeOpen] = useState(false)
   const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }>({})
+
+  // File property dialog state
+  const [isFilePropertyOpen, setIsFilePropertyOpen] = useState(false)
+  const [filePropertyTrack, setFilePropertyTrack] = useState<TrackProperties | undefined>(undefined)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -252,6 +262,18 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openFileProperty = useCallback((track: TrackProperties) => {
+    setFilePropertyTrack(track)
+    setIsFilePropertyOpen(true)
+  }, [])
+
+  const closeFileProperty = useCallback(() => {
+    setIsFilePropertyOpen(false)
+    setTimeout(() => {
+      setFilePropertyTrack(undefined)
+    }, 200)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -262,6 +284,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
     renameDialog: [openRename, closeRename],
     scrapeDialog: [openScrape, closeScrape],
+    filePropertyDialog: [openFileProperty, closeFileProperty],
   }
 
   return (
@@ -320,6 +343,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isScrapeOpen}
         onClose={closeScrape}
         mediaMetadata={scrapeOptions.mediaMetadata}
+      />
+      <FilePropertyDialog
+        isOpen={isFilePropertyOpen}
+        onClose={closeFileProperty}
+        track={filePropertyTrack}
       />
     </DialogContext.Provider>
   )

@@ -7,6 +7,7 @@ export { MediaSearchDialog } from "./media-search-dialog"
 export { RenameDialog } from "./rename-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
+export { FilePropertyDialog } from "./file-property-dialog"
 
 export type {
   DialogConfig,
@@ -22,5 +23,7 @@ export type {
   RenameDialogProps,
   OpenFolderDialogProps,
   ScrapeDialogProps,
+  TrackProperties,
+  FilePropertyDialogProps,
 } from "./types"
 

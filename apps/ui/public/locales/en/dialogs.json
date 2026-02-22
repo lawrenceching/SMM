@@ -77,6 +77,15 @@
   "errors": {
     "providerError": "useDialogs must be used within a DialogProvider",
     "fileAlreadyExists": "File already exists"
+  },
+  "fileProperty": {
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "genre": "Genre",
+    "duration": "Duration",
+    "estimatedSize": "Estimated Size",
+    "addedDate": "Added Date"
   }
 }
 
