@@ -114,7 +114,7 @@ function TrackListItem({
             <div className="w-[120px] h-[60px] rounded overflow-hidden flex-shrink-0 from-primary to-secondary">
               <Image
                 url={track.thumbnail}
-                alt={`${track.album} cover`}
+                alt={`${track.title} cover`}
                 placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3C/svg%3E"
                 className="w-full h-full object-cover"
               />
@@ -127,7 +127,6 @@ function TrackListItem({
               </p>
               <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
             </div>
-            <div className="w-32 text-xs text-muted-foreground truncate hidden sm:block">{track.album}</div>
             <div className="w-16 text-sm text-muted-foreground text-right">{formatTime(track.duration)}</div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

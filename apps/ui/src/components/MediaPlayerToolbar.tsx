@@ -17,9 +17,9 @@ type SortBy = typeof SORT_OPTIONS[number]['value'];
 export interface MediaPlayerToolbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onFilterChange: (genre: Genre) => void;
+  onFilterChange?: (genre: Genre) => void;
   onSortChange: (sortBy: SortBy) => void;
-  filterValue: Genre;
+  filterValue?: Genre;
   sortValue: SortBy;
 }
 
@@ -54,13 +54,15 @@ export function MediaPlayerToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          <FilterButton
-            value={filterValue}
-            options={filterOptions}
-            onValueChange={onFilterChange}
-            placeholder="Filter"
-            tooltipLabel="Genre"
-          />
+          {onFilterChange && filterValue !== undefined && (
+            <FilterButton
+              value={filterValue}
+              options={filterOptions}
+              onValueChange={onFilterChange}
+              placeholder="Filter"
+              tooltipLabel="Genre"
+            />
+          )}
           <SortingButton
             value={sortValue}
             options={sortOptions}
