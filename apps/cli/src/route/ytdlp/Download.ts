@@ -6,6 +6,9 @@ import { validateDownloadUrl } from '@core/download-video-validators';
 export interface YtdlpDownloadResponseData {
   success?: boolean;
   error?: string;
+  /**
+   * The absolute path in platform-specific format
+   */
   path?: string;
 }
 

@@ -259,7 +259,7 @@ export function MusicPanel() {
 
     openDownloadVideo(
       handleDownloadStart,
-      selectedMediaMetadata?.mediaFolderPath,
+      Path.toPlatformPath(selectedMediaMetadata!.mediaFolderPath!),
       handleVideoDataExtracted,
       handleDownloadComplete
     );

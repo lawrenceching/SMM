@@ -113,7 +113,7 @@ Downloads a video using yt-dlp.
 |-------|------|----------|-------------|
 | `url` | string | Yes | Video URL to download |
 | `args` | string[] | No | Optional arguments (only `--write-thumbnail` and `--embed-thumbnail` allowed) |
-| `folder` | string | No | Download destination folder (defaults to `~/Downloads` if not provided) |
+| `folder` | string | No | Download destination folder (defaults to `~/Downloads` if not provided. Platform-specific path format is used.) |
 
 ### curl Example
 

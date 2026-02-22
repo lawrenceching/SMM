@@ -59,6 +59,9 @@ export interface DownloadVideoDialogProps {
   onClose: () => void
   onStart: (url: string, downloadFolder: string) => void
   onOpenFilePicker: (onSelect: (file: FileItem) => void) => void
+  /**
+   * The absolute path in platform-specific format
+   */
   destinationFolder?: string
   onVideoDataExtracted?: (data: VideoData, url: string) => void
   onDownloadComplete?: (url: string, path: string) => void

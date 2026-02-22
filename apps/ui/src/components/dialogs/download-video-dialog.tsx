@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { FolderOpen } from "lucide-react"
 import {
   Dialog,
@@ -25,53 +25,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [isDownloading, setIsDownloading] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [urlTouched, setUrlTouched] = useState(false)
-  const [isExtracting, setIsExtracting] = useState(false)
-  const extractionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isOpen && destinationFolder) {
       setDownloadFolder(destinationFolder)
     }
   }, [isOpen, destinationFolder])
-
-  // Extract video data when URL is valid (with debounce)
-  useEffect(() => {
-    if (!isOpen || !onVideoDataExtracted) return
-
-    const trimmedUrl = url.trim()
-    const isValid = validateDownloadUrl(trimmedUrl).valid
-
-    if (!isValid) return
-
-    // Clear any existing timeout
-    if (extractionTimeoutRef.current) {
-      clearTimeout(extractionTimeoutRef.current)
-    }
-
-    // Debounce the extraction by 500ms
-    extractionTimeoutRef.current = setTimeout(async () => {
-      setIsExtracting(true)
-      try {
-        const result = await extractYtdlpVideoData(trimmedUrl)
-        if (result.title || result.artist) {
-          onVideoDataExtracted({
-            title: result.title,
-            artist: result.artist,
-          }, trimmedUrl)
-        }
-      } catch (error) {
-        console.error('[DownloadVideoDialog] Failed to extract video data:', error)
-      } finally {
-        setIsExtracting(false)
-      }
-    }, 500)
-
-    return () => {
-      if (extractionTimeoutRef.current) {
-        clearTimeout(extractionTimeoutRef.current)
-      }
-    }
-  }, [isOpen, url, onVideoDataExtracted])
 
   const runUrlValidation = useCallback((value: string) => {
     const result = validateDownloadUrl(value)
@@ -110,8 +69,37 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
       setIsDownloading(true)
       setProgress(0)
 
-      // Notify that download is starting
+      if (onVideoDataExtracted) {
+        try {
+          const result = await extractYtdlpVideoData(currentUrl)
+          if (result.title || result.artist) {
+            onVideoDataExtracted({
+              title: result.title,
+              artist: result.artist,
+            }, currentUrl)
+          }
+        } catch (error) {
+          console.error('[DownloadVideoDialog] Failed to extract video data:', error)
+        }
+      }
+
       onStart(currentUrl, currentFolder)
+
+      if (destinationFolder) {
+        downloadYtdlpVideo({
+          url: currentUrl,
+          folder: currentFolder,
+        }).then((result) => {
+          if (result.error) {
+            toast.error(result.error)
+          } else if (result.success) {
+            onDownloadComplete?.(currentUrl, result.path || '')
+          }
+        })
+        setIsDownloading(false)
+        onClose()
+        return
+      }
 
       const result = await downloadYtdlpVideo({
         url: currentUrl,
@@ -132,14 +120,10 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   }
 
   const handleCancel = () => {
-    if (extractionTimeoutRef.current) {
-      clearTimeout(extractionTimeoutRef.current)
-    }
     setUrl("")
     setDownloadFolder("")
     setProgress(0)
     setIsDownloading(false)
-    setIsExtracting(false)
     setUrlError(null)
     setUrlTouched(false)
     onClose()
