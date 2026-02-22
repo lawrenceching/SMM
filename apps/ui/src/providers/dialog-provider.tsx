@@ -45,7 +45,7 @@ interface DialogContextValue {
     closeFilePicker: () => void
   ]
   downloadVideoDialog: [
-    openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => void,
+    openDownloadVideo: (onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string, onVideoDataExtracted?: (data: { title?: string; artist?: string }, url: string) => void, onDownloadComplete?: (url: string, path: string) => void) => void,
     closeDownloadVideo: () => void
   ]
   mediaSearchDialog: [
@@ -99,6 +99,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isDownloadVideoOpen, setIsDownloadVideoOpen] = useState(false)
   const [downloadVideoOnStart, setDownloadVideoOnStart] = useState<((url: string, downloadFolder: string) => void) | null>(null)
   const [downloadVideoDestinationFolder, setDownloadVideoDestinationFolder] = useState<string | undefined>(undefined)
+  const [downloadVideoOnDataExtracted, setDownloadVideoOnDataExtracted] = useState<((data: { title?: string; artist?: string }, url: string) => void) | null>(null)
+  const [downloadVideoOnComplete, setDownloadVideoOnComplete] = useState<((url: string, path: string) => void) | null>(null)
 
   // Media search dialog state
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
@@ -199,9 +201,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
     closeFilePicker()
   }, [filePickerOnSelect, closeFilePicker])
 
-  const openDownloadVideo = useCallback((onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => {
+  const openDownloadVideo = useCallback((onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string, onVideoDataExtracted?: (data: { title?: string; artist?: string }, url: string) => void, onDownloadComplete?: (url: string, path: string) => void) => {
     setDownloadVideoOnStart(() => onStart)
     setDownloadVideoDestinationFolder(destinationFolder)
+    setDownloadVideoOnDataExtracted(() => onVideoDataExtracted || null)
+    setDownloadVideoOnComplete(() => onDownloadComplete || null)
     setIsDownloadVideoOpen(true)
   }, [])
 
@@ -210,6 +214,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setTimeout(() => {
       setDownloadVideoOnStart(null)
       setDownloadVideoDestinationFolder(undefined)
+      setDownloadVideoOnDataExtracted(null)
+      setDownloadVideoOnComplete(null)
     }, 200)
   }, [])
 
@@ -328,6 +334,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onStart={handleDownloadStart}
         onOpenFilePicker={openFilePicker}
         destinationFolder={downloadVideoDestinationFolder}
+        onVideoDataExtracted={downloadVideoOnDataExtracted || undefined}
+        onDownloadComplete={downloadVideoOnComplete || undefined}
       />
       <MediaSearchDialog
         isOpen={isMediaSearchOpen}

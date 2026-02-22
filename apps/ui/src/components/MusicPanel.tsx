@@ -1,15 +1,15 @@
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
-import { MediaPlayer } from "./MediaPlayer";
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { MediaPlayer, type Track } from "./MediaPlayer";
+import { useMemo, useEffect, useRef, useCallback, useState } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
-import { 
-  addMusicEventListener, 
-  type TrackOpenEventDetail, 
-  type TrackDeleteEventDetail, 
+import {
+  addMusicEventListener,
+  type TrackOpenEventDetail,
+  type TrackDeleteEventDetail,
   type TrackPropertiesEventDetail,
-  MUSIC_EVENT_NAMES 
+  MUSIC_EVENT_NAMES
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
@@ -31,13 +31,26 @@ export function MusicPanel() {
   const [openDownloadVideo] = downloadVideoDialog;
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
-  const tracks = useMemo(() => {
+  // Temporary tracks for downloading/downloaded videos (keyed by URL stored in path)
+  const [tmpTracks, setTmpTracks] = useState<Track[]>([]);
+  // Counter for generating unique IDs for tmp tracks
+  const tmpIdCounterRef = useRef(0);
+
+  // Base tracks from media metadata
+  const baseTracks = useMemo(() => {
     if(!selectedMediaMetadata) {
       return undefined;
     }
     const musicMediaMetadata = newMusicMediaMetadata(selectedMediaMetadata);
     return convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
   }, [selectedMediaMetadata]);
+
+  // Merge base tracks with tmp tracks
+  const tracks = useMemo(() => {
+    const base = baseTracks ?? [];
+    // Add tmp tracks at the beginning
+    return [...tmpTracks, ...base] as Track[];
+  }, [baseTracks, tmpTracks]);
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
     const { trackPath, trackTitle } = event.detail;
@@ -162,9 +175,94 @@ export function MusicPanel() {
   }, [tracks, openFilePropertyDialog]);
 
   const handleDownloadClick = useCallback(() => {
-    openDownloadVideo((url, folder) => {
-      console.log(`Starting download: ${url} to ${folder}`);
-    }, selectedMediaMetadata?.mediaFolderPath);
+    // Callback when video data is extracted (may come before or after onStart)
+    const handleVideoDataExtracted = (videoData: { title?: string; artist?: string }, url: string) => {
+      console.log('[MusicPanel] Extracted video data:', videoData, 'for URL:', url);
+
+      setTmpTracks((prev) => {
+        const existingIndex = prev.findIndex((t) => t.path === url);
+        if (existingIndex !== -1) {
+          // Update existing track
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            title: videoData.title || updated[existingIndex].title,
+            artist: videoData.artist || updated[existingIndex].artist,
+          };
+          return updated;
+        }
+        // No existing track, create one with URL as title
+        const newTrack: Track = {
+          id: --tmpIdCounterRef.current,
+          title: videoData.title || url,
+          artist: videoData.artist || 'Unknown',
+          duration: 0,
+          thumbnail: '',
+          addedDate: new Date(),
+          path: url,
+          isDownloading: true,
+        };
+        return [newTrack, ...prev];
+      });
+    };
+
+    // Callback when download starts
+    const handleDownloadStart = (url: string, folder: string) => {
+      console.log(`[MusicPanel] Starting download: ${url} to ${folder}`);
+
+      setTmpTracks((prev) => {
+        // Check if track already exists (created by onVideoDataExtracted)
+        const existingIndex = prev.findIndex((t) => t.path === url);
+        if (existingIndex !== -1) {
+          // Track exists, just mark as downloading
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            isDownloading: true,
+          };
+          return updated;
+        }
+        // Create new track with URL as title
+        const newTrack: Track = {
+          id: --tmpIdCounterRef.current,
+          title: url,
+          artist: 'Unknown',
+          duration: 0,
+          thumbnail: '',
+          addedDate: new Date(),
+          path: url,
+          isDownloading: true,
+        };
+        return [newTrack, ...prev];
+      });
+    };
+
+    // Callback when download completes
+    const handleDownloadComplete = (url: string, path: string) => {
+      console.log(`[MusicPanel] Download complete: ${url} -> ${path}`);
+
+      setTmpTracks((prev) => {
+        const existingIndex = prev.findIndex((t) => t.path === url);
+        if (existingIndex !== -1) {
+          // Mark as not downloading and update path to actual file path
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            isDownloading: false,
+            path,
+          };
+          return updated;
+        }
+        return prev;
+      });
+    };
+
+    openDownloadVideo(
+      handleDownloadStart,
+      selectedMediaMetadata?.mediaFolderPath,
+      handleVideoDataExtracted,
+      handleDownloadComplete
+    );
   }, [openDownloadVideo, selectedMediaMetadata]);
 
   useEffect(() => {

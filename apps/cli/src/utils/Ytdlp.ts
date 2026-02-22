@@ -134,6 +134,15 @@ export interface YtdlpDownloadResult {
 }
 
 /**
+ * Result of extracting video data
+ */
+export interface YtdlpVideoDataResult {
+  title?: string;
+  artist?: string;
+  error?: string;
+}
+
+/**
  * Validates that only allowed arguments are provided
  * @param args - Array of command-line arguments
  * @returns true if all args are allowed, false otherwise
@@ -217,5 +226,70 @@ export async function downloadYtdlpVideo(
         error instanceof Error ? error.message : "Unknown error"
       }`,
     };
+  }
+}
+
+/**
+ * Extracts video metadata (title and artist) using yt-dlp
+ * @param url - The video URL to extract data from
+ * @returns Result containing title and artist, or error if failed
+ */
+export async function extractVideoData(
+  url: string
+): Promise<YtdlpVideoDataResult> {
+  if (!url) {
+    return { error: "url is required" };
+  }
+
+  const ytdlpPath = await discoverYtdlp();
+  if (!ytdlpPath) {
+    return { error: "yt-dlp executable not found" };
+  }
+
+  try {
+    const output = execSync(`"${ytdlpPath}" --skip-download --print "title=%(title)s ___ artist=%(uploader)s" "${url}"`, {
+      encoding: "utf-8",
+      timeout: 30000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    const lines = output.trim().split("\n");
+    const dataLine = lines.find(
+      (line) => line.includes("title=") && line.includes("___ artist=")
+    );
+
+    if (!dataLine) {
+      return { error: "failed to parse video data from output" };
+    }
+
+    const parts = dataLine.split("___");
+    let title: string | undefined;
+    let artist: string | undefined;
+
+    for (const part of parts) {
+      const trimmedPart = part.trim();
+      if (trimmedPart.startsWith("title=")) {
+        title = trimmedPart.substring(6).trim();
+      } else if (trimmedPart.startsWith("artist=")) {
+        artist = trimmedPart.substring(7).trim();
+      }
+    }
+
+    if (!title) {
+      return { error: "title not found in yt-dlp output" };
+    }
+
+    return { title, artist };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("URL")) {
+        return { error: "invalid URL provided" };
+      }
+      if (error.message.includes("timeout")) {
+        return { error: "request timed out" };
+      }
+      return { error: `yt-dlp failed: ${error.message}` };
+    }
+    return { error: "unknown error occurred while extracting video data" };
   }
 }

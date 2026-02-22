@@ -40,3 +40,17 @@ export async function getYtdlpVersion(): Promise<{ version?: string; error?: str
 
   return (await resp.json()) as { version?: string; error?: string };
 }
+
+export interface YtdlpExtractDataResponse {
+  title?: string;
+  artist?: string;
+  error?: string;
+}
+
+export async function extractYtdlpVideoData(url: string): Promise<YtdlpExtractDataResponse> {
+  const resp = await fetch(`/api/ytdlp/extract-data?url=${encodeURIComponent(url)}`, {
+    method: "GET",
+  });
+
+  return (await resp.json()) as YtdlpExtractDataResponse;
+}

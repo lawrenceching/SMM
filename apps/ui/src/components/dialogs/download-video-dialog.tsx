@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { FolderOpen } from "lucide-react"
 import {
   Dialog,
@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import type { DownloadVideoDialogProps, FileItem } from "./types"
 import { useTranslation } from "@/lib/i18n"
-import { downloadYtdlpVideo } from "@/api/ytdlp"
+import { downloadYtdlpVideo, extractYtdlpVideoData } from "@/api/ytdlp"
 import { toast } from "sonner"
 import { validateDownloadUrl } from "@core/download-video-validators"
 
-export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker, destinationFolder }: DownloadVideoDialogProps) {
+export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker, destinationFolder, onVideoDataExtracted, onDownloadComplete }: DownloadVideoDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
@@ -25,12 +25,53 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [isDownloading, setIsDownloading] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [urlTouched, setUrlTouched] = useState(false)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const extractionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isOpen && destinationFolder) {
       setDownloadFolder(destinationFolder)
     }
   }, [isOpen, destinationFolder])
+
+  // Extract video data when URL is valid (with debounce)
+  useEffect(() => {
+    if (!isOpen || !onVideoDataExtracted) return
+
+    const trimmedUrl = url.trim()
+    const isValid = validateDownloadUrl(trimmedUrl).valid
+
+    if (!isValid) return
+
+    // Clear any existing timeout
+    if (extractionTimeoutRef.current) {
+      clearTimeout(extractionTimeoutRef.current)
+    }
+
+    // Debounce the extraction by 500ms
+    extractionTimeoutRef.current = setTimeout(async () => {
+      setIsExtracting(true)
+      try {
+        const result = await extractYtdlpVideoData(trimmedUrl)
+        if (result.title || result.artist) {
+          onVideoDataExtracted({
+            title: result.title,
+            artist: result.artist,
+          }, trimmedUrl)
+        }
+      } catch (error) {
+        console.error('[DownloadVideoDialog] Failed to extract video data:', error)
+      } finally {
+        setIsExtracting(false)
+      }
+    }, 500)
+
+    return () => {
+      if (extractionTimeoutRef.current) {
+        clearTimeout(extractionTimeoutRef.current)
+      }
+    }
+  }, [isOpen, url, onVideoDataExtracted])
 
   const runUrlValidation = useCallback((value: string) => {
     const result = validateDownloadUrl(value)
@@ -63,12 +104,18 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
     }
 
     if (downloadFolder.trim()) {
+      const currentUrl = url.trim()
+      const currentFolder = downloadFolder.trim()
+
       setIsDownloading(true)
       setProgress(0)
 
+      // Notify that download is starting
+      onStart(currentUrl, currentFolder)
+
       const result = await downloadYtdlpVideo({
-        url: url.trim(),
-        folder: downloadFolder.trim(),
+        url: currentUrl,
+        folder: currentFolder,
       })
 
       setIsDownloading(false)
@@ -78,18 +125,21 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
         toast.error(result.error)
       } else if (result.success) {
         toast.success(`Downloaded to: ${result.path}`)
+        onDownloadComplete?.(currentUrl, result.path || '')
         onClose()
       }
-
-      onStart(url.trim(), downloadFolder.trim())
     }
   }
 
   const handleCancel = () => {
+    if (extractionTimeoutRef.current) {
+      clearTimeout(extractionTimeoutRef.current)
+    }
     setUrl("")
     setDownloadFolder("")
     setProgress(0)
     setIsDownloading(false)
+    setIsExtracting(false)
     setUrlError(null)
     setUrlTouched(false)
     onClose()

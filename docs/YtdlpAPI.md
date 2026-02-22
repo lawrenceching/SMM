@@ -165,3 +165,72 @@ If download fails:
   "error": "yt-dlp download failed: <error message>"
 }
 ```
+
+## GET /api/ytdlp/extract-data
+
+Extracts video metadata (title and artist) using yt-dlp.
+
+### Request
+
+URL query parameter required.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | Yes | Video URL to extract data from |
+
+### curl Example
+
+```bash
+curl -X GET "http://localhost:30000/api/ytdlp/extract-data?url=https://www.youtube.com/watch?v=abc123"
+```
+
+### Response
+
+On success:
+
+```json
+{
+  "title": "Video Title",
+  "artist": "Uploader Name"
+}
+```
+
+If URL is missing:
+
+```json
+{
+  "error": "url is required"
+}
+```
+
+If URL is invalid:
+
+```json
+{
+  "error": "invalid URL provided"
+}
+```
+
+If yt-dlp executable not found:
+
+```json
+{
+  "error": "yt-dlp executable not found"
+}
+```
+
+If extraction fails:
+
+```json
+{
+  "error": "yt-dlp failed: <error message>"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string? | The video title |
+| `artist` | string? | The video uploader/artist name |
+| `error` | string? | Error message if extraction failed |
