@@ -151,9 +151,18 @@
       "address": "Address",
       "protocol": "Protocol",
       "protocolValue": "Streamable HTTP",
-      "disabledMessage": "Enable MCP in Settings → General to expose the server on its own port.",
+      "disabledMessage": "Enable MCP in Settings → General to expose server on its own port.",
       "documentation": "Documentation"
     }
+  },
+  "mediaPlayer": {
+    "trackContextMenu": {
+      "open": "Open",
+      "delete": "Delete",
+      "properties": "Properties"
+    },
+    "noTracksFound": "No tracks found",
+    "tryAdjustingFilter": "Try adjusting your search or filter"
   }
 }
 

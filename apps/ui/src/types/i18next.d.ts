@@ -189,6 +189,15 @@ interface ComponentsResources {
       documentation: string
     }
   }
+  mediaPlayer: {
+    trackContextMenu: {
+      open: string
+      delete: string
+      properties: string
+    }
+    noTracksFound: string
+    tryAdjustingFilter: string
+  }
 }
 
 interface DialogsResources {

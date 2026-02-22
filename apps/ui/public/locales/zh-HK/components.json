@@ -153,6 +153,15 @@
       "disabledMessage": "在設定 → 常規中啟用MCP以在獨立連接埠上公開伺服器。",
       "documentation": "文件"
     }
+  },
+  "mediaPlayer": {
+    "trackContextMenu": {
+      "open": "開啟",
+      "delete": "刪除",
+      "properties": "屬性"
+    },
+    "noTracksFound": "未找到音軌",
+    "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"
   }
 }
 
