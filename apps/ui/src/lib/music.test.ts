@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { findFilesByFileName, findFilesByExtensions, findThumbnail, buildMusicFilePropsArray, newMusicMediaMetadata } from './music'
-import type { MusicFileProps, MusicMediaMetadata } from '@/types/MusicMediaMetadata'
+import { findFilesByFileName, findFilesByExtensions, findThumbnail, buildMusicFilePropsArray, newMusicMediaMetadata, convertMusicFilesToTracks } from './music'
+import type { MusicFileProps } from '@/types/MusicMediaMetadata'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 describe('findFilesByFileName', () => {
@@ -427,7 +427,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/song1.mp3',
       filename: 'song1.mp3',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -436,7 +436,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/song2.flac',
       filename: 'song2.flac',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -445,7 +445,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/song3.wav',
       filename: 'song3.wav',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -465,7 +465,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/video1.mp4',
       filename: 'video1.mp4',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -474,7 +474,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/video2.mkv',
       filename: 'video2.mkv',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -483,7 +483,7 @@ describe('buildMusicFilePropsArray', () => {
       path: '/media/music/video3.avi',
       filename: 'video3.avi',
       title: undefined,
-      author: undefined,
+      artist: undefined,
       thumbnailUri: 'file://undefined',
       duration: undefined,
     })
@@ -829,5 +829,235 @@ describe('newMusicMediaMetadata', () => {
     
     expect(result.musicFiles).toHaveLength(1)
     expect(result.musicFiles[0].thumbnailUri).toBe('file://undefined')
+  })
+})
+
+describe('convertMusicFilesToTracks', () => {
+  it('should return empty array for empty input', () => {
+    const musicFiles: MusicFileProps[] = []
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result).toEqual([])
+  })
+
+  it('should convert single music file to track', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: 'file:///media/music/song1.jpg',
+        duration: 180,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      id: 0,
+      title: 'Song 1',
+      artist: 'Artist 1',
+      album: 'Unknown Album',
+      duration: 180,
+      genre: 'unknown',
+      thumbnail: 'file:///media/music/song1.jpg',
+    })
+    expect(result[0].addedDate).toBeInstanceOf(Date)
+  })
+
+  it('should use filename as title when title is undefined', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: undefined,
+        artist: 'Artist 1',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0].title).toBe('song1.mp3')
+  })
+
+  it('should use "Unknown Artist" when artist is undefined', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: undefined,
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0].artist).toBe('Unknown Artist')
+  })
+
+  it('should use default thumbnail when thumbnailUri is undefined', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0].thumbnail).toBe('https://picsum.photos/seed/default/200')
+  })
+
+  it('should use default thumbnail when thumbnailUri is "file://undefined"', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: 'file://undefined',
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0].thumbnail).toBe('https://picsum.photos/seed/default/200')
+  })
+
+  it('should use 0 as default duration when duration is undefined', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0].duration).toBe(0)
+  })
+
+  it('should assign sequential IDs to tracks', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+      {
+        type: 'audio',
+        path: '/media/music/song2.mp3',
+        filename: 'song2.mp3',
+        title: 'Song 2',
+        artist: 'Artist 2',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+      {
+        type: 'audio',
+        path: '/media/music/song3.mp3',
+        filename: 'song3.mp3',
+        title: 'Song 3',
+        artist: 'Artist 3',
+        thumbnailUri: undefined,
+        duration: undefined,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result).toHaveLength(3)
+    expect(result[0].id).toBe(0)
+    expect(result[1].id).toBe(1)
+    expect(result[2].id).toBe(2)
+  })
+
+  it('should convert multiple music files', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: 'file:///media/music/song1.jpg',
+        duration: 180,
+      },
+      {
+        type: 'video',
+        path: '/media/music/video1.mp4',
+        filename: 'video1.mp4',
+        title: 'Video 1',
+        artist: 'Artist 2',
+        thumbnailUri: 'file:///media/music/video1.jpg',
+        duration: 240,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result).toHaveLength(2)
+    expect(result[0]).toMatchObject({
+      id: 0,
+      title: 'Song 1',
+      artist: 'Artist 1',
+      duration: 180,
+    })
+    expect(result[1]).toMatchObject({
+      id: 1,
+      title: 'Video 1',
+      artist: 'Artist 2',
+      duration: 240,
+    })
+  })
+
+  it('should preserve all track properties', () => {
+    const musicFiles: MusicFileProps[] = [
+      {
+        type: 'audio',
+        path: '/media/music/song1.mp3',
+        filename: 'song1.mp3',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        thumbnailUri: 'file:///media/music/song1.jpg',
+        duration: 180,
+      },
+    ]
+    
+    const result = convertMusicFilesToTracks(musicFiles)
+    
+    expect(result[0]).toHaveProperty('id')
+    expect(result[0]).toHaveProperty('title')
+    expect(result[0]).toHaveProperty('artist')
+    expect(result[0]).toHaveProperty('album')
+    expect(result[0]).toHaveProperty('duration')
+    expect(result[0]).toHaveProperty('genre')
+    expect(result[0]).toHaveProperty('thumbnail')
+    expect(result[0]).toHaveProperty('addedDate')
   })
 })

@@ -1,4 +1,3 @@
-import { Music } from 'lucide-react';
 import { SearchForm } from './search-form';
 import { FilterButton } from './shared/FilterButton';
 import { SortingButton } from './shared/SortingButton';

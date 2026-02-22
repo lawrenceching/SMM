@@ -15,8 +15,8 @@ vi.mock('@/providers/media-metadata-provider', () => ({
 }))
 
 vi.mock('./MediaPlayer', () => ({
-  MediaPlayer: vi.fn(({ mediaMetadata }: { mediaMetadata: any }) => (
-    <div data-testid="media-player" data-media-metadata={mediaMetadata === undefined ? 'undefined' : JSON.stringify(mediaMetadata)}>
+  MediaPlayer: vi.fn(({ tracks }: { tracks: any }) => (
+    <div data-testid="media-player" data-tracks={tracks === undefined ? 'undefined' : JSON.stringify(tracks)}>
       MediaPlayer
     </div>
   )),
@@ -35,16 +35,16 @@ describe('MusicPanel', () => {
     expect(mediaPlayer).toBeInTheDocument()
   })
 
-  it('should render MediaPlayer with undefined mediaMetadata when selectedMediaMetadata is undefined', () => {
+  it('should render MediaPlayer with undefined tracks when selectedMediaMetadata is undefined', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
     expect(mediaPlayer).toBeInTheDocument()
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    expect(mediaMetadataData).toBe('undefined')
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    expect(tracksData).toBe('undefined')
   })
 
-  it('should render MediaPlayer with musicMediaMetadata when selectedMediaMetadata is defined', () => {
+  it('should render MediaPlayer with tracks when selectedMediaMetadata is defined', () => {
     const testMediaMetadata: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media/music/album',
@@ -62,12 +62,13 @@ describe('MusicPanel', () => {
     const mediaPlayer = screen.getByTestId('media-player')
     expect(mediaPlayer).toBeInTheDocument()
     
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    expect(mediaMetadataData).toBeDefined()
-    expect(mediaMetadataData).toContain('musicFiles')
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    expect(tracksData).toBeDefined()
+    const parsedTracks = JSON.parse(tracksData!)
+    expect(parsedTracks).toHaveLength(2)
   })
 
-  it('should create musicMediaMetadata from selectedMediaMetadata', () => {
+  it('should create tracks from selectedMediaMetadata', () => {
     const testMediaMetadata: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media/music/album',
@@ -84,16 +85,15 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.mediaFolderPath).toBe('/media/music/album')
-    expect(parsedData.mediaName).toBe('My Album')
-    expect(parsedData.type).toBe('music-folder')
-    expect(parsedData.musicFiles).toHaveLength(1)
-    expect(parsedData.musicFiles[0].type).toBe('audio')
-    expect(parsedData.musicFiles[0].path).toBe('/media/music/album/song1.mp3')
-    expect(parsedData.musicFiles[0].thumbnailUri).toBe('file:///media/music/album/song1.jpg')
+    expect(parsedTracks).toHaveLength(1)
+    expect(parsedTracks[0].id).toBe(0)
+    expect(parsedTracks[0].title).toBe('song1.mp3')
+    expect(parsedTracks[0].artist).toBe('Unknown Artist')
+    expect(parsedTracks[0].album).toBe('Unknown Album')
+    expect(parsedTracks[0].thumbnail).toBe('file:///media/music/album/song1.jpg')
   })
 
   it('should have correct container structure', () => {
@@ -109,7 +109,7 @@ describe('MusicPanel', () => {
     })
   })
 
-  it('should update musicMediaMetadata when selectedMediaMetadata changes', () => {
+  it('should update tracks when selectedMediaMetadata changes', () => {
     const initialMetadata: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media/music/album1',
@@ -122,10 +122,11 @@ describe('MusicPanel', () => {
     const { rerender } = render(<MusicPanel />)
     
     let mediaPlayer = screen.getByTestId('media-player')
-    let mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    let parsedData = JSON.parse(mediaMetadataData!)
+    let tracksData = mediaPlayer.getAttribute('data-tracks')
+    let parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.mediaFolderPath).toBe('/media/music/album1')
+    expect(parsedTracks).toHaveLength(1)
+    expect(parsedTracks[0].title).toBe('song1.mp3')
     
     const updatedMetadata: UIMediaMetadata = {
       status: 'ok',
@@ -138,10 +139,11 @@ describe('MusicPanel', () => {
     rerender(<MusicPanel />)
     
     mediaPlayer = screen.getByTestId('media-player')
-    mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    parsedData = JSON.parse(mediaMetadataData!)
+    tracksData = mediaPlayer.getAttribute('data-tracks')
+    parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.mediaFolderPath).toBe('/media/music/album2')
+    expect(parsedTracks).toHaveLength(1)
+    expect(parsedTracks[0].title).toBe('song2.mp3')
   })
 
   it('should handle empty files array', () => {
@@ -157,10 +159,10 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.musicFiles).toEqual([])
+    expect(parsedTracks).toEqual([])
   })
 
   it('should handle files being undefined', () => {
@@ -176,10 +178,10 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.musicFiles).toEqual([])
+    expect(parsedTracks).toEqual([])
   })
 
   it('should filter out non-media files', () => {
@@ -199,11 +201,11 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.musicFiles).toHaveLength(1)
-    expect(parsedData.musicFiles[0].path).toBe('/media/music/album/song1.mp3')
+    expect(parsedTracks).toHaveLength(1)
+    expect(parsedTracks[0].title).toBe('song1.mp3')
   })
 
   it('should handle video files', () => {
@@ -222,12 +224,12 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.musicFiles).toHaveLength(2)
-    expect(parsedData.musicFiles[0].type).toBe('video')
-    expect(parsedData.musicFiles[1].type).toBe('video')
+    expect(parsedTracks).toHaveLength(2)
+    expect(parsedTracks[0].title).toBe('video1.mp4')
+    expect(parsedTracks[1].title).toBe('video2.mkv')
   })
 
   it('should handle mixed audio and video files', () => {
@@ -247,16 +249,16 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.musicFiles).toHaveLength(3)
-    expect(parsedData.musicFiles[0].type).toBe('video')
-    expect(parsedData.musicFiles[1].type).toBe('audio')
-    expect(parsedData.musicFiles[2].type).toBe('audio')
+    expect(parsedTracks).toHaveLength(3)
+    expect(parsedTracks[0].title).toBe('video1.mp4')
+    expect(parsedTracks[1].title).toBe('song1.mp3')
+    expect(parsedTracks[2].title).toBe('song2.flac')
   })
 
-  it('should preserve all UIMediaMetadata properties', () => {
+  it('should convert musicFiles to tracks with correct properties', () => {
     const testMediaMetadata: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media/music/album',
@@ -270,13 +272,17 @@ describe('MusicPanel', () => {
     render(<MusicPanel />)
     
     const mediaPlayer = screen.getByTestId('media-player')
-    const mediaMetadataData = mediaPlayer.getAttribute('data-media-metadata')
-    const parsedData = JSON.parse(mediaMetadataData!)
+    const tracksData = mediaPlayer.getAttribute('data-tracks')
+    const parsedTracks = JSON.parse(tracksData!)
     
-    expect(parsedData.status).toBe('ok')
-    expect(parsedData.mediaFolderPath).toBe('/media/music/album')
-    expect(parsedData.type).toBe('music-folder')
-    expect(parsedData.mediaName).toBe('Test Album')
-    expect(parsedData.musicFiles).toBeDefined()
+    expect(parsedTracks).toHaveLength(1)
+    expect(parsedTracks[0].id).toBe(0)
+    expect(parsedTracks[0].title).toBe('song1.mp3')
+    expect(parsedTracks[0].artist).toBe('Unknown Artist')
+    expect(parsedTracks[0].album).toBe('Unknown Album')
+    expect(parsedTracks[0].duration).toBe(0)
+    expect(parsedTracks[0].genre).toBe('unknown')
+    expect(parsedTracks[0].thumbnail).toBe('https://picsum.photos/seed/default/200')
+    expect(parsedTracks[0].addedDate).toBeDefined()
   })
 })

@@ -9,7 +9,7 @@ export interface MusicFileProps {
 
     filename: string;
     title?: string;
-    author?: string;
+    artist?: string;
     thumbnailUri?: string;
 
     /**

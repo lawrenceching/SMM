@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { MediaPlayerToolbar, type Genre, type SortBy } from './MediaPlayerToolbar';
 import { MediaPlayerTrackList } from './MediaPlayerTrackList';
 import { MediaPlayerControlBar } from './MediaPlayerControlBar';
-import type { MusicMediaMetadata } from '@/types/MusicMediaMetadata';
 
 export interface Track {
   id: number;
@@ -18,7 +17,6 @@ export interface Track {
 export type MediaPlayerMode = 'view' | 'player';
 
 export interface MediaPlayerProps {
-  mediaMetadata?: MusicMediaMetadata;
   tracks?: Track[];
   className?: string;
   mode?: MediaPlayerMode;
@@ -39,7 +37,7 @@ const DEFAULT_TRACKS: Track[] = [
   { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", album: "Classics", duration: 412, genre: "classical", thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12') },
 ];
 
-export function MediaPlayer({ mediaMetadata, tracks = DEFAULT_TRACKS, className = '', mode = 'view' }: MediaPlayerProps) {
+export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view' }: MediaPlayerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterGenre, setFilterGenre] = useState<Genre>('all');
   const [sortBy, setSortBy] = useState<SortBy>('recent');

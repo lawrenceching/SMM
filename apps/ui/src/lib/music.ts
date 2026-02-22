@@ -1,5 +1,6 @@
 import type { MusicFileProps, MusicMediaMetadata } from "@/types/MusicMediaMetadata";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { Track } from "@/components/MediaPlayer";
 import { Path } from "@core/path";
 import { extensions } from "@core/utils";
 
@@ -31,7 +32,7 @@ export function buildMusicFileProps(files: string[], file: string, type: "audio"
         path: file,
         filename: filename,
         title: undefined,
-        author: undefined,
+        artist: undefined,
         /**
          * URI
          * could be `file:///path/to/thumbnail.jpg` or `https://example.com/thumbnail.jpg`
@@ -80,5 +81,18 @@ export function findFilesByFileName(files: string[], filenameWithoutExt: string)
         const nameWithoutExt = lastDotIndex !== -1 ? filename.substring(0, lastDotIndex) : filename;
         return nameWithoutExt === filenameWithoutExt;
     });
+}
+
+export function convertMusicFilesToTracks(musicFiles: MusicFileProps[]): Track[] {
+    return musicFiles.map((file, index) => ({
+        id: index,
+        title: file.title || file.filename,
+        artist: file.artist || "Unknown Artist",
+        album: "Unknown Album",
+        duration: file.duration || 0,
+        genre: "unknown",
+        thumbnail: (!file.thumbnailUri || file.thumbnailUri === 'file://undefined') ? "https://picsum.photos/seed/default/200" : file.thumbnailUri,
+        addedDate: new Date(),
+    }));
 }
 
