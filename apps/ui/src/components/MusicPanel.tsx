@@ -25,9 +25,10 @@ interface PendingDelete {
 
 export function MusicPanel() {
   const { selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata();
-  const { filePropertyDialog, confirmationDialog } = useDialogs();
+  const { filePropertyDialog, confirmationDialog, downloadVideoDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
+  const [openDownloadVideo] = downloadVideoDialog;
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   const tracks = useMemo(() => {
@@ -160,6 +161,12 @@ export function MusicPanel() {
     }
   }, [tracks, openFilePropertyDialog]);
 
+  const handleDownloadClick = useCallback(() => {
+    openDownloadVideo((url, folder) => {
+      console.log(`Starting download: ${url} to ${folder}`);
+    }, selectedMediaMetadata?.mediaFolderPath);
+  }, [openDownloadVideo, selectedMediaMetadata]);
+
   useEffect(() => {
     const unsubscribeOpen = addMusicEventListener<TrackOpenEventDetail>(
       MUSIC_EVENT_NAMES['track:open'],
@@ -185,7 +192,7 @@ export function MusicPanel() {
 
   return (
     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <MediaPlayer tracks={tracks} destinationFolder={selectedMediaMetadata?.mediaFolderPath} />
+      <MediaPlayer tracks={tracks} onDownloadClick={handleDownloadClick} />
     </div>
   );
 }

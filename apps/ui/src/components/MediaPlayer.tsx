@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { MediaPlayerToolbar, type SortBy } from './MediaPlayerToolbar';
 import { MediaPlayerTrackList } from './MediaPlayerTrackList';
 import { MediaPlayerControlBar } from './MediaPlayerControlBar';
-import { useDialogs } from '@/providers/dialog-provider';
 
 export interface Track {
   id: number;
@@ -21,7 +20,7 @@ export interface MediaPlayerProps {
   tracks?: Track[];
   className?: string;
   mode?: MediaPlayerMode;
-  destinationFolder?: string;
+  onDownloadClick?: () => void;
 }
 
 const DEFAULT_TRACKS: Track[] = [
@@ -39,8 +38,7 @@ const DEFAULT_TRACKS: Track[] = [
   { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", duration: 412, thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12'), path: undefined },
 ];
 
-export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view', destinationFolder }: MediaPlayerProps) {
-  const { downloadVideoDialog } = useDialogs();
+export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view', onDownloadClick }: MediaPlayerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('recent');
   
@@ -274,8 +272,7 @@ export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'v
         onSearchChange={setSearchQuery}
         onSortChange={setSortBy}
         sortValue={sortBy}
-        downloadVideoDialog={downloadVideoDialog}
-        destinationFolder={destinationFolder}
+        onDownloadClick={onDownloadClick}
       />
 
       <main className="flex-1 overflow-y-auto px-6 py-4">

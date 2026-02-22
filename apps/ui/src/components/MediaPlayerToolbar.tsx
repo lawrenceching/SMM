@@ -23,11 +23,7 @@ export interface MediaPlayerToolbarProps {
   onSortChange: (sortBy: SortBy) => void;
   filterValue?: Genre;
   sortValue: SortBy;
-  downloadVideoDialog?: [
-    open: (onStart: (url: string, downloadFolder: string) => void, destinationFolder?: string) => void,
-    close: () => void
-  ];
-  destinationFolder?: string;
+  onDownloadClick?: () => void;
 }
 
 export function MediaPlayerToolbar({
@@ -37,8 +33,7 @@ export function MediaPlayerToolbar({
   onSortChange,
   filterValue,
   sortValue,
-  downloadVideoDialog,
-  destinationFolder
+  onDownloadClick
 }: MediaPlayerToolbarProps) {
   const filterOptions = GENRES.map(genre => ({
     value: genre,
@@ -46,15 +41,6 @@ export function MediaPlayerToolbar({
   }));
 
   const sortOptions = SORT_OPTIONS.map(option => ({ ...option }));
-
-  const handleDownloadClick = () => {
-    if (downloadVideoDialog) {
-      const [openDownloadVideo] = downloadVideoDialog;
-      openDownloadVideo((url, folder) => {
-        console.log(`Starting download: ${url} to ${folder}`);
-      }, destinationFolder);
-    }
-  };
 
   return (
     <header className="flex-shrink-0 bg-card/80 backdrop-blur-sm border-b border-border px-2 py-2">
@@ -69,11 +55,11 @@ export function MediaPlayerToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {downloadVideoDialog && (
+          {onDownloadClick && (
             <Button
               variant="default"
               size="sm"
-              onClick={handleDownloadClick}
+              onClick={onDownloadClick}
               className="gap-2"
             >
               <Download className="h-4 w-4" />
