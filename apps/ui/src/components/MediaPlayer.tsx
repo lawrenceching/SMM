@@ -11,6 +11,7 @@ export interface Track {
   thumbnail: string;
   addedDate: Date;
   path?: string;
+  isDownloading?: boolean;
 }
 
 export type MediaPlayerMode = 'view' | 'player';

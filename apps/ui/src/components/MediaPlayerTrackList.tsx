@@ -1,4 +1,4 @@
-import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText } from 'lucide-react';
+import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText, Download } from 'lucide-react';
 import type { Track } from './MediaPlayer';
 import Image from './Image';
 import {
@@ -89,7 +89,9 @@ function TrackListItem({
             tabIndex={mode === 'player' ? 0 : -1}
           >
             <div className="w-8 text-center flex-shrink-0">
-              {showPlayButton ? (
+              {track.isDownloading ? (
+                <Download className="w-5 h-5 mx-auto text-blue-500 animate-spin" />
+              ) : showPlayButton ? (
                 <div className="flex items-center justify-center gap-0.5 h-4">
                   {[0, 1, 2, 3].map((i) => (
                     <span
