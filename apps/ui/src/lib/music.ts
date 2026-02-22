@@ -93,6 +93,7 @@ export function convertMusicFilesToTracks(musicFiles: MusicFileProps[]): Track[]
         genre: "unknown",
         thumbnail: (!file.thumbnailUri || file.thumbnailUri === 'file://undefined') ? "https://picsum.photos/seed/default/200" : file.thumbnailUri,
         addedDate: new Date(),
+        path: file.path,
     }));
 }
 

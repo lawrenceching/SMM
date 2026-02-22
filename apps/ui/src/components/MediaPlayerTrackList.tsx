@@ -15,6 +15,8 @@ import {
 } from './ui/dropdown-menu';
 import { useTranslation } from '@/lib/i18n';
 import { useDialogs } from '@/providers/dialog-provider';
+import { openFile } from '@/api/openFile';
+import { Path } from '@core/path';
 
 export interface MediaPlayerTrackListProps {
   filteredTracks: Track[];
@@ -56,7 +58,14 @@ function TrackListItem({
   const showPlayButton = isActive && isPlaying && mode === 'player';
   const showPauseIcon = isActive && mode === 'player';
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
+    if (track.path) {
+      try {
+        await openFile(Path.toPlatformPath(track.path));
+      } catch (error) {
+        console.error('[MediaPlayerTrackList] Failed to open file:', error);
+      }
+    }
     onTrackOpen?.(track);
   };
 

@@ -12,6 +12,7 @@ export interface Track {
   genre: string;
   thumbnail: string;
   addedDate: Date;
+  path?: string;
 }
 
 export type MediaPlayerMode = 'view' | 'player';
@@ -23,18 +24,18 @@ export interface MediaPlayerProps {
 }
 
 const DEFAULT_TRACKS: Track[] = [
-  { id: 1, title: "Midnight Dreams", artist: "Luna Nova", album: "Starlight", duration: 234, genre: "electronic", thumbnail: "https://picsum.photos/seed/music1/200", addedDate: new Date('2024-01-15') },
-  { id: 2, title: "Electric Pulse", artist: "Neon Waves", album: "Digital Age", duration: 198, genre: "electronic", thumbnail: "https://picsum.photos/seed/music2/200", addedDate: new Date('2024-02-01') },
-  { id: 3, title: "Sunset Boulevard", artist: "The Wanderers", album: "Road Trip", duration: 267, genre: "rock", thumbnail: "https://picsum.photos/seed/music3/200", addedDate: new Date('2024-01-20') },
-  { id: 4, title: "Crystal Clear", artist: "Aurora Skies", album: "Reflections", duration: 312, genre: "pop", thumbnail: "https://picsum.photos/seed/music4/200", addedDate: new Date('2024-02-10') },
-  { id: 5, title: "Jazz Cafe", artist: "Blue Notes", album: "Midnight Sessions", duration: 285, genre: "jazz", thumbnail: "https://picsum.photos/seed/music5/200", addedDate: new Date('2024-01-05') },
-  { id: 6, title: "Mountain High", artist: "Echo Valley", album: "Nature's Call", duration: 246, genre: "rock", thumbnail: "https://picsum.photos/seed/music6/200", addedDate: new Date('2024-02-15') },
-  { id: 7, title: "City Lights", artist: "Urban Beat", album: "Metropolis", duration: 203, genre: "pop", thumbnail: "https://picsum.photos/seed/music7/200", addedDate: new Date('2024-01-25') },
-  { id: 8, title: "Ocean Waves", artist: "Coastal Drift", album: "Sea Breeze", duration: 278, genre: "electronic", thumbnail: "https://picsum.photos/seed/music8/200", addedDate: new Date('2024-02-05') },
-  { id: 9, title: "Moonlight Sonata", artist: "Classical Ensemble", album: "Timeless", duration: 356, genre: "classical", thumbnail: "https://picsum.photos/seed/music9/200", addedDate: new Date('2024-01-10') },
-  { id: 10, title: "Summer Nights", artist: "Tropical Vibes", album: "Paradise", duration: 221, genre: "pop", thumbnail: "https://picsum.photos/seed/music10/200", addedDate: new Date('2024-02-20') },
-  { id: 11, title: "Rainy Day", artist: "Mellow Tones", album: "Comfort Zone", duration: 298, genre: "jazz", thumbnail: "https://picsum.photos/seed/music11/200", addedDate: new Date('2024-01-30') },
-  { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", album: "Classics", duration: 412, genre: "classical", thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12') },
+  { id: 1, title: "Midnight Dreams", artist: "Luna Nova", album: "Starlight", duration: 234, genre: "electronic", thumbnail: "https://picsum.photos/seed/music1/200", addedDate: new Date('2024-01-15'), path: undefined },
+  { id: 2, title: "Electric Pulse", artist: "Neon Waves", album: "Digital Age", duration: 198, genre: "electronic", thumbnail: "https://picsum.photos/seed/music2/200", addedDate: new Date('2024-02-01'), path: undefined },
+  { id: 3, title: "Sunset Boulevard", artist: "The Wanderers", album: "Road Trip", duration: 267, genre: "rock", thumbnail: "https://picsum.photos/seed/music3/200", addedDate: new Date('2024-01-20'), path: undefined },
+  { id: 4, title: "Crystal Clear", artist: "Aurora Skies", album: "Reflections", duration: 312, genre: "pop", thumbnail: "https://picsum.photos/seed/music4/200", addedDate: new Date('2024-02-10'), path: undefined },
+  { id: 5, title: "Jazz Cafe", artist: "Blue Notes", album: "Midnight Sessions", duration: 285, genre: "jazz", thumbnail: "https://picsum.photos/seed/music5/200", addedDate: new Date('2024-01-05'), path: undefined },
+  { id: 6, title: "Mountain High", artist: "Echo Valley", album: "Nature's Call", duration: 246, genre: "rock", thumbnail: "https://picsum.photos/seed/music6/200", addedDate: new Date('2024-02-15'), path: undefined },
+  { id: 7, title: "City Lights", artist: "Urban Beat", album: "Metropolis", duration: 203, genre: "pop", thumbnail: "https://picsum.photos/seed/music7/200", addedDate: new Date('2024-01-25'), path: undefined },
+  { id: 8, title: "Ocean Waves", artist: "Coastal Drift", album: "Sea Breeze", duration: 278, genre: "electronic", thumbnail: "https://picsum.photos/seed/music8/200", addedDate: new Date('2024-02-05'), path: undefined },
+  { id: 9, title: "Moonlight Sonata", artist: "Classical Ensemble", album: "Timeless", duration: 356, genre: "classical", thumbnail: "https://picsum.photos/seed/music9/200", addedDate: new Date('2024-01-10'), path: undefined },
+  { id: 10, title: "Summer Nights", artist: "Tropical Vibes", album: "Paradise", duration: 221, genre: "pop", thumbnail: "https://picsum.photos/seed/music10/200", addedDate: new Date('2024-02-20'), path: undefined },
+  { id: 11, title: "Rainy Day", artist: "Mellow Tones", album: "Comfort Zone", duration: 298, genre: "jazz", thumbnail: "https://picsum.photos/seed/music11/200", addedDate: new Date('2024-01-30'), path: undefined },
+  { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", album: "Classics", duration: 412, genre: "classical", thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12'), path: undefined },
 ];
 
 export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view' }: MediaPlayerProps) {
