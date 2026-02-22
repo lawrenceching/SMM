@@ -14,9 +14,7 @@ export interface TrackProperties {
   id: number
   title: string
   artist: string
-  album: string
   duration: number
-  genre: string
   thumbnail: string
   addedDate: Date
 }
@@ -106,7 +104,7 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
             <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
               <img
                 src={track.thumbnail}
-                alt={`${track.album} cover`}
+                alt={`${track.title} cover`}
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
@@ -128,16 +126,6 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
             icon={FileText}
             label={t('fileProperty.artist')}
             value={track.artist}
-          />
-          <PropertyRow
-            icon={HardDrive}
-            label={t('fileProperty.album')}
-            value={track.album}
-          />
-          <PropertyRow
-            icon={Music}
-            label={t('fileProperty.genre')}
-            value={track.genre}
           />
           <PropertyRow
             icon={Clock}

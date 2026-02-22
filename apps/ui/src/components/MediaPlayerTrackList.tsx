@@ -1,4 +1,4 @@
-import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText, Download } from 'lucide-react';
+import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText, Loader } from 'lucide-react';
 import type { Track } from './MediaPlayer';
 import Image from './Image';
 import {
@@ -72,7 +72,7 @@ function TrackListItem({
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger asChild>
+        <ContextMenuTrigger asChild disabled={track.isDownloading}>
           <div
             onClick={mode === 'player' ? () => onTrackClick(track) : undefined}
             onKeyDown={(e) => {
@@ -90,7 +90,7 @@ function TrackListItem({
           >
             <div className="w-8 text-center flex-shrink-0">
               {track.isDownloading ? (
-                <Download className="w-5 h-5 mx-auto text-blue-500 animate-spin" />
+                <Loader className="w-5 h-5 mx-auto text-blue-500 animate-spin" />
               ) : showPlayButton ? (
                 <div className="flex items-center justify-center gap-0.5 h-4">
                   {[0, 1, 2, 3].map((i) => (
@@ -129,12 +129,15 @@ function TrackListItem({
               </p>
               <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
             </div>
-            <div className="w-16 text-sm text-muted-foreground text-right">{formatTime(track.duration)}</div>
+            <div className="w-16 text-sm text-muted-foreground text-right">
+              {track.isDownloading ? '...' : formatTime(track.duration)}
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="p-2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all duration-200"
+                  className="p-2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-0 disabled:pointer-events-none"
                   aria-label="More options"
+                  disabled={track.isDownloading}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="w-5 h-5" />

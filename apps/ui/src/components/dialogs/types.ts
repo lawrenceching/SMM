@@ -103,9 +103,7 @@ export interface TrackProperties {
   id: number
   title: string
   artist: string
-  album: string
   duration: number
-  genre: string
   thumbnail: string
   addedDate: Date
 }

@@ -61,7 +61,7 @@ export function MediaPlayerControlBar({
             {currentTrack ? (
               <img 
                 src={currentTrack.thumbnail} 
-                alt={`${currentTrack.album} cover`} 
+                alt={`${currentTrack.title} cover`} 
                 className="w-full h-full object-cover"
               />
             ) : (
