@@ -21,7 +21,7 @@ export function MusicPanel() {
   const { selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata();
   const { filePropertyDialog, confirmationDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
-  const [openConfirmation] = confirmationDialog;
+  const [openConfirmation, closeConfirmation] = confirmationDialog;
   const pendingDeleteRef = useRef<{ trackPath: string; trackTitle: string; currentFiles: string[]; fileIndex: number } | null>(null);
 
   const tracks = useMemo(() => {
@@ -88,6 +88,7 @@ export function MusicPanel() {
               variant="outline"
               onClick={() => {
                 pendingDeleteRef.current = null;
+                closeConfirmation();
               }}
             >
               Cancel
@@ -124,6 +125,7 @@ export function MusicPanel() {
                   toast.success(`"${pendingDelete.trackTitle}" has been deleted.`);
                   console.log('[MusicPanel] Successfully deleted track:', pendingDelete.trackTitle);
                   pendingDeleteRef.current = null;
+                  closeConfirmation();
                 } catch (error) {
                   console.error('[MusicPanel] Failed to delete track:', error);
                   toast.error(`Could not delete "${pendingDelete.trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
