@@ -5,6 +5,11 @@ import { readFile } from 'fs/promises'
 
 vi.mock('../utils/permission')
 vi.mock('fs/promises')
+vi.mock('url', () => ({
+  fileURLToPath: vi.fn((url: string) => {
+    return url.replace('file://', '')
+  })
+}))
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch
