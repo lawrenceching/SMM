@@ -4,7 +4,6 @@ import type { Track } from "@/components/MediaPlayer";
 import { Path } from "@core/path";
 import { extensions } from "@core/utils";
 import { pathToFileURL } from "@core/url";
-import { ImageOffIcon } from "lucide-react";
 
 export function newMusicMediaMetadata(mm: UIMediaMetadata): MusicMediaMetadata {
     return {

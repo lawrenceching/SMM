@@ -27,7 +27,11 @@ function createImageResponse(buffer: Buffer, contentType: string): Response {
 async function downloadImageFromFile(filePath: string): Promise<Response> {
   console.log(`[DownloadImage] Reading file from ${filePath}`);
 
-  const isAllowed = await allowRead(Path.posix(filePath));
+  let path = filePath;
+  if (filePath.startsWith('file://')) {
+    path = filePath.replace('file:///', '/').replace('file://', '/');
+  }
+  const isAllowed = await allowRead(Path.posix(path));
   if (!isAllowed) {
     throw new Error(`Permission denied: file ${filePath} is not allowed to be read`);
   }
@@ -96,11 +100,7 @@ export async function doDownloadImage(url: string): Promise<Response> {
 
   try {
     if (normalizedUrl.startsWith("file://")) {
-      /**
-       * normalizedUrl is file:///path/to/file.jpg
-       * Or for Windows path: file:///C:/Users/file.txt
-       */
-      const path = fileURLToPath(normalizedUrl)
+      const path = normalizedUrl.replace('file:///', '/').replace('file://', '/');
       return await downloadImageFromFile(path);
     }
 

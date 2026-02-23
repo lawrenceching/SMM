@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils"
 
 export interface TrackProperties {
   id: number
-  title: string
-  artist: string
-  duration: number
-  thumbnail: string
-  addedDate: Date
+  title?: string
+  artist?: string
+  duration?: number
+  thumbnail?: string
+  addedDate?: Date
 }
 
 export interface FilePropertyDialogProps {
@@ -80,7 +80,7 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
 
   const { t } = useTranslation(['dialogs', 'common'])
 
-  const estimatedFileSize = track.duration * 128000
+  const estimatedFileSize = (track.duration ?? 0) * 128000
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -103,15 +103,15 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
               <img
-                src={track.thumbnail}
-                alt={`${track.title} cover`}
+                src={track.thumbnail ?? ""}
+                alt={`${track.title ?? ''} cover`}
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-xl">{track.title}</DialogTitle>
-              <DialogDescription>{track.artist}</DialogDescription>
+              <DialogTitle className="text-xl">{track.title ?? ''}</DialogTitle>
+              <DialogDescription>{track.artist ?? ''}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -120,17 +120,17 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
           <PropertyRow
             icon={Music}
             label={t('fileProperty.title')}
-            value={track.title}
+            value={track.title ?? ''}
           />
           <PropertyRow
             icon={FileText}
             label={t('fileProperty.artist')}
-            value={track.artist}
+            value={track.artist ?? ''}
           />
           <PropertyRow
             icon={Clock}
             label={t('fileProperty.duration')}
-            value={formatDuration(track.duration)}
+            value={track.duration ? formatDuration(track.duration) : ''}
           />
           <PropertyRow
             icon={HardDrive}
@@ -140,7 +140,7 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
           <PropertyRow
             icon={Calendar}
             label={t('fileProperty.addedDate')}
-            value={formatDate(track.addedDate)}
+            value={track.addedDate ? formatDate(track.addedDate) : ''}
           />
         </div>
       </DialogContent>

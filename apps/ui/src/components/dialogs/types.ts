@@ -112,11 +112,11 @@ export interface ScrapeDialogProps {
 
 export interface TrackProperties {
   id: number
-  title: string
-  artist: string
-  duration: number
-  thumbnail: string
-  addedDate: Date
+  title?: string
+  artist?: string
+  duration?: number
+  thumbnail?: string
+  addedDate?: Date
 }
 
 export interface FilePropertyDialogProps {
