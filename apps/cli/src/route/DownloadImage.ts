@@ -100,7 +100,7 @@ export async function doDownloadImage(url: string): Promise<Response> {
 
   try {
     if (normalizedUrl.startsWith("file://")) {
-      const path = normalizedUrl.replace('file:///', '/').replace('file://', '/');
+      const path = fileURLToPath(normalizedUrl)
       return await downloadImageFromFile(path);
     }
 
