@@ -3,6 +3,8 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { Track } from "@/components/MediaPlayer";
 import { Path } from "@core/path";
 import { extensions } from "@core/utils";
+import { pathToFileURL } from "@core/url";
+import { ImageOffIcon } from "lucide-react";
 
 export function newMusicMediaMetadata(mm: UIMediaMetadata): MusicMediaMetadata {
     return {
@@ -26,6 +28,14 @@ export function buildMusicFileProps(files: string[], file: string, type: "audio"
     const filename = new Path(file).name()
     const filenameWithoutExt = filename.lastIndexOf('.') !== -1 ? filename.substring(0, filename.lastIndexOf('.')) : filename;
     const associatedFiles = findFilesByFileName(files, filenameWithoutExt);
+    const thumbnailInPosix = findThumbnail(associatedFiles);
+    
+    let thumbnail: string | undefined = undefined
+
+    if(thumbnailInPosix !== undefined) {
+        const thumbnailInPlatformPath = Path.toPlatformPath(thumbnailInPosix);
+        thumbnail = pathToFileURL(thumbnailInPlatformPath);
+    }
 
     return {
         type: type,
@@ -37,7 +47,7 @@ export function buildMusicFileProps(files: string[], file: string, type: "audio"
          * URI
          * could be `file:///path/to/thumbnail.jpg` or `https://example.com/thumbnail.jpg`
          */
-        thumbnailUri: `file://` + findThumbnail(associatedFiles),
+        thumbnailUri: thumbnail,
         duration: undefined,
     }
 }
@@ -91,7 +101,7 @@ export function convertMusicFilesToTracks(musicFiles: MusicFileProps[]): Track[]
         album: "",
         duration: file.duration || 0,
         genre: "unknown",
-        thumbnail: (!file.thumbnailUri || file.thumbnailUri === 'file://undefined') ? "https://picsum.photos/seed/default/200" : file.thumbnailUri,
+        thumbnail: file.thumbnailUri,
         addedDate: new Date(),
         path: file.path,
     }));

@@ -1,4 +1,5 @@
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { MediaPlayer, type Track } from "./MediaPlayer";
 import { useMemo, useEffect, useRef, useCallback, useState } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
@@ -24,7 +25,7 @@ interface PendingDelete {
 }
 
 export function MusicPanel() {
-  const { selectedMediaMetadata, updateMediaMetadata } = useMediaMetadata();
+  const { selectedMediaMetadata, refreshMediaMetadata, updateMediaMetadata } = useMediaMetadata();
   const { filePropertyDialog, confirmationDialog, downloadVideoDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
@@ -35,6 +36,8 @@ export function MusicPanel() {
   const [tmpTracks, setTmpTracks] = useState<Track[]>([]);
   // Counter for generating unique IDs for tmp tracks
   const tmpIdCounterRef = useRef(0);
+  // Map to track original positions for maintaining sort order after download
+  const positionMapRef = useRef<Map<string, number>>(new Map());
 
   // Base tracks from media metadata
   const baseTracks = useMemo(() => {
@@ -45,11 +48,39 @@ export function MusicPanel() {
     return convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
   }, [selectedMediaMetadata]);
 
-  // Merge base tracks with tmp tracks
+  // Merge base tracks with tmp tracks and apply position mapping
   const tracks = useMemo(() => {
     const base = baseTracks ?? [];
-    // Add tmp tracks at the beginning
-    return [...tmpTracks, ...base] as Track[];
+    let result = [...tmpTracks, ...base] as Track[];
+
+    // Apply position mapping to maintain sort order after download
+    if (positionMapRef.current.size > 0) {
+      for (const [filePath, targetIndex] of positionMapRef.current) {
+        const currentIdx = result.findIndex(t => t.path === filePath);
+        if (currentIdx !== -1 && currentIdx !== targetIndex) {
+          const [track] = result.splice(currentIdx, 1);
+          result.splice(Math.min(targetIndex, result.length), 0, track);
+          console.log(`[MusicPanel] Moved track ${filePath} from ${currentIdx} to ${targetIndex}`);
+        }
+      }
+      // Clear position map after applying
+      positionMapRef.current.clear();
+    }
+
+    return result;
+  }, [baseTracks, tmpTracks]);
+
+  // Clean up tmpTracks when they exist in baseTracks (after metadata refresh)
+  useEffect(() => {
+    if (!baseTracks || tmpTracks.length === 0) return;
+
+    const basePaths = new Set(baseTracks.map(t => t.path));
+    const tracksToRemove = tmpTracks.filter(t => basePaths.has(t.path));
+
+    if (tracksToRemove.length > 0) {
+      console.log('[MusicPanel] Removing tmpTracks that now exist in baseTracks:', tracksToRemove.map(t => t.path));
+      setTmpTracks(prev => prev.filter(t => !basePaths.has(t.path)));
+    }
   }, [baseTracks, tmpTracks]);
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
@@ -87,7 +118,7 @@ export function MusicPanel() {
 
       updateMediaMetadata(
         mediaFolderPath,
-        (current) => ({
+        (current: UIMediaMetadata) => ({
           ...current,
           files: updatedFiles,
         })
@@ -241,10 +272,15 @@ export function MusicPanel() {
     const handleDownloadComplete = (url: string, path: string) => {
       console.log(`[MusicPanel] Download complete: ${url} -> ${path}`);
 
+      // Record current position before any changes
+      const currentIndex = tracks?.findIndex(t => t.path === url) ?? 0;
+      positionMapRef.current.set(path, currentIndex);
+      console.log(`[MusicPanel] Recorded position ${currentIndex} for ${path}`);
+
+      // Update tmpTrack with actual file path and mark as not downloading
       setTmpTracks((prev) => {
         const existingIndex = prev.findIndex((t) => t.path === url);
         if (existingIndex !== -1) {
-          // Mark as not downloading and update path to actual file path
           const updated = [...prev];
           updated[existingIndex] = {
             ...updated[existingIndex],
@@ -255,6 +291,13 @@ export function MusicPanel() {
         }
         return prev;
       });
+
+      // Refresh media metadata to include the new file
+      const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath;
+      if (mediaFolderPath) {
+        console.log(`[MusicPanel] Refreshing media metadata for ${mediaFolderPath}`);
+        refreshMediaMetadata(mediaFolderPath);
+      }
     };
 
     openDownloadVideo(

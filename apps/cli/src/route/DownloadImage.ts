@@ -3,6 +3,8 @@ import { logger } from '../../lib/logger';
 import { allowRead } from '../utils/permission';
 import { readFile } from 'fs/promises';
 import { extname } from 'path';
+import { fileURLToPath } from 'url';
+import { Path } from '@core/path';
 
 function normalizeUrl(url: string): string {
   if (url.startsWith("//")) {
@@ -25,7 +27,7 @@ function createImageResponse(buffer: Buffer, contentType: string): Response {
 async function downloadImageFromFile(filePath: string): Promise<Response> {
   console.log(`[DownloadImage] Reading file from ${filePath}`);
 
-  const isAllowed = await allowRead(filePath);
+  const isAllowed = await allowRead(Path.posix(filePath));
   if (!isAllowed) {
     throw new Error(`Permission denied: file ${filePath} is not allowed to be read`);
   }
@@ -94,8 +96,12 @@ export async function doDownloadImage(url: string): Promise<Response> {
 
   try {
     if (normalizedUrl.startsWith("file://")) {
-      const filePath = decodeURIComponent(normalizedUrl.slice(7));
-      return await downloadImageFromFile(filePath);
+      /**
+       * normalizedUrl is file:///path/to/file.jpg
+       * Or for Windows path: file:///C:/Users/file.txt
+       */
+      const path = fileURLToPath(normalizedUrl)
+      return await downloadImageFromFile(path);
     }
 
     if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
@@ -124,9 +130,11 @@ export function handleDownloadImage(app: Hono) {
       const imageResponse = await doDownloadImage(url);
       return imageResponse;
     } catch (error) {
-      logger.error({ error }, 'DownloadImage route error:');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ error: { message: errorMessage, stack: errorStack } }, 'DownloadImage route error:');
       return c.json({ 
-        error: `Failed to download image: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Failed to download image: ${errorMessage}`
       }, 500);
     }
   });

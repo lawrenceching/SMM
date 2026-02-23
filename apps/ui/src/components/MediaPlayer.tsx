@@ -8,7 +8,7 @@ export interface Track {
   title: string;
   artist: string;
   duration: number;
-  thumbnail: string;
+  thumbnail?: string;
   addedDate: Date;
   path?: string;
   isDownloading?: boolean;

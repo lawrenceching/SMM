@@ -19,7 +19,10 @@
       "Bash(pnpm install)",
       "Bash(pnpm run test)",
       "Bash(pnpm add:*)",
-      "Bash(pnpm changeset init:*)"
+      "Bash(pnpm changeset init:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm -C apps/ui exec tsc --noEmit)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

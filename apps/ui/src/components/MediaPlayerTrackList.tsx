@@ -114,12 +114,17 @@ function TrackListItem({
               )}
             </div>
             <div className="w-[120px] h-[60px] rounded overflow-hidden flex-shrink-0 from-primary to-secondary">
-              <Image
-                url={track.thumbnail}
-                alt={`${track.title} cover`}
-                placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3C/svg%3E"
-                className="w-full h-full object-cover"
-              />
+              {track.thumbnail ? (
+                <Image
+                // thumbnail file:// is built wrongly with windows path
+                  url={track.thumbnail}
+                  alt={`${track.title} cover`}
+                  placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3C/svg%3E"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div/>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-medium truncate ${
