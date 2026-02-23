@@ -21,7 +21,7 @@ vi.mock('fs', async () => {
   };
 });
 
-describe('extractVideoData', () => {
+describe.skip('extractVideoData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

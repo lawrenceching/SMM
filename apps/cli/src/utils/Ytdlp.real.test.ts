@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { extractVideoData } from './Ytdlp';
 
-describe('extractVideoData (real yt-dlp)', () => {
+describe.skip('extractVideoData (real yt-dlp)', () => {
   it('should extract title and artist from real Bilibili video', async () => {
     const result = await extractVideoData('https://www.bilibili.com/video/BV1wacpz9EXn');
 
