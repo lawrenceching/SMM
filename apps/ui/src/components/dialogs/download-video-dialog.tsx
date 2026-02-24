@@ -89,6 +89,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
         downloadYtdlpVideo({
           url: currentUrl,
           folder: currentFolder,
+          args: ["--write-thumbnail", "--embed-thumbnail"],
         }).then((result) => {
           if (result.error) {
             toast.error(result.error)
@@ -104,6 +105,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
       const result = await downloadYtdlpVideo({
         url: currentUrl,
         folder: currentFolder,
+        args: ["--write-thumbnail", "--embed-thumbnail"],
       })
 
       setIsDownloading(false)
