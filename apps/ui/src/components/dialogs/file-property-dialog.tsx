@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -7,9 +7,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useTranslation } from "@/lib/i18n"
-import { FileText, Calendar, Clock, HardDrive, Music, Image, Video } from "lucide-react"
+import { FileText, Calendar, Clock, HardDrive, Music, Image, Video, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { extensions } from "@core/utils"
+import { generateFfmpegScreenshots } from "@/api/ffmpeg"
+import { Path } from "@core/path"
 
 export interface TrackProperties {
   id: number
@@ -101,22 +103,24 @@ function getFileType(filePath: string): FileType {
 
 function PreviewRow({
   fileType,
+  screenshots,
+  isLoading,
   className
 }: {
   fileType: FileType
+  screenshots?: string[]
+  isLoading?: boolean
   className?: string
 }) {
   const { t } = useTranslation(['dialogs', 'common'])
   
   const mockImagePreview = "https://picsum.photos/seed/mock/400/300"
-  const mockVideoPreview = "https://picsum.photos/seed/videomock/400/225"
   
   if (fileType === 'unknown') {
     return null
   }
   
   const isImage = fileType === 'image'
-  const aspectRatio = isImage ? 'aspect-[4/3]' : 'aspect-video'
   
   return (
     <div className={cn("py-2 border-b border-border/50 last:border-0", className)}>
@@ -130,28 +134,39 @@ function PreviewRow({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground mb-2">{t('fileProperty.preview')}</p>
-          <div 
-            className={cn("w-full rounded-md overflow-hidden bg-muted flex items-center justify-center", aspectRatio)}
-          >
-            {isImage ? (
+          {isLoading ? (
+            <div 
+              className={cn("w-full rounded-md overflow-hidden bg-muted flex items-center justify-center", isImage ? "aspect-[4/3]" : "aspect-video")}
+            >
+              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+            </div>
+          ) : isImage ? (
+            <div className="w-full rounded-md overflow-hidden bg-muted">
               <img 
                 src={mockImagePreview} 
                 alt="Image preview" 
-                className="w-full h-full object-cover"
+                className="w-full h-auto object-contain max-h-64"
               />
-            ) : (
-              <div className="relative w-full h-full">
-                <img 
-                  src={mockVideoPreview} 
-                  alt="Video preview" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Video className="w-12 h-12 text-white" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 gap-1">
+              {screenshots && screenshots.length > 0 ? (
+                screenshots.map((screenshot, index) => (
+                  <div key={index} className="min-w-0 rounded overflow-hidden bg-muted">
+                    <img 
+                      src={`/api/image?url=${encodeURIComponent('file://' + screenshot)}`}
+                      alt={`Video preview ${index + 1}`}
+                      className="w-full h-auto block object-contain"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-5 aspect-video w-full bg-muted flex items-center justify-center rounded">
+                  <Video className="w-12 h-12 text-muted-foreground" />
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -160,6 +175,8 @@ function PreviewRow({
 
 export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
+  const [screenshots, setScreenshots] = useState<string[]>([])
+  const [isLoadingScreenshots, setIsLoadingScreenshots] = useState(false)
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -170,6 +187,37 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen || !track) {
+      setScreenshots([])
+      return
+    }
+
+    const filePath = track.filePath ?? track.path ?? ''
+    const fileType = getFileType(filePath)
+
+    if (fileType === 'video') {
+      const loadScreenshots = async () => {
+        setIsLoadingScreenshots(true)
+        try {
+          const posixPath = Path.posix(filePath)
+          const result = await generateFfmpegScreenshots(posixPath)
+          if (result.screenshots) {
+            setScreenshots(result.screenshots)
+          }
+        } catch (error) {
+          console.error('Failed to generate screenshots:', error)
+        } finally {
+          setIsLoadingScreenshots(false)
+        }
+      }
+
+      loadScreenshots()
+    } else {
+      setScreenshots([])
+    }
+  }, [isOpen, track])
 
   if (!track) {
     return null
@@ -217,7 +265,11 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
             label={t('fileProperty.addedDate')}
             value={track.addedDate ? formatDate(track.addedDate) : ''}
           />
-          <PreviewRow fileType={fileType} />
+          <PreviewRow 
+            fileType={fileType} 
+            screenshots={screenshots}
+            isLoading={isLoadingScreenshots}
+          />
         </div>
       </DialogContent>
     </Dialog>

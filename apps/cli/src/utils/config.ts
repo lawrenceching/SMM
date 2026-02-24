@@ -74,6 +74,22 @@ export function getUserConfigPath(): string {
     return path.join(userDataDir, 'smm.json');
 }
 
+export function getTmpDir(): string {
+    const platform = os.platform();
+    const homedir = os.homedir();
+
+    switch (platform) {
+        case 'win32':
+            return process.env.TMP ? path.join(process.env.TMP, 'smm') : path.join(homedir, 'AppData', 'Local', 'Temp', 'smm');
+        case 'darwin':
+            return path.join(homedir, 'Library', 'Caches', 'smm');
+        case 'linux':
+            return path.join(homedir, '.cache', 'smm');
+        default:
+            return path.join(homedir, '.cache', 'smm');
+    }
+}
+
 export async function getUserConfig(): Promise<UserConfig> {
     const configPath = getUserConfigPath();
     const file = Bun.file(configPath);

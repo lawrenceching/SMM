@@ -1,8 +1,13 @@
 import { Path } from "@core/path";
 import { getUserConfig } from "./config";
+import { getTmpDir } from "./config";
 
 function isPosixPath(path: string): boolean {
     return path.startsWith('/')
+}
+
+function getSmmTmpFolder(): string {
+    return Path.posix(getTmpDir());
 }
 
 /**
@@ -26,6 +31,11 @@ export async function allowRead(path: string): Promise<boolean> {
 
     const normalizedPath = Path.posix(path);
     const folders = userConfig.folders.map((folder) => Path.posix(folder));
+    const smmTmpFolder = getSmmTmpFolder();
+
+    if (normalizedPath.startsWith(smmTmpFolder + '/') || normalizedPath === smmTmpFolder) {
+        return true;
+    }
 
     for (const folder of folders) {
         if (normalizedPath === folder) {
