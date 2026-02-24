@@ -208,7 +208,7 @@ export function MusicPanel() {
   }, [tracks, openFilePropertyDialog]);
 
   const handleTrackFormatConvert = useCallback((event: CustomEvent<TrackFormatConvertEventDetail>) => {
-    const { trackId, trackTitle } = event.detail;
+    const { trackId } = event.detail;
     const track = tracks?.find((t) => t.id === trackId);
     if (!track) {
       toast.error(`Track with ID ${trackId} could not be found.`);

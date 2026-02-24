@@ -290,6 +290,30 @@ interface DialogsResources {
     preview: string
     convertFormat: string
   }
+  formatConverter: {
+    title: string
+    description: string
+    sourceLabel: string
+    selectVideo: string
+    outputFormatLabel: string
+    formatMp4H264: string
+    formatMp4H265: string
+    formatWebm: string
+    formatMkv: string
+    presetLabel: string
+    presetQuality: string
+    presetBalanced: string
+    presetSpeed: string
+    saveToLabel: string
+    browse: string
+    outputFileNameLabel: string
+    start: string
+    duration: string
+    noSourceHint: string
+    uiOnlyHint: string
+    invalidParams: string
+    success: string
+  }
 }
 
 interface SettingsResources {

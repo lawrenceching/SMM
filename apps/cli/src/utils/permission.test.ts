@@ -3,6 +3,7 @@ import { allowRead } from './permission'
 
 vi.mock('./config', () => ({
   getUserConfig: vi.fn(),
+  getTmpDir: vi.fn(() => '/tmp/smm'),
 }))
 
 describe('allowRead', () => {

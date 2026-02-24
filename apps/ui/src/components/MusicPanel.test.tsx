@@ -55,6 +55,7 @@ describe('MusicPanel', () => {
 
     vi.mocked(useDialogs).mockReturnValue({
       filePropertyDialog: [vi.fn(), vi.fn()],
+      formatConverterDialog: [vi.fn(), vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
       spinnerDialog: [vi.fn(), vi.fn()],
@@ -433,6 +434,7 @@ describe('MusicPanel', () => {
 
       vi.mocked(useDialogs).mockReturnValue({
         filePropertyDialog: [vi.fn(), vi.fn()],
+        formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, mockCloseConfirmation],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -580,6 +582,7 @@ describe('MusicPanel', () => {
         filePropertyDialog: [vi.fn(() => {
           throw mockError;
         }), vi.fn()],
+        formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [vi.fn(), vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
