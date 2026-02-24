@@ -38,7 +38,7 @@ function PropertyRow({
 }) {
   return (
     <div className={cn("flex items-start gap-3 py-2 border-b border-border/50 last:border-0", className)}>
-      <div className="flex-shrink-0 w-10 h-10 rounded bg-muted flex items-center justify-center">
+      <div className="shrink-0 w-10 h-10 rounded bg-muted flex items-center justify-center">
         <IconComponent className="w-5 h-5 text-muted-foreground" />
       </div>
       <div className="flex-1 min-w-0">
@@ -96,27 +96,15 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
         showCloseButton={true} 
-        className="max-w-lg"
+        className="max-w-lg overflow-hidden"
         data-testid="file-property-dialog"
       >
-        <DialogHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-              <img
-                src={track.thumbnail ?? ""}
-                alt={`${track.title ?? ''} cover`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div className="flex-1">
-              <DialogTitle className="text-xl">{track.title ?? ''}</DialogTitle>
-              <DialogDescription>{track.artist ?? ''}</DialogDescription>
-            </div>
-          </div>
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="text-xl line-clamp-2 min-w-0 wrap-break-word">{track.title ?? ''}</DialogTitle>
+          <DialogDescription className="truncate min-w-0">{track.artist ?? ''}</DialogDescription>
         </DialogHeader>
 
-        <div className="py-4" role="list" aria-label="File properties">
+        <div className="py-4 min-w-0 overflow-hidden" role="list" aria-label="File properties">
           <PropertyRow
             icon={Music}
             label={t('fileProperty.title')}
