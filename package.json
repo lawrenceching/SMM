@@ -16,6 +16,7 @@
     "build:electron": "pnpm --filter core typecheck && pnpm --filter cli build && pnpm --filter ui build && pnpm --filter electron build",
     "build:core": "cd packages/core && pnpm run typecheck",
     "build:docker": "docker buildx build --progress=plain -t smm:latest .",
+    "build:docker:pkgs": "pnpm --filter \"docker...\" run build",
     "build:e2e": "docker build -t smm-e2e:test -f apps/e2e/Dockerfile .",
     "test": "pnpm -r test",
     "test:core": "cd packages/core && pnpm test",
