@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ImageViewer } from "@/components/ImageViewer"
 import { useTranslation } from "@/lib/i18n"
 import { FileText, Calendar, Clock, HardDrive, Music, Image, Video, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -105,11 +106,13 @@ function PreviewRow({
   fileType,
   screenshots,
   isLoading,
+  onPreviewClick,
   className
 }: {
   fileType: FileType
   screenshots?: string[]
   isLoading?: boolean
+  onPreviewClick?: (url: string) => void
   className?: string
 }) {
   const { t } = useTranslation(['dialogs', 'common'])
@@ -121,7 +124,15 @@ function PreviewRow({
   }
   
   const isImage = fileType === 'image'
-  
+  const canClick = !!onPreviewClick
+
+  const handleKeyDown = (e: React.KeyboardEvent, url: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onPreviewClick?.(url)
+    }
+  }
+
   return (
     <div className={cn("py-2 border-b border-border/50 last:border-0", className)}>
       <div className="flex items-start gap-3">
@@ -136,30 +147,48 @@ function PreviewRow({
           <p className="text-xs text-muted-foreground mb-2">{t('fileProperty.preview')}</p>
           {isLoading ? (
             <div 
-              className={cn("w-full rounded-md overflow-hidden bg-muted flex items-center justify-center", isImage ? "aspect-[4/3]" : "aspect-video")}
+              className={cn("w-full rounded-md overflow-hidden bg-muted flex items-center justify-center", isImage ? "aspect-4/3" : "aspect-video")}
             >
               <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
             </div>
           ) : isImage ? (
-            <div className="w-full rounded-md overflow-hidden bg-muted">
-              <img 
-                src={mockImagePreview} 
-                alt="Image preview" 
-                className="w-full h-auto object-contain max-h-64"
-              />
+            <div className={cn("w-full rounded-md overflow-hidden bg-muted", canClick && "cursor-pointer")}>
+              <button
+                type="button"
+                onClick={() => onPreviewClick?.(mockImagePreview)}
+                onKeyDown={(e) => handleKeyDown(e, mockImagePreview)}
+                className="w-full h-auto block text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+                aria-label={t('fileProperty.viewFullSize', 'View full size')}
+              >
+                <img 
+                  src={mockImagePreview} 
+                  alt=""
+                  className="w-full h-auto object-contain max-h-64 pointer-events-none"
+                />
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-5 gap-1">
               {screenshots && screenshots.length > 0 ? (
-                screenshots.map((screenshot, index) => (
-                  <div key={index} className="min-w-0 rounded overflow-hidden bg-muted">
-                    <img 
-                      src={`/api/image?url=${encodeURIComponent('file://' + screenshot)}`}
-                      alt={`Video preview ${index + 1}`}
-                      className="w-full h-auto block object-contain"
-                    />
-                  </div>
-                ))
+                screenshots.map((screenshot, index) => {
+                  const screenshotUrl = `/api/image?url=${encodeURIComponent('file://' + screenshot)}`
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => onPreviewClick?.(screenshotUrl)}
+                      onKeyDown={(e) => handleKeyDown(e, screenshotUrl)}
+                      className={cn("min-w-0 rounded overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", canClick && "cursor-pointer")}
+                      aria-label={t('fileProperty.viewFullSize', 'View full size')}
+                    >
+                      <img 
+                        src={screenshotUrl}
+                        alt=""
+                        className="w-full h-auto block object-contain pointer-events-none"
+                      />
+                    </button>
+                  )
+                })
               ) : (
                 <div className="col-span-5 aspect-video w-full bg-muted flex items-center justify-center rounded">
                   <Video className="w-12 h-12 text-muted-foreground" />
@@ -177,20 +206,22 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
   const { t } = useTranslation(['dialogs', 'common'])
   const [screenshots, setScreenshots] = useState<string[]>([])
   const [isLoadingScreenshots, setIsLoadingScreenshots] = useState(false)
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && !viewerImageUrl) {
         onClose()
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, viewerImageUrl])
 
   useEffect(() => {
     if (!isOpen || !track) {
       setScreenshots([])
+      setViewerImageUrl(null)
       return
     }
 
@@ -228,50 +259,60 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
   const fileType = getFileType(filePath)
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent 
-        showCloseButton={true} 
-        className="max-w-lg max-h-[80vh] flex flex-col"
-        data-testid="file-property-dialog"
-      >
-        <DialogHeader className="min-w-0 shrink-0">
-          <DialogTitle className="text-xl line-clamp-2 min-w-0 wrap-break-word">{track.title ?? ''}</DialogTitle>
-          <DialogDescription className="truncate min-w-0">{track.artist ?? ''}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent 
+          showCloseButton={true} 
+          className="max-w-lg max-h-[80vh] flex flex-col"
+          data-testid="file-property-dialog"
+        >
+          <DialogHeader className="min-w-0 shrink-0">
+            <DialogTitle className="text-xl line-clamp-2 min-w-0 wrap-break-word">{track.title ?? ''}</DialogTitle>
+            <DialogDescription className="truncate min-w-0">{track.artist ?? ''}</DialogDescription>
+          </DialogHeader>
 
-        <div className="py-4 min-w-0 min-h-0 flex-1 overflow-y-auto" role="list" aria-label="File properties">
-          <PropertyRow
-            icon={Music}
-            label={t('fileProperty.title')}
-            value={track.title ?? ''}
-          />
-          <PropertyRow
-            icon={FileText}
-            label={t('fileProperty.artist')}
-            value={track.artist ?? ''}
-          />
-          <PropertyRow
-            icon={Clock}
-            label={t('fileProperty.duration')}
-            value={track.duration ? formatDuration(track.duration) : ''}
-          />
-          <PropertyRow
-            icon={HardDrive}
-            label={t('fileProperty.estimatedSize')}
-            value={formatFileSize(estimatedFileSize)}
-          />
-          <PropertyRow
-            icon={Calendar}
-            label={t('fileProperty.addedDate')}
-            value={track.addedDate ? formatDate(track.addedDate) : ''}
-          />
-          <PreviewRow 
-            fileType={fileType} 
-            screenshots={screenshots}
-            isLoading={isLoadingScreenshots}
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="py-4 min-w-0 min-h-0 flex-1 overflow-y-auto" role="list" aria-label="File properties">
+            <PropertyRow
+              icon={Music}
+              label={t('fileProperty.title')}
+              value={track.title ?? ''}
+            />
+            <PropertyRow
+              icon={FileText}
+              label={t('fileProperty.artist')}
+              value={track.artist ?? ''}
+            />
+            <PropertyRow
+              icon={Clock}
+              label={t('fileProperty.duration')}
+              value={track.duration ? formatDuration(track.duration) : ''}
+            />
+            <PropertyRow
+              icon={HardDrive}
+              label={t('fileProperty.estimatedSize')}
+              value={formatFileSize(estimatedFileSize)}
+            />
+            <PropertyRow
+              icon={Calendar}
+              label={t('fileProperty.addedDate')}
+              value={track.addedDate ? formatDate(track.addedDate) : ''}
+            />
+            <PreviewRow 
+              fileType={fileType} 
+              screenshots={screenshots}
+              isLoading={isLoadingScreenshots}
+              onPreviewClick={(url) => setViewerImageUrl(url)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ImageViewer
+        imageUrl={viewerImageUrl}
+        onClose={() => setViewerImageUrl(null)}
+        dismissOnClick={true}
+        title={t('fileProperty.imagePreview', 'Image preview')}
+      />
+    </>
   )
 }
