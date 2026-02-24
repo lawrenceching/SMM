@@ -25,6 +25,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local') })
 export interface TestBedBeforeOptions {
     /** Whether to set up test media folders before the test */
     setupMediaFolders?: boolean
+    setupMediaMetadata?: boolean
     /** Custom setup function to run after basic setup */
     customSetup?: () => Promise<void>
     userConfig?: Partial<UserConfig>
@@ -44,7 +45,7 @@ export interface TestBedBeforeOptions {
  * @returns A before hook function for Mocha describe blocks
  */
 export function createBeforeHook(options: TestBedBeforeOptions = {}) {
-    const { setupMediaFolders = false, customSetup, userConfig } = options
+    const { setupMediaFolders = false, setupMediaMetadata = true, customSetup, userConfig } = options
 
     return async function() {
         // Import browser dynamically inside the hook to ensure it's fully initialized
@@ -60,8 +61,13 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
             console.log(`setup media folder for testing: tmpDir=${tmpDir}, mediaDir=${mediaDir}`)
             const tvshowFolderPlatformPath = path.join(mediaDir, '古见同学有交流障碍症');
             const tvshowFolderPosixPath = Path.posix(tvshowFolderPlatformPath);
-            await prepareMediaMetadata(tvshowFolderPosixPath, '古见同学有交流障碍症.metadata.json')
+
+            if(setupMediaMetadata) {
+                await prepareMediaMetadata(tvshowFolderPosixPath, '古见同学有交流障碍症.metadata.json')
+            }
         }
+
+        
 
         // Get user config path and reset user config
         const userConfigPath = await getUserConfigPath()

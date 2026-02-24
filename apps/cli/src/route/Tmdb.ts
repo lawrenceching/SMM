@@ -310,7 +310,7 @@ export async function getMovie(
     };
   }
 
-  const result = await makeTmdbRequest(`/movie/${id}`, language, baseURL);
+  const result = await makeTmdbRequest(`/3/movie/${id}`, language, baseURL);
   
   if (result.error) {
     return {
@@ -342,7 +342,7 @@ export async function getTvShow(
   }
 
   // First, get basic TV show info to determine which seasons exist
-  const basicResult = await makeTmdbRequest(`/tv/${id}`, language, baseURL);
+  const basicResult = await makeTmdbRequest(`/3/tv/${id}`, language, baseURL);
   
   if (basicResult.error) {
     return {
@@ -379,7 +379,7 @@ export async function getTvShow(
   const appendToResponse = seasonNumbers.join(',');
   
   // Now make a request with append_to_response to get all seasons with episodes
-  const result = await makeTmdbRequest(`/tv/${id}`, language, baseURL, appendToResponse);
+  const result = await makeTmdbRequest(`/3/tv/${id}`, language, baseURL, appendToResponse);
   
   if (result.error) {
     return {

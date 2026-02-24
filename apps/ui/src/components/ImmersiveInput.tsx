@@ -74,7 +74,7 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
   const showSearchButton = shouldShowFocused && onSearch
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full" data-testid="immersive-input-container">
       <input
         ref={inputRef}
         type="text"
@@ -106,6 +106,7 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
           ],
           className
         )}
+        data-testid="immersive-input"
       />
       {showSearchButton && (
         <Button
@@ -116,6 +117,7 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
           className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
           onClick={handleSearchClick}
           onMouseDown={(e) => e.preventDefault()} // Prevent input blur
+          data-testid="immersive-input-search-button"
         >
           <Search className="h-4 w-4" />
         </Button>

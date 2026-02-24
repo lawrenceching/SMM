@@ -1,4 +1,4 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +12,7 @@ const slowdown = process.env.SLOWDOWN === 'true'
 
 describe('Import Media Folder', () => {
 
-    before(createBeforeHook({ setupMediaFolders: true }))
+    before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
     beforeEach(async () => {
         console.log('Setup before each test')
@@ -57,6 +57,15 @@ describe('Import Media Folder', () => {
         // Verify the folder is displayed
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${folderName}" is now displayed in sidebar`)
+
+        // Assert title in ImmersiveSearchbox is the TV show name
+        const immersiveInput = await $('[data-testid="immersive-input"]')
+        await immersiveInput.waitForDisplayed({ timeout: 15000 })
+        await browser.waitUntil(
+            async () => (await immersiveInput.getValue()) === folderName,
+            { timeout: 10000, timeoutMsg: `ImmersiveSearchbox title did not become "${folderName}"` }
+        )
+        expect(await immersiveInput.getValue()).toBe(folderName)
 
         if(slowdown) {
             await delay(10 * 1000)
