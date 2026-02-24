@@ -108,7 +108,8 @@ async function startCLI(): Promise<void> {
       windowsHide: true, // Hide the console window on Windows
       env: {
         ...process.env,
-        LOG_TARGET: 'file'
+        LOG_TARGET: 'file',
+        SMM_RESOURCES_PATH: process.resourcesPath
       }
     })
 

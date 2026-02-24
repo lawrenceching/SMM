@@ -42,6 +42,15 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
   } catch {
   }
 
+  const resourcesPath = process.env.SMM_RESOURCES_PATH;
+  if (resourcesPath) {
+    const exeName = os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
+    const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
+    if (fs.existsSync(bundledPath)) {
+      return bundledPath;
+    }
+  }
+
   const projectRoot = getProjectRoot();
   const devBinPath = path.join(projectRoot, "bin/ffmpeg/ffmpeg.exe");
   if (fs.existsSync(devBinPath)) {

@@ -21,6 +21,18 @@ extraResources:
     to: 'public'
     filter:
       - '**/*'
+  - from: '../../bin/ffmpeg'
+    to: 'bin/ffmpeg'
+    filter:
+      - '**/*.exe'
+  - from: '../../bin/yt-dlp'
+    to: 'bin/yt-dlp'
+    filter:
+      - '**/*.exe'
+  - from: '../../bin/openlist'
+    to: 'bin/openlist'
+    filter:
+      - '**/*.exe'
 win:
   executableName: SMM
 nsis:

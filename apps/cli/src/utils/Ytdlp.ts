@@ -63,14 +63,24 @@ export async function discoverYtdlp(): Promise<string | undefined> {
     // User config doesn't exist or is invalid, continue to next step
   }
 
-  // 2. Check project root bin folder
+  // 2. Check bundled resources (when running under Electron)
+  const resourcesPath = process.env.SMM_RESOURCES_PATH;
+  if (resourcesPath) {
+    const exeName = os.platform() === "win32" ? "yt-dlp.exe" : "yt-dlp";
+    const bundledPath = path.join(resourcesPath, "bin", "yt-dlp", exeName);
+    if (fs.existsSync(bundledPath)) {
+      return bundledPath;
+    }
+  }
+
+  // 3. Check project root bin folder
   const projectRoot = getProjectRoot();
   const devBinPath = path.join(projectRoot, "bin/yt-dlp/yt-dlp.exe");
   if (fs.existsSync(devBinPath)) {
     return devBinPath;
   }
 
-  // 3. Check SMM installation path
+  // 4. Check SMM installation path
   const smmDataDir = getSmmDataDir();
   const installBinPath = path.join(smmDataDir, "bin/yt-dlp/yt-dlp.exe");
   if (fs.existsSync(installBinPath)) {

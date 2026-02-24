@@ -7,8 +7,9 @@ SMM integrated yt-dlp in order to support downloading video from Youtube or Bili
 SMM discovers yt-dlp binary executable in sequence as below:
 
 1. `ytdlpExecutablePath` in user config
-2. If in development mode, find in `bin/yt-dlp/yt-dlp.exe` in project root folder
-3. `bin/yt-dlp/yt-dlp.exe` of SMM installation path
-   * Windows: `C:\Users\xxx\AppData\Local\SMM`
+2. When running under Electron, bundled resources at `SMM_RESOURCES_PATH/bin/yt-dlp/` (if `SMM_RESOURCES_PATH` is set)
+3. Project root folder `bin/yt-dlp/` (development)
+4. SMM installation path `bin/yt-dlp/`
+   * Windows: `%LOCALAPPDATA%\SMM`
    * macOS: `~/Library/Application Support/SMM`
    * Linux: `~/.local/share/SMM`
