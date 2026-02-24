@@ -226,3 +226,139 @@ export async function generateVideoScreenshots(
 
   return { screenshots: screenshotPaths };
 }
+
+// --- Format conversion ---
+
+export type ConvertFormat = "mp4h264" | "mp4h265" | "webm" | "mkv";
+export type ConvertPreset = "quality" | "balanced" | "speed";
+
+export interface ConvertVideoOptions {
+  format: ConvertFormat;
+  preset: ConvertPreset;
+}
+
+export interface ConvertVideoResult {
+  error?: string;
+}
+
+function buildConvertArgs(
+  inputPath: string,
+  outputPath: string,
+  options: ConvertVideoOptions
+): string[] {
+  const { format, preset } = options;
+  const args: string[] = ["-i", inputPath];
+
+  switch (format) {
+    case "mp4h264": {
+      const crf = preset === "quality" ? "18" : preset === "balanced" ? "23" : "23";
+      const x264Preset =
+        preset === "quality" ? "slow" : preset === "balanced" ? "medium" : "veryfast";
+      args.push("-c:v", "libx264", "-crf", crf, "-preset", x264Preset);
+      args.push("-c:a", "copy");
+      break;
+    }
+    case "mp4h265": {
+      const crf = preset === "quality" ? "20" : preset === "balanced" ? "26" : "28";
+      const x265Preset =
+        preset === "quality" ? "slow" : preset === "balanced" ? "medium" : "fast";
+      args.push("-c:v", "libx265", "-crf", crf, "-preset", x265Preset);
+      args.push("-c:a", "copy");
+      break;
+    }
+    case "webm": {
+      const crf = preset === "quality" ? "30" : preset === "balanced" ? "35" : "40";
+      args.push("-c:v", "libvpx-vp9", "-crf", crf, "-b:v", "0");
+      if (preset === "speed") {
+        args.push("-deadline", "realtime");
+      } else if (preset === "balanced") {
+        args.push("-deadline", "good");
+      }
+      args.push("-c:a", "libopus", "-b:a", "128k");
+      break;
+    }
+    case "mkv": {
+      const crf = preset === "quality" ? "18" : preset === "balanced" ? "23" : "23";
+      const x264Preset =
+        preset === "quality" ? "slow" : preset === "balanced" ? "medium" : "veryfast";
+      args.push("-c:v", "libx264", "-crf", crf, "-preset", x264Preset);
+      args.push("-c:a", "copy");
+      break;
+    }
+    default:
+      throw new Error(`Unsupported format: ${format}`);
+  }
+
+  args.push("-y", outputPath);
+  return args;
+}
+
+function runFfmpegConvert(
+  ffmpegPath: string,
+  inputPath: string,
+  outputPath: string,
+  options: ConvertVideoOptions
+): Promise<{ error?: string }> {
+  return new Promise((resolve) => {
+    const args = buildConvertArgs(inputPath, outputPath, options);
+    const child = spawn(ffmpegPath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stderr = "";
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({});
+        return;
+      }
+      const lastLines = stderr.trim().split("\n").slice(-5).join(" ");
+      resolve({
+        error: `ffmpeg exited with code ${code}${lastLines ? `: ${lastLines}` : ""}`,
+      });
+    });
+
+    child.on("error", (err) => {
+      resolve({
+        error: `ffmpeg spawn error: ${err instanceof Error ? err.message : "unknown error"}`,
+      });
+    });
+  });
+}
+
+export async function convertVideo(
+  inputPath: string,
+  outputPath: string,
+  options: ConvertVideoOptions
+): Promise<ConvertVideoResult> {
+  if (!inputPath) {
+    return { error: "input path is required" };
+  }
+  if (!outputPath) {
+    return { error: "output path is required" };
+  }
+
+  const ffmpegPath = await discoverFfmpeg();
+  if (!ffmpegPath) {
+    return { error: "ffmpeg executable not found" };
+  }
+
+  const inputPathObj = new Path(inputPath);
+  const outputPathObj = new Path(outputPath);
+  const absInput = inputPathObj.platformAbsPath();
+  const absOutput = outputPathObj.platformAbsPath();
+
+  if (!fs.existsSync(absInput)) {
+    return { error: "input file not found" };
+  }
+
+  const outputDir = path.dirname(absOutput);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  return runFfmpegConvert(ffmpegPath, absInput, absOutput, options);
+}

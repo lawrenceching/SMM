@@ -12,7 +12,8 @@
     "config": "设置",
     "cleanUp": "清理",
     "exit": "退出",
-    "downloadVideo": "下载视频"
+    "downloadVideo": "下载视频",
+    "formatConversion": "格式转换"
   },
   "sidebar": {
     "mediaFolders": "媒体文件夹",
@@ -159,7 +160,8 @@
     "trackContextMenu": {
       "open": "打开",
       "delete": "删除",
-      "properties": "属性"
+      "properties": "属性",
+      "formatConvert": "格式转换"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"

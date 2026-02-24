@@ -152,11 +152,12 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
-  const { configDialog, downloadVideoDialog } = useDialogs()
+  const { configDialog, downloadVideoDialog, formatConverterDialog } = useDialogs()
   const { t } = useTranslation('components')
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
+  const [openFormatConverter] = formatConverterDialog
 
   const template: MenuTemplate[] = [
     {
@@ -181,6 +182,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
               console.log(`Downloading video from ${url} to ${downloadFolder}`)
             })
           }
+        },
+        {
+          name: t('menu.formatConversion'),
+          id: 'format-conversion',
+          onClick: () => openFormatConverter()
         },
         {
           name: t('menu.config'),

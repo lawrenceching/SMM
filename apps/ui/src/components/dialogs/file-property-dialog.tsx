@@ -5,7 +5,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { ImageViewer } from "@/components/ImageViewer"
 import { useTranslation } from "@/lib/i18n"
 import { FileText, Calendar, Clock, HardDrive, Music, Image, Video, Loader2 } from "lucide-react"
@@ -13,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { extensions } from "@core/utils"
 import { generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { Path } from "@core/path"
+import { useDialogs } from "@/providers/dialog-provider"
 
 export interface TrackProperties {
   id: number
@@ -204,6 +207,8 @@ function PreviewRow({
 
 export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
+  const { formatConverterDialog } = useDialogs()
+  const [openFormatConverter] = formatConverterDialog
   const [screenshots, setScreenshots] = useState<string[]>([])
   const [isLoadingScreenshots, setIsLoadingScreenshots] = useState(false)
   const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null)
@@ -304,6 +309,18 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
               onPreviewClick={(url) => setViewerImageUrl(url)}
             />
           </div>
+          {fileType === 'video' && (
+            <DialogFooter className="shrink-0">
+              <Button
+                onClick={() => {
+                  openFormatConverter(track)
+                  onClose()
+                }}
+              >
+                {t('fileProperty.convertFormat', 'Convert format')}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 

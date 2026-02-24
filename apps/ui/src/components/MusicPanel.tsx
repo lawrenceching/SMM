@@ -10,6 +10,7 @@ import {
   type TrackOpenEventDetail,
   type TrackDeleteEventDetail,
   type TrackPropertiesEventDetail,
+  type TrackFormatConvertEventDetail,
   MUSIC_EVENT_NAMES
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
@@ -26,10 +27,11 @@ interface PendingDelete {
 
 export function MusicPanel() {
   const { selectedMediaMetadata, refreshMediaMetadata, updateMediaMetadata } = useMediaMetadata();
-  const { filePropertyDialog, confirmationDialog, downloadVideoDialog } = useDialogs();
+  const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
+  const [openFormatConverter] = formatConverterDialog;
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   // Temporary tracks for downloading/downloaded videos (keyed by URL stored in path)
@@ -205,6 +207,27 @@ export function MusicPanel() {
     }
   }, [tracks, openFilePropertyDialog]);
 
+  const handleTrackFormatConvert = useCallback((event: CustomEvent<TrackFormatConvertEventDetail>) => {
+    const { trackId, trackTitle } = event.detail;
+    const track = tracks?.find((t) => t.id === trackId);
+    if (!track) {
+      toast.error(`Track with ID ${trackId} could not be found.`);
+      return;
+    }
+    if (!track.path) {
+      toast.error("This track has no file path.");
+      return;
+    }
+    openFormatConverter({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      duration: track.duration,
+      path: track.path,
+      filePath: track.path,
+    });
+  }, [tracks, openFormatConverter]);
+
   const handleDownloadClick = useCallback(() => {
     // Callback when video data is extracted (may come before or after onStart)
     const handleVideoDataExtracted = (videoData: { title?: string; artist?: string }, url: string) => {
@@ -324,12 +347,18 @@ export function MusicPanel() {
       handleTrackProperties
     );
 
+    const unsubscribeFormatConvert = addMusicEventListener<TrackFormatConvertEventDetail>(
+      MUSIC_EVENT_NAMES['track:formatConvert'],
+      handleTrackFormatConvert
+    );
+
     return () => {
       unsubscribeOpen();
       unsubscribeDelete();
       unsubscribeProperties();
+      unsubscribeFormatConvert();
     };
-  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties]);
+  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert]);
 
   return (
     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>

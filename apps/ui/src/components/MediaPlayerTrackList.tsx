@@ -1,4 +1,4 @@
-import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText, Loader } from 'lucide-react';
+import { Play, MoreVertical, Music, FolderOpen, Trash2, FileText, Loader, Film } from 'lucide-react';
 import type { Track } from './MediaPlayer';
 import Image from './Image';
 import {
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { useTranslation } from '@/lib/i18n';
-import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent } from '@/lib/musicEvents';
+import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent, emitTrackFormatConvertEvent } from '@/lib/musicEvents';
 
 export interface MediaPlayerTrackListProps {
   filteredTracks: Track[];
@@ -67,6 +67,10 @@ function TrackListItem({
 
   const handleProperties = () => {
     emitTrackPropertiesEvent(track);
+  };
+
+  const handleFormatConvert = () => {
+    emitTrackFormatConvertEvent(track);
   };
 
   return (
@@ -157,6 +161,10 @@ function TrackListItem({
                   <FileText className="w-4 h-4 mr-2" />
                   {t('mediaPlayer.trackContextMenu.properties')}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleFormatConvert}>
+                  <Film className="w-4 h-4 mr-2" />
+                  {t('mediaPlayer.trackContextMenu.formatConvert')}
+                </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   {t('mediaPlayer.trackContextMenu.delete')}
@@ -173,6 +181,10 @@ function TrackListItem({
           <ContextMenuItem onClick={handleProperties}>
             <FileText className="w-4 h-4 mr-2" />
             {t('mediaPlayer.trackContextMenu.properties')}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleFormatConvert}>
+            <Film className="w-4 h-4 mr-2" />
+            {t('mediaPlayer.trackContextMenu.formatConvert')}
           </ContextMenuItem>
           <ContextMenuItem variant="destructive" onClick={handleDelete}>
             <Trash2 className="w-4 h-4 mr-2" />

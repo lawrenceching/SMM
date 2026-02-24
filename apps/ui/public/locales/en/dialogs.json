@@ -86,7 +86,32 @@
     "duration": "Duration",
     "estimatedSize": "Estimated Size",
     "addedDate": "Added Date",
-    "preview": "Preview"
+    "preview": "Preview",
+    "convertFormat": "Convert format"
+  },
+  "formatConverter": {
+    "title": "Format conversion",
+    "description": "Convert video to the target format using ffmpeg",
+    "sourceLabel": "Source video",
+    "selectVideo": "Select video",
+    "outputFormatLabel": "Output format",
+    "formatMp4H264": "MP4 (H.264)",
+    "formatMp4H265": "MP4 (H.265/HEVC)",
+    "formatWebm": "WebM (VP9)",
+    "formatMkv": "MKV",
+    "presetLabel": "Encoding preset",
+    "presetQuality": "Quality",
+    "presetBalanced": "Balanced",
+    "presetSpeed": "Speed",
+    "saveToLabel": "Save to",
+    "browse": "Browse",
+    "outputFileNameLabel": "Output file name",
+    "start": "Start conversion",
+    "duration": "Duration",
+    "noSourceHint": "Please select a file to convert first.",
+    "uiOnlyHint": "UI only – conversion not started.",
+    "invalidParams": "Please set output folder and file name.",
+    "success": "Conversion completed."
   }
 }
 

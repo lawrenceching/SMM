@@ -86,7 +86,32 @@
     "duration": "时长",
     "estimatedSize": "预计大小",
     "addedDate": "添加日期",
-    "preview": "预览"
+    "preview": "预览",
+    "convertFormat": "格式转换"
+  },
+  "formatConverter": {
+    "title": "格式转换",
+    "description": "使用 ffmpeg 将视频转换为目标格式",
+    "sourceLabel": "源视频",
+    "selectVideo": "选择视频",
+    "outputFormatLabel": "输出格式",
+    "formatMp4H264": "MP4 (H.264)",
+    "formatMp4H265": "MP4 (H.265/HEVC)",
+    "formatWebm": "WebM (VP9)",
+    "formatMkv": "MKV",
+    "presetLabel": "编码预设",
+    "presetQuality": "质量优先",
+    "presetBalanced": "平衡",
+    "presetSpeed": "速度优先",
+    "saveToLabel": "保存位置",
+    "browse": "浏览",
+    "outputFileNameLabel": "输出文件名",
+    "start": "开始转换",
+    "duration": "时长",
+    "noSourceHint": "请先选择要转换的文件。",
+    "uiOnlyHint": "仅 UI 演示，未实际开始转换。",
+    "invalidParams": "请设置输出文件夹和文件名。",
+    "success": "转换完成。"
   }
 }
 

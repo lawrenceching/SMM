@@ -86,7 +86,32 @@
     "duration": "時長",
     "estimatedSize": "預計大小",
     "addedDate": "添加日期",
-    "preview": "預覽"
+    "preview": "預覽",
+    "convertFormat": "格式轉換"
+  },
+  "formatConverter": {
+    "title": "格式轉換",
+    "description": "使用 ffmpeg 將影片轉換為目標格式",
+    "sourceLabel": "來源影片",
+    "selectVideo": "選擇影片",
+    "outputFormatLabel": "輸出格式",
+    "formatMp4H264": "MP4 (H.264)",
+    "formatMp4H265": "MP4 (H.265/HEVC)",
+    "formatWebm": "WebM (VP9)",
+    "formatMkv": "MKV",
+    "presetLabel": "編碼預設",
+    "presetQuality": "品質優先",
+    "presetBalanced": "平衡",
+    "presetSpeed": "速度優先",
+    "saveToLabel": "儲存位置",
+    "browse": "瀏覽",
+    "outputFileNameLabel": "輸出檔名",
+    "start": "開始轉換",
+    "duration": "時長",
+    "noSourceHint": "請先選擇要轉換的檔案。",
+    "uiOnlyHint": "僅 UI 示範，未實際開始轉換。",
+    "invalidParams": "請設定輸出資料夾與檔名。",
+    "success": "轉換完成。"
   }
 }
 

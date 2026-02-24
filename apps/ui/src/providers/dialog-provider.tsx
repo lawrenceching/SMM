@@ -12,6 +12,7 @@ import {
   OpenFolderDialog,
   ScrapeDialog,
   FilePropertyDialog,
+  FormatConverterDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
@@ -63,6 +64,10 @@ interface DialogContextValue {
   filePropertyDialog: [
     openFileProperty: (track: TrackProperties) => void,
     closeFileProperty: () => void
+  ]
+  formatConverterDialog: [
+    openFormatConverter: (track?: TrackProperties | string) => void,
+    closeFormatConverter: () => void
   ]
 }
 
@@ -118,6 +123,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // File property dialog state
   const [isFilePropertyOpen, setIsFilePropertyOpen] = useState(false)
   const [filePropertyTrack, setFilePropertyTrack] = useState<TrackProperties | undefined>(undefined)
+
+  // Format converter dialog state
+  const [isFormatConverterOpen, setIsFormatConverterOpen] = useState(false)
+  const [formatConverterTrack, setFormatConverterTrack] = useState<TrackProperties | undefined>(undefined)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -283,6 +292,24 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openFormatConverter = useCallback((trackOrPath?: TrackProperties | string) => {
+    const track: TrackProperties | undefined =
+      trackOrPath === undefined
+        ? undefined
+        : typeof trackOrPath === 'string'
+          ? { id: 0, path: trackOrPath, filePath: trackOrPath, title: '' }
+          : trackOrPath
+    setFormatConverterTrack(track)
+    setIsFormatConverterOpen(true)
+  }, [])
+
+  const closeFormatConverter = useCallback(() => {
+    setIsFormatConverterOpen(false)
+    setTimeout(() => {
+      setFormatConverterTrack(undefined)
+    }, 200)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -294,6 +321,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     renameDialog: [openRename, closeRename],
     scrapeDialog: [openScrape, closeScrape],
     filePropertyDialog: [openFileProperty, closeFileProperty],
+    formatConverterDialog: [openFormatConverter, closeFormatConverter],
   }
 
   return (
@@ -360,6 +388,13 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isFilePropertyOpen}
         onClose={closeFileProperty}
         track={filePropertyTrack}
+      />
+      <FormatConverterDialog
+        isOpen={isFormatConverterOpen}
+        onClose={closeFormatConverter}
+        track={formatConverterTrack}
+        onOpenFilePicker={openFilePicker}
+        onSelectSource={(track: TrackProperties) => setFormatConverterTrack(track)}
       />
     </DialogContext.Provider>
   )

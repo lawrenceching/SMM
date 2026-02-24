@@ -33,6 +33,7 @@ import { handleYtdlpVersion } from './src/route/ytdlp/Version';
 import { handleYtdlpDownload } from './src/route/ytdlp/Download';
 import { handleYtdlpExtractData } from './src/route/ytdlp/ExtractData';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
+import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -180,6 +181,7 @@ export class Server {
     handleYtdlpDownload(this.app);
     handleYtdlpExtractData(this.app);
     handleFfmpegScreenshots(this.app);
+    handleFfmpegConvert(this.app);
     handleTmdb(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks

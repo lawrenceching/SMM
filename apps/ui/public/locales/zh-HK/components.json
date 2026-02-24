@@ -12,7 +12,8 @@
     "config": "設定",
     "cleanUp": "清理",
     "exit": "結束",
-    "downloadVideo": "下載影片"
+    "downloadVideo": "下載影片",
+    "formatConversion": "格式轉換"
   },
   "sidebar": {
     "mediaFolders": "媒體資料夾",
@@ -158,7 +159,8 @@
     "trackContextMenu": {
       "open": "開啟",
       "delete": "刪除",
-      "properties": "屬性"
+      "properties": "屬性",
+      "formatConvert": "格式轉換"
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"

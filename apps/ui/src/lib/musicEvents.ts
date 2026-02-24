@@ -1,11 +1,12 @@
 import type { Track } from '@/components/MediaPlayer';
 
-export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties';
+export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties' | 'track:formatConvert';
 
 export const MUSIC_EVENT_NAMES: Record<MusicEventType, MusicEventType> = {
   'track:open': 'track:open',
   'track:delete': 'track:delete',
   'track:properties': 'track:properties',
+  'track:formatConvert': 'track:formatConvert',
 };
 
 export interface BaseMusicEventDetail {
@@ -28,10 +29,16 @@ export interface TrackPropertiesEventDetail extends BaseMusicEventDetail {
   trackTitle: string;
 }
 
+export interface TrackFormatConvertEventDetail extends BaseMusicEventDetail {
+  trackPath?: string;
+  trackTitle: string;
+}
+
 export type MusicEventDetail = 
   | TrackOpenEventDetail 
   | TrackDeleteEventDetail 
-  | TrackPropertiesEventDetail;
+  | TrackPropertiesEventDetail
+  | TrackFormatConvertEventDetail;
 
 export function createTrackOpenEvent(track: Track): CustomEvent<TrackOpenEventDetail> {
   return new CustomEvent<TrackOpenEventDetail>(MUSIC_EVENT_NAMES['track:open'], {
@@ -88,6 +95,24 @@ export function emitTrackDeleteEvent(track: Track): void {
 
 export function emitTrackPropertiesEvent(track: Track): void {
   const event = createTrackPropertiesEvent(track);
+  emitMusicEvent(event);
+}
+
+export function createTrackFormatConvertEvent(track: Track): CustomEvent<TrackFormatConvertEventDetail> {
+  return new CustomEvent<TrackFormatConvertEventDetail>(MUSIC_EVENT_NAMES['track:formatConvert'], {
+    bubbles: true,
+    composed: true,
+    detail: {
+      trackId: track.id,
+      timestamp: Date.now(),
+      trackPath: track.path,
+      trackTitle: track.title,
+    },
+  });
+}
+
+export function emitTrackFormatConvertEvent(track: Track): void {
+  const event = createTrackFormatConvertEvent(track);
   emitMusicEvent(event);
 }
 

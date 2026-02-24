@@ -127,3 +127,14 @@ export interface FilePropertyDialogProps {
   track: TrackProperties
 }
 
+export interface FormatConverterDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  track?: TrackProperties
+  onOpenFilePicker?: (
+    onSelect: (file: FileItem) => void,
+    options?: { selectFolder?: boolean; initialPath?: string }
+  ) => void
+  onSelectSource?: (track: TrackProperties) => void
+}
+

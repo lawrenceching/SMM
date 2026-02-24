@@ -12,7 +12,8 @@
     "config": "Config",
     "cleanUp": "Clean Up",
     "exit": "Exit",
-    "downloadVideo": "Download Video"
+    "downloadVideo": "Download Video",
+    "formatConversion": "Format conversion"
   },
   "sidebar": {
     "mediaFolders": "Media Folders",
@@ -159,7 +160,8 @@
     "trackContextMenu": {
       "open": "Open",
       "delete": "Delete",
-      "properties": "Properties"
+      "properties": "Properties",
+      "formatConvert": "Format conversion"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"

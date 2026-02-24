@@ -47,6 +47,7 @@ interface ComponentsResources {
     cleanUp: string
     exit: string
     downloadVideo: string
+    formatConversion: string
   }
   sidebar: {
     mediaFolders: string
@@ -194,6 +195,7 @@ interface ComponentsResources {
       open: string
       delete: string
       properties: string
+      formatConvert: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -286,6 +288,7 @@ interface DialogsResources {
     estimatedSize: string
     addedDate: string
     preview: string
+    convertFormat: string
   }
 }
 
