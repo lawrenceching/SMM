@@ -285,6 +285,7 @@ interface DialogsResources {
     duration: string
     estimatedSize: string
     addedDate: string
+    preview: string
   }
 }
 

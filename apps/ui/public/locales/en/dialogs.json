@@ -85,7 +85,8 @@
     "genre": "Genre",
     "duration": "Duration",
     "estimatedSize": "Estimated Size",
-    "addedDate": "Added Date"
+    "addedDate": "Added Date",
+    "preview": "Preview"
   }
 }
 

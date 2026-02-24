@@ -117,6 +117,8 @@ export interface TrackProperties {
   duration?: number
   thumbnail?: string
   addedDate?: Date
+  filePath?: string
+  path?: string
 }
 
 export interface FilePropertyDialogProps {
