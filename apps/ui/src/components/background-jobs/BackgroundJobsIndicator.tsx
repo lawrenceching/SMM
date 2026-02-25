@@ -1,5 +1,5 @@
 import { Loader2, CircleCheck } from 'lucide-react';
-import { useBackgroundJobs } from './BackgroundJobsProvider';
+import { useBackgroundJobsIndicator } from '../hooks/useBackgroundJobsIndicator';
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -10,23 +10,18 @@ interface BackgroundJobsIndicatorProps {
 }
 
 export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorProps) {
-  const context = useBackgroundJobs();
+  const { 
+    shouldRender, 
+    isRunning, 
+    isPopoverOpen, 
+    setPopoverOpen,
+    runningCount,
+    activeCount 
+  } = useBackgroundJobsIndicator()
 
-  // If context is not available (no provider), don't render
-  if (!context) {
+  if (!shouldRender) {
     return null;
   }
-
-  const { getRunningJobs, jobs, isPopoverOpen, setPopoverOpen } = context;
-  const runningJobs = getRunningJobs();
-
-  // Don't render if no jobs at all (or only completed/failed jobs)
-   const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'pending');
-  if (jobs.length === 0 || activeJobs.length === 0) {
-    return null;
-  }
-
-  const isRunning = runningJobs.length > 0;
 
   return (
     <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
@@ -37,17 +32,17 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
             'flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200',
             className
           )}
-          aria-label={`View ${runningJobs.length} background ${runningJobs.length === 1 ? 'job' : 'jobs'}`}
+          aria-label={`View ${runningCount} background ${runningCount === 1 ? 'job' : 'jobs'}`}
         >
           {isRunning ? (
             <>
               <Loader2 data-testid="background-jobs-loading-icon" className="h-4 w-4 animate-spin text-blue-500" />
-              <span data-testid="background-jobs-count" className="text-xs font-medium text-blue-500">{runningJobs.length}</span>
+              <span data-testid="background-jobs-count" className="text-xs font-medium text-blue-500">{runningCount}</span>
             </>
           ) : (
             <>
               <CircleCheck data-testid="background-jobs-completed-icon" className="h-4 w-4 text-green-500" />
-              <span data-testid="background-jobs-count" className="text-xs font-medium text-green-500">{activeJobs.length}</span>
+              <span data-testid="background-jobs-count" className="text-xs font-medium text-green-500">{activeCount}</span>
             </>
           )}
         </button>

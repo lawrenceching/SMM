@@ -19,7 +19,7 @@
 
 ## 一、架构层面问题
 
-### 1.1 Provider 层级过深且职责交叉
+### 1.1 Provider 层级过深且职责交叉 (已拒绝)
 
 **问题描述**:
 Provider 嵌套层级达 6 层，部分 Provider 职责重叠。
@@ -57,7 +57,7 @@ Provider 嵌套层级达 6 层，部分 Provider 职责重叠。
 </AppProvider>
 ```
 
-### 1.2 双版本应用共存 (App.tsx / AppV2.tsx)
+### 1.2 双版本应用共存 (App.tsx / AppV2.tsx) (已完成)
 
 **问题描述**:
 存在两套应用入口，代码重复且维护成本高。

@@ -10,7 +10,7 @@ import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
-import { useBackgroundJobs } from "./components/background-jobs/BackgroundJobsProvider"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import type { JobStatus } from "@/types/background-jobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
@@ -57,7 +57,7 @@ function AppV2Content() {
   const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, removeMediaMetadata } = useMediaMetadata()
 
   // Background jobs (optional - for "Importing Media Library" progress)
-  const backgroundJobs = useBackgroundJobs()
+  const backgroundJobs = useBackgroundJobsStore()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -278,7 +278,7 @@ function AppV2Content() {
       libraryPath: string,
       type: FolderType
     ) => {
-      const updateJob = backgroundJobs?.updateJob
+      const updateJob = backgroundJobs.updateJob
       const report = (updates: Partial<{ status: JobStatus; progress: number }>) => {
         if (jobId && updateJob) updateJob(jobId, updates)
       }
@@ -334,12 +334,8 @@ function AppV2Content() {
     }
 
     const startImportWithJob = (libraryPath: string, type: FolderType) => {
-      if (!backgroundJobs) {
-        runImportInBackground(null, libraryPath, type)
-        return
-      }
       const jobId = backgroundJobs.addJob('Importing Media Library')
-       backgroundJobs.updateJob(jobId, { status: 'running' })
+      backgroundJobs.updateJob(jobId, { status: 'running' })
       runImportInBackground(jobId, libraryPath, type)
     }
 
@@ -366,7 +362,7 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker, backgroundJobs])
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemProps[] = useMemo(() => {

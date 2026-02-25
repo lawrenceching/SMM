@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { useBackgroundJobs } from "../background-jobs/BackgroundJobsProvider";
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useConfig } from "@/providers/config-provider";
 import { nextTraceId } from "@/lib/utils";
@@ -17,7 +17,7 @@ export function MediaFolderImportedEventHandler() {
 
     const { addMediaFolderInUserConfig } = useConfig()
     const { addMediaMetadata, updateMediaMetadata, getMediaMetadata } = useMediaMetadata()
-    const backgroundJobs = useBackgroundJobs()
+    const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {
@@ -70,7 +70,7 @@ export function MediaFolderImportedEventHandler() {
 
                 // Helper function to set job progress
                 const setJobProgress = (progress: number) => {
-                    if (backgroundJobs && jobId) {
+                    if (jobId) {
                         backgroundJobs.updateJob(jobId, {
                             progress,
                         })
@@ -79,7 +79,7 @@ export function MediaFolderImportedEventHandler() {
 
                 // Helper function to set job status
                 const setJobStatus = (status: 'succeeded' | 'failed' | 'aborted') => {
-                    if (backgroundJobs && jobId) {
+                    if (jobId) {
                         backgroundJobs.updateJob(jobId, {
                             status,
                             progress: status === 'succeeded' ? 100 : undefined,

@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle, Clock, StopCircle } from 'lucide-react';
-import { useBackgroundJobs } from './BackgroundJobsProvider';
+import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -7,14 +7,7 @@ import type { JobStatus } from '@/types/background-jobs';
 import { cn } from '@/lib/utils';
 
 export function BackgroundJobsPopoverContent() {
-  const context = useBackgroundJobs();
-
-  // If context is not available, don't render
-  if (!context) {
-    return null;
-  }
-
-  const { jobs, abortJob } = context;
+  const { jobs, abortJob } = useBackgroundJobsStore();
 
    const getStatusIcon = (status: JobStatus) => {
     switch (status) {
