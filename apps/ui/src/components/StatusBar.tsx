@@ -1,24 +1,11 @@
 import { cn } from "@/lib/utils"
-import { useConfig } from "@/providers/config-provider"
-import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket"
+import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
 import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 
-/** Maps WebSocket status to ConnectionStatus (error → disconnected). Pure, unit-testable. */
-export function mapWebSocketStatusToConnectionStatus(status: WebSocketStatus): ConnectionStatus {
-    switch (status) {
-        case "connected":
-            return "connected"
-        case "connecting":
-            return "connecting"
-        case "disconnected":
-        case "error":
-        default:
-            return "disconnected"
-    }
-}
+export { mapWebSocketStatusToConnectionStatus }
 
 interface StatusBarProps {
     className?: string
@@ -35,12 +22,10 @@ export function StatusBar({
     connectionStatus: connectionStatusOverride,
     version: versionOverride,
 }: StatusBarProps) {
-    const { appConfig } = useConfig()
-    const { status } = useWebSocket()
-
-    const connectionStatus: ConnectionStatus =
-        connectionStatusOverride ?? mapWebSocketStatusToConnectionStatus(status)
-    const version = versionOverride ?? appConfig.version
+    const { connectionStatus, version } = useStatusBar({
+        connectionStatusOverride,
+        versionOverride,
+    })
 
     return (
         <div
