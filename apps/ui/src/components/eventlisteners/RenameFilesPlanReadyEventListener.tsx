@@ -1,10 +1,10 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { RenameFilesPlanReady } from "@core/event-types";
-import { useGlobalStates } from "@/providers/global-states-provider";
+import { usePlansStore } from "@/stores/plansStore";
 
 export function RenameFilesPlanReadyEventListener() {
-    const { fetchPendingPlans } = useGlobalStates();
+    const { fetchPendingPlans } = usePlansStore();
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {

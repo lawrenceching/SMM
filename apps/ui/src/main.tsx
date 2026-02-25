@@ -8,7 +8,6 @@ import { ThemeProvider } from './providers/theme-provider'
 import { ConfigProvider } from './providers/config-provider'
 import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
-import { GlobalStatesProvider } from './providers/global-states-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
@@ -211,14 +210,12 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <ConfigProvider>
         <MediaMetadataProvider>
-          <GlobalStatesProvider>
-            <DialogProvider>
-              <BackgroundJobsProvider>
-                <AppInitializer />
-                <AppSwitcher />
-              </BackgroundJobsProvider>
-            </DialogProvider>
-          </GlobalStatesProvider>
+          <DialogProvider>
+            <BackgroundJobsProvider>
+              <AppInitializer />
+              <AppSwitcher />
+            </BackgroundJobsProvider>
+          </DialogProvider>
         </MediaMetadataProvider>
       </ConfigProvider>
     </ThemeProvider>

@@ -23,7 +23,7 @@ import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
-import { useGlobalStates } from "@/providers/global-states-provider"
+import { usePlansStore } from "@/stores/plansStore"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
@@ -47,7 +47,7 @@ interface ToolbarOption {
 
 function TvShowPanelContent() {
   const { t } = useTranslation('components')
-  const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = useGlobalStates()
+  const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = usePlansStore()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,

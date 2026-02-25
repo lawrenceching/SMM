@@ -108,8 +108,6 @@ let mockIsAiRecognizePromptOpen = false
 let mockIsRuleBasedRecognizePromptOpen = false
 
 // Track global states
-let mockInitializedMediaFolders: string[] = []
-let mockSetInitializedMediaFolders: ReturnType<typeof vi.fn>
 let mockAddTmpPlan: ReturnType<typeof vi.fn>
 
 // Track media metadata
@@ -242,18 +240,14 @@ vi.mock('@/providers/config-provider', () => ({
   })),
 }))
 
-vi.mock('@/providers/global-states-provider', () => ({
-  useGlobalStates: vi.fn(() => ({
-    mediaFolderStates: {},
-    setMediaFolderStates: vi.fn(),
+vi.mock('@/stores/plansStore', () => ({
+  usePlansStore: vi.fn(() => ({
     pendingPlans: [],
     pendingRenamePlans: [],
     fetchPendingPlans: vi.fn(),
     updatePlan: vi.fn(),
     addTmpPlan: mockAddTmpPlan,
   })),
-  useInitializedMediaFoldersState: vi.fn(() => [mockInitializedMediaFolders, mockSetInitializedMediaFolders]),
-  GlobalStatesProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 vi.mock('@/providers/dialog-provider', () => ({
@@ -285,10 +279,6 @@ describe('TvShowPanel', () => {
       mockIsRuleBasedRecognizePromptOpen = value
     })
     
-    // Initialize global states mock setters
-    mockSetInitializedMediaFolders = vi.fn((folders: string[]) => {
-      mockInitializedMediaFolders = folders
-    })
     mockAddTmpPlan = vi.fn()
     
     // Reset prompt states
@@ -297,9 +287,6 @@ describe('TvShowPanel', () => {
     mockIsAiBasedRenameFilePromptOpen = false
     mockIsAiRecognizePromptOpen = false
     mockIsRuleBasedRecognizePromptOpen = false
-    
-    // Reset global states
-    mockInitializedMediaFolders = []
     
     // Reset media metadata
     mockSelectedMediaMetadata = undefined
@@ -409,9 +396,6 @@ describe('TvShowPanel', () => {
   it('should not trigger recognition when folder is already initialized', () => {
     const testFolderPath = '/test/path'
 
-    // Mock initializedMediaFolders to already contain the folder
-    mockInitializedMediaFolders = [testFolderPath]
-
     // Mock mediaMetadata with the same folder path
     mockSelectedMediaMetadata = {
       mediaFolderPath: testFolderPath,
@@ -438,7 +422,6 @@ describe('TvShowPanel', () => {
     // Note: Recognition is triggered by user clicking the Recognize button, not automatically
     // This test verifies that no automatic recognition happens on render
     expect(mockAddTmpPlan).not.toHaveBeenCalled()
-    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 
   it('should not trigger recognition when media files are already recognized', () => {
@@ -457,9 +440,6 @@ describe('TvShowPanel', () => {
     
     // Verify no recognition was triggered
     expect(mockAddTmpPlan).not.toHaveBeenCalled()
-    
-    // Verify folder was not added to initializedMediaFolders
-    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 
   it('should not trigger automatic recognition when media files have nil absolutePath', () => {
@@ -479,6 +459,5 @@ describe('TvShowPanel', () => {
     // Note: Recognition is triggered by user clicking the Recognize button, not automatically
     // This test verifies that no automatic recognition happens on render
     expect(mockAddTmpPlan).not.toHaveBeenCalled()
-    expect(mockSetInitializedMediaFolders).not.toHaveBeenCalled()
   })
 })
