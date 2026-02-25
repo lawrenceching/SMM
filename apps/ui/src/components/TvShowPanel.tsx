@@ -1,4 +1,5 @@
-import { TMDBTVShowOverview, type TMDBTVShowOverviewRef } from "./tmdb-tvshow-overview"
+import { TVShowHeader } from "./tv-show-header"
+import { SeasonSection } from "./season-section"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef } from "react"
 import type { TMDBEpisode, TMDBTVShow } from "@core/types"
@@ -19,7 +20,7 @@ import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
-import { getTvShowById } from "@/api/tmdb"
+import { searchTmdb, getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
@@ -46,15 +47,16 @@ interface ToolbarOption {
 }
 
 function TvShowPanelContent() {
-  const { t } = useTranslation('components')
+  const { t } = useTranslation(['components', 'errors'])
   const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = usePlansStore()
   const { 
     selectedMediaMetadata: mediaMetadata, 
     updateMediaMetadata,
     refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath
    } = useMediaMetadata()
-  const { filePickerDialog } = useDialogs()
+  const { filePickerDialog, scrapeDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
+  const [openScrape] = scrapeDialog
   const { userConfig } = useConfig()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
@@ -64,7 +66,106 @@ function TvShowPanelContent() {
   // Use prompts hook
   const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt, openAiRecognizePrompt } = usePrompts()
 
-  const tmdbTvShowOverviewRef = useRef<TMDBTVShowOverviewRef>(null)
+  // Search state
+  const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
+
+  // Expansion state
+  const [expandedSeasonIds, setExpandedSeasonIds] = useState<Set<number>>(new Set())
+  const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<number>>(new Set())
+
+  // Search callbacks
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      setSearchError(null)
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError(null)
+    setSearchResults([])
+
+    try {
+      const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
+      const response = await searchTmdb(searchQuery.trim(), 'tv', language)
+
+      if (response.error) {
+        setSearchError(response.error)
+        setSearchResults([])
+        return
+      }
+
+      const tvShows = response.results.filter((item): item is TMDBTVShow => 'name' in item)
+      setSearchResults(tvShows)
+
+      if (tvShows.length === 0) {
+        setSearchError(t('errors:searchNoResults'))
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+      const errorMessage = error instanceof Error ? error.message : t('errors:searchFailed')
+      setSearchError(errorMessage)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [searchQuery, userConfig, t])
+
+  const handleSelectResult = useCallback(async (result: TMDBTVShow) => {
+    if (mediaMetadata?.tmdbTvShow?.id === result.id) {
+      return
+    }
+
+    if (!mediaMetadata?.mediaFolderPath) {
+      console.error("No media metadata path available")
+      return
+    }
+
+    setIsUpdatingTvShow(true)
+
+    try {
+      const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
+      const response = await getTvShowById(result.id, language)
+
+      if (response.error) {
+        console.error("Failed to get TV show details:", response.error)
+        setIsUpdatingTvShow(false)
+        return
+      }
+
+      if (!response.data) {
+        console.error("No TV show data returned")
+        setIsUpdatingTvShow(false)
+        return
+      }
+
+      const traceId = `tmdb-tvshow-overview-handleSelectResult-${nextTraceId()}`
+      updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+        ...mediaMetadata,
+        tmdbTvShow: response.data,
+        tmdbMediaType: 'tv',
+        type: 'tvshow-folder',
+      }, { traceId })
+
+      setIsUpdatingTvShow(false)
+    } catch (error) {
+      console.error("Failed to update media metadata:", error)
+      setIsUpdatingTvShow(false)
+    }
+  }, [mediaMetadata, userConfig, updateMediaMetadata])
+
+  // Update search query when tvShow name changes
+  useEffect(() => {
+    if (mediaMetadata?.tmdbTvShow?.name) {
+      setSearchQuery(mediaMetadata.tmdbTvShow.name)
+    } else {
+      setSearchQuery("")
+    }
+  }, [mediaMetadata?.tmdbTvShow?.name])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -79,8 +180,8 @@ function TvShowPanelContent() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
+    handleSelectResult(tmdbTvShow)
+  }, [handleSelectResult])
 
   const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
     console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
@@ -94,8 +195,8 @@ function TvShowPanelContent() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    tmdbTvShowOverviewRef.current?.handleSelectResult(tmdbTvShow)
-  }, [])
+    handleSelectResult(tmdbTvShow)
+  }, [handleSelectResult])
 
   // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
   const openUseNfoPromptWithCallbacks = useCallback((params: {
@@ -649,6 +750,93 @@ function TvShowPanelContent() {
   /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
   const isPreviewingForRecognize = promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiRecognizePromptOpen
 
+  // Preview mode effect - expand all seasons/episodes when entering preview mode
+  const savedSeasonIdsRef = useRef<Set<number> | null>(null)
+  const savedEpisodeIdsRef = useRef<Set<number> | null>(null)
+  const prevPreviewModeRef = useRef(false)
+
+  useEffect(() => {
+    const wasInPreviewMode = prevPreviewModeRef.current
+    prevPreviewModeRef.current = isPreviewingForRename
+
+    if (isPreviewingForRename && !wasInPreviewMode && mediaMetadata?.tmdbTvShow?.seasons) {
+      setExpandedSeasonIds(currentSeasonIds => {
+        savedSeasonIdsRef.current = new Set(currentSeasonIds)
+        const seasonIds = new Set(mediaMetadata.tmdbTvShow!.seasons!.map(season => season.id))
+        return seasonIds
+      })
+
+      setExpandedEpisodeIds(currentEpisodeIds => {
+        savedEpisodeIdsRef.current = new Set(currentEpisodeIds)
+        const episodeIds = new Set<number>()
+        mediaMetadata.tmdbTvShow!.seasons!.forEach(season => {
+          if (season.episodes) {
+            season.episodes.forEach(episode => {
+              episodeIds.add(episode.id)
+            })
+          }
+        })
+        return episodeIds
+      })
+    } else if (!isPreviewingForRename && wasInPreviewMode && savedSeasonIdsRef.current !== null && savedEpisodeIdsRef.current !== null) {
+      setExpandedSeasonIds(savedSeasonIdsRef.current)
+      setExpandedEpisodeIds(savedEpisodeIdsRef.current)
+      savedSeasonIdsRef.current = null
+      savedEpisodeIdsRef.current = null
+    }
+  }, [isPreviewingForRename, mediaMetadata?.tmdbTvShow?.seasons])
+
+  // Handle scrolling to episode when scrollToEpisodeId changes
+  useEffect(() => {
+    if (scrollToEpisodeId === null || scrollToEpisodeId === undefined || !mediaMetadata?.tmdbTvShow?.seasons) {
+      return
+    }
+
+    let targetSeasonId: number | null = null
+    for (const season of mediaMetadata.tmdbTvShow.seasons) {
+      if (season.episodes) {
+        const episode = season.episodes.find(ep => ep.id === scrollToEpisodeId)
+        if (episode) {
+          targetSeasonId = season.id
+          break
+        }
+      }
+    }
+
+    if (targetSeasonId === null) {
+      console.warn(`[TvShowPanel] Episode with ID ${scrollToEpisodeId} not found`)
+      return
+    }
+
+    setExpandedSeasonIds(prev => {
+      const newSet = new Set(prev)
+      newSet.add(targetSeasonId!)
+      return newSet
+    })
+
+    setExpandedEpisodeIds(prev => {
+      const newSet = new Set(prev)
+      newSet.add(scrollToEpisodeId!)
+      return newSet
+    })
+
+    const timeoutId = setTimeout(() => {
+      const episodeElement = document.querySelector(`[data-episode-id="${scrollToEpisodeId}"]`)
+      if (episodeElement) {
+        episodeElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        })
+      } else {
+        console.warn(`[TvShowPanel] Episode element with ID ${scrollToEpisodeId} not found in DOM`)
+      }
+    }, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [scrollToEpisodeId, mediaMetadata?.tmdbTvShow?.seasons])
 
   useEffect(() => {
     if (!mediaMetadata) {
@@ -676,31 +864,55 @@ function TvShowPanelContent() {
       <TvShowPanelPrompts />
 
       
-      <div className="w-full h-full">
-        <TMDBTVShowOverview 
-          ref={tmdbTvShowOverviewRef}
-          tvShow={mediaMetadata?.tmdbTvShow} 
-          className="w-full h-full"
-          onRenameClick={() => openRuleBasedRenameFilePrompt({
-            toolbarOptions,
-            selectedNamingRule,
-            setSelectedNamingRule,
-            onConfirm: handleRuleBasedRenameConfirm,
-            onCancel: () => {},
-          })}
-          onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
-          ruleName={selectedNamingRule}
-          seasons={
-            promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiBasedRenameFilePromptOpen || promptsContext.isRuleBasedRecognizePromptOpen
-              ? seasonsForPreview
-              : seasons
-          }
-          isPreviewingForRename={isPreviewingForRename}
-          isPreviewingForRecognize={isPreviewingForRecognize}
-          scrollToEpisodeId={scrollToEpisodeId}
-          onEpisodeFileSelect={handleOpenFilePickerForEpisode}
-          isLoading={mediaMetadata?.status === 'initializing'}
-        />
+      <div className="relative w-full h-full overflow-hidden flex flex-col">
+        {mediaMetadata?.tmdbTvShow?.backdrop_path && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-10"
+            style={{ backgroundImage: `url(https://image.tmdb.org/t/p/w780${mediaMetadata.tmdbTvShow.backdrop_path})` }}
+          />
+        )}
+        <div className="relative p-6 flex-1 overflow-y-auto space-y-6">
+          <TVShowHeader
+            tvShow={mediaMetadata?.tmdbTvShow}
+            isUpdatingTvShow={isUpdatingTvShow}
+            isSearching={isSearching}
+            searchError={searchError}
+            searchQuery={searchQuery}
+            searchResults={searchResults}
+            onSearchQueryChange={setSearchQuery}
+            onSearch={handleSearch}
+            onSelectResult={handleSelectResult}
+            onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
+            onRenameClick={() => openRuleBasedRenameFilePrompt({
+              toolbarOptions,
+              selectedNamingRule,
+              setSelectedNamingRule,
+              onConfirm: handleRuleBasedRenameConfirm,
+              onCancel: () => {},
+            })}
+            selectedMediaMetadata={mediaMetadata}
+            openScrape={openScrape}
+          />
+
+          <SeasonSection
+            tvShow={mediaMetadata?.tmdbTvShow}
+            isUpdatingTvShow={isUpdatingTvShow || (mediaMetadata?.status === 'initializing')}
+            expandedSeasonIds={expandedSeasonIds}
+            setExpandedSeasonIds={setExpandedSeasonIds}
+            expandedEpisodeIds={expandedEpisodeIds}
+            setExpandedEpisodeIds={setExpandedEpisodeIds}
+            isPreviewingForRename={isPreviewingForRename}
+            isPreviewingForRecognize={isPreviewingForRecognize}
+            ruleName={selectedNamingRule}
+            seasons={
+              promptsContext.isRuleBasedRecognizePromptOpen || promptsContext.isAiBasedRenameFilePromptOpen || promptsContext.isRuleBasedRecognizePromptOpen
+                ? seasonsForPreview
+                : seasons
+            }
+            scrollToEpisodeId={scrollToEpisodeId}
+            onEpisodeFileSelect={handleOpenFilePickerForEpisode}
+          />
+        </div>
       </div>
     </div>
   )
