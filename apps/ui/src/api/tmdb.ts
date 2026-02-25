@@ -96,12 +96,21 @@ export async function getMovieById(
 
 /**
  * Helper function to get TMDB image URL
+ * Handles both relative paths (e.g., /abc123.jpg) and absolute URLs (e.g., https://example.com/image.jpg)
  */
 export function getTMDBImageUrl(
-  path: string | null,
+  path: string | null | undefined = undefined,
   size: 'w200' | 'w300' | 'w500' | 'w780' | 'original' = 'w500'
 ): string | null {
-  if (!path) return null;
+  if (!path || typeof path !== 'string') return null;
+
+  const trimmedPath = path.trim();
+  if (trimmedPath.length === 0) return null;
+
+  if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
+    return trimmedPath;
+  }
+
   const baseUrl = 'https://image.tmdb.org/t/p';
-  return `${baseUrl}/${size}${path}`;
+  return `${baseUrl}/${size}${trimmedPath}`;
 }

@@ -20,7 +20,7 @@ import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
-import { searchTmdb, getTvShowById } from "@/api/tmdb"
+import { searchTmdb, getTvShowById, getTMDBImageUrl } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
@@ -859,16 +859,18 @@ function TvShowPanelContent() {
     }
   }, [mediaMetadata, promptsContext.isRuleBasedRecognizePromptOpen])
 
+  const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
+
   return (
     <div className='p-1 w-full h-full relative'>
       <TvShowPanelPrompts />
 
       
       <div className="relative w-full h-full overflow-hidden flex flex-col">
-        {mediaMetadata?.tmdbTvShow?.backdrop_path && (
+        {backdropUrl && (
           <div 
             className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-10"
-            style={{ backgroundImage: `url(https://image.tmdb.org/t/p/w780${mediaMetadata.tmdbTvShow.backdrop_path})` }}
+            style={{ backgroundImage: `url(${backdropUrl})` }}
           />
         )}
         <div className="relative p-6 flex-1 overflow-y-auto space-y-6">
