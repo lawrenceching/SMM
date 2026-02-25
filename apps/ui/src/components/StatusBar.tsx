@@ -1,25 +1,46 @@
 import { cn } from "@/lib/utils"
 import { useConfig } from "@/providers/config-provider"
-import { useWebSocket } from "@/hooks/useWebSocket"
+import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
 import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 
+/** Maps WebSocket status to ConnectionStatus (error → disconnected). Pure, unit-testable. */
+export function mapWebSocketStatusToConnectionStatus(status: WebSocketStatus): ConnectionStatus {
+    switch (status) {
+        case "connected":
+            return "connected"
+        case "connecting":
+            return "connecting"
+        case "disconnected":
+        case "error":
+        default:
+            return "disconnected"
+    }
+}
+
 interface StatusBarProps {
     className?: string
     message?: string
+    /** Override connection status (e.g. for tests); when set, useWebSocket is not used for status. */
+    connectionStatus?: ConnectionStatus
+    /** Override app version (e.g. for tests); when set, useConfig is not used for version. */
+    version?: string
 }
 
-export function StatusBar({className, message}: StatusBarProps) {
+export function StatusBar({
+    className,
+    message,
+    connectionStatus: connectionStatusOverride,
+    version: versionOverride,
+}: StatusBarProps) {
     const { appConfig } = useConfig()
     const { status } = useWebSocket()
-    
-    // Map WebSocketStatus to ConnectionStatus
-    const connectionStatus: ConnectionStatus = 
-        status === 'connected' ? 'connected' :
-        status === 'connecting' ? 'connecting' :
-        'disconnected' // 'disconnected' or 'error' both map to 'disconnected'
+
+    const connectionStatus: ConnectionStatus =
+        connectionStatusOverride ?? mapWebSocketStatusToConnectionStatus(status)
+    const version = versionOverride ?? appConfig.version
 
     return (
         <div
@@ -44,7 +65,7 @@ export function StatusBar({className, message}: StatusBarProps) {
                     <BackgroundJobsIndicator />
                 </div>
                 <Separator orientation="vertical" className="h-4" />
-                <span className="font-medium" data-testid="app-version">{appConfig.version}</span>
+                <span className="font-medium" data-testid="app-version">{version}</span>
             </div>
         </div>
     )
