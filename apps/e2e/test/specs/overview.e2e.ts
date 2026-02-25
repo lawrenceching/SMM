@@ -2,6 +2,9 @@ import { expect } from '@wdio/globals'
 import StatusBar from '../componentobjects/StatusBar'
 import Sidebar from '../componentobjects/Sidebar'
 import { createBeforeHook } from '../lib/testbed'
+import { delay } from 'es-toolkit'
+
+const slowdown = process.env.SLOWDOWN === 'true'
 
 describe('UI Components', () => {
 
@@ -38,6 +41,11 @@ describe('UI Components', () => {
     })
 
     it('Sidebar components are displayed', async () => {
+
+        if(slowdown) {
+            await delay(4000)
+        }
+
         // Verify Sidebar is displayed
         expect(await Sidebar.isDisplayed()).toBe(true)
 

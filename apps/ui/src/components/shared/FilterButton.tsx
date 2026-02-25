@@ -53,6 +53,7 @@ export function FilterButton<T extends string>({
                 "[&>svg:last-child]:hidden",
                 triggerClassName
               )}
+              data-testid="filter-select-trigger"
             >
               <Filter className="h-4 w-4" />
               <span className="sr-only">{placeholder}</span>

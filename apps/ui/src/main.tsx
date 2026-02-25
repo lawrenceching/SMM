@@ -2,7 +2,6 @@ import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './lib/i18n' // Initialize i18n
-import App from './App.tsx'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
@@ -183,11 +182,10 @@ function EventListeners() {
 function AppSwitcher() {
   // Establish WebSocket connection at the switcher level so it persists across view changes
   useWebSocket();
-  
-  const [useAppV2, setUseAppV2] = useState(true)
+
   const isMobile = useIsMobile()
 
-  // On mobile, always use AppNavigation
+  // On mobile, use AppNavigation
   if (isMobile) {
     return (
       <>
@@ -198,41 +196,10 @@ function AppSwitcher() {
     )
   }
 
-  // On desktop, show App/AppV2 switcher
+  // On desktop, use AppV2 only
   return (
     <>
-      {/* 切换按钮 */}
-      <button
-        hidden
-        onClick={() => setUseAppV2(!useAppV2)}
-        style={{
-          position: 'fixed',
-          top: '12px',
-          right: '12px',
-          zIndex: 9999,
-          padding: '8px 16px',
-          backgroundColor: '#4a9eff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '12px',
-          fontWeight: '500',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#3a8eef'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#4a9eff'
-        }}
-      >
-        {useAppV2 ? '切换到 App' : '切换到 AppV2'}
-      </button>
-
-      {/* 渲染对应的组件 */}
-      {useAppV2 ? <AppV2 /> : <App />}
+      <AppV2 />
       <WebSocketHandlers />
       <EventListeners />
     </>

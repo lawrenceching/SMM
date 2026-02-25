@@ -44,13 +44,18 @@ export function SortingButton<T extends string>({
                 "[&>svg:last-child]:hidden",
                 triggerClassName
               )}
+              data-testid="sort-select-trigger"
             >
               <ArrowUpDown className="h-4 w-4" />
               <span className="sr-only">{placeholder}</span>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent data-testid="sort-select-content">
               {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem
+                  key={option.value}
+                  value={option.value}
+                  data-testid={option.value === "alphabetical" ? "sort-option-alphabetical" : option.value === "reverse-alphabetical" ? "sort-option-reverse-alphabetical" : undefined}
+                >
                   {option.label}
                 </SelectItem>
               ))}
