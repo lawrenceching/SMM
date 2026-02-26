@@ -1223,15 +1223,15 @@ export interface HandlePendingPlansParams {
     onConfirm: () => void
     onCancel: () => void
   }) => void
-  openAiRecognizePrompt: (options: {
+  openAiBasedRecognizePrompt: (options: {
     status: "generating" | "wait-for-ack"
-    confirmButtonLabel: string
-    confirmButtonDisabled: boolean
-    isRenaming: boolean
-    onConfirm: () => void
+    confirmButtonLabel?: string
+    confirmButtonDisabled?: boolean
+    isRenaming?: boolean
+    onConfirm?: () => void
     onCancel?: () => void
   }) => void
-  closeAiRecognizePrompt: () => void
+  closeAiBasedRecognizePrompt: () => void
   handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
@@ -1247,8 +1247,8 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     mediaMetadata,
     setSeasonsForPreview,
     openRuleBasedRecognizePrompt,
-    openAiRecognizePrompt,
-    closeAiRecognizePrompt,
+    openAiBasedRecognizePrompt,
+    closeAiBasedRecognizePrompt,
     handleAiRecognizeConfirmCallback,
     updatePlan,
     updateMediaMetadata,
@@ -1294,9 +1294,9 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
           })
         }
       })
-      closeAiRecognizePrompt()
+      closeAiBasedRecognizePrompt()
     } else {
-      openAiRecognizePrompt({
+      openAiBasedRecognizePrompt({
         status: "wait-for-ack",
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
         confirmButtonDisabled: false,
@@ -1314,7 +1314,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
       })
     }
   } else {
-    closeAiRecognizePrompt()
+    closeAiBasedRecognizePrompt()
   }
 }
 
