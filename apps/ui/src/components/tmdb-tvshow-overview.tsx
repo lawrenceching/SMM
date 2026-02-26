@@ -1,4 +1,4 @@
-import type { TMDBTVShowDetails, TMDBTVShow, TMDBMovie } from "@core/types"
+import type { TMDBTVShow, TMDBMovie } from "@core/types"
 import { cn } from "@/lib/utils"
 import { forwardRef } from "react"
 import { SeasonSection } from "./season-section"
@@ -10,24 +10,13 @@ export interface TMDBTVShowOverviewRef {
 }
 
 interface TMDBTVShowOverviewProps {
-    tvShow?: TMDBTVShowDetails
     className?: string
     onRenameClick?: () => void
     onRecognizeButtonClick?: () => void
-    ruleName?: "plex" | "emby"
     seasons: SeasonModel[]
-    isPreviewingForRename: boolean
-    isPreviewingForRecognize?: boolean
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
-    isLoading?: boolean
     onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
-    initialSearchValue?: string
-    isUpdatingTvShow: boolean
-    expandedSeasonIds: Set<number>
-    setExpandedSeasonIds: React.Dispatch<React.SetStateAction<Set<number>>>
-    expandedEpisodeIds: Set<number>
-    setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
     selectedMediaMetadata?: import("@/types/UIMediaMetadata").UIMediaMetadata
     openScrape?: (params: { mediaMetadata: import("@/types/UIMediaMetadata").UIMediaMetadata }) => void
 }
@@ -42,23 +31,20 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
  * @deprecated
  */
 export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
-    ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, 
-        seasons, isPreviewingForRename, isPreviewingForRecognize = false, scrollToEpisodeId, onEpisodeFileSelect, isLoading,
-        onSearchResultSelected, initialSearchValue,
-        isUpdatingTvShow, expandedSeasonIds, setExpandedSeasonIds, expandedEpisodeIds, setExpandedEpisodeIds,
+    ({ className, onRenameClick, onRecognizeButtonClick,
+        seasons, scrollToEpisodeId, onEpisodeFileSelect,
+        onSearchResultSelected,
         selectedMediaMetadata, openScrape }) => {
-    const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
+    const backdropUrl = selectedMediaMetadata?.tmdbTvShow ? getTMDBImageUrl(selectedMediaMetadata.tmdbTvShow.backdrop_path, "w780") : null
+    const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating' || selectedMediaMetadata?.status === 'initializing'
 
-    if (!tvShow && !isUpdatingTvShow) {
+    if (!selectedMediaMetadata?.tmdbTvShow && !isUpdatingTvShow) {
         return (
             <div className={cn("relative w-full h-full flex flex-col", className)}>
                 <div className="relative p-6 flex-1 overflow-y-auto">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                             <TVShowHeader
-                                tvShow={undefined}
-                                isUpdatingTvShow={isUpdatingTvShow}
-                                initialSearchValue={initialSearchValue}
                                 onSearchResultSelected={onSearchResultSelected}
                                 selectedMediaMetadata={selectedMediaMetadata}
                                 openScrape={openScrape}
@@ -80,9 +66,6 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
             )}
             <div className="relative p-6 flex-1 overflow-y-auto space-y-6">
                 <TVShowHeader
-                    tvShow={tvShow}
-                    isUpdatingTvShow={isUpdatingTvShow}
-                    initialSearchValue={initialSearchValue}
                     onSearchResultSelected={onSearchResultSelected}
                     onRecognizeButtonClick={onRecognizeButtonClick}
                     onRenameClick={onRenameClick}
@@ -91,15 +74,7 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                 />
 
                 <SeasonSection
-                    tvShow={tvShow}
-                    isUpdatingTvShow={isUpdatingTvShow || (isLoading ?? false)}
-                    expandedSeasonIds={expandedSeasonIds}
-                    setExpandedSeasonIds={setExpandedSeasonIds}
-                    expandedEpisodeIds={expandedEpisodeIds}
-                    setExpandedEpisodeIds={setExpandedEpisodeIds}
-                    isPreviewingForRename={isPreviewingForRename}
-                    isPreviewingForRecognize={isPreviewingForRecognize}
-                    ruleName={ruleName}
+                    selectedMediaMetadata={selectedMediaMetadata}
                     seasons={seasons}
                     scrollToEpisodeId={scrollToEpisodeId}
                     onEpisodeFileSelect={onEpisodeFileSelect}

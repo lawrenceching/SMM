@@ -1,4 +1,4 @@
-import type { TMDBTVShowDetails, TMDBTVShow, TMDBMovie } from "@core/types"
+import type { TMDBTVShow, TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
@@ -28,10 +28,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 interface TVShowHeaderProps {
-    tvShow?: TMDBTVShowDetails
-    isUpdatingTvShow: boolean
     onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
-    initialSearchValue?: string
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
@@ -39,16 +36,17 @@ interface TVShowHeaderProps {
 }
 
 export function TVShowHeader({
-    tvShow,
-    isUpdatingTvShow,
     onSearchResultSelected,
-    initialSearchValue,
     onRecognizeButtonClick,
     onRenameClick,
     selectedMediaMetadata,
     openScrape,
 }: TVShowHeaderProps) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
+
+    const tvShow = selectedMediaMetadata?.tmdbTvShow
+    const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
+    const initialSearchValue = tvShow?.name
 
     const posterUrl = tvShow ? getTMDBImageUrl(tvShow.poster_path, "w500") : null
     const formattedDate = tvShow ? formatDate(tvShow.first_air_date) : t('tvShow.notAvailable', { ns: 'components' })

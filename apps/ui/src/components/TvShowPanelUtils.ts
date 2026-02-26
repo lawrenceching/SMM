@@ -1,6 +1,6 @@
 import type { SeasonModel } from "./TvShowPanel";
 import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
@@ -14,6 +14,7 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { listFiles } from "@/api/listFiles";
+import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -1314,5 +1315,60 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     }
   } else {
     closeAiRecognizePrompt()
+  }
+}
+
+export interface OnMediaFolderSelectedParams {
+  mediaMetadata: UIMediaMetadata
+  openRuleBasedRecognizePrompt: (options: {
+    onConfirm: () => void
+    onCancel: () => void
+  }) => void
+  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
+  buildSeasonsModelFromMediaMetadata: (mediaMetadata: UIMediaMetadata) => SeasonModel[] | null
+  setSeasons: (seasons: SeasonModel[]) => void
+}
+
+export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void {
+  const {
+    mediaMetadata,
+    openRuleBasedRecognizePrompt,
+    updateMediaMetadata,
+    buildSeasonsModelFromMediaMetadata,
+    setSeasons,
+  } = params
+
+  if (mediaMetadata.mediaFolderPath === undefined) {
+    console.error('[TvShowPanel] onMediaFolderSelected: media folder path is undefined')
+    return
+  }
+
+  if (mediaMetadata.status !== 'ok') {
+    return
+  }
+
+  ;(async () => {
+    if (mediaMetadata.type === undefined || (mediaMetadata.tmdbTvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
+      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata)
+      if (recognized !== undefined) {
+        openRuleBasedRecognizePrompt({
+          onConfirm: () => {
+            updateMediaMetadata(mediaMetadata.mediaFolderPath!, (prev: UIMediaMetadata) => {
+              return {
+                ...prev,
+                ...recognized,
+                ...extractUIMediaMetadataProps(prev),
+              }
+            })
+          },
+          onCancel: () => {},
+        })
+      }
+    }
+  })()
+
+  const seasons = buildSeasonsModelFromMediaMetadata(mediaMetadata)
+  if (seasons !== null) {
+    setSeasons(seasons)
   }
 }

@@ -62,14 +62,17 @@ const mockTvShow: TMDBTVShowDetails = {
 
 describe('TVShowHeader', () => {
   const defaultProps = {
-    tvShow: mockTvShow,
-    isUpdatingTvShow: false,
     onSearchResultSelected: vi.fn(),
-    initialSearchValue: 'Test Query',
     onRecognizeButtonClick: vi.fn(),
     onRenameClick: vi.fn(),
     selectedMediaMetadata: undefined,
     openScrape: undefined,
+  }
+
+  const mockMediaMetadata = {
+    tmdbTvShow: mockTvShow,
+    status: 'idle' as const,
+    mediaFiles: [],
   }
 
   beforeEach(() => {
@@ -77,82 +80,82 @@ describe('TVShowHeader', () => {
   })
 
   it('renders poster image when tvShow is provided', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     const poster = screen.getByRole('img', { name: mockTvShow.name })
     expect(poster).toBeInTheDocument()
     expect(poster).toHaveAttribute('src', expect.stringContaining('w500'))
   })
 
   it('renders searchbox with correct props', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     const searchbox = screen.getByTestId('tmdb-searchbox')
     expect(searchbox).toBeInTheDocument()
     const input = screen.getByTestId('search-input')
-    expect(input).toHaveValue(defaultProps.initialSearchValue)
+    expect(input).toHaveValue(mockTvShow.name)
   })
 
   it('renders metadata badges', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     expect(screen.getByText(/January/)).toBeInTheDocument()
     expect(screen.getByText(/8.5/)).toBeInTheDocument()
     expect(screen.getByText(/500/)).toBeInTheDocument()
   })
 
   it('renders original name when different from name', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     expect(screen.getByText(mockTvShow.original_name)).toBeInTheDocument()
   })
 
   it('renders overview', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     expect(screen.getByText(mockTvShow.overview)).toBeInTheDocument()
   })
 
   it('renders action buttons', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     expect(screen.getByRole('button', { name: /Recognize/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Rename/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Scrape/i })).toBeInTheDocument()
   })
 
   it('calls onRecognizeButtonClick when recognize button is clicked', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     fireEvent.click(screen.getByRole('button', { name: /Recognize/i }))
     expect(defaultProps.onRecognizeButtonClick).toHaveBeenCalledTimes(1)
   })
 
   it('calls onRenameClick when rename button is clicked', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     fireEvent.click(screen.getByRole('button', { name: /Rename/i }))
     expect(defaultProps.onRenameClick).toHaveBeenCalledTimes(1)
   })
 
   it('renders skeleton when isUpdatingTvShow is true', () => {
-    render(<TVShowHeader {...defaultProps} isUpdatingTvShow />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={{ ...mockMediaMetadata, status: 'updating' }} />)
     const skeletons = document.querySelectorAll('.animate-pulse')
     expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it('does not render poster when tvShow is undefined', () => {
-    render(<TVShowHeader {...defaultProps} tvShow={undefined} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={{ ...mockMediaMetadata, tmdbTvShow: undefined }} />)
     const poster = screen.queryByRole('img', { name: mockTvShow.name })
     expect(poster).not.toBeInTheDocument()
   })
 
   it('does not render overview when tvShow overview is empty', () => {
     const tvShowWithoutOverview = { ...mockTvShow, overview: '' }
-    render(<TVShowHeader {...defaultProps} tvShow={tvShowWithoutOverview} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={{ ...mockMediaMetadata, tmdbTvShow: tvShowWithoutOverview }} />)
     expect(screen.queryByText('components:tvShow.overview')).not.toBeInTheDocument()
   })
 
   it('does not render original name when same as name', () => {
     const tvShowWithSameNames = { ...mockTvShow, original_name: mockTvShow.name }
-    render(<TVShowHeader {...defaultProps} tvShow={tvShowWithSameNames} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={{ ...mockMediaMetadata, tmdbTvShow: tvShowWithSameNames }} />)
     expect(screen.queryByText(mockTvShow.original_name)).not.toBeInTheDocument()
   })
 
   it('calls onSearchResultSelected when search result is selected', () => {
-    render(<TVShowHeader {...defaultProps} />)
+    render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
     fireEvent.click(screen.getByTestId('search-button'))
     expect(defaultProps.onSearchResultSelected).toHaveBeenCalledTimes(1)
   })
@@ -166,7 +169,7 @@ describe('TVShowHeader', () => {
   it('disables scrape button when media files are empty', () => {
     render(<TVShowHeader 
       {...defaultProps} 
-      selectedMediaMetadata={{ mediaFiles: [], tmdbTvShow: mockTvShow } as any}
+      selectedMediaMetadata={{ mediaFiles: [], tmdbTvShow: mockTvShow, status: 'idle' }}
     />)
     const scrapeButton = screen.getByRole('button', { name: /Scrape/i })
     expect(scrapeButton).toBeDisabled()

@@ -1,10 +1,11 @@
-import type { TMDBTVShowDetails } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Tv, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EpisodeSection } from "./episode-section"
 import type { SeasonModel } from "./TvShowPanel"
+import { useSeasonSectionState } from "./hooks/useSeasonSectionState"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -29,34 +30,34 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 interface SeasonSectionProps {
-    tvShow?: TMDBTVShowDetails
-    isUpdatingTvShow: boolean
-    expandedSeasonIds: Set<number>
-    setExpandedSeasonIds: React.Dispatch<React.SetStateAction<Set<number>>>
-    expandedEpisodeIds: Set<number>
-    setExpandedEpisodeIds: React.Dispatch<React.SetStateAction<Set<number>>>
-    isPreviewingForRename?: boolean
-    /** True when user is reviewing match between local video file and episode; UI should highlight the video file path. */
-    isPreviewingForRecognize?: boolean
-    ruleName?: "plex" | "emby"
+    selectedMediaMetadata?: UIMediaMetadata
     seasons: SeasonModel[]
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
 }
 
 export function SeasonSection({
-    tvShow,
-    isUpdatingTvShow,
-    expandedSeasonIds,
-    setExpandedSeasonIds,
-    expandedEpisodeIds,
-    setExpandedEpisodeIds,
-    isPreviewingForRename = false,
-    isPreviewingForRecognize = false,
+    selectedMediaMetadata,
     seasons,
     scrollToEpisodeId,
     onEpisodeFileSelect,
 }: SeasonSectionProps) {
+    const {
+        expandedSeasonIds,
+        setExpandedSeasonIds,
+        expandedEpisodeIds,
+        setExpandedEpisodeIds,
+        isPreviewingForRename,
+        isPreviewingForRecognize,
+    } = useSeasonSectionState({ 
+        mediaMetadata: selectedMediaMetadata,
+        scrollToEpisodeId,
+    })
+    
+    const tvShow = selectedMediaMetadata?.tmdbTvShow
+    const isUpdatingTvShow = 
+        selectedMediaMetadata?.status === 'updating' || 
+        selectedMediaMetadata?.status === 'initializing'
     if (isUpdatingTvShow) {
         return (
             <div className="space-y-2">
