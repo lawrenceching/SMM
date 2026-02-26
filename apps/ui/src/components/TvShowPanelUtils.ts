@@ -1173,3 +1173,42 @@ export function recognizeMediaFilesByRules(
     return null
   }
 }
+
+export async function handleAiRecognizeConfirm(
+  plan: RecognizeMediaFilePlan,
+  mediaMetadata: UIMediaMetadata,
+  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
+  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
+): Promise<void> {
+  const traceId = `TvShowPanelUtils-handleAiRecognizeConfirm-${nextTraceId()}`
+  console.log(`[${traceId}] handleAiRecognizeConfirm CALLED`, {
+    timestamp: new Date().toISOString(),
+    plan,
+    mediaFolderPath: mediaMetadata?.mediaFolderPath,
+    stackTrace: new Error().stack
+  })
+
+  if (!mediaMetadata?.mediaFolderPath) {
+    toast.error("No media folder path available")
+    return
+  }
+
+  if (plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
+    console.warn(`[${traceId}] Plan mediaFolderPath does not match current media metadata`, {
+      planPath: plan.mediaFolderPath,
+      currentPath: mediaMetadata.mediaFolderPath
+    })
+    toast.error("Plan does not match current media folder")
+    return
+  }
+
+  try {
+    await updatePlan(plan.id, 'completed')
+    applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as any, { traceId })
+    console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
+    toast.success(`Applied recognition for ${plan.files.length} file(s)`)
+  } catch (error) {
+    console.error(`[${traceId}] Error applying recognition:`, error)
+    toast.error("Failed to apply recognition")
+  }
+}

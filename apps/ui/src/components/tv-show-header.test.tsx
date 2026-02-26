@@ -3,21 +3,20 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { TVShowHeader } from './tv-show-header'
 import type { TMDBTVShowDetails } from '@core/types'
 
-vi.mock('./ImmersiveSearchbox', () => ({
-  ImmersiveSearchbox: vi.fn().mockImplementation(({
-    value,
-    onChange,
-    onSearch,
-    placeholder
+vi.mock('./TMDBSearchbox', () => ({
+  TMDBSearchbox: vi.fn().mockImplementation(({
+    initialValue,
+    onSearchResultSelected,
+    placeholder,
   }) => (
-    <div data-testid="immersive-searchbox">
+    <div data-testid="tmdb-searchbox">
       <input
         data-testid="search-input"
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
+        value={initialValue || ''}
+        onChange={() => {}}
         placeholder={placeholder}
       />
-      <button data-testid="search-button" onClick={onSearch}>Search</button>
+      <button data-testid="search-button" onClick={() => onSearchResultSelected({ id: 1, name: 'Test' } as any)}>Search</button>
     </div>
   )),
 }))
@@ -26,6 +25,15 @@ vi.mock('@/lib/i18n', () => ({
   useTranslation: vi.fn(() => ({
     t: (key: string) => key,
   })),
+}))
+
+vi.mock('@/providers/config-provider', () => ({
+  useConfig: vi.fn(() => ({
+    userConfig: {
+      applicationLanguage: 'en-US',
+    },
+  })),
+  ConfigProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
 const mockTvShow: TMDBTVShowDetails = {
@@ -56,13 +64,8 @@ describe('TVShowHeader', () => {
   const defaultProps = {
     tvShow: mockTvShow,
     isUpdatingTvShow: false,
-    isSearching: false,
-    searchError: null,
-    searchQuery: 'Test Query',
-    searchResults: [],
-    onSearchQueryChange: vi.fn(),
-    onSearch: vi.fn(),
-    onSelectResult: vi.fn(),
+    onSearchResultSelected: vi.fn(),
+    initialSearchValue: 'Test Query',
     onRecognizeButtonClick: vi.fn(),
     onRenameClick: vi.fn(),
     selectedMediaMetadata: undefined,
@@ -82,10 +85,10 @@ describe('TVShowHeader', () => {
 
   it('renders searchbox with correct props', () => {
     render(<TVShowHeader {...defaultProps} />)
-    const searchbox = screen.getByTestId('immersive-searchbox')
+    const searchbox = screen.getByTestId('tmdb-searchbox')
     expect(searchbox).toBeInTheDocument()
     const input = screen.getByTestId('search-input')
-    expect(input).toHaveValue(defaultProps.searchQuery)
+    expect(input).toHaveValue(defaultProps.initialSearchValue)
   })
 
   it('renders metadata badges', () => {
@@ -148,17 +151,10 @@ describe('TVShowHeader', () => {
     expect(screen.queryByText(mockTvShow.original_name)).not.toBeInTheDocument()
   })
 
-  it('calls onSearchQueryChange when search input changes', () => {
-    render(<TVShowHeader {...defaultProps} />)
-    const input = screen.getByTestId('search-input')
-    fireEvent.change(input, { target: { value: 'New Query' } })
-    expect(defaultProps.onSearchQueryChange).toHaveBeenCalledWith('New Query')
-  })
-
-  it('calls onSearch when search button is clicked', () => {
+  it('calls onSearchResultSelected when search result is selected', () => {
     render(<TVShowHeader {...defaultProps} />)
     fireEvent.click(screen.getByTestId('search-button'))
-    expect(defaultProps.onSearch).toHaveBeenCalledTimes(1)
+    expect(defaultProps.onSearchResultSelected).toHaveBeenCalledTimes(1)
   })
 
   it('disables scrape button when no media files', () => {

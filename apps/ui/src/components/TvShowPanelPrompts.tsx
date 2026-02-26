@@ -6,6 +6,7 @@ import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@core/types"
+import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 
 interface ToolbarOption {
   value: "plex" | "emby"
@@ -641,6 +642,7 @@ interface TvShowPanelPromptsProps {
 
 export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
   const context = usePromptsContext()
+  const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
   
   return (
     <div className="absolute top-0 left-0 w-full z-20">
@@ -714,21 +716,20 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
       />
 
       <UseTmdbidFromFolderNamePrompt
-        isOpen={context.isUseTmdbidFromFolderNamePromptOpen}
-        mediaName={context.tmdbMediaNameFromFolderName}
-        tmdbid={context.tmdbIdFromFolderName}
-        status={context.tmdbIdFromFolderNameStatus ?? "ready"}
+        isOpen={tmdbPromptStore.isOpen}
+        mediaName={tmdbPromptStore.mediaName}
+        tmdbid={tmdbPromptStore.tmdbId}
+        status={tmdbPromptStore.status ?? "ready"}
         onConfirm={() => {
           console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm TRIGGERED', {
             timestamp: new Date().toISOString(),
-            status: context.tmdbIdFromFolderNameStatus ?? "ready",
-            tmdbId: context.tmdbIdFromFolderName,
+            status: tmdbPromptStore.status ?? "ready",
+            tmdbId: tmdbPromptStore.tmdbId,
             stackTrace: new Error().stack
           })
           // Only allow confirmation when status is "ready"
-          const currentStatus = context.tmdbIdFromFolderNameStatus ?? "ready"
+          const currentStatus = tmdbPromptStore.status ?? "ready"
           if (currentStatus !== "ready") {
-            // Don't proceed if still loading or in error state
             console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm BLOCKED - status not ready', {
               timestamp: new Date().toISOString(),
               currentStatus
@@ -736,29 +737,17 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
             return
           }
 
-          context._setIsUseTmdbidFromFolderNamePromptOpen(false)
+          tmdbPromptStore.closePrompt()
           
-          // Store callback and data before clearing state - use ref to get the actual callback
-          const callback = context._getOnUseTmdbidFromFolderNameConfirm()
-          const tmdbId = context.tmdbIdFromFolderName
+          const callback = tmdbPromptStore.onConfirm
+          const tmdbId = tmdbPromptStore.tmdbId
           
-          // Clear state first
-          context._setTmdbIdFromFolderName(undefined)
-          context._setTmdbMediaNameFromFolderName(undefined)
-          context._setTmdbIdFromFolderNameStatus(undefined)
-          context._setOnUseTmdbidFromFolderNameConfirm(undefined)
-          context._setOnUseTmdbidFromFolderNameCancel(undefined)
-          
-          // Then call callback if valid
-          // Double check that we have valid data before calling callback
           if (tmdbId !== undefined && tmdbId !== null && !isNaN(tmdbId) && typeof tmdbId === 'number' && callback) {
             console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt INVOKING callback', {
               timestamp: new Date().toISOString(),
               tmdbId,
               callbackType: typeof callback
             })
-            // Create a minimal TMDBTVShow object with just the ID
-            // handleSelectResult will fetch the full details
             const minimalTvShow: TMDBTVShow = {
               id: tmdbId,
               name: '',
@@ -777,7 +766,6 @@ export function TvShowPanelPrompts({}: TvShowPanelPromptsProps) {
             
             callback(minimalTvShow)
           } else {
-            // Log warning if callback would be called with invalid data
             if (callback && (tmdbId === undefined || tmdbId === null || isNaN(tmdbId) || typeof tmdbId !== 'number')) {
               console.warn('[TvShowPanelPrompts] Attempted to call onConfirm with invalid tmdbId:', tmdbId, 'status:', currentStatus)
             } else {

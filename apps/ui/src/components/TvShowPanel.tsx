@@ -2,7 +2,7 @@ import { TVShowHeader } from "./tv-show-header"
 import { SeasonSection } from "./season-section"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useState, useEffect, useCallback, useRef } from "react"
-import type { TMDBEpisode, TMDBTVShow } from "@core/types"
+import type { TMDBEpisode, TMDBTVShow, TMDBMovie } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
 import { useLatest } from "react-use"
@@ -13,14 +13,13 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, applyRecognizeMediaFilePlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
-import { getTmdbIdFromFolderName } from "@/AppV2Utils"
-import { searchTmdb, getTvShowById, getTMDBImageUrl } from "@/api/tmdb"
+import { getTvShowById, getTMDBImageUrl } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
@@ -29,6 +28,8 @@ import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder"
+import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
+import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -64,58 +65,15 @@ function TvShowPanelContent() {
   ]
 
   // Use prompts hook
-  const { openUseTmdbIdFromFolderNamePrompt, openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt, openAiRecognizePrompt } = usePrompts()
+  const { openUseNfoPrompt, openRuleBasedRenameFilePrompt, openRuleBasedRecognizePrompt, openAiBasedRenameFilePrompt, openAiRecognizePrompt } = usePrompts()
 
-  // Search state
-  const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
   const [isUpdatingTvShow, setIsUpdatingTvShow] = useState(false)
 
   // Expansion state
   const [expandedSeasonIds, setExpandedSeasonIds] = useState<Set<number>>(new Set())
   const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<number>>(new Set())
 
-  // Search callbacks
-  const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([])
-      setSearchError(null)
-      return
-    }
-
-    setIsSearching(true)
-    setSearchError(null)
-    setSearchResults([])
-
-    try {
-      const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
-      const response = await searchTmdb(searchQuery.trim(), 'tv', language)
-
-      if (response.error) {
-        setSearchError(response.error)
-        setSearchResults([])
-        return
-      }
-
-      const tvShows = response.results.filter((item): item is TMDBTVShow => 'name' in item)
-      setSearchResults(tvShows)
-
-      if (tvShows.length === 0) {
-        setSearchError(t('errors:searchNoResults'))
-      }
-    } catch (error) {
-      console.error('Search failed:', error)
-      const errorMessage = error instanceof Error ? error.message : t('errors:searchFailed')
-      setSearchError(errorMessage)
-      setSearchResults([])
-    } finally {
-      setIsSearching(false)
-    }
-  }, [searchQuery, userConfig, t])
-
-  const handleSelectResult = useCallback(async (result: TMDBTVShow) => {
+  const handleSelectResult = useCallback(async (result: TMDBTVShow | TMDBMovie) => {
     if (mediaMetadata?.tmdbTvShow?.id === result.id) {
       return
     }
@@ -157,15 +115,6 @@ function TvShowPanelContent() {
       setIsUpdatingTvShow(false)
     }
   }, [mediaMetadata, userConfig, updateMediaMetadata])
-
-  // Update search query when tvShow name changes
-  useEffect(() => {
-    if (mediaMetadata?.tmdbTvShow?.name) {
-      setSearchQuery(mediaMetadata.tmdbTvShow.name)
-    } else {
-      setSearchQuery("")
-    }
-  }, [mediaMetadata?.tmdbTvShow?.name])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -242,130 +191,61 @@ function TvShowPanelContent() {
    */
   const [pendingConfirmationMessage] = useState<any>(null)
 
-  // Store latest function references in refs to avoid infinite loops in useEffect
-  const openUseTmdbIdFromFolderNamePromptRef = useRef(openUseTmdbIdFromFolderNamePrompt)
-  const handleUseTmdbidFromFolderNameConfirmRef = useRef(handleUseTmdbidFromFolderNameConfirm)
-  
-  // Update refs when functions change
-  useEffect(() => {
-    openUseTmdbIdFromFolderNamePromptRef.current = openUseTmdbIdFromFolderNamePrompt
-    handleUseTmdbidFromFolderNameConfirmRef.current = handleUseTmdbidFromFolderNameConfirm
-  }, [openUseTmdbIdFromFolderNamePrompt, handleUseTmdbidFromFolderNameConfirm])
+  const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
 
-
-  useEffect(() => {
-    if(mediaMetadata?.mediaFolderPath === undefined) {
-      return
-    }
-
-    // Don't prompt if TMDB TV show is already set
-    if(mediaMetadata.tmdbTvShow !== undefined) {
-      return
-    }
-
-    const tmdbIdString = getTmdbIdFromFolderName(mediaMetadata.mediaFolderPath)
-    if (tmdbIdString === null) {
-      return
-    }
-
-    const tmdbIdNumber = parseInt(tmdbIdString, 10)
-    if (isNaN(tmdbIdNumber) || tmdbIdNumber <= 0) {
-      return
-    }
-
-    // Get language from user config, default to en-US
-    const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
-
-    let isCancelled = false
-
-    // Open prompt immediately with loading state
-    openUseTmdbIdFromFolderNamePromptRef.current({
-      tmdbId: tmdbIdNumber,
+  const handleTmdbIdDetected = useCallback(async (tmdbId: number, language: 'zh-CN' | 'en-US' | 'ja-JP') => {
+    tmdbPromptStore.openPrompt({
+      tmdbId,
       mediaName: undefined,
       status: "loading",
-      onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+      onConfirm: handleUseTmdbidFromFolderNameConfirm,
       onCancel: () => {},
     })
 
-    // Try to find TV Show by TMDB ID
-    getTvShowById(tmdbIdNumber, language).then(response => {
-      if (isCancelled) return
+    try {
+      const response = await getTvShowById(tmdbId, language)
       
       if (response.data && !response.error) {
-        // Update prompt with success state
-        openUseTmdbIdFromFolderNamePromptRef.current({
-          tmdbId: tmdbIdNumber,
+        tmdbPromptStore.openPrompt({
+          tmdbId,
           mediaName: response.data.name,
           status: "ready",
-          onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+          onConfirm: handleUseTmdbidFromFolderNameConfirm,
           onCancel: () => {},
         })
       } else {
-        // Update prompt with error state
-        openUseTmdbIdFromFolderNamePromptRef.current({
-          tmdbId: tmdbIdNumber,
+        tmdbPromptStore.openPrompt({
+          tmdbId,
           mediaName: undefined,
           status: "error",
-          onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+          onConfirm: handleUseTmdbidFromFolderNameConfirm,
           onCancel: () => {},
         })
         toast.error(t('toolbar.queryTmdbFailed'))
       }
-    }).catch(error => {
-      if (isCancelled) return
-      
+    } catch (error) {
       console.error('Failed to get TV show by ID:', error)
-      // Update prompt with error state
-      openUseTmdbIdFromFolderNamePromptRef.current({
-        tmdbId: tmdbIdNumber,
+      tmdbPromptStore.openPrompt({
+        tmdbId,
         mediaName: undefined,
         status: "error",
-        onConfirm: handleUseTmdbidFromFolderNameConfirmRef.current,
+        onConfirm: handleUseTmdbidFromFolderNameConfirm,
         onCancel: () => {},
       })
       toast.error(t('toolbar.queryTmdbFailed'))
-    })
-
-    // Cleanup function to prevent state updates after unmount or dependency change
-    return () => {
-      isCancelled = true
     }
-  }, [mediaMetadata?.mediaFolderPath, mediaMetadata?.tmdbTvShow, userConfig?.applicationLanguage, t])
+  }, [handleUseTmdbidFromFolderNameConfirm, t])
 
-  // Handle AI recognition confirm - update plan (removes from pending), then apply recognized files
-  const handleAiRecognizeConfirm = useCallback(async (plan: RecognizeMediaFilePlan) => {
-    const traceId = `TvShowPanel-handleAiRecognizeConfirm-${nextTraceId()}`
-    console.log(`[${traceId}] handleAiRecognizeConfirm CALLED`, {
-      timestamp: new Date().toISOString(),
-      plan,
-      mediaFolderPath: mediaMetadata?.mediaFolderPath,
-      stackTrace: new Error().stack
-    })
-
-    if (!mediaMetadata?.mediaFolderPath) {
-      toast.error("No media folder path available")
-      return
+  useEffect(() => {
+    const detection = startToRecognizeByTmdbIdInFolderName(mediaMetadata, userConfig)
+    if (detection) {
+      handleTmdbIdDetected(detection.tmdbId, detection.language)
     }
+  }, [mediaMetadata, userConfig, handleTmdbIdDetected])
 
-    // Verify the plan's mediaFolderPath matches the current media metadata
-    if (plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
-      console.warn(`[${traceId}] Plan mediaFolderPath does not match current media metadata`, {
-        planPath: plan.mediaFolderPath,
-        currentPath: mediaMetadata.mediaFolderPath
-      })
-      toast.error("Plan does not match current media folder")
-      return
-    }
-
-    try {
-      await updatePlan(plan.id, 'completed')
-      applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as any, { traceId })
-      console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
-      toast.success(`Applied recognition for ${plan.files.length} file(s)`)
-    } catch (error) {
-      console.error(`[${traceId}] Error applying recognition:`, error)
-      toast.error("Failed to apply recognition")
-    }
+  const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
+    if (!mediaMetadata) return
+    await handleAiRecognizeConfirm(plan, mediaMetadata, updateMediaMetadata, updatePlan)
   }, [mediaMetadata, updateMediaMetadata, updatePlan])
 
   // Get prompts context for closing prompts
@@ -433,7 +313,7 @@ function TvShowPanelContent() {
           confirmButtonLabel: t('toolbar.confirm') || "Confirm",
           confirmButtonDisabled: false,
           isRenaming: false,
-          onConfirm: () => handleAiRecognizeConfirm(plan),
+          onConfirm: () => handleAiRecognizeConfirmCallback(plan),
           onCancel: async () => {
             console.log('[TvShowPanel] AI recognition cancelled')
             try {
@@ -452,7 +332,7 @@ function TvShowPanelContent() {
       // Note: We don't close the rule-based prompt here since it doesn't have a close callback in the current implementation
       // This will be cleaned up in task 6.1
     }
-  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, openRuleBasedRecognizePrompt, handleAiRecognizeConfirm, updatePlan, t, closeAiRecognizePrompt, updateMediaMetadata])
+  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, openRuleBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, t, closeAiRecognizePrompt, updateMediaMetadata])
 
   // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
   const { startToRenameFiles } = useTvShowRenaming({
@@ -877,13 +757,8 @@ function TvShowPanelContent() {
           <TVShowHeader
             tvShow={mediaMetadata?.tmdbTvShow}
             isUpdatingTvShow={isUpdatingTvShow}
-            isSearching={isSearching}
-            searchError={searchError}
-            searchQuery={searchQuery}
-            searchResults={searchResults}
-            onSearchQueryChange={setSearchQuery}
-            onSearch={handleSearch}
-            onSelectResult={handleSelectResult}
+            initialSearchValue={mediaMetadata?.tmdbTvShow?.name}
+            onSearchResultSelected={handleSelectResult}
             onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
             onRenameClick={() => openRuleBasedRenameFilePrompt({
               toolbarOptions,

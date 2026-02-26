@@ -1,4 +1,4 @@
-import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
+import type { TMDBTVShowDetails, TMDBTVShow, TMDBMovie } from "@core/types"
 import { cn } from "@/lib/utils"
 import { forwardRef } from "react"
 import { SeasonSection } from "./season-section"
@@ -21,13 +21,8 @@ interface TMDBTVShowOverviewProps {
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
     isLoading?: boolean
-    searchResults: TMDBTVShow[]
-    isSearching: boolean
-    searchError: string | null
-    searchQuery: string
-    onSearchQueryChange: (query: string) => void
-    onSearch: () => void
-    onSelectResult: (result: TMDBTVShow) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    initialSearchValue?: string
     isUpdatingTvShow: boolean
     expandedSeasonIds: Set<number>
     setExpandedSeasonIds: React.Dispatch<React.SetStateAction<Set<number>>>
@@ -49,7 +44,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOverviewProps>(
     ({ tvShow, className, onRenameClick, onRecognizeButtonClick, ruleName, 
         seasons, isPreviewingForRename, isPreviewingForRecognize = false, scrollToEpisodeId, onEpisodeFileSelect, isLoading,
-        searchResults, isSearching, searchError, searchQuery, onSearchQueryChange, onSearch, onSelectResult,
+        onSearchResultSelected, initialSearchValue,
         isUpdatingTvShow, expandedSeasonIds, setExpandedSeasonIds, expandedEpisodeIds, setExpandedEpisodeIds,
         selectedMediaMetadata, openScrape }) => {
     const backdropUrl = tvShow ? getTMDBImageUrl(tvShow.backdrop_path, "w780") : null
@@ -63,13 +58,8 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                             <TVShowHeader
                                 tvShow={undefined}
                                 isUpdatingTvShow={isUpdatingTvShow}
-                                isSearching={isSearching}
-                                searchError={searchError}
-                                searchQuery={searchQuery}
-                                searchResults={searchResults}
-                                onSearchQueryChange={onSearchQueryChange}
-                                onSearch={onSearch}
-                                onSelectResult={onSelectResult}
+                                initialSearchValue={initialSearchValue}
+                                onSearchResultSelected={onSearchResultSelected}
                                 selectedMediaMetadata={selectedMediaMetadata}
                                 openScrape={openScrape}
                             />
@@ -92,13 +82,8 @@ export const TMDBTVShowOverview = forwardRef<TMDBTVShowOverviewRef, TMDBTVShowOv
                 <TVShowHeader
                     tvShow={tvShow}
                     isUpdatingTvShow={isUpdatingTvShow}
-                    isSearching={isSearching}
-                    searchError={searchError}
-                    searchQuery={searchQuery}
-                    searchResults={searchResults}
-                    onSearchQueryChange={onSearchQueryChange}
-                    onSearch={onSearch}
-                    onSelectResult={onSelectResult}
+                    initialSearchValue={initialSearchValue}
+                    onSearchResultSelected={onSearchResultSelected}
                     onRecognizeButtonClick={onRecognizeButtonClick}
                     onRenameClick={onRenameClick}
                     selectedMediaMetadata={selectedMediaMetadata}

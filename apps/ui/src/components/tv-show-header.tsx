@@ -1,8 +1,8 @@
-import type { TMDBTVShowDetails, TMDBTVShow } from "@core/types"
+import type { TMDBTVShowDetails, TMDBTVShow, TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
-import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
+import { TMDBSearchbox } from "./TMDBSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
 import { useTranslation } from "@/lib/i18n"
@@ -30,13 +30,8 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 interface TVShowHeaderProps {
     tvShow?: TMDBTVShowDetails
     isUpdatingTvShow: boolean
-    isSearching: boolean
-    searchError: string | null
-    searchQuery: string
-    searchResults: TMDBTVShow[]
-    onSearchQueryChange: (query: string) => void
-    onSearch: () => void
-    onSelectResult: (result: TMDBTVShow) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    initialSearchValue?: string
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
@@ -46,13 +41,8 @@ interface TVShowHeaderProps {
 export function TVShowHeader({
     tvShow,
     isUpdatingTvShow,
-    isSearching,
-    searchError,
-    searchQuery,
-    searchResults,
-    onSearchQueryChange,
-    onSearch,
-    onSelectResult,
+    onSearchResultSelected,
+    initialSearchValue,
     onRecognizeButtonClick,
     onRenameClick,
     selectedMediaMetadata,
@@ -90,14 +80,10 @@ export function TVShowHeader({
                                 </div>
                             ) : (
                                 <>
-                                    <ImmersiveSearchbox
-                                        value={searchQuery}
-                                        onChange={onSearchQueryChange}
-                                        onSearch={onSearch}
-                                        onSelect={onSelectResult}
-                                        searchResults={searchResults}
-                                        isSearching={isSearching}
-                                        searchError={searchError}
+                                    <TMDBSearchbox
+                                        mediaType="tv"
+                                        initialValue={initialSearchValue}
+                                        onSearchResultSelected={onSearchResultSelected}
                                         placeholder={t('tvShow.searchPlaceholder', { ns: 'components' })}
                                         inputClassName="text-3xl font-bold mb-2 block"
                                     />
