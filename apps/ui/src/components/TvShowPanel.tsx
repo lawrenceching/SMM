@@ -13,7 +13,7 @@ import type {
 } from "@core/event-types"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts, TvShowPanelPromptsProvider, usePrompts, usePromptsContext } from "./TvShowPanelPrompts"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
@@ -260,79 +260,27 @@ function TvShowPanelContent() {
     promptsContextForClosing._setIsAiRecognizePromptOpen(false)
   }, [promptsContextForClosing])
 
-  // Log pending plans and open prompt if plan matches current media folder
+  const handlePendingPlansChange = useCallback(() => {
+    handlePendingPlans({
+      pendingPlans,
+      mediaMetadata,
+      setSeasonsForPreview,
+      openRuleBasedRecognizePrompt,
+      openAiRecognizePrompt,
+      closeAiRecognizePrompt,
+      handleAiRecognizeConfirmCallback,
+      updatePlan,
+      updateMediaMetadata,
+      t,
+      buildSeasonsByRecognizeMediaFilePlan,
+      recognizeEpisodes,
+      toast,
+    })
+  }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, openAiRecognizePrompt, closeAiRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
+
   useEffect(() => {
-    console.log('[TvShowPanel] Pending plans:', pendingPlans)
-
-    if (!mediaMetadata?.mediaFolderPath) {
-      return
-    }
-
-    const plan = pendingPlans.find(
-      plan =>
-        plan.task === "recognize-media-file" &&
-        plan.status === 'pending' &&
-        plan.mediaFolderPath === mediaMetadata.mediaFolderPath
-    )
-
-    if (plan) {
-      console.log('[TvShowPanel] Found plan:', plan)
-      const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
-      console.log('[TvShowPanel] Seasons:', seasons)
-      setSeasonsForPreview(seasons)
-
-      // Check if this is a temporary (rule-based) or persistent (AI-based) plan
-      if (plan.tmp) {
-        // Temporary plan - use rule-based recognition prompt
-        openRuleBasedRecognizePrompt({
-          onConfirm: () => {
-            console.log('[TvShowPanel] Rule-based recognition confirmed')
-            // Apply the recognition using the plan data
-            if (mediaMetadata) {
-              recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata as any)
-              toast.success(t('toolbar.recognizeEpisodesSuccess'))
-            }
-            // Remove the temporary plan from state
-            updatePlan(plan.id, 'completed').catch(error => {
-              console.error('[TvShowPanel] Error removing temporary plan:', error)
-            })
-          },
-          onCancel: () => {
-            console.log('[TvShowPanel] Rule-based recognition cancelled')
-            // Remove the temporary plan from state
-            updatePlan(plan.id, 'rejected').catch(error => {
-              console.error('[TvShowPanel] Error removing temporary plan:', error)
-            })
-          }
-        })
-        closeAiRecognizePrompt()
-      } else {
-        // Persistent plan - use AI-based recognition prompt
-        openAiRecognizePrompt({
-          status: "wait-for-ack",
-          confirmButtonLabel: t('toolbar.confirm') || "Confirm",
-          confirmButtonDisabled: false,
-          isRenaming: false,
-          onConfirm: () => handleAiRecognizeConfirmCallback(plan),
-          onCancel: async () => {
-            console.log('[TvShowPanel] AI recognition cancelled')
-            try {
-              await updatePlan(plan.id, 'rejected')
-              console.log('[TvShowPanel] Plan rejected successfully')
-            } catch (error) {
-              // Error handling is done in global states provider
-              console.error('[TvShowPanel] Error rejecting plan:', error)
-            }
-          }
-        })
-      }
-    } else {
-      // No plan found - close both prompts
-      closeAiRecognizePrompt()
-      // Note: We don't close the rule-based prompt here since it doesn't have a close callback in the current implementation
-      // This will be cleaned up in task 6.1
-    }
-  }, [pendingPlans, mediaMetadata?.mediaFolderPath, openAiRecognizePrompt, openRuleBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, t, closeAiRecognizePrompt, updateMediaMetadata])
+    handlePendingPlansChange()
+  }, [handlePendingPlansChange])
 
   // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
   const { startToRenameFiles } = useTvShowRenaming({

@@ -1,6 +1,7 @@
 import type { SeasonModel } from "./TvShowPanel";
 import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
 import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/lib/utils";
@@ -1210,5 +1211,108 @@ export async function handleAiRecognizeConfirm(
   } catch (error) {
     console.error(`[${traceId}] Error applying recognition:`, error)
     toast.error("Failed to apply recognition")
+  }
+}
+
+export interface HandlePendingPlansParams {
+  pendingPlans: UIRecognizeMediaFilePlan[]
+  mediaMetadata: UIMediaMetadata | undefined
+  setSeasonsForPreview: (seasons: SeasonModel[]) => void
+  openRuleBasedRecognizePrompt: (options: {
+    onConfirm: () => void
+    onCancel: () => void
+  }) => void
+  openAiRecognizePrompt: (options: {
+    status: "generating" | "wait-for-ack"
+    confirmButtonLabel: string
+    confirmButtonDisabled: boolean
+    isRenaming: boolean
+    onConfirm: () => void
+    onCancel?: () => void
+  }) => void
+  closeAiRecognizePrompt: () => void
+  handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
+  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
+  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
+  t: ReturnType<typeof import('react-i18next').useTranslation>['t']
+  buildSeasonsByRecognizeMediaFilePlan: (mediaMetadata: UIMediaMetadata, plan: RecognizeMediaFilePlan) => SeasonModel[]
+  recognizeEpisodes: (seasons: SeasonModel[], mediaMetadata: UIMediaMetadata, updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void) => void
+  toast: typeof toast
+}
+
+export function handlePendingPlans(params: HandlePendingPlansParams): void {
+  const {
+    pendingPlans,
+    mediaMetadata,
+    setSeasonsForPreview,
+    openRuleBasedRecognizePrompt,
+    openAiRecognizePrompt,
+    closeAiRecognizePrompt,
+    handleAiRecognizeConfirmCallback,
+    updatePlan,
+    updateMediaMetadata,
+    t,
+    buildSeasonsByRecognizeMediaFilePlan,
+    recognizeEpisodes,
+    toast,
+  } = params
+
+  console.log('[TvShowPanel] Pending plans:', pendingPlans)
+
+  if (!mediaMetadata?.mediaFolderPath) {
+    return
+  }
+
+  const plan = pendingPlans.find(
+    p =>
+      p.task === "recognize-media-file" &&
+      p.status === 'pending' &&
+      p.mediaFolderPath === mediaMetadata.mediaFolderPath
+  )
+
+  if (plan) {
+    console.log('[TvShowPanel] Found plan:', plan)
+    const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
+    console.log('[TvShowPanel] Seasons:', seasons)
+    setSeasonsForPreview(seasons)
+
+    if (plan.tmp) {
+      openRuleBasedRecognizePrompt({
+        onConfirm: () => {
+          console.log('[TvShowPanel] Rule-based recognition confirmed')
+          recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
+          toast.success(t('toolbar.recognizeEpisodesSuccess'))
+          updatePlan(plan.id, 'completed').catch(error => {
+            console.error('[TvShowPanel] Error removing temporary plan:', error)
+          })
+        },
+        onCancel: () => {
+          console.log('[TvShowPanel] Rule-based recognition cancelled')
+          updatePlan(plan.id, 'rejected').catch(error => {
+            console.error('[TvShowPanel] Error removing temporary plan:', error)
+          })
+        }
+      })
+      closeAiRecognizePrompt()
+    } else {
+      openAiRecognizePrompt({
+        status: "wait-for-ack",
+        confirmButtonLabel: t('toolbar.confirm') || "Confirm",
+        confirmButtonDisabled: false,
+        isRenaming: false,
+        onConfirm: () => handleAiRecognizeConfirmCallback(plan),
+        onCancel: async () => {
+          console.log('[TvShowPanel] AI recognition cancelled')
+          try {
+            await updatePlan(plan.id, 'rejected')
+            console.log('[TvShowPanel] Plan rejected successfully')
+          } catch (error) {
+            console.error('[TvShowPanel] Error rejecting plan:', error)
+          }
+        }
+      })
+    }
+  } else {
+    closeAiRecognizePrompt()
   }
 }
