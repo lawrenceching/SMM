@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected } from "./TvShowPanelUtils"
-import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
+import { TvShowPanelPrompts, TvShowPanelPromptsProvider } from "./TvShowPanelPrompts"
 import { useAiBasedRenameFilePromptControl, useAiBasedRecognizePromptControl, useRuleBasedRecognizePromptControl, usePromptsActions } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
@@ -542,7 +542,11 @@ function TvShowPanelContent() {
 }
 
 function TvShowPanel() {
-  return <TvShowPanelContent />
+  return (
+    <TvShowPanelPromptsProvider>
+      <TvShowPanelContent />
+    </TvShowPanelPromptsProvider>
+  )
 }
 
 export default TvShowPanel
