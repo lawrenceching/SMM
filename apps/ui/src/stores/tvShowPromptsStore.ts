@@ -437,7 +437,7 @@ export const useRuleBasedRenameFilePromptControl = () => {
         open({
           toolbarOptions: config.toolbarOptions || [],
           selectedNamingRule: config.selectedNamingRule,
-          setSelectedNamingRule: config.setSelectedNamingRule,
+          setSelectedNamingRule: config.setSelectedNamingRule || (() => {}),
           onConfirm: config.onConfirm,
           onCancel: config.onCancel,
         })
@@ -507,7 +507,9 @@ export const useUseTmdbidFromFolderNamePromptControl = () => {
           onCancel: config.onCancel,
         })
       } else if (config.status !== undefined || config.mediaName !== undefined) {
-        updateStatus(config.status, config.mediaName)
+        if (config.status !== undefined) {
+          updateStatus(config.status, config.mediaName)
+        }
       }
     }
   }
