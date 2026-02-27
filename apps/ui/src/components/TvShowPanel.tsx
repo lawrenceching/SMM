@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
-import { usePromptsActions, useAiBasedRenameFilePrompt, useAiBasedRecognizePrompt, useRuleBasedRecognizePrompt } from "@/stores/tvShowPromptsStore"
+import { useAiBasedRenameFilePromptControl, useAiBasedRecognizePromptControl, useRuleBasedRecognizePromptControl, usePromptsActions } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
@@ -63,18 +63,13 @@ function TvShowPanelContent() {
   const { 
     openUseNfoPrompt, 
     openRuleBasedRenameFilePrompt, 
-    openRuleBasedRecognizePrompt, 
-    openAiBasedRenameFilePrompt, 
-    openAiBasedRecognizePrompt,
-    closeAiBasedRenameFilePrompt,
-    closeAiBasedRecognizePrompt,
-    updateAiBasedRenameFileStatus
+    openRuleBasedRecognizePrompt
   } = usePromptsActions()
   
-  // Subscribe to specific prompt states
-  const aiBasedRenameFilePrompt = useAiBasedRenameFilePrompt()
-  const aiBasedRecognizePrompt = useAiBasedRecognizePrompt()
-  const ruleBasedRecognizePrompt = useRuleBasedRecognizePrompt()
+  // Use unified control hooks for prompts
+  const { states: aiBasedRenameFilePrompt, setState: setAiBasedRenameFilePrompt } = useAiBasedRenameFilePromptControl()
+  const { states: aiBasedRecognizePrompt, setState: setAiBasedRecognizePrompt } = useAiBasedRecognizePromptControl()
+  const { states: ruleBasedRecognizePrompt } = useRuleBasedRecognizePromptControl()
 
   const handleSelectResult = useCallback(async (result: TMDBTVShow | TMDBMovie) => {
     if (mediaMetadata?.tmdbTvShow?.id === result.id) {
@@ -262,8 +257,8 @@ function TvShowPanelContent() {
       mediaMetadata,
       setSeasonsForPreview,
       openRuleBasedRecognizePrompt,
-      openAiBasedRecognizePrompt,
-      closeAiBasedRecognizePrompt,
+      openAiBasedRecognizePrompt: (config) => setAiBasedRecognizePrompt({ open: true, ...config }),
+      closeAiBasedRecognizePrompt: () => setAiBasedRecognizePrompt({ open: false }),
       handleAiRecognizeConfirmCallback,
       updatePlan,
       updateMediaMetadata,
@@ -272,7 +267,7 @@ function TvShowPanelContent() {
       recognizeEpisodes,
       toast,
     })
-  }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, openAiBasedRecognizePrompt, closeAiBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
+  }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, setAiBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
 
   useEffect(() => {
     handlePendingPlansChange()
@@ -307,7 +302,8 @@ function TvShowPanelContent() {
     if (plan) {
       const seasonsPreview = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
       setSeasonsForPreview(seasonsPreview)
-      openAiBasedRenameFilePrompt({
+      setAiBasedRenameFilePrompt({
+        open: true,
         status: "wait-for-ack",
         onConfirm: () => handleRenamePlanConfirm(plan),
         onCancel: async () => {
@@ -319,10 +315,10 @@ function TvShowPanelContent() {
         },
       })
     } else {
-      closeAiBasedRenameFilePrompt()
-      closeAiBasedRecognizePrompt()
+      setAiBasedRenameFilePrompt({ open: false })
+      setAiBasedRecognizePrompt({ open: false })
     }
-  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, handleRenamePlanConfirm, updatePlan, closeAiBasedRenameFilePrompt, closeAiBasedRecognizePrompt])
+  }, [pendingRenamePlans, mediaMetadata, setAiBasedRenameFilePrompt, setAiBasedRecognizePrompt, handleRenamePlanConfirm, updatePlan])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({
@@ -330,8 +326,8 @@ function TvShowPanelContent() {
     setSeasons,
     setScrollToEpisodeId,
     setSelectedMediaMetadataByMediaFolderPath,
-    openAiBasedRenameFilePrompt,
-    setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,
+    openAiBasedRenameFilePrompt: (config) => setAiBasedRenameFilePrompt({ open: true, ...config }),
+    setAiBasedRenameFileStatus: (status) => setAiBasedRenameFilePrompt({ status }),
   })
 
   // Use file name generation hook

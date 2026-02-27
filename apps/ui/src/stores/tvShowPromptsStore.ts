@@ -365,3 +365,150 @@ export const usePromptsActions = () => useTvShowPromptsStore((state) => ({
   closeRuleBasedRecognizePrompt: state.closeRuleBasedRecognizePrompt,
   closeAllPrompts: state.closeAllPrompts,
 }))
+
+// Unified control hooks for prompts
+export const useAiBasedRenameFilePromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
+  const updateStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
+  const open = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
+  const close = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; status?: "generating" | "wait-for-ack"; onConfirm?: () => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          status: config.status || "generating",
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      } else if (config.status !== undefined) {
+        updateStatus(config.status)
+      }
+    }
+  }
+}
+
+export const useAiBasedRecognizePromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
+  const update = useTvShowPromptsStore((state) => state.updateAiBasedRecognizePrompt)
+  const open = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
+  const close = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; status?: "generating" | "wait-for-ack"; confirmButtonLabel?: string; confirmButtonDisabled?: boolean; isRenaming?: boolean; onConfirm?: () => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          status: config.status || "generating",
+          confirmButtonLabel: config.confirmButtonLabel,
+          confirmButtonDisabled: config.confirmButtonDisabled,
+          isRenaming: config.isRenaming,
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      } else if (config.status !== undefined || config.confirmButtonLabel !== undefined || config.confirmButtonDisabled !== undefined || config.isRenaming !== undefined) {
+        update({
+          status: config.status,
+          confirmButtonLabel: config.confirmButtonLabel,
+          confirmButtonDisabled: config.confirmButtonDisabled,
+          isRenaming: config.isRenaming,
+        })
+      }
+    }
+  }
+}
+
+export const useRuleBasedRenameFilePromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
+  const open = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
+  const close = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; toolbarOptions?: ToolbarOption[]; selectedNamingRule?: "plex" | "emby" | undefined; setSelectedNamingRule?: ((rule: "plex" | "emby") => void) | undefined; onConfirm?: () => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          toolbarOptions: config.toolbarOptions || [],
+          selectedNamingRule: config.selectedNamingRule,
+          setSelectedNamingRule: config.setSelectedNamingRule,
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      }
+    }
+  }
+}
+
+export const useRuleBasedRecognizePromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
+  const open = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
+  const close = useTvShowPromptsStore((state) => state.closeRuleBasedRecognizePrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; onConfirm?: () => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      }
+    }
+  }
+}
+
+export const useUseNfoPromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.useNfoPrompt)
+  const open = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
+  const close = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; nfoData?: TMDBTVShowDetails; onConfirm?: (tmdbTvShow: TMDBTVShow) => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          nfoData: config.nfoData!,
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      }
+    }
+  }
+}
+
+export const useUseTmdbidFromFolderNamePromptControl = () => {
+  const state = useTvShowPromptsStore((state) => state.useTmdbidFromFolderNamePrompt)
+  const updateStatus = useTvShowPromptsStore((state) => state.updateTmdbidFromFolderNamePromptStatus)
+  const open = useTvShowPromptsStore((state) => state.openUseTmdbidFromFolderNamePrompt)
+  const close = useTvShowPromptsStore((state) => state.closeUseTmdbidFromFolderNamePrompt)
+
+  return {
+    states: state,
+    setState: (config: { open?: boolean; tmdbId?: number; mediaName?: string; status?: 'ready' | 'loading' | 'error'; onConfirm?: (tmdbTvShow: TMDBTVShow) => void; onCancel?: () => void }) => {
+      if (config.open === false) {
+        close()
+      } else if (config.open === true) {
+        open({
+          tmdbId: config.tmdbId!,
+          mediaName: config.mediaName,
+          status: config.status || 'ready',
+          onConfirm: config.onConfirm,
+          onCancel: config.onCancel,
+        })
+      } else if (config.status !== undefined || config.mediaName !== undefined) {
+        updateStatus(config.status, config.mediaName)
+      }
+    }
+  }
+}
