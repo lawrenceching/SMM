@@ -1,0 +1,41 @@
+name: E2E Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/e2e/**'
+      - '.github/workflows/e2e-test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/e2e/**'
+      - '.github/workflows/e2e-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run E2E Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run hello.e2e.ts test
+        run: cd apps/e2e && pnpm run wdio:hello
+        env:
+          BUILD_ENV: docker
