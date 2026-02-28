@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react"
-import { usePromptsContext } from "../TvShowPanelPrompts"
+import { 
+  useAiBasedRenameFilePrompt, 
+  useRuleBasedRenameFilePrompt, 
+  useRuleBasedRecognizePrompt, 
+  useAiBasedRecognizePrompt 
+} from "@/stores/tvShowPromptsStore"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 interface UseSeasonSectionStateParams {
@@ -11,17 +16,20 @@ export function useSeasonSectionState({ mediaMetadata, scrollToEpisodeId }: UseS
   const [expandedSeasonIds, setExpandedSeasonIds] = useState<Set<number>>(new Set())
   const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<number>>(new Set())
   
-  const promptsContext = usePromptsContext()
+  const aiBasedRenameFilePrompt = useAiBasedRenameFilePrompt()
+  const ruleBasedRenameFilePrompt = useRuleBasedRenameFilePrompt()
+  const ruleBasedRecognizePrompt = useRuleBasedRecognizePrompt()
+  const aiBasedRecognizePrompt = useAiBasedRecognizePrompt()
   
   const isPreviewingForRename = 
-    promptsContext.isAiBasedRenameFilePromptOpen ||
-    promptsContext.isRuleBasedRenameFilePromptOpen ||
-    promptsContext.isRuleBasedRecognizePromptOpen ||
-    promptsContext.isAiRecognizePromptOpen
+    aiBasedRenameFilePrompt.isOpen ||
+    ruleBasedRenameFilePrompt.isOpen ||
+    ruleBasedRecognizePrompt.isOpen ||
+    aiBasedRecognizePrompt.isOpen
   
   const isPreviewingForRecognize = 
-    promptsContext.isRuleBasedRecognizePromptOpen ||
-    promptsContext.isAiRecognizePromptOpen
+    ruleBasedRecognizePrompt.isOpen ||
+    aiBasedRecognizePrompt.isOpen
   
   const savedSeasonIdsRef = useRef<Set<number> | null>(null)
   const savedEpisodeIdsRef = useRef<Set<number> | null>(null)

@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected } from "./TvShowPanelUtils"
-import { TvShowPanelPrompts, TvShowPanelPromptsProvider } from "./TvShowPanelPrompts"
+import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useAiBasedRenameFilePromptControl, useAiBasedRecognizePromptControl, useRuleBasedRecognizePromptControl, usePromptsActions } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
@@ -42,7 +42,7 @@ interface ToolbarOption {
   label: string,
 }
 
-function TvShowPanelContent() {
+function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
   const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = usePlansStore()
   const { 
@@ -538,14 +538,6 @@ function TvShowPanelContent() {
         </div>
       </div>
     </div>
-  )
-}
-
-function TvShowPanel() {
-  return (
-    <TvShowPanelPromptsProvider>
-      <TvShowPanelContent />
-    </TvShowPanelPromptsProvider>
   )
 }
 

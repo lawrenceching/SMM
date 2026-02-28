@@ -5,7 +5,7 @@ import type { SeasonModel } from "../TvShowPanel"
 import { newFileName } from "@/api/newFileName"
 import { newPath } from "../TvShowPanelUtils"
 import { join } from "@/lib/path"
-import { usePromptsContext } from "../TvShowPanelPrompts"
+import { useRuleBasedRenameFilePrompt } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowFileNameGenerationParams {
   seasons: SeasonModel[]
@@ -20,7 +20,7 @@ export function useTvShowFileNameGeneration({
   mediaMetadata,
   selectedNamingRule,
 }: UseTvShowFileNameGenerationParams) {
-  const { isRuleBasedRenameFilePromptOpen } = usePromptsContext()
+  const ruleBasedRenameFilePrompt = useRuleBasedRenameFilePrompt()
   const latestSeasons = useLatest(seasons)
 
   // Generate new file names for preview mode
@@ -97,12 +97,12 @@ export function useTvShowFileNameGeneration({
 
   // Trigger file name generation when preview mode is enabled
   useEffect(() => {
-    if(!isRuleBasedRenameFilePromptOpen) {
+    if(!ruleBasedRenameFilePrompt.isOpen) {
       return;
     }
     
     generateNewFileNames(selectedNamingRule);
-  }, [isRuleBasedRenameFilePromptOpen, selectedNamingRule, generateNewFileNames])
+  }, [ruleBasedRenameFilePrompt.isOpen, selectedNamingRule, generateNewFileNames])
 
   return {
     generateNewFileNames,

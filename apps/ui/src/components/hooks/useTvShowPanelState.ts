@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { SeasonModel } from "../TvShowPanel"
-import { usePromptsContext } from "../TvShowPanelPrompts"
+import { usePromptsActions } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
   mediaMetadata: UIMediaMetadata | undefined
@@ -24,14 +24,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
 
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
   const processedMediaFolderPathRef = useRef<string | undefined>(undefined) // Track which folder we've already processed for inference
-  const promptsContext = usePromptsContext()
-  
-  // Extract setters to avoid dependency on the whole context object
-  const setIsUseNfoPromptOpen = promptsContext._setIsUseNfoPromptOpen
-  const setLoadedNfoData = promptsContext.setLoadedNfoData
-  const setIsUseTmdbidFromFolderNamePromptOpen = promptsContext._setIsUseTmdbidFromFolderNamePromptOpen
-  const setTmdbIdFromFolderName = promptsContext._setTmdbIdFromFolderName
-  const setTmdbMediaNameFromFolderName = promptsContext._setTmdbMediaNameFromFolderName
+  const { closeAllPrompts } = usePromptsActions()
   
   // Store latest function reference in ref to avoid dependency issues
   const openUseNfoPromptRef = useRef(usePrompts.openUseNfoPrompt)
@@ -46,18 +39,14 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     
     // If the path changed (different instance), close all prompts and reset processed path
     if (prevPath !== undefined && currentPath !== prevPath) {
-      setIsUseNfoPromptOpen(false)
-      setLoadedNfoData(undefined)
-      setIsUseTmdbidFromFolderNamePromptOpen(false)
-      setTmdbIdFromFolderName(undefined)
-      setTmdbMediaNameFromFolderName(undefined)
+      closeAllPrompts()
       // Reset processed path so inference can run again for the new folder
       processedMediaFolderPathRef.current = undefined
     }
     
     // Update the ref with the current path
     prevMediaFolderPathRef.current = currentPath
-  }, [mediaMetadata?.mediaFolderPath, setIsUseNfoPromptOpen, setLoadedNfoData, setIsUseTmdbidFromFolderNamePromptOpen, setTmdbIdFromFolderName, setTmdbMediaNameFromFolderName])
+  }, [mediaMetadata?.mediaFolderPath, closeAllPrompts])
 
 
   // Reset scrollToEpisodeId after scrolling completes
