@@ -80,7 +80,7 @@ export function TVShowHeader({
                                 <>
                                     <TMDBSearchbox
                                         mediaType="tv"
-                                        initialValue={initialSearchValue}
+                                        value={initialSearchValue}
                                         onSearchResultSelected={onSearchResultSelected}
                                         placeholder={t('tvShow.searchPlaceholder', { ns: 'components' })}
                                         inputClassName="text-3xl font-bold mb-2 block"

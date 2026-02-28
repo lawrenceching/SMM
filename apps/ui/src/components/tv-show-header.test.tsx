@@ -174,4 +174,28 @@ describe('TVShowHeader', () => {
     const scrapeButton = screen.getByRole('button', { name: /Scrape/i })
     expect(scrapeButton).toBeDisabled()
   })
+
+  it('updates initialValue when selectedMediaMetadata changes', () => {
+    const { rerender } = render(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata} />)
+    
+    const input = screen.getByTestId('search-input')
+    expect(input).toHaveValue(mockTvShow.name)
+
+    const mockTvShow2: TMDBTVShowDetails = {
+      ...mockTvShow,
+      id: 456,
+      name: 'Another TV Show',
+      original_name: 'Original Another TV Show',
+    }
+
+    const mockMediaMetadata2 = {
+      tmdbTvShow: mockTvShow2,
+      status: 'idle' as const,
+      mediaFiles: [],
+    }
+
+    rerender(<TVShowHeader {...defaultProps} selectedMediaMetadata={mockMediaMetadata2} />)
+
+    expect(input).toHaveValue(mockTvShow2.name)
+  })
 })

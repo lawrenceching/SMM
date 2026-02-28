@@ -111,7 +111,7 @@ function renderMenuItem(item: MenuContentItem, index: number, menuLabel?: string
       <MenubarSub key={`submenu-${index}`}>
         <MenubarSubTrigger>{submenu.name}</MenubarSubTrigger>
         <MenubarSubContent>
-          {submenu.items.map((subItem, subIndex) => renderMenuItem(subItem, subIndex))}
+          {submenu.items.map((subItem, subIndex) => renderMenuItem(subItem, subIndex, menuLabel))}
         </MenubarSubContent>
       </MenubarSub>
     )

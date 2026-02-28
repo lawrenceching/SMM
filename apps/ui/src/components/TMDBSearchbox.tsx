@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { searchTmdb } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
@@ -7,7 +7,7 @@ import type { TMDBTVShow, TMDBMovie } from "@core/types"
 
 interface TMDBSearchboxProps {
   mediaType: "movie" | "tv"
-  initialValue?: string
+  value?: string
   onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
   placeholder?: string
   inputClassName?: string
@@ -15,7 +15,7 @@ interface TMDBSearchboxProps {
 
 export function TMDBSearchbox({
   mediaType,
-  initialValue,
+  value,
   onSearchResultSelected,
   placeholder,
   inputClassName,
@@ -23,10 +23,14 @@ export function TMDBSearchbox({
   const { t } = useTranslation(["errors"])
   const { userConfig } = useConfig()
 
-  const [searchQuery, setSearchQuery] = useState(initialValue || "")
+  const [searchQuery, setSearchQuery] = useState(value || "")
   const [searchResults, setSearchResults] = useState<(TMDBTVShow | TMDBMovie)[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSearchQuery(value || "")
+  }, [value])
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
