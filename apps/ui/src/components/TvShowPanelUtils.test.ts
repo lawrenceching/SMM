@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import { readFile } from '@/api/readFile'
+import { parseEpisodeNfo } from '@/lib/nfo'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
@@ -3139,5 +3141,59 @@ describe('recognizeMediaFilesByRules', () => {
       '[TvShowPanelUtils] video file path from lookup:',
       correctFilePath
     )
+  })
+})
+
+describe('tryToRecognizeTvShowFolderByNFO', () => {
+  it('should handle parseEpisodeNfo error and return mediaMetadata with valid tvshowDetails', async () => {
+    const tvshowNfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <title>Test Show</title>
+  <originaltitle>Original Test Show</originaltitle>
+  <plot>This is a test show description</plot>
+  <id>12345</id>
+  <tmdbid>54321</tmdbid>
+  <uniqueid type="tmdb">99999</uniqueid>
+  <premiered>2024-01-01</premiered>
+  <status>Continuing</status>
+  <genre>Drama</genre>
+</tvshow>`
+
+    const episodeNfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Episode 1</title>
+  <season>1</season>
+  <episode>1</episode>
+  <originalfilename>episode1.mkv</originalfilename>
+</episodedetails>`
+
+    const mediaMetadata: UIMediaMetadata = {
+      mediaFolderPath: '/media/testshow',
+      files: [
+        '/media/testshow/tvshow.nfo',
+        '/media/testshow/episode1.nfo',
+        '/media/testshow/episode1.mkv',
+      ],
+      mediaFiles: [],
+      status: 'ok',
+    }
+
+    vi.mocked(readFile)
+      .mockResolvedValueOnce({ data: tvshowNfoXml, error: undefined })
+      .mockResolvedValueOnce({ data: episodeNfoXml, error: undefined })
+
+    vi.mocked(parseEpisodeNfo).mockRejectedValueOnce(new Error('Parse error'))
+
+    const result = await tryToRecognizeTvShowFolderByNFO(mediaMetadata)
+
+    expect(result).toBeDefined()
+    expect(result?.tmdbTvShow).toBeDefined()
+    expect(result?.tmdbTvShow?.id).toBe(99999)
+    expect(result?.tmdbTvShow?.name).toBe('Test Show')
+    expect(result?.tmdbTvShow?.original_name).toBe('Original Test Show')
+    expect(result?.tmdbTvShow?.overview).toBe('This is a test show description')
+    expect(result?.tmdbTvShow?.first_air_date).toBe('2024-01-01')
+    expect(result?.tmdbTvShow?.status).toBe('Continuing')
+    expect(result?.tmdbTvShow?.genre_ids).toEqual([])
   })
 })

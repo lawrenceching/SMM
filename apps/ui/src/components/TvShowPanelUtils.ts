@@ -293,7 +293,13 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
             continue
         }
         const xml = resp.data
-        const episodeNfo = await parseEpisodeNfo(xml)
+        let episodeNfo
+        try {
+            episodeNfo = await parseEpisodeNfo(xml)
+        } catch (error) {
+            console.warn(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: error parsing episode NFO file: ${episodeNfoFile}`, error)
+            continue
+        }
         
         if(episodeNfo === undefined) {
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to parse episode NFO file: ${episodeNfoFile}`)
