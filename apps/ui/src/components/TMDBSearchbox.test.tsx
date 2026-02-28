@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { TMDBSearchbox } from './TMDBSearchbox'
-import type { TMDBTVShow, TMDBMovie } from '@core/types'
 
 const mockImmersiveSearchboxValue = { current: '' }
 
 vi.mock('./ImmersiveSearchbox', () => ({
-  ImmersiveSearchbox: vi.fn(({ value, onChange, onSearch, onSelect, searchResults, isSearching, searchError, placeholder, inputClassName }) => {
+  ImmersiveSearchbox: vi.fn((props: any) => {
+    const { value, onChange, placeholder, inputClassName } = props
     mockImmersiveSearchboxValue.current = value
     return (
       <div data-testid="immersive-searchbox">
