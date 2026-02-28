@@ -347,25 +347,6 @@ export const useAiBasedRenameFilePrompt = () => useTvShowPromptsStore((state) =>
 export const useAiBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
 export const useRuleBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
 
-export const usePromptsActions = () => useTvShowPromptsStore((state) => ({
-  openUseNfoPrompt: state.openUseNfoPrompt,
-  closeUseNfoPrompt: state.closeUseNfoPrompt,
-  openUseTmdbidFromFolderNamePrompt: state.openUseTmdbidFromFolderNamePrompt,
-  updateTmdbidFromFolderNamePromptStatus: state.updateTmdbidFromFolderNamePromptStatus,
-  closeUseTmdbidFromFolderNamePrompt: state.closeUseTmdbidFromFolderNamePrompt,
-  openRuleBasedRenameFilePrompt: state.openRuleBasedRenameFilePrompt,
-  closeRuleBasedRenameFilePrompt: state.closeRuleBasedRenameFilePrompt,
-  openAiBasedRenameFilePrompt: state.openAiBasedRenameFilePrompt,
-  updateAiBasedRenameFileStatus: state.updateAiBasedRenameFileStatus,
-  closeAiBasedRenameFilePrompt: state.closeAiBasedRenameFilePrompt,
-  openAiBasedRecognizePrompt: state.openAiBasedRecognizePrompt,
-  updateAiBasedRecognizePrompt: state.updateAiBasedRecognizePrompt,
-  closeAiBasedRecognizePrompt: state.closeAiBasedRecognizePrompt,
-  openRuleBasedRecognizePrompt: state.openRuleBasedRecognizePrompt,
-  closeRuleBasedRecognizePrompt: state.closeRuleBasedRecognizePrompt,
-  closeAllPrompts: state.closeAllPrompts,
-}))
-
 // Unified control hooks for prompts
 export const useAiBasedRenameFilePromptControl = () => {
   const state = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)

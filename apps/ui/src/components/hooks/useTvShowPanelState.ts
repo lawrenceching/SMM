@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { SeasonModel } from "../TvShowPanel"
-import { usePromptsActions } from "@/stores/tvShowPromptsStore"
+import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
   mediaMetadata: UIMediaMetadata | undefined
@@ -24,7 +24,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
 
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
   const processedMediaFolderPathRef = useRef<string | undefined>(undefined) // Track which folder we've already processed for inference
-  const { closeAllPrompts } = usePromptsActions()
+  const closeAllPrompts = useTvShowPromptsStore((state) => state.closeAllPrompts)
   
   // Store latest function reference in ref to avoid dependency issues
   const openUseNfoPromptRef = useRef(usePrompts.openUseNfoPrompt)

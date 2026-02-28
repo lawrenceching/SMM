@@ -6,31 +6,22 @@ import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow } from "@core/types"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
-import { 
-  useUseNfoPrompt, 
-  useRuleBasedRenameFilePrompt, 
-  useAiBasedRenameFilePrompt,
-  useAiBasedRecognizePrompt,
-  useRuleBasedRecognizePrompt,
-  usePromptsActions
-} from "@/stores/tvShowPromptsStore"
+import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 export function TvShowPanelPrompts() {
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
   
-  const useNfoPrompt = useUseNfoPrompt()
-  const ruleBasedRenameFilePrompt = useRuleBasedRenameFilePrompt()
-  const aiBasedRenameFilePrompt = useAiBasedRenameFilePrompt()
-  const aiBasedRecognizePrompt = useAiBasedRecognizePrompt()
-  const ruleBasedRecognizePrompt = useRuleBasedRecognizePrompt()
+  const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
+  const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
+  const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
+  const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
+  const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
   
-  const { 
-    closeUseNfoPrompt,
-    closeRuleBasedRenameFilePrompt,
-    closeAiBasedRenameFilePrompt,
-    closeAiBasedRecognizePrompt,
-    closeRuleBasedRecognizePrompt
-  } = usePromptsActions()
+  const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
+  const closeRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
+  const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
+  const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
+  const closeRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRecognizePrompt)
 
   return (
     <div>

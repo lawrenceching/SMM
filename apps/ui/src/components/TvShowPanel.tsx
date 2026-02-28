@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
-import { useAiBasedRenameFilePromptControl, useAiBasedRecognizePromptControl, useRuleBasedRecognizePromptControl, usePromptsActions } from "@/stores/tvShowPromptsStore"
+import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
@@ -59,17 +59,18 @@ function TvShowPanel() {
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
 
-  // Use prompts actions from Zustand store
-  const { 
-    openUseNfoPrompt, 
-    openRuleBasedRenameFilePrompt, 
-    openRuleBasedRecognizePrompt
-  } = usePromptsActions()
-  
-  // Use unified control hooks for prompts
-  const { states: aiBasedRenameFilePrompt, setState: setAiBasedRenameFilePrompt } = useAiBasedRenameFilePromptControl()
-  const { states: aiBasedRecognizePrompt, setState: setAiBasedRecognizePrompt } = useAiBasedRecognizePromptControl()
-  const { states: ruleBasedRecognizePrompt } = useRuleBasedRecognizePromptControl()
+  const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
+  const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
+  const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
+  const openAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
+  const openRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
+  const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
+  const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
+  const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
+
+  const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
+  const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
+  const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
 
   const handleSelectResult = useCallback(async (result: TMDBTVShow | TMDBMovie) => {
     if (mediaMetadata?.tmdbTvShow?.id === result.id) {
@@ -257,8 +258,8 @@ function TvShowPanel() {
       mediaMetadata,
       setSeasonsForPreview,
       openRuleBasedRecognizePrompt,
-      openAiBasedRecognizePrompt: (config) => setAiBasedRecognizePrompt({ open: true, ...config }),
-      closeAiBasedRecognizePrompt: () => setAiBasedRecognizePrompt({ open: false }),
+      openAiBasedRecognizePrompt,
+      closeAiBasedRecognizePrompt,
       handleAiRecognizeConfirmCallback,
       updatePlan,
       updateMediaMetadata,
@@ -267,7 +268,7 @@ function TvShowPanel() {
       recognizeEpisodes,
       toast,
     })
-  }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, setAiBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
+  }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, openAiBasedRecognizePrompt, closeAiBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
 
   useEffect(() => {
     handlePendingPlansChange()
@@ -302,8 +303,7 @@ function TvShowPanel() {
     if (plan) {
       const seasonsPreview = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
       setSeasonsForPreview(seasonsPreview)
-      setAiBasedRenameFilePrompt({
-        open: true,
+      openAiBasedRenameFilePrompt({
         status: "wait-for-ack",
         onConfirm: () => handleRenamePlanConfirm(plan),
         onCancel: async () => {
@@ -315,10 +315,10 @@ function TvShowPanel() {
         },
       })
     } else {
-      setAiBasedRenameFilePrompt({ open: false })
-      setAiBasedRecognizePrompt({ open: false })
+      closeAiBasedRenameFilePrompt()
+      closeAiBasedRecognizePrompt()
     }
-  }, [pendingRenamePlans, mediaMetadata, setAiBasedRenameFilePrompt, setAiBasedRecognizePrompt, handleRenamePlanConfirm, updatePlan])
+  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, closeAiBasedRecognizePrompt, handleRenamePlanConfirm, updatePlan])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({
@@ -326,8 +326,8 @@ function TvShowPanel() {
     setSeasons,
     setScrollToEpisodeId,
     setSelectedMediaMetadataByMediaFolderPath,
-    openAiBasedRenameFilePrompt: (config) => setAiBasedRenameFilePrompt({ open: true, ...config }),
-    setAiBasedRenameFileStatus: (status) => setAiBasedRenameFilePrompt({ status }),
+    openAiBasedRenameFilePrompt,
+    setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,
   })
 
   // Use file name generation hook
