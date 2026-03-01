@@ -1,7 +1,7 @@
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { MediaPlayer, type Track } from "./MediaPlayer";
-import { useMemo, useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
@@ -25,6 +25,65 @@ interface PendingDelete {
   fileIndex: number;
 }
 
+/**
+ * 
+ * @param prev The track in current state
+ * @param localTracks The track from latest local files
+ * @returns 
+ */
+export function syncTracks(prev: Track[], localTracks: Track[]) {
+  let tracks = prev;
+
+  let prevPermanentTracks = tracks.filter((track) => track.status === undefined);
+  // tracks may be deleted from local folder
+  const deletedTracks = prevPermanentTracks.filter((prevTrack) => !localTracks.some((newTrack) => newTrack.path === prevTrack.path));
+  tracks = tracks.filter((track) => track.status !== undefined || !deletedTracks.some((deletedTrack) => deletedTrack.path === track.path));
+
+  // tracks may be updated in local folder
+  tracks = tracks.map((track) => {
+    if(track.status !== undefined) {
+      // temporary track
+      return track;
+    }
+
+    const updatedTrack = localTracks.find((updatedTrack) => updatedTrack.path === track.path);
+    return !!updatedTrack ? {
+      ...updatedTrack,
+      id: track.id,
+    } : track;
+  });
+
+  // new tracks may be added to local folder
+  const newTracks = localTracks.filter((newTrack) => !prev.some((prevTrack) => prevTrack.path === newTrack.path));
+  tracks = [...tracks, ...newTracks];
+  
+  // Remove temporary tracks that have successfully downloaded
+  tracks = tracks.map((track) => {
+    if(track.status === undefined) {
+      return track;
+    }
+
+    // if status is completed and if the local track is loaded
+    // Replace the temporary track with the loaded track
+    if(track.status === "completed") {
+
+      const localTrack = localTracks.find((localTrack) => localTrack.path === track.path)
+      if(localTrack) {
+        return {
+          ...localTrack,
+          id: track.id,
+          status: undefined,
+          url: undefined,
+        };
+      }
+    }
+    
+    return track;
+  });
+
+  return tracks;
+}
+
 export function MusicPanel() {
   const { selectedMediaMetadata, refreshMediaMetadata, updateMediaMetadata } = useMediaMetadata();
   const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog } = useDialogs();
@@ -34,56 +93,24 @@ export function MusicPanel() {
   const [openFormatConverter] = formatConverterDialog;
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
-  // Temporary tracks for downloading/downloaded videos (keyed by URL stored in path)
-  const [tmpTracks, setTmpTracks] = useState<Track[]>([]);
-  // Counter for generating unique IDs for tmp tracks
-  const tmpIdCounterRef = useRef(0);
-  // Map to track original positions for maintaining sort order after download
-  const positionMapRef = useRef<Map<string, number>>(new Map());
+  const [tracks, setTracks] = useState<Track[]>([]);
 
-  // Base tracks from media metadata
-  const baseTracks = useMemo(() => {
-    if(!selectedMediaMetadata) {
-      return undefined;
-    }
-    const musicMediaMetadata = newMusicMediaMetadata(selectedMediaMetadata);
-    return convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
-  }, [selectedMediaMetadata]);
-
-  // Merge base tracks with tmp tracks and apply position mapping
-  const tracks = useMemo(() => {
-    const base = baseTracks ?? [];
-    let result = [...tmpTracks, ...base] as Track[];
-
-    // Apply position mapping to maintain sort order after download
-    if (positionMapRef.current.size > 0) {
-      for (const [filePath, targetIndex] of positionMapRef.current) {
-        const currentIdx = result.findIndex(t => t.path === filePath);
-        if (currentIdx !== -1 && currentIdx !== targetIndex) {
-          const [track] = result.splice(currentIdx, 1);
-          result.splice(Math.min(targetIndex, result.length), 0, track);
-          console.log(`[MusicPanel] Moved track ${filePath} from ${currentIdx} to ${targetIndex}`);
-        }
-      }
-      // Clear position map after applying
-      positionMapRef.current.clear();
-    }
-
-    return result;
-  }, [baseTracks, tmpTracks]);
-
-  // Clean up tmpTracks when they exist in baseTracks (after metadata refresh)
   useEffect(() => {
-    if (!baseTracks || tmpTracks.length === 0) return;
 
-    const basePaths = new Set(baseTracks.map(t => t.path));
-    const tracksToRemove = tmpTracks.filter(t => basePaths.has(t.path));
-
-    if (tracksToRemove.length > 0) {
-      console.log('[MusicPanel] Removing tmpTracks that now exist in baseTracks:', tracksToRemove.map(t => t.path));
-      setTmpTracks(prev => prev.filter(t => !basePaths.has(t.path)));
+    if(!selectedMediaMetadata) {
+      // clean up permanent tracks, and keep the temporary tracks
+      setTracks((prev) => prev.filter((track) => track.path === undefined ));
+      return;
     }
-  }, [baseTracks, tmpTracks]);
+
+    const musicMediaMetadata = newMusicMediaMetadata(selectedMediaMetadata);
+    const newTracks = convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
+
+    setTracks(prev => {
+      return syncTracks(prev, newTracks);
+    });
+
+  }, [selectedMediaMetadata])
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
     const { trackPath, trackTitle } = event.detail;
@@ -233,92 +260,109 @@ export function MusicPanel() {
     const handleVideoDataExtracted = (videoData: { title?: string; artist?: string }, url: string) => {
       console.log('[MusicPanel] Extracted video data:', videoData, 'for URL:', url);
 
-      setTmpTracks((prev) => {
-        const existingIndex = prev.findIndex((t) => t.path === url);
-        if (existingIndex !== -1) {
-          // Update existing track
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            title: videoData.title || updated[existingIndex].title,
-            artist: videoData.artist || updated[existingIndex].artist,
-          };
-          return updated;
+      setTracks(prev => {
+
+        // The VideoDataExtracted event and DownloadStarted event may 
+        // arrive out of order, so we need to check if the track already exists
+        if(prev.some((t) => t.url === url)) {
+          // if track already exists, update it
+
+          return prev.map(prev => {
+            if(prev.url === url) {
+              return {
+                ...prev,
+                title: videoData.title || prev.title,
+                artist: videoData.artist || prev.artist,
+              }
+            }
+            return prev;
+          })
+
+        } else {
+
+          // if track does not exist, create it
+          return [...prev, {
+            id: Date.now(),
+            title: videoData.title || url,
+            artist: videoData.artist || 'Unknown',
+            duration: 0,
+            thumbnail: '',
+            addedDate: new Date(),
+            path: '',
+            url,
+            status: "pending",
+          }]
         }
-        // No existing track, create one with URL as title
-        const newTrack: Track = {
-          id: --tmpIdCounterRef.current,
-          title: videoData.title || url,
-          artist: videoData.artist || 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date(),
-          path: url,
-          isDownloading: true,
-        };
-        return [newTrack, ...prev];
-      });
+
+      })
+
     };
 
     // Callback when download starts
     const handleDownloadStart = (url: string, folder: string) => {
       console.log(`[MusicPanel] Starting download: ${url} to ${folder}`);
 
-      setTmpTracks((prev) => {
-        // Check if track already exists (created by onVideoDataExtracted)
-        const existingIndex = prev.findIndex((t) => t.path === url);
-        if (existingIndex !== -1) {
-          // Track exists, just mark as downloading
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            isDownloading: true,
-          };
-          return updated;
+      setTracks(prev => {
+
+        // The VideoDataExtracted event and DownloadStarted event may 
+        // arrive out of order, so we need to check if the track already exists
+        if(prev.some((t) => t.url === url)) {
+          // if track already exists, update it
+
+          return prev.map(prev => {
+            if(prev.url === url) {
+              return {
+                ...prev,
+                url: url,
+                status: "downloading",
+              }
+            }
+            return prev;
+          })
+
+        } else {
+
+          // if track does not exist, create it
+          return [...prev, {
+            id: Date.now(),
+            title: url,
+            artist: '',
+            duration: 0,
+            thumbnail: '',
+            addedDate: new Date(),
+            path: '',
+            url,
+            status: "downloading",
+          }]
         }
-        // Create new track with URL as title
-        const newTrack: Track = {
-          id: --tmpIdCounterRef.current,
-          title: url,
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date(),
-          path: url,
-          isDownloading: true,
-        };
-        return [newTrack, ...prev];
-      });
+
+      })
+      
     };
 
     // Callback when download completes
     const handleDownloadComplete = (url: string, path: string) => {
       console.log(`[MusicPanel] Download complete: ${url} -> ${path}`);
 
-      // Record current position before any changes
-      const currentIndex = tracks?.findIndex(t => t.path === url) ?? 0;
-      positionMapRef.current.set(path, currentIndex);
-      console.log(`[MusicPanel] Recorded position ${currentIndex} for ${path}`);
-
-      // Update tmpTrack with actual file path and mark as not downloading
-      setTmpTracks((prev) => {
-        const existingIndex = prev.findIndex((t) => t.path === url);
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            isDownloading: false,
-            path,
-          };
-          return updated;
-        }
-        return prev;
-      });
+      setTracks(prev => {
+        return prev.map(prev => {
+          if(prev.url === url) {
+            return {
+              ...prev,
+              path: path,
+              status: "completed",
+            }
+          }
+          return prev;
+        })
+      })
 
       // Refresh media metadata to include the new file
       const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath;
       if (mediaFolderPath) {
         console.log(`[MusicPanel] Refreshing media metadata for ${mediaFolderPath}`);
+        // in useEffect of selectedMediaMetadata, the permanent track will replace the tmp track
+        // so we only need to refresh the media metadata here.
         refreshMediaMetadata(mediaFolderPath);
       }
     };

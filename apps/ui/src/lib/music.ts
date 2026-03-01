@@ -102,7 +102,7 @@ export function convertMusicFilesToTracks(musicFiles: MusicFileProps[]): Track[]
         genre: "unknown",
         thumbnail: file.thumbnailUri,
         addedDate: new Date(),
-        path: file.path,
+        path: Path.toPlatformPath(file.path),
     }));
 }
 

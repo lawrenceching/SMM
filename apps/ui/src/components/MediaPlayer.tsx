@@ -3,15 +3,27 @@ import { MediaPlayerToolbar, type SortBy } from './MediaPlayerToolbar';
 import { MediaPlayerTrackList } from './MediaPlayerTrackList';
 import { MediaPlayerControlBar } from './MediaPlayerControlBar';
 
-export interface Track {
+export interface DownloadingTrack {
+  url?: string
+  status?: "pending" | "downloading" | "completed" | "failed";
+}
+
+/**
+ * **Temporary Track** The track that is downloading from the internet. The track that has status property is temporary track.
+ * **Permanent Track** The track that is already downloaded and saved in the local storage.
+ */
+export interface Track extends DownloadingTrack {
   id: number;
   title: string;
   artist: string;
   duration: number;
   thumbnail?: string;
   addedDate: Date;
+  /**
+   * The absolute path of the track file, in platform-specific format.
+   * If path is undefined, this track is temporary for downloading video.
+   */
   path?: string;
-  isDownloading?: boolean;
 }
 
 export type MediaPlayerMode = 'view' | 'player';
@@ -28,14 +40,51 @@ const DEFAULT_TRACKS: Track[] = [
   { id: 2, title: "Electric Pulse", artist: "Neon Waves", duration: 198, thumbnail: "https://picsum.photos/seed/music2/200", addedDate: new Date('2024-02-01'), path: undefined },
   { id: 3, title: "Sunset Boulevard", artist: "The Wanderers", duration: 267, thumbnail: "https://picsum.photos/seed/music3/200", addedDate: new Date('2024-01-20'), path: undefined },
   { id: 4, title: "Crystal Clear", artist: "Aurora Skies", duration: 312, thumbnail: "https://picsum.photos/seed/music4/200", addedDate: new Date('2024-02-10'), path: undefined },
-  { id: 5, title: "Jazz Cafe", artist: "Blue Notes", duration: 285, thumbnail: "https://picsum.photos/seed/music5/200", addedDate: new Date('2024-01-05'), path: undefined },
-  { id: 6, title: "Mountain High", artist: "Echo Valley", duration: 246, thumbnail: "https://picsum.photos/seed/music6/200", addedDate: new Date('2024-02-15'), path: undefined },
-  { id: 7, title: "City Lights", artist: "Urban Beat", duration: 203, thumbnail: "https://picsum.photos/seed/music7/200", addedDate: new Date('2024-01-25'), path: undefined },
-  { id: 8, title: "Ocean Waves", artist: "Coastal Drift", duration: 278, thumbnail: "https://picsum.photos/seed/music8/200", addedDate: new Date('2024-02-05'), path: undefined },
-  { id: 9, title: "Moonlight Sonata", artist: "Classical Ensemble", duration: 356, thumbnail: "https://picsum.photos/seed/music9/200", addedDate: new Date('2024-01-10'), path: undefined },
-  { id: 10, title: "Summer Nights", artist: "Tropical Vibes", duration: 221, thumbnail: "https://picsum.photos/seed/music10/200", addedDate: new Date('2024-02-20'), path: undefined },
-  { id: 11, title: "Rainy Day", artist: "Mellow Tones", duration: 298, thumbnail: "https://picsum.photos/seed/music11/200", addedDate: new Date('2024-01-30'), path: undefined },
-  { id: 12, title: "Symphony No. 5", artist: "Orchestra Phil", duration: 412, thumbnail: "https://picsum.photos/seed/music12/200", addedDate: new Date('2024-02-12'), path: undefined },
+  {
+    id: 5,
+    title: "https://www.example.com/video1",
+    artist: "",
+    duration: 285,
+    thumbnail: "https://picsum.photos/seed/music5/200",
+    addedDate: new Date('2024-01-05'),
+    path: undefined,
+    url: 'https://www.example.com/video1',
+    status: 'pending',
+  },
+  {
+    id: 6,
+    title: "https://www.example.com/video2",
+    artist: "",
+    duration: 285,
+    thumbnail: "https://picsum.photos/seed/music5/200",
+    addedDate: new Date('2024-01-05'),
+    path: undefined,
+    url: 'https://www.example.com/video2',
+    status: 'downloading',
+  },
+  {
+    id: 7,
+    title: "https://www.example.com/video3",
+    artist: "",
+    duration: 285,
+    thumbnail: "https://picsum.photos/seed/music5/200",
+    addedDate: new Date('2024-01-05'),
+    path: undefined,
+    url: 'https://www.example.com/video3',
+    status: 'completed',
+  },
+  {
+    id: 8,
+    title: "https://www.example.com/video4",
+    artist: "",
+    duration: 285,
+    thumbnail: "https://picsum.photos/seed/music5/200",
+    addedDate: new Date('2024-01-05'),
+    path: undefined,
+    url: 'https://www.example.com/video4',
+    status: 'failed',
+  }
+  
 ];
 
 export function MediaPlayer({ tracks = DEFAULT_TRACKS, className = '', mode = 'view', onDownloadClick }: MediaPlayerProps) {

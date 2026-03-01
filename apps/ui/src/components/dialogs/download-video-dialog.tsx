@@ -69,6 +69,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
       setIsDownloading(true)
       setProgress(0)
 
+      if(destinationFolder) {
+        onClose()
+      }
+
+      onStart(currentUrl, currentFolder)
+
       if (onVideoDataExtracted) {
         try {
           const result = await extractYtdlpVideoData(currentUrl)
@@ -83,8 +89,6 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
         }
       }
 
-      onStart(currentUrl, currentFolder)
-
       if (destinationFolder) {
         downloadYtdlpVideo({
           url: currentUrl,
@@ -98,7 +102,6 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
           }
         })
         setIsDownloading(false)
-        onClose()
         return
       }
 

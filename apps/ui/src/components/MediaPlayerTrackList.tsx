@@ -76,7 +76,7 @@ function TrackListItem({
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger asChild disabled={track.isDownloading}>
+        <ContextMenuTrigger asChild disabled={track.status === 'downloading'}>
           <div
             onClick={mode === 'player' ? () => onTrackClick(track) : undefined}
             onKeyDown={(e) => {
@@ -93,7 +93,7 @@ function TrackListItem({
             tabIndex={mode === 'player' ? 0 : -1}
           >
             <div className="w-8 text-center flex-shrink-0">
-              {track.isDownloading ? (
+              {track.status === 'downloading' ? (
                 <Loader className="w-5 h-5 mx-auto text-blue-500 animate-spin" />
               ) : showPlayButton ? (
                 <div className="flex items-center justify-center gap-0.5 h-4">
@@ -139,14 +139,14 @@ function TrackListItem({
               <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
             </div>
             <div className="w-16 text-sm text-muted-foreground text-right">
-              {track.isDownloading ? '...' : formatTime(track.duration)}
+              {track.status === 'downloading' ? '...' : formatTime(track.duration)}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className="p-2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-0 disabled:pointer-events-none"
                   aria-label="More options"
-                  disabled={track.isDownloading}
+                  disabled={track.status === 'downloading'}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="w-5 h-5" />
