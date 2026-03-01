@@ -89,20 +89,25 @@ function AppV2Content() {
   useEffect(() => {
     if (primaryFolderPath === undefined || mediaMetadatas.length === 0) return
     const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === primaryFolderPath)
-    if (index !== -1) setSelectedMediaMetadata(index)
+    if (index !== -1) setSelectedMediaMetadata(index, { traceId: 'AppV2.useEffect.syncPrimaryFolderToContentPanel' })
   }, [primaryFolderPath, mediaMetadatas, setSelectedMediaMetadata])
 
   // Initialize selection from provider once (e.g. after load or restore)
   useEffect(() => {
-    if (
-      selectedMediaMetadata?.mediaFolderPath &&
-      !hasInitializedSelectionFromProvider.current
-    ) {
-      const path = selectedMediaMetadata.mediaFolderPath
-      setPrimaryFolderPath(path)
-      setSelectedFolderPaths(new Set([path]))
-      hasInitializedSelectionFromProvider.current = true
+
+    if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
+      setPrimaryFolderPath(undefined)
+      setSelectedFolderPaths(new Set())
+      return;
     }
+
+    const path = selectedMediaMetadata.mediaFolderPath
+    setPrimaryFolderPath(path)
+    setSelectedFolderPaths(prev => {
+      // if prev.size > 1, means UI is in multi-select mode, so we keep the existing selected folder paths
+      return prev.size > 1 ? prev : new Set([path]);
+    })
+      
   }, [selectedMediaMetadata?.mediaFolderPath])
 
   useEffect(() => {

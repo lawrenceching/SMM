@@ -3,11 +3,6 @@ import { isNil, isNotNil } from "es-toolkit";
 import { lookup } from "./lookup";
 import { findVideoFiles } from "./MovieMediaMetadataUtils";
 
-/**
- * TODO: maybe I can move this file to media folder initialization process
- * recognize media file by rules
- */
-
 export function recognizeTvShowMediaFiles(mm: UIMediaMetadata): {
     season: number,
     episode: number,

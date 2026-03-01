@@ -74,7 +74,7 @@ export default function AppNavigation() {
   const handleMediaFolderListItemClick = useCallback((path: string) => {
     const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
     if (index !== -1) {
-      setSelectedMediaMetadata(index)
+      setSelectedMediaMetadata(index, { traceId: 'AppNavigation.handleMediaFolderListItemClick' })
       setSelectedItemPath(path)
       setCurrentPage("detail")
     }

@@ -38,6 +38,8 @@ function MoviePanel() {
   const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
 
   /**
+   * @deprecated this logic move to MovieUIMediaMetadata, see recognizeMovieMediaFiles method
+   * 
    * The rawMediaMetadata comes from backend
    * The mediaMetadata is the processed media metadata by frontend.
    * Frontend will adjust or alter the media metadata for its own requirement.

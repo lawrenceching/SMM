@@ -39,7 +39,7 @@ export function MediaFolderImportedEventHandler() {
                         const index = latestMediaMetadatas.current.findIndex((item) => item.mediaFolderPath !== undefined && item.mediaFolderPath === mediaFolderPathInPosix)
                         if (index !== -1) {
                             console.log(`[${traceId}] Set selected media metadata to index ${index} for mediaFolderPath ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
-                            setSelectedMediaMetadata(index)
+                            setSelectedMediaMetadata(index, { traceId: 'MediaFolderImportedEventHandler.updateSelectedMediaMetadata' })
                             return
                         }
                     }

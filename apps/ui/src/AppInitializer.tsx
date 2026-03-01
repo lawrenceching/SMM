@@ -63,7 +63,7 @@ export function AppInitializer() {
 
                 const selectedFolderIndex = localStorages.selectedFolderIndex ?? 0;
                 console.log(`[AppInitializer] initialize app with selected folder index: ${selectedFolderIndex}`)
-                setSelectedMediaMetadata(selectedFolderIndex)
+                setSelectedMediaMetadata(selectedFolderIndex, { traceId: 'AppInitializer' })
             }
         })
 

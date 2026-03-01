@@ -31,6 +31,7 @@ export async function doPreprocessMediaFolder(
   if(mm?.type === 'tvshow-folder' && mm?.tmdbTvShow !== undefined) {
 
     console.log(`[${traceId}] recognizing media files by rules`)
+    // TODO: recognize media files by nfo
     const recognizedMediaFiles = recognizeTvShowMediaFiles(mm)
     if (recognizedMediaFiles) {
       mm.mediaFiles = recognizedMediaFiles.map((i) => ({

@@ -23,7 +23,7 @@ interface MediaMetadataContextValue {
   removeMediaMetadata: (pathInPosix: string) => void
   getMediaMetadata: (pathInPosix: string) => UIMediaMetadata | undefined
   selectedMediaMetadata: UIMediaMetadata | undefined
-  setSelectedMediaMetadata: (index: number) => void
+  setSelectedMediaMetadata: (index: number, options?: { traceId?: string }) => void
   /**
    * Set selected media metadata by media folder path
    * @param path POSIX format folder path
@@ -109,6 +109,7 @@ export function MediaMetadataProvider({
       return undefined
     }
 
+    console.log(`[MediaMetadataProvider] selectedIndex: ${selectedIndex}, mediaMetadatas: `, mediaMetadatas[selectedIndex].mediaFolderPath)
     return mediaMetadatas[selectedIndex]
   }, [mediaMetadatas, selectedIndex])
 
@@ -119,7 +120,8 @@ export function MediaMetadataProvider({
   }
   
 
-  const setSelectedMediaMetadata = useCallback((index: number) => {
+  const setSelectedMediaMetadata = useCallback((index: number, options?: { traceId?: string }) => {
+    console.log(`${options?.traceId ? ` [${options.traceId}]` : ''} [MediaMetadataProvider] setSelectedMediaMetadata: index=${index}`)
     setSelectedIndex(index)
     localStorages.selectedFolderIndex = index
   }, [])
