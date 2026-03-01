@@ -5,14 +5,14 @@ import type { TMDBTVShowDetails } from '@core/types'
 
 vi.mock('./TMDBSearchbox', () => ({
   TMDBSearchbox: vi.fn().mockImplementation(({
-    initialValue,
+    value,
     onSearchResultSelected,
     placeholder,
   }) => (
     <div data-testid="tmdb-searchbox">
       <input
         data-testid="search-input"
-        value={initialValue || ''}
+        value={value || ''}
         onChange={() => {}}
         placeholder={placeholder}
       />

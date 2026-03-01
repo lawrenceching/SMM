@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useMount, useUnmount } from "react-use";
+import { useLatest, useMount, useUnmount } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useConfig } from "@/providers/config-provider";
@@ -9,14 +9,15 @@ import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
-import { isNotNil } from "es-toolkit"
+import { delay, isNotNil, range } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 
 export function MediaFolderImportedEventHandler() {
 
     const { addMediaFolderInUserConfig } = useConfig()
-    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata } = useMediaMetadata()
+    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadata, mediaMetadatas } = useMediaMetadata()
+    const latestMediaMetadatas = useLatest(mediaMetadatas)
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: any) => void) | null>(null);
 
@@ -31,6 +32,19 @@ export function MediaFolderImportedEventHandler() {
                 // Get or create traceId - we'll use the job ID as traceId
                 const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
 
+                const updateSelectedMediaMetadata = async (mediaFolderPathInPosix: string) => {
+                    for (const _ of range(10)) {
+                        await delay(100);
+                        console.log(`size of media metadatas: ${latestMediaMetadatas.current.length}`)
+                        const index = latestMediaMetadatas.current.findIndex((item) => item.mediaFolderPath !== undefined && item.mediaFolderPath === mediaFolderPathInPosix)
+                        if (index !== -1) {
+                            console.log(`[${traceId}] Set selected media metadata to index ${index} for mediaFolderPath ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
+                            setSelectedMediaMetadata(index)
+                            return
+                        }
+                    }
+                }
+
                 if(type === 'music') {
                     await initializeMusicFolder(folderPathInPlatformFormat, {
                         addMediaFolderInUserConfig,
@@ -40,6 +54,7 @@ export function MediaFolderImportedEventHandler() {
                         addMediaMetadata,
                         traceId,
                     });
+                    updateSelectedMediaMetadata(Path.posix(folderPathInPlatformFormat))
                     return;
                 }
 
@@ -195,10 +210,8 @@ export function MediaFolderImportedEventHandler() {
                 })
 
                 try {
+                    mm.mediaFolderPath !== undefined && updateSelectedMediaMetadata(mm.mediaFolderPath!);
                     await Promise.race([mainOperation(), timeoutPromise])
-
-
-
                 } catch (error) {
                     // Handle timeout or other errors
                     if (error instanceof Error && error.message.includes('timed out')) {
