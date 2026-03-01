@@ -3,7 +3,6 @@ import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
-import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { newFileName } from "@/api/newFileName"
@@ -37,7 +36,6 @@ function MoviePanel() {
   const [aiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
   const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
   const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
-  const [isRuleBasedRecognizePromptOpen, setIsRuleBasedRecognizePromptOpen] = useState(false)
 
   /**
    * The rawMediaMetadata comes from backend
@@ -81,8 +79,8 @@ function MoviePanel() {
 
   // Compute preview mode from prompt states
   const isPreviewingForRename = useMemo(() => {
-    return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen || isRuleBasedRecognizePromptOpen
-  }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen, isRuleBasedRecognizePromptOpen])
+    return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen
+  }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen])
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
@@ -345,16 +343,6 @@ function MoviePanel() {
             setIsAiRecognizePromptOpen(false)
           }}
           isConfirmDisabled={isRenaming}
-        />
-
-        <RuleBasedRecognizePrompt
-          isOpen={isRuleBasedRecognizePromptOpen}
-          onConfirm={() => {
-            setIsRuleBasedRecognizePromptOpen(false)
-          }}
-          onCancel={() => {
-            setIsRuleBasedRecognizePromptOpen(false)
-          }}
         />
       </div>
 

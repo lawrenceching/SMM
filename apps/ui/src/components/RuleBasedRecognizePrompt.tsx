@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
 export interface RuleBasedRecognizePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
+  tvShowTitle: string
+  tvShowTmdbId: number
 }
 
 /**
@@ -18,13 +20,16 @@ export function RuleBasedRecognizePrompt({
   cancelLabel,
   isConfirmButtonDisabled,
   isConfirmDisabled,
+  tvShowTitle,
+  tvShowTmdbId,
   ...promptProps
 }: RuleBasedRecognizePromptProps) {
   const { t } = useTranslation('components')
 
-  // Get message for review and confirm
-  const message = t('toolbar.reviewRecognizeEpisodes', { 
-    defaultValue: 'Review and confirm the recognize episodes...' 
+  const message = t('toolbar.recognizePrompt', {
+    tvShowTitle,
+    tvShowTmdbId,
+    defaultValue: 'Is it {{tvShowTitle}} ({{tvShowTmdbId}})?'
   })
 
   return (

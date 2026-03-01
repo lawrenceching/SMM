@@ -1226,8 +1226,10 @@ export interface HandlePendingPlansParams {
   mediaMetadata: UIMediaMetadata | undefined
   setSeasonsForPreview: (seasons: SeasonModel[]) => void
   openRuleBasedRecognizePrompt: (options: {
-    onConfirm: () => void
-    onCancel: () => void
+    tvShowTitle: string
+    tvShowTmdbId: number
+    onConfirm?: () => void
+    onCancel?: () => void
   }) => void
   openAiBasedRecognizePrompt: (options: {
     status: "generating" | "wait-for-ack"
@@ -1284,22 +1286,26 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     setSeasonsForPreview(seasons)
 
     if (plan.tmp) {
-      openRuleBasedRecognizePrompt({
-        onConfirm: () => {
-          console.log('[TvShowPanel] Rule-based recognition confirmed')
-          recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
-          toast.success(t('toolbar.recognizeEpisodesSuccess'))
-          updatePlan(plan.id, 'completed').catch(error => {
-            console.error('[TvShowPanel] Error removing temporary plan:', error)
-          })
-        },
-        onCancel: () => {
-          console.log('[TvShowPanel] Rule-based recognition cancelled')
-          updatePlan(plan.id, 'rejected').catch(error => {
-            console.error('[TvShowPanel] Error removing temporary plan:', error)
-          })
-        }
-      })
+      if (mediaMetadata.tmdbTvShow !== undefined) {
+        openRuleBasedRecognizePrompt({
+          tvShowTitle: mediaMetadata.tmdbTvShow.name,
+          tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
+          onConfirm: () => {
+            console.log('[TvShowPanel] Rule-based recognition confirmed')
+            recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
+            toast.success(t('toolbar.recognizeEpisodesSuccess'))
+            updatePlan(plan.id, 'completed').catch(error => {
+              console.error('[TvShowPanel] Error removing temporary plan:', error)
+            })
+          },
+          onCancel: () => {
+            console.log('[TvShowPanel] Rule-based recognition cancelled')
+            updatePlan(plan.id, 'rejected').catch(error => {
+              console.error('[TvShowPanel] Error removing temporary plan:', error)
+            })
+          }
+        })
+      }
       closeAiBasedRecognizePrompt()
     } else {
       openAiBasedRecognizePrompt({
@@ -1327,8 +1333,10 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
 export interface OnMediaFolderSelectedParams {
   mediaMetadata: UIMediaMetadata
   openRuleBasedRecognizePrompt: (options: {
-    onConfirm: () => void
-    onCancel: () => void
+    tvShowTitle: string
+    tvShowTmdbId: number
+    onConfirm?: () => void
+    onCancel?: () => void
   }) => void
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
   buildSeasonsModelFromMediaMetadata: (mediaMetadata: UIMediaMetadata) => SeasonModel[] | null
@@ -1355,20 +1363,24 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
 
   ;(async () => {
     if (mediaMetadata.type === undefined || (mediaMetadata.tmdbTvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
-      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata)
+      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata);
       if (recognized !== undefined) {
-        openRuleBasedRecognizePrompt({
-          onConfirm: () => {
-            updateMediaMetadata(mediaMetadata.mediaFolderPath!, (prev: UIMediaMetadata) => {
-              return {
-                ...prev,
-                ...recognized,
-                ...extractUIMediaMetadataProps(prev),
-              }
-            })
-          },
-          onCancel: () => {},
-        })
+        if (recognized.tmdbTvShow !== undefined) {
+          openRuleBasedRecognizePrompt({
+            tvShowTitle: recognized.tmdbTvShow.name,
+            tvShowTmdbId: recognized.tmdbTvShow.id,
+            onConfirm: () => {
+              updateMediaMetadata(mediaMetadata.mediaFolderPath!, (prev: UIMediaMetadata) => {
+                return {
+                  ...prev,
+                  ...recognized,
+                  ...extractUIMediaMetadataProps(prev),
+                }
+              })
+            },
+            onCancel: () => {},
+          })
+        }
       }
     }
   })()

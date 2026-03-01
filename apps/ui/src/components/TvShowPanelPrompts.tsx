@@ -233,6 +233,8 @@ export function TvShowPanelPrompts() {
 
       <RuleBasedRecognizePrompt
         isOpen={ruleBasedRecognizePrompt.isOpen}
+        tvShowTitle={ruleBasedRecognizePrompt.tvShowTitle || ""}
+        tvShowTmdbId={ruleBasedRecognizePrompt.tvShowTmdbId || -1}
         onConfirm={() => {
           console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt onConfirm TRIGGERED', {
             timestamp: new Date().toISOString(),

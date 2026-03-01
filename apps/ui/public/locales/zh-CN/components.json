@@ -41,7 +41,7 @@
     "aiReview": "AI将重命名剧集，请查看...",
     "aiRecognizing": "AI正在识别剧集...",
     "aiReviewEpisodes": "查看已识别的剧集",
-    "reviewRecognizeEpisodes": "查看并确认已识别的剧集...",
+    "recognizePrompt": "可能是 {{tvShowTitle}} ({{tvShowTmdbId}})?",
     "useNfoMetadata": "使用NFO文件中的媒体元数据？",
     "useTmdbIdFromFolderName": "使用文件夹名称中的TMDB ID？",
     "queryingTmdb": "正在查询TMDB...",

@@ -41,7 +41,7 @@
     "aiReview": "AI is going to rename episodes, please review...",
     "aiRecognizing": "AI is recognizing episodes...",
     "aiReviewEpisodes": "Review recognized episodes",
-    "reviewRecognizeEpisodes": "Review and confirm the recognize episodes...",
+    "recognizePrompt": "Is it {{tvShowTitle}} ({{tvShowTmdbId}})?",
     "useNfoMetadata": "Use media metadata from NFO file?",
     "useTmdbIdFromFolderName": "Use TMDB ID from folder name?",
     "queryingTmdb": "Querying TMDB...",
