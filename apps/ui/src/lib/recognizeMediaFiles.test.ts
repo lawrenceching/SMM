@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import { recognizeMediaFiles } from './recognizeMediaFiles'
+import { recognizeTvShowMediaFiles } from './recognizeMediaFiles'
 
-describe('recognizeMediaFiles', () => {
+describe('recognizeTvShowMediaFiles', () => {
     it('should return empty array when mm.files is undefined', () => {
       const mockMetadata: UIMediaMetadata = {
         status: 'ok',
@@ -44,7 +44,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toEqual([])
     })
   
@@ -56,7 +56,7 @@ describe('recognizeMediaFiles', () => {
         ],
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toEqual([])
     })
   
@@ -119,7 +119,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toHaveLength(3)
       expect(result).toContainEqual({
         season: 1,
@@ -184,7 +184,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toHaveLength(2)
       expect(result).toContainEqual({
         season: 1,
@@ -244,7 +244,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toEqual([])
     })
   
@@ -295,7 +295,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toHaveLength(1)
       expect(result[0].videoFilePath).toBe('/media/tvshows/Test Show/S01E01.mkv')
     })
@@ -331,7 +331,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toEqual([])
     })
   
@@ -377,7 +377,7 @@ describe('recognizeMediaFiles', () => {
         },
       }
   
-      const result = recognizeMediaFiles(mockMetadata)
+      const result = recognizeTvShowMediaFiles(mockMetadata)
       expect(result).toEqual([])
     })
   })

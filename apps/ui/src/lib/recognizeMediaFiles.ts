@@ -1,8 +1,14 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { isNil, isNotNil } from "es-toolkit";
 import { lookup } from "./lookup";
+import { findVideoFiles } from "./MovieMediaMetadataUtils";
 
-export function recognizeMediaFiles(mm: UIMediaMetadata): {
+/**
+ * TODO: maybe I can move this file to media folder initialization process
+ * recognize media file by rules
+ */
+
+export function recognizeTvShowMediaFiles(mm: UIMediaMetadata): {
     season: number,
     episode: number,
     videoFilePath: string,
@@ -35,4 +41,26 @@ export function recognizeMediaFiles(mm: UIMediaMetadata): {
     });
 
     return ret;
+}
+
+
+export function recognizeMovieMediaFiles(mm: UIMediaMetadata): {
+    videoFilePath: string,
+}[] {
+    if(isNil(mm.files)) {
+        return [];
+    }
+
+    if(isNil(mm.tmdbMovie)) {
+        return [];
+    }
+
+    const videoFiles = findVideoFiles(mm.files);
+    if(videoFiles.length > 0) {
+        return [{
+            videoFilePath: videoFiles[0],
+        }]
+    }
+
+    return [];
 }

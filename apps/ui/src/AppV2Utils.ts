@@ -1,7 +1,7 @@
 import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
-import { recognizeMediaFiles } from "./lib/recognizeMediaFiles";
+import { recognizeMovieMediaFiles, recognizeTvShowMediaFiles } from "./lib/recognizeMediaFiles";
 
 /**
  * For a folder name like:
@@ -31,7 +31,7 @@ export async function doPreprocessMediaFolder(
   if(mm?.type === 'tvshow-folder' && mm?.tmdbTvShow !== undefined) {
 
     console.log(`[${traceId}] recognizing media files by rules`)
-    const recognizedMediaFiles = recognizeMediaFiles(mm)
+    const recognizedMediaFiles = recognizeTvShowMediaFiles(mm)
     if (recognizedMediaFiles) {
       mm.mediaFiles = recognizedMediaFiles.map((i) => ({
         absolutePath: i.videoFilePath,
@@ -48,6 +48,12 @@ export async function doPreprocessMediaFolder(
     })
     options?.onSuccess?.(mm)
   } else if(mm?.type === 'movie-folder' && mm?.tmdbMovie !== undefined) {
+    console.log(`[${traceId}] recognizing media files by rules`)
+    const recognizedMediaFiles = recognizeMovieMediaFiles(mm)
+    mm.mediaFiles = recognizedMediaFiles.map((i) => ({
+      absolutePath: i.videoFilePath,
+    }));
+    console.log(`[${traceId}] successful recognized media folder, update media metadata`, recognizedMediaFiles);
     options?.onSuccess?.(mm)
   } else {
     options?.onSuccess?.(_in_mm)
