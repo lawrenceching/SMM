@@ -135,9 +135,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   }
 
   const handleFolderSelect = () => {
-    onOpenFilePicker((file: FileItem) => {
-      setDownloadFolder(file.path)
-    })
+    onOpenFilePicker(
+      (file: FileItem) => {
+        setDownloadFolder(file.path)
+      },
+      { selectFolder: true, initialPath: downloadFolder || undefined }
+    )
   }
 
   return (

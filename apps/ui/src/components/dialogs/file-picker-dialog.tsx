@@ -48,21 +48,53 @@ export function FilePickerDialog({
     }
   }, [isOpen, initialPath])
 
+  // Debug: log state when dialog is open (helps verify selectFolder + no selection case)
+  useEffect(() => {
+    if (isOpen) {
+      console.log("[FilePickerDialog] state", {
+        selectFolder,
+        selectedFile,
+        currentPath,
+      })
+    }
+  }, [isOpen, selectFolder, selectedFile, currentPath])
+
   const handleConfirm = () => {
+    const log = (msg: string, data?: unknown) =>
+      console.log("[FilePickerDialog] handleConfirm", msg, data !== undefined ? data : "")
+
+    log("invoked", { selectedFile, selectFolder, currentPath })
+
+    let itemToSelect: FileItem | null = null
+
     if (selectedFile) {
       // Validate that a folder is selected when selectFolder is true
       if (selectFolder && !selectedFile.isDirectory) {
-        // Don't allow selecting files when selectFolder is true
+        log("reject: selectFolder mode but selected item is not a directory")
         return
       }
-      
-      // Save the parent directory of the selected file/folder to localStorage
-      const parentDir = getParentDirectory(selectedFile.path)
+      itemToSelect = selectedFile
+      log("branch: use selectedFile", itemToSelect)
+    } else if (selectFolder) {
+      // 选择文件夹模式下未选中任何项时，表示选择当前路径
+      const normalizedPath = currentPath.replace(/[/\\]+$/, "")
+      const segments = normalizedPath.split(/[/\\]/).filter(Boolean)
+      const name = segments.length > 0 ? segments[segments.length - 1] : currentPath
+      itemToSelect = { name, path: currentPath, isDirectory: true }
+      log("branch: use currentPath as folder", itemToSelect)
+    } else {
+      log("branch: no selection and not selectFolder, itemToSelect stays null")
+    }
+
+    if (itemToSelect) {
+      const parentDir = getParentDirectory(itemToSelect.path)
       localStorages.filePickerLastDir = parentDir
-      
-      onSelect(selectedFile)
+      log("calling onSelect and closing", { itemToSelect, parentDir })
+      onSelect(itemToSelect)
       setSelectedFile(null)
       onClose()
+    } else {
+      log("no itemToSelect, confirm does nothing")
     }
   }
 
