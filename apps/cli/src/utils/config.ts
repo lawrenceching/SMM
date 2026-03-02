@@ -2,6 +2,10 @@ import type { UserConfig } from "@core/types";
 import { renameFolderInUserConfig } from "@core/userConfig";
 import path from "path";
 import os from "os";
+import { Mutex } from 'es-toolkit';
+import { withTimeout } from 'es-toolkit/promise';
+
+const updateMutex = new Mutex();
 
 export { renameFolderInUserConfig };
 
@@ -97,9 +101,28 @@ export async function getUserConfig(): Promise<UserConfig> {
     return JSON.parse(content) as UserConfig;
 }
 
-export async function writeUserConfig(userConfig: UserConfig): Promise<void> {
+async function writeUserConfigUnderMutex(userConfig: UserConfig): Promise<void> {
     const configPath = getUserConfigPath();
     const file = Bun.file(configPath);
     await file.write(JSON.stringify(userConfig, null, 2));
 }
 
+export async function writeUserConfig(userConfig: UserConfig): Promise<void> {
+    try {
+        await updateMutex.acquire();
+        await writeUserConfigUnderMutex(userConfig);
+    } finally {
+        updateMutex.release();
+    }
+}
+
+export async function safeUpdateUserConfig(userConfig: UserConfig): Promise<void> {
+    await withTimeout(async () => {
+        try {
+            await updateMutex.acquire();
+            await writeUserConfigUnderMutex(userConfig);
+        } finally {
+            updateMutex.release();
+        }
+    }, 10000);
+}

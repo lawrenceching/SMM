@@ -43,7 +43,6 @@ function AppV2Content() {
   // Multi-select: set of selected folder paths and the primary (drives content panel)
   const [selectedFolderPaths, setSelectedFolderPaths] = useState<Set<string>>(new Set())
   const [primaryFolderPath, setPrimaryFolderPath] = useState<string | undefined>(undefined)
-  const hasInitializedSelectionFromProvider = useRef(false)
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
