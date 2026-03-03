@@ -5,20 +5,20 @@ This file lists all features provided by SMM.
 And the test status of v1.1.0
 
 
-| Feature                                          | Status | Comment |
+| Feature                                          | Type   | Comment |
 | ------------------------------------------------ | ------ | ------- |
-| Import media folder - Web GUI/Electron           | AUTO   |         |
-| Import media library - Web GUI/Electron          | MANUAL | FAILED  |
+| Import media folder - Web GUI/Electron           | MANUAL |  DONE   |
+| Import media library - Web GUI/Electron          | MANUAL |  DONE   |
 |                                                  |        |         |
 | Media Folder Initialization                      |        |         |
-| ---- TV Show - TMDB ID in folder name            |        |         |
-| ---- TV Show - nfo                               |        |         |
-| ---- TV Show - Folder Name                       |        |         |
-| ---- TV Show - Not able to detect                |        |         |
-| ---- Movie - TMDB ID in folder name              |        |         |
-| ---- Movie - nfo                                 |        |         |
-| ---- Movie - Folder Name                         |        |         |
-| ---- Movie - Not able to detect                  |        |         |
+| ---- TV Show - TMDB ID in folder name            |  AUTO  |         |
+| ---- TV Show - nfo                               |  AUTO  |         |
+| ---- TV Show - Folder Name                       |  AUTO  |         |
+| ---- TV Show - Not able to detect                |  AUTO  |         |
+| ---- Movie - TMDB ID in folder name              |  AUTO  |         |
+| ---- Movie - nfo                                 |  AUTO  |         |
+| ---- Movie - Folder Name                         |  AUTO  |         |
+| ---- Movie - Not able to detect                  |  AUTO  |         |
 |                                                  |        |         |
 | TV Show - Search TV Show                         |        |         |
 | TV Show - Rule Based Recognize                   |        |         |

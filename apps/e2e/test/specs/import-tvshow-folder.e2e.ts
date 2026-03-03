@@ -1,4 +1,5 @@
 import { expect, browser } from '@wdio/globals'
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -10,7 +11,11 @@ import { delay } from 'es-toolkit'
 const __filename = fileURLToPath(import.meta.url)
 const slowdown = process.env.SLOWDOWN === 'true'
 
-describe('Import Media Folder', () => {
+const FOLDER_NAME = '葬送的芙莉莲'
+const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
+const mediaDir = path.join(tmpMediaRoot, 'media')
+
+describe('Media Folder Initialization', () => {
 
     before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
@@ -19,22 +24,27 @@ describe('Import Media Folder', () => {
     })
 
     afterEach(async () => {
-        console.log('Cleanup after each test')
+        if (fs.existsSync(tmpMediaRoot)) {
+            fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
+            console.log('Removed tmp media folder:', tmpMediaRoot)
+        }
     })
 
-    it('Import TV Show folder', async function() {
+    it('TV Show - Folder Name', async function() {
         if(slowdown) {
             this.timeout(60 * 1000)
         }
-        
-        const testMediaFolder = path.join(os.tmpdir(), 'smm-test-media', 'media', '古见同学有交流障碍症')
+
+        // Create empty folder in media directory
+        const testMediaFolder = path.join(mediaDir, FOLDER_NAME)
+        fs.mkdirSync(testMediaFolder, { recursive: true })
+        console.log('Created empty media folder:', testMediaFolder)
 
         if(slowdown) {
             await delay(10 * 1000)
         }
 
         console.log('Importing media folder:', testMediaFolder)
-        // Trigger the import
         await Menu.importMediaFolder({
             type: 'tvshow',
             folderPathInPlatformFormat: testMediaFolder,
@@ -48,27 +58,143 @@ describe('Import Media Folder', () => {
         // Import media folder will trigger async media folder initialization, wait for it to complete
         await delay(5 * 1000)
 
-        // Wait for the folder to appear in the sidebar
-        const folderName = '古见同学有交流障碍症'
-        console.log(`Waiting for folder "${folderName}" to appear in sidebar...`)
-
-        const isDisplayed = await Sidebar.waitForFolder(folderName, 60000)
-
-        // Verify the folder is displayed
+        console.log(`Waiting for folder "${FOLDER_NAME}" to appear in sidebar...`)
+        const isDisplayed = await Sidebar.waitForFolder(FOLDER_NAME, 60000)
         expect(isDisplayed).toBe(true)
-        console.log(`Folder "${folderName}" is now displayed in sidebar`)
+        console.log(`Folder "${FOLDER_NAME}" is now displayed in sidebar`)
 
-        // Assert title in ImmersiveSearchbox is the TV show name
+        // Assert immersive-input displays the folder name
         const immersiveInput = await $('[data-testid="immersive-input"]')
         await immersiveInput.waitForDisplayed({ timeout: 15000 })
         await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === folderName,
-            { timeout: 10000, timeoutMsg: `ImmersiveSearchbox title did not become "${folderName}"` }
+            async () => (await immersiveInput.getValue()) === FOLDER_NAME,
+            { timeout: 10000, timeoutMsg: `ImmersiveSearchbox title did not become "${FOLDER_NAME}"` }
         )
-        expect(await immersiveInput.getValue()).toBe(folderName)
+        expect(await immersiveInput.getValue()).toBe(FOLDER_NAME)
 
         if(slowdown) {
             await delay(10 * 1000)
         }
+    })
+
+    it('TV Show - TMDB ID in Folder Name', async function() {
+        const stepTimeoutMs = 1 * 1000
+        this.timeout(stepTimeoutMs * 2 + 30 * 1000) // sidebar wait + immersive wait + buffer
+
+        const folderNameWithTmdbId = '天使降临到我身边！ (2019) {tmdbid=84666}'
+        const expectedShowTitle = '天使降临到我身边！'
+        const testMediaFolder = path.join(mediaDir, folderNameWithTmdbId)
+        fs.mkdirSync(testMediaFolder, { recursive: true })
+        console.log('Created empty media folder:', testMediaFolder)
+
+        if(slowdown) {
+            await delay(10 * 1000)
+        }
+
+        console.log('Importing media folder:', testMediaFolder)
+        await Menu.importMediaFolder({
+            type: 'tvshow',
+            folderPathInPlatformFormat: testMediaFolder,
+            traceId: 'e2eTest:Import Media Folder TMDB ID'
+        })
+
+        if(slowdown) {
+            await delay(10 * 1000)
+        }
+        
+        await Sidebar.waitForFolder(expectedShowTitle, stepTimeoutMs);
+    
+        console.log(`Folder "${folderNameWithTmdbId}" is now displayed in sidebar`)
+        // Step 2: Wait for immersive-input to show TMDB title (with explicit error context)
+        const immersiveInput = await $('[data-testid="immersive-input"]')
+        await immersiveInput.waitForDisplayed({ timeout: 5000, timeoutMsg: `Immersive input did not become visible within 5s` })
+        await browser.waitUntil(
+            async () => (await immersiveInput.getValue()) === expectedShowTitle,
+            {
+                timeout: 5000,
+                timeoutMsg: `Expected immersive-input value to be "${expectedShowTitle}", but got "${await immersiveInput.getValue()}"`
+            }
+        )
+        expect(await immersiveInput.getValue()).toBe(expectedShowTitle)
+
+        if(slowdown) {
+            await delay(10 * 1000)
+        }
+    })
+
+    it('TV Show - NFO', async function() {
+        if (slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <id>73598</id>
+  <title>爱杀宝贝</title>
+</tvshow>`
+        const folderName = '爱杀宝贝'
+        const expectedShowTitle = '爱杀宝贝'
+
+        // Create media folder and write tvshow.nfo
+        const testMediaFolder = path.join(mediaDir, folderName)
+        fs.mkdirSync(testMediaFolder, { recursive: true })
+        const nfoPath = path.join(testMediaFolder, 'tvshow.nfo')
+        fs.writeFileSync(nfoPath, nfoXml, 'utf-8')
+        console.log('Created media folder with tvshow.nfo:', testMediaFolder)
+
+        if (slowdown) {
+            await delay(10 * 1000)
+        }
+
+        console.log('Importing media folder:', testMediaFolder)
+        await Menu.importMediaFolder({
+            type: 'tvshow',
+            folderPathInPlatformFormat: testMediaFolder,
+            traceId: 'e2eTest:Import Media Folder NFO'
+        })
+
+        if (slowdown) {
+            await delay(10 * 1000)
+        }
+
+        console.log(`Waiting for folder "${expectedShowTitle}" to appear in sidebar...`)
+        const isDisplayed = await Sidebar.waitForFolder(expectedShowTitle, 60000)
+        expect(isDisplayed).toBe(true)
+        console.log(`Folder "${expectedShowTitle}" is now displayed in sidebar`)
+
+        const immersiveInput = await $('[data-testid="immersive-input"]')
+        await immersiveInput.waitForDisplayed({ timeout: 15000 })
+        await browser.waitUntil(
+            async () => (await immersiveInput.getValue()) === expectedShowTitle,
+            { timeout: 10000, timeoutMsg: `ImmersiveSearchbox title did not become "${expectedShowTitle}"` }
+        )
+        expect(await immersiveInput.getValue()).toBe(expectedShowTitle)
+
+        if (slowdown) {
+            await delay(10 * 1000)
+        }
+    })
+
+    it('TV Show - Unknown', async function() {
+        this.timeout(15 * 1000)
+
+        const randomFolderName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const testMediaFolder = path.join(mediaDir, randomFolderName)
+        fs.mkdirSync(testMediaFolder, { recursive: true })
+        console.log('Created unknown media folder:', testMediaFolder)
+
+        console.log('Importing media folder:', testMediaFolder)
+        await Menu.importMediaFolder({
+            type: 'tvshow',
+            folderPathInPlatformFormat: testMediaFolder,
+            traceId: 'e2eTest:Import Media Folder Unknown'
+        })
+
+        await delay(2 * 1000)
+
+        const immersiveInput = await $('[data-testid="immersive-input"]')
+        await immersiveInput.waitForDisplayed({ timeout: 5000 })
+        const value = await immersiveInput.getValue()
+        expect(value).toBe('')
     })
 })
