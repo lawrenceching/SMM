@@ -2,6 +2,7 @@ import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles, recognizeTvShowMediaFiles } from "./lib/recognizeMediaFiles";
+import { getTvShowById } from "./api/tmdb";
 
 /**
  * For a folder name like:
@@ -47,6 +48,21 @@ export async function doPreprocessMediaFolder(
       tvShowName: mm.tmdbTvShow.name,
       mediaFiles: mm.mediaFiles,
     })
+
+    if(mm.tmdbTvShow !== undefined && (mm.tmdbTvShow.seasons === undefined || mm.tmdbTvShow.seasons.length === 0)) {
+      console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tmdbTvShow.id}`)
+      const tmdbId = mm.tmdbTvShow.id;
+      const resp = await getTvShowById(tmdbId, 'zh-CN');
+      if(resp.error) {
+          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp.error)
+      } else if(resp.data === undefined) {
+          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp)
+      } else {
+          console.log(`[${traceId}][doPreprocessMediaFolder] successfully recognized TV show by folder name: ${mm.tmdbTvShow.name} ${mm.tmdbTvShow.id}`)
+          mm.tmdbTvShow = resp.data;
+      }
+    }
+
     options?.onSuccess?.(mm)
   } else if(mm?.type === 'movie-folder' && mm?.tmdbMovie !== undefined) {
     console.log(`[${traceId}] recognizing media files by rules`)
