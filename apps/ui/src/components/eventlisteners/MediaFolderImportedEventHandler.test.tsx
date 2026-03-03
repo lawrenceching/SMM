@@ -67,6 +67,10 @@ vi.mock("es-toolkit", () => ({
   delay: vi.fn((ms: number) => new Promise(resolve => setTimeout(resolve, ms))),
   isNotNil: (val: any) => val != null,
   range: (n: number) => Array.from({ length: n }, (_, i) => i),
+  Mutex: class Mutex {
+    async acquire() {}
+    release() {}
+  },
 }))
 
 import { useEffect } from "react"

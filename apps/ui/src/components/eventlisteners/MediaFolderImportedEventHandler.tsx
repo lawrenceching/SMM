@@ -12,6 +12,8 @@ import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
 import { delay, isNotNil, range } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
+import { Mutex } from "es-toolkit";
+const mutex = new Mutex();
 
 export function MediaFolderImportedEventHandler() {
 
@@ -19,209 +21,227 @@ export function MediaFolderImportedEventHandler() {
     const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadata, mediaMetadatas } = useMediaMetadata()
     const latestMediaMetadatas = useLatest(mediaMetadatas)
     const backgroundJobs = useBackgroundJobsStore()
-    const eventListener = useRef<((event: any) => void) | null>(null);
+    const eventListener = useRef<((event: Event) => void) | null>(null);
+
+    const doInitializeMediaFolder = async (event: Event) => {
+        const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail
+        const { type, folderPathInPlatformFormat } = data
+        // Get or create traceId - we'll use the job ID as traceId
+        const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
+
+        const updateSelectedMediaMetadata = async (mediaFolderPathInPosix: string) => {
+            for (const _ of range(10)) {
+                await delay(100);
+                console.log(`size of media metadatas: ${latestMediaMetadatas.current.length}`)
+                const index = latestMediaMetadatas.current.findIndex((item) => item.mediaFolderPath !== undefined && item.mediaFolderPath === mediaFolderPathInPosix)
+                if (index !== -1) {
+                    console.log(`[${traceId}] Set selected media metadata to index ${index} for mediaFolderPath ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
+                    setSelectedMediaMetadata(index, { traceId: 'MediaFolderImportedEventHandler.updateSelectedMediaMetadata' })
+                    return
+                }
+            }
+        }
+
+        if (type === 'music') {
+            await initializeMusicFolder(folderPathInPlatformFormat, {
+                addMediaFolderInUserConfig,
+                getMediaMetadata: (folderInPlatformPath: string) => {
+                    return getMediaMetadata(Path.posix(folderInPlatformPath));
+                },
+                addMediaMetadata,
+                traceId,
+            });
+            updateSelectedMediaMetadata(Path.posix(folderPathInPlatformFormat))
+            return;
+        }
+
+        if (getMediaMetadata(folderPathInPlatformFormat)?.status === 'initializing') {
+            console.log(`[${traceId}] onFolderSelected: Folder ${folderPathInPlatformFormat} is already initializing, skipping`)
+            return
+        }
+
+        addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
+
+        // Create background job at the start of initialization
+        let jobId: string | null = null
+        jobId = backgroundJobs.addJob(`初始化 ${new Path(folderPathInPlatformFormat).name()}`)
+        backgroundJobs.updateJob(jobId, {
+            status: 'running',
+            progress: 0,
+        })
+
+        const mm = await createInitialMediaMetadata(
+            folderPathInPlatformFormat,
+            type === 'tvshow' ? 'tvshow-folder' : 'movie-folder',
+            { traceId })
+
+        console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatformFormat)
+        console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
+        const abortController = new AbortController()
+        const signal = abortController.signal
+
+        // Helper function to set job progress
+        const setJobProgress = (progress: number) => {
+            if (jobId) {
+                backgroundJobs.updateJob(jobId, {
+                    progress,
+                })
+            }
+        }
+
+        // Helper function to set job status
+        const setJobStatus = (status: 'succeeded' | 'failed' | 'aborted') => {
+            if (jobId) {
+                backgroundJobs.updateJob(jobId, {
+                    status,
+                    progress: status === 'succeeded' ? 100 : undefined,
+                })
+            }
+        }
+
+        // Main operation promise
+        const mainOperation = async () => {
+            try {
+                // Check if job was aborted before starting
+                if (signal.aborted) {
+                    console.log('[onFolderSelected] Aborted before reading metadata')
+                    return
+                }
+
+                // Update progress to show job is running (50%)
+                setJobProgress(50)
+
+                const response = await readMediaMetadataApi(folderPathInPlatformFormat, signal)
+                const metadata = response.data
+
+                const isMetadataIncomplete = !metadata
+                    || !metadata.type
+                    || (metadata.type === 'tvshow-folder' && metadata.tmdbTvShow === undefined)
+                    || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
+
+                if (isMetadataIncomplete) {
+
+                    if (isNotNil(metadata)) {
+                        mm.type = metadata.type
+                    }
+
+                    addMediaMetadata(mm, { traceId })
+                    addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
+
+                    if (signal.aborted) {
+                        console.log('[onFolderSelected] Aborted after listFiles')
+                        setJobStatus('aborted')
+                        return
+                    }
+
+                    try {
+
+                        updateMediaMetadata(mm.mediaFolderPath!, {
+                            ...mm,
+                            status: 'initializing',
+                        }, { traceId })
+
+                        // TODO: pass signal.aborted to doPreprocessMediaFolder
+                        await doPreprocessMediaFolder(mm, {
+                            traceId,
+                            onSuccess: (mm) => {
+                                updateMediaMetadata(mm.mediaFolderPath!, {
+                                    ...mm,
+                                    status: 'ok',
+                                }, { traceId })
+                                setJobStatus('succeeded')
+                            },
+                            onError: (error) => {
+                                console.error(`[${traceId}] Failed to preprocess media folder:`, error)
+                                updateMediaMetadata(mm.mediaFolderPath!, (mm: UIMediaMetadata) => {
+                                    return {
+                                        ...mm,
+                                        status: 'ok',
+                                    }
+                                }, { traceId })
+                                setJobStatus('failed')
+                            },
+                        })
+
+                    } catch (error) {
+                        console.error(`[${traceId}] Failed to preprocess media folder:`, error)
+                        setJobStatus('failed')
+                    }
+
+                } else {
+                    addMediaMetadata({
+                        ...metadata,
+                        status: 'ok',
+                    }, { traceId })
+                    console.log('[onFolderSelected] Metadata already exists, skipping recognition')
+                    // Job completes quickly when metadata already exists
+                    setJobStatus('succeeded')
+                }
+
+                if (signal.aborted) {
+                    console.log('[onFolderSelected] Aborted after adding folder to user config')
+                    setJobStatus('aborted')
+                    return
+                }
+
+            } catch (error) {
+                console.log('[onFolderSelected] Error:', error)
+                // Only log if not aborted (timeout errors are expected)
+                if (!signal.aborted) {
+                    console.error('Failed to read media metadata:', error)
+                    setJobStatus('failed')
+                }
+                throw error
+            }
+        }
+
+        // Race the main operation against the timeout (but timeout now just logs, doesn't force abort)
+        const TIMEOUT_MS = 10000 // 10 seconds as advisory timeout
+
+        // Create timeout promise for logging purposes only
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+                console.log(`[${traceId}] Operation approaching timeout (${TIMEOUT_MS}ms)`)
+                reject(new Error('Operation timed out after 10 seconds'))
+            }, TIMEOUT_MS)
+        })
+
+        try {
+            mm.mediaFolderPath !== undefined && updateSelectedMediaMetadata(mm.mediaFolderPath!);
+            await Promise.race([mainOperation(), timeoutPromise])
+        } catch (error) {
+            // Handle timeout or other errors
+            if (error instanceof Error && error.message.includes('timed out')) {
+                console.error('[onFolderSelected] Operation timed out after 10 seconds')
+                setJobStatus('aborted')
+            } else if (!signal.aborted) {
+                console.error('[onFolderSelected] Failed to read media metadata:', error)
+            }
+
+        }
+    }
 
     useMount(() => {
 
         eventListener.current = (event) => {
-            console.log('Socket event:', event.detail);
+            console.log('Socket event:', (event as CustomEvent<OnMediaFolderImportedEventData>).detail);
 
             (async () => {
-                const data = event.detail as OnMediaFolderImportedEventData
-                const { type, folderPathInPlatformFormat } = data
-                // Get or create traceId - we'll use the job ID as traceId
-                const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
-
-                const updateSelectedMediaMetadata = async (mediaFolderPathInPosix: string) => {
-                    for (const _ of range(10)) {
-                        await delay(100);
-                        console.log(`size of media metadatas: ${latestMediaMetadatas.current.length}`)
-                        const index = latestMediaMetadatas.current.findIndex((item) => item.mediaFolderPath !== undefined && item.mediaFolderPath === mediaFolderPathInPosix)
-                        if (index !== -1) {
-                            console.log(`[${traceId}] Set selected media metadata to index ${index} for mediaFolderPath ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
-                            setSelectedMediaMetadata(index, { traceId: 'MediaFolderImportedEventHandler.updateSelectedMediaMetadata' })
-                            return
-                        }
-                    }
-                }
-
-                if(type === 'music') {
-                    await initializeMusicFolder(folderPathInPlatformFormat, {
-                        addMediaFolderInUserConfig,
-                        getMediaMetadata: (folderInPlatformPath: string) => {
-                            return getMediaMetadata(Path.posix(folderInPlatformPath));
-                        },
-                        addMediaMetadata,
-                        traceId,
-                    });
-                    updateSelectedMediaMetadata(Path.posix(folderPathInPlatformFormat))
-                    return;
-                }
-
-                if (getMediaMetadata(folderPathInPlatformFormat)?.status === 'initializing') {
-                    console.log(`[${traceId}] onFolderSelected: Folder ${folderPathInPlatformFormat} is already initializing, skipping`)
-                    return
-                }
-
-                addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
-
-                // Create background job at the start of initialization
-                let jobId: string | null = null
-                jobId = backgroundJobs.addJob(`初始化 ${new Path(folderPathInPlatformFormat).name()}`)
-                backgroundJobs.updateJob(jobId, {
-                    status: 'running',
-                    progress: 0,
-                })
-
-                const mm = await createInitialMediaMetadata(
-                    folderPathInPlatformFormat, 
-                    type === 'tvshow' ? 'tvshow-folder' : 'movie-folder',
-                    { traceId })
-
-                console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatformFormat)
-                console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
-                const abortController = new AbortController()
-                const signal = abortController.signal
-
-                // Helper function to set job progress
-                const setJobProgress = (progress: number) => {
-                    if (jobId) {
-                        backgroundJobs.updateJob(jobId, {
-                            progress,
-                        })
-                    }
-                }
-
-                // Helper function to set job status
-                const setJobStatus = (status: 'succeeded' | 'failed' | 'aborted') => {
-                    if (jobId) {
-                        backgroundJobs.updateJob(jobId, {
-                            status,
-                            progress: status === 'succeeded' ? 100 : undefined,
-                        })
-                    }
-                }
-
-                // Main operation promise
-                const mainOperation = async () => {
-                    try {
-                        // Check if job was aborted before starting
-                        if (signal.aborted) {
-                            console.log('[onFolderSelected] Aborted before reading metadata')
-                            return
-                        }
-
-                        // Update progress to show job is running (50%)
-                        setJobProgress(50)
-
-                        const response = await readMediaMetadataApi(folderPathInPlatformFormat, signal)
-                        const metadata = response.data
-
-                        const isMetadataIncomplete = !metadata
-                            || !metadata.type
-                            || (metadata.type === 'tvshow-folder' && metadata.tmdbTvShow === undefined)
-                            || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
-
-                        if (isMetadataIncomplete) {
-
-                            if (isNotNil(metadata)) {
-                                mm.type = metadata.type
-                            }
-
-                            addMediaMetadata(mm, { traceId })
-                            addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
-
-                            if (signal.aborted) {
-                                console.log('[onFolderSelected] Aborted after listFiles')
-                                setJobStatus('aborted')
-                                return
-                            }
-
-                            try {
-
-                                updateMediaMetadata(mm.mediaFolderPath!, {
-                                    ...mm,
-                                    status: 'initializing',
-                                }, { traceId })
-
-                                // TODO: pass signal.aborted to doPreprocessMediaFolder
-                                await doPreprocessMediaFolder(mm, {
-                                    traceId,
-                                    onSuccess: (mm) => {
-                                        updateMediaMetadata(mm.mediaFolderPath!, {
-                                            ...mm,
-                                            status: 'ok',
-                                        }, { traceId })
-                                        setJobStatus('succeeded')
-                                    },
-                                    onError: (error) => {
-                                        console.error(`[${traceId}] Failed to preprocess media folder:`, error)
-                                        updateMediaMetadata(mm.mediaFolderPath!, (mm: UIMediaMetadata) => {
-                                            return {
-                                                ...mm,
-                                                status: 'ok',
-                                            }
-                                        }, { traceId })
-                                        setJobStatus('failed')
-                                    },
-                                })
-
-                            } catch (error) {
-                                console.error(`[${traceId}] Failed to preprocess media folder:`, error)
-                                setJobStatus('failed')
-                            }
-
-                        } else {
-                            addMediaMetadata({
-                                ...metadata,
-                                status: 'ok',
-                            }, { traceId })
-                            console.log('[onFolderSelected] Metadata already exists, skipping recognition')
-                            // Job completes quickly when metadata already exists
-                            setJobStatus('succeeded')
-                        }
-
-                        if (signal.aborted) {
-                            console.log('[onFolderSelected] Aborted after adding folder to user config')
-                            setJobStatus('aborted')
-                            return
-                        }
-
-                    } catch (error) {
-                        console.log('[onFolderSelected] Error:', error)
-                        // Only log if not aborted (timeout errors are expected)
-                        if (!signal.aborted) {
-                            console.error('Failed to read media metadata:', error)
-                            setJobStatus('failed')
-                        }
-                        throw error
-                    }
-                }
-
-                // Race the main operation against the timeout (but timeout now just logs, doesn't force abort)
-                const TIMEOUT_MS = 10000 // 10 seconds as advisory timeout
-
-                // Create timeout promise for logging purposes only
-                const timeoutPromise = new Promise<never>((_, reject) => {
-                    setTimeout(() => {
-                        console.log(`[${traceId}] Operation approaching timeout (${TIMEOUT_MS}ms)`)
-                        reject(new Error('Operation timed out after 10 seconds'))
-                    }, TIMEOUT_MS)
-                })
 
                 try {
-                    mm.mediaFolderPath !== undefined && updateSelectedMediaMetadata(mm.mediaFolderPath!);
-                    await Promise.race([mainOperation(), timeoutPromise])
+                    console.log(`acquiring mutex for media folder initialization`)
+                    await mutex.acquire();
+                    console.log(`acquired mutex for media folder initialization`)
+                    await doInitializeMediaFolder(event)
                 } catch (error) {
-                    // Handle timeout or other errors
-                    if (error instanceof Error && error.message.includes('timed out')) {
-                        console.error('[onFolderSelected] Operation timed out after 10 seconds')
-                        setJobStatus('aborted')
-                    } else if (!signal.aborted) {
-                        console.error('[onFolderSelected] Failed to read media metadata:', error)
-                    }
-
+                    console.error('Failed to initialize media folder:', error)
+                } finally {
+                    mutex.release();
+                    console.log(`released mutex for media folder initialization`)
                 }
+
+
+
             })()
 
         };
