@@ -32,7 +32,7 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
 
     const { path: filePath, mode, data } = validationResult.data;
 
-    logger.debug({ traceId, filePath, mode, dataSize: data.length }, 
+    logger.debug({ traceId, filePath, mode, dataSize: data.length },
       `doWriteFile: Processing write request`);
 
     // Resolve to absolute path first, then convert to POSIX format for validation
@@ -76,11 +76,11 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       // Write file using Bun's file API
       try {
         await Bun.write(validatedPath, data);
-        logger.info({ traceId, path: validatedPath, size: data.length }, 
+        logger.info({ traceId, path: validatedPath, size: data.length },
           `doWriteFile: File written successfully (create mode)`);
         return {}; // Success
       } catch (error) {
-        logger.error({ traceId, path: validatedPath, error }, 
+        logger.error({ traceId, path: validatedPath, error },
           `doWriteFile: Failed to write file (create mode)`);
         return {
           error: `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -90,11 +90,11 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       logger.debug({ traceId, path: validatedPath }, `doWriteFile: Overwrite mode`);
       try {
         await Bun.write(validatedPath, data);
-        logger.info({ traceId, path: validatedPath, size: data.length }, 
+        logger.info({ traceId, path: validatedPath, size: data.length },
           `doWriteFile: File written successfully (overwrite mode)`);
         return {}; // Success
       } catch (error) {
-        logger.error({ traceId, path: validatedPath, error }, 
+        logger.error({ traceId, path: validatedPath, error },
           `doWriteFile: Failed to write file (overwrite mode)`);
         return {
           error: `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -104,11 +104,11 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       logger.debug({ traceId, path: validatedPath }, `doWriteFile: Append mode`);
       try {
         await appendFile(validatedPath, data, 'utf-8');
-        logger.info({ traceId, path: validatedPath, appendedSize: data.length }, 
+        logger.info({ traceId, path: validatedPath, appendedSize: data.length },
           `doWriteFile: Data appended successfully`);
         return {}; // Success
       } catch (error) {
-        logger.error({ traceId, path: validatedPath, error }, 
+        logger.error({ traceId, path: validatedPath, error },
           `doWriteFile: Failed to append to file`);
         return {
           error: `Failed to append to file: ${error instanceof Error ? error.message : 'Unknown error'}`,

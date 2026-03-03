@@ -1,4 +1,5 @@
 import type { UserConfig } from "@core/types";
+import { RenameRules } from "@core/types";
 import { renameFolderInUserConfig } from "@core/userConfig";
 import path from "path";
 import os from "os";
@@ -8,6 +9,51 @@ import { withTimeout } from 'es-toolkit/promise';
 const updateMutex = new Mutex();
 
 export { renameFolderInUserConfig };
+
+const DEFAULT_USER_CONFIG: UserConfig = {
+  applicationLanguage: 'zh-CN',
+  tmdb: {
+    host: '',
+    apiKey: '',
+    httpProxy: ''
+  },
+  ai: {
+    deepseek: {
+      baseURL: 'https://api.deepseek.com',
+      apiKey: '',
+      model: 'deepseek-chat'
+    },
+    openAI: {
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: '',
+      model: 'gpt-4o'
+    },
+    openrouter: {
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: '',
+      model: 'deepseek/deepseek-chat'
+    },
+    glm: {
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      apiKey: '',
+      model: 'GLM-4.5'
+    },
+    other: {
+      baseURL: '',
+      apiKey: '',
+      model: ''
+    }
+  },
+  selectedAI: 'DeepSeek',
+  selectedTMDBIntance: 'public',
+  folders: [],
+  renameRules: [],
+  dryRun: false,
+  selectedRenameRule: RenameRules.Plex.name,
+  enableMcpServer: false,
+  mcpHost: '127.0.0.1',
+  mcpPort: 30001,
+};
 
 /**
  * Returns the directory path for user configuration files.
@@ -97,8 +143,18 @@ export function getTmpDir(): string {
 export async function getUserConfig(): Promise<UserConfig> {
     const configPath = getUserConfigPath();
     const file = Bun.file(configPath);
+    const exists = await file.exists();
+    if (!exists) {
+        return DEFAULT_USER_CONFIG;
+    }
     const content = await file.text();
-    return JSON.parse(content) as UserConfig;
+    try {
+        return JSON.parse(content) as UserConfig;
+    } catch (parseError) {
+        throw new Error(
+            `Failed to parse user config file at "${configPath}": ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}`
+        );
+    }
 }
 
 async function writeUserConfigUnderMutex(userConfig: UserConfig): Promise<void> {
