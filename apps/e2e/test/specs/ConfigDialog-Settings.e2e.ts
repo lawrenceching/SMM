@@ -162,27 +162,30 @@ describe('Config Dialog Settings', () => {
             await Menu.clickSmmMenuTrigger()
             await Menu.waitForSmmMenuContent()
 
-            // Define expected menu items with their data-testid based on language
+            // Define expected top-level SMM menu items (open-app-data-folder and clean-up are under Developer submenu)
             const menuTranslations: Record<string, Record<string, string>> = {
                 'en': {
                     'open-folder': 'Open Folder',
                     'open-media-library': 'Open Media Library',
-                    'open-app-data-folder': 'Open App Data Folder',
+                    'download-video': 'Download Video',
+                    'format-conversion': 'Format conversion',
                     'config': 'Config',
-                    'clean-up': 'Clean Up',
                     'exit': 'Exit'
                 },
                 'zh-CN': {
                     'open-folder': '打开文件夹',
                     'open-media-library': '打开媒体库',
-                    'open-app-data-folder': '打开应用数据文件夹',
+                    'download-video': '下载视频',
+                    'format-conversion': '格式转换',
                     'config': '设置',
-                    'clean-up': '清理',
                     'exit': '退出'
                 }
             }
 
             const translations = menuTranslations[newLanguage]
+            if (!translations) {
+                throw new Error(`No menu translations for language: ${newLanguage}`)
+            }
             // Verify each menu item text matches expected translation
             for (const [testId, expectedText] of Object.entries(translations)) {
                 const menuItem = await $(`[data-testid="menu-smm-${testId}"]`)
