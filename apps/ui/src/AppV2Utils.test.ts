@@ -268,7 +268,7 @@ describe('doPreprocessMediaFolder', () => {
           networks: [],
           production_companies: [],
           // seasons is undefined
-        } as TMDBTVShowDetails,
+        } as unknown as TMDBTVShowDetails,
       }
 
       const fullTvShowData: TMDBTVShowDetails = {
@@ -299,6 +299,10 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(12345, 'zh-CN')
+      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+      )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
       expect(result.tmdbTvShow.seasons).toHaveLength(1)
@@ -364,6 +368,10 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(67890, 'zh-CN')
+      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+      )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
       expect(result.tmdbTvShow.seasons).toHaveLength(1)
@@ -398,7 +406,7 @@ describe('doPreprocessMediaFolder', () => {
           networks: [],
           production_companies: [],
           // seasons is undefined
-        } as TMDBTVShowDetails,
+        } as unknown as TMDBTVShowDetails,
       }
 
       mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)
@@ -414,6 +422,10 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(22222, 'zh-CN')
+      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+      )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
       // tmdbTvShow should remain unchanged (no seasons)
@@ -465,6 +477,10 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(33333, 'zh-CN')
+      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+      )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
       // tmdbTvShow should remain unchanged (empty seasons)

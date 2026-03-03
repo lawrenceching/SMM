@@ -31,6 +31,20 @@ export async function doPreprocessMediaFolder(
 
   if(mm?.type === 'tvshow-folder' && mm?.tmdbTvShow !== undefined) {
 
+    if(mm.tmdbTvShow !== undefined && (mm.tmdbTvShow.seasons === undefined || mm.tmdbTvShow.seasons.length === 0)) {
+      console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tmdbTvShow.id}`)
+      const tmdbId = mm.tmdbTvShow.id;
+      const resp = await getTvShowById(tmdbId, 'zh-CN');
+      if(resp.error) {
+          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp.error)
+      } else if(resp.data === undefined) {
+          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp)
+      } else {
+          console.log(`[${traceId}][doPreprocessMediaFolder] successfully recognized TV show by folder name: ${mm.tmdbTvShow.name} ${mm.tmdbTvShow.id}`)
+          mm.tmdbTvShow = resp.data;
+      }
+    }
+
     console.log(`[${traceId}] recognizing media files by rules`)
     // TODO: recognize media files by nfo
     const recognizedMediaFiles = recognizeTvShowMediaFiles(mm)
@@ -48,20 +62,6 @@ export async function doPreprocessMediaFolder(
       tvShowName: mm.tmdbTvShow.name,
       mediaFiles: mm.mediaFiles,
     })
-
-    if(mm.tmdbTvShow !== undefined && (mm.tmdbTvShow.seasons === undefined || mm.tmdbTvShow.seasons.length === 0)) {
-      console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tmdbTvShow.id}`)
-      const tmdbId = mm.tmdbTvShow.id;
-      const resp = await getTvShowById(tmdbId, 'zh-CN');
-      if(resp.error) {
-          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp.error)
-      } else if(resp.data === undefined) {
-          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp)
-      } else {
-          console.log(`[${traceId}][doPreprocessMediaFolder] successfully recognized TV show by folder name: ${mm.tmdbTvShow.name} ${mm.tmdbTvShow.id}`)
-          mm.tmdbTvShow = resp.data;
-      }
-    }
 
     options?.onSuccess?.(mm)
   } else if(mm?.type === 'movie-folder' && mm?.tmdbMovie !== undefined) {
