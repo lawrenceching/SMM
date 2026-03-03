@@ -87,6 +87,7 @@ export async function doRenameFolder(
 
 export interface MediaFolderListItemV2Props {
   mediaName: string,
+  mediaType: "tvshow" | "movie",
   /**
    * Absolute path of the media folder, in POSIX format
    */

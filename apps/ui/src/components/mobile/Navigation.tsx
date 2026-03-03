@@ -55,6 +55,7 @@ export function Navigation({
             >
               <MediaFolderListItemV2
                   mediaName={folder.mediaName}
+                  mediaType={folder.mediaType}
                   path={folder.path}
                   onClick={() => handleMediaFolderListItemClick(folder.path)}
                 />

@@ -4,13 +4,13 @@ import { Toolbox } from "@/components/mobile/Toolbox"
 import { NavBar } from "@/components/mobile/NavBar"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { basename } from "@/lib/path"
-import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { SortOrder, FilterType } from "@/components/shared/MediaFolderToolbar"
 import TvShowPanel from "@/components/TvShowPanel"
 import { LocalFilePanel } from "@/components/LocalFilePanel"
 import { Assistant } from "@/ai/Assistant"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { ViewSwitcher, type ViewMode } from "@/components/v2/ViewSwitcher"
+import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
 
 type Page = "list" | "detail"
 
@@ -31,13 +31,13 @@ export default function AppNavigation() {
   const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata: globalSelectedMediaMetadata } = useMediaMetadata()
 
   // Convert mediaMetadatas to folders
-  const folders: MediaFolderListItemProps[] = useMemo(() => {
+  const folders: MediaFolderListItemV2Props[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
       return {
         mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
         path: metadata.mediaFolderPath,
         mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
-      } as MediaFolderListItemProps
+      } as MediaFolderListItemV2Props
     })
   }, [mediaMetadatas])
 

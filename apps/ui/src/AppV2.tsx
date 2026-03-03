@@ -5,7 +5,6 @@ import type { ViewMode } from "@/components/v2/ViewSwitcher"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { basename } from "@/lib/path"
-import type { MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
@@ -23,6 +22,7 @@ import { listFiles } from "@/api/listFiles"
 import { isNotNil } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
+import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -369,7 +369,7 @@ function AppV2Content() {
   }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
 
   // Convert mediaMetadatas to folders
-  const folders: MediaFolderListItemProps[] = useMemo(() => {
+  const folders: MediaFolderListItemV2Props[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
       console.log(`[AppV2] mediaMetadatas: `, metadata)
       return {
@@ -377,7 +377,7 @@ function AppV2Content() {
         path: metadata.mediaFolderPath,
         mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
         status: metadata.status,
-      } as MediaFolderListItemProps
+      } as MediaFolderListItemV2Props
     })
   }, [mediaMetadatas])
 

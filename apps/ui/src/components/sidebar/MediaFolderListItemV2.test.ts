@@ -239,7 +239,7 @@ describe('openRenameDialog onRename callback', () => {
 
   it('calls toast.error when doRenameFolder throws', async () => {
     render(
-      React.createElement(MediaFolderListItemV2, { path, mediaName })
+      React.createElement(MediaFolderListItemV2, { path, mediaName, mediaType: 'tvshow' })
     )
 
     const trigger = document.querySelector('[data-slot="context-menu-trigger"]')
