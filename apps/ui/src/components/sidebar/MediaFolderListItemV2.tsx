@@ -8,6 +8,7 @@ import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import { renameFolder } from "@/api/renameFolder"
+import type { RenameFolderParams } from "@/api/renameFolder"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -15,7 +16,74 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+
+/** Dependencies for doRenameFolder; all passed as params to keep it decoupled from the component. */
+export interface DoRenameFolderDeps {
+  renameFolderApi: (params: RenameFolderParams) => Promise<unknown>
+  removeMediaMetadata: (path: string) => void
+  updateMediaMetadata: (
+    path: string,
+    metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+    options?: { traceId?: string }
+  ) => void
+  refreshMediaMetadata: (path: string) => void | Promise<void>
+}
+
+/**
+ * Performs folder rename: calls API, updates metadata, and refreshes.
+ * Decoupled from UI; all dependencies are passed in via deps.
+ */
+export async function doRenameFolder(
+  path: string,
+  newName: string,
+  currentMetadata: UIMediaMetadata,
+  deps: DoRenameFolderDeps,
+  traceId?: string
+): Promise<void> {
+  const id = traceId ?? `doRenameFolder-${nextTraceId()}`
+  console.log(`[${id}] Renaming folder ${path} to ${newName}`)
+
+  try {
+    const parentDir = dirname(path)
+    const newFolderPath = join(parentDir, newName)
+
+    await deps.renameFolderApi({ from: path, to: newFolderPath })
+
+    const updatedMetadata: UIMediaMetadata = {
+      ...currentMetadata,
+      mediaFolderPath: newFolderPath,
+    }
+
+    if (updatedMetadata.tmdbTvShow) {
+      updatedMetadata.tmdbTvShow = {
+        ...updatedMetadata.tmdbTvShow,
+        name: newName,
+      }
+    } else if (updatedMetadata.tmdbMovie) {
+      updatedMetadata.tmdbMovie = {
+        ...updatedMetadata.tmdbMovie,
+        title: newName,
+      }
+    } else {
+      updatedMetadata.mediaName = newName
+    }
+
+    if (path !== newFolderPath) {
+      deps.removeMediaMetadata(path)
+    }
+
+    deps.updateMediaMetadata(newFolderPath, updatedMetadata, { traceId: id })
+    await deps.refreshMediaMetadata(newFolderPath)
+
+    console.log("Folder renamed successfully:", path, "->", newFolderPath)
+  } catch (error) {
+    console.error("Failed to rename folder:", error)
+    throw error
+  }
+}
 
 export interface MediaFolderListItemV2Props {
   mediaName: string,
@@ -69,7 +137,7 @@ export function MediaFolderListItemV2({
     selectedMediaMetadata } = useMediaMetadata()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
-  const [openRename] = renameDialog
+  const [openRenameDialog] = renameDialog
   const selectedFromProvider = useMemo(
     () => selectedMediaMetadata?.mediaFolderPath === path,
     [selectedMediaMetadata, path]
@@ -123,7 +191,6 @@ export function MediaFolderListItemV2({
       return
     }
 
-    // Build suggestion string if tmdbTvShow exists
     const suggestions: string[] = []
     if (currentMetadata.tmdbTvShow) {
       const tvShow = currentMetadata.tmdbTvShow
@@ -132,78 +199,33 @@ export function MediaFolderListItemV2({
       suggestions.push(suggestion)
     }
 
-    openRename(
+    const traceId = `MediaFolderListItemV2-${nextTraceId()}`
+    const deps: DoRenameFolderDeps = {
+      renameFolderApi: renameFolder,
+      removeMediaMetadata,
+      updateMediaMetadata,
+      refreshMediaMetadata,
+    }
+
+    openRenameDialog(
       async (newName: string) => {
-        const traceId = `MediaFolderListItemV2-${nextTraceId()}`;
-        console.log(`[${traceId}] MediaFolderListItemV2: Renaming folder ${path} to ${newName}`)
-
         try {
-          // Calculate the new folder path
-          const parentDir = dirname(path)
-          const newFolderPath = join(parentDir, newName)
-
-          // Call renameFolder API to rename the folder on disk
-          await renameFolder({
-            from: path,
-            to: newFolderPath,
-          })
-
-          // Update the metadata with the new name and path
-          const updatedMetadata: typeof currentMetadata = {
-            ...currentMetadata,
-            mediaFolderPath: newFolderPath
-          }
-
-          // Update based on media type
-          if (updatedMetadata.tmdbTvShow) {
-            updatedMetadata.tmdbTvShow = {
-              ...updatedMetadata.tmdbTvShow,
-              name: newName
-            }
-          } else if (updatedMetadata.tmdbMovie) {
-            updatedMetadata.tmdbMovie = {
-              ...updatedMetadata.tmdbMovie,
-              title: newName
-            }
-          } else {
-            // Fallback to deprecated mediaName field if no TMDB data exists
-            updatedMetadata.mediaName = newName
-          }
-
-          // Update user config to reflect the new folder path
-          const newUserConfig: UserConfig = {
-            ...userConfig,
-            folders: userConfig.folders.map((folder) =>
-              Path.posix(folder) === path ? newFolderPath : folder
-            ),
-          }
-          setAndSaveUserConfig(traceId, newUserConfig)
-
-          // Remove old metadata entry if path changed
-          if (path !== newFolderPath) {
-            removeMediaMetadata(path)
-          }
-
-          // Update media metadata with new path
-          updateMediaMetadata(newFolderPath, updatedMetadata, { traceId })
-
-          // Refresh media metadata to reflect the rename
-          await refreshMediaMetadata(newFolderPath)
-
-          console.log("Folder renamed successfully:", path, "->", newFolderPath)
+          await doRenameFolder(path, newName, currentMetadata, deps, traceId)
         } catch (error) {
-          console.error("Failed to rename folder:", error)
-          // You might want to show a toast notification here
+          const message = error instanceof Error ? error.message : 'Unknown error'
+          toast.error(
+            (t as (key: string, opts?: { error?: string }) => string)('mediaFolder.renameError', { error: message })
+          )
         }
       },
       {
         initialValue: mediaName,
         title: t('mediaFolder.renameTitle'),
         description: t('mediaFolder.renameDescription'),
-        suggestions: suggestions.length > 0 ? suggestions : undefined
+        suggestions: suggestions.length > 0 ? suggestions : undefined,
       }
     )
-  }, [path, mediaName, getMediaMetadata, openRename, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata, userConfig, setAndSaveUserConfig])
+  }, [path, mediaName, getMediaMetadata, openRenameDialog, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata])
 
   return (
     <ContextMenu>

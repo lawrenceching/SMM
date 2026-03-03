@@ -93,6 +93,8 @@ export function ConfigProvider({
     }
   }, [])
 
+  // TODO: RenameFolder operation calls saveUserConfig and renameFolder API
+  // which cause smm.json was updated twice
   const saveUserConfig = useCallback(async (traceId: string, config: UserConfig) => {
     console.log(`[${traceId}] saveUserConfig: Starting save operation`)
 

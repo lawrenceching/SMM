@@ -25,7 +25,8 @@
     "delete": "Delete",
     "deleteWarning": "will NOT delete from disk",
     "renameTitle": "Rename Media",
-    "renameDescription": "Enter the new name for this media"
+    "renameDescription": "Enter the new name for this media",
+    "renameError": "Could not rename folder: {{error}}"
   },
   "toolbar": {
     "refresh": "Refresh",

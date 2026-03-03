@@ -25,7 +25,8 @@
     "delete": "刪除",
     "deleteWarning": "不會從磁碟刪除",
     "renameTitle": "重新命名媒體",
-    "renameDescription": "輸入此媒體的新名稱"
+    "renameDescription": "輸入此媒體的新名稱",
+    "renameError": "無法重新命名資料夾：{{error}}"
   },
   "toolbar": {
     "refresh": "重新整理",

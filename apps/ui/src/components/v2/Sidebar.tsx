@@ -1,8 +1,7 @@
 import { useCallback } from "react"
 import { SearchForm } from "@/components/search-form"
-import { type MediaFolderListItemProps } from "@/components/sidebar/MediaFolderListItem"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
-import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
+import { MediaFolderListItemV2, type MediaFolderListItemV2Props } from "../sidebar/MediaFolderListItemV2"
 
 export type { SortOrder, FilterType }
 
@@ -18,7 +17,7 @@ export interface SidebarProps {
   onFilterTypeChange: (type: FilterType) => void
   searchQuery: string
   onSearchQueryChange: (query: string) => void
-  filteredAndSortedFolders: MediaFolderListItemProps[]
+  filteredAndSortedFolders: MediaFolderListItemV2Props[]
   selectedFolderPaths: Set<string>
   primaryFolderPath: string | undefined
   onFolderClick: (path: string, modifiers: SidebarFolderClickModifiers) => void

@@ -81,6 +81,7 @@ interface ComponentsResources {
     deleteWarning: string
     renameTitle: string
     renameDescription: string
+    renameError: string
   }
   assistant: {
     open: string
