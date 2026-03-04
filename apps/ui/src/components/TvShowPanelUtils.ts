@@ -1302,11 +1302,15 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
   } = params
 
   if (mediaMetadata.mediaFolderPath === undefined) {
-    console.error('[TvShowPanel] onMediaFolderSelected: media folder path is undefined')
+    console.error('[TvShowPanelUtils] onMediaFolderSelected: media folder path is undefined')
     return
   }
 
   if (mediaMetadata.status !== 'ok') {
+    console.log('[TvShowPanelUtils] skip to update seasons model because status is not ok', {
+      mediaFolderPath: mediaMetadata.mediaFolderPath,
+      status: mediaMetadata.status,
+    })
     return
   }
 
@@ -1337,5 +1341,7 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
   const seasons = buildSeasonsModelFromMediaMetadata(mediaMetadata)
   if (seasons !== null) {
     setSeasons(seasons)
+  } else {
+    console.warn('[TvShowPanelUtils] onMediaFolderSelected: failed to build seasons model')
   }
 }

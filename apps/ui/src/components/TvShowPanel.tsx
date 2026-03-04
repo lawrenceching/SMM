@@ -473,7 +473,7 @@ function TvShowPanel() {
       return
     }
     handleMediaFolderSelected(mediaMetadata)
-  }, [mediaMetadata])
+  }, [mediaMetadata, handleMediaFolderSelected])
 
   useEffect(() => {
     if (!mediaMetadata) {

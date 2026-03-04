@@ -244,14 +244,19 @@ export function MediaMetadataProvider({
 
   const refreshMediaMetadata = useCallback((path: string) => {
     const traceId = `MediaMetadataProvider-refreshMediaMetadata-${nextTraceId()}`
+    const currentMediaMetadata = latestMediaMetadatas.current.find((m) => m.mediaFolderPath === path)
+    
     readMediaMetadataV2(path, { traceId })
       .then((response) => {
-        _addOrUpdateMediaMetadata({ ...response, status: 'idle' })
+        const metadataToUpdate: UIMediaMetadata = currentMediaMetadata
+          ? { ...response, ...extractUIMediaMetadataProps(currentMediaMetadata) }
+          : { ...response, status: 'idle' }
+        _addOrUpdateMediaMetadata(metadataToUpdate)
       })
       .catch((error) => {
         console.error(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Error refreshing media metadata for ${path}:`, error)
       })
-  }, [_addOrUpdateMediaMetadata])
+  }, [_addOrUpdateMediaMetadata, latestMediaMetadatas])
 
   const reloadMediaMetadatas = useCallback(async ({ traceId }: { traceId?: string } = {}) => {
     console.log(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Reloading media metadata`, userConfig.folders)
