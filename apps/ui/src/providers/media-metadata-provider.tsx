@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useMemo } from "react"
-import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useConfig } from "./config-provider"
 import { deleteMediaMetadata } from "@/api/deleteMediaMetadata"
 import localStorages from "@/lib/localStorages"
@@ -10,6 +10,7 @@ import { writeMediaMetadata } from "@/api/writeMediaMetadata"
 import type { MediaMetadata } from "@core/types"
 import { useLatest } from "react-use"
 import { minimize } from "@/lib/log"
+import { mergeRefreshedMetadata } from "@/lib/mediaMetadataRefreshUtils"
 
 interface MediaMetadataContextValue {
   mediaMetadatas: UIMediaMetadata[]
@@ -248,9 +249,7 @@ export function MediaMetadataProvider({
     
     readMediaMetadataV2(path, { traceId })
       .then((response) => {
-        const metadataToUpdate: UIMediaMetadata = currentMediaMetadata
-          ? { ...response, ...extractUIMediaMetadataProps(currentMediaMetadata) }
-          : { ...response, status: 'idle' }
+        const metadataToUpdate = mergeRefreshedMetadata(response, currentMediaMetadata)
         _addOrUpdateMediaMetadata(metadataToUpdate)
       })
       .catch((error) => {
@@ -268,10 +267,8 @@ export function MediaMetadataProvider({
       }
       readMediaMetadataV2(folderPathInPosix, { traceId })
         .then((mediaMetadataInResponse: MediaMetadata) => {
-          _addOrUpdateMediaMetadata({ 
-            ...mediaMetadataInResponse, 
-            ...extractUIMediaMetadataProps(currentMediaMetadata) 
-          })
+          const metadataToUpdate = mergeRefreshedMetadata(mediaMetadataInResponse, currentMediaMetadata)
+          _addOrUpdateMediaMetadata(metadataToUpdate)
         })
         .catch((error) => {
           console.error(`[MediaMetadataProvider]${traceId ? ` [${traceId}]` : ''} Error refreshing media metadata for ${path}:`, error)
