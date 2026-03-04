@@ -20,11 +20,17 @@ And the test status of v1.1.0
 | ---- Movie - Folder Name                         |  AUTO  |         |
 | ---- Movie - Not able to detect                  |  AUTO  |         |
 |                                                  |        |         |
-| TV Show - Search TV Show                         |        |         |
-| TV Show - Rule Based Recognize                   |        |         |
+| TV Show - Search TV Show                         |  AUTO  |         |
+| TV Show - Rule Based Recognize                   |        | If rule based recognition work, it worked in folder initialization. Need furture considerataion of this scenario        |
 | TV Show - Rule Based Rename                      |        |         |
 | TV Show - Scrape                                 |        |         |
 | TV Show - Rename Episode Video File              |        |         |
+|                                                  |        |         |
+| Movie - Search Movie                             |        |         |
+| Movie - Rule Based Recognize                     |        |         |
+| Movie - Rule Based Rename                        |        |         |
+| Movie - Scrape                                   |        |         |
+| Movie - Rename Episode Video File                |        |         |
 |                                                  |        |         |
 | Sidebar - Filter and Sort                        | AUTO   |         |
 | Sidebar - Rename Folder                          | AUTO   |         |
