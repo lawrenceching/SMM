@@ -13,7 +13,6 @@ import type { UpdatePlanStatus } from "@/api/updatePlan";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
-import { listFiles } from "@/api/listFiles";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -863,7 +862,7 @@ export function buildSeasonsByRenameFilesPlan(mm: UIMediaMetadata, plan: RenameF
 export async function executeRenamePlan(
   plan: RenameFilesPlan,
   mediaMetadata: UIMediaMetadata,
-  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
+  _updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>,
   fetchPendingPlans: () => Promise<void>
 ): Promise<void> {
@@ -880,10 +879,7 @@ export async function executeRenamePlan(
     for (const episode of season.episodes) {
       for (const file of episode.files) {
         if (file.newPath && file.path !== file.newPath) {
-          filesToRename.push({
-            from: file.path,
-            to: file.newPath,
-          })
+          filesToRename.push({ from: file.path, to: file.newPath })
         }
       }
     }
@@ -897,9 +893,12 @@ export async function executeRenamePlan(
   }
 
   try {
+    // Pass mediaFolder so the backend updates metadata and broadcasts in one request.
+    // The mediaMetadataUpdated Socket.IO event will trigger a UI refresh automatically.
     const response = await renameFilesApi({
       files: filesToRename,
       traceId,
+      mediaFolder: Path.posix(mediaMetadata.mediaFolderPath),
     })
 
     if (response.error) {
@@ -914,56 +913,6 @@ export async function executeRenamePlan(
       toast.error(`Failed to rename ${failedPaths.length} file(s)`)
       return
     }
-
-    let updatedMediaFiles = mediaMetadata.mediaFiles ?? []
-    const succeededPathsSet = new Set(succeededPaths)
-
-    updatedMediaFiles = updatedMediaFiles.map((mediaFile) => {
-      if (succeededPathsSet.has(mediaFile.absolutePath)) {
-        const renameEntry = filesToRename.find((entry) => entry.from === mediaFile.absolutePath)
-        if (renameEntry) {
-          return {
-            ...mediaFile,
-            absolutePath: renameEntry.to,
-          }
-        }
-      }
-      return mediaFile
-    })
-
-    // List latest files after rename operation
-    const latestFilesResp = await listFiles({
-      path: mediaMetadata.mediaFolderPath,
-      recursively: true,
-      onlyFiles: true,
-    })
-
-    if (latestFilesResp.error) {
-      console.error(`[executeRenamePlan] Failed to list files: ${latestFilesResp.error}`)
-      toast.error(`Failed to refresh file list: ${latestFilesResp.error}`)
-      return
-    }
-
-    if (latestFilesResp.data === undefined) {
-      console.error(`[executeRenamePlan] Unexpected response: no data`)
-      toast.error(`Failed to refresh file list: no data received`)
-      return
-    }
-
-    // Handle both old format (strings) and new format (objects with path property)
-    // and convert to POSIX paths
-    const latestFiles = latestFilesResp.data.items
-      .map((i: { path?: string } | string) => {
-        const path = typeof i === 'string' ? i : (i.path ?? '');
-        return Path.posix(path);
-      })
-      .filter((path: string) => path !== '');
-
-    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
-      ...mediaMetadata,
-      files: latestFiles,
-      mediaFiles: updatedMediaFiles,
-    }, { traceId })
 
     const successCount = succeededPaths.length
     const errorCount = failedPaths.length

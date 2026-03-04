@@ -1,8 +1,8 @@
 import { z } from 'zod/v3';
 import { Path } from '@core/path';
-import type { MediaFileMetadata, MediaMetadata } from '@core/types';
+import type { MediaMetadata, RenameValidationResult } from '@core/types';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
-import { validateBatchRenameOperations, executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
+import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { validateChainingConflicts } from '../validations/validateChainingConflicts';
 import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
 import { validateNoDuplicatedSourceFile } from '../validations/validateNoDuplicatedSourceFile';
@@ -21,7 +21,8 @@ interface RenameFile {
   to: string;
 }
 
-interface ValidationResult {
+/** @deprecated Use RenameValidationResult from @core/types instead */
+export interface ValidationResult {
   validationErrors: string[];
   validatedRenames: RenameFile[];
 }
@@ -33,14 +34,13 @@ interface ValidationResult {
  * @param files Array of rename operations to validate
  * @param folderPathInPosix The media folder path in POSIX format
  * @param filesystemFiles Array of files currently in the filesystem (unused, kept for compatibility)
- * @returns Object containing validation errors and validated rename operations
+ * @returns RenameValidationResult with isValid flag, errors array, and validated renames
  */
 export async function validateRenameOperations(
   files: RenameFile[],
   folderPathInPosix: string,
-  filesystemFiles: string[]
-): Promise<ValidationResult> {
-  const validationErrors: string[] = [];
+): Promise<RenameValidationResult> {
+  const errors: string[] = [];
   
   // Filter out null/undefined tasks and normalize paths
   const normalizedTasks: RenameFile[] = [];
@@ -75,7 +75,8 @@ export async function validateRenameOperations(
 
   if (normalizedTasks.length === 0) {
     return {
-      validationErrors: [],
+      isValid: true,
+      errors: [],
       validatedRenames: []
     };
   }
@@ -83,7 +84,7 @@ export async function validateRenameOperations(
   // 1. Validate no abnormal paths (should be first)
   const abnormalPathErrors = validateNoAbnormalPaths(normalizedTasks);
   if (abnormalPathErrors.length > 0) {
-    validationErrors.push(...abnormalPathErrors);
+    errors.push(...abnormalPathErrors);
     // Continue with other validations even if abnormal paths found
   }
 
@@ -97,7 +98,7 @@ export async function validateRenameOperations(
           indices.push(taskIndexMap.get(idx) ?? idx);
         }
       });
-      validationErrors.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
+      errors.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
     }
   }
 
@@ -111,7 +112,7 @@ export async function validateRenameOperations(
           indices.push(taskIndexMap.get(idx) ?? idx);
         }
       });
-      validationErrors.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
+      errors.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
     }
   }
 
@@ -137,7 +138,7 @@ export async function validateRenameOperations(
     normalizedTasks.forEach((task, idx) => {
       if (sourcePaths.has(task.to)) {
         chainingConflictTasks.add(idx);
-        validationErrors.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
+        errors.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
       }
     });
   }
@@ -149,7 +150,7 @@ export async function validateRenameOperations(
       logger.warn({
         from: missingFile
       }, '[tool][renameFilesInBatch] Source file not found');
-      validationErrors.push(`Source file "${missingFile}" does not exist in the media folder`);
+      errors.push(`Source file "${missingFile}" does not exist in the media folder`);
     }
   }
 
@@ -160,7 +161,7 @@ export async function validateRenameOperations(
       logger.warn({
         to: existingFile
       }, '[tool][renameFilesInBatch] Target file already exists in filesystem');
-      validationErrors.push(`Target file "${existingFile}" already exists in the filesystem`);
+      errors.push(`Target file "${existingFile}" already exists in the filesystem`);
     }
   }
 
@@ -173,7 +174,7 @@ export async function validateRenameOperations(
         type: invalidPath.type,
         folderPath: folderPathInPosix
       }, `[tool][renameFilesInBatch] ${invalidPath.type === 'source' ? 'Source' : 'Target'} path outside media folder`);
-      validationErrors.push(
+      errors.push(
         `${invalidPath.type === 'source' ? 'Source' : 'Target'} path "${invalidPath.path}" is outside the media folder "${folderPathInPosix}"`
       );
     }
@@ -218,7 +219,8 @@ export async function validateRenameOperations(
   });
 
   return {
-    validationErrors,
+    isValid: errors.length === 0,
+    errors,
     validatedRenames
   };
 }
@@ -356,24 +358,24 @@ This tool return JSON response with the following format:
       totalFiles: files.length
     }, '[tool][renameFilesInBatch] Starting validation');
 
-    const validationResult = await validateBatchRenameOperations(files, folderPath);
+    const validationResult = await validateRenameOperations(files, folderPathInPosix);
 
     logger.info({
       totalFiles: files.length,
-      validatedRenames: validationResult.validatedRenames?.length || 0,
-      validationErrors: validationResult.errors?.length || 0
+      validatedRenames: validationResult.validatedRenames.length,
+      validationErrors: validationResult.errors.length
     }, '[tool][renameFilesInBatch] Validation complete');
 
     // If there are validation errors, return them
     if (!validationResult.isValid) {
       logger.error({
         validationErrors: validationResult.errors,
-        totalErrors: validationResult.errors?.length || 0
+        totalErrors: validationResult.errors.length
       }, '[tool][renameFilesInBatch] Validation failed');
-      return { error: `Error Reason: Validation failed:\n${validationResult.errors?.join('\n') || 'Unknown validation error'}` };
+      return { error: `Error Reason: Validation failed:\n${validationResult.errors.join('\n')}` };
     }
 
-    const validatedRenames = validationResult.validatedRenames || [];
+    const validatedRenames = validationResult.validatedRenames;
     if (validatedRenames.length === 0) {
       logger.warn('[tool][renameFilesInBatch] No valid rename operations');
       return { error: `Error Reason: No valid files to rename` };

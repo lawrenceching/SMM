@@ -1,119 +1,22 @@
 import { mkdir, rename, stat } from 'fs/promises';
 import { Path } from '@core/path';
 import type { MediaMetadata } from '@core/types';
-import { validatePathWithinMediaFolder } from '../validations/validatePathWithinMediaFolder';
-import { validateSourceFileExist } from '../validations/validateSourceFileExist';
-import { validateDestFileNotExist } from '../validations/validateDestFileNotExist';
-import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
 import { broadcast } from './socketIO';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
-import { renameFileInMediaMetadata, renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
-// Import updateMediaMetadataAfterRename from renameFilesInBatch for batch operations
-// Note: This function handles multiple renames, while renameFileInMediaMetadata handles single rename
-import { updateMediaMetadataAfterRename, validateRenameOperations } from '../tools/renameFilesInBatch';
+import { renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
+import { updateMediaMetadataAfterRename } from '../tools/renameFilesInBatch';
 import pino from 'pino';
 import { dirname } from 'path';
 
 const logger = pino();
 
-/**
- * Validate a single file rename operation
- * @param from Source file path
- * @param to Destination file path
- * @param mediaFolder Media folder path
- * @returns Validation result with error message if invalid
- */
-export async function validateSingleRenameOperation(
-  from: string,
-  to: string,
-  mediaFolder: string
-): Promise<{ isValid: boolean; error?: string }> {
-  // 1. Validate no abnormal paths (should be first)
-  const abnormalPathErrors = validateNoAbnormalPaths([{ from, to }]);
-  if (abnormalPathErrors.length > 0) {
-    return {
-      isValid: false,
-      error: `Invalid Path: ${abnormalPathErrors.join('; ')}`,
-    };
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    const stats = await stat(dirPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
   }
-
-  // 2. Validate paths are within media folder
-  const pathWithinFolderResult = validatePathWithinMediaFolder(mediaFolder, [{ from, to }]);
-  if (!pathWithinFolderResult.isValid) {
-    const errorMessages = pathWithinFolderResult.invalidPaths.map(
-      (invalidPath) => `Path Outside Media Folder: ${invalidPath.type === 'source' ? 'Source' : 'Destination'} path "${invalidPath.path}" is outside the media folder`
-    );
-    return {
-      isValid: false,
-      error: errorMessages.join('; '),
-    };
-  }
-
-  // 3. Validate source file exists
-  const sourceExistResult = await validateSourceFileExist([{ from, to }]);
-  if (!sourceExistResult.isValid) {
-    return {
-      isValid: false,
-      error: `File Not Found: Source file "${from}" does not exist`,
-    };
-  }
-
-  // 4. Validate destination file does not exist
-  const destNotExistResult = await validateDestFileNotExist([{ from, to }]);
-  if (!destNotExistResult.isValid) {
-    return {
-      isValid: false,
-      error: `File Already Exists: Destination file "${to}" already exists`,
-    };
-  }
-
-  return { isValid: true };
-}
-
-/**
- * Validate multiple file rename operations in batch
- * @param files Array of rename operations to validate
- * @param mediaFolder Media folder path
- * @returns Validation result with aggregated errors or success status
- */
-export async function validateBatchRenameOperations(
-  files: Array<{ from: string; to: string }>,
-  mediaFolder: string
-): Promise<{ isValid: boolean; errors?: string[]; validatedRenames?: Array<{ from: string; to: string }> }> {
-  if (files.length === 0) {
-    return {
-      isValid: false,
-      errors: ['No files provided for batch rename'],
-    };
-  }
-
-  const mediaFolderInPosix = Path.posix(mediaFolder);
-  
-  // Reuse validateRenameOperations from tools (filesystemFiles parameter is unused, pass empty array)
-  const validationResult = await validateRenameOperations(
-    files,
-    mediaFolderInPosix,
-    []
-  );
-
-  if (validationResult.validationErrors.length > 0) {
-    return {
-      isValid: false,
-      errors: validationResult.validationErrors,
-    };
-  }
-
-  if (validationResult.validatedRenames.length === 0) {
-    return {
-      isValid: false,
-      errors: ['No valid files to rename after validation'],
-    };
-  }
-
-  return {
-    isValid: true,
-    validatedRenames: validationResult.validatedRenames,
-  };
 }
 
 /**
@@ -228,13 +131,34 @@ export async function executeRenameOperation(
 
     // Create directory only if not at root level
     // Using recursive: true ensures all parent directories are created if they don't exist
-    const destDir = dirname(toPathPlatform)
-    logger.info({
-      clientId
-    }, `${logPrefix} Ensuring target directory exists: ${destDir}`);
-    await mkdir(destDir, { recursive: true });
+    const destDir = dirname(toPathPlatform);
+    
+    try {
+      // Create the directory recursively
+      await mkdir(destDir, { recursive: true });
+      
+      // Verify the directory was actually created
+      const dirExistsAfterMkdir = await directoryExists(destDir);
+
+      if (!dirExistsAfterMkdir) {
+        throw new Error(`Directory creation failed silently. Path: ${destDir}`);
+      }
+    } catch (mkdirError) {
+      logger.error({
+        destDir,
+        error: mkdirError instanceof Error ? mkdirError.message : String(mkdirError),
+        errorStack: mkdirError instanceof Error ? mkdirError.stack : undefined,
+        clientId
+      }, `${logPrefix} Failed to create target directory`);
+      throw mkdirError;
+    }
 
     // Perform the rename
+    logger.info({
+      from: fromPathPlatform,
+      to: toPathPlatform,
+      clientId
+    }, `${logPrefix} Renaming file`);
     await rename(fromPathPlatform, toPathPlatform);
 
     logger.info({
@@ -246,35 +170,66 @@ export async function executeRenameOperation(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
 
     logger.error({
-      from,
-      to,
+      fromPathPlatform,
+      toPathPlatform,
+      destDir: dirname(toPathPlatform),
       error: errorMessage,
+      errorStack,
       clientId
     }, `${logPrefix} Failed to rename file`);
 
     if(errorMessage.includes('ENOENT: no such file or directory')) {
-      const isExists = await Bun.file(fromPathPlatform).exists();
-      if(!isExists) {
+      const isSourceExists = await Bun.file(fromPathPlatform).exists();
+      if(!isSourceExists) {
         logger.error({
           from: fromPathPlatform,
           clientId
-        }, `${logPrefix} Double check and confirm that the source file does not exist`);
-      } else {
-        logger.error({
-          from: fromPathPlatform,
-          to: toPathPlatform,
-          clientId
-        }, `${logPrefix} Double check and confirm that the source file exists`);
+        }, `${logPrefix} Source file does not exist`);
         return {
           success: false,
-          error: `The destination file name is illegal in file system. Please consider to use file name without special characters.`,
+          error: `Source file does not exist: ${fromPathPlatform}`,
+        };
+      } else {
+        const destDir = dirname(toPathPlatform);
+        const isDestDirExists = await directoryExists(destDir);
+        if(!isDestDirExists) {
+          const parentDir = dirname(destDir);
+          const parentExists = await directoryExists(parentDir);
+          
+          logger.error({
+            destDir,
+            parentDir,
+            parentExists,
+            clientId
+          }, `${logPrefix} Destination directory does not exist despite mkdir attempt`);
+          
+          let errorMsg = `Destination directory does not exist and could not be created: ${destDir}`;
+          if (parentExists) {
+            errorMsg += `\nParent directory exists but child directory creation failed. This might be due to special characters in the path or permission issues.`;
+          } else {
+            errorMsg += `\nParent directory also does not exist: ${parentDir}`;
+          }
+          
+          return {
+            success: false,
+            error: errorMsg,
+          };
+        } else {
+          logger.error({
+            from: fromPathPlatform,
+            to: toPathPlatform,
+            clientId
+          }, `${logPrefix} Destination directory exists but rename still failed`);
+          return {
+            success: false,
+            error: `Failed to rename file. The destination file name may contain invalid characters or there may be permission issues.`,
+          };
         }
       }
     }
-
-    
 
     return {
       success: false,
@@ -337,39 +292,13 @@ export async function updateMediaMetadataAndBroadcast(
       };
     }
 
-    // Update metadata with renamed files
-    let updatedMediaMetadata: MediaMetadata;
-    if (renameMappings.length === 1) {
-      // Single rename - use simpler utility
-      const renameMapping = renameMappings[0];
-      if (!renameMapping) {
-        throw new Error('Invalid rename mapping: expected single mapping but got undefined');
-      }
-      const { from, to } = renameMapping;
-      logger.info({
-        from,
-        to,
-        clientId
-      }, `${logPrefix} Renaming file in media metadata: ${from} to ${to}`);
-      updatedMediaMetadata = renameFileInMediaMetadata(
-        mediaMetadata,
-        Path.posix(from),
-        Path.posix(to)
-      );
-
-      logger.info({
-        updatedMediaMetadata,
-        clientId
-      }, `${logPrefix} Updated media metadata after single rename`);
-    } else {
-      // Multiple renames - use batch utility
-      logger.info({
-        renameMappings,
-        mediaMetadata,
-        clientId
-      }, `${logPrefix} Updating media metadata after multiple renames`);
-      updatedMediaMetadata = updateMediaMetadataAfterRename(mediaMetadata, renameMappings);
-    }
+    // Update metadata with renamed files (always use batch version for consistency)
+    logger.info({
+      renameMappings,
+      renameCount: renameMappings.length,
+      clientId
+    }, `${logPrefix} Updating media metadata after rename`);
+    const updatedMediaMetadata = updateMediaMetadataAfterRename(mediaMetadata, renameMappings);
 
     // Write updated metadata back to file
     await mkdir(mediaMetadataDir, { recursive: true });

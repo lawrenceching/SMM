@@ -808,6 +808,16 @@ export interface HelloResponseBody {
   error?: string;
 }
 
+/**
+ * Standard result type for rename validation operations.
+ * All rename validation functions should return this type.
+ */
+export interface RenameValidationResult {
+  isValid: boolean;
+  errors: string[];
+  validatedRenames: Array<{ from: string; to: string }>;
+}
+
 export interface RenameFilesRequestBody {
   /**
    * Batch of file renames. Paths are in platform-specific format (POSIX on Linux/macOS, Windows on Windows).
@@ -817,12 +827,47 @@ export interface RenameFilesRequestBody {
    * Optional trace id for logging/correlation.
    */
   traceId?: string;
+  /**
+   * Optional media folder path in POSIX format. When provided, the backend will
+   * automatically update media metadata and broadcast the change after renaming.
+   */
+  mediaFolder?: string;
+  /**
+   * Optional client ID for broadcasting updates. Used together with mediaFolder.
+   */
+  clientId?: string;
 }
 
 export interface RenameFilesResponseBody {
   data?: {
     succeeded: string[];
     failed: Array<{ path: string; error: string }>;
+  };
+  error?: string;
+}
+
+export interface RenameFilesInMediaMetadataRequestBody {
+  /**
+   * The media folder path in POSIX format
+   */
+  mediaFolder: string;
+  /**
+   * Array of file rename operations. Paths are in POSIX format.
+   */
+  files: Array<{ from: string; to: string }>;
+  /**
+   * Optional trace id for logging/correlation.
+   */
+  traceId?: string;
+  /**
+   * Optional client ID for broadcasting updates.
+   */
+  clientId?: string;
+}
+
+export interface RenameFilesInMediaMetadataResponseBody {
+  data?: {
+    successfulRenames: Array<{ from: string; to: string }>;
   };
   error?: string;
 }

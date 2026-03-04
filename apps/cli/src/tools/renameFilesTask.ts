@@ -7,7 +7,8 @@ import {
   endRenameFilesTask as endRenameFilesTaskCore,
   getTask,
 } from './renameFilesTool';
-import { validateBatchRenameOperations, executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
+import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
+import { validateRenameOperations } from './renameFilesInBatch';
 import { askForRenameFilesConfirmation } from '../events/askForRenameFilesConfirmation';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import type { MediaMetadata } from '@core/types';
@@ -216,13 +217,13 @@ export const createEndRenameFilesTaskTool = async (clientId: string, abortSignal
       }
 
       // 2. Validate all rename operations
-      const validationResult = await validateBatchRenameOperations(files, folderPathInPosix);
+      const validationResult = await validateRenameOperations(files, folderPathInPosix);
 
       logger.info({
         taskId,
         totalFiles: files.length,
-        validatedRenames: validationResult.validatedRenames?.length || 0,
-        validationErrors: validationResult.errors?.length || 0,
+        validatedRenames: validationResult.validatedRenames.length,
+        validationErrors: validationResult.errors.length,
         clientId
       }, '[tool][endRenameFilesTask] Validation complete');
 
@@ -230,13 +231,13 @@ export const createEndRenameFilesTaskTool = async (clientId: string, abortSignal
         logger.error({
           taskId,
           validationErrors: validationResult.errors,
-          totalErrors: validationResult.errors?.length || 0,
+          totalErrors: validationResult.errors.length,
           clientId
         }, '[tool][endRenameFilesTask] Validation failed');
-        return { error: `Error Reason: Validation failed:\n${validationResult.errors?.join('\n') || 'Unknown validation error'}` };
+        return { error: `Error Reason: Validation failed:\n${validationResult.errors.join('\n')}` };
       }
 
-      const validatedRenames = validationResult.validatedRenames || [];
+      const validatedRenames = validationResult.validatedRenames;
       if (validatedRenames.length === 0) {
         logger.warn({
           taskId,
