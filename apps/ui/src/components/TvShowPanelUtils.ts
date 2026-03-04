@@ -1072,7 +1072,19 @@ export function recognizeMediaFilesByRules(
 
     console.log(`[TvShowPanelUtils] built seasons model from tmdbTvShow:`, seasonsForPreview)
 
+    // Track which video files have already been assigned to prevent duplicate recognition
+    const assignedVideoFilePaths = new Set<string>()
+
     const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
+      // Check if this video file has already been assigned to another episode
+      if (assignedVideoFilePaths.has(videoFilePath)) {
+        console.warn(`[TvShowPanelUtils] Warning: Video file already assigned to another episode: ${videoFilePath}. Skipping S${seasonNumber}E${episodeNumber}`)
+        return
+      }
+
+      // Mark this video file as assigned
+      assignedVideoFilePaths.add(videoFilePath)
+
       // Find the matching season and episode
       const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber)
       if (!season) {

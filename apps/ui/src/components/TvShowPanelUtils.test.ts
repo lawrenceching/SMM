@@ -3142,6 +3142,145 @@ describe('recognizeMediaFilesByRules', () => {
       correctFilePath
     )
   })
+
+  it('should skip duplicate video file assignments and log warning', () => {
+    const mediaFolderPath = '/media/tvshow'
+    const videoFilePath1 = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
+    const videoFilePath2 = '/media/tvshow/Season 01/Show.Name.S01E02.mkv'
+
+    const mediaMetadata: UIMediaMetadata = {
+      mediaFolderPath,
+      files: [videoFilePath1, videoFilePath2],
+      status: 'ok',
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show Name',
+        original_name: 'Show Name',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 8.5,
+        vote_count: 100,
+        popularity: 10,
+        genre_ids: [],
+        origin_country: [],
+        media_type: 'tv',
+        number_of_seasons: 1,
+        number_of_episodes: 3,
+        seasons: [
+          {
+            id: 1,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 3,
+            episodes: [
+              {
+                id: 101,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 8.5,
+                vote_count: 100,
+                runtime: 42,
+              },
+              {
+                id: 102,
+                name: 'Episode 2',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-08',
+                episode_number: 2,
+                season_number: 1,
+                vote_average: 8.3,
+                vote_count: 95,
+                runtime: 42,
+              },
+              {
+                id: 103,
+                name: 'Episode 3',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-15',
+                episode_number: 3,
+                season_number: 1,
+                vote_average: 8.7,
+                vote_count: 90,
+                runtime: 42,
+              },
+            ],
+          },
+        ],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-15',
+        networks: [],
+        production_companies: [],
+      },
+      mediaFiles: [],
+    }
+
+    // Mock lookup function that returns the same file for S01E01 and S01E03 (bug scenario)
+    const lookup = vi.fn((_files: string[], seasonNumber: number, episodeNumber: number) => {
+      if (seasonNumber === 1 && episodeNumber === 1) {
+        return videoFilePath1
+      } else if (seasonNumber === 1 && episodeNumber === 2) {
+        return videoFilePath2
+      } else if (seasonNumber === 1 && episodeNumber === 3) {
+        // BUG: Returns the same file as episode 1
+        return videoFilePath1
+      }
+      return null
+    })
+
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+
+    // Verify the function returns updated seasons
+    expect(result).not.toBeNull()
+    expect(result).toHaveLength(1)
+
+    // Verify season structure
+    expect(result![0].season.season_number).toBe(1)
+    expect(result![0].episodes).toHaveLength(3)
+
+    // Verify episode 1 has video file assigned
+    const episode1 = result![0].episodes[0]
+    expect(episode1.episode.episode_number).toBe(1)
+    expect(episode1.files).toHaveLength(1)
+    expect(episode1.files[0].type).toBe('video')
+    expect(episode1.files[0].path).toBe(videoFilePath1)
+
+    // Verify episode 2 has video file assigned
+    const episode2 = result![0].episodes[1]
+    expect(episode2.episode.episode_number).toBe(2)
+    expect(episode2.files).toHaveLength(1)
+    expect(episode2.files[0].type).toBe('video')
+    expect(episode2.files[0].path).toBe(videoFilePath2)
+
+    // Verify episode 3 has no files (duplicate was skipped)
+    const episode3 = result![0].episodes[2]
+    expect(episode3.episode.episode_number).toBe(3)
+    expect(episode3.files).toHaveLength(0)
+
+    // Verify lookup was called for all episodes
+    expect(lookup).toHaveBeenCalledTimes(3)
+
+    // Verify warning was logged for duplicate assignment
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[TvShowPanelUtils] Warning: Video file already assigned to another episode: ' + videoFilePath1 + '. Skipping S1E3'
+    )
+
+    consoleWarnSpy.mockRestore()
+  })
 })
 
 describe('tryToRecognizeTvShowFolderByNFO', () => {
