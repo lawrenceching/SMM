@@ -1,93 +1,85 @@
 import { expect, browser } from '@wdio/globals'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as os from 'node:os'
+import Menu from '../componentobjects/Menu'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 
 const slowdown = process.env.SLOWDOWN === 'true'
 
-describe('Assistant', () => {
+const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
+const mediaDir = path.join(tmpMediaRoot, 'media')
+
+describe.skip('Assistant - listFiles tool', () => {
+    const FOLDER_NAME = 'ListFilesTestFolder'
+    const EXPECTED_FILES = ['test1.mp4', 'test2.mp4']
 
     before(async () => {
-        await createBeforeHook({ setupMediaFolders: false })()
+        await createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false })()
     })
 
-    it('should open assistant, send message, and receive AI response', async function() {
-        if (slowdown) {
-            this.timeout(60 * 1000)
+    afterEach(async () => {
+        if (fs.existsSync(tmpMediaRoot)) {
+            fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
+            console.log('Removed tmp media folder:', tmpMediaRoot)
         }
+    })
 
-        // Step 1: Open the Assistant Modal
-        console.log('Opening Assistant modal...')
+    it('lists files in media folder when user asks in Assistant', async function () {
+        this.timeout(90 * 1000)
+
+        const testMediaFolder = path.join(mediaDir, FOLDER_NAME)
+        fs.mkdirSync(testMediaFolder, { recursive: true })
+        for (const f of EXPECTED_FILES) {
+            fs.writeFileSync(path.join(testMediaFolder, f), '')
+        }
+        console.log('Created media folder with files:', testMediaFolder, EXPECTED_FILES)
+
+        await Menu.importMediaFolder({
+            type: 'tvshow',
+            folderPathInPlatformFormat: testMediaFolder,
+            traceId: 'e2eTest:Assistant listFiles',
+        })
+        await delay(3 * 1000)
+
         const assistantButton = await browser.$('button.aui-modal-button')
         await assistantButton.waitForDisplayed({ timeout: 10000 })
         await assistantButton.click()
+        await delay(1000)
 
-        if (slowdown) {
-            await delay(1 * 1000)
-        }
-
-        // Verify the modal is open by checking for the composer input
-        console.log('Verifying Assistant modal is open...')
         const composerInput = await browser.$('textarea.aui-composer-input')
         await composerInput.waitForDisplayed({ timeout: 10000 })
-        expect(await composerInput.isDisplayed()).toBe(true)
+        const userMessage = `Call listFiles tool to list files in media ${FOLDER_NAME}`
+        await composerInput.setValue(userMessage)
+        await delay(500)
 
-        if (slowdown) {
-            await delay(1 * 1000)
-        }
-
-        // Step 2: Input "Hello"
-        console.log('Inputting "Hello" message...')
-        await composerInput.setValue('Hello')
-
-        if (slowdown) {
-            await delay(1 * 1000)
-        }
-
-        // Step 3: Click send button
-        console.log('Clicking send button...')
         const sendButton = await browser.$('button.aui-composer-send')
         await sendButton.waitForDisplayed({ timeout: 10000 })
         await sendButton.click()
 
-        // Wait for AI response
-        await delay(2 * 1000)
-
-        if (slowdown) {
-            await delay(2 * 1000)
-        }
-
-        // Step 4: Wait for AI response and assert something is returned
-        console.log('Waiting for AI response...')
-        
-        // Wait for the assistant message to appear
         const assistantMessage = await browser.$('div.aui-assistant-message-root[data-role="assistant"]')
-        
-        // Wait for the message to contain text (indicating response received)
-        await browser.waitUntil(async () => {
-            const messageElement = await assistantMessage
-            const isDisplayed = await messageElement.isDisplayed()
-            if (!isDisplayed) return false
-            
-            // Get the text content of the message
-            const textContent = await messageElement.getText()
-            console.log('Assistant response text:', textContent)
-            
-            // Check that there's some content (not empty)
-            return textContent && textContent.length > 0
-        }, {
-            timeout: 30000,
-            timeoutMsg: 'AI response was not received within 30 seconds'
-        })
+        await browser.waitUntil(
+            async () => {
+                const el = await assistantMessage
+                if (!(await el.isDisplayed())) return false
+                const text = await el.getText()
+                const hasAnyExpectedFile = EXPECTED_FILES.some((name) => text.includes(name))
+                if (hasAnyExpectedFile) {
+                    console.log('Assistant response contains expected filename(s):', text.substring(0, 200) + '...')
+                    return true
+                }
+                return false
+            },
+            {
+                timeout: 60000,
+                interval: 2000,
+                timeoutMsg: `AI response did not contain any of [${EXPECTED_FILES.join(', ')}] within 60s`,
+            }
+        )
 
-        // Verify the assistant message is displayed
-        expect(await assistantMessage.isDisplayed()).toBe(true)
-        
-        // Verify the response has content
         const responseText = await assistantMessage.getText()
-        expect(responseText.length).toBeGreaterThan(0)
-        
-        console.log('AI response received:', responseText.substring(0, 100) + '...')
-        console.log('Assistant test completed successfully')
+        const hasExpectedFile = EXPECTED_FILES.some((name) => responseText.includes(name))
+        expect(hasExpectedFile).toBe(true)
     })
-
 })

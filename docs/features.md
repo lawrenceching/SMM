@@ -22,15 +22,15 @@ And the test status of v1.1.0
 |                                                  |        |         |
 | TV Show - Search TV Show                         |  AUTO  |         |
 | TV Show - Rule Based Recognize                   |        | If rule based recognition work, it worked in folder initialization. Need furture considerataion of this scenario        |
-| TV Show - Rule Based Rename                      |        |         |
-| TV Show - Scrape                                 |        |         |
+| TV Show - Rule Based Rename                      |  AUTO  |         |
+| TV Show - Scrape                                 |  AUTO  |         |
 | TV Show - Rename Episode Video File              |        |         |
 |                                                  |        |         |
-| Movie - Search Movie                             |        |         |
+| Movie - Search Movie                             |  AUTO  |         |
 | Movie - Rule Based Recognize                     |        |         |
-| Movie - Rule Based Rename                        |        |         |
-| Movie - Scrape                                   |        |         |
-| Movie - Rename Episode Video File                |        |         |
+| Movie - Rule Based Rename                        |  AUTO  |         |
+| Movie - Scrape                                   |  AUTO  |         |
+| Movie - Rename Episode Video File                |  AUTO  |         |
 |                                                  |        |         |
 | Sidebar - Filter and Sort                        | AUTO   |         |
 | Sidebar - Rename Folder                          | AUTO   |         |
@@ -39,15 +39,15 @@ And the test status of v1.1.0
 | Sidebar - Multiple Deletion                      | MANUAL |         |
 | Sidebar - Open in File Explorer                  | MANUAL |         |
 |                                                  |        |         |
-| AI Tools - listFiles                             |        |         |
-| AI Tools - isFolderExist                         |        |         |
-| AI Tools - getMediaFolders                       |        |         |
-| AI Tools - getApplicationContext                 |        |         |
-| AI Tools - getMediaMetadata                      |        |         |
-| AI Tools - getEpisodes                           |        |         |
-| AI Tools - renameFolder                          |        |         |
-| AI Tools - Rename Media Files                    |        |         |
-| AI Tools - Recognize Media Files                 |        |         |
+| AI Tools - listFiles                             | MANUAL |         |
+| AI Tools - isFolderExist                         | MANUAL |         |
+| AI Tools - getMediaFolders                       | MANUAL |         |
+| AI Tools - getApplicationContext                 | MANUAL |         |
+| AI Tools - getMediaMetadata                      | MANUAL |         |
+| AI Tools - getEpisodes                           | MANUAL |         |
+| AI Tools - renameFolder                          | MANUAL |         |
+| AI Tools - Rename Media Files                    | MANUAL |         |
+| AI Tools - Recognize Media Files                 | MANUAL |         |
 |                                                  |        |         |
 | MCP Server - get-media-folders                   | AUTO   |         |
 | MCP Server - readme                              | AUTO   |         |

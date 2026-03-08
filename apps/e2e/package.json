@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "test": "echo \"No tests yet\"",
     "wdio": "wdio run ./wdio.conf.ts",
-    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/SearchTvShow.e2e.ts",
+    "wdio:single": "wdio run ./wdio.conf.ts --spec ./test/specs/Movie-Scrape.e2e.ts",
     "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts"
   },
   "dependencies": {

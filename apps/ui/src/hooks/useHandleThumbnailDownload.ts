@@ -6,8 +6,12 @@ import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
 
 async function startToDownloadThumbnails(mediaMetadata: MediaMetadata, getTranslation: () => string) {
-    // Download thumbnails for all episode media files
+    // Thumbnails (episode + season posters) are TV show only; for movie, no-op
     if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
+        if (mediaMetadata?.tmdbMovie) {
+            console.log("⏭️ Thumbnail task skipped for movie (TV show only)")
+            return
+        }
         console.error("Cannot download thumbnails: Missing TV show data or media folder path")
         throw new Error("Cannot download thumbnails: Missing TV show data or media folder path")
     }

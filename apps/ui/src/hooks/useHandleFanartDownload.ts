@@ -9,23 +9,25 @@ import { useTranslation } from "@/lib/i18n"
 import { checkFileExists } from "@/lib/utils"
 
 async function startToDownloadFanart(mediaMetadata: MediaMetadata, getTranslation: () => string) {
-    // Download fanart image from media metadata
-    if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
-        console.error("Cannot download fanart: Missing TV show data or media folder path")
+    const isTvShow = !!mediaMetadata?.tmdbTvShow
+    const isMovie = !!mediaMetadata?.tmdbMovie
+    if ((!isTvShow && !isMovie) || !mediaMetadata?.mediaFolderPath) {
+        console.error("Cannot download fanart: Missing TV show/movie data or media folder path")
         return
     }
 
     try {
-        const tvShow = mediaMetadata.tmdbTvShow
-        
-        // Check if backdrop path exists
-        if (!tvShow.backdrop_path) {
-            console.log(`⏭️ No fanart found for TV Show: tmdbTvShowId=${tvShow.id}, name=${tvShow.name}`)
+        const backdropPathSource = mediaMetadata.tmdbTvShow?.backdrop_path ?? mediaMetadata.tmdbMovie?.backdrop_path
+        const entityId = mediaMetadata.tmdbTvShow?.id ?? mediaMetadata.tmdbMovie?.id
+        const entityName = mediaMetadata.tmdbTvShow?.name ?? mediaMetadata.tmdbMovie?.title
+
+        if (!backdropPathSource) {
+            console.log(`⏭️ No fanart found: id=${entityId}, name=${entityName}`)
             return
         }
 
         // Get the full fanart URL
-        const fanartUrl = getTMDBImageUrl(tvShow.backdrop_path, "original")
+        const fanartUrl = getTMDBImageUrl(backdropPathSource, "original")
         if (!fanartUrl) {
             console.error("Failed to get fanart URL from TMDB")
             throw new Error("Failed to get fanart URL from TMDB")

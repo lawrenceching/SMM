@@ -9,23 +9,25 @@ import { useTranslation } from "@/lib/i18n"
 import { checkFileExists } from "@/lib/utils"
 
 async function startToDownloadPoster(mediaMetadata: MediaMetadata, getTranslation: () => string) {
-    // Download poster image from media metadata
-    if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
-        console.error("Cannot download poster: Missing TV show data or media folder path")
+    const isTvShow = !!mediaMetadata?.tmdbTvShow
+    const isMovie = !!mediaMetadata?.tmdbMovie
+    if ((!isTvShow && !isMovie) || !mediaMetadata?.mediaFolderPath) {
+        console.error("Cannot download poster: Missing TV show/movie data or media folder path")
         return
     }
 
     try {
-        const tvShow = mediaMetadata.tmdbTvShow
-        
-        // Check if poster path exists
-        if (!tvShow.poster_path) {
-            console.log(`⏭️ No poster found for TV Show: tmdbTvShowId=${tvShow.id}, name=${tvShow.name}`)
+        const posterPathSource = mediaMetadata.tmdbTvShow?.poster_path ?? mediaMetadata.tmdbMovie?.poster_path
+        const entityId = mediaMetadata.tmdbTvShow?.id ?? mediaMetadata.tmdbMovie?.id
+        const entityName = mediaMetadata.tmdbTvShow?.name ?? mediaMetadata.tmdbMovie?.title
+
+        if (!posterPathSource) {
+            console.log(`⏭️ No poster found: id=${entityId}, name=${entityName}`)
             return
         }
 
         // Get the full poster URL
-        const posterUrl = getTMDBImageUrl(tvShow.poster_path, "original")
+        const posterUrl = getTMDBImageUrl(posterPathSource, "original")
         if (!posterUrl) {
             console.error("Failed to get poster URL from TMDB")
             throw new Error("Failed to get poster URL from TMDB")

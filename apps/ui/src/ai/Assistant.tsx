@@ -5,6 +5,7 @@ import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useEffect } from "react";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { prompts } from "./prompts";
+import { GetFilesInMediaFolderTool } from "./tools";
 
 
 function ModelContext() {
@@ -54,8 +55,8 @@ export function Assistant() {
     return <AssistantRuntimeProvider runtime={runtime}>
         <ModelContext/>
         {/* <GetMediaFoldersTool /> */}
-        {/* <GetFilesInMediaFolderTool />
-        <GetMediaMetadataTool />
+        <GetFilesInMediaFolderTool />
+        {/* <GetMediaMetadataTool />
         <MatchEpisodeTool /> */}
         <AssistantModal />
 
