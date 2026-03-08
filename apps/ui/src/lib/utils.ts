@@ -92,7 +92,14 @@ export function findAssociatedFiles(mediaFolderPath: string, filePaths: string[]
     })
     .filter(paths => {
       const filename = basename(paths)!;
-      return possibleFileNames.includes(filename);
+      // Exact match: e.g. "S01E01.srt"
+      if (possibleFileNames.includes(filename)) return true;
+      // Language-tagged match: e.g. "S01E01.en.srt", "S01E01.zh-CN.ass"
+      // The filename must start with "{stem}." and end with a known extension.
+      if (filename.startsWith(filenameWithoutExtension + '.')) {
+        return extensions.some(ext => filename.endsWith(ext));
+      }
+      return false;
     })
     .map(paths => {
       const file: File = {

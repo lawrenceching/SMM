@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useMediaMetadata } from "@/providers/media-metadata-provider"
-import { relative, join } from "@/lib/path"
-import { renameFile } from "@/api/renameFile"
+import { relative, join, basename, dirname, extname } from "@/lib/path"
+import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import type { FileProps } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
@@ -23,6 +23,51 @@ interface EpisodeFileProps {
      * Callback when "Select File" is clicked from context menu
      */
     onFileSelectButtonClick?: (file: FileProps) => void
+}
+
+/**
+ * Computes rename entries for all files that share the same stem as the video
+ * being renamed. Operates directly on the raw file list from media metadata so
+ * it is not affected by how the UI has classified/grouped those files.
+ *
+ * Example: renaming "S01E01.mkv" → "Show.S01E01.Title.mkv" will also rename
+ * "S01E01.srt" → "Show.S01E01.Title.srt" and "S01E01.en.srt" → "Show.S01E01.Title.en.srt"
+ *
+ * @param videoOldPath  Absolute POSIX path of the video before rename
+ * @param videoNewPath  Absolute POSIX path of the video after rename
+ * @param allMediaFiles All file paths in the media folder (from MediaMetadata.files)
+ */
+function computeAssociatedFileRenames(
+    videoOldPath: string,
+    videoNewPath: string,
+    allMediaFiles: string[]
+): Array<{ from: string; to: string }> {
+    const oldBasename = basename(videoOldPath) ?? ''
+    const oldExt = extname(oldBasename)
+    const oldStem = oldBasename.slice(0, oldBasename.length - oldExt.length)
+
+    const newBasename = basename(videoNewPath) ?? ''
+    const newExt = extname(newBasename)
+    const newStem = newBasename.slice(0, newBasename.length - newExt.length)
+
+    if (!oldStem || !newStem || oldStem === newStem) return []
+
+    const renames: Array<{ from: string; to: string }> = []
+    for (const filePath of allMediaFiles) {
+        if (filePath === videoOldPath) continue // skip the video file itself
+
+        const assocBasename = basename(filePath) ?? ''
+        // Match files whose name is exactly the old stem or starts with "oldStem."
+        // e.g. "S01E01.srt", "S01E01.en.srt", "S01E01.ass"
+        if (assocBasename === oldStem || assocBasename.startsWith(oldStem + '.')) {
+            const suffix = assocBasename.slice(oldStem.length) // e.g. ".en.srt" or ".srt"
+            const newAssocBasename = newStem + suffix
+            const assocDir = dirname(filePath)
+            const newAssocPath = join(assocDir, newAssocBasename)
+            renames.push({ from: filePath, to: newAssocPath })
+        }
+    }
+    return renames
 }
 
 // Helper function to get relative path from media folder
@@ -153,17 +198,27 @@ export function EpisodeFile({
                                         // Convert relative path to absolute path
                                         const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
 
-                                        // Call renameFile API
-                                        await renameFile({
-                                            mediaFolder: selectedMediaMetadata.mediaFolderPath,
-                                            from: file.path,
-                                            to: newAbsolutePath,
+                                        // All files in the media folder (absolute POSIX paths from metadata)
+                                        const allMediaFiles = selectedMediaMetadata.files ?? []
+
+                                        // Compute renames for every file sharing the same stem as the video
+                                        const assocRenames = computeAssociatedFileRenames(file.path, newAbsolutePath, allMediaFiles)
+
+                                        // Call renameFiles API with video + all associated files in one batch
+                                        await renameFiles({
+                                            files: [
+                                                { from: file.path, to: newAbsolutePath },
+                                                ...assocRenames,
+                                            ],
                                         })
 
                                         // Refresh media metadata to reflect the rename
                                         refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
 
                                         console.log("File renamed successfully:", file.path, "->", newAbsolutePath)
+                                        if (assocRenames.length > 0) {
+                                            console.log("Associated files renamed:", assocRenames)
+                                        }
                                         toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
                                     } catch (error) {
                                         console.error("Failed to rename file:", error)
