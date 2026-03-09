@@ -586,6 +586,7 @@ function TvShowPanel() {
           <TvShowEpisodeTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
           />
         </div>
       )}

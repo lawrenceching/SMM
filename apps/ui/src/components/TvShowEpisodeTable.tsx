@@ -1,4 +1,4 @@
-import { basename } from "@/lib/path"
+import { basename, relative } from "@/lib/path"
 import {
   Table,
   TableBody,
@@ -29,6 +29,8 @@ export type TvShowEpisodeTableRow = TvShowEpisodeDividerRow | TvShowEpisodeDataR
 
 interface TvShowEpisodeTableProps {
   data: TvShowEpisodeTableRow[]
+  /** When set, video paths are shown relative to this path. */
+  mediaFolderPath?: string
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -49,7 +51,16 @@ function CheckCell({ value }: { value: string | undefined }) {
   )
 }
 
-export function TvShowEpisodeTable({ data }: TvShowEpisodeTableProps) {
+function getDisplayPath(fullPath: string, basePath: string | undefined): string {
+  if (!basePath) return fullPath
+  try {
+    return relative(basePath, fullPath)
+  } catch {
+    return fullPath
+  }
+}
+
+export function TvShowEpisodeTable({ data, mediaFolderPath }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
 
   console.log("[TvShowEpisodeTable] render", { dataLength: data.length, firstRowId: data[0]?.id ?? "(empty)" })
@@ -127,7 +138,9 @@ export function TvShowEpisodeTable({ data }: TvShowEpisodeTableProps) {
                   {row.videoFile ? (
                     <div className="min-w-0">
                       <div className="truncate">{basename(row.videoFile) ?? row.videoFile}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{row.videoFile}</div>
+                      <div className="truncate text-[11px] text-muted-foreground" title={row.videoFile}>
+                        {getDisplayPath(row.videoFile, mediaFolderPath)}
+                      </div>
                     </div>
                   ) : (
                     <span className="text-muted-foreground">-</span>
