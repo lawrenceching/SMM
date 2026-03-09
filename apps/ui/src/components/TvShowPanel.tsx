@@ -2,7 +2,7 @@ import { TVShowHeader } from "./tv-show-header"
 import { SeasonSection } from "./season-section"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBEpisode, TMDBTVShow, TMDBMovie } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
@@ -26,6 +26,9 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
+import { TvShowEpisodeTable, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
+
+const v2 = true;
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -495,14 +498,54 @@ function TvShowPanel() {
     }
   }, [mediaMetadata, ruleBasedRecognizePrompt.isOpen])
 
+  const effectiveSeasons = useMemo(
+    () =>
+      ruleBasedRecognizePrompt.isOpen || aiBasedRenameFilePrompt.isOpen || aiBasedRecognizePrompt.isOpen
+        ? seasonsForPreview
+        : seasons,
+    [ruleBasedRecognizePrompt.isOpen, aiBasedRenameFilePrompt.isOpen, aiBasedRecognizePrompt.isOpen, seasonsForPreview, seasons]
+  )
+
+  const episodeTableData = useMemo<TvShowEpisodeTableRow[]>(() => {
+    const rows: TvShowEpisodeTableRow[] = []
+
+    for (const seasonModel of effectiveSeasons) {
+      const seasonNo = seasonModel.season.season_number
+      const seasonText = seasonModel.season.name || `Season ${seasonNo}`
+      rows.push({
+        id: `season-${seasonNo}`,
+        type: "divider",
+        text: seasonText,
+      })
+
+      for (const episodeModel of seasonModel.episodes) {
+        const episodeNo = episodeModel.episode.episode_number
+        const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
+        rows.push({
+          id: episodeId,
+          type: "episode",
+          videoFile: episodeModel.files.find((file) => file.type === "video")?.path,
+          thumbnail: episodeModel.files.find((file) => file.type === "poster")?.path,
+          subtitle: episodeModel.files.find((file) => file.type === "subtitle")?.path,
+          nfo: episodeModel.files.find((file) => file.type === "nfo")?.path,
+        })
+      }
+    }
+
+    return rows
+  }, [effectiveSeasons])
+
   const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
 
   return (
     <div className='p-1 w-full h-full relative'>
       <TvShowPanelPrompts />
 
-      
-      <div className="relative w-full h-full overflow-hidden flex flex-col">
+      {v2 && (
+      <TvShowEpisodeTable data={episodeTableData} />
+      )}
+      {!v2 && (
+      <div className="relative w-full overflow-hidden flex flex-col">
         {backdropUrl && (
           <div 
             className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-10"
@@ -526,16 +569,16 @@ function TvShowPanel() {
 
           <SeasonSection
             selectedMediaMetadata={mediaMetadata}
-            seasons={
-              ruleBasedRecognizePrompt.isOpen || aiBasedRenameFilePrompt.isOpen || aiBasedRecognizePrompt.isOpen
-                ? seasonsForPreview
-                : seasons
-            }
+            seasons={effectiveSeasons}
             scrollToEpisodeId={scrollToEpisodeId}
             onEpisodeFileSelect={handleOpenFilePickerForEpisode}
           />
+
+          
         </div>
       </div>
+      )}
+      
     </div>
   )
 }
