@@ -27,6 +27,7 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
 import { TvShowEpisodeTable, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
+import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 
 const v2 = true;
 
@@ -582,13 +583,30 @@ function TvShowPanel() {
       <TvShowPanelPrompts />
 
       {v2 && (
-        <div className="flex-1 min-h-0 overflow-auto">
-          <TvShowEpisodeTable
-            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-            data={tableData}
-            mediaFolderPath={mediaMetadata?.mediaFolderPath}
-          />
-        </div>
+        <>
+          <div className="shrink-0 px-4 pt-4">
+            <TvShowHeaderV2
+              onSearchResultSelected={handleSelectResult}
+              onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
+              onRenameClick={() => openRuleBasedRenameFilePrompt({
+                toolbarOptions,
+                selectedNamingRule,
+                setSelectedNamingRule,
+                onConfirm: handleRuleBasedRenameConfirm,
+                onCancel: () => {},
+              })}
+              selectedMediaMetadata={mediaMetadata}
+              openScrape={openScrape}
+            />
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <TvShowEpisodeTable
+              key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+              data={tableData}
+              mediaFolderPath={mediaMetadata?.mediaFolderPath}
+            />
+          </div>
+        </>
       )}
       {!v2 && (
       <div className="relative w-full overflow-hidden flex flex-col">
