@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useLatest, useMount, useUnmount } from "react-use";
+import { useMount, useUnmount } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useConfig } from "@/providers/config-provider";
@@ -8,7 +8,7 @@ import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
-import { delay, range } from "es-toolkit"
+import { delay } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 import { Mutex } from "es-toolkit";
@@ -17,9 +17,8 @@ const mutex = new Mutex();
 export function MediaFolderImportedEventHandler() {
 
     const { addMediaFolderInUserConfig } = useConfig()
-    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadata, setSelectedMediaMetadataByMediaFolderPath, mediaMetadatas } = useMediaMetadata()
+    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
     const { initializeMediaMetadata } = useMediaMetadataActions();
-    const latestMediaMetadatas = useLatest(mediaMetadatas)
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: Event) => void) | null>(null);
 

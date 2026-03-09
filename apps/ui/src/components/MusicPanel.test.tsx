@@ -46,8 +46,13 @@ describe('MusicPanel', () => {
       selectedIndex: 0,
     });
     vi.mocked(useMediaMetadataActions).mockReturnValue({
+      saveMediaMetadata: vi.fn(),
       updateMediaMetadata: mockUpdateMediaMetadata,
+      deleteMediaMetadata: vi.fn(),
       refreshMediaMetadata: vi.fn(),
+      reloadAllMediaMetadata: vi.fn(),
+      initializeMediaMetadata: vi.fn(),
+      upsertMediaMetadata: vi.fn(),
     });
 
     vi.mocked(useDialogs).mockReturnValue({
