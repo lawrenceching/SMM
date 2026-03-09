@@ -55,7 +55,6 @@ function AppV2Content() {
 
   // Media metadata
   const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
-  const { setSelectedIndex } = useMediaMetadataStoreActions()
   const { deleteMediaMetadata } = useMediaMetadataActions()
 
   // Background jobs (optional - for "Importing Media Library" progress)
@@ -87,13 +86,6 @@ function AppV2Content() {
     return hasWindow && hasElectron
   }, [])
 
-  // Sync primary folder to content panel (selectedMediaMetadata)
-  useEffect(() => {
-    if (primaryFolderPath === undefined || mediaMetadatas.length === 0) return
-    const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === primaryFolderPath)
-    if (index !== -1) setSelectedIndex(index)
-  }, [primaryFolderPath, mediaMetadatas, setSelectedIndex])
-
   // Initialize selection from provider once (e.g. after load or restore)
   useEffect(() => {
 
@@ -111,22 +103,6 @@ function AppV2Content() {
     })
       
   }, [selectedMediaMetadata?.mediaFolderPath])
-
-  useEffect(() => {
-    if(selectedMediaMetadata === undefined) {
-      return;
-    }
-
-    if(selectedMediaMetadata.mediaFolderPath === undefined) {
-      console.error('[AppV2] selectedMediaMetadata.mediaFolderPath is undefined')
-      return;
-    }
-
-    if(selectedMediaMetadata.status !== 'ok') {
-      return;
-    }
-
-  }, [selectedMediaMetadata])
 
   // Open native file dialog in Electron
   const openNativeFileDialog = useCallback(async (): Promise<FileItem | null> => {
@@ -374,7 +350,6 @@ function AppV2Content() {
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemV2Props[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
-      console.log(`[AppV2] mediaMetadatas: `, metadata)
       return {
         mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
         path: metadata.mediaFolderPath,
@@ -656,7 +631,6 @@ function AppV2Content() {
           )}
           {folders.length > 0 && selectedMediaMetadata && (
             <>
-              {console.log(`[DEBUG] selectedMediaMetadata: `, selectedMediaMetadata)}
               {viewMode === "metadata" && (
                 <>
 

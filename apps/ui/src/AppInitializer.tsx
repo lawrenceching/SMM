@@ -5,6 +5,7 @@ import type { UserConfig } from "@core/types";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { useMediaMetadataActions } from "./actions/mediaMetadataActions";
 import { useMediaMetadataStoreActions } from "./stores/mediaMetadataStore";
+import { useRef } from "react";
 
 export async function buildMediaMetadata(
   folders: string[],
@@ -30,8 +31,17 @@ export function AppInitializer() {
     const { setMediaMetadatas, setSelectedIndex } = useMediaMetadataStoreActions();
     const { initializeMediaMetadata } = useMediaMetadataActions();
     const { reload } = useConfig();
+    const initialized = useRef(false);
 
     useMount(() => {
+
+        if(initialized.current) {
+            console.log(`[AppInitializer] already initialized, skipping`)
+            return;
+        }
+
+        console.log(`[AppInitializer] initializing app`)
+        initialized.current = true;
 
         reload({
             onSuccess: async (userConfig: UserConfig) => {

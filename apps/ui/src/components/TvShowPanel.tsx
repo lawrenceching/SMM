@@ -542,7 +542,9 @@ function TvShowPanel() {
       <TvShowPanelPrompts />
 
       {v2 && (
-      <TvShowEpisodeTable data={episodeTableData} />
+        <>
+          <TvShowEpisodeTable data={episodeTableData} />
+        </>
       )}
       {!v2 && (
       <div className="relative w-full overflow-hidden flex flex-col">
