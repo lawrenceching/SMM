@@ -32,19 +32,25 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     openUseNfoPromptRef.current = usePrompts.openUseNfoPrompt
   }, [usePrompts.openUseNfoPrompt])
 
-  // Close prompts when mediaMetadata instance changes (different media folder selected)
+  // When media folder path changes: close prompts and reset processed path. Do NOT clear seasons here -
+  // TvShowPanel uses seasonsPathRef to pass table data only when path matches, so clearing would race
+  // with handleMediaFolderSelected's setSeasons and can overwrite the new folder's data if this effect runs after.
   useEffect(() => {
     const currentPath = mediaMetadata?.mediaFolderPath
     const prevPath = prevMediaFolderPathRef.current
-    
-    // If the path changed (different instance), close all prompts and reset processed path
+
+    console.log("[useTvShowPanelState] path effect", {
+      prevPath: prevPath ?? "(undefined)",
+      currentPath: currentPath ?? "(undefined)",
+      pathChanged: prevPath !== undefined && currentPath !== prevPath,
+    })
+
     if (prevPath !== undefined && currentPath !== prevPath) {
+      console.log("[useTvShowPanelState] path changed -> close prompts, reset processed path")
       closeAllPrompts()
-      // Reset processed path so inference can run again for the new folder
       processedMediaFolderPathRef.current = undefined
     }
-    
-    // Update the ref with the current path
+
     prevMediaFolderPathRef.current = currentPath
   }, [mediaMetadata?.mediaFolderPath, closeAllPrompts])
 

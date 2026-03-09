@@ -2,7 +2,7 @@ import { TVShowHeader } from "./tv-show-header"
 import { SeasonSection } from "./season-section"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { TMDBEpisode, TMDBTVShow, TMDBMovie } from "@core/types"
 import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
@@ -60,6 +60,10 @@ function TvShowPanel() {
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
+
+  useEffect(() => {
+    console.log("[TvShowPanel] selected media folder changed: ", mediaMetadata)
+  }, [mediaMetadata])
 
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
   const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
@@ -196,6 +200,9 @@ function TvShowPanel() {
   })
 
   const [seasonsForPreview, setSeasonsForPreview] = useState<SeasonModel[]>([])
+
+  /** Path for which `seasons` state was last set. Table only shows data when current path matches this (avoids showing previous folder's data when switching). */
+  const seasonsPathRef = useRef<string | undefined>(undefined)
 
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
 
@@ -460,8 +467,8 @@ function TvShowPanel() {
     })
   }, [mediaMetadata, addTmpPlan])
 
-  const handleMediaFolderSelected = useCallback((mm: UIMediaMetadata) => {
-    onMediaFolderSelected({
+  const handleMediaFolderSelected = useCallback((mm: UIMediaMetadata): boolean => {
+    return onMediaFolderSelected({
       mediaMetadata: mm,
       openRuleBasedRecognizePrompt,
       updateMediaMetadata,
@@ -472,10 +479,22 @@ function TvShowPanel() {
 
   useEffect(() => {
     if (!mediaMetadata) {
+      console.log("[TvShowPanel] handleMediaFolderSelected effect: no mediaMetadata, skip")
       return
     }
-    handleMediaFolderSelected(mediaMetadata)
-  }, [mediaMetadata, handleMediaFolderSelected])
+    const path = mediaMetadata.mediaFolderPath
+    console.log("[TvShowPanel] handleMediaFolderSelected effect run", {
+      mediaFolderPath: path,
+      status: mediaMetadata.status,
+    })
+    setSeasonsForPreview([])
+    const didSetSeasons = handleMediaFolderSelected(mediaMetadata)
+    // Only tie ref to this path when seasons were actually set (avoids showing previous folder's data
+    // when status is 'ok' but buildSeasonsModelFromMediaMetadata returns null, or when status !== 'ok').
+    if (didSetSeasons && path !== undefined) {
+      seasonsPathRef.current = path
+    }
+  }, [mediaMetadata, mediaMetadata?.mediaFolderPath, mediaMetadata?.status, handleMediaFolderSelected])
 
   useEffect(() => {
     if (!mediaMetadata) {
@@ -532,19 +551,43 @@ function TvShowPanel() {
       }
     }
 
+    console.log("[TvShowPanel] episodeTableData useMemo", {
+      mediaFolderPath: mediaMetadata?.mediaFolderPath,
+      effectiveSeasonsLength: effectiveSeasons.length,
+      rowsLength: rows.length,
+    })
     return rows
   }, [effectiveSeasons])
+
+  const currentPath = mediaMetadata?.mediaFolderPath
+  const tableData =
+    currentPath !== undefined && currentPath === seasonsPathRef.current
+      ? episodeTableData
+      : []
+
+  console.log(
+    "[TvShowPanel] table data for render",
+    "currentPath=" + (currentPath ?? "(undefined)"),
+    "seasonsPathRef=" + (seasonsPathRef.current ?? "(undefined)"),
+    "match=" + (currentPath !== undefined && currentPath === seasonsPathRef.current),
+    "tableDataLength=" + tableData.length
+  )
+
+  console.log(`tableData: S01E01`, tableData.find((row) => row.id === "S01E01"))
 
   const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
 
   return (
-    <div className='p-1 w-full h-full relative'>
+    <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TvShowPanelPrompts />
 
       {v2 && (
-        <>
-          <TvShowEpisodeTable data={episodeTableData} />
-        </>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <TvShowEpisodeTable
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData}
+          />
+        </div>
       )}
       {!v2 && (
       <div className="relative w-full overflow-hidden flex flex-col">

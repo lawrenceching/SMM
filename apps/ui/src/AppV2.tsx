@@ -55,6 +55,7 @@ function AppV2Content() {
 
   // Media metadata
   const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
+  const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { deleteMediaMetadata } = useMediaMetadataActions()
 
   // Background jobs (optional - for "Importing Media Library" progress)
@@ -400,12 +401,14 @@ function AppV2Content() {
           return next
         })
         setPrimaryFolderPath(path)
+        setSelectedByMediaFolderPath(path)
       } else {
         setSelectedFolderPaths(new Set([path]))
         setPrimaryFolderPath(path)
+        setSelectedByMediaFolderPath(path)
       }
     },
-    []
+    [setSelectedByMediaFolderPath]
   )
 
   const onSelectAll = useCallback(() => {

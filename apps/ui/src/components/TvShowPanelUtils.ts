@@ -1304,7 +1304,8 @@ export interface OnMediaFolderSelectedParams {
   setSeasons: (seasons: SeasonModel[]) => void
 }
 
-export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void {
+/** @returns true if seasons were set for the current folder (caller may tie ref to path); false if skipped or build failed */
+export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): boolean {
   const {
     mediaMetadata,
     openRuleBasedRecognizePrompt,
@@ -1313,9 +1314,15 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
     setSeasons,
   } = params
 
+  console.log("[onMediaFolderSelected] called", {
+    mediaFolderPath: mediaMetadata.mediaFolderPath,
+    status: mediaMetadata.status,
+    type: mediaMetadata.type,
+  })
+
   if (mediaMetadata.mediaFolderPath === undefined) {
     console.error('[TvShowPanelUtils] onMediaFolderSelected: media folder path is undefined')
-    return
+    return false
   }
 
   if (mediaMetadata.status !== 'ok') {
@@ -1323,7 +1330,7 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
       mediaFolderPath: mediaMetadata.mediaFolderPath,
       status: mediaMetadata.status,
     })
-    return
+    return false
   }
 
   ;(async () => {
@@ -1352,8 +1359,14 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): void
 
   const seasons = buildSeasonsModelFromMediaMetadata(mediaMetadata)
   if (seasons !== null) {
+    console.log("[onMediaFolderSelected] setSeasons", {
+      mediaFolderPath: mediaMetadata.mediaFolderPath,
+      seasonsCount: seasons.length,
+      episodesCount: seasons.reduce((n, s) => n + s.episodes.length, 0),
+    })
     setSeasons(seasons)
-  } else {
-    console.warn('[TvShowPanelUtils] onMediaFolderSelected: failed to build seasons model')
+    return true
   }
+  console.warn('[TvShowPanelUtils] onMediaFolderSelected: failed to build seasons model')
+  return false
 }
