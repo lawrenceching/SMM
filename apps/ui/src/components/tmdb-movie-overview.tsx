@@ -7,7 +7,8 @@ import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { Button } from "./ui/button"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { MovieFileModel } from "./MoviePanel"
@@ -49,7 +50,8 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 
 export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewingForRename }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
-    const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+    const { selectedMediaMetadata } = useMediaMetadataStoreState();
+    const { updateMediaMetadata } = useMediaMetadataActions();
     const { scrapeDialog } = useDialogs()
     const [openScrape] = scrapeDialog
     const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])

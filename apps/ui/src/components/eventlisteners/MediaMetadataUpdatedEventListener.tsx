@@ -10,11 +10,15 @@ export function MediaMetadataUpdatedEventListener() {
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {
-        eventListener.current = (event) => {
+        eventListener.current = async (event) => {
             const folderPath = event.detail?.folderPath;
             if (folderPath) {
                 console.log(`[MediaMetadataUpdatedEventListener] Received mediaMetadataUpdated event for folder: ${folderPath}`);
-                refreshMediaMetadata(folderPath);
+                try {
+                    await refreshMediaMetadata(folderPath);
+                } catch (error) {
+                    console.error(`[MediaMetadataUpdatedEventListener] Failed to refresh metadata for ${folderPath}:`, error);
+                }
             } else {
                 console.warn(`[MediaMetadataUpdatedEventListener] mediaMetadataUpdated event missing folderPath in data:`, event.detail);
                 reloadUserConfig();

@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useDialogs } from "@/providers/dialog-provider"
 import { basename } from "@/lib/path"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
@@ -53,7 +54,9 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata, removeMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
+  const { setSelectedIndex } = useMediaMetadataStoreActions()
+  const { deleteMediaMetadata } = useMediaMetadataActions()
 
   // Background jobs (optional - for "Importing Media Library" progress)
   const backgroundJobs = useBackgroundJobsStore()
@@ -88,8 +91,8 @@ function AppV2Content() {
   useEffect(() => {
     if (primaryFolderPath === undefined || mediaMetadatas.length === 0) return
     const index = mediaMetadatas.findIndex((m) => m.mediaFolderPath === primaryFolderPath)
-    if (index !== -1) setSelectedMediaMetadata(index, { traceId: 'AppV2.useEffect.syncPrimaryFolderToContentPanel' })
-  }, [primaryFolderPath, mediaMetadatas, setSelectedMediaMetadata])
+    if (index !== -1) setSelectedIndex(index)
+  }, [primaryFolderPath, mediaMetadatas, setSelectedIndex])
 
   // Initialize selection from provider once (e.g. after load or restore)
   useEffect(() => {
@@ -440,10 +443,17 @@ function AppV2Content() {
   }, [filteredAndSortedFolders])
 
   const onDeleteSelected = useCallback(
-    (paths: string[]) => {
+    async (paths: string[]) => {
       if (paths.length === 0) return
-      paths.forEach((path) => removeMediaMetadata(path))
+
+      // Delete metadata for all paths
       const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
+      try {
+        await Promise.all(paths.map(path => deleteMediaMetadata(path, { traceId })))
+      } catch (error) {
+        console.error('Failed to delete some media metadata:', error)
+      }
+
       const deletedSet = new Set(paths)
       const newFolders = userConfig.folders
         .filter(f => isNotNil(f))
@@ -463,7 +473,7 @@ function AppV2Content() {
         setPrimaryFolderPath(firstRemaining)
       }
     },
-    [userConfig, setAndSaveUserConfig, removeMediaMetadata, primaryFolderPath]
+    [userConfig, setAndSaveUserConfig, deleteMediaMetadata, primaryFolderPath]
   )
 
   // 最小和最大侧边栏宽度

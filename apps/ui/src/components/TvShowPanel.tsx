@@ -1,6 +1,7 @@
 import { TVShowHeader } from "./tv-show-header"
 import { SeasonSection } from "./season-section"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback } from "react"
 import type { TMDBEpisode, TMDBTVShow, TMDBMovie } from "@core/types"
 import type { FileProps } from "@/lib/types"
@@ -45,11 +46,9 @@ interface ToolbarOption {
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
   const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = usePlansStore()
-  const { 
-    selectedMediaMetadata: mediaMetadata, 
-    updateMediaMetadata,
-    refreshMediaMetadata, setSelectedMediaMetadataByMediaFolderPath
-   } = useMediaMetadata()
+  const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
+  const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
+  const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
   const { filePickerDialog, scrapeDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
@@ -325,7 +324,7 @@ function TvShowPanel() {
     mediaMetadata,
     setSeasons,
     setScrollToEpisodeId,
-    setSelectedMediaMetadataByMediaFolderPath,
+    setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
     openAiBasedRenameFilePrompt,
     setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,
   })

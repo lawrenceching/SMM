@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import { Navigation } from "@/components/mobile/Navigation"
 import { Toolbox } from "@/components/mobile/Toolbox"
 import { NavBar } from "@/components/mobile/NavBar"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { basename } from "@/lib/path"
 import type { SortOrder, FilterType } from "@/components/shared/MediaFolderToolbar"
 import TvShowPanel from "@/components/TvShowPanel"
@@ -28,7 +28,8 @@ export default function AppNavigation() {
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
 
   // Media metadata
-  const { mediaMetadatas, setSelectedMediaMetadata, selectedMediaMetadata: globalSelectedMediaMetadata } = useMediaMetadata()
+  const { mediaMetadatas, selectedMediaMetadata: globalSelectedMediaMetadata } = useMediaMetadataStoreState()
+  const { setSelectedIndex } = useMediaMetadataStoreActions()
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemV2Props[] = useMemo(() => {
@@ -74,11 +75,11 @@ export default function AppNavigation() {
   const handleMediaFolderListItemClick = useCallback((path: string) => {
     const index = mediaMetadatas.findIndex((metadata) => metadata.mediaFolderPath === path)
     if (index !== -1) {
-      setSelectedMediaMetadata(index, { traceId: 'AppNavigation.handleMediaFolderListItemClick' })
+      setSelectedIndex(index)
       setSelectedItemPath(path)
       setCurrentPage("detail")
     }
-  }, [mediaMetadatas, setSelectedMediaMetadata])
+  }, [mediaMetadatas, setSelectedIndex])
 
   const handleBack = () => {
     setCurrentPage("list")

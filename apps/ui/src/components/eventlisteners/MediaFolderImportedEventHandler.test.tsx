@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render } from "@testing-library/react"
+import { render, act } from "@testing-library/react"
 import { MediaFolderImportedEventHandler } from "./MediaFolderImportedEventHandler"
 import { UI_MediaFolderImportedEvent } from "@/types/eventTypes"
 
@@ -61,6 +61,10 @@ vi.mock("@/AppV2Utils", () => ({
 
 vi.mock("@/api/readMediaMatadata", () => ({
   readMediaMetadataApi: vi.fn(),
+}))
+
+vi.mock("@/api/listFiles", () => ({
+  listFiles: vi.fn(),
 }))
 
 vi.mock("es-toolkit", () => ({
@@ -130,6 +134,10 @@ describe("MediaFolderImportedEventHandler", () => {
       setSelectedMediaMetadata: (index: number) => {
         mockSetSelectedMediaMetadata(index)
       },
+      setSelectedMediaMetadataByMediaFolderPath: (path: string) => {
+        // For all tests, we expect this to be called with the correct path
+        mockSetSelectedMediaMetadata(path)
+      },
       mediaMetadatas: testMediaMetadatas,
     } as any)
 
@@ -168,13 +176,16 @@ describe("MediaFolderImportedEventHandler", () => {
 
     await new Promise(resolve => setTimeout(resolve, 1100))
 
-    expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith(0)
+    await act(async () => {
+      expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith("c:/Music/TestFolder")
+    })
   })
 
   it("calls setSelectedMediaMetadata after importing tvshow folder", async () => {
     const mockCreateInitialMediaMetadata = createInitialMediaMetadata as ReturnType<typeof vi.fn>
     const mockDoPreprocessMediaFolder = doPreprocessMediaFolder as ReturnType<typeof vi.fn>
     const mockReadMediaMetadataApi = readMediaMetadataApi as ReturnType<typeof vi.fn>
+    const mockListFiles = (await import("@/api/listFiles")).listFiles as ReturnType<typeof vi.fn>
 
     mockCreateInitialMediaMetadata.mockResolvedValue({
       mediaFolderPath: "c:/TVShows/TestShow",
@@ -184,6 +195,14 @@ describe("MediaFolderImportedEventHandler", () => {
 
     mockReadMediaMetadataApi.mockResolvedValue({
       data: null,
+    })
+
+    mockListFiles.mockResolvedValue({
+      data: {
+        items: [
+          { path: "C:\\TVShows\\TestShow\\episode1.mp4", isDirectory: false },
+        ]
+      }
     })
 
     mockDoPreprocessMediaFolder.mockImplementation(async (mm, { onSuccess }) => {
@@ -210,13 +229,16 @@ describe("MediaFolderImportedEventHandler", () => {
 
     await new Promise(resolve => setTimeout(resolve, 200))
 
-    expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith(0)
+    await act(async () => {
+      expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith("c:/TVShows/TestShow")
+    })
   })
 
   it("calls setSelectedMediaMetadata after importing movie folder", async () => {
     const mockCreateInitialMediaMetadata = createInitialMediaMetadata as ReturnType<typeof vi.fn>
     const mockDoPreprocessMediaFolder = doPreprocessMediaFolder as ReturnType<typeof vi.fn>
     const mockReadMediaMetadataApi = readMediaMetadataApi as ReturnType<typeof vi.fn>
+    const mockListFiles = (await import("@/api/listFiles")).listFiles as ReturnType<typeof vi.fn>
 
     mockCreateInitialMediaMetadata.mockResolvedValue({
       mediaFolderPath: "c:/Movies/TestMovie",
@@ -226,6 +248,14 @@ describe("MediaFolderImportedEventHandler", () => {
 
     mockReadMediaMetadataApi.mockResolvedValue({
       data: null,
+    })
+
+    mockListFiles.mockResolvedValue({
+      data: {
+        items: [
+          { path: "C:\\Movies\\TestMovie\\movie.mp4", isDirectory: false },
+        ]
+      }
     })
 
     mockDoPreprocessMediaFolder.mockImplementation(async (mm, { onSuccess }) => {
@@ -252,6 +282,8 @@ describe("MediaFolderImportedEventHandler", () => {
 
     await new Promise(resolve => setTimeout(resolve, 200))
 
-    expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith(0)
+    await act(async () => {
+      expect(mockSetSelectedMediaMetadata).toHaveBeenCalledWith("c:/Movies/TestMovie")
+    })
   })
 })

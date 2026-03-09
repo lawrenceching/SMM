@@ -3,13 +3,12 @@ import { useLatest, useMount, useUnmount } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadata } from "@/providers/media-metadata-provider";
 import { useConfig } from "@/providers/config-provider";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
-import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
-import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
-import { delay, isNotNil, range } from "es-toolkit"
+import { delay, range } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 import { Mutex } from "es-toolkit";
@@ -18,7 +17,8 @@ const mutex = new Mutex();
 export function MediaFolderImportedEventHandler() {
 
     const { addMediaFolderInUserConfig } = useConfig()
-    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadata, mediaMetadatas } = useMediaMetadata()
+    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadata, setSelectedMediaMetadataByMediaFolderPath, mediaMetadatas } = useMediaMetadata()
+    const { initializeMediaMetadata } = useMediaMetadataActions();
     const latestMediaMetadatas = useLatest(mediaMetadatas)
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: Event) => void) | null>(null);
@@ -30,16 +30,10 @@ export function MediaFolderImportedEventHandler() {
         const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
 
         const updateSelectedMediaMetadata = async (mediaFolderPathInPosix: string) => {
-            for (const _ of range(10)) {
-                await delay(100);
-                console.log(`size of media metadatas: ${latestMediaMetadatas.current.length}`)
-                const index = latestMediaMetadatas.current.findIndex((item) => item.mediaFolderPath !== undefined && item.mediaFolderPath === mediaFolderPathInPosix)
-                if (index !== -1) {
-                    console.log(`[${traceId}] Set selected media metadata to index ${index} for mediaFolderPath ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
-                    setSelectedMediaMetadata(index, { traceId: 'MediaFolderImportedEventHandler.updateSelectedMediaMetadata' })
-                    return
-                }
-            }
+            // Wait a bit for the metadata to be added to the store
+            await delay(100);
+            console.log(`[${traceId}] Auto-selecting newly imported folder: ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
+            setSelectedMediaMetadataByMediaFolderPath(mediaFolderPathInPosix)
         }
 
         if (type === 'music') {
@@ -70,10 +64,7 @@ export function MediaFolderImportedEventHandler() {
             progress: 0,
         })
 
-        const mm = await createInitialMediaMetadata(
-            folderPathInPlatformFormat,
-            type === 'tvshow' ? 'tvshow-folder' : 'movie-folder',
-            { traceId })
+        const mediaType = type === 'tvshow' ? 'tvshow-folder' : 'movie-folder';
 
         console.log('[onFolderSelected] Folder type selected:', type, 'for path:', folderPathInPlatformFormat)
         console.log(`[${traceId}] onFolderSelected: Starting folder selection process`)
@@ -111,55 +102,52 @@ export function MediaFolderImportedEventHandler() {
                 // Update progress to show job is running (50%)
                 setJobProgress(50)
 
-                const response = await readMediaMetadataApi(folderPathInPlatformFormat, signal)
-                const metadata = response.data
+                // Initialize metadata using the new unified API
+                const initializedMetadata = await initializeMediaMetadata(folderPathInPlatformFormat, mediaType, { traceId });
 
-                const isMetadataIncomplete = !metadata
-                    || !metadata.type
-                    || (metadata.type === 'tvshow-folder' && metadata.tmdbTvShow === undefined)
-                    || (metadata.type === 'movie-folder' && metadata.tmdbMovie === undefined)
+                // Check if metadata needs further processing (e.g., TMDB enrichment)
+                const isMetadataIncomplete = !initializedMetadata.tmdbTvShow && !initializedMetadata.tmdbMovie;
 
                 if (isMetadataIncomplete) {
-
-                    if (isNotNil(metadata)) {
-                        mm.type = metadata.type
-                    }
-
-                    addMediaMetadata(mm, { traceId })
+                    addMediaMetadata(initializedMetadata, { traceId })
                     addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
                     if (signal.aborted) {
-                        console.log('[onFolderSelected] Aborted after listFiles')
+                        console.log('[onFolderSelected] Aborted after initialization')
                         setJobStatus('aborted')
                         return
                     }
 
                     try {
-
-                        updateMediaMetadata(mm.mediaFolderPath!, {
-                            ...mm,
+                        // Update status to initializing
+                        updateMediaMetadata(initializedMetadata.mediaFolderPath!, {
+                            ...initializedMetadata,
                             status: 'initializing',
                         }, { traceId })
 
                         // TODO: pass signal.aborted to doPreprocessMediaFolder
-                        await doPreprocessMediaFolder(mm, {
+                        await doPreprocessMediaFolder(initializedMetadata, {
                             traceId,
-                            onSuccess: (mm) => {
-                                updateMediaMetadata(mm.mediaFolderPath!, {
-                                    ...mm,
+                            onSuccess: (processedMetadata) => {
+                                updateMediaMetadata(processedMetadata.mediaFolderPath!, {
+                                    ...processedMetadata,
                                     status: 'ok',
                                 }, { traceId })
                                 setJobStatus('succeeded')
+                                // Auto-select the newly imported folder
+                                updateSelectedMediaMetadata(processedMetadata.mediaFolderPath!)
                             },
                             onError: (error) => {
                                 console.error(`[${traceId}] Failed to preprocess media folder:`, error)
-                                updateMediaMetadata(mm.mediaFolderPath!, (mm: UIMediaMetadata) => {
+                                updateMediaMetadata(initializedMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => {
                                     return {
                                         ...mm,
                                         status: 'ok',
                                     }
                                 }, { traceId })
                                 setJobStatus('failed')
+                                // Still auto-select the folder even if processing failed
+                                updateSelectedMediaMetadata(initializedMetadata.mediaFolderPath!)
                             },
                         })
 
@@ -169,13 +157,15 @@ export function MediaFolderImportedEventHandler() {
                     }
 
                 } else {
+                    // Metadata already complete
                     addMediaMetadata({
-                        ...metadata,
+                        ...initializedMetadata,
                         status: 'ok',
                     }, { traceId })
-                    console.log('[onFolderSelected] Metadata already exists, skipping recognition')
-                    // Job completes quickly when metadata already exists
+                    console.log('[onFolderSelected] Metadata already exists and is complete')
                     setJobStatus('succeeded')
+                    // Auto-select the newly imported folder
+                    updateSelectedMediaMetadata(initializedMetadata.mediaFolderPath!)
                 }
 
                 if (signal.aborted) {
@@ -188,7 +178,7 @@ export function MediaFolderImportedEventHandler() {
                 console.log('[onFolderSelected] Error:', error)
                 // Only log if not aborted (timeout errors are expected)
                 if (!signal.aborted) {
-                    console.error('Failed to read media metadata:', error)
+                    console.error('Failed to initialize media metadata:', error)
                     setJobStatus('failed')
                 }
                 throw error
@@ -207,7 +197,7 @@ export function MediaFolderImportedEventHandler() {
         })
 
         try {
-            mm.mediaFolderPath !== undefined && updateSelectedMediaMetadata(mm.mediaFolderPath!);
+            // Note: updateSelectedMediaMetadata will be called by mainOperation when metadata is added
             await Promise.race([mainOperation(), timeoutPromise])
         } catch (error) {
             // Handle timeout or other errors

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils"
 import { extractUIMediaMetadataProps } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
@@ -11,7 +12,8 @@ export interface LocalFilePanelProps {
 }
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
-  const { updateMediaMetadata, selectedMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata } = useMediaMetadataStoreState();
+  const { updateMediaMetadata } = useMediaMetadataActions();
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)

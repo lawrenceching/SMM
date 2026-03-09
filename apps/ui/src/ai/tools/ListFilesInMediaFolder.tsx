@@ -1,6 +1,6 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
 import { z } from 'zod';
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useEffect } from "react";
 import type { MediaMetadata } from "@core/types";
 
@@ -40,7 +40,7 @@ const _GetFilesInMediaFolderTool = makeAssistantTool({
 
 export function GetFilesInMediaFolderTool() {
 
-    const { mediaMetadatas: mediaMetadatasFromProvider } = useMediaMetadata();
+    const { mediaMetadatas: mediaMetadatasFromProvider } = useMediaMetadataStoreState();
 
     useEffect(() => {
         mediaMetadatas = mediaMetadatasFromProvider;

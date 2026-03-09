@@ -3,7 +3,8 @@ import { basename, dirname, join } from "@/lib/path"
 import { cn, nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
@@ -23,12 +24,12 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 /** Dependencies for doRenameFolder; all passed as params to keep it decoupled from the component. */
 export interface DoRenameFolderDeps {
   renameFolderApi: (params: RenameFolderParams) => Promise<unknown>
-  removeMediaMetadata: (path: string) => void
+  deleteMediaMetadata: (path: string, options?: { traceId?: string }) => Promise<void>
   updateMediaMetadata: (
     path: string,
     metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
     options?: { traceId?: string }
-  ) => void
+  ) => void | Promise<void>
   refreshMediaMetadata: (path: string) => void | Promise<void>
 }
 
@@ -72,10 +73,10 @@ export async function doRenameFolder(
     }
 
     if (path !== newFolderPath) {
-      deps.removeMediaMetadata(path)
+      await deps.deleteMediaMetadata(path, { traceId: id })
     }
 
-    deps.updateMediaMetadata(newFolderPath, updatedMetadata, { traceId: id })
+    await deps.updateMediaMetadata(newFolderPath, updatedMetadata, { traceId: id })
     await deps.refreshMediaMetadata(newFolderPath)
 
     console.log("Folder renamed successfully:", path, "->", newFolderPath)
@@ -130,12 +131,9 @@ export function MediaFolderListItemV2({
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
 
-  const {
-    removeMediaMetadata,
-    updateMediaMetadata,
-    getMediaMetadata,
-    refreshMediaMetadata,
-    selectedMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata } = useMediaMetadataStoreState();
+  const { getMediaMetadata } = useMediaMetadataStoreActions();
+  const { updateMediaMetadata, deleteMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions();
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
   const [openRenameDialog] = renameDialog
@@ -150,11 +148,15 @@ export function MediaFolderListItemV2({
     return basename(path)
   }, [path])
 
-  const handleDeleteButtonClick = useCallback(() => {
+  const handleDeleteButtonClick = useCallback(async () => {
     const traceId = `MediaFolderListItemV2-${nextTraceId()}`;
     console.log(`[${traceId}] MediaFolderListItemV2: Removing folder ${path}`)
 
-    removeMediaMetadata(path)
+    try {
+      await deleteMediaMetadata(path, { traceId });
+    } catch (error) {
+      console.error(`[${traceId}] Failed to delete media metadata:`, error);
+    }
 
     const newUserConfig: UserConfig = {
       ...userConfig,
@@ -162,7 +164,7 @@ export function MediaFolderListItemV2({
     }
 
     setAndSaveUserConfig(traceId, newUserConfig)
-  }, [path, userConfig, setAndSaveUserConfig, removeMediaMetadata])
+  }, [path, userConfig, setAndSaveUserConfig, deleteMediaMetadata])
 
   const handleDeleteClick = useCallback(() => {
     if (onDeleteSelected && selectedFolderPathsProp && selectedFolderPathsProp.size > 0) {
@@ -203,9 +205,9 @@ export function MediaFolderListItemV2({
     const traceId = `MediaFolderListItemV2-${nextTraceId()}`
     const deps: DoRenameFolderDeps = {
       renameFolderApi: renameFolder,
-      removeMediaMetadata,
-      updateMediaMetadata,
-      refreshMediaMetadata,
+      deleteMediaMetadata: deleteMediaMetadata,
+      updateMediaMetadata: updateMediaMetadata,
+      refreshMediaMetadata: refreshMediaMetadata,
     }
 
     openRenameDialog(
@@ -226,7 +228,7 @@ export function MediaFolderListItemV2({
         suggestions: suggestions.length > 0 ? suggestions : undefined,
       }
     )
-  }, [path, mediaName, getMediaMetadata, openRenameDialog, updateMediaMetadata, removeMediaMetadata, refreshMediaMetadata])
+  }, [path, mediaName, getMediaMetadata, openRenameDialog, updateMediaMetadata, deleteMediaMetadata, refreshMediaMetadata])
 
   return (
     <ContextMenu>

@@ -3,7 +3,7 @@ import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"
 import { EpisodeFile } from "./episode-file"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { relative } from "@/lib/path"
 import { useMemo, useCallback } from "react"
 import React from "react"
@@ -124,7 +124,7 @@ export function EpisodeSection({
     onEpisodeFileSelect,
 }: EpisodeSectionProps) {
     const { t } = useTranslation(['components'])
-    const { selectedMediaMetadata } = useMediaMetadata()
+    const { selectedMediaMetadata } = useMediaMetadataStoreState()
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     

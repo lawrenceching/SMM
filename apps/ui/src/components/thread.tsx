@@ -26,7 +26,7 @@ import {
   SquareIcon,
 } from "lucide-react";
 import { useMemo, type FC } from "react";
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
 import { useConfig } from "@/providers/config-provider";
@@ -246,7 +246,7 @@ function short(path: string, maxLength: number) {
 
 const ComposerAction: FC = () => {
 
-  const { selectedMediaMetadata } = useMediaMetadata();
+  const { selectedMediaMetadata } = useMediaMetadataStoreState();
 
   return (
     <div className="aui-composer-action-wrapper relative mx-2 mb-2 flex items-center justify-between">

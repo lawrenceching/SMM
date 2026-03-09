@@ -1,4 +1,5 @@
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { MediaPlayer, type Track } from "./MediaPlayer";
 import { useEffect, useRef, useCallback, useState } from "react";
@@ -85,7 +86,8 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
 }
 
 export function MusicPanel() {
-  const { selectedMediaMetadata, refreshMediaMetadata, updateMediaMetadata } = useMediaMetadata();
+  const { selectedMediaMetadata } = useMediaMetadataStoreState();
+  const { refreshMediaMetadata, updateMediaMetadata } = useMediaMetadataActions();
   const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;

@@ -4,13 +4,15 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MediaFolderListItemV2, doRenameFolder, type DoRenameFolderDeps } from './MediaFolderListItemV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { useDialogs } from '@/providers/dialog-provider'
-import { useMediaMetadata } from '@/providers/media-metadata-provider'
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from '@/stores/mediaMetadataStore'
+import { useMediaMetadataActions } from '@/actions/mediaMetadataActions'
 import { useConfig } from '@/providers/config-provider'
 import { renameFolder } from '@/api/renameFolder'
 import { toast } from 'sonner'
 
 vi.mock('@/providers/dialog-provider')
-vi.mock('@/providers/media-metadata-provider')
+vi.mock('@/stores/mediaMetadataStore')
+vi.mock('@/actions/mediaMetadataActions')
 vi.mock('@/providers/config-provider')
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
@@ -34,7 +36,7 @@ describe('doRenameFolder', () => {
 
     deps = {
       renameFolderApi: vi.fn().mockResolvedValue(undefined),
-      removeMediaMetadata: vi.fn(),
+      deleteMediaMetadata: vi.fn(),
       updateMediaMetadata: vi.fn(),
       refreshMediaMetadata: vi.fn().mockResolvedValue(undefined),
     }
@@ -52,13 +54,13 @@ describe('doRenameFolder', () => {
     })
   })
 
-  it('calls removeMediaMetadata with old path when path changed', async () => {
+  it('calls deleteMediaMetadata with old path when path changed', async () => {
     const metadata = minimalMetadata(path)
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    expect(deps.removeMediaMetadata).toHaveBeenCalledTimes(1)
-    expect(deps.removeMediaMetadata).toHaveBeenCalledWith(path)
+    expect(deps.deleteMediaMetadata).toHaveBeenCalledTimes(1)
+    expect(deps.deleteMediaMetadata).toHaveBeenCalledWith(path, { traceId: expect.any(String) })
   })
 
   it('calls updateMediaMetadata with new path and updated metadata', async () => {
@@ -173,18 +175,18 @@ describe('doRenameFolder', () => {
     )
 
     expect(console.error).toHaveBeenCalledWith('Failed to rename folder:', apiError)
-    expect(deps.removeMediaMetadata).not.toHaveBeenCalled()
+    expect(deps.deleteMediaMetadata).not.toHaveBeenCalled()
     expect(deps.updateMediaMetadata).not.toHaveBeenCalled()
     expect(deps.refreshMediaMetadata).not.toHaveBeenCalled()
   })
 
-  it('does not call removeMediaMetadata when path equals newFolderPath', async () => {
+  it('does not call deleteMediaMetadata when path equals newFolderPath', async () => {
     const metadata = minimalMetadata(path)
     // Same name as current folder basename -> same path
     const samePath = '/media/tvshows/Old Name'
     await doRenameFolder(samePath, 'Old Name', metadata, deps)
 
-    expect(deps.removeMediaMetadata).not.toHaveBeenCalled()
+    expect(deps.deleteMediaMetadata).not.toHaveBeenCalled()
   })
 })
 
@@ -213,20 +215,26 @@ describe('openRenameDialog onRename callback', () => {
       scrapeDialog: [vi.fn(), vi.fn()],
     } as unknown as ReturnType<typeof useDialogs>)
 
-    vi.mocked(useMediaMetadata).mockReturnValue({
-      getMediaMetadata: vi.fn(() => minimalMetadata(path)),
-      removeMediaMetadata: vi.fn(),
-      updateMediaMetadata: vi.fn(),
-      refreshMediaMetadata: vi.fn(),
+    vi.mocked(useMediaMetadataStoreState).mockReturnValue({
+      mediaMetadatas: [minimalMetadata(path)],
       selectedMediaMetadata: null,
-      setSelectedMediaMetadata: vi.fn(),
-      setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-      mediaMetadatas: [],
+      selectedIndex: 0,
+    } as unknown as ReturnType<typeof useMediaMetadataStoreState>)
+    vi.mocked(useMediaMetadataStoreActions).mockReturnValue({
+      getMediaMetadata: vi.fn(() => minimalMetadata(path)),
       setMediaMetadatas: vi.fn(),
       addMediaMetadata: vi.fn(),
-      reloadMediaMetadatas: vi.fn(),
+      updateMediaMetadata: vi.fn(),
+      removeMediaMetadata: vi.fn(),
       updateMediaMetadataStatus: vi.fn(),
-    } as unknown as ReturnType<typeof useMediaMetadata>)
+      setSelectedIndex: vi.fn(),
+      setSelectedByMediaFolderPath: vi.fn(),
+    } as unknown as ReturnType<typeof useMediaMetadataStoreActions>)
+    vi.mocked(useMediaMetadataActions).mockReturnValue({
+      deleteMediaMetadata: vi.fn(),
+      updateMediaMetadata: vi.fn(),
+      refreshMediaMetadata: vi.fn(),
+    } as unknown as ReturnType<typeof useMediaMetadataActions>)
 
     vi.mocked(useConfig).mockReturnValue({
       userConfig: { folders: [path] },

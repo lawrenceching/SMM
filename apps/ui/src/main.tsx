@@ -6,7 +6,8 @@ import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { ConfigProvider } from './providers/config-provider'
-import { MediaMetadataProvider, useMediaMetadata } from './providers/media-metadata-provider'
+import { MediaMetadataProvider } from './providers/media-metadata-provider'
+import { MediaMetadataStoreProvider, useMediaMetadataStoreState } from './providers/mediaMetadataStoreProvider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
@@ -68,7 +69,7 @@ function useIsMobile() {
 
 // WebSocketHandlers component - shared across all app views
 function WebSocketHandlers() {
-  const { selectedMediaMetadata } = useMediaMetadata();
+  const { selectedMediaMetadata } = useMediaMetadataStoreState();
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
@@ -209,14 +210,16 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <ConfigProvider>
-        <MediaMetadataProvider>
-          <DialogProvider>
-            <BackgroundJobsProvider>
-              <AppInitializer />
-              <AppSwitcher />
-            </BackgroundJobsProvider>
-          </DialogProvider>
-        </MediaMetadataProvider>
+        <MediaMetadataStoreProvider>
+          <MediaMetadataProvider>
+            <DialogProvider>
+              <BackgroundJobsProvider>
+                <AppInitializer />
+                <AppSwitcher />
+              </BackgroundJobsProvider>
+            </DialogProvider>
+          </MediaMetadataProvider>
+        </MediaMetadataStoreProvider>
       </ConfigProvider>
     </ThemeProvider>
   </StrictMode>,

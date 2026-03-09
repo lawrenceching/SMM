@@ -30,6 +30,7 @@ import { readMediaMetadataV2 } from '@/api/readMediaMetadataV2'
 import { deleteMediaMetadata } from '@/api/deleteMediaMetadata'
 import { writeMediaMetadata } from '@/api/writeMediaMetadata'
 import { useConfig } from '@/providers/config-provider'
+import { useMediaMetadataStore } from '@/stores/mediaMetadataStore'
 
 const mockReadMediaMetadataV2 = readMediaMetadataV2 as ReturnType<typeof vi.fn>
 const mockDeleteMediaMetadata = deleteMediaMetadata as ReturnType<typeof vi.fn>
@@ -60,6 +61,7 @@ const wrapper = ({ children, initialMetadata }: { children: React.ReactNode, ini
 describe('MediaMetadataProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useMediaMetadataStore.getState().setMediaMetadatas([])
     mockUseConfig.mockReturnValue({
       userConfig: {
         folders: ['/media/show1', '/media/show2'],
@@ -310,6 +312,13 @@ describe('MediaMetadataProvider', () => {
       const { result } = renderHook(() => useMediaMetadata(), {
         wrapper: ({ children }) => wrapper({ children, initialMetadata }),
       })
+
+      // Flush useEffect so store is synced with initialMetadata
+      await act(async () => {})
+
+      // Ensure store was synced so reloadMediaMetadatas reads correct currentMetadataMap
+      expect(result.current.mediaMetadatas).toHaveLength(2)
+      expect(result.current.mediaMetadatas[0].status).toBe('loading')
 
       await act(async () => {
         await result.current.reloadMediaMetadatas()

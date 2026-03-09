@@ -1,5 +1,5 @@
 import { TMDBMovieOverview } from "./tmdb-movie-overview"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
@@ -22,7 +22,7 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
-  const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadata()
+  const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadataStoreState()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,

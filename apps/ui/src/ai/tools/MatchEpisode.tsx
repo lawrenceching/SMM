@@ -1,6 +1,7 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
 import { z } from 'zod';
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { useEffect } from "react";
 import type { MediaFileMetadata } from "@core/types";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
@@ -116,7 +117,8 @@ const _MatchEpisodeTool = makeAssistantTool({
 
 export function MatchEpisodeTool() {
 
-    const { mediaMetadatas: mediaMetadatasFromProvider, updateMediaMetadata: updateMediaMetadataFromProvider } = useMediaMetadata();
+    const { mediaMetadatas: mediaMetadatasFromProvider } = useMediaMetadataStoreState();
+    const { updateMediaMetadata: updateMediaMetadataFromProvider } = useMediaMetadataActions();
 
     useEffect(() => {
         mediaMetadatas = mediaMetadatasFromProvider;

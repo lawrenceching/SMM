@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { MusicPanel, syncTracks } from './MusicPanel';
-import { useMediaMetadata } from '@/providers/media-metadata-provider';
+import { useMediaMetadataStoreState } from '@/stores/mediaMetadataStore';
+import { useMediaMetadataActions } from '@/actions/mediaMetadataActions';
 import { useDialogs } from '@/providers/dialog-provider';
 import { toast } from 'sonner';
 import { openFile } from '@/api/openFile';
@@ -9,7 +10,8 @@ import { deleteFile } from '@/api/deleteFile';
 import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
 
-vi.mock('@/providers/media-metadata-provider');
+vi.mock('@/stores/mediaMetadataStore');
+vi.mock('@/actions/mediaMetadataActions');
 vi.mock('@/providers/dialog-provider');
 vi.mock('@/api/openFile');
 vi.mock('@/api/deleteFile');
@@ -38,19 +40,14 @@ describe('MusicPanel', () => {
     vi.clearAllMocks();
     
     mockUpdateMediaMetadata = vi.fn();
-    vi.mocked(useMediaMetadata).mockReturnValue({
-      selectedMediaMetadata: mockSelectedMediaMetadata,
+    vi.mocked(useMediaMetadataStoreState).mockReturnValue({
+      mediaMetadatas: [mockSelectedMediaMetadata as any],
+      selectedMediaMetadata: mockSelectedMediaMetadata as any,
+      selectedIndex: 0,
+    });
+    vi.mocked(useMediaMetadataActions).mockReturnValue({
       updateMediaMetadata: mockUpdateMediaMetadata,
       refreshMediaMetadata: vi.fn(),
-      mediaMetadatas: [],
-      setMediaMetadatas: vi.fn(),
-      addMediaMetadata: vi.fn(),
-      removeMediaMetadata: vi.fn(),
-      getMediaMetadata: vi.fn(),
-      setSelectedMediaMetadata: vi.fn(),
-      setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-      reloadMediaMetadatas: vi.fn(),
-      updateMediaMetadataStatus: vi.fn(),
     });
 
     vi.mocked(useDialogs).mockReturnValue({
@@ -256,19 +253,10 @@ describe('MusicPanel', () => {
     });
 
     it('should show error toast when no media metadata is selected', async () => {
-      vi.mocked(useMediaMetadata).mockReturnValue({
-        selectedMediaMetadata: undefined,
-        updateMediaMetadata: vi.fn(),
-        refreshMediaMetadata: vi.fn(),
+      vi.mocked(useMediaMetadataStoreState).mockReturnValue({
         mediaMetadatas: [],
-        setMediaMetadatas: vi.fn(),
-        addMediaMetadata: vi.fn(),
-        removeMediaMetadata: vi.fn(),
-        getMediaMetadata: vi.fn(),
-        setSelectedMediaMetadata: vi.fn(),
-        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-        reloadMediaMetadatas: vi.fn(),
-        updateMediaMetadataStatus: vi.fn(),
+        selectedMediaMetadata: undefined,
+        selectedIndex: 0,
       });
 
       renderHook(() => MusicPanel());
@@ -378,19 +366,10 @@ describe('MusicPanel', () => {
         files: ['/media/music/song1.mp3', '/media/music/song2.mp3', '/media/music/song3.mp3'],
       };
 
-      vi.mocked(useMediaMetadata).mockReturnValue({
-        selectedMediaMetadata: multiFileMetadata,
-        updateMediaMetadata: mockUpdateMediaMetadata,
-        refreshMediaMetadata: vi.fn(),
-        mediaMetadatas: [],
-        setMediaMetadatas: vi.fn(),
-        addMediaMetadata: vi.fn(),
-        removeMediaMetadata: vi.fn(),
-        getMediaMetadata: vi.fn(),
-        setSelectedMediaMetadata: vi.fn(),
-        setSelectedMediaMetadataByMediaFolderPath: vi.fn(),
-        reloadMediaMetadatas: vi.fn(),
-        updateMediaMetadataStatus: vi.fn(),
+      vi.mocked(useMediaMetadataStoreState).mockReturnValue({
+        mediaMetadatas: [multiFileMetadata as any],
+        selectedMediaMetadata: multiFileMetadata as any,
+        selectedIndex: 0,
       });
 
       renderHook(() => MusicPanel());

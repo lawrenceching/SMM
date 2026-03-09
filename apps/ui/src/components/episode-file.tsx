@@ -3,7 +3,8 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "@/providers/dialog-provider"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { relative, join, basename, dirname, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
@@ -97,7 +98,8 @@ export function EpisodeFile({
     onFileSelectButtonClick,
 }: EpisodeFileProps) {
     const { t } = useTranslation(['components', 'dialogs'])
-    const { selectedMediaMetadata, refreshMediaMetadata } = useMediaMetadata()
+    const { selectedMediaMetadata } = useMediaMetadataStoreState();
+    const { refreshMediaMetadata } = useMediaMetadataActions();
     const { renameDialog } = useDialogs()
 
     const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
