@@ -1,4 +1,4 @@
-import { basename, relative } from "@/lib/path"
+import { basename, join, relative } from "@/lib/path"
 import {
   Table,
   TableBody,
@@ -7,8 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon } from "lucide-react"
 import { useState, useMemo } from "react"
+import { useDialogs } from "@/providers/dialog-provider"
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { renameFiles } from "@/api/renameFiles"
+import { toast } from "sonner"
+import { useTranslation } from "@/lib/i18n"
+import { computeAssociatedFileRenames } from "./episode-file"
 
 export interface TvShowEpisodeDividerRow {
   id: string
@@ -31,6 +39,8 @@ interface TvShowEpisodeTableProps {
   data: TvShowEpisodeTableRow[]
   /** When set, video paths are shown relative to this path. */
   mediaFolderPath?: string
+  /** Called when user chooses "Select File" from context menu; rowId is e.g. "S01E01". */
+  onVideoFileSelect?: (rowId: string) => void
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -60,8 +70,13 @@ function getDisplayPath(fullPath: string, basePath: string | undefined): string 
   }
 }
 
-export function TvShowEpisodeTable({ data, mediaFolderPath }: TvShowEpisodeTableProps) {
+export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
+  const { t } = useTranslation(['components', 'dialogs'])
+  const { selectedMediaMetadata } = useMediaMetadataStoreState()
+  const { refreshMediaMetadata } = useMediaMetadataActions()
+  const { renameDialog } = useDialogs()
+  const [openRename] = renameDialog
 
   console.log("[TvShowEpisodeTable] render", { dataLength: data.length, firstRowId: data[0]?.id ?? "(empty)" })
 
@@ -131,7 +146,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath }: TvShowEpisodeTable
               return null
             }
 
-            return (
+            const episodeRow = (
               <TableRow key={`${row.id}-${index}`}>
                 <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
                 <TableCell className="max-w-px px-2 py-1">
@@ -156,6 +171,67 @@ export function TvShowEpisodeTable({ data, mediaFolderPath }: TvShowEpisodeTable
                   <CheckCell value={row.nfo} />
                 </TableCell>
               </TableRow>
+            )
+
+            return (
+              <ContextMenu key={`${row.id}-${index}`}>
+                <ContextMenuTrigger asChild>
+                  {episodeRow}
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem
+                    disabled={!row.videoFile || !mediaFolderPath || !selectedMediaMetadata}
+                    onClick={() => {
+                      if (!row.videoFile || !mediaFolderPath || !selectedMediaMetadata?.mediaFolderPath) return
+                      let relativePath: string
+                      try {
+                        relativePath = relative(mediaFolderPath, row.videoFile)
+                      } catch {
+                        relativePath = row.videoFile
+                      }
+                      openRename(
+                        async (newRelativePath: string) => {
+                          if (!selectedMediaMetadata?.mediaFolderPath || !row.videoFile) return
+                          try {
+                            const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
+                            const allMediaFiles = selectedMediaMetadata.files ?? []
+                            const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, allMediaFiles)
+                            await renameFiles({
+                              files: [
+                                { from: row.videoFile, to: newAbsolutePath },
+                                ...assocRenames,
+                              ],
+                            })
+                            refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
+                            toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
+                          } catch (error) {
+                            const errorMessage = error instanceof Error ? error.message : t('episodeFile.renameFailed', { ns: 'components' })
+                            toast.error(t('episodeFile.renameFailed', { ns: 'components' }), {
+                              description: errorMessage,
+                            })
+                            throw error
+                          }
+                        },
+                        {
+                          initialValue: relativePath,
+                          title: t('dialogs:rename.title'),
+                          description: t('dialogs:rename.fileDescription'),
+                        }
+                      )
+                    }}
+                  >
+                    {t('episodeFile.rename', { ns: 'components' })}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    disabled={!onVideoFileSelect}
+                    onClick={() => {
+                      onVideoFileSelect?.(row.id)
+                    }}
+                  >
+                    {t('episodeFile.selectFile', { ns: 'components' })}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             )
           })}
         </TableBody>

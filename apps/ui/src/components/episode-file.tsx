@@ -38,7 +38,7 @@ interface EpisodeFileProps {
  * @param videoNewPath  Absolute POSIX path of the video after rename
  * @param allMediaFiles All file paths in the media folder (from MediaMetadata.files)
  */
-function computeAssociatedFileRenames(
+export function computeAssociatedFileRenames(
     videoOldPath: string,
     videoNewPath: string,
     allMediaFiles: string[]

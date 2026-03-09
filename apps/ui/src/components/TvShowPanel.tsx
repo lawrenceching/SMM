@@ -566,6 +566,21 @@ function TvShowPanel() {
       ? episodeTableData
       : []
 
+  const handleVideoFileSelectForRow = useCallback(
+    (rowId: string) => {
+      const match = rowId.match(/^S(\d+)E(\d+)$/)
+      if (!match) return
+      const seasonNo = parseInt(match[1], 10)
+      const episodeNo = parseInt(match[2], 10)
+      const seasonModel = effectiveSeasons.find((s) => s.season.season_number === seasonNo)
+      const episodeModel = seasonModel?.episodes.find((e) => e.episode.episode_number === episodeNo)
+      if (episodeModel) {
+        handleOpenFilePickerForEpisode(episodeModel.episode)
+      }
+    },
+    [effectiveSeasons, handleOpenFilePickerForEpisode]
+  )
+
   console.log(
     "[TvShowPanel] table data for render",
     "currentPath=" + (currentPath ?? "(undefined)"),
@@ -604,6 +619,7 @@ function TvShowPanel() {
               key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
               data={tableData}
               mediaFolderPath={mediaMetadata?.mediaFolderPath}
+              onVideoFileSelect={handleVideoFileSelectForRow}
             />
           </div>
         </>
