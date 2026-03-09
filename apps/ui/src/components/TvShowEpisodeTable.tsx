@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { CheckIcon, MinusIcon, Image as ImageIcon } from "lucide-react"
+import { CheckIcon, MinusIcon } from "lucide-react"
 
 export interface TvShowEpisodeDividerRow {
   id: string
@@ -48,25 +48,6 @@ function CheckCell({ value }: { value: string | undefined }) {
   )
 }
 
-function ThumbnailCell({ src }: { src: string | undefined }) {
-  if (!src) {
-    return (
-      <div className="flex h-10 w-16 items-center justify-center rounded-sm border bg-muted/40">
-        <ImageIcon className="size-3.5 text-muted-foreground" />
-      </div>
-    )
-  }
-
-  return (
-    <img
-      src={src}
-      alt="thumbnail"
-      className="h-10 w-16 rounded-sm border object-cover"
-      loading="lazy"
-    />
-  )
-}
-
 export function TvShowEpisodeTable({ data }: TvShowEpisodeTableProps) {
   return (
     <section className="rounded-lg border bg-card">
@@ -74,7 +55,7 @@ export function TvShowEpisodeTable({ data }: TvShowEpisodeTableProps) {
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="h-8 w-[140px] px-2 py-1">ID</TableHead>
-            <TableHead className="h-8 w-[90px] px-2 py-1">Thumbnail</TableHead>
+            <TableHead className="h-8 w-[70px] px-2 py-1 text-center">Thumbnail</TableHead>
             <TableHead className="h-8 px-2 py-1">Video File</TableHead>
             <TableHead className="h-8 w-[70px] px-2 py-1 text-center">Subtitle</TableHead>
             <TableHead className="h-8 w-[70px] px-2 py-1 text-center">NFO</TableHead>
@@ -95,8 +76,8 @@ export function TvShowEpisodeTable({ data }: TvShowEpisodeTableProps) {
             return (
               <TableRow key={`${row.id}-${index}`}>
                 <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
-                <TableCell className="px-2 py-1">
-                  <ThumbnailCell src={row.thumbnail} />
+                <TableCell className="px-2 py-1 text-center">
+                  <CheckCell value={row.thumbnail} />
                 </TableCell>
                 <TableCell className="max-w-px px-2 py-1">
                   {row.videoFile ? (
