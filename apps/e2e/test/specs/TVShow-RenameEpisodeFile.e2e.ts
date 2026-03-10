@@ -48,38 +48,22 @@ async function waitForRenameButtonDisplayed() {
 }
 
 /**
- * Expand the first season card in the TV show panel.
- * Waits for season cards to be rendered before attempting to click.
- * Returns true if a season card was found and clicked.
+ * Wait for the episode table (TvShowEpisodeTable) to show the first episode row (S01E01)
+ * and return that row element for later use (e.g. right-click to open context menu).
+ * No "expand season" step needed — the table shows all episodes by default.
  */
-async function expandSeason1(): Promise<boolean> {
-  // Season cards may not be rendered immediately after TMDB data loads — wait for them
+async function waitForFirstEpisodeRow() {
+  const rowSelector = '//tr[.//td[contains(@class,"font-mono") and normalize-space()="S01E01"]]'
   await browser.waitUntil(
     async () => {
-      const cards = await $$('div.rounded-lg.border.bg-card.overflow-hidden')
-      const count = await cards.length
-      return count > 0
+      const row = await $(rowSelector)
+      return await row.isDisplayed().catch(() => false)
     },
-    { timeout: 10000, interval: 300, timeoutMsg: 'Season cards did not appear after TMDB data loaded' }
+    { timeout: 10000, interval: 300, timeoutMsg: 'Episode table did not show S01E01 after TMDB data loaded' }
   )
-
-  const seasonCards = await $$('div.rounded-lg.border.bg-card.overflow-hidden')
-  const cardCount = await seasonCards.length
-  for (let i = 0; i < cardCount; i++) {
-    const card = seasonCards[i]
-    if (!card) continue
-    const text = await card.getText()
-    if (text.includes('Season 1') || text.includes('第 1 季')) {
-      await card.click()
-      return true
-    }
-  }
-  // Fallback: click the first season card
-  if (cardCount > 0 && seasonCards[0]) {
-    await seasonCards[0].click()
-    return true
-  }
-  return false
+  const row = await $(rowSelector)
+  if (!row) throw new Error('Could not find episode row for S01E01')
+  return row
 }
 
 /**
@@ -141,50 +125,39 @@ describe('TVShow - Rename Episode File', () => {
     await waitForRenameButtonDisplayed()
     console.log('TV show panel ready with TMDB data')
 
-    // 2. Expand Season 1 to reveal episode rows
-    const seasonExpanded = await expandSeason1()
-    expect(seasonExpanded).toBe(true)
+    // 2. Wait for episode table to show S01E01 row (no season expand needed with TvShowEpisodeTable)
+    const firstEpisodeRow = await waitForFirstEpisodeRow()
     await delay(500)
-    console.log('Season 1 expanded')
+    console.log('Episode table ready, S01E01 row visible')
 
-    // 3. Expand the first episode row to reveal its files
-    const episodeSections = await $$('[data-episode-id]')
-    expect(episodeSections.length).toBeGreaterThan(0)
-    const firstEpisode = episodeSections[0]!
-    await firstEpisode.click()
+    // 3. Right-click on the episode row to open the context menu (video file is in the row; menu is on whole row)
+    await firstEpisodeRow.click({ button: 'right' })
     await delay(300)
-    console.log('First episode row expanded')
+    console.log('Right-clicked on episode row')
 
-    // 4. Right-click on the episode video file to open the context menu
-    const episodeFileText = await firstEpisode.$('p.font-mono.font-medium.text-sm')
-    await episodeFileText.waitForDisplayed({ timeout: 5000 })
-    await episodeFileText.click({ button: 'right' })
-    await delay(300)
-    console.log('Right-clicked on episode file element')
-
-    // 5. Click "Rename" from the context menu
+    // 4. Click "Rename" from the context menu
     await clickContextMenuItem(RENAME_MENU_ITEM_LABELS)
     await delay(300)
     console.log('Clicked Rename context menu item')
 
-    // 6. Rename dialog should open with the current file name pre-filled
+    // 5. Rename dialog should open with the current file name pre-filled
     const dialogDisplayed = await RenameDialog.waitForDisplayed(5000)
     expect(dialogDisplayed).toBe(true)
     const inputValue = await RenameDialog.getInputValue()
     expect(inputValue).toBe(EPISODE_FILE_NAME)
     console.log('Rename dialog shown with initial value:', inputValue)
 
-    // 7. Confirm button should be disabled while name is unchanged
+    // 6. Confirm button should be disabled while name is unchanged
     expect(await RenameDialog.isConfirmDisabled()).toBe(true)
     console.log('Confirm button is disabled when name is unchanged (expected)')
 
-    // 8. Enter the new file name
+    // 7. Enter the new file name
     await RenameDialog.setInputValue(RENAMED_FILE_NAME)
     expect(await RenameDialog.getInputValue()).toBe(RENAMED_FILE_NAME)
     expect(await RenameDialog.isConfirmDisabled()).toBe(false)
     console.log('Confirm button is enabled after name change (expected)')
 
-    // 9. Confirm the rename
+    // 8. Confirm the rename
     await RenameDialog.clickConfirm()
     await RenameDialog.waitForClosed()
     console.log('Rename dialog closed after confirm')
@@ -195,12 +168,12 @@ describe('TVShow - Rename Episode File', () => {
     const filesInMediaFolder = fs.readdirSync(testMediaFolder)
     console.log('Files in media folder after rename:', filesInMediaFolder)
 
-    // 10. Assert the video file was renamed
+    // 9. Assert the video file was renamed
     expect(filesInMediaFolder).toContain(RENAMED_FILE_NAME)
     expect(filesInMediaFolder).not.toContain(EPISODE_FILE_NAME)
     console.log(`Video renamed: "${EPISODE_FILE_NAME}" -> "${RENAMED_FILE_NAME}"`)
 
-    // 11. Assert every associated file was renamed implicitly with the new stem
+    // 10. Assert every associated file was renamed implicitly with the new stem
     for (let i = 0; i < ASSOCIATED_FILES.length; i++) {
       const original = ASSOCIATED_FILES[i]!
       const renamed = RENAMED_ASSOCIATED_FILES[i]!
