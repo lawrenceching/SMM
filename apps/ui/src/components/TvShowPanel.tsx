@@ -76,6 +76,7 @@ function TvShowPanel() {
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
 
   const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
+  const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
   const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
   const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
 
@@ -541,13 +542,21 @@ function TvShowPanel() {
       for (const episodeModel of seasonModel.episodes) {
         const episodeNo = episodeModel.episode.episode_number
         const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
+        const videoFile = episodeModel.files.find((file) => file.type === "video")
+        const thumbnailFile = episodeModel.files.find((file) => file.type === "poster")
+        const subtitleFile = episodeModel.files.find((file) => file.type === "subtitle")
+        const nfoFile = episodeModel.files.find((file) => file.type === "nfo")
         rows.push({
           id: episodeId,
           type: "episode",
-          videoFile: episodeModel.files.find((file) => file.type === "video")?.path,
-          thumbnail: episodeModel.files.find((file) => file.type === "poster")?.path,
-          subtitle: episodeModel.files.find((file) => file.type === "subtitle")?.path,
-          nfo: episodeModel.files.find((file) => file.type === "nfo")?.path,
+          videoFile: videoFile?.path,
+          thumbnail: thumbnailFile?.path,
+          subtitle: subtitleFile?.path,
+          nfo: nfoFile?.path,
+          newVideoFile: videoFile?.newPath,
+          newThumbnail: thumbnailFile?.newPath,
+          newSubtitle: subtitleFile?.newPath,
+          newNfo: nfoFile?.newPath,
         })
       }
     }
@@ -581,16 +590,6 @@ function TvShowPanel() {
     [effectiveSeasons, handleOpenFilePickerForEpisode]
   )
 
-  console.log(
-    "[TvShowPanel] table data for render",
-    "currentPath=" + (currentPath ?? "(undefined)"),
-    "seasonsPathRef=" + (seasonsPathRef.current ?? "(undefined)"),
-    "match=" + (currentPath !== undefined && currentPath === seasonsPathRef.current),
-    "tableDataLength=" + tableData.length
-  )
-
-  console.log(`tableData: S01E01`, tableData.find((row) => row.id === "S01E01"))
-
   const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
 
   return (
@@ -620,6 +619,7 @@ function TvShowPanel() {
               data={tableData}
               mediaFolderPath={mediaMetadata?.mediaFolderPath}
               onVideoFileSelect={handleVideoFileSelectForRow}
+              preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
             />
           </div>
         </>

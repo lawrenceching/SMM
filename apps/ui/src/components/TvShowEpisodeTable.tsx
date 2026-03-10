@@ -44,6 +44,11 @@ export interface TvShowEpisodeDataRow {
   thumbnail: string | undefined
   subtitle: string | undefined
   nfo: string | undefined
+  /** Preview target paths (used when preview mode is active) */
+  newVideoFile?: string
+  newThumbnail?: string
+  newSubtitle?: string
+  newNfo?: string
 }
 
 export type TvShowEpisodeTableRow = TvShowEpisodeDividerRow | TvShowEpisodeDataRow
@@ -54,6 +59,8 @@ interface TvShowEpisodeTableProps {
   mediaFolderPath?: string
   /** Called when user chooses "Select File" from context menu; rowId is e.g. "S01E01". */
   onVideoFileSelect?: (rowId: string) => void
+  /** When true, shows rename preview with strikethrough old name and new name. */
+  preview?: boolean
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -136,7 +143,7 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   nfo: true,
 }
 
-export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }: TvShowEpisodeTableProps) {
+export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, preview }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const { t } = useTranslation(['components', 'dialogs'])
@@ -276,12 +283,20 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }:
                 {columnVisibility.video && (
                   <TableCell className="max-w-px px-2 py-1">
                     {row.videoFile ? (
-                      <div className="min-w-0">
-                        <div className="truncate">{basename(row.videoFile) ?? row.videoFile}</div>
-                        <div className="truncate text-[11px] text-muted-foreground" title={row.videoFile}>
+                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                            {getDisplayPath(row.videoFile, mediaFolderPath)}
+                          </div>
+                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}>
+                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="truncate" title={row.videoFile}>
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
-                      </div>
+                      )
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
