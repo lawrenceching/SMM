@@ -166,6 +166,60 @@
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
+  },
+  "musicFileTable": {
+    "columns": {
+      "index": "#",
+      "cover": "Cover",
+      "title": "Title",
+      "artist": "Artist",
+      "duration": "Duration"
+    }
+  },
+  "tvShowEpisodeTable": {
+    "columns": {
+      "id": "ID",
+      "video": "Video",
+      "thumbnail": "Thumbnail",
+      "subtitle": "Subtitle",
+      "nfo": "NFO"
+    },
+    "header": {
+      "videoFile": "Video File",
+      "thumb": "Thumb",
+      "sub": "Sub"
+    },
+    "contextMenu": {
+      "showColumns": "Show..."
+    },
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noFile": "-"
+  },
+  "movieEpisodeTable": {
+    "columns": {
+      "file": "File",
+      "thumbnail": "Poster",
+      "subtitle": "Subtitle",
+      "nfo": "NFO"
+    },
+    "header": {
+      "type": "Type",
+      "file": "File",
+      "poster": "Poster",
+      "sub": "Sub",
+      "nfo": "NFO"
+    },
+    "rowTypes": {
+      "video": "Video",
+      "poster": "Poster",
+      "sub": "Sub",
+      "nfo": "NFO"
+    },
+    "contextMenu": {
+      "showColumns": "Show..."
+    },
+    "noFilesFound": "No files found"
   }
 }
 

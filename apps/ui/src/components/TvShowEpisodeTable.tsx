@@ -129,12 +129,12 @@ function ThumbnailImage({
 const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
 type ColumnKey = (typeof COLUMN_KEYS)[number]
 
-const COLUMN_LABELS: Record<ColumnKey, string> = {
-  video: "视频",
-  thumbnail: "封面",
-  subtitle: "字幕",
-  nfo: "NFO",
-}
+const getColumnLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<ColumnKey, string> => ({
+  video: t('tvShowEpisodeTable.columns.video'),
+  thumbnail: t('tvShowEpisodeTable.columns.thumbnail'),
+  subtitle: t('tvShowEpisodeTable.columns.subtitle'),
+  nfo: t('tvShowEpisodeTable.columns.nfo'),
+})
 
 const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   video: true,
@@ -151,6 +151,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, p
   const { refreshMediaMetadata } = useMediaMetadataActions()
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
+
+  const columnLabels = getColumnLabels(t)
 
   console.log("[TvShowEpisodeTable] render", { dataLength: data.length, firstRowId: data[0]?.id ?? "(empty)" })
 
@@ -183,18 +185,18 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, p
 
   const headerRow = (
     <TableRow className="hover:bg-transparent">
-      <TableHead className="h-8 w-[100px] px-2 py-1">ID</TableHead>
+      <TableHead className="h-8 w-[100px] px-2 py-1">{t('tvShowEpisodeTable.columns.id')}</TableHead>
       {columnVisibility.video && (
-        <TableHead className="h-8 min-w-0 px-2 py-1">Video File</TableHead>
+        <TableHead className="h-8 min-w-0 px-2 py-1">{t('tvShowEpisodeTable.header.videoFile')}</TableHead>
       )}
       {columnVisibility.thumbnail && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Thumbnail">Thumb</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t('tvShowEpisodeTable.columns.thumbnail')}>{t('tvShowEpisodeTable.header.thumb')}</TableHead>
       )}
       {columnVisibility.subtitle && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Subtitle">Sub</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t('tvShowEpisodeTable.columns.subtitle')}>{t('tvShowEpisodeTable.header.sub')}</TableHead>
       )}
       {columnVisibility.nfo && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">NFO</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">{t('tvShowEpisodeTable.columns.nfo')}</TableHead>
       )}
     </TableRow>
   )
@@ -209,35 +211,35 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, p
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuSub>
-                <ContextMenuSubTrigger>显示...</ContextMenuSubTrigger>
+                <ContextMenuSubTrigger>{t('tvShowEpisodeTable.contextMenu.showColumns')}</ContextMenuSubTrigger>
                 <ContextMenuSubContent>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.video}
                     onCheckedChange={() => toggleColumn("video")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.video}
+                    {columnLabels.video}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.thumbnail}
                     onCheckedChange={() => toggleColumn("thumbnail")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.thumbnail}
+                    {columnLabels.thumbnail}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.subtitle}
                     onCheckedChange={() => toggleColumn("subtitle")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.subtitle}
+                    {columnLabels.subtitle}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.nfo}
                     onCheckedChange={() => toggleColumn("nfo")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.nfo}
+                    {columnLabels.nfo}
                   </ContextMenuCheckboxItem>
                 </ContextMenuSubContent>
               </ContextMenuSub>
@@ -257,8 +259,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, p
                         type="button"
                         onClick={() => toggleCollapsed(row.id)}
                         className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        title={isCollapsed ? "展开" : "收起"}
-                        aria-label={isCollapsed ? "展开" : "收起"}
+                        title={isCollapsed ? t('tvShowEpisodeTable.expand') : t('tvShowEpisodeTable.collapse')}
+                        aria-label={isCollapsed ? t('tvShowEpisodeTable.expand') : t('tvShowEpisodeTable.collapse')}
                       >
                         {isCollapsed ? (
                           <ChevronRightIcon className="size-4" />

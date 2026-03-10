@@ -201,6 +201,51 @@ interface ComponentsResources {
     noTracksFound: string
     tryAdjustingFilter: string
   }
+  tvShowEpisodeTable: {
+    columns: {
+      id: string
+      video: string
+      thumbnail: string
+      subtitle: string
+      nfo: string
+    }
+    header: {
+      videoFile: string
+      thumb: string
+      sub: string
+    }
+    contextMenu: {
+      showColumns: string
+    }
+    expand: string
+    collapse: string
+    noFile: string
+  }
+  movieEpisodeTable: {
+    columns: {
+      file: string
+      thumbnail: string
+      subtitle: string
+      nfo: string
+    }
+    header: {
+      type: string
+      file: string
+      poster: string
+      sub: string
+      nfo: string
+    }
+    rowTypes: {
+      video: string
+      poster: string
+      sub: string
+      nfo: string
+    }
+    contextMenu: {
+      showColumns: string
+    }
+    noFilesFound: string
+  }
 }
 
 interface DialogsResources {

@@ -138,11 +138,11 @@ export function MusicFileTable({
       <Table className="text-xs table-fixed w-full">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="h-8 w-10 px-2 py-1 text-center">#</TableHead>
-            <TableHead className="h-8 w-16 px-0 py-1 text-center">Cover</TableHead>
-            <TableHead className="h-8 min-w-0 px-2 py-1">Title</TableHead>
-            <TableHead className="h-8 w-32 px-2 py-1">Artist</TableHead>
-            <TableHead className="h-8 w-16 px-2 py-1 text-right">Duration</TableHead>
+            <TableHead className="h-8 w-10 px-2 py-1 text-center">{t('musicFileTable.columns.index')}</TableHead>
+            <TableHead className="h-8 w-16 px-0 py-1 text-center">{t('musicFileTable.columns.cover')}</TableHead>
+            <TableHead className="h-8 min-w-0 px-2 py-1">{t('musicFileTable.columns.title')}</TableHead>
+            <TableHead className="h-8 w-32 px-2 py-1">{t('musicFileTable.columns.artist')}</TableHead>
+            <TableHead className="h-8 w-16 px-2 py-1 text-right">{t('musicFileTable.columns.duration')}</TableHead>
             <TableHead className="h-8 w-8 px-2 py-1"></TableHead>
           </TableRow>
         </TableHeader>

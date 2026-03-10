@@ -22,7 +22,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { CheckIcon, MinusIcon } from "lucide-react"
 import Image from "@/components/Image"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
@@ -113,12 +113,12 @@ function PosterImage({
 const COLUMN_KEYS = ["file", "thumbnail", "subtitle", "nfo"] as const
 type ColumnKey = (typeof COLUMN_KEYS)[number]
 
-const COLUMN_LABELS: Record<ColumnKey, string> = {
-  file: "文件",
-  thumbnail: "封面",
-  subtitle: "字幕",
-  nfo: "NFO",
-}
+const getColumnLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<ColumnKey, string> => ({
+  file: t("movieEpisodeTable.columns.file"),
+  thumbnail: t("movieEpisodeTable.columns.thumbnail"),
+  subtitle: t("movieEpisodeTable.columns.subtitle"),
+  nfo: t("movieEpisodeTable.columns.nfo"),
+})
 
 const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   file: true,
@@ -129,7 +129,8 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
 
 export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpisodeTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
-  const { t } = useTranslation(['components', 'dialogs'])
+  const { t } = useTranslation(["components", "dialogs"])
+  const columnLabels = getColumnLabels(t as (key: string, options?: Record<string, unknown>) => string)
   const { selectedMediaMetadata } = useMediaMetadataStoreState()
   const { refreshMediaMetadata } = useMediaMetadataActions()
   const { renameDialog } = useDialogs()
@@ -145,18 +146,22 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
 
   const headerRow = (
     <TableRow className="hover:bg-transparent">
-      <TableHead className="h-8 w-[80px] px-2 py-1">Type</TableHead>
+      <TableHead className="h-8 w-[80px] px-2 py-1">{t("movieEpisodeTable.header.type")}</TableHead>
       {columnVisibility.file && (
-        <TableHead className="h-8 min-w-0 px-2 py-1">File</TableHead>
+        <TableHead className="h-8 min-w-0 px-2 py-1">{t("movieEpisodeTable.header.file")}</TableHead>
       )}
       {columnVisibility.thumbnail && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Poster">Poster</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t("movieEpisodeTable.header.poster")}>
+          {t("movieEpisodeTable.header.poster")}
+        </TableHead>
       )}
       {columnVisibility.subtitle && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Subtitle">Sub</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t("movieEpisodeTable.columns.subtitle")}>
+          {t("movieEpisodeTable.header.sub")}
+        </TableHead>
       )}
       {columnVisibility.nfo && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">NFO</TableHead>
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">{t("movieEpisodeTable.header.nfo")}</TableHead>
       )}
     </TableRow>
   )
@@ -177,35 +182,35 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuSub>
-                <ContextMenuSubTrigger>显示...</ContextMenuSubTrigger>
+                <ContextMenuSubTrigger>{t("movieEpisodeTable.contextMenu.showColumns")}</ContextMenuSubTrigger>
                 <ContextMenuSubContent>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.file}
                     onCheckedChange={() => toggleColumn("file")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.file}
+                    {columnLabels.file}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.thumbnail}
                     onCheckedChange={() => toggleColumn("thumbnail")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.thumbnail}
+                    {columnLabels.thumbnail}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.subtitle}
                     onCheckedChange={() => toggleColumn("subtitle")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.subtitle}
+                    {columnLabels.subtitle}
                   </ContextMenuCheckboxItem>
                   <ContextMenuCheckboxItem
                     checked={columnVisibility.nfo}
                     onCheckedChange={() => toggleColumn("nfo")}
                     onSelect={(e) => e.preventDefault()}
                   >
-                    {COLUMN_LABELS.nfo}
+                    {columnLabels.nfo}
                   </ContextMenuCheckboxItem>
                 </ContextMenuSubContent>
               </ContextMenuSub>
@@ -218,7 +223,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
             <ContextMenu key="video-row">
               <ContextMenuTrigger asChild>
                 <TableRow>
-                  <TableCell className="px-2 py-1 font-mono">Video</TableCell>
+                  <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.video")}</TableCell>
                   <TableCell className="max-w-px px-2 py-1">
                     {videoRow.file ? (
                       preview && videoRow.newFile && basename(videoRow.file) !== basename(videoRow.newFile) ? (
@@ -307,7 +312,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
           {/* Poster Row (only if exists and thumbnail column is visible) */}
           {posterRow?.file && columnVisibility.thumbnail && (
             <TableRow key="poster-row">
-              <TableCell className="px-2 py-1 font-mono">Poster</TableCell>
+              <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.poster")}</TableCell>
               {columnVisibility.file && (
                 <TableCell className="max-w-px px-2 py-1">
                   <div className="truncate" title={posterRow.file}>
@@ -350,7 +355,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
           {/* Subtitle Rows (only if exist and subtitle column is visible) */}
           {subtitleRows.map((row, index) => columnVisibility.file && (
             <TableRow key={`subtitle-row-${index}`}>
-              <TableCell className="px-2 py-1 font-mono">Sub</TableCell>
+              <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.sub")}</TableCell>
               <TableCell className="max-w-px px-2 py-1">
                 <div className="truncate" title={row.file || ""}>
                   {row.file ? getDisplayPath(row.file, mediaFolderPath) : <span className="text-muted-foreground">-</span>}
@@ -377,7 +382,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
           {/* NFO Row (only if exists and nfo column is visible) */}
           {nfoRow?.file && columnVisibility.nfo && (
             <TableRow key="nfo-row">
-              <TableCell className="px-2 py-1 font-mono">NFO</TableCell>
+              <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.nfo")}</TableCell>
               {columnVisibility.file && (
                 <TableCell className="max-w-px px-2 py-1">
                   <div className="truncate" title={nfoRow.file}>
@@ -405,7 +410,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
           {data.length === 0 && (
             <TableRow>
               <TableCell colSpan={visibleColumnCount} className="text-center py-6 text-muted-foreground">
-                No files found
+                {t("movieEpisodeTable.noFilesFound")}
               </TableCell>
             </TableRow>
           )}

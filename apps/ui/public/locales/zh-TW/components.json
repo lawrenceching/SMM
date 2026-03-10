@@ -165,6 +165,60 @@
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"
+  },
+  "musicFileTable": {
+    "columns": {
+      "index": "#",
+      "cover": "封面",
+      "title": "標題",
+      "artist": "藝術家",
+      "duration": "時長"
+    }
+  },
+  "tvShowEpisodeTable": {
+    "columns": {
+      "id": "ID",
+      "video": "影片",
+      "thumbnail": "封面",
+      "subtitle": "字幕",
+      "nfo": "NFO"
+    },
+    "header": {
+      "videoFile": "影片檔案",
+      "thumb": "封面",
+      "sub": "字幕"
+    },
+    "contextMenu": {
+      "showColumns": "顯示..."
+    },
+    "expand": "展開",
+    "collapse": "收起",
+    "noFile": "-"
+  },
+  "movieEpisodeTable": {
+    "columns": {
+      "file": "檔案",
+      "thumbnail": "封面",
+      "subtitle": "字幕",
+      "nfo": "NFO"
+    },
+    "header": {
+      "type": "類型",
+      "file": "檔案",
+      "poster": "封面",
+      "sub": "字幕",
+      "nfo": "NFO"
+    },
+    "rowTypes": {
+      "video": "影片",
+      "poster": "封面",
+      "sub": "字幕",
+      "nfo": "NFO"
+    },
+    "contextMenu": {
+      "showColumns": "顯示..."
+    },
+    "noFilesFound": "未找到檔案"
   }
 }
 
