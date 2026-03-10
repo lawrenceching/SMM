@@ -1,4 +1,6 @@
-import { basename, join, relative } from "@/lib/path"
+import { basename, isAbsPath, join, relative } from "@/lib/path"
+import { Path } from "@core/path"
+import { pathToFileURL } from "@core/url"
 import {
   Table,
   TableBody,
@@ -17,7 +19,9 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon } from "lucide-react"
+import Image from "@/components/Image"
 import { useState, useMemo } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
@@ -77,6 +81,42 @@ function getDisplayPath(fullPath: string, basePath: string | undefined): string 
   } catch {
     return fullPath
   }
+}
+
+/** Builds a file:// URL for the thumbnail that the backend can resolve (platform path → file URL). */
+function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | undefined): string {
+  const absolutePath =
+    mediaFolderPath && !isAbsPath(thumbnailPath)
+      ? join(mediaFolderPath, thumbnailPath)
+      : thumbnailPath
+  const platformPath = Path.toPlatformPath(absolutePath)
+  const url = pathToFileURL(platformPath)
+  if (import.meta.env.DEV) {
+    console.debug("[TvShowEpisodeTable] thumbnail image url", {
+      thumbnailPath,
+      absolutePath,
+      platformPath,
+      url,
+    })
+  }
+  return url
+}
+
+function ThumbnailImage({
+  thumbnailPath,
+  mediaFolderPath,
+}: {
+  thumbnailPath: string
+  mediaFolderPath: string | undefined
+}) {
+  const url = getThumbnailImageUrl(thumbnailPath, mediaFolderPath)
+  return (
+    <Image
+      url={url}
+      alt=""
+      className="max-h-[240px] w-auto rounded object-contain"
+    />
+  )
 }
 
 const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
@@ -249,7 +289,27 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }:
                 )}
                 {columnVisibility.thumbnail && (
                   <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                    <CheckCell value={row.thumbnail} />
+                    {row.thumbnail ? (
+                      <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div className="flex items-center justify-center cursor-default">
+                            <CheckCell value={row.thumbnail} />
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent
+                          side="right"
+                          align="center"
+                          className="w-auto max-w-[320px] p-1"
+                        >
+                          <ThumbnailImage
+                            thumbnailPath={row.thumbnail}
+                            mediaFolderPath={mediaFolderPath}
+                          />
+                        </HoverCardContent>
+                      </HoverCard>
+                    ) : (
+                      <CheckCell value={row.thumbnail} />
+                    )}
                   </TableCell>
                 )}
                 {columnVisibility.subtitle && (

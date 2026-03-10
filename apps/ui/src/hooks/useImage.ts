@@ -80,7 +80,11 @@ export function useImage(url?: string, placeholder?: string): string | undefined
         setImageData(base64data)
       })
       .catch((error) => {
-        console.error(`[useImage] Error downloading image from ${imageUrl}:`, error)
+        console.error(
+          `[useImage] Error downloading image from ${imageUrl}:`,
+          error,
+          "(requested: " + apiUrl + ")"
+        )
         setImageData(placeholder)
       })
 
