@@ -1,4 +1,4 @@
-import { relative, isAbsPath, join } from "@/lib/path"
+import { isAbsPath, join } from "@/lib/path"
 import { Path } from "@core/path"
 import { pathToFileURL } from "@core/url"
 import {
@@ -120,17 +120,22 @@ export function MusicFileTable({
     })
   }
 
+  const toTrack = (track: MusicFileRow) => ({
+    id: track.id,
+    title: track.title,
+    artist: track.artist,
+    duration: track.duration,
+    thumbnail: track.thumbnail,
+    addedDate: new Date(),
+    path: track.path,
+  })
+
   const handleProperties = (track: MusicFileRow) => {
-    emitTrackPropertiesEvent({
-      id: track.id,
-      title: track.title,
-    })
+    emitTrackPropertiesEvent(toTrack(track))
   }
 
   const handleFormatConvert = (track: MusicFileRow) => {
-    emitTrackFormatConvertEvent({
-      id: track.id,
-    })
+    emitTrackFormatConvertEvent(toTrack(track))
   }
 
   return (

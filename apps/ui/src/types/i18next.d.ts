@@ -221,6 +221,15 @@ interface ComponentsResources {
     collapse: string
     noFile: string
   }
+  musicFileTable: {
+    columns: {
+      index: string
+      cover: string
+      title: string
+      artist: string
+      duration: string
+    }
+  }
   movieEpisodeTable: {
     columns: {
       file: string
@@ -277,6 +286,10 @@ interface DialogsResources {
     folderPlaceholder: string
     downloading: string
     start: string
+    agreementTitle: string
+    agreementDescription: string
+    agreementCheckboxLabel: string
+    agreementRequiredNotice: string
     validation: {
       URL_EMPTY: string
       URL_INVALID: string

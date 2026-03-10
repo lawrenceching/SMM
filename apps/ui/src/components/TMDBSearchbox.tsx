@@ -87,20 +87,13 @@ export function TMDBSearchbox({
     [onSearchResultSelected]
   )
 
-  const handleTvSelect = useCallback(
-    (result: TMDBTVShow) => {
-      onSearchResultSelected(result)
-    },
-    [onSearchResultSelected]
-  )
-
   if (mediaType === "tv") {
     return (
       <ImmersiveSearchbox
         value={searchQuery}
         onChange={setSearchQuery}
         onSearch={handleSearch}
-        onSelect={handleTvSelect}
+        onSelect={handleSelect}
         searchResults={tvShowResults}
         isSearching={isSearching}
         searchError={searchError}
@@ -116,7 +109,7 @@ export function TMDBSearchbox({
       onChange={setSearchQuery}
       onSearch={handleSearch}
       onSelect={handleSelect}
-      searchResults={tvShowResults}
+      searchResults={searchResults}
       isSearching={isSearching}
       searchError={searchError}
       placeholder={placeholder}

@@ -5,7 +5,7 @@ import { ImmersiveInput } from "./ImmersiveInput"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import type { TMDBTVShow } from "@core/types"
+import type { TMDBTVShow, TMDBMovie } from "@core/types"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -26,8 +26,8 @@ interface ImmersiveSearchboxProps {
     value: string
     onChange: (value: string) => void
     onSearch: () => void
-    onSelect: (result: TMDBTVShow) => void
-    searchResults: TMDBTVShow[]
+    onSelect: (result: TMDBTVShow | TMDBMovie) => void
+    searchResults: (TMDBTVShow | TMDBMovie)[]
     isSearching: boolean
     searchError: string | null
     className?: string
@@ -73,10 +73,14 @@ export function ImmersiveSearchbox({
         onSearch()
     }, [isSearchOpen, onSearch])
 
-    const handleSelectResult = React.useCallback((result: TMDBTVShow) => {
+    const handleSelectResult = React.useCallback((result: TMDBTVShow | TMDBMovie) => {
         setIsSearchOpen(false)
         onSelect(result)
     }, [onSelect])
+
+    const getResultDisplayName = (result: TMDBTVShow | TMDBMovie) => ('name' in result ? result.name : result.title)
+    const getResultOriginalName = (result: TMDBTVShow | TMDBMovie) => ('original_name' in result ? result.original_name : result.original_title)
+    const getResultDate = (result: TMDBTVShow | TMDBMovie) => ('first_air_date' in result ? result.first_air_date : result.release_date)
 
     return (
         <div className={cn("w-full", className)}>
@@ -124,6 +128,10 @@ export function ImmersiveSearchbox({
                             ) : searchResults.length > 0 ? (
                                 searchResults.map((result) => {
                                     const resultPosterUrl = getTMDBImageUrl(result.poster_path, "w200")
+                                    const displayName = getResultDisplayName(result)
+                                    const originalName = getResultOriginalName(result)
+                                    const dateStr = getResultDate(result)
+                                    const voteAvg = result.vote_average ?? 0
                                     return (
                                         <div
                                             key={result.id}
@@ -134,7 +142,7 @@ export function ImmersiveSearchbox({
                                                 <div className="shrink-0">
                                                     <img
                                                         src={resultPosterUrl}
-                                                        alt={result.name}
+                                                        alt={displayName}
                                                         className="w-16 h-24 object-cover rounded-md bg-muted"
                                                         onError={(e) => {
                                                             const target = e.target as HTMLImageElement
@@ -145,28 +153,28 @@ export function ImmersiveSearchbox({
                                             )}
                                             <div className="flex-1 min-w-0" data-testid="tmdb-search-result-item">
                                                 <h3 className="font-semibold text-base mb-1">
-                                                    {result.name}
+                                                    {displayName}
                                                 </h3>
-                                                {result.original_name !== result.name && (
+                                                {originalName !== displayName && (
                                                     <p className="text-sm text-muted-foreground mb-1">
-                                                        {result.original_name}
+                                                        {originalName}
                                                     </p>
                                                 )}
                                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                                                     {result.overview || 'No overview available'}
                                                 </p>
-                                                {(result.first_air_date || result.vote_average) && (
+                                                {(dateStr || voteAvg > 0) && (
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        {result.first_air_date && (
-                                                            <span>{formatDate(result.first_air_date)}</span>
+                                                        {dateStr && (
+                                                            <span>{formatDate(dateStr)}</span>
                                                         )}
-                                                        {result.first_air_date && result.vote_average && (
+                                                        {dateStr && voteAvg > 0 && (
                                                             <span>•</span>
                                                         )}
-                                                        {result.vote_average > 0 && (
+                                                        {voteAvg > 0 && (
                                                             <span className="flex items-center gap-1">
                                                                 <Star className="size-3 fill-yellow-500 text-yellow-500" />
-                                                                {result.vote_average.toFixed(1)}
+                                                                {voteAvg.toFixed(1)}
                                                             </span>
                                                         )}
                                                     </div>

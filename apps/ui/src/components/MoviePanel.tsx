@@ -9,11 +9,10 @@ import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { nextTraceId } from "@/lib/utils"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
-import { useTranslation } from "@/lib/i18n"
-
 import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
 import type { MediaMetadata } from "@core/types"
-import type { TMDBMovie } from "@core/types"
+import type { TMDBMovie, TMDBTVShow } from "@core/types"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
@@ -28,7 +27,6 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
-  const { t } = useTranslation(['components', 'errors'])
   const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadataStoreState()
   const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
   const { scrapeDialog } = useDialogs()
@@ -39,7 +37,7 @@ function MoviePanel() {
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [isRenaming, setIsRenaming] = useState(false)
+  const [, setIsRenaming] = useState(false)
 
   // Prompt states
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
@@ -77,7 +75,7 @@ function MoviePanel() {
 
     for(const file of mediaMetadata.mediaFiles || []) {
       model.files.push({
-        type: file.type || "video",
+        type: "video",
         path: file.absolutePath,
         newPath: undefined,
       })
@@ -171,9 +169,11 @@ function MoviePanel() {
     }
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
 
-  // Handle search result selection
-  const handleSelectResult = useCallback(async (result: TMDBMovie) => {
-    if (mediaMetadata?.tmdbMovie?.id === result.id) {
+  // Handle search result selection (MoviePanel only uses TMDBMovie; TV show type is for shared header)
+  const handleSelectResult = useCallback((result: TMDBTVShow | TMDBMovie) => {
+    if (!('title' in result)) return // movie panel expects movie result
+    const movie = result
+    if (mediaMetadata?.tmdbMovie?.id === movie.id) {
       return
     }
 
@@ -189,10 +189,9 @@ function MoviePanel() {
     }, { traceId })
 
     try {
-      // For movies, we just update with the search result
       updateMediaMetadata(mediaMetadata.mediaFolderPath, {
         ...mediaMetadata,
-        tmdbMovie: result,
+        tmdbMovie: movie,
         tmdbMediaType: 'movie',
         type: 'movie-folder',
         status: 'ok',
@@ -269,7 +268,7 @@ function MoviePanel() {
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
-          selectedMediaMetadata={mediaMetadata}
+          selectedMediaMetadata={mediaMetadata ? { ...mediaMetadata, status: (rawMediaMetadata as UIMediaMetadata | undefined)?.status ?? 'ok' } as UIMediaMetadata : undefined}
           openScrape={openScrape}
         />
       </div>

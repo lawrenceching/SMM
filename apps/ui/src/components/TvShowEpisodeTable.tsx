@@ -152,7 +152,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, p
   const { renameDialog } = useDialogs()
   const [openRename] = renameDialog
 
-  const columnLabels = getColumnLabels(t)
+  const columnLabels = getColumnLabels(t as (key: string, options?: Record<string, unknown>) => string)
 
   console.log("[TvShowEpisodeTable] render", { dataLength: data.length, firstRowId: data[0]?.id ?? "(empty)" })
 

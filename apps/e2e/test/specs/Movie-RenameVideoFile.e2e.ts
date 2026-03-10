@@ -111,10 +111,11 @@ describe('Movie - Rename Video File', () => {
     console.log('Movie panel ready with TMDB data')
 
     // 2. Wait for Files section and the video file row to be visible
+    // The video file name is displayed in a div.truncate inside a table cell
     await browser.waitUntil(
       async () => {
-        const fileRows = await $$('p.font-mono.font-medium.text-sm')
-        for (const el of fileRows) {
+        const fileDivs = await $$('div.truncate')
+        for (const el of fileDivs) {
           const text = (await el.getText()).trim()
           if (text === VIDEO_FILE_NAME) return true
         }
@@ -123,10 +124,11 @@ describe('Movie - Rename Video File', () => {
       { timeout: 10000, interval: 300, timeoutMsg: 'Video file row did not appear in Movie Files section' }
     )
 
-    // 3. Right-click on the video file name to open the context menu
-    const videoFileParagraph = await $(`//p[contains(@class,"font-mono") and contains(@class,"font-medium") and normalize-space(text())="${VIDEO_FILE_NAME}"]`)
-    await videoFileParagraph.waitForDisplayed({ timeout: 5000 })
-    await videoFileParagraph.click({ button: 'right' })
+    // 3. Right-click on the video file row to open the context menu
+    // The video row is a TableRow containing the file name in a div.truncate
+    const videoFileRow = await $(`//div[contains(@class,"truncate") and normalize-space(text())="${VIDEO_FILE_NAME}"]/ancestor::tr`)
+    await videoFileRow.waitForDisplayed({ timeout: 5000 })
+    await videoFileRow.click({ button: 'right' })
     await delay(300)
     console.log('Right-clicked on movie video file element')
 
