@@ -27,6 +27,10 @@
     "folderPlaceholder": "Select download folder...",
     "downloading": "Downloading...",
     "start": "Start",
+    "agreementTitle": "Legal and licensing notice",
+    "agreementDescription": "You may only download content that you have the legal right and proper license to download. Do not use this feature to download copyrighted, illegal or unlicensed content from the internet.",
+    "agreementCheckboxLabel": "I understand and agree that I will not use this feature to download illegal or unlicensed content.",
+    "agreementRequiredNotice": "You must agree to the notice above before downloading.",
     "validation": {
       "URL_EMPTY": "Please enter a video URL",
       "URL_INVALID": "Please enter a valid URL",

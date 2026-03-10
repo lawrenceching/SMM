@@ -17,6 +17,8 @@ import { downloadYtdlpVideo, extractYtdlpVideoData } from "@/api/ytdlp"
 import { toast } from "sonner"
 import { validateDownloadUrl } from "@core/download-video-validators"
 
+const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
+
 export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker, destinationFolder, onVideoDataExtracted, onDownloadComplete }: DownloadVideoDialogProps) {
   const { t } = useTranslation(['dialogs', 'common'])
   const [url, setUrl] = useState("")
@@ -25,12 +27,31 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
   const [isDownloading, setIsDownloading] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [urlTouched, setUrlTouched] = useState(false)
+  const [hasAgreed, setHasAgreed] = useState(false)
+  const [isAgreementChecked, setIsAgreementChecked] = useState(false)
 
   useEffect(() => {
     if (isOpen && destinationFolder) {
       setDownloadFolder(destinationFolder)
     }
   }, [isOpen, destinationFolder])
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+    if (typeof window === "undefined") {
+      return
+    }
+    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
+    if (stored === "true") {
+      setHasAgreed(true)
+      setIsAgreementChecked(true)
+    } else {
+      setHasAgreed(false)
+      setIsAgreementChecked(false)
+    }
+  }, [isOpen])
 
   const runUrlValidation = useCallback((value: string) => {
     const result = validateDownloadUrl(value)
@@ -55,7 +76,21 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
     runUrlValidation(url)
   }
 
+  const handleAgreementChange = (checked: boolean) => {
+    setIsAgreementChecked(checked)
+    if (!checked) {
+      return
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, "true")
+    }
+    setHasAgreed(true)
+  }
+
   const handleStart = async () => {
+    if (!hasAgreed) {
+      return
+    }
     const validation = validateDownloadUrl(url.trim())
     if (!validation.valid) {
       setUrlError(t(`downloadVideo.validation.${validation.error}` as 'downloadVideo.validation.URL_EMPTY'))
@@ -153,6 +188,30 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
+          {!hasAgreed && (
+            <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">
+                {t('downloadVideo.agreementTitle')}
+              </p>
+              <p className="text-muted-foreground">
+                {t('downloadVideo.agreementDescription')}
+              </p>
+              <label className="mt-1 inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5"
+                  checked={isAgreementChecked}
+                  onChange={(e) => handleAgreementChange(e.target.checked)}
+                />
+                <span>{t('downloadVideo.agreementCheckboxLabel')}</span>
+              </label>
+              {!isAgreementChecked && (
+                <p className="text-xs text-destructive">
+                  {t('downloadVideo.agreementRequiredNotice')}
+                </p>
+              )}
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="url">{t('downloadVideo.urlLabel')}</Label>
             <Input
@@ -162,7 +221,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
               value={url}
               onChange={(e) => handleUrlChange(e.target.value)}
               onBlur={handleUrlBlur}
-              disabled={isDownloading}
+              disabled={isDownloading || !hasAgreed}
               className={urlError ? "border-destructive" : ""}
             />
             {urlError && (
@@ -178,14 +237,14 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
                 placeholder={t('downloadVideo.folderPlaceholder')}
                 value={downloadFolder}
                 onChange={(e) => setDownloadFolder(e.target.value)}
-                disabled={isDownloading}
+                disabled={isDownloading || !hasAgreed}
                 readOnly
               />
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleFolderSelect}
-                disabled={isDownloading}
+                disabled={isDownloading || !hasAgreed}
               >
                 <FolderOpen className="h-4 w-4" />
               </Button>
@@ -205,7 +264,10 @@ export function DownloadVideoDialog({ isOpen, onClose, onStart, onOpenFilePicker
           <Button variant="outline" onClick={handleCancel} disabled={isDownloading}>
             {t('cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={handleStart} disabled={!isUrlValid || !downloadFolder.trim() || isDownloading}>
+          <Button
+            onClick={handleStart}
+            disabled={!isUrlValid || !downloadFolder.trim() || isDownloading || !hasAgreed}
+          >
             {isDownloading ? t('downloadVideo.downloading') : t('downloadVideo.start')}
           </Button>
         </div>

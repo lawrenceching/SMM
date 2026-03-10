@@ -27,6 +27,10 @@
     "folderPlaceholder": "選擇下載資料夾...",
     "downloading": "下載中...",
     "start": "開始",
+    "agreementTitle": "法律同版權聲明",
+    "agreementDescription": "你只可以下載自己擁有合法權利同適當授權嘅影片內容，唔好用呢個功能下載受版權保護、違法或者未授權嘅網絡內容。",
+    "agreementCheckboxLabel": "我已經閱讀並明白以上聲明，唔會用呢個功能下載違法或者未授權內容。",
+    "agreementRequiredNotice": "喺開始下載之前，你必須先同意以上聲明。",
     "validation": {
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效嘅 URL",

@@ -27,6 +27,10 @@
     "folderPlaceholder": "选择下载文件夹...",
     "downloading": "下载中...",
     "start": "开始",
+    "agreementTitle": "法律与版权声明",
+    "agreementDescription": "您只能下载具有合法权利和适当授权的视频内容。请勿使用此功能下载受版权保护、违法或未授权的网络内容。",
+    "agreementCheckboxLabel": "我已阅读并理解上述声明，不会使用此功能下载违法或未授权内容。",
+    "agreementRequiredNotice": "在开始下载前，您必须先同意上述声明。",
     "validation": {
       "URL_EMPTY": "请输入视频 URL",
       "URL_INVALID": "请输入有效的 URL",
