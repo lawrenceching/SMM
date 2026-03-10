@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types";
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { useConfig } from "@/providers/config-provider";
 
 export function MediaMetadataUpdatedEventListener() {
-    const { refreshMediaMetadata } = useMediaMetadata();
+    const { refreshMediaMetadata } = useMediaMetadataActions();
     const { reload: reloadUserConfig } = useConfig();
     const eventListener = useRef<((event: any) => void) | null>(null);
 

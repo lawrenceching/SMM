@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
-import { useMediaMetadata } from "@/providers/media-metadata-provider";
+import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
 import { useConfig } from "@/providers/config-provider";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils";
@@ -17,8 +17,8 @@ const mutex = new Mutex();
 export function MediaFolderImportedEventHandler() {
 
     const { addMediaFolderInUserConfig } = useConfig()
-    const { addMediaMetadata, updateMediaMetadata, getMediaMetadata, setSelectedMediaMetadataByMediaFolderPath } = useMediaMetadata()
-    const { initializeMediaMetadata } = useMediaMetadataActions();
+    const { getMediaMetadata, setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
+    const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions();
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: Event) => void) | null>(null);
 
@@ -32,7 +32,7 @@ export function MediaFolderImportedEventHandler() {
             // Wait a bit for the metadata to be added to the store
             await delay(100);
             console.log(`[${traceId}] Auto-selecting newly imported folder: ${Path.toPlatformPath(mediaFolderPathInPosix)}`)
-            setSelectedMediaMetadataByMediaFolderPath(mediaFolderPathInPosix)
+            setSelectedByMediaFolderPath(mediaFolderPathInPosix)
         }
 
         if (type === 'music') {
@@ -41,14 +41,14 @@ export function MediaFolderImportedEventHandler() {
                 getMediaMetadata: (folderInPlatformPath: string) => {
                     return getMediaMetadata(Path.posix(folderInPlatformPath));
                 },
-                addMediaMetadata,
+                addMediaMetadata: saveMediaMetadata,
                 traceId,
             });
             updateSelectedMediaMetadata(Path.posix(folderPathInPlatformFormat))
             return;
         }
 
-        if (getMediaMetadata(folderPathInPlatformFormat)?.status === 'initializing') {
+        if (getMediaMetadata(Path.posix(folderPathInPlatformFormat))?.status === 'initializing') {
             console.log(`[${traceId}] onFolderSelected: Folder ${folderPathInPlatformFormat} is already initializing, skipping`)
             return
         }
@@ -108,7 +108,7 @@ export function MediaFolderImportedEventHandler() {
                 const isMetadataIncomplete = !initializedMetadata.tmdbTvShow && !initializedMetadata.tmdbMovie;
 
                 if (isMetadataIncomplete) {
-                    addMediaMetadata(initializedMetadata, { traceId })
+                    saveMediaMetadata(initializedMetadata, { traceId })
                     addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
                     if (signal.aborted) {
@@ -157,7 +157,7 @@ export function MediaFolderImportedEventHandler() {
 
                 } else {
                     // Metadata already complete
-                    addMediaMetadata({
+                    saveMediaMetadata({
                         ...initializedMetadata,
                         status: 'ok',
                     }, { traceId })

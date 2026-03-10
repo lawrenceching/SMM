@@ -35,8 +35,12 @@ vi.mock("@/providers/config-provider", () => ({
   useConfig: vi.fn(),
 }))
 
-vi.mock("@/providers/media-metadata-provider", () => ({
-  useMediaMetadata: vi.fn(),
+vi.mock("@/stores/mediaMetadataStore", () => ({
+  useMediaMetadataStoreActions: vi.fn(),
+}))
+
+vi.mock("@/actions/mediaMetadataActions", () => ({
+  useMediaMetadataActions: vi.fn(),
 }))
 
 vi.mock("@/stores/backgroundJobsStore", () => ({
@@ -98,7 +102,8 @@ vi.mock("react-use", () => ({
 }))
 
 import { useConfig } from "@/providers/config-provider"
-import { useMediaMetadata } from "@/providers/media-metadata-provider"
+import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder"
 import { createInitialMediaMetadata } from "@/lib/mediaMetadataUtils"
@@ -106,7 +111,8 @@ import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { readMediaMetadataApi } from "@/api/readMediaMatadata"
 
 const mockUseConfig = useConfig as any
-const mockUseMediaMetadata = useMediaMetadata as any
+const mockUseMediaMetadataStoreActions = useMediaMetadataStoreActions as any
+const mockUseMediaMetadataActions = useMediaMetadataActions as any
 const mockUseBackgroundJobsStore = useBackgroundJobsStore as any
 
 describe("MediaFolderImportedEventHandler", () => {
@@ -124,21 +130,24 @@ describe("MediaFolderImportedEventHandler", () => {
       addMediaFolderInUserConfig: vi.fn(),
     } as any)
 
-    mockUseMediaMetadata.mockReturnValue({
-      addMediaMetadata: (metadata: any) => {
+    mockUseMediaMetadataStoreActions.mockReturnValue({
+      getMediaMetadata: vi.fn(() => undefined),
+      setSelectedByMediaFolderPath: (path: string) => {
+        mockSetSelectedMediaMetadata(path)
+      },
+    } as any)
+
+    mockUseMediaMetadataActions.mockReturnValue({
+      saveMediaMetadata: (metadata: any) => {
         testMediaMetadatas.push(metadata)
         sharedRef.current = testMediaMetadatas
       },
       updateMediaMetadata: vi.fn(),
-      getMediaMetadata: vi.fn(() => undefined),
-      setSelectedMediaMetadata: (index: number) => {
-        mockSetSelectedMediaMetadata(index)
-      },
-      setSelectedMediaMetadataByMediaFolderPath: (path: string) => {
-        // For all tests, we expect this to be called with the correct path
-        mockSetSelectedMediaMetadata(path)
-      },
-      mediaMetadatas: testMediaMetadatas,
+      initializeMediaMetadata: vi.fn().mockResolvedValue({
+        mediaFolderPath: "c:/placeholder",
+        type: "tvshow-folder",
+        status: "initializing",
+      }),
     } as any)
 
     mockUseBackgroundJobsStore.mockReturnValue({
@@ -182,16 +191,22 @@ describe("MediaFolderImportedEventHandler", () => {
   })
 
   it("calls setSelectedMediaMetadata after importing tvshow folder", async () => {
-    const mockCreateInitialMediaMetadata = createInitialMediaMetadata as ReturnType<typeof vi.fn>
     const mockDoPreprocessMediaFolder = doPreprocessMediaFolder as ReturnType<typeof vi.fn>
     const mockReadMediaMetadataApi = readMediaMetadataApi as ReturnType<typeof vi.fn>
     const mockListFiles = (await import("@/api/listFiles")).listFiles as ReturnType<typeof vi.fn>
 
-    mockCreateInitialMediaMetadata.mockResolvedValue({
-      mediaFolderPath: "c:/TVShows/TestShow",
-      type: "tvshow-folder",
-      status: "initializing",
-    })
+    mockUseMediaMetadataActions.mockReturnValue({
+      saveMediaMetadata: (metadata: any) => {
+        testMediaMetadatas.push(metadata)
+        sharedRef.current = testMediaMetadatas
+      },
+      updateMediaMetadata: vi.fn(),
+      initializeMediaMetadata: vi.fn().mockResolvedValue({
+        mediaFolderPath: "c:/TVShows/TestShow",
+        type: "tvshow-folder",
+        status: "initializing",
+      }),
+    } as any)
 
     mockReadMediaMetadataApi.mockResolvedValue({
       data: null,
@@ -235,16 +250,22 @@ describe("MediaFolderImportedEventHandler", () => {
   })
 
   it("calls setSelectedMediaMetadata after importing movie folder", async () => {
-    const mockCreateInitialMediaMetadata = createInitialMediaMetadata as ReturnType<typeof vi.fn>
     const mockDoPreprocessMediaFolder = doPreprocessMediaFolder as ReturnType<typeof vi.fn>
     const mockReadMediaMetadataApi = readMediaMetadataApi as ReturnType<typeof vi.fn>
     const mockListFiles = (await import("@/api/listFiles")).listFiles as ReturnType<typeof vi.fn>
 
-    mockCreateInitialMediaMetadata.mockResolvedValue({
-      mediaFolderPath: "c:/Movies/TestMovie",
-      type: "movie-folder",
-      status: "initializing",
-    })
+    mockUseMediaMetadataActions.mockReturnValue({
+      saveMediaMetadata: (metadata: any) => {
+        testMediaMetadatas.push(metadata)
+        sharedRef.current = testMediaMetadatas
+      },
+      updateMediaMetadata: vi.fn(),
+      initializeMediaMetadata: vi.fn().mockResolvedValue({
+        mediaFolderPath: "c:/Movies/TestMovie",
+        type: "movie-folder",
+        status: "initializing",
+      }),
+    } as any)
 
     mockReadMediaMetadataApi.mockResolvedValue({
       data: null,

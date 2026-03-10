@@ -1,3 +1,12 @@
+/**
+ * @deprecated Use zustand store and actions directly instead.
+ * - State: useMediaMetadataStoreState() from "@/stores/mediaMetadataStore"
+ * - Actions: useMediaMetadataStoreActions() from "@/stores/mediaMetadataStore"
+ * - API + store updates: useMediaMetadataActions() from "@/actions/mediaMetadataActions"
+ *
+ * This provider is no longer mounted in the app. Components should use the store and
+ * actions hooks directly (e.g. TvShowPanel, MoviePanel, MediaFolderImportedEventHandler).
+ */
 import { createContext, useContext, type ReactNode, useEffect, useCallback } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useConfig } from "./config-provider"
@@ -49,6 +58,11 @@ interface MediaMetadataProviderProps {
   initialMediaMetadatas?: UIMediaMetadata[]
 }
 
+/**
+ * @deprecated See the comment at the beginning of this file for more details.
+ * @param param0 
+ * @returns 
+ */
 export function MediaMetadataProvider({
   children,
   initialMediaMetadatas = [],

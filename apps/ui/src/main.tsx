@@ -6,7 +6,6 @@ import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { ConfigProvider } from './providers/config-provider'
-import { MediaMetadataProvider } from './providers/media-metadata-provider'
 import { MediaMetadataStoreProvider, useMediaMetadataStoreState } from './providers/mediaMetadataStoreProvider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
@@ -211,14 +210,12 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <ConfigProvider>
         <MediaMetadataStoreProvider>
-          <MediaMetadataProvider>
-            <DialogProvider>
-              <BackgroundJobsProvider>
-                <AppInitializer />
-                <AppSwitcher />
-              </BackgroundJobsProvider>
-            </DialogProvider>
-          </MediaMetadataProvider>
+          <DialogProvider>
+            <BackgroundJobsProvider>
+              <AppInitializer />
+              <AppSwitcher />
+            </BackgroundJobsProvider>
+          </DialogProvider>
         </MediaMetadataStoreProvider>
       </ConfigProvider>
     </ThemeProvider>
