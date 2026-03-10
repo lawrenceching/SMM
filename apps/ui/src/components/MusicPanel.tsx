@@ -1,8 +1,9 @@
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
-import { MediaPlayer, type Track } from "./MediaPlayer";
-import { useEffect, useRef, useCallback, useState } from "react";
+import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
+import { MusicHeaderV2 } from "./MusicHeaderV2";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
@@ -18,6 +19,7 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { DeleteTrackDialog } from "@/components/dialogs";
+import type { Track } from "./MediaPlayer";
 
 interface PendingDelete {
   trackPath: string;
@@ -27,10 +29,10 @@ interface PendingDelete {
 }
 
 /**
- * 
+ *
  * @param prev The track in current state
  * @param localTracks The track from latest local files
- * @returns 
+ * @returns
  */
 export function syncTracks(prev: Track[], localTracks: Track[]) {
   let tracks = prev;
@@ -57,7 +59,7 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
   // new tracks may be added to local folder
   const newTracks = localTracks.filter((newTrack) => !prev.some((prevTrack) => prevTrack.path === newTrack.path));
   tracks = [...tracks, ...newTracks];
-  
+
   // Remove temporary tracks that have successfully downloaded
   tracks = tracks.map((track) => {
     if(track.status === undefined) {
@@ -78,7 +80,7 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
         };
       }
     }
-    
+
     return track;
   });
 
@@ -96,6 +98,8 @@ export function MusicPanel() {
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
 
@@ -114,9 +118,23 @@ export function MusicPanel() {
 
   }, [selectedMediaMetadata])
 
+  // Build table data from tracks
+  const tableData = useMemo<MusicFileRow[]>(() => {
+    return tracks.map((track, index) => ({
+      id: track.id,
+      index,
+      title: track.title,
+      artist: track.artist,
+      duration: track.duration,
+      thumbnail: track.thumbnail,
+      path: track.path,
+      status: track.status,
+    }));
+  }, [tracks]);
+
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
     const { trackPath, trackTitle } = event.detail;
-    
+
     try {
       if (!trackPath) {
         toast.error(`Track "${trackTitle}" does not have an associated file path.`);
@@ -137,7 +155,7 @@ export function MusicPanel() {
 
     try {
       await deleteFile(Path.toPlatformPath(pendingDelete.trackPath));
-      
+
       const updatedFiles = [...pendingDelete.currentFiles];
       updatedFiles.splice(pendingDelete.fileIndex, 1);
 
@@ -154,7 +172,7 @@ export function MusicPanel() {
           files: updatedFiles,
         })
       );
-      
+
       toast.success(`"${pendingDelete.trackTitle}" has been deleted.`);
       console.log('[MusicPanel] Successfully deleted track:', pendingDelete.trackTitle);
       pendingDeleteRef.current = null;
@@ -172,7 +190,7 @@ export function MusicPanel() {
 
   const handleTrackDelete = useCallback(async (event: CustomEvent<TrackDeleteEventDetail>) => {
     const { trackPath, trackTitle } = event.detail;
-    
+
     try {
       if (!trackPath) {
         toast.error(`Track "${trackTitle}" does not have an associated file path.`);
@@ -219,10 +237,10 @@ export function MusicPanel() {
 
   const handleTrackProperties = useCallback((event: CustomEvent<TrackPropertiesEventDetail>) => {
     const { trackId, trackTitle } = event.detail;
-    
+
     try {
       const track = tracks?.find((t) => t.id === trackId);
-      
+
       if (!track) {
         toast.error(`Track with ID ${trackId} could not be found.`);
         return;
@@ -264,7 +282,7 @@ export function MusicPanel() {
 
       setTracks(prev => {
 
-        // The VideoDataExtracted event and DownloadStarted event may 
+        // The VideoDataExtracted event and DownloadStarted event may
         // arrive out of order, so we need to check if the track already exists
         if(prev.some((t) => t.url === url)) {
           // if track already exists, update it
@@ -306,7 +324,7 @@ export function MusicPanel() {
 
       setTracks(prev => {
 
-        // The VideoDataExtracted event and DownloadStarted event may 
+        // The VideoDataExtracted event and DownloadStarted event may
         // arrive out of order, so we need to check if the track already exists
         if(prev.some((t) => t.url === url)) {
           // if track already exists, update it
@@ -339,7 +357,7 @@ export function MusicPanel() {
         }
 
       })
-      
+
     };
 
     // Callback when download completes
@@ -377,6 +395,19 @@ export function MusicPanel() {
     );
   }, [openDownloadVideo, selectedMediaMetadata]);
 
+  // Handle track click for playback indication
+  const handleTrackClick = useCallback((trackId: number) => {
+    const track = tracks.find(t => t.id === trackId)
+    if (!track || track.status === 'downloading') return
+
+    if (currentTrackId === trackId) {
+      setIsPlaying(prev => !prev)
+    } else {
+      setCurrentTrackId(trackId)
+      setIsPlaying(true)
+    }
+  }, [tracks, currentTrackId])
+
   useEffect(() => {
     const unsubscribeOpen = addMusicEventListener<TrackOpenEventDetail>(
       MUSIC_EVENT_NAMES['track:open'],
@@ -407,8 +438,23 @@ export function MusicPanel() {
   }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert]);
 
   return (
-    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <MediaPlayer tracks={tracks} onDownloadClick={handleDownloadClick} />
+    <div className='w-full h-full min-h-0 relative flex flex-col'>
+      <div className="shrink-0 px-4 pt-4">
+        <MusicHeaderV2
+          selectedMediaMetadata={selectedMediaMetadata}
+          onDownloadClick={handleDownloadClick}
+        />
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto">
+        <MusicFileTable
+          key={selectedMediaMetadata?.mediaFolderPath ?? "no-folder"}
+          data={tableData}
+          mediaFolderPath={selectedMediaMetadata?.mediaFolderPath}
+          currentTrackId={currentTrackId}
+          isPlaying={isPlaying}
+          onTrackClick={handleTrackClick}
+        />
+      </div>
     </div>
   );
 }

@@ -1,16 +1,22 @@
-import { TMDBMovieOverview } from "./tmdb-movie-overview"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
-import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
-import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
-import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { newFileName } from "@/api/newFileName"
 import { join } from "@/lib/path"
 import { useLatest } from "react-use"
+import { useDialogs } from "@/providers/dialog-provider"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { nextTraceId } from "@/lib/utils"
+import { renameFiles } from "@/api/renameFiles"
+import { toast } from "sonner"
+import { useTranslation } from "@/lib/i18n"
 
 import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
 import type { MediaMetadata } from "@core/types"
+import type { TMDBMovie } from "@core/types"
+import { MovieHeaderV2 } from "./MovieHeaderV2"
+import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
+import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 
 export interface MovieFileModel {
     files: FileProps[]
@@ -22,24 +28,25 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
+  const { t } = useTranslation(['components', 'errors'])
   const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadataStoreState()
+  const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
+  const { scrapeDialog } = useDialogs()
+  const [openScrape] = scrapeDialog
+
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [isRenaming] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
 
   // Prompt states
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
-  const [isAiBasedRenameFilePromptOpen, setIsAiBasedRenameFilePromptOpen] = useState(false)
-  const [aiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
-  const [isAiRecognizePromptOpen, setIsAiRecognizePromptOpen] = useState(false)
-  const [aiRecognizeStatus] = useState<"generating" | "wait-for-ack">("generating")
 
   /**
    * @deprecated this logic move to MovieUIMediaMetadata, see recognizeMovieMediaFiles method
-   * 
+   *
    * The rawMediaMetadata comes from backend
    * The mediaMetadata is the processed media metadata by frontend.
    * Frontend will adjust or alter the media metadata for its own requirement.
@@ -57,6 +64,7 @@ function MoviePanel() {
 
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
+
   // Merge base files with preview modifications
   useEffect(() => {
     if(!mediaMetadata) {
@@ -69,7 +77,7 @@ function MoviePanel() {
 
     for(const file of mediaMetadata.mediaFiles || []) {
       model.files.push({
-        type: "video",
+        type: file.type || "video",
         path: file.absolutePath,
         newPath: undefined,
       })
@@ -81,8 +89,8 @@ function MoviePanel() {
 
   // Compute preview mode from prompt states
   const isPreviewingForRename = useMemo(() => {
-    return isAiBasedRenameFilePromptOpen || isRuleBasedRenameFilePromptOpen
-  }, [isAiBasedRenameFilePromptOpen, isRuleBasedRenameFilePromptOpen])
+    return isRuleBasedRenameFilePromptOpen
+  }, [isRuleBasedRenameFilePromptOpen])
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
@@ -115,7 +123,7 @@ function MoviePanel() {
 
     (async () => {
       const videoFile = latestMovieFiles.current.files.find(file => file.type === "video")
-      
+
       if(videoFile === undefined) {
         console.error(`Video file is undefined for movie`)
         return
@@ -133,7 +141,7 @@ function MoviePanel() {
         releaseYear: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
         movieName: movie.title || "",
       })
-      
+
       const generatedFileRelativePath = response.data;
       const generatedFilePath = join(mediaMetadata.mediaFolderPath!, generatedFileRelativePath);
 
@@ -157,209 +165,132 @@ function MoviePanel() {
     })()
   }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule])
 
-  // Trigger file name generation when rule-based rename prompt is opened
-  // useEffect(() => {
-  //   if(!isRuleBasedRenameFilePromptOpen) {
-  //     setPreviewFileModifications(new Map())
-  //     return
-  //   }
-  //   generateNewFileNames()
-  // }, [isRuleBasedRenameFilePromptOpen, selectedNamingRule, generateNewFileNames])
-
-  // Handle confirm button click - rename all files
-  // const handleRuleBasedRenameConfirm = useCallback(async () => {
-  //   if (!mediaMetadata?.mediaFolderPath) {
-  //     toast.error("No media folder path available")
-  //     return
-  //   }
-
-  //   if (!isRuleBasedRenameFilePromptOpen) {
-  //     // setIsRuleBasedRenameFilePromptOpen(false)
-  //     return
-  //   }
-
-  //   // Collect all files that need to be renamed, separating video files from associated files
-  //   const videoFilesToRename: Array<{ from: string; to: string; type: string }> = []
-  //   const associatedFilesToRename: Array<{ from: string; to: string; type: string }> = []
-    
-  //   for (const file of latestMovieFiles.current.files) {
-  //     if (file.newPath && file.path !== file.newPath) {
-  //       const renameEntry = {
-  //         from: file.path,
-  //         to: file.newPath,
-  //         type: file.type
-  //       }
-        
-  //       // Separate video files from associated files
-  //       if (file.type === "video") {
-  //         videoFilesToRename.push(renameEntry)
-  //       } else {
-  //         associatedFilesToRename.push(renameEntry)
-  //       }
-  //     }
-  //   }
-
-  //   setIsRenaming(true)
-
-  //   try {
-  //     // Rename files sequentially: video files first, then associated files
-  //     let successCount = 0
-  //     let errorCount = 0
-  //     const errors: string[] = []
-
-  //     // Filter out files where from and to are identical before sending requests
-  //     const filteredVideoFiles = videoFilesToRename.filter(({ from, to }) => from !== to)
-  //     const filteredAssociatedFiles = associatedFilesToRename.filter(({ from, to }) => from !== to)
-      
-  //     const totalFilesToRename = filteredVideoFiles.length + filteredAssociatedFiles.length
-  //     const skippedCount = (videoFilesToRename.length - filteredVideoFiles.length) + 
-  //                         (associatedFilesToRename.length - filteredAssociatedFiles.length)
-
-  //     if (totalFilesToRename === 0) {
-  //       if (skippedCount > 0) {
-  //         toast.info(`No files to rename (${skippedCount} file${skippedCount !== 1 ? 's' : ''} already have correct names)`)
-  //       } else {
-  //         toast.info("No files to rename")
-  //       }
-  //       // setIsRuleBasedRenameFilePromptOpen(false)
-  //       setIsRenaming(false)
-  //       return
-  //     }
-      
-  //     // First, rename all video files
-  //     console.log(`Starting rename: ${filteredVideoFiles.length} video file(s) and ${filteredAssociatedFiles.length} associated file(s)${skippedCount > 0 ? ` (${skippedCount} skipped - identical paths)` : ''}`)
-      
-  //     for (const { from, to, type } of filteredVideoFiles) {
-  //       try {
-  //         await renameFile({
-  //           mediaFolder: mediaMetadata.mediaFolderPath,
-  //           from,
-  //           to,
-  //         })
-  //         successCount++
-  //         console.log(`✓ Renamed video file: ${from} -> ${to}`)
-  //       } catch (error) {
-  //         errorCount++
-  //         const errorMessage = error instanceof Error ? error.message : "Unknown error"
-  //         errors.push(`${type} file ${from}: ${errorMessage}`)
-  //         console.error(`✗ Failed to rename video file ${from} to ${to}:`, error)
-  //       }
-  //     }
-
-  //     // Then, rename all associated files (subtitles, audio, nfo, poster, etc.)
-  //     for (const { from, to, type } of filteredAssociatedFiles) {
-  //       try {
-  //         await renameFile({
-  //           mediaFolder: mediaMetadata.mediaFolderPath,
-  //           from,
-  //           to,
-  //         })
-  //         successCount++
-  //         console.log(`✓ Renamed ${type} file: ${from} -> ${to}`)
-  //       } catch (error) {
-  //         errorCount++
-  //         const errorMessage = error instanceof Error ? error.message : "Unknown error"
-  //         errors.push(`${type} file ${from}: ${errorMessage}`)
-  //         console.error(`✗ Failed to rename ${type} file ${from} to ${to}:`, error)
-  //       }
-  //     }
-
-  //     // Refresh media metadata after all renames
-  //     if (successCount > 0) {
-  //       await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
-  //     }
-
-  //     // Show results
-  //     const skippedMessage = skippedCount > 0 ? ` (${skippedCount} skipped)` : ''
-  //     if (errorCount === 0) {
-  //       toast.success(`Successfully renamed ${successCount} file${successCount !== 1 ? 's' : ''} (${filteredVideoFiles.length} video, ${filteredAssociatedFiles.length} associated)${skippedMessage}`)
-  //     } else if (successCount > 0) {
-  //       toast.warning(`Renamed ${successCount} file${successCount !== 1 ? 's' : ''}, ${errorCount} failed${skippedMessage}`)
-  //       console.error("Rename errors:", errors)
-  //     } else {
-  //       toast.error(`Failed to rename ${errorCount} file${errorCount !== 1 ? 's' : ''}${skippedMessage}`)
-  //       console.error("All rename operations failed:", errors)
-  //     }
-
-  //     // Close prompt and exit preview mode
-  //     // setIsRuleBasedRenameFilePromptOpen(false)
-  //     setPreviewFileModifications(new Map())
-  //   } catch (error) {
-  //     console.error("Unexpected error during rename operation:", error)
-  //     toast.error("An unexpected error occurred during rename operation")
-  //   } finally {
-  //     setIsRenaming(false)
-  //   }
-  // }, [mediaMetadata, isRuleBasedRenameFilePromptOpen, latestMovieFiles, refreshMediaMetadata])
-
-  // Handle AI-based rename confirm
-  // const handleAiBasedRenameConfirm = useCallback(async () => {
-  //   if (!mediaMetadata?.mediaFolderPath) {
-  //     toast.error("No media folder path available")
-  //     return
-  //   }
-
-  //   // Similar logic to handleRuleBasedRenameConfirm but for AI-based renaming
-  //   // This can be implemented when AI-based renaming is needed for movies
-  //   setIsAiBasedRenameFilePromptOpen(false)
-  // }, [mediaMetadata])
-
   useEffect(() => {
-
     if(isRuleBasedRenameFilePromptOpen) {
       generateNewFileNames()
     }
-
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
 
+  // Handle search result selection
+  const handleSelectResult = useCallback(async (result: TMDBMovie) => {
+    if (mediaMetadata?.tmdbMovie?.id === result.id) {
+      return
+    }
+
+    if (!mediaMetadata?.mediaFolderPath) {
+      console.error("No media metadata path available")
+      return
+    }
+
+    const traceId = `movie-panel-handleSelectResult-${nextTraceId()}`
+    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+      ...mediaMetadata,
+      status: 'updating',
+    }, { traceId })
+
+    try {
+      // For movies, we just update with the search result
+      updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+        ...mediaMetadata,
+        tmdbMovie: result,
+        tmdbMediaType: 'movie',
+        type: 'movie-folder',
+        status: 'ok',
+      }, { traceId })
+    } catch (error) {
+      console.error("Failed to update media metadata:", error)
+      updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+        ...mediaMetadata,
+        status: 'ok',
+      }, { traceId })
+    }
+  }, [mediaMetadata, updateMediaMetadata])
+
+  // Handle confirm button click - rename all files
+  const handleRuleBasedRenameConfirm = useCallback(async () => {
+    if (!mediaMetadata?.mediaFolderPath) {
+      toast.error("No media folder path available")
+      return
+    }
+
+    // Collect all files that need to be renamed
+    const filesToRename: Array<{ from: string; to: string }> = []
+
+    for (const file of latestMovieFiles.current.files) {
+      if (file.newPath && file.path !== file.newPath) {
+        filesToRename.push({
+          from: file.path,
+          to: file.newPath,
+        })
+      }
+    }
+
+    if (filesToRename.length === 0) {
+      toast.info("No files to rename")
+      setIsRuleBasedRenameFilePromptOpen(false)
+      return
+    }
+
+    setIsRenaming(true)
+
+    try {
+      await renameFiles({ files: filesToRename })
+      await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
+      toast.success(`Successfully renamed ${filesToRename.length} file${filesToRename.length !== 1 ? 's' : ''}`)
+    } catch (error) {
+      console.error("Rename failed:", error)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      toast.error(`Failed to rename files: ${errorMessage}`)
+    } finally {
+      setIsRenaming(false)
+      setIsRuleBasedRenameFilePromptOpen(false)
+    }
+  }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata])
+
+  // Build table data from movieFiles
+  const tableData = useMemo<MovieFileRow[]>(() => {
+    const rows: MovieFileRow[] = []
+
+    for (const file of movieFiles.files) {
+      rows.push({
+        id: file.path,
+        type: file.type,
+        file: file.path,
+        newFile: file.newPath,
+      })
+    }
+
+    return rows
+  }, [movieFiles.files])
+
   return (
-    <div className='p-1 w-full h-full relative'>
-      <div className="absolute top-0 left-0 w-full z-20">
-        <RuleBasedRenameFilePrompt
-          isOpen={isRuleBasedRenameFilePromptOpen}
-          namingRuleOptions={toolbarOptions}
-          selectedNamingRule={selectedNamingRule}
-          onNamingRuleChange={(value) => {
-            setSelectedNamingRule(value as "plex" | "emby")
-          }}
-          // onConfirm={handleRuleBasedRenameConfirm}
-          onCancel={() => {
-            setIsRuleBasedRenameFilePromptOpen(false)
-          }}
+    <div className='w-full h-full min-h-0 relative flex flex-col'>
+      <div className="shrink-0 px-4 pt-4">
+        <MovieHeaderV2
+          onSearchResultSelected={handleSelectResult}
+          onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
+          selectedMediaMetadata={mediaMetadata}
+          openScrape={openScrape}
         />
-
-        <AiBasedRenameFilePrompt
-          isOpen={isAiBasedRenameFilePromptOpen}
-          status={aiBasedRenameFileStatus}
-          // onConfirm={handleAiBasedRenameConfirm}
-          onCancel={() => setIsAiBasedRenameFilePromptOpen(false)}
-        />
-
-        <AiBasedRecognizePrompt
-          isOpen={isAiRecognizePromptOpen}
-          status={aiRecognizeStatus}
-          onConfirm={() => {
-            setIsAiRecognizePromptOpen(false)
-          }}
-          onCancel={() => {
-            setIsAiRecognizePromptOpen(false)
-          }}
-          isConfirmDisabled={isRenaming}
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto">
+        <MovieEpisodeTable
+          key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+          data={tableData}
+          mediaFolderPath={mediaMetadata?.mediaFolderPath}
+          preview={isPreviewingForRename}
         />
       </div>
 
-      <div className="w-full h-full">
-        <TMDBMovieOverview 
-          movie={mediaMetadata?.tmdbMovie} 
-          className="w-full h-full"
-          onRenameClick={() => {
-            setIsRuleBasedRenameFilePromptOpen(true)
-          }}
-          ruleName={selectedNamingRule}
-          movieFiles={movieFiles}
-          isPreviewingForRename={isPreviewingForRename}
-        />
-      </div>
+      {/* Rename confirmation prompt */}
+      <RuleBasedRenameFilePrompt
+        isOpen={isRuleBasedRenameFilePromptOpen}
+        namingRuleOptions={toolbarOptions}
+        selectedNamingRule={selectedNamingRule}
+        onNamingRuleChange={(value) => setSelectedNamingRule(value as "plex" | "emby")}
+        onConfirm={handleRuleBasedRenameConfirm}
+        onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
+      />
     </div>
   )
 }
