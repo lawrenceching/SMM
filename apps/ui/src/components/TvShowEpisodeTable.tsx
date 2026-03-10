@@ -7,7 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
+import {
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon } from "lucide-react"
 import { useState, useMemo } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -70,8 +79,26 @@ function getDisplayPath(fullPath: string, basePath: string | undefined): string 
   }
 }
 
+const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
+type ColumnKey = (typeof COLUMN_KEYS)[number]
+
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  video: "视频",
+  thumbnail: "封面",
+  subtitle: "字幕",
+  nfo: "NFO",
+}
+
+const defaultColumnVisibility: Record<ColumnKey, boolean> = {
+  video: true,
+  thumbnail: true,
+  subtitle: true,
+  nfo: true,
+}
+
 export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
+  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const { t } = useTranslation(['components', 'dialogs'])
   const { selectedMediaMetadata } = useMediaMetadataStoreState()
   const { refreshMediaMetadata } = useMediaMetadataActions()
@@ -101,17 +128,74 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }:
     })
   }
 
+  const toggleColumn = (key: ColumnKey) => {
+    setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const visibleColumnCount = 1 + COLUMN_KEYS.filter((k) => columnVisibility[k]).length
+
+  const headerRow = (
+    <TableRow className="hover:bg-transparent">
+      <TableHead className="h-8 w-[100px] px-2 py-1">ID</TableHead>
+      {columnVisibility.video && (
+        <TableHead className="h-8 min-w-0 px-2 py-1">Video File</TableHead>
+      )}
+      {columnVisibility.thumbnail && (
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Thumbnail">Thumb</TableHead>
+      )}
+      {columnVisibility.subtitle && (
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Subtitle">Sub</TableHead>
+      )}
+      {columnVisibility.nfo && (
+        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">NFO</TableHead>
+      )}
+    </TableRow>
+  )
+
   return (
     <section className="bg-card">
       <Table className="text-xs table-fixed w-full">
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-8 w-[100px] px-2 py-1">ID</TableHead>
-            <TableHead className="h-8 min-w-0 px-2 py-1">Video File</TableHead>
-            <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Thumbnail">Thumb</TableHead>
-            <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title="Subtitle">Sub</TableHead>
-            <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap">NFO</TableHead>
-          </TableRow>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              {headerRow}
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>显示...</ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                  <ContextMenuCheckboxItem
+                    checked={columnVisibility.video}
+                    onCheckedChange={() => toggleColumn("video")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {COLUMN_LABELS.video}
+                  </ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem
+                    checked={columnVisibility.thumbnail}
+                    onCheckedChange={() => toggleColumn("thumbnail")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {COLUMN_LABELS.thumbnail}
+                  </ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem
+                    checked={columnVisibility.subtitle}
+                    onCheckedChange={() => toggleColumn("subtitle")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {COLUMN_LABELS.subtitle}
+                  </ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem
+                    checked={columnVisibility.nfo}
+                    onCheckedChange={() => toggleColumn("nfo")}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {COLUMN_LABELS.nfo}
+                  </ContextMenuCheckboxItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+            </ContextMenuContent>
+          </ContextMenu>
         </TableHeader>
         <TableBody>
           {data.map((row, index) => {
@@ -119,7 +203,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }:
               const isCollapsed = collapsedIds.has(row.id)
               return (
                 <TableRow key={`${row.id}-${index}`} className="bg-muted/60 hover:bg-muted/70">
-                  <TableCell colSpan={5} className="px-2 py-1.5 font-semibold">
+                  <TableCell colSpan={visibleColumnCount} className="px-2 py-1.5 font-semibold">
                     <div className="flex items-center justify-between gap-2">
                       <span>{row.text}</span>
                       <button
@@ -149,27 +233,35 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect }:
             const episodeRow = (
               <TableRow key={`${row.id}-${index}`}>
                 <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
-                <TableCell className="max-w-px px-2 py-1">
-                  {row.videoFile ? (
-                    <div className="min-w-0">
-                      <div className="truncate">{basename(row.videoFile) ?? row.videoFile}</div>
-                      <div className="truncate text-[11px] text-muted-foreground" title={row.videoFile}>
-                        {getDisplayPath(row.videoFile, mediaFolderPath)}
+                {columnVisibility.video && (
+                  <TableCell className="max-w-px px-2 py-1">
+                    {row.videoFile ? (
+                      <div className="min-w-0">
+                        <div className="truncate">{basename(row.videoFile) ?? row.videoFile}</div>
+                        <div className="truncate text-[11px] text-muted-foreground" title={row.videoFile}>
+                          {getDisplayPath(row.videoFile, mediaFolderPath)}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={row.thumbnail} />
-                </TableCell>
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={row.subtitle} />
-                </TableCell>
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={row.nfo} />
-                </TableCell>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                )}
+                {columnVisibility.thumbnail && (
+                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
+                    <CheckCell value={row.thumbnail} />
+                  </TableCell>
+                )}
+                {columnVisibility.subtitle && (
+                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
+                    <CheckCell value={row.subtitle} />
+                  </TableCell>
+                )}
+                {columnVisibility.nfo && (
+                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
+                    <CheckCell value={row.nfo} />
+                  </TableCell>
+                )}
               </TableRow>
             )
 
