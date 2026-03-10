@@ -190,8 +190,12 @@
       "sub": "Sub"
     },
     "contextMenu": {
-      "showColumns": "Show..."
+      "showColumns": "Show...",
+      "unlink": "Unlink",
+      "notImplemented": "Not Implemented Yet"
     },
+    "unlinkSuccess": "Episode unlinked successfully",
+    "unlinkFailed": "Failed to unlink episode",
     "expand": "Expand",
     "collapse": "Collapse",
     "noFile": "-"

@@ -189,8 +189,12 @@
       "sub": "字幕"
     },
     "contextMenu": {
-      "showColumns": "顯示..."
+      "showColumns": "顯示...",
+      "unlink": "取消關聯",
+      "notImplemented": "尚未實現"
     },
+    "unlinkSuccess": "已取消劇集關聯",
+    "unlinkFailed": "取消劇集關聯失敗",
     "expand": "展開",
     "collapse": "收起",
     "noFile": "-"

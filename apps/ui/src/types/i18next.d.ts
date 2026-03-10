@@ -216,7 +216,11 @@ interface ComponentsResources {
     }
     contextMenu: {
       showColumns: string
+      unlink: string
+      notImplemented: string
     }
+    unlinkSuccess: string
+    unlinkFailed: string
     expand: string
     collapse: string
     noFile: string

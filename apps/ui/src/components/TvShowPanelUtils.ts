@@ -1304,6 +1304,50 @@ export interface OnMediaFolderSelectedParams {
   setSeasons: (seasons: SeasonModel[]) => void
 }
 
+export interface UnlinkEpisodeParams {
+  rowId: string
+  mediaMetadata: UIMediaMetadata | undefined
+  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => Promise<void>
+  t: (key: string, options?: Record<string, unknown>) => string
+}
+
+/**
+ * Unlink the video file from an episode by removing its entry from mediaFiles.
+ * Parses the row ID (e.g., "S01E01") to get season/episode numbers and filters
+ * out the matching entry from mediaMetadata.mediaFiles.
+ */
+export function unlinkEpisode(params: UnlinkEpisodeParams): void {
+  const { rowId, mediaMetadata, updateMediaMetadata, t } = params
+
+  if (!mediaMetadata?.mediaFolderPath || !mediaMetadata.mediaFiles) return
+
+  const match = rowId.match(/^S(\d+)E(\d+)$/)
+  if (!match) return
+
+  const seasonNo = parseInt(match[1], 10)
+  const episodeNo = parseInt(match[2], 10)
+
+  // Filter out the media file entry for this episode
+  const updatedMediaFiles = mediaMetadata.mediaFiles.filter(
+    (mf) => !(mf.seasonNumber === seasonNo && mf.episodeNumber === episodeNo)
+  )
+
+  const traceId = `TvShowPanel-unlinkEpisode-${nextTraceId()}`
+
+  // Positive update: update UI first, then persist
+  updateMediaMetadata(mediaMetadata.mediaFolderPath, {
+    ...mediaMetadata,
+    mediaFiles: updatedMediaFiles,
+  }, { traceId })
+    .then(() => {
+      toast.success(t('tvShowEpisodeTable.unlinkSuccess'))
+    })
+    .catch((error: unknown) => {
+      console.error(`[${traceId}] Failed to unlink episode:`, error)
+      toast.error(t('tvShowEpisodeTable.unlinkFailed'))
+    })
+}
+
 /** @returns true if seasons were set for the current folder (caller may tie ref to path); false if skipped or build failed */
 export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): boolean {
   const {

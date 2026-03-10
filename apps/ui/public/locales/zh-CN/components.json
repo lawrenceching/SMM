@@ -190,8 +190,12 @@
       "sub": "字幕"
     },
     "contextMenu": {
-      "showColumns": "显示..."
+      "showColumns": "显示...",
+      "unlink": "取消关联",
+      "notImplemented": "尚未实现"
     },
+    "unlinkSuccess": "已取消剧集关联",
+    "unlinkFailed": "取消剧集关联失败",
     "expand": "展开",
     "collapse": "收起",
     "noFile": "-"

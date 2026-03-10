@@ -9,7 +9,7 @@ import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
@@ -590,6 +590,18 @@ function TvShowPanel() {
     [effectiveSeasons, handleOpenFilePickerForEpisode]
   )
 
+  const handleUnlinkEpisode = useCallback(
+    (rowId: string) => {
+      unlinkEpisode({
+        rowId,
+        mediaMetadata,
+        updateMediaMetadata,
+        t: t as (key: string, options?: Record<string, unknown>) => string,
+      })
+    },
+    [mediaMetadata, updateMediaMetadata, t]
+  )
+
   const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
 
   return (
@@ -619,6 +631,7 @@ function TvShowPanel() {
               data={tableData}
               mediaFolderPath={mediaMetadata?.mediaFolderPath}
               onVideoFileSelect={handleVideoFileSelectForRow}
+              onUnlinkEpisode={handleUnlinkEpisode}
               preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
             />
           </div>

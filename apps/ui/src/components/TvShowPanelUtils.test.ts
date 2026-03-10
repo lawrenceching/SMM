@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'
+import { toast } from 'sonner'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}))
 
 describe('_buildMappingFromSeasonModels', () => {
   it('should return empty array when given empty seasons array', () => {
@@ -3334,5 +3341,142 @@ describe('tryToRecognizeTvShowFolderByNFO', () => {
     expect(result?.tmdbTvShow?.first_air_date).toBe('2024-01-01')
     expect(result?.tmdbTvShow?.status).toBe('Continuing')
     expect(result?.tmdbTvShow?.genre_ids).toEqual([])
+  })
+})
+
+describe('unlinkEpisode', () => {
+  const mockUpdateMediaMetadata = vi.fn()
+  const mockT = vi.fn((key: string) => key)
+
+  beforeEach(() => {
+    mockUpdateMediaMetadata.mockReset()
+    mockT.mockImplementation((key: string) => key)
+    vi.mocked(toast.success).mockClear()
+    vi.mocked(toast.error).mockClear()
+  })
+
+  const createMediaMetadata = (mediaFiles: Array<{ seasonNumber: number; episodeNumber: number; absolutePath?: string }>) => ({
+    mediaFolderPath: '/show/season1',
+    status: 'ok' as const,
+    mediaFiles: mediaFiles.map((mf, i) => ({
+      seasonNumber: mf.seasonNumber,
+      episodeNumber: mf.episodeNumber,
+      absolutePath: mf.absolutePath ?? `/show/season1/ep${i + 1}.mkv`,
+    })),
+  } as UIMediaMetadata)
+
+  it('does nothing when mediaMetadata is undefined', () => {
+    unlinkEpisode({
+      rowId: 'S1E1',
+      mediaMetadata: undefined,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when mediaFolderPath is undefined', () => {
+    unlinkEpisode({
+      rowId: 'S1E1',
+      mediaMetadata: { ...createMediaMetadata([{ seasonNumber: 1, episodeNumber: 1 }]), mediaFolderPath: undefined },
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when mediaFiles is undefined', () => {
+    unlinkEpisode({
+      rowId: 'S1E1',
+      mediaMetadata: { mediaFolderPath: '/show', status: 'ok', mediaFiles: undefined } as UIMediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when rowId does not match S\\d+E\\d+ pattern', () => {
+    const mediaMetadata = createMediaMetadata([{ seasonNumber: 1, episodeNumber: 1 }])
+    unlinkEpisode({
+      rowId: '1x1',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    unlinkEpisode({
+      rowId: 'S01E01x',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    expect(mockUpdateMediaMetadata).not.toHaveBeenCalled()
+  })
+
+  it('calls updateMediaMetadata with path, updated metadata without the episode, and traceId', () => {
+    mockUpdateMediaMetadata.mockResolvedValue(undefined)
+    const mediaMetadata = createMediaMetadata([
+      { seasonNumber: 1, episodeNumber: 1 },
+      { seasonNumber: 1, episodeNumber: 2 },
+      { seasonNumber: 1, episodeNumber: 3 },
+    ])
+    unlinkEpisode({
+      rowId: 'S1E2',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledTimes(1)
+    const [path, metadata, options] = mockUpdateMediaMetadata.mock.calls[0]
+    expect(path).toBe('/show/season1')
+    expect(metadata).toMatchObject({
+      mediaFolderPath: '/show/season1',
+      mediaFiles: [
+        expect.objectContaining({ seasonNumber: 1, episodeNumber: 1 }),
+        expect.objectContaining({ seasonNumber: 1, episodeNumber: 3 }),
+      ],
+    })
+    expect(metadata.mediaFiles).toHaveLength(2)
+    expect(options).toMatchObject({ traceId: expect.stringMatching(/^TvShowPanel-unlinkEpisode-/) })
+  })
+
+  it('on success calls toast.success with unlinkSuccess i18n key', async () => {
+    mockUpdateMediaMetadata.mockResolvedValue(undefined)
+    const mediaMetadata = createMediaMetadata([{ seasonNumber: 1, episodeNumber: 1 }])
+    unlinkEpisode({
+      rowId: 'S1E1',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    await mockUpdateMediaMetadata.mock.results[0]?.value
+    expect(toast.success).toHaveBeenCalledWith('tvShowEpisodeTable.unlinkSuccess')
+  })
+
+  it('on updateMediaMetadata reject calls toast.error with unlinkFailed i18n key', async () => {
+    mockUpdateMediaMetadata.mockRejectedValue(new Error('persist failed'))
+    const mediaMetadata = createMediaMetadata([{ seasonNumber: 1, episodeNumber: 1 }])
+    unlinkEpisode({
+      rowId: 'S1E1',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    const updatePromise = mockUpdateMediaMetadata.mock.results[0]?.value as Promise<unknown>
+    await expect(updatePromise).rejects.toThrow('persist failed')
+    await Promise.resolve() // flush microtask queue so .catch() runs
+    expect(toast.error).toHaveBeenCalledWith('tvShowEpisodeTable.unlinkFailed')
+  })
+
+  it('filters out the single matching episode when only one exists', () => {
+    mockUpdateMediaMetadata.mockResolvedValue(undefined)
+    const mediaMetadata = createMediaMetadata([{ seasonNumber: 2, episodeNumber: 5 }])
+    unlinkEpisode({
+      rowId: 'S2E5',
+      mediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      t: mockT,
+    })
+    const [, metadata] = mockUpdateMediaMetadata.mock.calls[0]
+    expect(metadata.mediaFiles).toHaveLength(0)
   })
 })
