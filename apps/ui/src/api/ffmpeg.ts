@@ -3,12 +3,18 @@ export interface FfmpegScreenshotsResponse {
   error?: string;
 }
 
+export interface GenerateFfmpegScreenshotsOptions {
+  signal?: AbortSignal;
+}
+
 export async function generateFfmpegScreenshots(
-  videoPath: string
+  videoPath: string,
+  options?: GenerateFfmpegScreenshotsOptions
 ): Promise<FfmpegScreenshotsResponse> {
   const encodedPath = encodeURIComponent(videoPath);
   const resp = await fetch(`/api/ffmpeg/screenshots?videoPath=${encodedPath}`, {
     method: "GET",
+    signal: options?.signal,
   });
 
   return (await resp.json()) as FfmpegScreenshotsResponse;

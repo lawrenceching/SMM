@@ -86,6 +86,7 @@
     "noMediaPathError": "No media folder path available"
   },
   "episodeFile": {
+    "open": "Open",
     "rename": "Rename",
     "renameSuccess": "File renamed successfully",
     "renameFailed": "Failed to rename file",

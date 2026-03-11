@@ -22,7 +22,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon, Loader2, Video } from "lucide-react"
 import Image from "@/components/Image"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
@@ -56,7 +56,15 @@ export interface TvShowEpisodeDataRow {
   newNfo?: string
 }
 
-export type TvShowEpisodeTableRow = TvShowEpisodeDividerRow | TvShowEpisodeDataRow
+export type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
+
+export interface TvShowFolderFileRow {
+  id: FolderFileId
+  type: "folderFile"
+  path: string
+}
+
+export type TvShowEpisodeTableRow = TvShowEpisodeDividerRow | TvShowEpisodeDataRow | TvShowFolderFileRow
 
 interface TvShowEpisodeTableProps {
   data: TvShowEpisodeTableRow[]
@@ -147,10 +155,13 @@ const SCREENSHOT_SLOT_COUNT = 5
 function EpisodeVideoScreenshot({
   videoPath,
   mediaFolderPath,
+  folderAbortSignal,
   className,
 }: {
   videoPath: string
   mediaFolderPath: string | undefined
+  /** When aborted (e.g. user switched folder), pending/queued screenshot requests are cancelled. */
+  folderAbortSignal?: AbortSignal
   className?: string
 }) {
   const [screenshots, setScreenshots] = useState<string[]>([])
@@ -170,30 +181,33 @@ function EpisodeVideoScreenshot({
     const absolutePath =
       mediaFolderPath && !isAbsPath(videoPath) ? join(mediaFolderPath, videoPath) : videoPath
     const posixPath = Path.posix(absolutePath)
+    const signal = folderAbortSignal
 
     enqueueScreenshotTask(async () => {
+      if (signal?.aborted) return
       try {
-        const result = await generateFfmpegScreenshots(posixPath)
-        if (cancelled) return
+        const result = await generateFfmpegScreenshots(posixPath, { signal })
+        if (cancelled || signal?.aborted) return
         if (result.screenshots && result.screenshots.length > 0) {
           setScreenshots(result.screenshots)
         } else {
           setScreenshots([])
         }
-      } catch {
+      } catch (err) {
+        if (signal?.aborted) return
         if (!cancelled) {
           setError(true)
           setScreenshots([])
         }
       } finally {
-        setLoading(false)
+        if (!signal?.aborted) setLoading(false)
       }
     })
 
     return () => {
       cancelled = true
     }
-  }, [videoPath, mediaFolderPath])
+  }, [videoPath, mediaFolderPath, folderAbortSignal])
 
   if (loading) {
     return (
@@ -260,6 +274,17 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
 export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, preview, layout = "simple" }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
+  const folderAbortRef = useRef<AbortController | null>(null)
+  if (!folderAbortRef.current) folderAbortRef.current = new AbortController()
+  const folderAbortSignal = folderAbortRef.current.signal
+
+  useEffect(() => {
+    return () => {
+      folderAbortRef.current?.abort()
+      folderAbortRef.current = null
+    }
+  }, [])
+
   const { t } = useTranslation(['components', 'dialogs'])
   const { selectedMediaMetadata } = useMediaMetadataStoreState()
   const { refreshMediaMetadata } = useMediaMetadataActions()
@@ -427,6 +452,38 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
               )
             }
 
+            if (row.type === "folderFile") {
+              const folderFileRow = (
+                <TableRow key={`${row.id}-${index}`}>
+                  <TableCell className="px-2 py-1 font-mono w-[100px]">{row.id}</TableCell>
+                  <TableCell colSpan={visibleColumnCount - 1} className="max-w-px px-2 py-1 truncate" title={row.path}>
+                    {getDisplayPath(row.path, mediaFolderPath)}
+                  </TableCell>
+                </TableRow>
+              )
+
+              return (
+                <ContextMenu key={`${row.id}-${index}`}>
+                  <ContextMenuTrigger asChild>
+                    {folderFileRow}
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem
+                      onClick={() => {
+                        const absolutePath = mediaFolderPath && !isAbsPath(row.path) ? join(mediaFolderPath, row.path) : row.path
+                        const platformPath = Path.toPlatformPath(absolutePath)
+                        openFile(platformPath).catch((error) => {
+                          console.error('[TvShowEpisodeTable] Failed to open folder file:', error)
+                        })
+                      }}
+                    >
+                      {t('episodeFile.open', { ns: 'components' })}
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              )
+            }
+
             const sectionId = sectionIdByIndex.get(index)
             if (sectionId && collapsedIds.has(sectionId)) {
               return null
@@ -550,6 +607,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                             <EpisodeVideoScreenshot
                               videoPath={row.videoFile}
                               mediaFolderPath={mediaFolderPath}
+                              folderAbortSignal={folderAbortSignal}
                             />
                           </>
                         ) : (
@@ -624,7 +682,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                     onClick={() => {
                       if (!row.videoFile) return
                       const absolutePath = mediaFolderPath && !isAbsPath(row.videoFile) ? join(mediaFolderPath, row.videoFile) : row.videoFile
-                      openFile(absolutePath).catch((error) => {
+                      const platformPath = Path.toPlatformPath(absolutePath)
+                      openFile(platformPath).catch((error) => {
                         console.error('[TvShowEpisodeTable] Failed to open file:', error)
                       })
                     }}

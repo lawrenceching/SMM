@@ -26,7 +26,8 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
-import { TvShowEpisodeTable, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
+import { TvShowEpisodeTable, type TvShowEpisodeTableRow, type TvShowFolderFileRow } from "./TvShowEpisodeTable"
+import { basename } from "@/lib/path"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 
@@ -46,6 +47,29 @@ export interface SeasonModel {
 interface ToolbarOption {
   value: "plex" | "emby",
   label: string,
+}
+
+const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
+
+function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string | undefined {
+  if (!files.length) return undefined
+  if (id === "nfo") {
+    return files.find((f) => basename(f) === "tvshow.nfo")
+  }
+  const prefix = `${id}.`
+  return files.find((f) => {
+    const name = basename(f)
+    return name != null && name.startsWith(prefix)
+  })
+}
+
+function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
+  const rows: TvShowFolderFileRow[] = []
+  for (const id of FOLDER_FILE_IDS) {
+    const path = matchFolderFile(files, id)
+    if (path) rows.push({ id, type: "folderFile", path })
+  }
+  return rows
 }
 
 function TvShowPanel() {
@@ -533,6 +557,10 @@ function TvShowPanel() {
   const episodeTableData = useMemo<TvShowEpisodeTableRow[]>(() => {
     const rows: TvShowEpisodeTableRow[] = []
 
+    if (mediaMetadata?.files && mediaMetadata.mediaFolderPath) {
+      rows.push(...buildFolderFileRows(mediaMetadata.files))
+    }
+
     for (const seasonModel of effectiveSeasons) {
       const seasonNo = seasonModel.season.season_number
       const seasonText = seasonModel.season.name || `Season ${seasonNo}`
@@ -571,7 +599,7 @@ function TvShowPanel() {
       rowsLength: rows.length,
     })
     return rows
-  }, [effectiveSeasons])
+  }, [effectiveSeasons, mediaMetadata?.files, mediaMetadata?.mediaFolderPath])
 
   const currentPath = mediaMetadata?.mediaFolderPath
   const tableData =

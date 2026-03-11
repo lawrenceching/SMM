@@ -85,6 +85,7 @@
     "noMediaPathError": "媒體資料夾路徑不可用"
   },
   "episodeFile": {
+    "open": "開啟",
     "rename": "重新命名",
     "renameSuccess": "檔案重新命名成功",
     "renameFailed": "檔案重新命名失敗",
