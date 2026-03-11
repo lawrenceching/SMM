@@ -49,12 +49,14 @@ describe('MovieHeaderV2', () => {
       render(
         <MovieHeaderV2
           {...defaultProps}
-          selectedMediaMetadata={{
-            status: 'ok',
-            mediaFolderPath: '/media/movie',
-            mediaFiles: [],
-            tmdbMovie: { title: 'Movie', id: undefined as unknown as number },
-          } as UIMediaMetadata}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              tmdbMovie: { title: 'Movie', id: undefined as unknown as number },
+            } as unknown as UIMediaMetadata
+          }
         />
       )
       const moreButton = screen.getByRole('button', { name: 'movie.more' })
@@ -65,12 +67,14 @@ describe('MovieHeaderV2', () => {
       render(
         <MovieHeaderV2
           {...defaultProps}
-          selectedMediaMetadata={{
-            status: 'ok',
-            mediaFolderPath: '/media/movie',
-            mediaFiles: [],
-            tmdbMovie: { id: 789, title: 'Test Movie' },
-          } as UIMediaMetadata}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              tmdbMovie: { id: 789, title: 'Test Movie' },
+            } as unknown as UIMediaMetadata
+          }
         />
       )
       const moreButton = screen.getByRole('button', { name: 'movie.more' })

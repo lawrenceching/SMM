@@ -50,12 +50,14 @@ describe('TvShowHeaderV2', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
-          selectedMediaMetadata={{
-            status: 'ok',
-            mediaFolderPath: '/media/show',
-            mediaFiles: [],
-            tmdbTvShow: { name: 'Show', id: undefined as unknown as number },
-          } as UIMediaMetadata}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/show',
+              mediaFiles: [],
+              tmdbTvShow: { name: 'Show', id: undefined as unknown as number },
+            } as unknown as UIMediaMetadata
+          }
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
@@ -66,12 +68,14 @@ describe('TvShowHeaderV2', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
-          selectedMediaMetadata={{
-            status: 'ok',
-            mediaFolderPath: '/media/show',
-            mediaFiles: [],
-            tmdbTvShow: { id: 123, name: 'Test Show' },
-          } as UIMediaMetadata}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/show',
+              mediaFiles: [],
+              tmdbTvShow: { id: 123, name: 'Test Show' },
+            } as unknown as UIMediaMetadata
+          }
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
@@ -82,12 +86,14 @@ describe('TvShowHeaderV2', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
-          selectedMediaMetadata={{
-            status: 'ok',
-            mediaFolderPath: '/media/movie',
-            mediaFiles: [],
-            tmdbMovie: { id: 456, title: 'Test Movie' },
-          } as UIMediaMetadata}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              tmdbMovie: { id: 456, title: 'Test Movie' },
+            } as unknown as UIMediaMetadata
+          }
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })

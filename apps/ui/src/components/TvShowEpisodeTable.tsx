@@ -601,8 +601,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                   <TableCell
                     className={cn(
                       isPreviewLayout && "w-[160px] min-w-[160px] px-1 py-1 align-top",
-                      layout === "detail" && !isPreviewLayout && "w-[100px] min-w-[100px] px-1 py-1 align-top",
-                      !isPreviewLayout && layout === "simple" && "w-10 shrink-0 px-0 py-1 text-center"
+                      layout === "detail" && !isPreviewLayout && "w-[100px] min-w-[100px] px-1 py-1 align-top"
                     )}
                   >
                     {isPreviewLayout ? (

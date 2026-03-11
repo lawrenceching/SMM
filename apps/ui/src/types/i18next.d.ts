@@ -113,6 +113,7 @@ interface ComponentsResources {
     noMediaPathError: string
   }
   episodeFile: {
+    open: string
     rename: string
     renameSuccess: string
     renameFailed: string
