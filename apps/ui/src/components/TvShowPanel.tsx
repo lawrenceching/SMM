@@ -325,6 +325,13 @@ function TvShowPanel() {
     })
   }, [pendingPlans, mediaMetadata, setSeasonsForPreview, openRuleBasedRecognizePrompt, openAiBasedRecognizePrompt, closeAiBasedRecognizePrompt, handleAiRecognizeConfirmCallback, updatePlan, updateMediaMetadata, t])
 
+  // When panel shows a media folder, fetch pending plans so we can open the right prompt (rename or recognize)
+  useEffect(() => {
+    if (mediaMetadata?.mediaFolderPath) {
+      void fetchPendingPlans()
+    }
+  }, [mediaMetadata?.mediaFolderPath, fetchPendingPlans])
+
   useEffect(() => {
     handlePendingPlansChange()
   }, [handlePendingPlansChange])
@@ -342,9 +349,9 @@ function TvShowPanel() {
       if (!mediaMetadata) {
         return
       }
-      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata as any, updatePlan, fetchPendingPlans)
+      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata as any, updatePlan, fetchPendingPlans, refreshMediaMetadata)
     },
-    [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans]
+    [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans, refreshMediaMetadata]
   )
 
   useEffect(() => {
@@ -371,9 +378,9 @@ function TvShowPanel() {
       })
     } else {
       closeAiBasedRenameFilePrompt()
-      closeAiBasedRecognizePrompt()
+      // Do not close recognize prompt here; handlePendingPlans manages AiBasedRecognizePrompt.
     }
-  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, closeAiBasedRecognizePrompt, handleRenamePlanConfirm, updatePlan])
+  }, [pendingRenamePlans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleRenamePlanConfirm, updatePlan])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({

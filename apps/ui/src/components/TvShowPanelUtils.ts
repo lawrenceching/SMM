@@ -148,13 +148,14 @@ export function updateMediaFileMetadatas(
 /**
  * Apply a RecognizeMediaFilePlan to media metadata and persist via updateMediaMetadata.
  * Caller is responsible for validation and must pass a traceId so the event origin is visible (e.g. TvShowPanel-handleAiRecognizeConfirm-...).
+ * Returns a Promise so the caller can await; this ensures the UI store is updated before the prompt closes and seasons are re-derived.
  */
 export function applyRecognizeMediaFilePlan(
     plan: RecognizeMediaFilePlan,
     mediaMetadata: UIMediaMetadata,
-    updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
+    updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>,
     options: { traceId: string }
-): void {
+): Promise<void> {
     let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
     for (const recognizedFile of plan.files) {
         updatedMediaFiles = updateMediaFileMetadatas(
@@ -168,7 +169,8 @@ export function applyRecognizeMediaFilePlan(
         ...mediaMetadata,
         mediaFiles: updatedMediaFiles,
     };
-    updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
+    const result = updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
+    return Promise.resolve(result);
 }
 
 export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] {
@@ -864,7 +866,8 @@ export async function executeRenamePlan(
   mediaMetadata: UIMediaMetadata,
   _updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>,
-  fetchPendingPlans: () => Promise<void>
+  fetchPendingPlans: () => Promise<void>,
+  refreshMediaMetadata: (path: string) => Promise<void>
 ): Promise<void> {
   if (!mediaMetadata || plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
     toast.error("Plan does not match current media folder")
@@ -889,6 +892,7 @@ export async function executeRenamePlan(
     toast.info("No files to rename")
     await updatePlan(plan.id, "completed")
     await fetchPendingPlans()
+    await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
     return
   }
 
@@ -925,6 +929,8 @@ export async function executeRenamePlan(
 
     await updatePlan(plan.id, "completed")
     await fetchPendingPlans()
+    // Ensure UI shows updated file paths; backend broadcasts mediaMetadataUpdated, but refresh is a reliable fallback
+    await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     toast.error(`Failed to rename files: ${errorMessage}`)
@@ -1173,7 +1179,7 @@ export async function handleAiRecognizeConfirm(
 
   try {
     await updatePlan(plan.id, 'completed')
-    applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as any, { traceId })
+    await applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>, { traceId })
     console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
     toast.success(`Applied recognition for ${plan.files.length} file(s)`)
   } catch (error) {
