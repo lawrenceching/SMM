@@ -26,7 +26,8 @@
     "deleteWarning": "不会从磁盘删除",
     "renameTitle": "重命名媒体",
     "renameDescription": "输入此媒体的新名称",
-    "renameError": "无法重命名文件夹：{{error}}"
+    "renameError": "无法重命名文件夹：{{error}}",
+    "initializing": "正在初始化媒体目录..."
   },
   "toolbar": {
     "refresh": "刷新",

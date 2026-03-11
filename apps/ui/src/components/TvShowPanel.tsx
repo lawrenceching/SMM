@@ -28,6 +28,7 @@ import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolder
 import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
 import { TvShowEpisodeTable, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
+import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 
 const v2 = true;
 
@@ -626,14 +627,18 @@ function TvShowPanel() {
             />
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
-            <TvShowEpisodeTable
-              key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-              data={tableData}
-              mediaFolderPath={mediaMetadata?.mediaFolderPath}
-              onVideoFileSelect={handleVideoFileSelectForRow}
-              onUnlinkEpisode={handleUnlinkEpisode}
-              preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
-            />
+            {mediaMetadata?.status === "initializing" ? (
+              <MediaPanelInitializingHint />
+            ) : (
+              <TvShowEpisodeTable
+                key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+                data={tableData}
+                mediaFolderPath={mediaMetadata?.mediaFolderPath}
+                onVideoFileSelect={handleVideoFileSelectForRow}
+                onUnlinkEpisode={handleUnlinkEpisode}
+                preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
+              />
+            )}
           </div>
         </>
       )}

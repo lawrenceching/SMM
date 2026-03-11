@@ -16,6 +16,7 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
+import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 
 export interface MovieFileModel {
     files: FileProps[]
@@ -273,12 +274,16 @@ function MoviePanel() {
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        <MovieEpisodeTable
-          key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-          data={tableData}
-          mediaFolderPath={mediaMetadata?.mediaFolderPath}
-          preview={isPreviewingForRename}
-        />
+        {(rawMediaMetadata as UIMediaMetadata | undefined)?.status === "initializing" ? (
+          <MediaPanelInitializingHint />
+        ) : (
+          <MovieEpisodeTable
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
+            preview={isPreviewingForRename}
+          />
+        )}
       </div>
 
       {/* Rename confirmation prompt */}

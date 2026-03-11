@@ -3,6 +3,7 @@ import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
+import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
@@ -446,14 +447,18 @@ export function MusicPanel() {
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        <MusicFileTable
-          key={selectedMediaMetadata?.mediaFolderPath ?? "no-folder"}
-          data={tableData}
-          mediaFolderPath={selectedMediaMetadata?.mediaFolderPath}
-          currentTrackId={currentTrackId}
-          isPlaying={isPlaying}
-          onTrackClick={handleTrackClick}
-        />
+        {selectedMediaMetadata?.status === "initializing" ? (
+          <MediaPanelInitializingHint />
+        ) : (
+          <MusicFileTable
+            key={selectedMediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData}
+            mediaFolderPath={selectedMediaMetadata?.mediaFolderPath}
+            currentTrackId={currentTrackId}
+            isPlaying={isPlaying}
+            onTrackClick={handleTrackClick}
+          />
+        )}
       </div>
     </div>
   );
