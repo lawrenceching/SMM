@@ -46,9 +46,12 @@ export async function handleListFiles(params: ListFilesParams): Promise<ReturnTy
       files = files.filter(isVideoFile);
     }
 
+    // Return paths in OS-native format for tool consumers (e.g. shell, file dialogs)
+    const platformFiles = files.map((p) => Path.toPlatformPath(p));
+
     return createSuccessResponse({
-      files,
-      count: files.length,
+      files: platformFiles,
+      count: platformFiles.length,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -95,7 +98,7 @@ export const getTool = async function (clientId?: string): Promise<ToolDefinitio
  */
 export function listFilesAgentTool(clientId: string) {
   return {
-    description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format.",
+    description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in the OS native format.",
     inputSchema: z.object({
       folderPath: z.string().describe("The absolute path of the folder to list files from"),
       recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
@@ -124,7 +127,7 @@ export async function listFilesMcpTool() {
 
 // Keep the original export for backward compatibility
 export const listFilesTool = {
-  description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format.",
+  description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in the OS native format.",
   inputSchema: z.object({
     folderPath: z.string().describe("The absolute path of the folder to list files from"),
     recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
@@ -149,9 +152,12 @@ export const listFilesTool = {
         files = files.filter(isVideoFile);
       }
 
+      // Return paths in OS-native format for tool consumers
+      const platformFiles = files.map((p) => Path.toPlatformPath(p));
+
       return {
-        files,
-        count: files.length,
+        files: platformFiles,
+        count: platformFiles.length,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

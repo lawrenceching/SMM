@@ -4,7 +4,22 @@ import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMed
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
+import { getFullExtensionForAssociatedFile } from "@core/utils";
 import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/lib/utils";
+
+/**
+ * Compare two media folder paths for equality after normalizing to POSIX.
+ * Used so plan.mediaFolderPath and mediaMetadata.mediaFolderPath match regardless of trailing slash or platform format.
+ */
+export function mediaFolderPathEqual(a: string | undefined, b: string | undefined): boolean {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  try {
+    return Path.posix(a) === Path.posix(b);
+  } catch {
+    return a === b;
+  }
+}
 import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
@@ -34,7 +49,7 @@ export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" |
 
 export function newPath(mediaFolderPath: string, videoFilePath: string, associatedFilePath: string): string {
     const videoFileExtension = extname(videoFilePath)
-    const associatedFileExtension = extname(associatedFilePath)
+    const associatedFileExtension = getFullExtensionForAssociatedFile(associatedFilePath)
     const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
     const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
     return join(mediaFolderPath, associatedRelativePath)
@@ -94,7 +109,7 @@ export function renameFiles(mediaFolderPath: string, newVideoFilePath: string,fi
   const associatedFiles = 
       files.filter(file => file.type !== "video")
       .map(file => {
-        const associatedFileExtension = extname(file.path);
+        const associatedFileExtension = getFullExtensionForAssociatedFile(file.path);
         file.newPath = join(mediaFolderPath, relativeVideoFilePathWithoutExtension + associatedFileExtension);
         const newObj: FileProps = {
           type: file.type,
@@ -869,14 +884,14 @@ export async function executeRenamePlan(
   fetchPendingPlans: () => Promise<void>,
   refreshMediaMetadata: (path: string) => Promise<void>
 ): Promise<void> {
-  if (!mediaMetadata || plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
+  if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
     toast.error("Plan does not match current media folder")
     return
   }
   const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
   const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
 
-  const filesToRename: Array<{ from: string; to: string }> = []
+  let filesToRename: Array<{ from: string; to: string }> = []
 
   for (const season of seasonsFromPlan) {
     for (const episode of season.episodes) {
@@ -888,6 +903,11 @@ export async function executeRenamePlan(
     }
   }
 
+  // Fallback: use plan.files when buildSeasonsByRenameFilesPlan yielded nothing (e.g. stale mediaMetadata)
+  if (filesToRename.length === 0 && plan.files.length > 0) {
+    filesToRename = plan.files
+  }
+
   if (filesToRename.length === 0) {
     toast.info("No files to rename")
     await updatePlan(plan.id, "completed")
@@ -897,12 +917,15 @@ export async function executeRenamePlan(
   }
 
   try {
-    // Pass mediaFolder so the backend updates metadata and broadcasts in one request.
-    // The mediaMetadataUpdated Socket.IO event will trigger a UI refresh automatically.
+    // Pass platform-specific paths so the backend can perform file system operations correctly.
+    // mediaFolder is used for metadata update and broadcast; files.from/to must be platform format.
     const response = await renameFilesApi({
-      files: filesToRename,
+      files: filesToRename.map(({ from, to }) => ({
+        from: Path.toPlatformPath(from),
+        to: Path.toPlatformPath(to),
+      })),
       traceId,
-      mediaFolder: Path.posix(mediaMetadata.mediaFolderPath),
+      mediaFolder: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
     })
 
     if (response.error) {

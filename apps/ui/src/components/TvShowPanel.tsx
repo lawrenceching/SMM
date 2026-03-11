@@ -9,7 +9,7 @@ import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { lookup } from "@/lib/lookup"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
@@ -360,7 +360,7 @@ function TvShowPanel() {
       (p) =>
         p.task === "rename-files" &&
         p.status === "pending" &&
-        p.mediaFolderPath === mediaMetadata.mediaFolderPath
+        mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath)
     )
     if (plan) {
       const seasonsPreview = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)

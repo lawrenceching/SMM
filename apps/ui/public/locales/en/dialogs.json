@@ -43,6 +43,10 @@
     "defaultDescription": "Current task execution status",
     "mediaTitle": "Scrape Media",
     "mediaDescription": "Download poster, fanart, thumbnails, and nfo files",
+    "columns": {
+      "file": "File",
+      "status": "Status"
+    },
     "tasks": {
       "poster": "Poster",
       "fanart": "Fanart",

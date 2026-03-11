@@ -84,9 +84,9 @@ export async function handleGetMediaMetadata(
       return createSuccessResponse({ data: { ...baseData }, error: "No metadata cached for this folder" });
     }
 
-    // Build GetMediaMetadataResponseData from metadata
+    // Build GetMediaMetadataResponseData from metadata; return mediaFolderPath in OS-native format for tool consumers
     const data: GetMediaMetadataResponseData = {
-      mediaFolderPath: metadata.mediaFolderPath || posixPath,
+      mediaFolderPath: Path.toPlatformPath(metadata.mediaFolderPath || posixPath),
       type: metadata.type || "tvshow-folder",
     };
 
@@ -225,7 +225,7 @@ export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortS
         }
 
         const data: GetMediaMetadataResponseData = {
-          mediaFolderPath: metadata.mediaFolderPath || posixPath,
+          mediaFolderPath: Path.toPlatformPath(metadata.mediaFolderPath || posixPath),
           type: metadata.type || "tvshow-folder",
         };
 

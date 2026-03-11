@@ -43,6 +43,10 @@
     "defaultDescription": "目前任務執行狀態",
     "mediaTitle": "擷取媒體",
     "mediaDescription": "下載海報、背景圖、縮圖和nfo檔案",
+    "columns": {
+      "file": "檔案",
+      "status": "狀態"
+    },
     "tasks": {
       "poster": "海報",
       "fanart": "背景圖",
@@ -53,7 +57,7 @@
       "running": "執行中",
       "completed": "已完成",
       "failed": "失敗",
-      "pending": "未下载"
+      "pending": "未下載"
     },
     "noTasks": "沒有任務",
     "start": "開始",

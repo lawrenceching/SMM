@@ -37,3 +37,29 @@ export const extensions = {
   
   export const videoFileExtensions = extensions.videoFileExtensions;
   export const imageFileExtensions = extensions.imageFileExtensions;
+  export const subtitleFileExtensions = extensions.subtitleFileExtensions;
+
+/**
+ * Returns the full file extension for associated files (e.g. subtitles).
+ * Preserves language/track suffixes so e.g. ".sc.ass" and ".tc.ass" are kept intact,
+ * instead of collapsing to ".ass" (which would drop the language code).
+ * Use this when building new filenames for associated files during rename.
+ *
+ * @param filePath - Absolute or relative path to the file
+ * @returns Full extension including leading dot (e.g. ".sc.ass", ".ass", ".nfo")
+ */
+export function getFullExtensionForAssociatedFile(filePath: string): string {
+  const name = filePath.replace(/^.*[/\\]/, '');
+  const parts = name.split('.');
+  if (parts.length < 2) return '';
+  const baseExt = '.' + (parts.pop() ?? '');
+  if (!extensions.subtitleFileExtensions.includes(baseExt)) {
+    return baseExt;
+  }
+  if (parts.length < 2) return baseExt;
+  const modifier = parts.pop() ?? '';
+  if (/^[a-zA-Z0-9-]{2,10}$/.test(modifier)) {
+    return '.' + modifier + baseExt;
+  }
+  return baseExt;
+}
