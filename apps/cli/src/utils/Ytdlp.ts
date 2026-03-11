@@ -123,7 +123,7 @@ export async function getYtdlpVersion(): Promise<YtdlpVersionResult> {
 /**
  * Allowed yt-dlp arguments for download
  */
-const ALLOWED_ARGS = ["--write-thumbnail", "--embed-thumbnail"];
+const ALLOWED_ARGS = ["--write-thumbnail", "--embed-thumbnail", "--embed-metadata"];
 
 /**
  * Request data for yt-dlp download
