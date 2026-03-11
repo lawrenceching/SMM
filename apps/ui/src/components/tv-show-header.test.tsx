@@ -16,7 +16,7 @@ vi.mock('./TMDBSearchbox', () => ({
         onChange={() => {}}
         placeholder={placeholder}
       />
-      <button data-testid="search-button" onClick={() => onSearchResultSelected({ id: 1, name: 'Test' } as any)}>Search</button>
+      <button data-testid="search-button" onClick={() => onSearchResultSelected({ id: 1, name: 'Test' } as any, 'en-US')}>Search</button>
     </div>
   )),
 }))

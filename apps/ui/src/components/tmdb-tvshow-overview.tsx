@@ -16,7 +16,7 @@ interface TMDBTVShowOverviewProps {
     seasons: SeasonModel[]
     scrollToEpisodeId?: number | null
     onEpisodeFileSelect?: (episode: import("@core/types").TMDBEpisode) => void
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: import("./TMDBSearchbox").TmdbSearchLanguage) => void
     selectedMediaMetadata?: import("@/types/UIMediaMetadata").UIMediaMetadata
     openScrape?: (params: { mediaMetadata: import("@/types/UIMediaMetadata").UIMediaMetadata }) => void
 }

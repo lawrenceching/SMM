@@ -99,6 +99,9 @@ interface ComponentsResources {
     scrape: string
     notAvailable: string
   }
+  tmdbSearchbox: {
+    searchLanguage: string
+  }
   movie: {
     searchPlaceholder: string
     searchPlaceholderUnrecognized: string

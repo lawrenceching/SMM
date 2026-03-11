@@ -1,4 +1,5 @@
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
+import type { TmdbSearchLanguage } from "./TMDBSearchbox"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
 import { TMDBSearchbox } from "./TMDBSearchbox"
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils"
 export type EpisodeTableLayout = "simple" | "detail" | "preview"
 
 export interface TvShowHeaderV2Props {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: TmdbSearchLanguage) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata

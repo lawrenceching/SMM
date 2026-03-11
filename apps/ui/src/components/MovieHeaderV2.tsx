@@ -1,4 +1,5 @@
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
+import type { TmdbSearchLanguage } from "./TMDBSearchbox"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { FileEdit, Download, MoreVertical, ExternalLink } from "lucide-react"
 import { TMDBSearchbox } from "./TMDBSearchbox"
@@ -13,7 +14,7 @@ import {
 import { useTranslation } from "@/lib/i18n"
 
 export interface MovieHeaderV2Props {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: TmdbSearchLanguage) => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void

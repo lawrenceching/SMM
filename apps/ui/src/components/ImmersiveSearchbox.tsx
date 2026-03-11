@@ -36,6 +36,8 @@ interface ImmersiveSearchboxProps {
     inputClassName?: string
     /** When set, a Hover Card with this hint is always shown (not triggered by hover). */
     unrecognizedHint?: string
+    /** Rendered at the top of the dropdown popover (e.g. search language selector). Shown when user enters edit mode; results list appears below after search. */
+    slotBetweenInputAndList?: React.ReactNode
 }
 
 export function ImmersiveSearchbox({
@@ -50,6 +52,7 @@ export function ImmersiveSearchbox({
     placeholder = "Enter TV show name",
     inputClassName,
     unrecognizedHint,
+    slotBetweenInputAndList,
 }: ImmersiveSearchboxProps) {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [popoverWidth, setPopoverWidth] = React.useState<number | undefined>(undefined)
@@ -63,17 +66,17 @@ export function ImmersiveSearchbox({
         }
     }, [isSearchOpen])
 
+    const handleInputFocus = React.useCallback(() => {
+        setIsSearchOpen(true)
+    }, [])
+
     const handleSearchButtonClick = React.useCallback(() => {
-        const wasOpen = isSearchOpen
-        if (!wasOpen) {
+        if (!isSearchOpen) {
             setIsSearchOpen(true)
         }
-        
-        // Keep input focused
         setTimeout(() => {
             inputContainerRef.current?.querySelector('input')?.focus()
         }, 0)
-        
         onSearch()
     }, [isSearchOpen, onSearch])
 
@@ -96,13 +99,13 @@ export function ImmersiveSearchbox({
                 <PopoverAnchor asChild>
                     <div ref={inputContainerRef} className="w-full min-w-0">
                         {unrecognizedHint ? (
-                            // onOpenChange no-op keeps the card always open (hint is persistent when folder unrecognized)
                             <HoverCard open openDelay={0} onOpenChange={() => {}}>
                                 <HoverCardTrigger asChild>
                                     <div className="w-full min-w-0">
                                         <ImmersiveInput
                                             value={value}
                                             onChange={(e) => onChange(e.target.value)}
+                                            onFocus={handleInputFocus}
                                             onSearch={handleSearchButtonClick}
                                             isOpen={isSearchOpen}
                                             className={inputClassName}
@@ -118,6 +121,7 @@ export function ImmersiveSearchbox({
                             <ImmersiveInput
                                 value={value}
                                 onChange={(e) => onChange(e.target.value)}
+                                onFocus={handleInputFocus}
                                 onSearch={handleSearchButtonClick}
                                 isOpen={isSearchOpen}
                                 className={inputClassName}
@@ -133,13 +137,17 @@ export function ImmersiveSearchbox({
                     sideOffset={8}
                     style={{ width: popoverWidth ? `${popoverWidth}px` : undefined }}
                     onInteractOutside={(e) => {
-                        // Prevent closing when clicking the search button
                         const target = e.target as HTMLElement
                         if (inputContainerRef.current?.contains(target)) {
                             e.preventDefault()
                         }
                     }}
                 >
+                    {slotBetweenInputAndList && (
+                        <div className="px-2 pt-2 pb-1 border-b border-border">
+                            {slotBetweenInputAndList}
+                        </div>
+                    )}
                     <ScrollArea className="max-h-[400px]">
                         <div className="p-2">
                             {isSearching ? (

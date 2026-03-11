@@ -18,6 +18,8 @@ import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTvShowById, getTMDBImageUrl } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
+import { mapSearchLanguageToTmdb } from "./TMDBSearchbox"
+import type { SupportedLanguage } from "@/lib/i18n"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { usePlansStore } from "@/stores/plansStore"
@@ -107,8 +109,16 @@ function TvShowPanel() {
   const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
   const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
 
-  const handleSelectResult = useCallback(async (result: TMDBTVShow | TMDBMovie) => {
-    if (mediaMetadata?.tmdbTvShow?.id === result.id) {
+  const handleSelectResult = useCallback(async (result: TMDBTVShow | TMDBMovie, searchLanguage: 'zh-CN' | 'en-US' | 'ja-JP') => {
+    console.log('[TvShowPanel] handleSelectResult CALLED', {
+      timestamp: new Date().toISOString(),
+      result,
+      searchLanguage,
+      stackTrace: new Error().stack
+    })
+
+    if (mediaMetadata?.tmdbTvShow?.id === result.id 
+      && mediaMetadata?.tmdbTvShow?.name === (result as TMDBTVShow).name) {
       return
     }
 
@@ -124,8 +134,7 @@ function TvShowPanel() {
     }, { traceId })
 
     try {
-      const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
-      const response = await getTvShowById(result.id, language)
+      const response = await getTvShowById(result.id, searchLanguage)
 
       if (response.error) {
         console.error("Failed to get TV show details:", response.error)
@@ -144,6 +153,12 @@ function TvShowPanel() {
         }, { traceId })
         return
       }
+
+      console.log('[TvShowPanel] handleSelectResult SUCCESS', {
+        timestamp: new Date().toISOString(),
+        response,
+        stackTrace: new Error().stack
+      })
 
       updateMediaMetadata(mediaMetadata.mediaFolderPath, {
         ...mediaMetadata,
@@ -174,8 +189,9 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    handleSelectResult(tmdbTvShow)
-  }, [handleSelectResult])
+    const lang = mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
+    handleSelectResult(tmdbTvShow, lang)
+  }, [handleSelectResult, userConfig?.applicationLanguage])
 
   const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
     console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
@@ -189,8 +205,9 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    handleSelectResult(tmdbTvShow)
-  }, [handleSelectResult])
+    const lang = mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
+    handleSelectResult(tmdbTvShow, lang)
+  }, [handleSelectResult, userConfig?.applicationLanguage])
 
   // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
   const openUseNfoPromptWithCallbacks = useCallback((params: {

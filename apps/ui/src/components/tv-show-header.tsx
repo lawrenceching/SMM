@@ -28,7 +28,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 interface TVShowHeaderProps {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: import("./TMDBSearchbox").TmdbSearchLanguage) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata

@@ -170,8 +170,8 @@ function MoviePanel() {
     }
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
 
-  // Handle search result selection (MoviePanel only uses TMDBMovie; TV show type is for shared header)
-  const handleSelectResult = useCallback((result: TMDBTVShow | TMDBMovie) => {
+  // Handle search result selection (MoviePanel only uses TMDBMovie; TV show type is for shared header; searchLanguage from TMDBSearchbox is unused for movie)
+  const handleSelectResult = useCallback((result: TMDBTVShow | TMDBMovie, _searchLanguage: import("./TMDBSearchbox").TmdbSearchLanguage) => {
     if (!('title' in result)) return // movie panel expects movie result
     const movie = result
     if (mediaMetadata?.tmdbMovie?.id === movie.id) {
