@@ -6,6 +6,8 @@ import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { useMediaMetadataActions } from "./actions/mediaMetadataActions";
 import { useMediaMetadataStoreActions } from "./stores/mediaMetadataStore";
 import { useRef } from "react";
+import Debug from "debug"
+const debug = Debug("AppInitializer")
 
 export async function buildMediaMetadata(
   folders: string[],
@@ -43,6 +45,7 @@ export function AppInitializer() {
         console.log(`[AppInitializer] initializing app`)
         initialized.current = true;
 
+        debug(`start to initialize app`)
         reload({
             onSuccess: async (userConfig: UserConfig) => {
 
@@ -58,6 +61,7 @@ export function AppInitializer() {
                 const selectedFolderIndex = localStorages.selectedFolderIndex ?? 0;
                 console.log(`[AppInitializer] initialize app with selected folder index: ${selectedFolderIndex}`)
                 setSelectedIndex(selectedFolderIndex)
+                debug(`completed to initialize app`)
             }
         })
 

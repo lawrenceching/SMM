@@ -4,34 +4,36 @@ import { listFiles } from "@/api/listFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useConfig } from "@/providers/config-provider"
 import { useMediaMetadataStoreActions, useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { createMediaMetadata } from "@core/mediaMetadata"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
-import {
-  UI_MediaFolderImportedEvent,
-  UI_MediaLibraryImportedEvent,
-  type OnMediaFolderImportedEventData,
-  type OnMediaLibraryImportedEventData,
-} from "@/types/eventTypes"
+import { UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } from "@/types/eventTypes"
+import { initializeSingleMediaFolder } from "@/lib/initializeSingleMediaFolder"
 import { Mutex } from "es-toolkit"
-
+import { toast } from "sonner"
+import Debug from "debug"
+const debug = Debug("MediaLibraryImportedEventHandler")
 const mediaLibraryImportMutex = new Mutex()
 
 export function MediaLibraryImportedEventHandler() {
   const { addMediaFolderInUserConfig } = useConfig()
   const { mediaMetadatas } = useMediaMetadataStoreState()
-  const { addMediaMetadatas } = useMediaMetadataStoreActions()
+  const { addMediaMetadatas, getMediaMetadata } = useMediaMetadataStoreActions()
+  const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions()
   const backgroundJobs = useBackgroundJobsStore()
   const eventListener = useRef<((event: Event) => void) | null>(null)
 
   const processMediaLibraryImportedEvent = async (event: Event) => {
     const data = (event as CustomEvent<OnMediaLibraryImportedEventData>).detail
     const { libraryPathInPlatformFormat, type } = data
+    debug(`start to process ${UI_MediaLibraryImportedEvent} event`, data)
     const traceIdBase = data.traceId || `MediaLibraryImportedEventHandler:${nextTraceId()}`
 
     const jobId = backgroundJobs.addJob("Importing Media Library")
     backgroundJobs.updateJob(jobId, { status: "running", progress: 0 })
+    debug(`add background job in running status`)
 
     try {
       const listFilesResponse = await listFiles({
@@ -45,6 +47,8 @@ export function MediaLibraryImportedEventHandler() {
         backgroundJobs.updateJob(jobId, { status: "failed" })
         return
       }
+
+      debug(`listed ${listFilesResponse.data?.items.length} folders`)
 
       const subfolderPaths = Array.from(
         new Set(
@@ -68,40 +72,46 @@ export function MediaLibraryImportedEventHandler() {
         status: "initializing",
       }))
 
-      // Batch optimistic update to avoid N UI renders.
       addMediaMetadatas(placeholders)
+      debug(`added ${placeholders.length} placeholder UIMediaMetadatas`)
+
+      const deps = {
+        addMediaFolderInUserConfig,
+        getMediaMetadata,
+        saveMediaMetadata,
+        updateMediaMetadata,
+        initializeMediaMetadata,
+      }
 
       let completed = 0
       for (const path of pathsToImport) {
+        debug(`start to import ${path}`)
         const traceId = `${traceIdBase}:${nextTraceId()}`
-        await addMediaFolderInUserConfig(traceId, path)
-
-        await new Promise<void>((resolve) => {
-          const detail: OnMediaFolderImportedEventData = {
-            type,
-            folderPathInPlatformFormat: path,
-            traceId,
-            skipOptimisticUpdate: true,
-            onCompleted: () => {
-              completed += 1
-              backgroundJobs.updateJob(jobId, {
-                progress: (completed / pathsToImport.length) * 100,
-                status: completed === pathsToImport.length ? "succeeded" : "running",
-              })
-              resolve()
-            },
-          }
-          document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail }))
+        try {
+          await initializeSingleMediaFolder(path, type, traceId, deps, {
+            onError: (message) => toast.error(message),
+          })
+        } catch {
+          // Error already reported via onError; continue with next folder
+        }
+        completed += 1
+        backgroundJobs.updateJob(jobId, {
+          progress: (completed / pathsToImport.length) * 100,
+          status: completed === pathsToImport.length ? "succeeded" : "running",
         })
+        debug(`succeeded to import ${path}`)
       }
+      debug(`completed to import ${pathsToImport.length} folders`)
     } catch (error) {
       console.error(`[${traceIdBase}] Import media library failed:`, error)
       backgroundJobs.updateJob(jobId, { status: "failed" })
+      debug(`failed to import media library`, error)
     }
   }
 
   useMount(() => {
     eventListener.current = (event) => {
+      debug(`received ${UI_MediaLibraryImportedEvent} event`)
       ;(async () => {
         try {
           await mediaLibraryImportMutex.acquire()

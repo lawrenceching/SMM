@@ -43,10 +43,12 @@
     "@shikijs/transformers": "^3.19.0",
     "@tailwindcss/vite": "^4.1.17",
     "@tanstack/react-table": "^8.21.3",
+    "@types/debug": "^4.1.12",
     "ai": "^6.0.57",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "debug": "^4.4.3",
     "embla-carousel-react": "^8.6.0",
     "es-toolkit": "^1.42.0",
     "filenamify": "^7.0.1",
@@ -76,8 +78,8 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
     "use-stick-to-bottom": "^1.1.1",
-    "zustand": "^5.0.9",
-    "zod": "^4.1.8"
+    "zod": "^4.1.8",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
