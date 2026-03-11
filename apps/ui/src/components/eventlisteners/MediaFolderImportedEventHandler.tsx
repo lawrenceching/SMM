@@ -72,6 +72,8 @@ export function MediaFolderImportedEventHandler() {
                         return getMediaMetadata(Path.posix(folderInPlatformPath));
                     },
                     addMediaMetadata: saveMediaMetadata,
+                    updateMediaMetadata: (path, metadata) =>
+                        updateMediaMetadata(path, metadata, { traceId }),
                     traceId,
                 });
             } catch (error) {

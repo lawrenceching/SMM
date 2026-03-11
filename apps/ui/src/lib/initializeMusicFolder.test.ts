@@ -90,13 +90,14 @@ describe('initializeMusicFolder', () => {
     )
   })
 
-  it('should not create media metadata when folder already exists', async () => {
+  it('should not create media metadata when folder already exists with status ok', async () => {
     const folderPath = '/media/music/ExistingAlbum'
     const posixPath = '/media/music/ExistingAlbum'
 
-    const existingMetadata: MediaMetadata = {
+    const existingMetadata = {
       mediaFolderPath: posixPath,
       type: 'music-folder',
+      status: 'ok' as const,
     }
 
     mockGetMediaMetadata.mockReturnValue(existingMetadata)
@@ -109,6 +110,53 @@ describe('initializeMusicFolder', () => {
     })
 
     expect(mockAddMediaMetadata).not.toHaveBeenCalled()
+  })
+
+  it('should update placeholder to full metadata when folder exists with status initializing', async () => {
+    const folderPath = '/media/music/ExistingAlbum'
+    const posixPath = '/media/music/ExistingAlbum'
+
+    const placeholderMetadata = {
+      mediaFolderPath: posixPath,
+      type: 'music-folder',
+      status: 'initializing' as const,
+    }
+
+    mockGetMediaMetadata.mockReturnValue(placeholderMetadata)
+    const mockUpdateMediaMetadata = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(listFiles).mockResolvedValue({
+      data: {
+        path: folderPath,
+        items: [
+          { path: '/media/music/ExistingAlbum/song1.mp3', size: 0, mtime: 0, isDirectory: false },
+        ],
+        size: 1,
+      },
+      error: undefined,
+    })
+    vi.mocked(createMediaMetadata).mockReturnValue({
+      mediaFolderPath: posixPath,
+      type: 'music-folder',
+    })
+
+    await initializeMusicFolder(folderPath, {
+      addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
+      getMediaMetadata: mockGetMediaMetadata,
+      addMediaMetadata: mockAddMediaMetadata,
+      updateMediaMetadata: mockUpdateMediaMetadata,
+      traceId,
+    })
+
+    expect(mockAddMediaMetadata).not.toHaveBeenCalled()
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
+      posixPath,
+      expect.objectContaining({
+        mediaFolderPath: posixPath,
+        type: 'music-folder',
+        status: 'ok',
+        files: ['/media/music/ExistingAlbum/song1.mp3'],
+      })
+    )
   })
 
   it('should convert folder path to POSIX format when checking for existing metadata', async () => {
