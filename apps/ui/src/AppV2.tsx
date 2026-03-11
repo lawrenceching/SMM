@@ -3,11 +3,12 @@ import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sideba
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useDialogs } from "@/providers/dialog-provider"
 import { basename } from "@/lib/path"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
+import { toast } from "sonner"
+import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
 import { Path } from "@core/path"
@@ -52,8 +53,7 @@ function AppV2Content() {
 
   // Media metadata
   const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
-  const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
-  const { deleteMediaMetadata } = useMediaMetadataActions()
+  const { setSelectedByMediaFolderPath, getMediaMetadata, removeMediaMetadatas, addMediaMetadatas } = useMediaMetadataStoreActions()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -326,20 +326,20 @@ function AppV2Content() {
     async (paths: string[]) => {
       if (paths.length === 0) return
 
-      // Delete metadata for all paths
       const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
-      try {
-        await Promise.all(paths.map(path => deleteMediaMetadata(path, { traceId })))
-      } catch (error) {
-        console.error('Failed to delete some media metadata:', error)
-      }
-
       const deletedSet = new Set(paths)
+
+      // Snapshot for rollback
+      const removedMetadata = paths
+        .map((p) => getMediaMetadata(p))
+        .filter((m): m is NonNullable<typeof m> => m != null)
+      const previousFolders = userConfig.folders
+
+      // 1. Optimistic: remove all selected from UI state at once
+      removeMediaMetadatas(paths)
       const newFolders = userConfig.folders
-        .filter(f => isNotNil(f))
-        .filter(
-          (folder) => !deletedSet.has(Path.posix(folder))
-        )
+        .filter((f) => isNotNil(f))
+        .filter((folder) => !deletedSet.has(Path.posix(folder)))
       setAndSaveUserConfig(traceId, { ...userConfig, folders: newFolders })
       setSelectedFolderPaths((prev) => {
         const next = new Set(prev)
@@ -352,8 +352,27 @@ function AppV2Content() {
         const firstRemaining = remaining.size > 0 ? [...remaining][0] : undefined
         setPrimaryFolderPath(firstRemaining)
       }
+
+      // 2. Async delete; rollback on failure
+      try {
+        await Promise.all(paths.map((path) => mediaMetadataRepository.delete(path, { traceId })))
+      } catch (error) {
+        console.error("[onDeleteSelected] Failed to delete some media metadata:", error)
+        addMediaMetadatas(removedMetadata)
+        setAndSaveUserConfig(traceId, { ...userConfig, folders: previousFolders })
+        toast.error(
+          error instanceof Error ? error.message : "Failed to delete selected folders. Changes reverted."
+        )
+      }
     },
-    [userConfig, setAndSaveUserConfig, deleteMediaMetadata, primaryFolderPath]
+    [
+      userConfig,
+      setAndSaveUserConfig,
+      getMediaMetadata,
+      removeMediaMetadatas,
+      addMediaMetadatas,
+      primaryFolderPath,
+    ]
   )
 
   // 最小和最大侧边栏宽度

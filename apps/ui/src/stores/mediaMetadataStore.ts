@@ -14,6 +14,7 @@ interface MediaMetadataStoreActions {
   addMediaMetadatas: (metadatas: UIMediaMetadata[]) => void;
   updateMediaMetadata: (path: string, updater: (current: UIMediaMetadata) => UIMediaMetadata) => void;
   removeMediaMetadata: (path: string) => void;
+  removeMediaMetadatas: (paths: string[]) => void;
   getMediaMetadata: (path: string) => UIMediaMetadata | undefined;
   updateMediaMetadataStatus: (folderPath: string, status: UIMediaMetadata['status']) => void;
 
@@ -80,6 +81,17 @@ const useMediaMetadataStore = create<MediaMetadataStore>((set, get) => ({
       mediaMetadatas: state.mediaMetadatas.filter((m) => m.mediaFolderPath !== path),
     })),
 
+  removeMediaMetadatas: (paths) =>
+    set((state) => {
+      if (paths.length === 0) return state;
+      const toRemove = new Set(paths);
+      return {
+        mediaMetadatas: state.mediaMetadatas.filter(
+          (m) => m.mediaFolderPath && !toRemove.has(m.mediaFolderPath)
+        ),
+      };
+    }),
+
   getMediaMetadata: (path) =>
     get().mediaMetadatas.find((m) => m.mediaFolderPath === path),
 
@@ -129,6 +141,7 @@ export const useMediaMetadataStoreActions = () =>
       addMediaMetadatas: state.addMediaMetadatas,
       updateMediaMetadata: state.updateMediaMetadata,
       removeMediaMetadata: state.removeMediaMetadata,
+      removeMediaMetadatas: state.removeMediaMetadatas,
       getMediaMetadata: state.getMediaMetadata,
       updateMediaMetadataStatus: state.updateMediaMetadataStatus,
       setSelectedIndex: state.setSelectedIndex,
