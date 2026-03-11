@@ -31,6 +31,10 @@ export function MovieHeaderV2({
     const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
     const initialSearchValue = movie?.title
 
+    const hasValidTmdbMovie = movie != null && movie.id != null
+    const actionsDisabled = !hasValidTmdbMovie
+    const unrecognizedHint = actionsDisabled ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string) : undefined
+
     const tmdbId = movie?.id
     const hasTmdbId = tmdbId != null
     const tmdbUrl = hasTmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : undefined
@@ -48,6 +52,7 @@ export function MovieHeaderV2({
                             onSearchResultSelected={onSearchResultSelected}
                             placeholder={t('movie.searchPlaceholder', { ns: 'components' })}
                             inputClassName="text-lg font-semibold"
+                            unrecognizedHint={unrecognizedHint}
                         />
                     )}
                 </div>
@@ -62,6 +67,7 @@ export function MovieHeaderV2({
                             <Button
                                 variant="outline"
                                 size="sm"
+                                disabled={actionsDisabled}
                                 onClick={() => {
                                     onRenameClick?.()
                                 }}
@@ -79,7 +85,7 @@ export function MovieHeaderV2({
                                         mediaMetadata: selectedMediaMetadata
                                     })
                                 }}
-                                disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
+                                disabled={actionsDisabled || !selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                             >
                                 <Download className="size-4 mr-2" />
                                 {t('movie.scrape', { ns: 'components' })}

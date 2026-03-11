@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { ImmersiveInput } from "./ImmersiveInput"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import type { TMDBMovie } from "@core/types"
 
@@ -33,6 +34,8 @@ interface ImmersiveMovieSearchboxProps {
     className?: string
     placeholder?: string
     inputClassName?: string
+    /** When set, a Hover Card with this hint is always shown (not triggered by hover). */
+    unrecognizedHint?: string
 }
 
 export function ImmersiveMovieSearchbox({
@@ -46,6 +49,7 @@ export function ImmersiveMovieSearchbox({
     className,
     placeholder = "Enter movie name",
     inputClassName,
+    unrecognizedHint,
 }: ImmersiveMovieSearchboxProps) {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [popoverWidth, setPopoverWidth] = React.useState<number | undefined>(undefined)
@@ -86,15 +90,36 @@ export function ImmersiveMovieSearchbox({
                 modal={false}
             >
                 <PopoverAnchor asChild>
-                    <div ref={inputContainerRef}>
-                        <ImmersiveInput 
-                            value={value} 
-                            onChange={(e) => onChange(e.target.value)}
-                            onSearch={handleSearchButtonClick}
-                            isOpen={isSearchOpen}
-                            className={inputClassName}
-                            placeholder={placeholder}
-                        />
+                    <div ref={inputContainerRef} className="w-full min-w-0">
+                        {unrecognizedHint ? (
+                            // onOpenChange no-op keeps the card always open (hint is persistent when folder unrecognized)
+                            <HoverCard open openDelay={0} onOpenChange={() => {}}>
+                                <HoverCardTrigger asChild>
+                                    <div className="w-full min-w-0">
+                                        <ImmersiveInput 
+                                            value={value} 
+                                            onChange={(e) => onChange(e.target.value)}
+                                            onSearch={handleSearchButtonClick}
+                                            isOpen={isSearchOpen}
+                                            className={inputClassName}
+                                            placeholder={placeholder}
+                                        />
+                                    </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent side="bottom" align="start" className="w-auto max-w-sm">
+                                    {unrecognizedHint}
+                                </HoverCardContent>
+                            </HoverCard>
+                        ) : (
+                            <ImmersiveInput 
+                                value={value} 
+                                onChange={(e) => onChange(e.target.value)}
+                                onSearch={handleSearchButtonClick}
+                                isOpen={isSearchOpen}
+                                className={inputClassName}
+                                placeholder={placeholder}
+                            />
+                        )}
                     </div>
                 </PopoverAnchor>
                 <PopoverContent 

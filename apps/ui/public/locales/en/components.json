@@ -57,6 +57,7 @@
   "tvShow": {
     "searchPlaceholder": "Enter TV show name",
     "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for TV shows/anime here",
+    "unrecognizedFolderHint": "Folder not recognized. Please enter the TV show name here.",
     "overview": "Overview",
     "genres": "Genres",
     "genreLabel": "Genre {{genreId}}",
@@ -73,6 +74,7 @@
   "movie": {
     "searchPlaceholder": "Enter movie name",
     "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for movies here",
+    "unrecognizedFolderHint": "Folder not recognized. Please enter the movie name here.",
     "overview": "Overview",
     "genres": "Genres",
     "genreLabel": "Genre {{genreId}}",

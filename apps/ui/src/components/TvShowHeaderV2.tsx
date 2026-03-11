@@ -42,6 +42,10 @@ export function TvShowHeaderV2({
     const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
     const initialSearchValue = tvShow?.name
 
+    const hasValidTmdbTvShow = tvShow != null && tvShow.id != null
+    const actionsDisabled = !hasValidTmdbTvShow
+    const unrecognizedHint = actionsDisabled ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string) : undefined
+
     const tmdbId = tvShow?.id ?? movie?.id
     const hasTmdbId = tmdbId != null
     const tmdbUrl = hasTmdbId
@@ -63,6 +67,7 @@ export function TvShowHeaderV2({
                             onSearchResultSelected={onSearchResultSelected}
                             placeholder={t('tvShow.searchPlaceholder', { ns: 'components' })}
                             inputClassName="text-lg font-semibold"
+                            unrecognizedHint={unrecognizedHint}
                         />
                     )}
                 </div>
@@ -136,6 +141,7 @@ export function TvShowHeaderV2({
                                 variant="outline"
                                 size="sm"
                                 className="hidden @[410px]:inline-flex"
+                                disabled={actionsDisabled}
                                 onClick={() => {
                                     onRecognizeButtonClick?.()
                                 }}
@@ -147,6 +153,7 @@ export function TvShowHeaderV2({
                                 variant="outline"
                                 size="sm"
                                 className="hidden @[310px]:inline-flex"
+                                disabled={actionsDisabled}
                                 onClick={() => {
                                     onRenameClick?.()
                                 }}
@@ -165,7 +172,7 @@ export function TvShowHeaderV2({
                                         mediaMetadata: selectedMediaMetadata
                                     })
                                 }}
-                                disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
+                                disabled={actionsDisabled || !selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                             >
                                 <Download className="size-4 mr-2" />
                                 {t('tvShow.scrape', { ns: 'components' })}
@@ -212,6 +219,7 @@ export function TvShowHeaderV2({
                                     )}
                                     <DropdownMenuItem
                                         className="@[410px]:hidden"
+                                        disabled={actionsDisabled}
                                         onClick={() => onRecognizeButtonClick?.()}
                                     >
                                         <Scan className="size-4" />
@@ -219,6 +227,7 @@ export function TvShowHeaderV2({
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="@[310px]:hidden"
+                                        disabled={actionsDisabled}
                                         onClick={() => onRenameClick?.()}
                                     >
                                         <FileEdit className="size-4" />
@@ -226,7 +235,7 @@ export function TvShowHeaderV2({
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="@[220px]:hidden"
-                                        disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
+                                        disabled={actionsDisabled || !selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                         onClick={() => {
                                             if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
                                             openScrape?.({

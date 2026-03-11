@@ -56,6 +56,7 @@
   "tvShow": {
     "searchPlaceholder": "輸入電視劇名稱",
     "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電視劇/動畫",
+    "unrecognizedFolderHint": "無法識別資料夾，請在此處輸入電視劇/電影名稱",
     "overview": "概述",
     "genres": "類型",
     "genreLabel": "類型 {{genreId}}",
@@ -72,6 +73,7 @@
   "movie": {
     "searchPlaceholder": "輸入電影名稱",
     "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電影",
+    "unrecognizedFolderHint": "無法識別資料夾，請在此處輸入電視劇/電影名稱",
     "overview": "概述",
     "genres": "類型",
     "genreLabel": "類型 {{genreId}}",

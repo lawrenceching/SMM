@@ -11,6 +11,8 @@ interface TMDBSearchboxProps {
   onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
   placeholder?: string
   inputClassName?: string
+  /** Shown in a hover card when the folder is unrecognized (no valid TMDB id). */
+  unrecognizedHint?: string
 }
 
 export function TMDBSearchbox({
@@ -19,6 +21,7 @@ export function TMDBSearchbox({
   onSearchResultSelected,
   placeholder,
   inputClassName,
+  unrecognizedHint,
 }: TMDBSearchboxProps) {
   const { t } = useTranslation(["errors"])
   const { userConfig } = useConfig()
@@ -99,6 +102,7 @@ export function TMDBSearchbox({
         searchError={searchError}
         placeholder={placeholder}
         inputClassName={inputClassName}
+        unrecognizedHint={unrecognizedHint}
       />
     )
   }
@@ -114,6 +118,7 @@ export function TMDBSearchbox({
       searchError={searchError}
       placeholder={placeholder}
       inputClassName={inputClassName}
+      unrecognizedHint={unrecognizedHint}
     />
   )
 }

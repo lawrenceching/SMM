@@ -162,6 +162,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                 searchError={searchError}
                                 placeholder={t("movie.searchPlaceholderUnrecognized" as any) as string}
                                 inputClassName="text-3xl font-bold mb-2 block"
+                                unrecognizedHint={t("movie.unrecognizedFolderHint" as any) as string}
                             />
                         </div>
                     </div>
