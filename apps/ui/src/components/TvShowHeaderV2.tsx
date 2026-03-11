@@ -8,6 +8,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
@@ -52,7 +53,7 @@ export function TvShowHeaderV2({
     return (
         <div className="relative w-full space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0" style={{ minWidth: '25%', maxWidth: '50%' }}>
                     {isUpdatingTvShow ? (
                         <Skeleton className="h-9 w-full max-w-md" />
                     ) : (
@@ -65,9 +66,9 @@ export function TvShowHeaderV2({
                         />
                     )}
                 </div>
-                <div className="flex gap-2 flex-wrap shrink-0 items-center">
+                <div className="flex flex-1 min-w-0 justify-end gap-2 flex-wrap items-center">
                     {onEpisodeTableLayoutChange && (
-                        <div className="inline-flex items-center rounded-md border border-input bg-background shadow-xs">
+                        <div className="hidden 2xl:inline-flex items-center rounded-md border border-input bg-background shadow-xs">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -134,6 +135,7 @@ export function TvShowHeaderV2({
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="hidden xl:inline-flex"
                                 onClick={() => {
                                     onRecognizeButtonClick?.()
                                 }}
@@ -144,6 +146,7 @@ export function TvShowHeaderV2({
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="hidden lg:inline-flex"
                                 onClick={() => {
                                     onRenameClick?.()
                                 }}
@@ -154,6 +157,7 @@ export function TvShowHeaderV2({
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="hidden md:inline-flex"
                                 onClick={() => {
                                     if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
 
@@ -172,13 +176,68 @@ export function TvShowHeaderV2({
                                         variant="outline"
                                         size="icon"
                                         className="size-9 shrink-0"
-                                        disabled={!hasTmdbId}
                                         aria-label={t('tvShow.more', { ns: 'components', defaultValue: 'More' })}
                                     >
                                         <MoreVertical className="size-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    {onEpisodeTableLayoutChange && (
+                                        <>
+                                            <DropdownMenuItem
+                                                className="2xl:hidden"
+                                                disabled={isUpdatingTvShow}
+                                                onClick={() => onEpisodeTableLayoutChange("simple")}
+                                            >
+                                                <List className="size-4" />
+                                                {t('tvShow.layoutSimple', { ns: 'components', defaultValue: 'Simple layout' })}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="2xl:hidden"
+                                                disabled={isUpdatingTvShow}
+                                                onClick={() => onEpisodeTableLayoutChange("detail")}
+                                            >
+                                                <LayoutGrid className="size-4" />
+                                                {t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="2xl:hidden"
+                                                disabled={isUpdatingTvShow}
+                                                onClick={() => onEpisodeTableLayoutChange("preview")}
+                                            >
+                                                <PanelTop className="size-4" />
+                                                {t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                    <DropdownMenuItem
+                                        className="xl:hidden"
+                                        onClick={() => onRecognizeButtonClick?.()}
+                                    >
+                                        <Scan className="size-4" />
+                                        {t('tvShow.recognize', { ns: 'components', defaultValue: 'Recognize' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="lg:hidden"
+                                        onClick={() => onRenameClick?.()}
+                                    >
+                                        <FileEdit className="size-4" />
+                                        {t('tvShow.rename', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="md:hidden"
+                                        disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
+                                        onClick={() => {
+                                            if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
+                                            openScrape?.({
+                                                mediaMetadata: selectedMediaMetadata
+                                            })
+                                        }}
+                                    >
+                                        <Download className="size-4" />
+                                        {t('tvShow.scrape', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="2xl:hidden" />
                                     <DropdownMenuItem
                                         disabled={!tmdbUrl}
                                         onClick={() => tmdbUrl && window.open(tmdbUrl, '_blank', 'noopener,noreferrer')}

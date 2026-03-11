@@ -74,7 +74,7 @@ export function ImmersiveInput({ className, value, onChange, onSearch, isOpen, .
   const showSearchButton = shouldShowFocused && onSearch
 
   return (
-    <div ref={containerRef} className="relative w-full" data-testid="immersive-input-container">
+    <div ref={containerRef} className="relative w-full min-w-0" data-testid="immersive-input-container">
       <input
         ref={inputRef}
         type="text"

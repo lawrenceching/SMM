@@ -83,7 +83,7 @@ export function ImmersiveSearchbox({
     const getResultDate = (result: TMDBTVShow | TMDBMovie) => ('first_air_date' in result ? result.first_air_date : result.release_date)
 
     return (
-        <div className={cn("w-full", className)}>
+        <div className={cn("w-full min-w-0", className)}>
             <Popover 
                 open={isSearchOpen} 
                 onOpenChange={setIsSearchOpen}

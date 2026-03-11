@@ -31,7 +31,7 @@ describe('TvShowHeaderV2', () => {
   })
 
   describe('"更多" dropdown / "在TMDB中打开"', () => {
-    it('disables the more menu button when tmdb id is not available (no tmdbTvShow and no tmdbMovie)', () => {
+    it('always enables the more menu button so overflow actions are accessible on small screens', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -43,25 +43,7 @@ describe('TvShowHeaderV2', () => {
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
-      expect(moreButton).toBeDisabled()
-    })
-
-    it('disables the more menu button when tmdbTvShow exists but has no id', () => {
-      render(
-        <TvShowHeaderV2
-          {...defaultProps}
-          selectedMediaMetadata={
-            {
-              status: 'ok',
-              mediaFolderPath: '/media/show',
-              mediaFiles: [],
-              tmdbTvShow: { name: 'Show', id: undefined as unknown as number },
-            } as unknown as UIMediaMetadata
-          }
-        />
-      )
-      const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
-      expect(moreButton).toBeDisabled()
+      expect(moreButton).not.toBeDisabled()
     })
 
     it('enables the more menu button when tmdbTvShow.id is available', () => {
