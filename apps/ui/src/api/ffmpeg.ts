@@ -58,3 +58,44 @@ export async function convertVideo(
   });
   return (await resp.json()) as FfmpegConvertResponse;
 }
+
+export interface FfmpegTagsRequest {
+  path: string;
+}
+
+export interface FfmpegTagsResponse {
+  tags?: Record<string, string>;
+  error?: string;
+}
+
+export async function getMediaTags(
+  params: FfmpegTagsRequest
+): Promise<FfmpegTagsResponse> {
+  const resp = await fetch("/api/ffprobe/readTags", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return (await resp.json()) as FfmpegTagsResponse;
+}
+
+export interface FfmpegWriteTagsRequest {
+  path: string;
+  tags: Record<string, string>;
+}
+
+export interface FfmpegWriteTagsResponse {
+  success?: boolean;
+  error?: string;
+}
+
+export async function writeMediaTags(
+  params: FfmpegWriteTagsRequest
+): Promise<FfmpegWriteTagsResponse> {
+  const resp = await fetch("/api/ffprobe/writeTags", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return (await resp.json()) as FfmpegWriteTagsResponse;
+}

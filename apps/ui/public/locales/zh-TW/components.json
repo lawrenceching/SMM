@@ -70,6 +70,9 @@
     "layoutDetail": "詳情佈局",
     "layoutPreview": "預覽模式"
   },
+  "tmdbSearchbox": {
+    "searchLanguage": "搜尋語言"
+  },
   "movie": {
     "searchPlaceholder": "輸入電影名稱",
     "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電影",

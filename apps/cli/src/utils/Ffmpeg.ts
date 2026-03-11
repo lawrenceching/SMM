@@ -433,3 +433,150 @@ export async function convertVideo(
 
   return runFfmpegConvert(ffmpegPath, absInput, absOutput, options);
 }
+
+export async function discoverFfprobe(): Promise<string | undefined> {
+  try {
+    const userConfig = await getUserConfig();
+    if (userConfig.ffprobeExecutablePath) {
+      const customPath = userConfig.ffprobeExecutablePath;
+      if (fs.existsSync(customPath)) {
+        return customPath;
+      }
+    }
+  } catch {
+  }
+
+  const resourcesPath = process.env.SMM_RESOURCES_PATH;
+  if (resourcesPath) {
+    const exeName = os.platform() === "win32" ? "ffprobe.exe" : "ffprobe";
+    const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
+    if (fs.existsSync(bundledPath)) {
+      return bundledPath;
+    }
+  }
+
+  const projectRoot = getProjectRoot();
+  const devBinPath = path.join(projectRoot, "bin/ffmpeg/ffprobe.exe");
+  if (fs.existsSync(devBinPath)) {
+    return devBinPath;
+  }
+
+  const smmDataDir = getSmmDataDir();
+  const installBinPath = path.join(smmDataDir, "bin/ffmpeg/ffprobe.exe");
+  if (fs.existsSync(installBinPath)) {
+    return installBinPath;
+  }
+
+  return undefined;
+}
+
+export interface MediaTagsResult {
+  tags?: Record<string, string>;
+  error?: string;
+}
+
+export async function getMediaTags(filePath: string): Promise<MediaTagsResult> {
+  if (!filePath) {
+    return { error: "file path is required" };
+  }
+
+  const ffprobePath = await discoverFfprobe();
+  if (!ffprobePath) {
+    return { error: "ffprobe executable not found" };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return { error: `File not found: ${filePath}` };
+  }
+
+  try {
+    const output = execSync(`"${ffprobePath}" -v quiet -print_format json -show_format -show_streams "${filePath}"`, {
+      encoding: "utf-8",
+      timeout: 30000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const result = JSON.parse(output);
+    if (result.format && result.format.tags) {
+      return { tags: result.format.tags };
+    }
+    return { tags: {} };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("timeout")) {
+        return { error: "request timed out" };
+      }
+      if (error.message.includes("Invalid data")) {
+        return { error: "invalid media file format" };
+      }
+      return { error: `ffprobe failed: ${error.message}` };
+    }
+    return { error: "unknown error occurred while reading media tags" };
+  }
+}
+
+export interface WriteMediaTagsResult {
+  success?: boolean;
+  error?: string;
+}
+
+export async function writeMediaTags(
+  filePath: string,
+  tags: Record<string, string>
+): Promise<WriteMediaTagsResult> {
+  if (!filePath) {
+    return { error: "file path is required" };
+  }
+
+  if (!tags || Object.keys(tags).length === 0) {
+    return { error: "tags are required" };
+  }
+
+  const ffmpegPath = await discoverFfmpeg();
+  if (!ffmpegPath) {
+    return { error: "ffmpeg executable not found" };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return { error: `File not found: ${filePath}` };
+  }
+
+  try {
+    const parsedPath = path.parse(filePath);
+    const tempFilePath = path.join(parsedPath.dir, `${parsedPath.name}.temp${parsedPath.ext}`);
+
+    const args = ["-i", filePath, "-c", "copy"];
+    
+    for (const [key, value] of Object.entries(tags)) {
+      args.push("-metadata", `${key}=${value}`);
+    }
+
+    args.push("-y", tempFilePath);
+
+    execSync(`"${ffmpegPath}" ${args.map(arg => `"${arg}"`).join(" ")}`, {
+      encoding: "utf-8",
+      timeout: 60000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    if (!fs.existsSync(tempFilePath)) {
+      return { error: "failed to create temporary file with new tags" };
+    }
+
+    fs.unlinkSync(filePath);
+    fs.renameSync(tempFilePath, filePath);
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("timeout")) {
+        return { error: "request timed out" };
+      }
+      if (error.message.includes("Permission denied")) {
+        return { error: "permission denied to write file" };
+      }
+      return { error: `ffmpeg failed: ${error.message}` };
+    }
+    return { error: "unknown error occurred while writing media tags" };
+  }
+}

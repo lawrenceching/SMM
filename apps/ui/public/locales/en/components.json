@@ -71,6 +71,9 @@
     "layoutDetail": "Detail layout",
     "layoutPreview": "Preview layout"
   },
+  "tmdbSearchbox": {
+    "searchLanguage": "Search language"
+  },
   "movie": {
     "searchPlaceholder": "Enter movie name",
     "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for movies here",

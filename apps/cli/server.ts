@@ -35,6 +35,8 @@ import { handleYtdlpDownload } from './src/route/ytdlp/Download';
 import { handleYtdlpExtractData } from './src/route/ytdlp/ExtractData';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
+import { handleFfmpegTags } from './src/route/ffmpeg/Tags';
+import { handleFfmpegWriteTags } from './src/route/ffmpeg/WriteTags';
 import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
@@ -185,6 +187,8 @@ export class Server {
     handleYtdlpExtractData(this.app);
     handleFfmpegScreenshots(this.app);
     handleFfmpegConvert(this.app);
+    handleFfmpegTags(this.app);
+    handleFfmpegWriteTags(this.app);
     handleTmdb(this.app);
     handleLog(this.app);
 

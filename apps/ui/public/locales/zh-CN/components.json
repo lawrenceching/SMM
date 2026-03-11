@@ -71,6 +71,9 @@
     "layoutDetail": "详情布局",
     "layoutPreview": "预览模式"
   },
+  "tmdbSearchbox": {
+    "searchLanguage": "搜索语言"
+  },
   "movie": {
     "searchPlaceholder": "输入电影名称",
     "searchPlaceholderUnrecognized": "未识别媒体库, 请在此处输入并搜索电影",
