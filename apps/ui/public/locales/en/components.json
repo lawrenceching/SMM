@@ -65,7 +65,9 @@
     "scrape": "Scrape",
     "notAvailable": "N/A",
     "more": "More",
-    "openInTmdb": "Open in TMDB"
+    "openInTmdb": "Open in TMDB",
+    "layoutSimple": "Simple layout",
+    "layoutDetail": "Detail layout"
   },
   "movie": {
     "searchPlaceholder": "Enter movie name",
@@ -192,6 +194,7 @@
     "header": {
       "videoFile": "Video File",
       "thumb": "Thumb",
+      "cover": "Cover",
       "sub": "Sub"
     },
     "contextMenu": {

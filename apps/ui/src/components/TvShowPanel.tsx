@@ -63,6 +63,8 @@ function TvShowPanel() {
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
 
+  const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail'>('simple')
+
   useEffect(() => {
     console.log("[TvShowPanel] selected media folder changed: ", mediaMetadata)
   }, [mediaMetadata])
@@ -554,6 +556,7 @@ function TvShowPanel() {
           thumbnail: thumbnailFile?.path,
           subtitle: subtitleFile?.path,
           nfo: nfoFile?.path,
+          episodeTitle: episodeModel.episode.name ?? "",
           newVideoFile: videoFile?.newPath,
           newThumbnail: thumbnailFile?.newPath,
           newSubtitle: subtitleFile?.newPath,
@@ -624,6 +627,8 @@ function TvShowPanel() {
               })}
               selectedMediaMetadata={mediaMetadata}
               openScrape={openScrape}
+              episodeTableLayout={episodeTableLayout}
+              onEpisodeTableLayoutChange={setEpisodeTableLayout}
             />
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
@@ -637,6 +642,7 @@ function TvShowPanel() {
                 onVideoFileSelect={handleVideoFileSelectForRow}
                 onUnlinkEpisode={handleUnlinkEpisode}
                 preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
+                layout={episodeTableLayout}
               />
             )}
           </div>

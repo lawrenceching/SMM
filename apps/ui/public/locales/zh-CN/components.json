@@ -65,7 +65,9 @@
     "scrape": "刮削",
     "notAvailable": "不可用",
     "more": "更多",
-    "openInTmdb": "在TMDB中打开"
+    "openInTmdb": "在TMDB中打开",
+    "layoutSimple": "简单布局",
+    "layoutDetail": "详情布局"
   },
   "movie": {
     "searchPlaceholder": "输入电影名称",
@@ -192,6 +194,7 @@
     "header": {
       "videoFile": "视频文件",
       "thumb": "封面",
+      "cover": "封面",
       "sub": "字幕"
     },
     "contextMenu": {

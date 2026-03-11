@@ -44,6 +44,8 @@ export interface TvShowEpisodeDataRow {
   thumbnail: string | undefined
   subtitle: string | undefined
   nfo: string | undefined
+  /** Episode title from TMDB (for detail layout). */
+  episodeTitle?: string
   /** Preview target paths (used when preview mode is active) */
   newVideoFile?: string
   newThumbnail?: string
@@ -63,6 +65,8 @@ interface TvShowEpisodeTableProps {
   onUnlinkEpisode?: (rowId: string) => void
   /** When true, shows rename preview with strikethrough old name and new name. */
   preview?: boolean
+  /** Table layout: simple (path + check icons) or detail (cover image + episode title + path). */
+  layout?: "simple" | "detail"
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -114,18 +118,14 @@ function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | u
 function ThumbnailImage({
   thumbnailPath,
   mediaFolderPath,
+  className = "max-h-[240px] w-auto rounded object-contain",
 }: {
   thumbnailPath: string
   mediaFolderPath: string | undefined
+  className?: string
 }) {
   const url = getThumbnailImageUrl(thumbnailPath, mediaFolderPath)
-  return (
-    <Image
-      url={url}
-      alt=""
-      className="max-h-[240px] w-auto rounded object-contain"
-    />
-  )
+  return <Image url={url} alt="" className={className} />
 }
 
 const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
@@ -145,7 +145,7 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   nfo: true,
 }
 
-export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, preview }: TvShowEpisodeTableProps) {
+export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, preview, layout = "simple" }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const { t } = useTranslation(['components', 'dialogs'])
@@ -183,16 +183,27 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
     setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const visibleColumnCount = 1 + COLUMN_KEYS.filter((k) => columnVisibility[k]).length
+  const showThumbnailColumn = layout === "detail" || columnVisibility.thumbnail
+  const visibleColumnCount =
+    1 +
+    (showThumbnailColumn ? 1 : 0) +
+    (columnVisibility.video ? 1 : 0) +
+    (columnVisibility.subtitle ? 1 : 0) +
+    (columnVisibility.nfo ? 1 : 0)
 
   const headerRow = (
     <TableRow className="hover:bg-transparent">
       <TableHead className="h-8 w-[100px] px-2 py-1">{t('tvShowEpisodeTable.columns.id')}</TableHead>
+      {showThumbnailColumn && (
+        <TableHead
+          className={layout === "detail" ? "h-8 w-[100px] min-w-[100px] px-1 py-1" : "h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"}
+          title={t('tvShowEpisodeTable.columns.thumbnail')}
+        >
+          {t('tvShowEpisodeTable.header.thumb')}
+        </TableHead>
+      )}
       {columnVisibility.video && (
         <TableHead className="h-8 min-w-0 px-2 py-1">{t('tvShowEpisodeTable.header.videoFile')}</TableHead>
-      )}
-      {columnVisibility.thumbnail && (
-        <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t('tvShowEpisodeTable.columns.thumbnail')}>{t('tvShowEpisodeTable.header.thumb')}</TableHead>
       )}
       {columnVisibility.subtitle && (
         <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t('tvShowEpisodeTable.columns.subtitle')}>{t('tvShowEpisodeTable.header.sub')}</TableHead>
@@ -284,31 +295,19 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
             const episodeRow = (
               <TableRow key={`${row.id}-${index}`}>
                 <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
-                {columnVisibility.video && (
-                  <TableCell className="max-w-px px-2 py-1">
-                    {row.videoFile ? (
-                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
-                        <div className="min-w-0 space-y-0.5">
-                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
-                            {getDisplayPath(row.videoFile, mediaFolderPath)}
-                          </div>
-                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}>
-                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
-                          </div>
-                        </div>
+                {showThumbnailColumn && (
+                  <TableCell className={layout === "detail" ? "w-[100px] min-w-[100px] px-1 py-1 align-top" : "w-10 shrink-0 px-0 py-1 text-center"}>
+                    {layout === "detail" ? (
+                      row.thumbnail ? (
+                        <ThumbnailImage
+                          thumbnailPath={row.thumbnail}
+                          mediaFolderPath={mediaFolderPath}
+                          className="max-h-[72px] w-auto rounded object-contain"
+                        />
                       ) : (
-                        <div className="truncate" title={row.videoFile}>
-                          {getDisplayPath(row.videoFile, mediaFolderPath)}
-                        </div>
+                        <span className="text-muted-foreground text-xs">-</span>
                       )
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                )}
-                {columnVisibility.thumbnail && (
-                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                    {row.thumbnail ? (
+                    ) : row.thumbnail ? (
                       <HoverCard openDelay={200} closeDelay={100}>
                         <HoverCardTrigger asChild>
                           <div className="flex items-center justify-center cursor-default">
@@ -328,6 +327,52 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                       </HoverCard>
                     ) : (
                       <CheckCell value={row.thumbnail} />
+                    )}
+                  </TableCell>
+                )}
+                {columnVisibility.video && (
+                  <TableCell className="max-w-px px-2 py-1">
+                    {layout === "detail" ? (
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="truncate font-medium text-foreground" title={row.episodeTitle || row.id}>
+                          {row.episodeTitle || row.id || "-"}
+                        </div>
+                        {row.videoFile ? (
+                          preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                            <>
+                              <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                                {getDisplayPath(row.videoFile, mediaFolderPath)}
+                              </div>
+                              <div className="truncate text-foreground text-xs" title={row.newVideoFile}>
+                                {getDisplayPath(row.newVideoFile, mediaFolderPath)}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="truncate text-muted-foreground text-xs" title={row.videoFile}>
+                              {getDisplayPath(row.videoFile, mediaFolderPath)}
+                            </div>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </div>
+                    ) : row.videoFile ? (
+                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                            {getDisplayPath(row.videoFile, mediaFolderPath)}
+                          </div>
+                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}>
+                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="truncate" title={row.videoFile}>
+                          {getDisplayPath(row.videoFile, mediaFolderPath)}
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                 )}
