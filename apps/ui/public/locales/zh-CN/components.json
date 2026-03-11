@@ -76,6 +76,8 @@
     "rename": "重命名",
     "scrape": "刮削",
     "notAvailable": "不可用",
+    "more": "更多",
+    "openInTmdb": "在TMDB中打开",
     "searchNoResults": "未找到结果",
     "searchFailed": "搜索TMDB失败",
     "noMediaPathError": "媒体文件夹路径不可用"

@@ -1,9 +1,15 @@
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import { FileEdit, Download } from "lucide-react"
+import { FileEdit, Download, MoreVertical, ExternalLink } from "lucide-react"
 import { TMDBSearchbox } from "./TMDBSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
 
 export interface MovieHeaderV2Props {
@@ -24,6 +30,10 @@ export function MovieHeaderV2({
     const movie = selectedMediaMetadata?.tmdbMovie
     const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
     const initialSearchValue = movie?.title
+
+    const tmdbId = movie?.id
+    const hasTmdbId = tmdbId != null
+    const tmdbUrl = hasTmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : undefined
 
     return (
         <div className="relative w-full space-y-3">
@@ -74,6 +84,28 @@ export function MovieHeaderV2({
                                 <Download className="size-4 mr-2" />
                                 {t('movie.scrape', { ns: 'components' })}
                             </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-9 shrink-0"
+                                        disabled={!hasTmdbId}
+                                        aria-label={t('movie.more', { ns: 'components', defaultValue: 'More' })}
+                                    >
+                                        <MoreVertical className="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        disabled={!tmdbUrl}
+                                        onClick={() => tmdbUrl && window.open(tmdbUrl, '_blank', 'noopener,noreferrer')}
+                                    >
+                                        <ExternalLink className="size-4" />
+                                        {t('movie.openInTmdb', { ns: 'components', defaultValue: 'Open in TMDB' })}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </>
                     )}
                 </div>

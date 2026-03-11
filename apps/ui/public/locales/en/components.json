@@ -76,6 +76,8 @@
     "rename": "Rename",
     "scrape": "Scrape",
     "notAvailable": "N/A",
+    "more": "More",
+    "openInTmdb": "Open in TMDB",
     "searchNoResults": "No results found",
     "searchFailed": "Failed to search TMDB",
     "noMediaPathError": "No media folder path available"
