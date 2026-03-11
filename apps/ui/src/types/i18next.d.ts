@@ -82,6 +82,7 @@ interface ComponentsResources {
     renameTitle: string
     renameDescription: string
     renameError: string
+    initializing: string
   }
   assistant: {
     open: string
