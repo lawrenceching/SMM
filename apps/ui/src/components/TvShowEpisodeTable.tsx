@@ -28,6 +28,7 @@ import { generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { renameFiles } from "@/api/renameFiles"
+import { openFile } from "@/api/openFile"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
@@ -294,7 +295,9 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
     setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const showThumbnailColumn = layout === "detail" || layout === "preview" || columnVisibility.thumbnail
+  const isSimpleLayout = layout === "simple"
+  const isPreviewLayout = layout === "preview"
+  const showThumbnailColumn = (!isSimpleLayout && layout === "detail") || isPreviewLayout || columnVisibility.thumbnail
   const showIdColumn = layout !== "preview"
   const visibleColumnCount =
     (showIdColumn ? 1 : 0) +
@@ -303,7 +306,6 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
     (columnVisibility.subtitle ? 1 : 0) +
     (columnVisibility.nfo ? 1 : 0)
 
-  const isPreviewLayout = layout === "preview"
   const thumbnailCellWidth = isPreviewLayout ? "w-[160px] min-w-[160px]" : layout === "detail" ? "w-[100px] min-w-[100px]" : ""
 
   const headerRow = (
@@ -311,19 +313,37 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
       {showIdColumn && (
         <TableHead className="h-8 w-[100px] px-2 py-1">{t('tvShowEpisodeTable.columns.id')}</TableHead>
       )}
-      {showThumbnailColumn && (
-        <TableHead
-          className={cn(
-            "h-8 px-1 py-1",
-            thumbnailCellWidth || "w-10 shrink-0 px-0 text-center whitespace-nowrap"
+      {isSimpleLayout ? (
+        <>
+          {columnVisibility.video && (
+            <TableHead className="h-8 min-w-0 px-2 py-1">{t('tvShowEpisodeTable.header.videoFile')}</TableHead>
           )}
-          title={t('tvShowEpisodeTable.columns.thumbnail')}
-        >
-          {t('tvShowEpisodeTable.header.thumb')}
-        </TableHead>
-      )}
-      {columnVisibility.video && (
-        <TableHead className="h-8 min-w-0 px-2 py-1">{t('tvShowEpisodeTable.header.videoFile')}</TableHead>
+          {showThumbnailColumn && (
+            <TableHead
+              className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"
+              title={t('tvShowEpisodeTable.columns.thumbnail')}
+            >
+              {t('tvShowEpisodeTable.header.thumb')}
+            </TableHead>
+          )}
+        </>
+      ) : (
+        <>
+          {showThumbnailColumn && (
+            <TableHead
+              className={cn(
+                "h-8 px-1 py-1",
+                thumbnailCellWidth || "w-10 shrink-0 px-0 text-center whitespace-nowrap"
+              )}
+              title={t('tvShowEpisodeTable.columns.thumbnail')}
+            >
+              {t('tvShowEpisodeTable.header.thumb')}
+            </TableHead>
+          )}
+          {columnVisibility.video && (
+            <TableHead className="h-8 min-w-0 px-2 py-1">{t('tvShowEpisodeTable.header.videoFile')}</TableHead>
+          )}
+        </>
       )}
       {columnVisibility.subtitle && (
         <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap" title={t('tvShowEpisodeTable.columns.subtitle')}>{t('tvShowEpisodeTable.header.sub')}</TableHead>
@@ -417,12 +437,59 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                 {showIdColumn && (
                   <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
                 )}
-                {showThumbnailColumn && (
+                {isSimpleLayout && columnVisibility.video && (
+                  <TableCell className="max-w-px px-2 py-1">
+                    {row.videoFile ? (
+                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                            {getDisplayPath(row.videoFile, mediaFolderPath)}
+                          </div>
+                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}>
+                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="truncate" title={row.videoFile}>
+                          {getDisplayPath(row.videoFile, mediaFolderPath)}
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                )}
+                {isSimpleLayout && showThumbnailColumn && (
+                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
+                    {row.thumbnail ? (
+                      <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div className="flex items-center justify-center cursor-default">
+                            <CheckCell value={row.thumbnail} />
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent
+                          side="right"
+                          align="center"
+                          className="w-auto max-w-[320px] p-1"
+                        >
+                          <ThumbnailImage
+                            thumbnailPath={row.thumbnail}
+                            mediaFolderPath={mediaFolderPath}
+                          />
+                        </HoverCardContent>
+                      </HoverCard>
+                    ) : (
+                      <CheckCell value={row.thumbnail} />
+                    )}
+                  </TableCell>
+                )}
+                {!isSimpleLayout && showThumbnailColumn && (
                   <TableCell
                     className={cn(
                       isPreviewLayout && "w-[160px] min-w-[160px] px-1 py-1 align-top",
                       layout === "detail" && !isPreviewLayout && "w-[100px] min-w-[100px] px-1 py-1 align-top",
-                      layout === "simple" && "w-10 shrink-0 px-0 py-1 text-center"
+                      !isPreviewLayout && layout === "simple" && "w-10 shrink-0 px-0 py-1 text-center"
                     )}
                   >
                     {isPreviewLayout ? (
@@ -468,7 +535,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                     )}
                   </TableCell>
                 )}
-                {columnVisibility.video && (
+                {!isSimpleLayout && columnVisibility.video && (
                   <TableCell className="max-w-px px-2 py-1">
                     {isPreviewLayout ? (
                       <div className="min-w-0 space-y-2">
@@ -552,6 +619,18 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                   {episodeRow}
                 </ContextMenuTrigger>
                 <ContextMenuContent>
+                  <ContextMenuItem
+                    disabled={!row.videoFile}
+                    onClick={() => {
+                      if (!row.videoFile) return
+                      const absolutePath = mediaFolderPath && !isAbsPath(row.videoFile) ? join(mediaFolderPath, row.videoFile) : row.videoFile
+                      openFile(absolutePath).catch((error) => {
+                        console.error('[TvShowEpisodeTable] Failed to open file:', error)
+                      })
+                    }}
+                  >
+                    {t('episodeFile.open', { ns: 'components' })}
+                  </ContextMenuItem>
                   <ContextMenuItem
                     disabled={!row.videoFile || !mediaFolderPath || !selectedMediaMetadata}
                     onClick={() => {
