@@ -10,8 +10,6 @@ import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
-import type { JobStatus } from "@/types/background-jobs"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
@@ -19,7 +17,6 @@ import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
-import { listFiles } from "@/api/listFiles"
 import { isNotNil } from "es-toolkit"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
@@ -57,9 +54,6 @@ function AppV2Content() {
   const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { deleteMediaMetadata } = useMediaMetadataActions()
-
-  // Background jobs (optional - for "Importing Media Library" progress)
-  const backgroundJobs = useBackgroundJobsStore()
 
   // Status bar message
   const statusBarMessage = useMemo(() => {
@@ -251,98 +245,6 @@ function AppV2Content() {
       }, {
         title: "Select Folder",
         description: "Choose a folder to open",
-        selectFolder: true
-      })
-    }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
-
-  const handleOpenMediaLibraryMenuClick = useCallback(() => {
-    const runImportInBackground = async (
-      jobId: string | null,
-      libraryPath: string,
-      type: FolderType
-    ) => {
-      const updateJob = backgroundJobs.updateJob
-      const report = (updates: Partial<{ status: JobStatus; progress: number }>) => {
-        if (jobId && updateJob) updateJob(jobId, updates)
-      }
-      try {
-        const listFilesResponse = await listFiles({
-          path: libraryPath,
-          onlyFolders: true,
-          includeHiddenFiles: false,
-        })
-
-        if (listFilesResponse.error || !listFilesResponse.data) {
-          console.error(`[AppV2] Failed to list folders in media library: ${listFilesResponse.error}`)
-          report({ status: 'failed' })
-          return
-        }
-
-        const subfolders = listFilesResponse.data.items.filter(
-          (item) => item.isDirectory && item.path
-        )
-        const total = subfolders.length
-        console.log(`[AppV2] Found ${total} subfolders in media library`)
-
-        if (total === 0) {
-           report({ progress: 100, status: 'succeeded' })
-          return
-        }
-
-        let completed = 0
-        for (const subfolder of subfolders) {
-          if (!subfolder.path) continue
-          try {
-            const traceId = `AppV2:UserOpenMediaLibrary:${nextTraceId()}`
-            const data: OnMediaFolderImportedEventData = {
-              type: type,
-              folderPathInPlatformFormat: subfolder.path,
-              traceId: traceId,
-            }
-            document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
-          } catch (error) {
-            console.error(`[AppV2] Failed to import folder ${subfolder.path}:`, error)
-            // Continue with next folder
-          }
-          completed += 1
-          report({ progress: (completed / total) * 100 })
-        }
-
-         report({ progress: 100, status: 'succeeded' })
-        console.log(`[AppV2] Finished importing ${total} folders from media library`)
-      } catch (error) {
-        console.error(`[AppV2] Import media library failed:`, error)
-         report({ status: 'failed' })
-      }
-    }
-
-    const startImportWithJob = (libraryPath: string, type: FolderType) => {
-      const jobId = backgroundJobs.addJob('Importing Media Library')
-      backgroundJobs.updateJob(jobId, { status: 'running' })
-      runImportInBackground(jobId, libraryPath, type)
-    }
-
-    if (isElectron()) {
-      openNativeFileDialog().then((selectedFile) => {
-        if (selectedFile) {
-          console.log(`[AppV2] Selected media library: ${selectedFile.path}`)
-          openOpenFolder((type: FolderType) => {
-            console.log(`[AppV2] Selected media library type: ${type} for library: ${selectedFile.path}`)
-            startImportWithJob(selectedFile.path, type)
-          }, selectedFile.path)
-        }
-      })
-    } else {
-      openFilePicker((file: FileItem) => {
-        console.log(`[AppV2] Selected media library: ${file.path}`)
-        openOpenFolder((type: FolderType) => {
-          console.log(`[AppV2] Selected media library type: ${type} for library: ${file.path}`)
-          startImportWithJob(file.path, type)
-        }, file.path)
-      }, {
-        title: "Select Media Library",
-        description: "Choose a folder containing multiple media folders",
         selectFolder: true
       })
     }
@@ -553,7 +455,6 @@ function AppV2Content() {
         >
           <Toolbar 
             onOpenFolderMenuClick={handleOpenFolderMenuClick}
-            onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             viewSwitcherDisabled={folders.length === 0 || !selectedMediaMetadata}

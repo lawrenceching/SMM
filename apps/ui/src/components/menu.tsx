@@ -21,6 +21,13 @@ import { toast } from "sonner"
 import { hello } from "@/api/hello"
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import { Path } from "@core/path"
+import type { FolderType, FileItem } from "@/providers/dialog-provider"
+import { nextTraceId } from "@/lib/utils"
+import {
+  UI_MediaLibraryImportedEvent,
+  type OnMediaLibraryImportedEventData,
+} from "@/types/eventTypes"
+import { writeFrontendLog } from "@/api/log"
 
 export interface MenuItem {
   name: string
@@ -148,16 +155,62 @@ function renderMenuItem(item: MenuContentItem, index: number, menuLabel?: string
 
 interface MenuProps {
   onOpenFolderMenuClick?: () => void
-  onOpenMediaLibraryMenuClick?: () => void
 }
 
-export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
-  const { configDialog, downloadVideoDialog, formatConverterDialog } = useDialogs()
+export function Menu({onOpenFolderMenuClick}: MenuProps) {
+  const { configDialog, downloadVideoDialog, formatConverterDialog, openFolderDialog, filePickerDialog } = useDialogs()
   const { t } = useTranslation('components')
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
   const [openFormatConverter] = formatConverterDialog
+  const [openOpenFolder] = openFolderDialog
+  const [openFilePicker] = filePickerDialog
+
+  const logMenuAction = (action: string, context?: Record<string, unknown>) => {
+    void writeFrontendLog({
+      level: "info",
+      message: `menu action: ${action}`,
+      context: {
+        scope: "menu",
+        action,
+        ...context,
+      },
+    })
+  }
+
+  const logMenuError = (action: string, error: unknown, context?: Record<string, unknown>) => {
+    void writeFrontendLog({
+      level: "error",
+      message: `menu action failed: ${action}`,
+      context: {
+        scope: "menu",
+        action,
+        error: error instanceof Error ? error.message : String(error),
+        ...context,
+      },
+    })
+  }
+
+  const handleOpenMediaLibrary = () => {
+    logMenuAction("open-media-library.click")
+    openFilePicker((file: FileItem) => {
+      logMenuAction("open-media-library.path-selected", { libraryPath: file.path })
+      openOpenFolder((type: FolderType) => {
+        logMenuAction("open-media-library.type-selected", { libraryPath: file.path, mediaType: type })
+        const detail: OnMediaLibraryImportedEventData = {
+          libraryPathInPlatformFormat: file.path,
+          type,
+          traceId: `Menu:UserOpenMediaLibrary:${nextTraceId()}`,
+        }
+        document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
+      }, file.path)
+    }, {
+      title: "Select Media Library",
+      description: "Choose a folder containing multiple media folders",
+      selectFolder: true
+    })
+  }
 
   const template: MenuTemplate[] = [
     {
@@ -166,32 +219,41 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
         {
           name: t('menu.openFolder'),
           id: 'open-folder',
-          onClick: () => { onOpenFolderMenuClick?.() }
+          onClick: () => {
+            logMenuAction("open-folder.click")
+            onOpenFolderMenuClick?.()
+          }
         },
         {
           name: t('menu.openMediaLibrary'),
           id: 'open-media-library',
-          onClick: () => { onOpenMediaLibraryMenuClick?.() }
+          onClick: handleOpenMediaLibrary
         },
         
         {
           name: t('menu.downloadVideo'),
           id: 'download-video',
           onClick: () => {
+            logMenuAction("download-video.click")
             openDownloadVideo((url: string, downloadFolder: string) => {
               console.log(`Downloading video from ${url} to ${downloadFolder}`)
+              logMenuAction("download-video.start", { url, downloadFolder })
             })
           }
         },
         {
           name: t('menu.formatConversion'),
           id: 'format-conversion',
-          onClick: () => openFormatConverter()
+          onClick: () => {
+            logMenuAction("format-conversion.click")
+            openFormatConverter()
+          }
         },
         {
           name: t('menu.config'),
           id: 'config',
           onClick: () => {
+            logMenuAction("config.click")
             openConfig()
           }
         },
@@ -206,10 +268,12 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
               name: t('menu.openAppDataFolder'),
               id: 'open-app-data-folder',
               onClick: async () => {
+                logMenuAction("open-app-data-folder.click")
                 try {
                   const result = await hello()
                   if (result.error) {
                     toast.error(result.error)
+                    logMenuError("open-app-data-folder.hello", result.error)
                     return
                   }
                   // Convert platform path to POSIX format
@@ -217,9 +281,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
                   const openResult = await openInFileManagerApi(posixPath)
                   if (openResult.error) {
                     toast.error(openResult.error)
+                    logMenuError("open-app-data-folder.open-in-file-manager", openResult.error, { path: posixPath })
                   }
                 } catch (error) {
                   toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                  logMenuError("open-app-data-folder.exception", error)
                 }
               }
             },
@@ -227,10 +293,12 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
               name: t('menu.openLogFolder'),
               id: 'open-log-folder',
               onClick: async () => {
+                logMenuAction("open-log-folder.click")
                 try {
                   const result = await hello()
                   if (result.error) {
                     toast.error(result.error)
+                    logMenuError("open-log-folder.hello", result.error)
                     return
                   }
                   // Convert platform path to POSIX format
@@ -238,9 +306,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
                   const openResult = await openInFileManagerApi(posixPath)
                   if (openResult.error) {
                     toast.error(openResult.error)
+                    logMenuError("open-log-folder.open-in-file-manager", openResult.error, { path: posixPath })
                   }
                 } catch (error) {
                   toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                  logMenuError("open-log-folder.exception", error)
                 }
               }
             },
@@ -251,15 +321,19 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
               name: t('menu.cleanUp'),
               id: 'clean-up',
               onClick: async () => {
+                logMenuAction("clean-up.click")
                 try {
                   const result = await cleanUp()
                   if (result.success) {
                     toast.success('Clean up completed successfully')
+                    logMenuAction("clean-up.success")
                   } else {
                     toast.error(result.error || 'Clean up failed')
+                    logMenuError("clean-up.failed", result.error || "Clean up failed")
                   }
                 } catch (error) {
                   toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                  logMenuError("clean-up.exception", error)
                 }
               }
             }
@@ -272,6 +346,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           name: t('menu.exit'),
           id: 'exit',
           onClick: () => {
+            logMenuAction("exit.click")
             console.log("Exit")
           }
         }

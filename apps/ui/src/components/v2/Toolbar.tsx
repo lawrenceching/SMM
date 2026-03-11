@@ -3,7 +3,6 @@ import { ViewSwitcher, type ViewMode } from "./ViewSwitcher"
 
 export interface ToolbarProps {
   onOpenFolderMenuClick?: () => void
-  onOpenMediaLibraryMenuClick?: () => void
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
   viewSwitcherDisabled?: boolean
@@ -11,7 +10,6 @@ export interface ToolbarProps {
 
 export function Toolbar({ 
   onOpenFolderMenuClick,
-  onOpenMediaLibraryMenuClick,
   viewMode, 
   onViewModeChange, 
   viewSwitcherDisabled 
@@ -27,7 +25,7 @@ export function Toolbar({
         width: "100%",
       }}
     >
-      <Menu onOpenFolderMenuClick={onOpenFolderMenuClick} onOpenMediaLibraryMenuClick={onOpenMediaLibraryMenuClick} />
+      <Menu onOpenFolderMenuClick={onOpenFolderMenuClick} />
       {viewMode !== undefined && onViewModeChange && (
         <ViewSwitcher 
           viewMode={viewMode} 

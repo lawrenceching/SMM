@@ -11,6 +11,7 @@ interface MediaMetadataStoreState {
 interface MediaMetadataStoreActions {
   setMediaMetadatas: (metadatas: UIMediaMetadata[]) => void;
   addMediaMetadata: (metadata: UIMediaMetadata) => void;
+  addMediaMetadatas: (metadatas: UIMediaMetadata[]) => void;
   updateMediaMetadata: (path: string, updater: (current: UIMediaMetadata) => UIMediaMetadata) => void;
   removeMediaMetadata: (path: string) => void;
   getMediaMetadata: (path: string) => UIMediaMetadata | undefined;
@@ -44,6 +45,24 @@ const useMediaMetadataStore = create<MediaMetadataStore>((set, get) => ({
         // Add new
         return { mediaMetadatas: [...state.mediaMetadatas, metadata] };
       }
+    }),
+
+  addMediaMetadatas: (metadatas) =>
+    set((state) => {
+      if (metadatas.length === 0) return state;
+
+      const metadataByPath = new Map(
+        state.mediaMetadatas
+          .filter((m) => m.mediaFolderPath)
+          .map((m) => [m.mediaFolderPath!, m])
+      );
+
+      for (const metadata of metadatas) {
+        if (!metadata.mediaFolderPath) continue;
+        metadataByPath.set(metadata.mediaFolderPath, metadata);
+      }
+
+      return { mediaMetadatas: Array.from(metadataByPath.values()) };
     }),
 
   updateMediaMetadata: (path, updater) =>
@@ -107,6 +126,7 @@ export const useMediaMetadataStoreActions = () =>
     useShallow((state) => ({
       setMediaMetadatas: state.setMediaMetadatas,
       addMediaMetadata: state.addMediaMetadata,
+      addMediaMetadatas: state.addMediaMetadatas,
       updateMediaMetadata: state.updateMediaMetadata,
       removeMediaMetadata: state.removeMediaMetadata,
       getMediaMetadata: state.getMediaMetadata,

@@ -27,6 +27,7 @@ export function MediaFolderImportedEventHandler() {
     const doInitializeMediaFolder = async (event: Event) => {
         const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail
         const { type, folderPathInPlatformFormat } = data
+        const shouldSkipOptimisticUpdate = Boolean(data.skipOptimisticUpdate)
         const traceId = data.traceId || `useInitializeMediaFolderEventHandler-${nextTraceId()}`
         const targetPathPosix = Path.posix(folderPathInPlatformFormat)
 
@@ -55,12 +56,14 @@ export function MediaFolderImportedEventHandler() {
         }
 
         if (type === 'music') {
-            const placeholder: UIMediaMetadata = {
-                ...createMediaMetadata(folderPathInPlatformFormat, 'music-folder'),
-                status: 'initializing',
+            if (!shouldSkipOptimisticUpdate) {
+                const placeholder: UIMediaMetadata = {
+                    ...createMediaMetadata(folderPathInPlatformFormat, 'music-folder'),
+                    status: 'initializing',
+                }
+                addMediaMetadata(placeholder)
+                setSelectedByMediaFolderPath(optimisticTargetPath)
             }
-            addMediaMetadata(placeholder)
-            setSelectedByMediaFolderPath(optimisticTargetPath)
 
             try {
                 await initializeMusicFolder(folderPathInPlatformFormat, {
@@ -89,12 +92,14 @@ export function MediaFolderImportedEventHandler() {
         addMediaFolderInUserConfig(traceId, folderPathInPlatformFormat)
 
         const mediaType = type === 'tvshow' ? 'tvshow-folder' : 'movie-folder'
-        const placeholder: UIMediaMetadata = {
-            ...createMediaMetadata(folderPathInPlatformFormat, mediaType),
-            status: 'initializing',
+        if (!shouldSkipOptimisticUpdate) {
+            const placeholder: UIMediaMetadata = {
+                ...createMediaMetadata(folderPathInPlatformFormat, mediaType),
+                status: 'initializing',
+            }
+            addMediaMetadata(placeholder)
+            setSelectedByMediaFolderPath(optimisticTargetPath)
         }
-        addMediaMetadata(placeholder)
-        setSelectedByMediaFolderPath(optimisticTargetPath)
 
         let jobId: string | null = null
         jobId = backgroundJobs.addJob(`初始化 ${new Path(folderPathInPlatformFormat).name()}`)
@@ -268,6 +273,8 @@ export function MediaFolderImportedEventHandler() {
                 } finally {
                     mutex.release();
                     console.log(`released mutex for media folder initialization`)
+                    const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail
+                    data.onCompleted?.()
                 }
 
 
