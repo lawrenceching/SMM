@@ -89,6 +89,14 @@ export function ImmersiveSearchbox({
     const getResultOriginalName = (result: TMDBTVShow | TMDBMovie) => ('original_name' in result ? result.original_name : result.original_title)
     const getResultDate = (result: TMDBTVShow | TMDBMovie) => ('first_air_date' in result ? result.first_air_date : result.release_date)
 
+    const handleContainerClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLElement
+        const input = inputContainerRef.current?.querySelector('input')
+        if (input && target !== input && !target.closest('button')) {
+            input.focus()
+        }
+    }, [])
+
     return (
         <div className={cn("w-full min-w-0", className)}>
             <Popover 
@@ -97,7 +105,7 @@ export function ImmersiveSearchbox({
                 modal={false}
             >
                 <PopoverAnchor asChild>
-                    <div ref={inputContainerRef} className="w-full min-w-0">
+                    <div ref={inputContainerRef} className="w-full min-w-0 cursor-text" onClick={handleContainerClick}>
                         {unrecognizedHint ? (
                             <HoverCard open openDelay={0} onOpenChange={() => {}}>
                                 <HoverCardTrigger asChild>
@@ -136,6 +144,10 @@ export function ImmersiveSearchbox({
                     side="bottom"
                     sideOffset={8}
                     style={{ width: popoverWidth ? `${popoverWidth}px` : undefined }}
+                    onOpenAutoFocus={(e) => {
+                        e.preventDefault()
+                        inputContainerRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+                    }}
                     onInteractOutside={(e) => {
                         const target = e.target as HTMLElement
                         if (inputContainerRef.current?.contains(target)) {
