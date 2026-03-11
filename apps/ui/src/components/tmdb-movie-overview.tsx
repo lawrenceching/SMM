@@ -48,6 +48,11 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
     return `${baseUrl}/${size}${path}`
 }
 
+/**
+ * @deprecated
+ * @param param0 
+ * @returns 
+ */
 export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewingForRename }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
     const { selectedMediaMetadata } = useMediaMetadataStoreState();

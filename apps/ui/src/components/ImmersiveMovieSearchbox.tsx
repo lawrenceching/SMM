@@ -38,6 +38,11 @@ interface ImmersiveMovieSearchboxProps {
     unrecognizedHint?: string
 }
 
+/**
+ * @deprecated
+ * @param param0 
+ * @returns 
+ */
 export function ImmersiveMovieSearchbox({
     value,
     onChange,
