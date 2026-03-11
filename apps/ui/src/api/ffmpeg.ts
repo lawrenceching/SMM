@@ -17,7 +17,19 @@ export async function generateFfmpegScreenshots(
     signal: options?.signal,
   });
 
-  return (await resp.json()) as FfmpegScreenshotsResponse;
+  const text = await resp.text();
+  if (!text.trim()) {
+    return {
+      error: resp.ok
+        ? "Empty response from server"
+        : `Request failed: ${resp.status} ${resp.statusText}`,
+    };
+  }
+  try {
+    return JSON.parse(text) as FfmpegScreenshotsResponse;
+  } catch {
+    return { error: `Invalid response: ${text.slice(0, 100)}` };
+  }
 }
 
 export type FfmpegConvertFormat = "mp4h264" | "mp4h265" | "webm" | "mkv";

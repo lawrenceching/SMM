@@ -151,6 +151,8 @@ function enqueueScreenshotTask(task: () => Promise<void>) {
 
 const SCREENSHOT_SLOT_COUNT = 5
 
+const LOG = "[EpisodeVideoScreenshot]"
+
 /** Fetches and displays video screenshots (multiple) for a video file path. */
 function EpisodeVideoScreenshot({
   videoPath,
@@ -167,13 +169,16 @@ function EpisodeVideoScreenshot({
   const [screenshots, setScreenshots] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  /** Ref to detect stale results: only apply when task's path still matches current. */
+  const loadingPathRef = useRef<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-
+    const label = videoPath ? basename(videoPath) || videoPath : "(no path)"
     if (!videoPath) {
+      console.log(LOG, "effect run (no videoPath)", { label })
       setScreenshots([])
       setLoading(false)
+      loadingPathRef.current = null
       return
     }
     setLoading(true)
@@ -181,31 +186,64 @@ function EpisodeVideoScreenshot({
     const absolutePath =
       mediaFolderPath && !isAbsPath(videoPath) ? join(mediaFolderPath, videoPath) : videoPath
     const posixPath = Path.posix(absolutePath)
+    loadingPathRef.current = posixPath
     const signal = folderAbortSignal
+    console.log(LOG, "effect run, enqueue task", { label, posixPath: posixPath.slice(-60), signalAborted: signal?.aborted })
 
     enqueueScreenshotTask(async () => {
-      if (signal?.aborted) return
+      if (signal?.aborted) {
+        console.log(LOG, "task start skip (signal aborted)", { label })
+        return
+      }
+      console.log(LOG, "task start, calling API", { label })
       try {
         const result = await generateFfmpegScreenshots(posixPath, { signal })
-        if (cancelled || signal?.aborted) return
+        const screenshotsLen = result.screenshots?.length ?? 0
+        const stillCurrent = loadingPathRef.current === posixPath
+        console.log(LOG, "API returned", {
+          label,
+          screenshotsLen,
+          signalAborted: signal?.aborted,
+          loadingPathRefCurrent: loadingPathRef.current?.slice(-60) ?? null,
+          posixPathTail: posixPath.slice(-60),
+          stillCurrent,
+        })
+        if (signal?.aborted) {
+          console.log(LOG, "skip setState (signal aborted)", { label })
+          return
+        }
+        if (loadingPathRef.current !== posixPath) {
+          console.log(LOG, "skip setState (path no longer current)", { label })
+          return
+        }
         if (result.screenshots && result.screenshots.length > 0) {
           setScreenshots(result.screenshots)
+          console.log(LOG, "setScreenshots called", { label, count: result.screenshots.length })
         } else {
           setScreenshots([])
+          console.log(LOG, "setScreenshots([]) (no screenshots in result)", { label })
         }
       } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        const errName = err instanceof Error ? err.name : ""
+        console.log(LOG, "API error", label, errName, errMsg, "signalAborted:", signal?.aborted, "stillCurrent:", loadingPathRef.current === posixPath)
         if (signal?.aborted) return
-        if (!cancelled) {
+        if (loadingPathRef.current === posixPath) {
           setError(true)
           setScreenshots([])
         }
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        const doSetLoadingFalse = loadingPathRef.current === posixPath && !signal?.aborted
+        console.log(LOG, "finally", { label, doSetLoadingFalse, loadingPathRefCurrent: loadingPathRef.current?.slice(-60) ?? null, posixPathTail: posixPath.slice(-60) })
+        if (doSetLoadingFalse) {
+          setLoading(false)
+        }
       }
     })
 
     return () => {
-      cancelled = true
+      console.log(LOG, "effect cleanup", { label })
+      loadingPathRef.current = null
     }
   }, [videoPath, mediaFolderPath, folderAbortSignal])
 
@@ -232,11 +270,18 @@ function EpisodeVideoScreenshot({
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded bg-muted aspect-video min-h-[60px]",
+          "grid grid-cols-5 gap-1 min-h-[60px]",
           className
         )}
       >
-        <Video className="size-8 text-muted-foreground" />
+        {Array.from({ length: SCREENSHOT_SLOT_COUNT }, (_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-center rounded bg-muted aspect-video min-h-[40px]"
+          >
+            <Video className="size-4 text-muted-foreground" />
+          </div>
+        ))}
       </div>
     )
   }
@@ -275,9 +320,20 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const folderAbortRef = useRef<AbortController | null>(null)
-  if (!folderAbortRef.current) folderAbortRef.current = new AbortController()
-  const folderAbortSignal = folderAbortRef.current.signal
+  if (layout === "preview" && !folderAbortRef.current) {
+    folderAbortRef.current = new AbortController()
+  }
+  const folderAbortSignal = folderAbortRef.current?.signal
 
+  // When leaving preview layout, cancel in-flight/queued screenshot requests.
+  useEffect(() => {
+    if (layout !== "preview") {
+      folderAbortRef.current?.abort()
+      folderAbortRef.current = null
+    }
+  }, [layout])
+
+  // On unmount, cancel any screenshot requests.
   useEffect(() => {
     return () => {
       folderAbortRef.current?.abort()
