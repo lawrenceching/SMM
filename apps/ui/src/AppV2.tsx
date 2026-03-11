@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
-import { Sidebar, type SortOrder, type FilterType } from "@/components/v2/Sidebar"
+import { Sidebar } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
+import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
 import { useDialogs } from "@/providers/dialog-provider"
 import { basename } from "@/lib/path"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
@@ -35,10 +36,8 @@ function AppV2Content() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const resizeRef = useRef<HTMLDivElement>(null)
 
-  // Sidebar state
-  const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
-  const [filterType, setFilterType] = useState<FilterType>("all")
-  const [searchQuery, setSearchQuery] = useState<string>("")
+  // Sidebar state (Zustand store so MediaLibraryImportedEventHandler can use same sort order for init)
+  const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
   // Multi-select: set of selected folder paths and the primary (drives content panel)
   const [selectedFolderPaths, setSelectedFolderPaths] = useState<Set<string>>(new Set())
   const [primaryFolderPath, setPrimaryFolderPath] = useState<string | undefined>(undefined)
@@ -283,11 +282,8 @@ function AppV2Content() {
       result = result.filter((folder) => folder.mediaType === filterType)
     }
 
-    // Sort by alphabetical order
-    result.sort((a, b) => {
-      const comparison = a.mediaName.localeCompare(b.mediaName, undefined, { sensitivity: 'base' })
-      return sortOrder === "alphabetical" ? comparison : -comparison
-    })
+    // Sort using shared comparator (same as sidebarStore; keeps init order in sync with display)
+    result.sort((a, b) => compareByDisplayName(a.mediaName, b.mediaName, sortOrder))
 
     return result
   }, [folders, sortOrder, filterType, searchQuery])

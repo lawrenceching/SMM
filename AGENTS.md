@@ -61,6 +61,9 @@
 - Socket.IO Client
 - AI SDK (@ai-sdk/react, @assistant-ui/react)
 
+Shadcn UI 的 cli 对 monorepo 的支持不友好, 无法通过 cli 安装组件.
+请手动安装组件, 并在 `apps/ui/src/components/ui/` 目录下创建对应的组件文件.
+
 ### apps/cli
 后端服务, 主要目录结构:
 - `src/route/` - HTTP API 路由

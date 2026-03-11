@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils"
 import { FilterButton } from "./FilterButton";
 import { SortingButton } from "./SortingButton";
 import type { FilterOption, SortingOption } from "./FilterButton";
+import type { SortOrder, FilterType } from "@/stores/sidebarStore";
 
-export type SortOrder = "alphabetical" | "reverse-alphabetical"
-export type FilterType = "all" | "tvshow" | "movie" | "music"
+export type { SortOrder, FilterType }
 
 export interface MediaFolderToolbarProps {
   sortOrder: SortOrder

@@ -9,6 +9,8 @@ import { createMediaMetadata } from "@core/mediaMetadata"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
+import { basename } from "@/lib/path"
+import { sortPathsBySidebarDisplayOrder } from "@/stores/sidebarStore"
 import { UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } from "@/types/eventTypes"
 import { initializeSingleMediaFolder } from "@/lib/initializeSingleMediaFolder"
 import { Mutex } from "es-toolkit"
@@ -59,7 +61,10 @@ export function MediaLibraryImportedEventHandler() {
       )
 
       const existingPaths = new Set(mediaMetadatas.map((metadata) => metadata.mediaFolderPath).filter(Boolean))
-      const pathsToImport = subfolderPaths.filter((path) => !existingPaths.has(Path.posix(path)))
+      let pathsToImport = subfolderPaths.filter((path) => !existingPaths.has(Path.posix(path)))
+
+      // Use Sidebar store sort order so initialization runs top-to-bottom as shown in Sidebar
+      pathsToImport = sortPathsBySidebarDisplayOrder(pathsToImport, (path) => basename(path) ?? "")
 
       if (pathsToImport.length === 0) {
         backgroundJobs.updateJob(jobId, { status: "succeeded", progress: 100 })
