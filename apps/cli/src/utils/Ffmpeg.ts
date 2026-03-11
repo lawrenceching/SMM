@@ -3,8 +3,55 @@ import { getTmpDir } from "./config";
 import path from "path";
 import os from "os";
 import fs from "fs";
+import crypto from "crypto";
 import { execSync, spawn } from "child_process";
 import { Path } from "@core/path";
+
+const NUM_SCREENSHOTS = 5;
+
+function getScreenshotCacheDir(videoPath: string): string {
+  const absolutePath = path.resolve(videoPath);
+  const hash = crypto
+    .createHash("sha256")
+    .update(absolutePath)
+    .digest("hex")
+    .slice(0, 32);
+  return path.join(getTmpDir(), "screenshots", hash);
+}
+
+function readScreenshotCacheMeta(
+  cacheDir: string
+): { mtimeMs: number } | null {
+  const metaPath = path.join(cacheDir, "meta.json");
+  if (!fs.existsSync(metaPath)) {
+    return null;
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as {
+      mtimeMs?: number;
+    };
+    if (typeof data.mtimeMs !== "number") {
+      return null;
+    }
+    return { mtimeMs: data.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+
+function isScreenshotCacheValid(cacheDir: string, mtimeMs: number): boolean {
+  const meta = readScreenshotCacheMeta(cacheDir);
+  if (!meta || meta.mtimeMs !== mtimeMs) {
+    return false;
+  }
+  for (let i = 1; i <= NUM_SCREENSHOTS; i++) {
+    const jpgPath = path.join(cacheDir, `${i}.jpg`);
+    if (!fs.existsSync(jpgPath)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function getSmmDataDir(): string {
   const platform = os.platform();
@@ -176,21 +223,31 @@ export async function generateVideoScreenshots(
     return { error: "video file not found" };
   }
 
+  let mtimeMs: number;
+  try {
+    const stat = fs.statSync(videoPath);
+    mtimeMs = stat.mtimeMs;
+  } catch {
+    return { error: "failed to read video file stats" };
+  }
+
+  const cacheDir = getScreenshotCacheDir(videoPath);
+  if (isScreenshotCacheValid(cacheDir, mtimeMs)) {
+    const screenshots = Array.from(
+      { length: NUM_SCREENSHOTS },
+      (_, i) => path.join(cacheDir, `${i + 1}.jpg`)
+    );
+    return { screenshots };
+  }
+
   const ffmpegPath = await discoverFfmpeg();
   if (!ffmpegPath) {
     return { error: "ffmpeg executable not found" };
   }
 
-  const tempDir = getTmpDir();
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
   }
-
-  const videoPathObj = new Path(videoPath);
-  const screenshotFilePrefix = path.join(
-    tempDir,
-    videoPathObj.name().replace(/\.[^/.]+$/, "")
-  );
 
   let duration: number;
   try {
@@ -207,14 +264,12 @@ export async function generateVideoScreenshots(
     return { error: "invalid video duration" };
   }
 
-  const numScreenshots = 5;
   const screenshotPaths: string[] = [];
+  const interval = duration / (NUM_SCREENSHOTS + 1);
 
-  const interval = duration / (numScreenshots + 1);
-
-  for (let i = 1; i <= numScreenshots; i++) {
+  for (let i = 1; i <= NUM_SCREENSHOTS; i++) {
     const timestamp = interval * i;
-    const screenshotPath = `${screenshotFilePrefix}_${i}.jpg`;
+    const screenshotPath = path.join(cacheDir, `${i}.jpg`);
 
     try {
       await generateScreenshot(ffmpegPath, videoPath, screenshotPath, timestamp);
@@ -232,6 +287,13 @@ export async function generateVideoScreenshots(
       };
     }
   }
+
+  const metaPath = path.join(cacheDir, "meta.json");
+  fs.writeFileSync(
+    metaPath,
+    JSON.stringify({ mtimeMs }),
+    "utf-8"
+  );
 
   return { screenshots: screenshotPaths };
 }
