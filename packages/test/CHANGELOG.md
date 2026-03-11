@@ -1,5 +1,11 @@
 # @smm/test
 
+## 1.0.3
+
+### Patch Changes
+
+- New UI
+
 ## 1.0.2
 
 ### Patch Changes

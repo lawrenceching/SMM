@@ -1,5 +1,11 @@
 # @smm/core
 
+## 1.1.3
+
+### Patch Changes
+
+- New UI
+
 ## 1.1.2
 
 ### Patch Changes

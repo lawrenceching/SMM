@@ -18,6 +18,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:30000',
         changeOrigin: true,
+        // Screenshot API can take long (ffmpeg); avoid proxy closing the connection (node-http-proxy default can be ~2min)
+        // proxyTimeout: 300_000, // 5 minutes
       },
       // Socket.IO endpoint (HTTP long-polling and WebSocket upgrade)
       '/socket.io': {
