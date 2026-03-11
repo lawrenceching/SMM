@@ -1,9 +1,9 @@
 import { useCallback } from "react"
 import type { MediaMetadata } from "@core/types"
-import { Nfo } from "@/lib/nfo"
+import { Nfo, buildEpisodeNfoXml } from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import { join } from "@/lib/path"
+import { join, dirname, basename, extname } from "@/lib/path"
 import { Path } from "@core/path"
 import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
@@ -73,6 +73,23 @@ async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata, getTransla
         const nfoPath = join(mediaMetadata.mediaFolderPath, "tvshow.nfo")
         await writeFile(Path.toPlatformPath(nfoPath), xml)
         console.log(`✅ NFO file written to: ${nfoPath}`)
+
+        // Write episode NFOs next to each video file
+        if (mediaMetadata.mediaFiles?.length) {
+            for (const mediaFile of mediaMetadata.mediaFiles) {
+                if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
+                const season = mediaMetadata.tmdbTvShow!.seasons?.find(s => s.season_number === mediaFile.seasonNumber)
+                const episode = season?.episodes?.find(e => e.episode_number === mediaFile.episodeNumber)
+                if (!episode) continue
+                const videoBasename = basename(mediaFile.absolutePath)
+                const videoExt = extname(videoBasename)
+                const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
+                const episodeNfoPath = join(dirname(mediaFile.absolutePath), nameWithoutExt + ".nfo")
+                const episodeXml = buildEpisodeNfoXml(episode, videoBasename)
+                await writeFile(Path.toPlatformPath(episodeNfoPath), episodeXml)
+                console.log(`✅ Episode NFO written to: ${episodeNfoPath}`)
+            }
+        }
     } catch (error) {
         console.error("Failed to generate NFO file:", error)
         const errorMessage = error instanceof Error ? error.message : "Failed to generate NFO file"

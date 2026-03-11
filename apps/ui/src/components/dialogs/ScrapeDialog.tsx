@@ -149,12 +149,27 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       )
     })
 
-    // Check for NFO file
-    // NFO file is named "tvshow.nfo"
-    const nfoCompleted = files.some((file) => {
-      const fileName = basename(file)
-      return fileName === 'tvshow.nfo'
-    })
+    // Check for NFO files: tvshow.nfo and episode NFO next to each video
+    const tvshowNfoOk = files.some((file) => basename(file) === 'tvshow.nfo')
+    let episodeNfosOk = true
+    if (mediaMetadata.mediaFiles?.length) {
+      for (const mediaFile of mediaMetadata.mediaFiles) {
+        if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
+        const videoBasename = basename(mediaFile.absolutePath)
+        const videoExt = extname(videoBasename)
+        const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
+        const expectedNfoBasename = nameWithoutExt + '.nfo'
+        const videoDir = dirname(mediaFile.absolutePath)
+        const hasEpisodeNfo = files.some(
+          (file) => dirname(file) === videoDir && basename(file) === expectedNfoBasename
+        )
+        if (!hasEpisodeNfo) {
+          episodeNfosOk = false
+          break
+        }
+      }
+    }
+    const nfoCompleted = tvshowNfoOk && episodeNfosOk
 
     // Check for thumbnails
     // Thumbnails are named based on the video file name: "{videoFileNameWithoutExt}.{imageExtension}"

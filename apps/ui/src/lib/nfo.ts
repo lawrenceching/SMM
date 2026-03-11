@@ -1,3 +1,6 @@
+import type { TMDBEpisode } from "@core/types"
+import { getTMDBImageUrl } from "@/api/tmdb"
+
 export type ThumbAspect = "poster" | "clearlogo" | null
 
 export interface NfoThumb {
@@ -223,6 +226,82 @@ export async function parseEpisodeNfo(xml: string): Promise<EpisodeNfo | undefin
     }
     
     return episodeNfo
+}
+
+/**
+ * Format XML string with proper indentation (shared for episode NFO).
+ */
+function formatEpisodeNfoXml(xml: string): string {
+    const PADDING = '  '
+    const reg = /(>)(<)(\/*)/g
+    let formatted = ''
+    xml = xml.replace(reg, '$1\n$2$3')
+    let pad = 0
+    xml.split('\n').forEach((node) => {
+        let indent = 0
+        if (node.match(/.+<\/\w[^>]*>$/)) {
+            indent = 0
+        } else if (node.match(/^<\/\w/)) {
+            if (pad > 0) pad -= 1
+        } else if (node.match(/^<\w([^>]*[^\/])?>.*$/)) {
+            indent = 1
+        }
+        formatted += PADDING.repeat(pad) + node + '\n'
+        pad += indent
+    })
+    return formatted.trim()
+}
+
+/**
+ * Build episodedetails XML from TMDB episode data and video filename.
+ * Output is compatible with parseEpisodeNfo and buildTmdbEpisodeByNFO.
+ */
+export function buildEpisodeNfoXml(episode: TMDBEpisode, originalFilename: string): string {
+    const doc = document.implementation.createDocument(null, 'episodedetails', null)
+    const root = doc.documentElement
+
+    const addElement = (name: string, value: string) => {
+        const el = doc.createElement(name)
+        el.textContent = value
+        root.appendChild(el)
+    }
+
+    if (episode.name) addElement('title', episode.name)
+    if (episode.overview) addElement('plot', episode.overview)
+    if (episode.still_path) {
+        const thumbUrl = getTMDBImageUrl(episode.still_path, 'original')
+        if (thumbUrl) addElement('thumb', thumbUrl)
+    }
+    if (episode.air_date) addElement('premiered', episode.air_date)
+    addElement('episode', String(episode.episode_number))
+    addElement('season', String(episode.season_number))
+    addElement('original_filename', originalFilename)
+
+    const uniqueId = doc.createElement('uniqueid')
+    uniqueId.setAttribute('type', 'tmdb')
+    uniqueId.textContent = String(episode.id)
+    root.appendChild(uniqueId)
+
+    if (episode.id) addElement('id', String(episode.id))
+    if (episode.runtime > 0) addElement('runtime', String(episode.runtime))
+
+    if (episode.vote_average > 0 || episode.vote_count > 0) {
+        const ratings = doc.createElement('ratings')
+        const rating = doc.createElement('rating')
+        rating.setAttribute('name', 'themoviedb')
+        const value = doc.createElement('value')
+        value.textContent = String(episode.vote_average)
+        const votes = doc.createElement('votes')
+        votes.textContent = String(episode.vote_count)
+        rating.appendChild(value)
+        rating.appendChild(votes)
+        ratings.appendChild(rating)
+        root.appendChild(ratings)
+    }
+
+    const serializer = new XMLSerializer()
+    const xmlString = serializer.serializeToString(doc)
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + formatEpisodeNfoXml(xmlString)
 }
 
 export interface MovieNFO {

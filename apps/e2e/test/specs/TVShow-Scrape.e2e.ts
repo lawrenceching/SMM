@@ -125,6 +125,16 @@ describe('TVShow - Scrape', () => {
 
     expect(fs.existsSync(path.join(testMediaFolder, 'tvshow.nfo'))).toBe(true)
 
+    // Episode NFOs: one per video, same basename + .nfo
+    expect(fs.existsSync(path.join(testMediaFolder, 'S01E01.nfo'))).toBe(true)
+    expect(fs.existsSync(path.join(testMediaFolder, 'S01E02.nfo'))).toBe(true)
+    const s01e01Nfo = fs.readFileSync(path.join(testMediaFolder, 'S01E01.nfo'), 'utf-8')
+    expect(s01e01Nfo).toContain('<episodedetails>')
+    expect(s01e01Nfo).toContain('<title>')
+    expect(s01e01Nfo).toContain('<season>1</season>')
+    expect(s01e01Nfo).toContain('<episode>1</episode>')
+    expect(s01e01Nfo).toContain('<original_filename>S01E01.mp4</original_filename>')
+
     const hasPoster = filesInMediaFolder.some(
       (f) => f.startsWith('poster.') && IMAGE_EXTENSIONS.some((ext) => f.toLowerCase().endsWith(ext))
     )
