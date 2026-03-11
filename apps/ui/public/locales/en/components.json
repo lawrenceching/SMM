@@ -63,7 +63,9 @@
     "rename": "Rename",
     "recognize": "Recognize",
     "scrape": "Scrape",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "more": "More",
+    "openInTmdb": "Open in TMDB"
   },
   "movie": {
     "searchPlaceholder": "Enter movie name",

@@ -63,7 +63,9 @@
     "rename": "重命名",
     "recognize": "识别",
     "scrape": "刮削",
-    "notAvailable": "不可用"
+    "notAvailable": "不可用",
+    "more": "更多",
+    "openInTmdb": "在TMDB中打开"
   },
   "movie": {
     "searchPlaceholder": "输入电影名称",
