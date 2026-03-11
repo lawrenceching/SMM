@@ -1,6 +1,6 @@
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid } from "lucide-react"
+import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
 import { TMDBSearchbox } from "./TMDBSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -13,7 +13,7 @@ import {
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
-export type EpisodeTableLayout = "simple" | "detail"
+export type EpisodeTableLayout = "simple" | "detail" | "preview"
 
 export interface TvShowHeaderV2Props {
     onSearchResultSelected: (result: TMDBTVShow | TMDBMovie) => void
@@ -92,7 +92,7 @@ export function TvShowHeaderV2({
                                 onClick={() => onEpisodeTableLayoutChange("detail")}
                                 disabled={isUpdatingTvShow}
                                 className={cn(
-                                    "h-9 w-9 rounded-none rounded-r-md transition-all",
+                                    "h-9 w-9 rounded-none transition-all",
                                     episodeTableLayout === "detail"
                                         ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
                                         : "hover:bg-accent hover:text-accent-foreground"
@@ -102,6 +102,24 @@ export function TvShowHeaderV2({
                                 aria-pressed={episodeTableLayout === "detail"}
                             >
                                 <LayoutGrid className="size-4" />
+                            </Button>
+                            <div className="h-4 w-px bg-border" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onEpisodeTableLayoutChange("preview")}
+                                disabled={isUpdatingTvShow}
+                                className={cn(
+                                    "h-9 w-9 rounded-none rounded-r-md transition-all",
+                                    episodeTableLayout === "preview"
+                                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                        : "hover:bg-accent hover:text-accent-foreground"
+                                )}
+                                title={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                aria-label={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                aria-pressed={episodeTableLayout === "preview"}
+                            >
+                                <PanelTop className="size-4" />
                             </Button>
                         </div>
                     )}

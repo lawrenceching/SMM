@@ -67,7 +67,8 @@
     "more": "More",
     "openInTmdb": "Open in TMDB",
     "layoutSimple": "Simple layout",
-    "layoutDetail": "Detail layout"
+    "layoutDetail": "Detail layout",
+    "layoutPreview": "Preview layout"
   },
   "movie": {
     "searchPlaceholder": "Enter movie name",

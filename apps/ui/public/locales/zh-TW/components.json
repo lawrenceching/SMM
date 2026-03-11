@@ -66,7 +66,8 @@
     "more": "更多",
     "openInTmdb": "在TMDB中開啟",
     "layoutSimple": "簡單佈局",
-    "layoutDetail": "詳情佈局"
+    "layoutDetail": "詳情佈局",
+    "layoutPreview": "預覽模式"
   },
   "movie": {
     "searchPlaceholder": "輸入電影名稱",

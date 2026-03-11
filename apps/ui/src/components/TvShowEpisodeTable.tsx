@@ -20,15 +20,17 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon, Loader2, Video } from "lucide-react"
 import Image from "@/components/Image"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
+import { generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import { computeAssociatedFileRenames } from "./episode-file"
 
 export interface TvShowEpisodeDividerRow {
@@ -65,8 +67,8 @@ interface TvShowEpisodeTableProps {
   onUnlinkEpisode?: (rowId: string) => void
   /** When true, shows rename preview with strikethrough old name and new name. */
   preview?: boolean
-  /** Table layout: simple (path + check icons) or detail (cover image + episode title + path). */
-  layout?: "simple" | "detail"
+  /** Table layout: simple | detail (cover + title + path) | preview (no ID, larger cover, video screenshot). */
+  layout?: "simple" | "detail" | "preview"
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -128,6 +130,115 @@ function ThumbnailImage({
   return <Image url={url} alt="" className={className} />
 }
 
+/** Global queue to ensure only one screenshot generation runs at a time. */
+let screenshotQueue: Promise<void> = Promise.resolve()
+
+function enqueueScreenshotTask(task: () => Promise<void>) {
+  screenshotQueue = screenshotQueue.then(task).catch((error) => {
+    console.error("[TvShowEpisodeTable] screenshot task error", error)
+  })
+  return screenshotQueue
+}
+
+const SCREENSHOT_SLOT_COUNT = 5
+
+/** Fetches and displays video screenshots (multiple) for a video file path. */
+function EpisodeVideoScreenshot({
+  videoPath,
+  mediaFolderPath,
+  className,
+}: {
+  videoPath: string
+  mediaFolderPath: string | undefined
+  className?: string
+}) {
+  const [screenshots, setScreenshots] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!videoPath) {
+      setScreenshots([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(false)
+    const absolutePath =
+      mediaFolderPath && !isAbsPath(videoPath) ? join(mediaFolderPath, videoPath) : videoPath
+    const posixPath = Path.posix(absolutePath)
+
+    enqueueScreenshotTask(async () => {
+      try {
+        const result = await generateFfmpegScreenshots(posixPath)
+        if (cancelled) return
+        if (result.screenshots && result.screenshots.length > 0) {
+          setScreenshots(result.screenshots)
+        } else {
+          setScreenshots([])
+        }
+      } catch {
+        if (!cancelled) {
+          setError(true)
+          setScreenshots([])
+        }
+      } finally {
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [videoPath, mediaFolderPath])
+
+  if (loading) {
+    return (
+      <div
+        className={cn(
+          "grid grid-cols-5 gap-1 min-h-[60px]",
+          className
+        )}
+      >
+        {Array.from({ length: SCREENSHOT_SLOT_COUNT }, (_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-center rounded bg-muted aspect-video min-h-[40px]"
+          >
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (error || screenshots.length === 0) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center rounded bg-muted aspect-video min-h-[60px]",
+          className
+        )}
+      >
+        <Video className="size-8 text-muted-foreground" />
+      </div>
+    )
+  }
+  return (
+    <div className={cn("grid grid-cols-5 gap-1", className)}>
+      {screenshots.map((path, i) => (
+        <Image
+          key={i}
+          url={pathToFileURL(path)}
+          alt=""
+          className="w-full h-auto rounded object-contain aspect-video max-h-[80px]"
+        />
+      ))}
+    </div>
+  )
+}
+
 const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
 type ColumnKey = (typeof COLUMN_KEYS)[number]
 
@@ -183,20 +294,29 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
     setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const showThumbnailColumn = layout === "detail" || columnVisibility.thumbnail
+  const showThumbnailColumn = layout === "detail" || layout === "preview" || columnVisibility.thumbnail
+  const showIdColumn = layout !== "preview"
   const visibleColumnCount =
-    1 +
+    (showIdColumn ? 1 : 0) +
     (showThumbnailColumn ? 1 : 0) +
     (columnVisibility.video ? 1 : 0) +
     (columnVisibility.subtitle ? 1 : 0) +
     (columnVisibility.nfo ? 1 : 0)
 
+  const isPreviewLayout = layout === "preview"
+  const thumbnailCellWidth = isPreviewLayout ? "w-[160px] min-w-[160px]" : layout === "detail" ? "w-[100px] min-w-[100px]" : ""
+
   const headerRow = (
     <TableRow className="hover:bg-transparent">
-      <TableHead className="h-8 w-[100px] px-2 py-1">{t('tvShowEpisodeTable.columns.id')}</TableHead>
+      {showIdColumn && (
+        <TableHead className="h-8 w-[100px] px-2 py-1">{t('tvShowEpisodeTable.columns.id')}</TableHead>
+      )}
       {showThumbnailColumn && (
         <TableHead
-          className={layout === "detail" ? "h-8 w-[100px] min-w-[100px] px-1 py-1" : "h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"}
+          className={cn(
+            "h-8 px-1 py-1",
+            thumbnailCellWidth || "w-10 shrink-0 px-0 text-center whitespace-nowrap"
+          )}
           title={t('tvShowEpisodeTable.columns.thumbnail')}
         >
           {t('tvShowEpisodeTable.header.thumb')}
@@ -294,10 +414,28 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
 
             const episodeRow = (
               <TableRow key={`${row.id}-${index}`}>
-                <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
+                {showIdColumn && (
+                  <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
+                )}
                 {showThumbnailColumn && (
-                  <TableCell className={layout === "detail" ? "w-[100px] min-w-[100px] px-1 py-1 align-top" : "w-10 shrink-0 px-0 py-1 text-center"}>
-                    {layout === "detail" ? (
+                  <TableCell
+                    className={cn(
+                      isPreviewLayout && "w-[160px] min-w-[160px] px-1 py-1 align-top",
+                      layout === "detail" && !isPreviewLayout && "w-[100px] min-w-[100px] px-1 py-1 align-top",
+                      layout === "simple" && "w-10 shrink-0 px-0 py-1 text-center"
+                    )}
+                  >
+                    {isPreviewLayout ? (
+                      row.thumbnail ? (
+                        <ThumbnailImage
+                          thumbnailPath={row.thumbnail}
+                          mediaFolderPath={mediaFolderPath}
+                          className="max-h-[140px] w-auto rounded object-contain"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )
+                    ) : layout === "detail" ? (
                       row.thumbnail ? (
                         <ThumbnailImage
                           thumbnailPath={row.thumbnail}
@@ -332,7 +470,26 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                 )}
                 {columnVisibility.video && (
                   <TableCell className="max-w-px px-2 py-1">
-                    {layout === "detail" ? (
+                    {isPreviewLayout ? (
+                      <div className="min-w-0 space-y-2">
+                        <div className="truncate font-medium text-foreground" title={`${row.id} ${row.episodeTitle || ""}`.trim()}>
+                          {row.id} {row.episodeTitle ? `· ${row.episodeTitle}` : ""}
+                        </div>
+                        {row.videoFile ? (
+                          <>
+                            <div className="truncate text-muted-foreground text-xs" title={row.videoFile}>
+                              {getDisplayPath(row.videoFile, mediaFolderPath)}
+                            </div>
+                            <EpisodeVideoScreenshot
+                              videoPath={row.videoFile}
+                              mediaFolderPath={mediaFolderPath}
+                            />
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </div>
+                    ) : layout === "detail" ? (
                       <div className="min-w-0 space-y-0.5">
                         <div className="truncate font-medium text-foreground" title={row.episodeTitle || row.id}>
                           {row.episodeTitle || row.id || "-"}

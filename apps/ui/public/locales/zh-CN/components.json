@@ -67,7 +67,8 @@
     "more": "更多",
     "openInTmdb": "在TMDB中打开",
     "layoutSimple": "简单布局",
-    "layoutDetail": "详情布局"
+    "layoutDetail": "详情布局",
+    "layoutPreview": "预览模式"
   },
   "movie": {
     "searchPlaceholder": "输入电影名称",

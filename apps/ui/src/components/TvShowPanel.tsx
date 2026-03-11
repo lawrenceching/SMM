@@ -63,7 +63,7 @@ function TvShowPanel() {
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
   ]
 
-  const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail'>('simple')
+  const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
   useEffect(() => {
     console.log("[TvShowPanel] selected media folder changed: ", mediaMetadata)
