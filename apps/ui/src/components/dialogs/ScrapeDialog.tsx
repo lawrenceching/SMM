@@ -9,6 +9,14 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
@@ -63,15 +71,19 @@ function TaskItem({ task }: { task: Task }) {
   }
 
   return (
-    <div className="flex items-center gap-3 py-2">
-      {getStatusIcon()}
-      <div className="flex-1">
-        <span className="text-sm font-medium">{task.name}</span>
-        <span className="ml-2 text-xs text-muted-foreground">
-          ({getStatusText()})
-        </span>
-      </div>
-    </div>
+    <TableRow>
+      <TableCell className="py-2 px-2">
+        <span className="text-sm">{task.name}</span>
+      </TableCell>
+      <TableCell className="py-2 px-2">
+        <div className="flex items-center gap-2">
+          {getStatusIcon()}
+          <span className="text-xs text-muted-foreground">
+            {getStatusText()}
+          </span>
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -514,17 +526,29 @@ export function ScrapeDialog({
           <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[400px] w-full">
-          <div className="space-y-1 py-4">
-            {tasks.length === 0 ? (
-              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                {t('scrape.noTasks')}
-              </div>
-            ) : (
-              tasks.map((task, index) => (
-                <TaskItem key={index} task={task} />
-              ))
-            )}
-          </div>
+          {tasks.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              {t('scrape.noTasks')}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-2 px-2">
+                    {t('scrape.columns.file', { ns: 'dialogs' })}
+                  </TableHead>
+                  <TableHead className="py-2 px-2">
+                    {t('scrape.columns.status', { ns: 'dialogs' })}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasks.map((task, index) => (
+                  <TaskItem key={index} task={task} />
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </ScrollArea>
         {showButtons && (
           <div className="flex justify-end gap-2 pt-4">
