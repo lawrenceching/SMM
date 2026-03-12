@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useTranslation } from "@/lib/i18n"
-import { cleanUp } from "@/api/cleanUp"
+// import { cleanUp } from "@/api/cleanUp"
 import { toast } from "sonner"
 import { hello } from "@/api/hello"
 import { openInFileManagerApi } from "@/api/openInFileManager"
@@ -322,26 +322,26 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
             {
               type: "separator"
             },
-            {
-              name: t('menu.cleanUp'),
-              id: 'clean-up',
-              onClick: async () => {
-                logMenuAction("clean-up.click")
-                try {
-                  const result = await cleanUp()
-                  if (result.success) {
-                    toast.success('Clean up completed successfully')
-                    logMenuAction("clean-up.success")
-                  } else {
-                    toast.error(result.error || 'Clean up failed')
-                    logMenuError("clean-up.failed", result.error || "Clean up failed")
-                  }
-                } catch (error) {
-                  toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
-                  logMenuError("clean-up.exception", error)
-                }
-              }
-            }
+            // {
+            //   name: t('menu.cleanUp'),
+            //   id: 'clean-up',
+            //   onClick: async () => {
+            //     logMenuAction("clean-up.click")
+            //     try {
+            //       const result = await cleanUp()
+            //       if (result.success) {
+            //         toast.success('Clean up completed successfully')
+            //         logMenuAction("clean-up.success")
+            //       } else {
+            //         toast.error(result.error || 'Clean up failed')
+            //         logMenuError("clean-up.failed", result.error || "Clean up failed")
+            //       }
+            //     } catch (error) {
+            //       toast.error(`Failed to clean up: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            //       logMenuError("clean-up.exception", error)
+            //     }
+            //   }
+            // }
           ]
         },
         {

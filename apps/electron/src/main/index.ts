@@ -277,6 +277,7 @@ function createWindow(): void {
     width: 900,
     height: 670,
     show: false,
+    title: 'SMM',
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : { icon }),
     webPreferences: {
