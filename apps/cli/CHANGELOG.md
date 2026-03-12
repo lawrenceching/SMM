@@ -1,5 +1,11 @@
 # cli
 
+## 1.1.4
+
+### Patch Changes
+
+- 1.1.4
+
 ## 1.1.3
 
 ### Patch Changes
