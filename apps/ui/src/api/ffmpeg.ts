@@ -65,6 +65,8 @@ export interface FfmpegTagsRequest {
 
 export interface FfmpegTagsResponse {
   tags?: Record<string, string>;
+  /** Duration in seconds from ffprobe format. */
+  duration?: number;
   error?: string;
 }
 

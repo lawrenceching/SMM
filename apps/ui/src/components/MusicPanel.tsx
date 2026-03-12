@@ -8,6 +8,7 @@ import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
+import { getMediaTags } from "@/api/ffmpeg";
 import {
   addMusicEventListener,
   type TrackOpenEventDetail,
@@ -119,7 +120,65 @@ export function MusicPanel() {
       return syncTracks(prev, newTracks);
     });
 
-  }, [selectedMediaMetadata])
+  }, [selectedMediaMetadata]);
+
+  // When panel opens, sequentially read artist, title, and duration from each file (ffprobe) and update tracks
+  const pathSignature = useMemo(
+    () =>
+      tracks
+        .filter((t) => t.path)
+        .map((t) => t.path)
+        .sort()
+        .join("\n"),
+    [tracks]
+  );
+  const tagFetchAbortedRef = useRef(false);
+  useEffect(() => {
+    if (!selectedMediaMetadata || pathSignature === "") return;
+
+    tagFetchAbortedRef.current = false;
+    const tracksToFetch = tracks.filter((t) => t.path);
+
+    (async () => {
+      for (const track of tracksToFetch) {
+        if (tagFetchAbortedRef.current) break;
+        try {
+          const res = await getMediaTags({ path: track.path! });
+          if (tagFetchAbortedRef.current) break;
+          if (res.error) {
+            console.warn("[MusicPanel] Failed to read tags for", track.path, res.error);
+            continue;
+          }
+          const artist = res.tags?.artist ?? res.tags?.ARTIST ?? "";
+          const title = res.tags?.title ?? res.tags?.TITLE ?? "";
+          const duration =
+            res.duration != null && Number.isFinite(res.duration)
+              ? Math.round(res.duration)
+              : undefined;
+          setTracks((prev) =>
+            prev.map((t) =>
+              t.path === track.path
+                ? {
+                    ...t,
+                    artist,
+                    ...(title !== "" && { title }),
+                    ...(duration !== undefined && { duration }),
+                  }
+                : t
+            )
+          );
+        } catch (err) {
+          console.warn("[MusicPanel] Error reading tags for", track.path, err);
+        }
+      }
+    })();
+
+    return () => {
+      tagFetchAbortedRef.current = true;
+    };
+    // Intentionally depend on pathSignature (path list) only; re-running when `tracks` changes would refetch on every row update
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature encodes the set of paths to fetch
+  }, [selectedMediaMetadata, pathSignature]);
 
   // Build table data from tracks
   const tableData = useMemo<MusicFileRow[]>(() => {

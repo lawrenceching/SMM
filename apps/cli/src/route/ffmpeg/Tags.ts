@@ -13,6 +13,8 @@ export type TagsRequestBody = z.infer<typeof tagsRequestSchema>;
 
 export interface FfmpegTagsResponse {
   tags?: Record<string, string>;
+  /** Duration in seconds from ffprobe format. */
+  duration?: number;
   error?: string;
 }
 

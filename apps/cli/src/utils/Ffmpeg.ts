@@ -477,6 +477,8 @@ export async function discoverFfprobe(): Promise<string | undefined> {
 
 export interface MediaTagsResult {
   tags?: Record<string, string>;
+  /** Duration in seconds; from format.duration or first stream with duration when format lacks it. */
+  duration?: number;
   error?: string;
 }
 
@@ -505,10 +507,30 @@ export async function getMediaTags(filePath: string): Promise<MediaTagsResult> {
     );
 
     const result = JSON.parse(output);
-    if (result.format && result.format.tags) {
-      return { tags: result.format.tags };
+    const format = result.format;
+    if (!format) {
+      return { tags: {} };
     }
-    return { tags: {} };
+    const tags = format.tags ?? {};
+    let durationRaw =
+      format.duration != null && format.duration !== ""
+        ? Number.parseFloat(String(format.duration))
+        : NaN;
+    if (!Number.isFinite(durationRaw) && Array.isArray(result.streams)) {
+      for (const stream of result.streams) {
+        const d =
+          stream.duration != null && stream.duration !== ""
+            ? Number.parseFloat(String(stream.duration))
+            : NaN;
+        if (Number.isFinite(d)) {
+          durationRaw = d;
+          break;
+        }
+      }
+    }
+    const duration =
+      Number.isFinite(durationRaw) && durationRaw >= 0 ? durationRaw : undefined;
+    return { tags, ...(duration !== undefined && { duration }) };
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes("timeout")) {
