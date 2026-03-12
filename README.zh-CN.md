@@ -8,7 +8,8 @@ Simple Media Manger(SMM) 一款简单的多媒体管理、重命名和刮削工�
 
 支持 Windows, macOS 和 Linux。
 
-[下载](https://github.com/lawrenceching/fanclub/releases)
+[下载](https://gitcode.com/lawrenceching/simple-media-manager/releases/)
+
 
 ## Features
 
