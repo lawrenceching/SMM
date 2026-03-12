@@ -378,6 +378,7 @@ function TvShowPanel() {
     if (plan) {
       const seasonsPreview = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
       setSeasonsForPreview(seasonsPreview)
+      setEpisodeTableLayout('simple')
       openAiBasedRenameFilePrompt({
         status: "wait-for-ack",
         onConfirm: () => handleRenamePlanConfirm(plan),
@@ -730,13 +731,16 @@ function TvShowPanel() {
             <TvShowHeaderV2
               onSearchResultSelected={handleSelectResult}
               onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
-              onRenameClick={() => openRuleBasedRenameFilePrompt({
-                toolbarOptions,
-                selectedNamingRule,
-                setSelectedNamingRule,
-                onConfirm: handleRuleBasedRenameConfirm,
-                onCancel: () => {},
-              })}
+              onRenameClick={() => {
+        setEpisodeTableLayout('simple')
+        openRuleBasedRenameFilePrompt({
+          toolbarOptions,
+          selectedNamingRule,
+          setSelectedNamingRule,
+          onConfirm: handleRuleBasedRenameConfirm,
+          onCancel: () => {},
+        })
+      }}
               selectedMediaMetadata={mediaMetadata}
               openScrape={openScrape}
               episodeTableLayout={episodeTableLayout}

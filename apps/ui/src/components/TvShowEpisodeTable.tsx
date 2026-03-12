@@ -86,6 +86,19 @@ interface TvShowEpisodeTableProps {
   onRenameSelectionChange?: (ids: Set<string>) => void
 }
 
+/**
+ * 重要说明:
+ * 
+ * 当 TvShowEpisodeTable 进入预览模式 (preview prop 为 true) 时,父组件需要自动将 layout 切换为 'simple' 模式。
+ * 
+ * 原因: 前台模式 (detail 和 preview layout) 不支持预览功能,因为:
+ * 1. Preview 布局本身就是为了展示预览内容,与 preview prop 的功能重叠
+ * 2. Detail 布局包含额外的元数据显示,与预览模式的简化显示冲突
+ * 3. Simple 布局是最适合展示重命名预览的布局,能够清晰显示旧文件名和新文件名
+ * 
+ * 参见: TvShowPanel.tsx 中 handleRuleBasedRenameConfirm 和 openAiBasedRenameFilePrompt 的实现
+ */
+
 function CheckCell({ value }: { value: string | undefined }) {
   const checked = value !== undefined
 
