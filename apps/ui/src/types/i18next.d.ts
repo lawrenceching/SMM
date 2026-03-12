@@ -201,6 +201,7 @@ interface ComponentsResources {
       open: string
       delete: string
       properties: string
+      editTags: string
       formatConvert: string
     }
     noTracksFound: string
@@ -222,6 +223,7 @@ interface ComponentsResources {
     contextMenu: {
       showColumns: string
       unlink: string
+      editTags: string
       notImplemented: string
     }
     unlinkSuccess: string
@@ -311,6 +313,10 @@ interface DialogsResources {
     defaultDescription: string
     mediaTitle: string
     mediaDescription: string
+    columns: {
+      file: string
+      status: string
+    }
     tasks: {
       poster: string
       thumbnails: string
@@ -324,6 +330,21 @@ interface DialogsResources {
     }
     noTasks: string
     start: string
+  }
+  editMediaFile: {
+    title: string
+    description: string
+    fields: {
+      title: string
+      artist: string
+      comment: string
+      date: string
+    }
+    save: string
+    saving: string
+    saveSuccess: string
+    saveFailed: string
+    loadFailed: string
   }
   openFolder: {
     title: string

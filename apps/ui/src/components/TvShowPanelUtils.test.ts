@@ -641,8 +641,8 @@ describe('newPath', () => {
     
     const result = newPath(mediaFolderPath, videoFilePath, associatedFilePath)
     
-    // extname only returns the last extension, so .en.srt becomes .srt
-    expect(result).toBe('/media/tvshow/season1/episode1_new.srt')
+    // getFullExtensionForAssociatedFile preserves one modifier, so .en.srt stays .en.srt
+    expect(result).toBe('/media/tvshow/season1/episode1_new.en.srt')
   })
 
   it('should handle nested directory structures', () => {
@@ -652,8 +652,8 @@ describe('newPath', () => {
     
     const result = newPath(mediaFolderPath, videoFilePath, associatedFilePath)
     
-    // extname only returns the last extension, so .en.srt becomes .srt
-    expect(result).toBe('/media/tvshow/Season 01/Episode 01_new.srt')
+    // getFullExtensionForAssociatedFile preserves one modifier, so .en.srt stays .en.srt
+    expect(result).toBe('/media/tvshow/Season 01/Episode 01_new.en.srt')
   })
 
   it('should handle POSIX path formats', () => {
@@ -869,9 +869,9 @@ describe('renameFiles', () => {
     ]
     
     const result = renameFiles(mediaFolderPath, newVideoFilePath, files)
-    
-    // extname only returns the last extension, so .en.forced.srt becomes .srt
-    expect(result[1].newPath).toBe('/media/tvshow/season1/episode1_new.srt')
+
+    // getFullExtensionForAssociatedFile preserves one modifier before base ext; .en.forced.srt → .forced.srt
+    expect(result[1].newPath).toBe('/media/tvshow/season1/episode1_new.forced.srt')
   })
 
   it('should mutate input file newPath property before creating new object', () => {

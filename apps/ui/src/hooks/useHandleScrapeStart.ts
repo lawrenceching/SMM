@@ -82,6 +82,7 @@ async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata, getTransla
                 const episode = season?.episodes?.find(e => e.episode_number === mediaFile.episodeNumber)
                 if (!episode) continue
                 const videoBasename = basename(mediaFile.absolutePath)
+                if (videoBasename === undefined) continue
                 const videoExt = extname(videoBasename)
                 const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
                 const episodeNfoPath = join(dirname(mediaFile.absolutePath), nameWithoutExt + ".nfo")

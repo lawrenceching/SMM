@@ -888,6 +888,11 @@ export async function executeRenamePlan(
     toast.error("Plan does not match current media folder")
     return
   }
+  const mediaFolderPath = mediaMetadata.mediaFolderPath
+  if (!mediaFolderPath) {
+    toast.error("Media folder path is not available")
+    return
+  }
   const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
   const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
 
@@ -912,7 +917,7 @@ export async function executeRenamePlan(
     toast.info("No files to rename")
     await updatePlan(plan.id, "completed")
     await fetchPendingPlans()
-    await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
+    await refreshMediaMetadata(mediaFolderPath)
     return
   }
 
@@ -925,7 +930,7 @@ export async function executeRenamePlan(
         to: Path.toPlatformPath(to),
       })),
       traceId,
-      mediaFolder: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
+      mediaFolder: Path.toPlatformPath(mediaFolderPath),
     })
 
     if (response.error) {
@@ -953,7 +958,7 @@ export async function executeRenamePlan(
     await updatePlan(plan.id, "completed")
     await fetchPendingPlans()
     // Ensure UI shows updated file paths; backend broadcasts mediaMetadataUpdated, but refresh is a reliable fallback
-    await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
+    await refreshMediaMetadata(mediaFolderPath)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     toast.error(`Failed to rename files: ${errorMessage}`)

@@ -97,7 +97,7 @@ export function EditMediaFileDialog({
   }
 
   const handleCancel = () => onClose()
-  const labels = getTagLabels((key) => t(key))
+  const labels = getTagLabels((key) => t(key as 'editMediaFile.fields.title' | 'editMediaFile.fields.artist' | 'editMediaFile.fields.comment' | 'editMediaFile.fields.date'))
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>

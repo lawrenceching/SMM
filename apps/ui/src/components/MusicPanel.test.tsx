@@ -9,12 +9,14 @@ import { openFile } from '@/api/openFile';
 import { deleteFile } from '@/api/deleteFile';
 import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
+import { getMediaTags } from '@/api/ffmpeg';
 
 vi.mock('@/stores/mediaMetadataStore');
 vi.mock('@/actions/mediaMetadataActions');
 vi.mock('@/providers/dialog-provider');
 vi.mock('@/api/openFile');
 vi.mock('@/api/deleteFile');
+vi.mock('@/api/ffmpeg');
 vi.mock('sonner');
 
 const mockTrack: Track = {
@@ -67,6 +69,7 @@ describe('MusicPanel', () => {
       mediaSearchDialog: [vi.fn(), vi.fn()],
       renameDialog: [vi.fn(), vi.fn()],
       scrapeDialog: [vi.fn(), vi.fn()],
+      editMediaFileDialog: [vi.fn(), vi.fn()],
     });
 
     vi.mocked(toast).mockImplementation(() => 'test-id');
@@ -78,6 +81,12 @@ describe('MusicPanel', () => {
 
     vi.mocked(deleteFile).mockResolvedValue({
       data: { path: '/media/music/song1.mp3' },
+      error: undefined,
+    });
+
+    vi.mocked(getMediaTags).mockResolvedValue({
+      tags: {},
+      duration: undefined,
       error: undefined,
     });
 
@@ -428,6 +437,7 @@ describe('MusicPanel', () => {
         mediaSearchDialog: [vi.fn(), vi.fn()],
         renameDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
+        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       vi.mocked(deleteFile).mockResolvedValue({
@@ -576,6 +586,7 @@ describe('MusicPanel', () => {
         mediaSearchDialog: [vi.fn(), vi.fn()],
         renameDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
+        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());

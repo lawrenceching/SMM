@@ -1,9 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { processFfmpegTags, handleFfmpegTags } from './Tags'
 import { Hono } from 'hono'
 
-vi.mock('../../utils/Ffmpeg', () => ({
-  getMediaTags: async (filePath: string) => {
+const mockGetMediaTags = vi.hoisted(() =>
+  vi.fn(async (filePath: string) => {
     if (filePath.includes('not-found')) {
       return { error: 'File not found: /path/to/not-found.mp4' }
     }
@@ -21,8 +20,18 @@ vi.mock('../../utils/Ffmpeg', () => ({
         track: '1',
       },
     }
-  },
+  })
+)
+
+vi.mock('./pathForFfmpeg', () => ({
+  pathForPathClass: (p: string) => p,
 }))
+
+vi.mock('@/utils/Ffmpeg', () => ({
+  getMediaTags: mockGetMediaTags,
+}))
+
+import { processFfmpegTags, handleFfmpegTags } from './Tags'
 
 vi.mock('../../../lib/logger', () => ({
   logger: { 
@@ -34,6 +43,7 @@ vi.mock('../../../lib/logger', () => ({
 
 vi.mock('@core/path', () => ({
   Path: class {
+    static isWindows = () => false
     constructor(private path: string) {}
     platformAbsPath() {
       return this.path
@@ -65,13 +75,7 @@ describe('processFfmpegTags', () => {
   })
 
   it('should return empty tags object when no tags present', async () => {
-    vi.mock('../../utils/Ffmpeg', async () => {
-      const actual = await vi.importActual('../../utils/Ffmpeg')
-      return {
-        ...actual,
-        getMediaTags: async () => ({ tags: {} }),
-      }
-    })
+    mockGetMediaTags.mockResolvedValueOnce({ tags: {} })
     const result = await processFfmpegTags({ path: '/path/to/no-tags.mp4' })
     expect(result.error).toBeUndefined()
     expect(result.tags).toEqual({})

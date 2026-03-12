@@ -22,6 +22,7 @@ vi.mock('../../../lib/logger', () => ({
 
 vi.mock('@core/path', () => ({
   Path: class {
+    static isWindows = () => false
     constructor(private path: string) {}
     platformAbsPath() {
       return this.path

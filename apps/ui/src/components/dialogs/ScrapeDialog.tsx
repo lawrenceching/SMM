@@ -156,6 +156,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
       for (const mediaFile of mediaMetadata.mediaFiles) {
         if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
         const videoBasename = basename(mediaFile.absolutePath)
+        if (videoBasename === undefined) continue
         const videoExt = extname(videoBasename)
         const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
         const expectedNfoBasename = nameWithoutExt + '.nfo'
@@ -550,10 +551,10 @@ export function ScrapeDialog({
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="py-2 px-2">
-                    {t('scrape.columns.file', { ns: 'dialogs' })}
+                    {t('scrape.columns.file')}
                   </TableHead>
                   <TableHead className="py-2 px-2">
-                    {t('scrape.columns.status', { ns: 'dialogs' })}
+                    {t('scrape.columns.status')}
                   </TableHead>
                 </TableRow>
               </TableHeader>

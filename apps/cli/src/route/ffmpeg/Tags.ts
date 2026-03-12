@@ -1,6 +1,6 @@
 import type { Hono } from 'hono';
 import { z } from 'zod/v3';
-import { getMediaTags, type MediaTagsResult } from '../../utils/Ffmpeg';
+import { getMediaTags, type MediaTagsResult } from '@/utils/Ffmpeg';
 import { logger } from '../../../lib/logger';
 import { Path } from '@core/path';
 import { pathForPathClass } from './pathForFfmpeg';
