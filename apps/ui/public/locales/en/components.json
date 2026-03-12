@@ -176,6 +176,7 @@
       "open": "Open",
       "delete": "Delete",
       "properties": "Properties",
+      "editTags": "Edit tags",
       "formatConvert": "Format conversion"
     },
     "noTracksFound": "No tracks found",
@@ -207,6 +208,7 @@
     "contextMenu": {
       "showColumns": "Show...",
       "unlink": "Unlink",
+      "editTags": "Edit tags",
       "notImplemented": "Not Implemented Yet"
     },
     "unlinkSuccess": "Episode unlinked successfully",

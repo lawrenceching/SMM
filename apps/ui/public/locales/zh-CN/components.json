@@ -176,6 +176,7 @@
       "open": "打开",
       "delete": "删除",
       "properties": "属性",
+      "editTags": "编辑标签",
       "formatConvert": "格式转换"
     },
     "noTracksFound": "未找到音轨",
@@ -207,6 +208,7 @@
     "contextMenu": {
       "showColumns": "显示...",
       "unlink": "取消关联",
+      "editTags": "编辑标签",
       "notImplemented": "尚未实现"
     },
     "unlinkSuccess": "已取消剧集关联",

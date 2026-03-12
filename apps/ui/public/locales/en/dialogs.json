@@ -97,6 +97,21 @@
     "preview": "Preview",
     "convertFormat": "Convert format"
   },
+  "editMediaFile": {
+    "title": "Edit media tags",
+    "description": "Edit common tags for the video or audio file",
+    "fields": {
+      "title": "Title",
+      "artist": "Artist",
+      "comment": "Comment",
+      "date": "Date"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "saveSuccess": "Tags saved",
+    "saveFailed": "Failed to save tags",
+    "loadFailed": "Failed to load tags"
+  },
   "formatConverter": {
     "title": "Format conversion",
     "description": "Convert video to the target format using ffmpeg",

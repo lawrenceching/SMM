@@ -97,6 +97,21 @@
     "preview": "预览",
     "convertFormat": "格式转换"
   },
+  "editMediaFile": {
+    "title": "编辑媒体标签",
+    "description": "编辑视频或音频文件的常用标签",
+    "fields": {
+      "title": "标题",
+      "artist": "艺术家",
+      "comment": "备注",
+      "date": "日期"
+    },
+    "save": "保存",
+    "saving": "保存中...",
+    "saveSuccess": "标签已保存",
+    "saveFailed": "保存标签失败",
+    "loadFailed": "加载标签失败"
+  },
   "formatConverter": {
     "title": "格式转换",
     "description": "使用 ffmpeg 将视频转换为目标格式",

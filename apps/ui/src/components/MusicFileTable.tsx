@@ -16,11 +16,11 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
-import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent, emitTrackFormatConvertEvent } from "@/lib/musicEvents"
+import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent, emitTrackFormatConvertEvent, emitTrackEditTagsEvent } from "@/lib/musicEvents"
 
 export interface MusicFileRow {
   id: number
@@ -136,6 +136,10 @@ export function MusicFileTable({
 
   const handleFormatConvert = (track: MusicFileRow) => {
     emitTrackFormatConvertEvent(toTrack(track))
+  }
+
+  const handleEditTags = (track: MusicFileRow) => {
+    emitTrackEditTagsEvent(toTrack(track))
   }
 
   return (
@@ -278,6 +282,13 @@ export function MusicFileTable({
                     >
                       <FileText className="size-4 mr-2" />
                       {t('mediaPlayer.trackContextMenu.properties')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      disabled={!row.path || isDownloading}
+                      onClick={() => handleEditTags(row)}
+                    >
+                      <Tag className="size-4 mr-2" />
+                      {t('mediaPlayer.trackContextMenu.editTags')}
                     </ContextMenuItem>
                     <ContextMenuItem
                       disabled={!row.path || isDownloading}

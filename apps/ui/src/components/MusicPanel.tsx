@@ -14,6 +14,7 @@ import {
   type TrackDeleteEventDetail,
   type TrackPropertiesEventDetail,
   type TrackFormatConvertEventDetail,
+  type TrackEditTagsEventDetail,
   MUSIC_EVENT_NAMES
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
@@ -91,11 +92,12 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
 export function MusicPanel() {
   const { selectedMediaMetadata } = useMediaMetadataStoreState();
   const { refreshMediaMetadata, updateMediaMetadata } = useMediaMetadataActions();
-  const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog } = useDialogs();
+  const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog, editMediaFileDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
   const [openFormatConverter] = formatConverterDialog;
+  const [openEditMediaFile] = editMediaFileDialog;
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -276,6 +278,12 @@ export function MusicPanel() {
     });
   }, [tracks, openFormatConverter]);
 
+  const handleTrackEditTags = useCallback((event: CustomEvent<TrackEditTagsEventDetail>) => {
+    const { trackPath } = event.detail;
+    if (!trackPath) return;
+    openEditMediaFile({ path: trackPath });
+  }, [openEditMediaFile]);
+
   const handleDownloadClick = useCallback(() => {
     // Callback when video data is extracted (may come before or after onStart)
     const handleVideoDataExtracted = (videoData: { title?: string; artist?: string }, url: string) => {
@@ -430,13 +438,19 @@ export function MusicPanel() {
       handleTrackFormatConvert
     );
 
+    const unsubscribeEditTags = addMusicEventListener<TrackEditTagsEventDetail>(
+      MUSIC_EVENT_NAMES['track:editTags'],
+      handleTrackEditTags
+    );
+
     return () => {
       unsubscribeOpen();
       unsubscribeDelete();
       unsubscribeProperties();
       unsubscribeFormatConvert();
+      unsubscribeEditTags();
     };
-  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert]);
+  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackEditTags]);
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>

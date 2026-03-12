@@ -74,6 +74,8 @@ interface TvShowEpisodeTableProps {
   onVideoFileSelect?: (rowId: string) => void
   /** Called when user chooses "Unlink" from context menu; rowId is e.g. "S01E01". */
   onUnlinkEpisode?: (rowId: string) => void
+  /** Called when user chooses "Edit tags" from context menu; rowId is e.g. "S01E01". */
+  onEditTags?: (rowId: string) => void
   /** When true, shows rename preview with strikethrough old name and new name. */
   preview?: boolean
   /** Table layout: simple | detail (cover + title + path) | preview (no ID, larger cover, video screenshot). */
@@ -316,7 +318,7 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   nfo: true,
 }
 
-export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, preview, layout = "simple" }: TvShowEpisodeTableProps) {
+export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, onEditTags, preview, layout = "simple" }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const folderAbortRef = useRef<AbortController | null>(null)
@@ -787,6 +789,12 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                     }}
                   >
                     {t('episodeFile.rename', { ns: 'components' })}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    disabled={!row.videoFile || !onEditTags}
+                    onClick={() => onEditTags?.(row.id)}
+                  >
+                    {t('tvShowEpisodeTable.contextMenu.editTags')}
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={!onVideoFileSelect}

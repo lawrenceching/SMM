@@ -10,6 +10,7 @@ export { ScrapeDialog } from "./ScrapeDialog"
 export { FilePropertyDialog } from "./file-property-dialog"
 export { FormatConverterDialog } from "./format-converter-dialog"
 export { DeleteTrackDialog } from "./delete-track-dialog"
+export { EditMediaFileDialog } from "./edit-media-file-dialog"
 
 export type {
   DialogConfig,
@@ -29,5 +30,7 @@ export type {
   FilePropertyDialogProps,
   FormatConverterDialogProps,
   DeleteTrackDialogProps,
+  EditMediaFileDialogProps,
+  OpenEditMediaFileOptions,
 } from "./types"
 

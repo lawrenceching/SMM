@@ -9,6 +9,11 @@ import { Path } from "@core/path";
 
 const NUM_SCREENSHOTS = 5;
 
+/** Escape a string for use inside double quotes in shell (e.g. paths with " in filename). */
+function escapeForDoubleQuotedShell(s: string): string {
+  return s.replace(/"/g, '""');
+}
+
 function getScreenshotCacheDir(videoPath: string): string {
   const absolutePath = path.resolve(videoPath);
   const hash = crypto
@@ -490,11 +495,14 @@ export async function getMediaTags(filePath: string): Promise<MediaTagsResult> {
   }
 
   try {
-    const output = execSync(`"${ffprobePath}" -v quiet -print_format json -show_format -show_streams "${filePath}"`, {
-      encoding: "utf-8",
-      timeout: 30000,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const output = execSync(
+      `"${escapeForDoubleQuotedShell(ffprobePath)}" -v quiet -print_format json -show_format -show_streams "${escapeForDoubleQuotedShell(filePath)}"`,
+      {
+        encoding: "utf-8",
+        timeout: 30000,
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
 
     const result = JSON.parse(output);
     if (result.format && result.format.tags) {
@@ -553,11 +561,14 @@ export async function writeMediaTags(
 
     args.push("-y", tempFilePath);
 
-    execSync(`"${ffmpegPath}" ${args.map(arg => `"${arg}"`).join(" ")}`, {
-      encoding: "utf-8",
-      timeout: 60000,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    execSync(
+      `"${escapeForDoubleQuotedShell(ffmpegPath)}" ${args.map((arg) => `"${escapeForDoubleQuotedShell(arg)}"`).join(" ")}`,
+      {
+        encoding: "utf-8",
+        timeout: 60000,
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
 
     if (!fs.existsSync(tempFilePath)) {
       return { error: "failed to create temporary file with new tags" };

@@ -13,11 +13,13 @@ import {
   ScrapeDialog,
   FilePropertyDialog,
   FormatConverterDialog,
+  EditMediaFileDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
   type Task,
   type TrackProperties,
+  type OpenEditMediaFileOptions,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
 
@@ -68,6 +70,10 @@ interface DialogContextValue {
   formatConverterDialog: [
     openFormatConverter: (track?: TrackProperties | string) => void,
     closeFormatConverter: () => void
+  ]
+  editMediaFileDialog: [
+    openEditMediaFile: (options: OpenEditMediaFileOptions) => void,
+    closeEditMediaFile: () => void
   ]
 }
 
@@ -127,6 +133,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Format converter dialog state
   const [isFormatConverterOpen, setIsFormatConverterOpen] = useState(false)
   const [formatConverterTrack, setFormatConverterTrack] = useState<TrackProperties | undefined>(undefined)
+
+  // Edit media file (tags) dialog state
+  const [isEditMediaFileOpen, setIsEditMediaFileOpen] = useState(false)
+  const [editMediaFilePath, setEditMediaFilePath] = useState<string | undefined>(undefined)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -310,6 +320,16 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openEditMediaFile = useCallback((options: OpenEditMediaFileOptions) => {
+    setEditMediaFilePath(options.path)
+    setIsEditMediaFileOpen(true)
+  }, [])
+
+  const closeEditMediaFile = useCallback(() => {
+    setIsEditMediaFileOpen(false)
+    setTimeout(() => setEditMediaFilePath(undefined), 200)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -322,6 +342,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     scrapeDialog: [openScrape, closeScrape],
     filePropertyDialog: [openFileProperty, closeFileProperty],
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
+    editMediaFileDialog: [openEditMediaFile, closeEditMediaFile],
   }
 
   return (
@@ -395,6 +416,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
         track={formatConverterTrack}
         onOpenFilePicker={openFilePicker}
         onSelectSource={(track: TrackProperties) => setFormatConverterTrack(track)}
+      />
+      <EditMediaFileDialog
+        isOpen={isEditMediaFileOpen}
+        onClose={closeEditMediaFile}
+        path={editMediaFilePath}
       />
     </DialogContext.Provider>
   )

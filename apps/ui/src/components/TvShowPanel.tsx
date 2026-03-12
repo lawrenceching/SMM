@@ -80,9 +80,10 @@ function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
-  const { filePickerDialog, scrapeDialog } = useDialogs()
+  const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
+  const [openEditMediaFile] = editMediaFileDialog
   const { userConfig } = useConfig()
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
@@ -658,6 +659,23 @@ function TvShowPanel() {
     [mediaMetadata, updateMediaMetadata, t]
   )
 
+  const handleEditTagsForRow = useCallback(
+    (rowId: string) => {
+      const match = rowId.match(/^S(\d+)E(\d+)$/)
+      if (!match) return
+      const seasonNo = parseInt(match[1], 10)
+      const episodeNo = parseInt(match[2], 10)
+      const seasonModel = effectiveSeasons.find((s) => s.season.season_number === seasonNo)
+      const episodeModel = seasonModel?.episodes.find((e) => e.episode.episode_number === episodeNo)
+      const videoFile = episodeModel?.files.find((f) => f.type === "video")
+      const videoPath = videoFile?.path
+      if (videoPath) {
+        openEditMediaFile({ path: videoPath })
+      }
+    },
+    [effectiveSeasons, openEditMediaFile]
+  )
+
   const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
 
   return (
@@ -693,6 +711,7 @@ function TvShowPanel() {
                 mediaFolderPath={mediaMetadata?.mediaFolderPath}
                 onVideoFileSelect={handleVideoFileSelectForRow}
                 onUnlinkEpisode={handleUnlinkEpisode}
+                onEditTags={handleEditTagsForRow}
                 preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
                 layout={episodeTableLayout}
               />

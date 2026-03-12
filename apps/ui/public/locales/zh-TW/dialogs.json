@@ -97,6 +97,21 @@
     "preview": "預覽",
     "convertFormat": "格式轉換"
   },
+  "editMediaFile": {
+    "title": "編輯媒體標籤",
+    "description": "編輯影片或音訊檔案的常用標籤",
+    "fields": {
+      "title": "標題",
+      "artist": "藝術家",
+      "comment": "備註",
+      "date": "日期"
+    },
+    "save": "儲存",
+    "saving": "儲存中...",
+    "saveSuccess": "標籤已儲存",
+    "saveFailed": "儲存標籤失敗",
+    "loadFailed": "載入標籤失敗"
+  },
   "formatConverter": {
     "title": "格式轉換",
     "description": "使用 ffmpeg 將影片轉換為目標格式",

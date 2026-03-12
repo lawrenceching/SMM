@@ -3,6 +3,7 @@ import { z } from 'zod/v3';
 import { getMediaTags, type MediaTagsResult } from '../../utils/Ffmpeg';
 import { logger } from '../../../lib/logger';
 import { Path } from '@core/path';
+import { pathForPathClass } from './pathForFfmpeg';
 
 const tagsRequestSchema = z.object({
   path: z.string().min(1, 'path is required'),
@@ -18,7 +19,7 @@ export interface FfmpegTagsResponse {
 export async function processFfmpegTags(
   body: TagsRequestBody
 ): Promise<FfmpegTagsResponse> {
-  const pathObj = new Path(body.path);
+  const pathObj = new Path(pathForPathClass(body.path));
   const absolutePath = pathObj.platformAbsPath();
 
   try {

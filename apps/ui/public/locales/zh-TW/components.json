@@ -175,6 +175,7 @@
       "open": "開啟",
       "delete": "刪除",
       "properties": "屬性",
+      "editTags": "編輯標籤",
       "formatConvert": "格式轉換"
     },
     "noTracksFound": "未找到音軌",
@@ -206,6 +207,7 @@
     "contextMenu": {
       "showColumns": "顯示...",
       "unlink": "取消關聯",
+      "editTags": "編輯標籤",
       "notImplemented": "尚未實現"
     },
     "unlinkSuccess": "已取消劇集關聯",
