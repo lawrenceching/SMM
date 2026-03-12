@@ -237,7 +237,6 @@ jobs:
         os: [ 
           ubuntu-latest, 
           windows-latest, 
-          macos-13,
           macos-14
         ]
         arch: [x64, arm64]
@@ -248,10 +247,6 @@ jobs:
           - os: windows-latest
             platform: win
             build-command: build:win
-          - os: macos-13
-            platform: mac
-            build-command: build:mac
-            arch: x64
           - os: macos-14
             platform: mac
             build-command: build:mac
