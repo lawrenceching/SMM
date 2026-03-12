@@ -10,6 +10,7 @@ import { mkdir, readdir, stat } from 'fs/promises'
 import { Path } from '@core/path'
 import pino from 'pino'
 import { findMediaMetadata } from '@/utils/mediaMetadata'
+import { validateRenameOperations } from './renameFilesInBatch'
 
 const logger = pino()
 
@@ -85,6 +86,12 @@ export async function addRenameFileToTaskV2(
 
   const fromPosix = Path.posix(from)
   const toPosix = Path.posix(to)
+
+  const candidateFiles = [...plan.files, { from: fromPosix, to: toPosix }]
+  const validationResult = await validateRenameOperations(candidateFiles, plan.mediaFolderPath)
+  if (!validationResult.isValid) {
+    throw new Error(validationResult.errors.join('\n'))
+  }
 
   const mm = await findMediaMetadata(plan.mediaFolderPath)
   if (!mm) {

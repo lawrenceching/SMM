@@ -138,19 +138,18 @@ export async function handleAddRenameEpisodeVideoFile(params: AddRenameFileParam
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    if(message.includes('Not Episode Video File')) {
+    if (message.includes('Not Episode Video File')) {
       const text = `"${from}" is not video file to any episode, you're not allowed to rename it. 
 Call "get-episodes" tool to get the list of episode video files that needs to rename.`;
       return {
-        content: [{ 
-          type: "text" as const, 
-          text: JSON.stringify({ success: false, error: "" }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ success: false, error: text }) }],
         isError: true,
       };
     }
 
+    // Return validation or other errors as-is so the AI gets full error details (e.g. duplicate source/target, chaining conflicts)
     return {
-      content: [{ type: "text" as const, text: `Error adding rename file: ${message}` }],
+      content: [{ type: "text" as const, text: JSON.stringify({ success: false, error: message }) }],
       isError: true,
     };
   }
