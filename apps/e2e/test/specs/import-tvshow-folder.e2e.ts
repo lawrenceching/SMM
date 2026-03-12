@@ -5,8 +5,10 @@ import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
+import TVShowPanel, { type TvShowEpisodeTableRow } from '../componentobjects/TVShowPanel'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
+import { folder1, importFolderToApp } from '../actions/import-folders'
 
 const __filename = fileURLToPath(import.meta.url)
 const slowdown = process.env.SLOWDOWN === 'true'
@@ -79,43 +81,35 @@ describe('Media Folder Initialization', () => {
 
     it('TV Show - TMDB ID in Folder Name', async function() {
         const stepTimeoutMs = 2 * 1000
-        this.timeout(stepTimeoutMs * 2 + 30 * 1000) // sidebar wait + immersive wait + buffer
+        this.timeout(stepTimeoutMs * 2 + 30 * 1000)
 
-        const folderNameWithTmdbId = '天使降临到我身边！ (2019) {tmdbid=84666}'
         const expectedShowTitle = '天使降临到我身边！'
-        const testMediaFolder = path.join(mediaDir, folderNameWithTmdbId)
-        fs.mkdirSync(testMediaFolder, { recursive: true })
-        console.log('Created empty media folder:', testMediaFolder)
 
-        if(slowdown) {
-            await delay(10 * 1000)
-        }
+        // 1. Import folder using folder1 definition
+        await importFolderToApp(folder1, 'e2eTest:Import Media Folder TMDB ID')
 
-        console.log('Importing media folder:', testMediaFolder)
-        await Menu.importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: testMediaFolder,
-            traceId: 'e2eTest:Import Media Folder TMDB ID'
-        })
+        // 2. Wait for folder to appear in sidebar
+        await Sidebar.waitForFolder(expectedShowTitle, stepTimeoutMs)
+        console.log(`Folder "${folder1.folderName}" is now displayed in sidebar`)
 
-        if(slowdown) {
-            await delay(10 * 1000)
-        }
-        
-        await Sidebar.waitForFolder(expectedShowTitle, stepTimeoutMs);
-    
-        console.log(`Folder "${folderNameWithTmdbId}" is now displayed in sidebar`)
-        // Step 2: Wait for immersive-input to show TMDB title (with explicit error context)
-        const immersiveInput = await $('[data-testid="immersive-input"]')
-        await immersiveInput.waitForDisplayed({ timeout: 5000, timeoutMsg: `Immersive input did not become visible within 5s` })
-        await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === expectedShowTitle,
-            {
-                timeout: 5000,
-                timeoutMsg: `Expected immersive-input value to be "${expectedShowTitle}", but got "${await immersiveInput.getValue()}"`
-            }
-        )
-        expect(await immersiveInput.getValue()).toBe(expectedShowTitle)
+        // 3. Wait for immersive-input to show TMDB title
+        await TVShowPanel.waitForDisplay()
+        await TVShowPanel.waitForTitleToBe(expectedShowTitle)
+        expect(await TVShowPanel.toString()).toEqual(`特别篇
+S00E01 - - - -
+第 1 季
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
 
         if(slowdown) {
             await delay(10 * 1000)
