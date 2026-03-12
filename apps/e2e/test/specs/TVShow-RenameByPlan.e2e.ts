@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import Menu from '../componentobjects/Menu'
+import TVShowPanel from '../componentobjects/TVShowPanel'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { Path } from '@smm/core'
@@ -12,45 +13,22 @@ import type { RenameFilesPlan, RenameFileEntry } from '@smm/core/types/RenameFil
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
 
-const FOLDER_NAME = 'PlanRenameTest (2020) {tmdbid=12345}'
+const FOLDER_NAME = '天使降临到我身边！ (2019) {tmdbid=84666}'
 const SEASON_01_FOLDER = 'Season 01'
-const SHOW_PREFIX = 'PlanRenameTest'
+const SHOW_PREFIX = '天使降临到我身边！'
 const PREFIX_E01 = SHOW_PREFIX + ' - S01E01 - Episode 1'
 const PREFIX_E02 = SHOW_PREFIX + ' - S01E02 - Episode 2'
+const PREFIX_E03 = SHOW_PREFIX + ' - S01E03 - Episode 3'
 
 /** Per-episode: video, poster, subtitle sc/tc, nfo */
 const EP_EXTS = ['.mkv', '.jpg', '.sc.ass', '.tc.ass', '.nfo']
 
-/** Confirm button labels (en and zh-CN). */
-const CONFIRM_LABELS = ['Confirm', '确认']
-
-/**
- * Click the Confirm button in the visible floating prompt.
- */
-async function clickFloatingPromptConfirm() {
-  await browser.waitUntil(
-    async () => {
-      for (const label of CONFIRM_LABELS) {
-        const selector = 'button=' + label
-        const btn = await $(selector)
-        if (await btn.isDisplayed().catch(() => false)) return true
-      }
-      return false
-    },
-    { timeout: 20000, interval: 500, timeoutMsg: 'Floating prompt Confirm button did not appear' }
-  )
-  let confirmBtn = await $('button=Confirm')
-  if (!(await confirmBtn.isDisplayed().catch(() => false))) {
-    confirmBtn = await $('button=确认')
-  }
-  await confirmBtn.waitForClickable({ timeout: 5000 })
-  await confirmBtn.click()
-}
-
 describe('TVShow - Rename By Plan', () => {
   let planFilePath: string | null = null
 
-  before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
+  beforeEach(async () => {
+    await createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false })()
+  })
 
   afterEach(async () => {
     if (fs.existsSync(tmpMediaRoot)) {
@@ -79,7 +57,20 @@ describe('TVShow - Rename By Plan', () => {
     }
     console.log('Created media folder with episode files:', testMediaFolder)
 
-    // 2. Create rename file plan (POSIX paths; preserve .sc.ass / .tc.ass in "to")
+    // 2. Import folder and wait for initialization
+    await Menu.importMediaFolder({
+      type: 'tvshow',
+      folderPathInPlatformFormat: testMediaFolder,
+      traceId: 'e2eTest:TVShow Rename By Plan - Import',
+    })
+    await delay(5000)
+
+    // 3. Wait for episode table to be displayed (indicates initialization is complete)
+    await TVShowPanel.waitForTable()
+
+    console.log('Episode table is displayed, folder initialization is complete')
+
+    // 4. Create rename file plan (POSIX paths; preserve .sc.ass / .tc.ass in "to")
     const { userDataDir } = await hello()
     const plansDir = path.join(userDataDir, 'plans')
     fs.mkdirSync(plansDir, { recursive: true })
@@ -111,35 +102,23 @@ describe('TVShow - Rename By Plan', () => {
     fs.writeFileSync(planFilePath, JSON.stringify(plan, null, 2), 'utf-8')
     console.log('Created rename plan:', planFilePath)
 
-    // 3. Reload page so UI fetches and gets the new plan
+    // 5. Reload page so UI fetches and gets the new plan
     await browser.refresh()
     await delay(2000)
 
-    // 4. Import folder and assert aiBasedRenameFilePrompt is visible (Confirm button appears)
-    await Menu.importMediaFolder({
-      type: 'tvshow',
-      folderPathInPlatformFormat: testMediaFolder,
-      traceId: 'e2eTest:TVShow Rename By Plan',
-    })
-    await delay(3000)
+    // 6. Click on folder in sidebar to select it (use the display title, not the full folder name)
+    const { default: Sidebar } = await import('../componentobjects/Sidebar')
+    await Sidebar.clickFolder(SHOW_PREFIX)
+    await delay(2000)
 
-    await browser.waitUntil(
-      async () => {
-        for (const label of CONFIRM_LABELS) {
-          const selector = 'button=' + label
-          const btn = await $(selector)
-          if (await btn.isDisplayed().catch(() => false)) return true
-        }
-        return false
-      },
-      { timeout: 20000, interval: 500, timeoutMsg: 'AI rename prompt (Confirm button) did not appear' }
-    )
+    // 7. 此时 rename prompt 应该能正常弹出
+    await TVShowPanel.waitForRenamePrompt()
 
-    // 5. Click Confirm and wait 1s
-    await clickFloatingPromptConfirm()
+    // 8. Click Confirm and wait 1s
+    await TVShowPanel.clickConfirm()
     await delay(1000)
 
-    // 6. Assert files renamed correctly (Season 01, video/poster/nfo, and .sc.ass / .tc.ass preserved)
+    // 9. Assert files renamed correctly (Season 01, video/poster/nfo, and .sc.ass / .tc.ass preserved)
     const season01Path = path.join(testMediaFolder, SEASON_01_FOLDER)
     expect(fs.existsSync(season01Path)).toBe(true)
     expect(fs.statSync(season01Path).isDirectory()).toBe(true)
@@ -164,5 +143,118 @@ describe('TVShow - Rename By Plan', () => {
     expect(e01Files.some((f) => f === PREFIX_E01 + '.jpg')).toBe(true)
     expect(e01Files.some((f) => f === PREFIX_E01 + '.nfo')).toBe(true)
     expect(e02Files.some((f) => f === PREFIX_E02 + '.mkv')).toBe(true)
+  })
+
+  it('shows AI rename prompt, allows unchecking episodes, and renames only selected episodes', async function () {
+    this.timeout(90 * 1000)
+
+    // 1. Create test TV folder with three episodes
+    const testMediaFolder = path.join(mediaDir, FOLDER_NAME)
+    fs.mkdirSync(testMediaFolder, { recursive: true })
+
+    const episodes = ['S01E01', 'S01E02', 'S01E03']
+    for (const ep of episodes) {
+      for (const ext of EP_EXTS) {
+        const filePath = path.join(testMediaFolder, ep + ext)
+        fs.writeFileSync(filePath, '')
+      }
+    }
+    console.log('Created media folder with episode files:', testMediaFolder)
+
+    // 2. Import folder and wait for initialization
+    await Menu.importMediaFolder({
+      type: 'tvshow',
+      folderPathInPlatformFormat: testMediaFolder,
+      traceId: 'e2eTest:TVShow Rename By Plan - Selective',
+    })
+    await delay(5000)
+
+    // 3. Wait for episode table to be displayed (indicates initialization is complete)
+    await TVShowPanel.waitForTable()
+
+    console.log('Episode table is displayed, folder initialization is complete')
+
+    // 4. Create rename file plan for all three episodes
+    const { userDataDir } = await hello()
+    const plansDir = path.join(userDataDir, 'plans')
+    fs.mkdirSync(plansDir, { recursive: true })
+
+    const taskId = crypto.randomUUID()
+    const planId = crypto.randomUUID()
+    const mediaFolderPathPosix = Path.posix(testMediaFolder)
+
+    const files: RenameFileEntry[] = []
+    for (const ep of episodes) {
+      const episodeNum = ep.slice(-2)
+      const episodeTitle = 'Episode ' + parseInt(episodeNum, 10)
+      const newBase = SHOW_PREFIX + ' - ' + ep + ' - ' + episodeTitle
+      for (const ext of EP_EXTS) {
+        const from = mediaFolderPathPosix + '/' + ep + ext
+        const to = mediaFolderPathPosix + '/' + SEASON_01_FOLDER + '/' + newBase + ext
+        files.push({ from, to })
+      }
+    }
+
+    const plan: RenameFilesPlan = {
+      id: planId,
+      task: 'rename-files',
+      status: 'pending',
+      mediaFolderPath: mediaFolderPathPosix,
+      files,
+    }
+
+    planFilePath = path.join(plansDir, taskId + '.plan.json')
+    fs.writeFileSync(planFilePath, JSON.stringify(plan, null, 2), 'utf-8')
+    console.log('Created rename plan:', planFilePath)
+
+    // 5. Reload page so UI fetches and gets the new plan
+    await browser.refresh()
+    await delay(2000)
+
+    // 6. Click on folder in sidebar to select it (use the display title, not the full folder name)
+    const { default: Sidebar } = await import('../componentobjects/Sidebar')
+    await Sidebar.clickFolder(SHOW_PREFIX)
+    await delay(2000)
+
+    // 7. 此时 rename prompt 应该能正常弹出
+    await TVShowPanel.waitForRenamePrompt()
+
+    // 8. Uncheck S01E02 episode - this should NOT be renamed
+    await TVShowPanel.uncheckEpisode('S01E02')
+
+    // 9. Click Confirm and wait for rename to complete
+    await TVShowPanel.clickConfirm()
+    await delay(2000)
+
+    // 10. Assert: Season 01 folder should exist with E01 and E03, but NOT E02
+    const season01Path = path.join(testMediaFolder, SEASON_01_FOLDER)
+    expect(fs.existsSync(season01Path)).toBe(true)
+    expect(fs.statSync(season01Path).isDirectory()).toBe(true)
+
+    const filesInSeason01 = fs.readdirSync(season01Path)
+
+    // E01 and E03 should be renamed (exist in Season 01)
+    const hasE01 = filesInSeason01.some((f) => f.startsWith(PREFIX_E01))
+    const hasE03 = filesInSeason01.some((f) => f.startsWith(PREFIX_E03))
+    expect(hasE01).toBe(true)
+    expect(hasE03).toBe(true)
+
+    // E02 should NOT be renamed (should NOT exist in Season 01)
+    const hasE02 = filesInSeason01.some((f) => f.startsWith(PREFIX_E02))
+    expect(hasE02).toBe(false)
+
+    // E02 original files should still exist in root folder
+    for (const ext of EP_EXTS) {
+      const originalE02Path = path.join(testMediaFolder, 'S01E02' + ext)
+      expect(fs.existsSync(originalE02Path)).toBe(true)
+    }
+
+    // Verify E01 and E03 file counts
+    const e01Files = filesInSeason01.filter((f) => f.startsWith(PREFIX_E01))
+    const e03Files = filesInSeason01.filter((f) => f.startsWith(PREFIX_E03))
+    expect(e01Files.length).toBe(EP_EXTS.length)
+    expect(e03Files.length).toBe(EP_EXTS.length)
+
+    console.log('Selective rename test passed: E01 and E03 renamed, E02 unchanged')
   })
 })

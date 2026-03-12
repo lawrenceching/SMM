@@ -462,7 +462,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
   )
 
   return (
-    <section className="bg-card">
+    <section data-testid="tvshow-episode-table" className="bg-card">
       <Table className="text-xs table-fixed w-full">
         <TableHeader>
           <ContextMenu>

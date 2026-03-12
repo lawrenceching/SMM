@@ -885,7 +885,6 @@ export async function executeRenamePlan(
   refreshMediaMetadata: (path: string) => Promise<void>,
   selectedEpisodeIds?: Set<string>
 ): Promise<void> {
-  console.log("[executeRenamePlan] called, selectedEpisodeIds:", selectedEpisodeIds == null ? "undefined" : `Set(${selectedEpisodeIds.size})`, selectedEpisodeIds ? [...selectedEpisodeIds].sort() : [])
   if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
     toast.error("Plan does not match current media folder")
     return
@@ -899,7 +898,6 @@ export async function executeRenamePlan(
   const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
 
   const filterBySelection = selectedEpisodeIds != null && selectedEpisodeIds.size > 0
-  console.log("[executeRenamePlan] filterBySelection:", filterBySelection, "seasonsFromPlan length:", seasonsFromPlan.length)
   let filesToRename: Array<{ from: string; to: string }> = []
 
   for (const season of seasonsFromPlan) {

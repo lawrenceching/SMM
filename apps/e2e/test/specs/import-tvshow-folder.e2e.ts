@@ -77,7 +77,7 @@ describe('Media Folder Initialization', () => {
         }
     })
 
-    it.only('TV Show - TMDB ID in Folder Name', async function() {
+    it('TV Show - TMDB ID in Folder Name', async function() {
         const stepTimeoutMs = 2 * 1000
         this.timeout(stepTimeoutMs * 2 + 30 * 1000) // sidebar wait + immersive wait + buffer
 
