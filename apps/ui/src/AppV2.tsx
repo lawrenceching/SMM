@@ -20,7 +20,12 @@ import { LocalFilePanel } from "./components/LocalFilePanel"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "./providers/config-provider"
 import { isNotNil } from "es-toolkit"
-import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "./types/eventTypes"
+import {
+  UI_MediaFolderImportedEvent,
+  UI_MediaLibraryImportedEvent,
+  type OnMediaFolderImportedEventData,
+  type OnMediaLibraryImportedEventData,
+} from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
 import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
 
@@ -99,7 +104,8 @@ function AppV2Content() {
   }, [selectedMediaMetadata?.mediaFolderPath])
 
   // Open native file dialog in Electron
-  const openNativeFileDialog = useCallback(async (): Promise<FileItem | null> => {
+  const openNativeFileDialog = useCallback(async (options?: { title?: string }): Promise<FileItem | null> => {
+    const title = options?.title ?? 'Select Folder'
     console.log('[openNativeFileDialog] Function called')
     
     try {
@@ -149,12 +155,12 @@ function AppV2Content() {
       
       console.log('[openNativeFileDialog] Calling electron.dialog.showOpenDialog with options:', {
         properties: ['openDirectory'],
-        title: 'Select Folder'
+        title
       })
       
       const result = await electron.dialog.showOpenDialog({
         properties: ['openDirectory'],
-        title: 'Select Folder'
+        title
       })
       
       console.log('[openNativeFileDialog] Dialog result:', {
@@ -244,6 +250,38 @@ function AppV2Content() {
       }, {
         title: "Select Folder",
         description: "Choose a folder to open",
+        selectFolder: true
+      })
+    }
+  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
+
+  const handleOpenMediaLibraryMenuClick = useCallback(() => {
+    if (isElectron()) {
+      openNativeFileDialog({ title: 'Select Media Library' }).then((selectedFile) => {
+        if (selectedFile) {
+          openOpenFolder((type: FolderType) => {
+            const detail: OnMediaLibraryImportedEventData = {
+              libraryPathInPlatformFormat: selectedFile.path,
+              type,
+              traceId: `AppV2:UserOpenMediaLibrary:${nextTraceId()}`,
+            }
+            document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
+          }, selectedFile.path)
+        }
+      })
+    } else {
+      openFilePicker((file: FileItem) => {
+        openOpenFolder((type: FolderType) => {
+          const detail: OnMediaLibraryImportedEventData = {
+            libraryPathInPlatformFormat: file.path,
+            type,
+            traceId: `AppV2:UserOpenMediaLibrary:${nextTraceId()}`,
+          }
+            document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
+        }, file.path)
+      }, {
+        title: "Select Media Library",
+        description: "Choose a folder containing multiple media folders",
         selectFolder: true
       })
     }
@@ -470,6 +508,7 @@ function AppV2Content() {
         >
           <Toolbar 
             onOpenFolderMenuClick={handleOpenFolderMenuClick}
+            onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             viewSwitcherDisabled={folders.length === 0 || !selectedMediaMetadata}

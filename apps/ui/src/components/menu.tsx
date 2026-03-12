@@ -155,9 +155,10 @@ function renderMenuItem(item: MenuContentItem, index: number, menuLabel?: string
 
 interface MenuProps {
   onOpenFolderMenuClick?: () => void
+  onOpenMediaLibraryMenuClick?: () => void
 }
 
-export function Menu({onOpenFolderMenuClick}: MenuProps) {
+export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
   const { configDialog, downloadVideoDialog, formatConverterDialog, openFolderDialog, filePickerDialog } = useDialogs()
   const { t } = useTranslation('components')
 
@@ -194,22 +195,26 @@ export function Menu({onOpenFolderMenuClick}: MenuProps) {
 
   const handleOpenMediaLibrary = () => {
     logMenuAction("open-media-library.click")
-    openFilePicker((file: FileItem) => {
-      logMenuAction("open-media-library.path-selected", { libraryPath: file.path })
-      openOpenFolder((type: FolderType) => {
-        logMenuAction("open-media-library.type-selected", { libraryPath: file.path, mediaType: type })
-        const detail: OnMediaLibraryImportedEventData = {
-          libraryPathInPlatformFormat: file.path,
-          type,
-          traceId: `Menu:UserOpenMediaLibrary:${nextTraceId()}`,
-        }
-        document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
-      }, file.path)
-    }, {
-      title: "Select Media Library",
-      description: "Choose a folder containing multiple media folders",
-      selectFolder: true
-    })
+    if (onOpenMediaLibraryMenuClick) {
+      onOpenMediaLibraryMenuClick()
+    } else {
+      openFilePicker((file: FileItem) => {
+        logMenuAction("open-media-library.path-selected", { libraryPath: file.path })
+        openOpenFolder((type: FolderType) => {
+          logMenuAction("open-media-library.type-selected", { libraryPath: file.path, mediaType: type })
+          const detail: OnMediaLibraryImportedEventData = {
+            libraryPathInPlatformFormat: file.path,
+            type,
+            traceId: `Menu:UserOpenMediaLibrary:${nextTraceId()}`,
+          }
+          document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
+        }, file.path)
+      }, {
+        title: "Select Media Library",
+        description: "Choose a folder containing multiple media folders",
+        selectFolder: true
+      })
+    }
   }
 
   const template: MenuTemplate[] = [
