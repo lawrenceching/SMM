@@ -4,6 +4,8 @@
 
 Simple Media Manger(SMM) is a media library manager powered by AI.
 
+![Screenshot of SMM](./screenshot.png)
+
 Supports Windows, macOS and Linux.
 
 Download latest version from [Release Page](https://github.com/lawrenceching/fanclub/releases)
