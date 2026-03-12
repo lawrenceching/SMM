@@ -247,6 +247,11 @@ function TvShowPanel() {
   })
 
   const [seasonsForPreview, setSeasonsForPreview] = useState<SeasonModel[]>([])
+  /** Episode row ids (SxxEyy) selected for rename when prompt is open. Only checked rows are renamed on confirm. */
+  const [renameSelection, setRenameSelection] = useState<Set<string>>(new Set())
+  /** Ref so confirm handler (stored by prompt when opened) always reads latest selection instead of stale closure. */
+  const renameSelectionRef = useRef<Set<string>>(renameSelection)
+  renameSelectionRef.current = renameSelection
 
   /** Path for which `seasons` state was last set. Table only shows data when current path matches this (avoids showing previous folder's data when switching). */
   const seasonsPathRef = useRef<string | undefined>(undefined)
@@ -347,12 +352,19 @@ function TvShowPanel() {
 
   const handleRenamePlanConfirm = useCallback(
     async (plan: RenameFilesPlan) => {
+      const selection = renameSelectionRef.current
+      console.log("[TvShowPanel] handleRenamePlanConfirm called, renameSelection.size:", selection.size, "ids:", [...selection].sort())
       if (!mediaMetadata) {
         return
       }
-      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata as any, updatePlan, fetchPendingPlans, refreshMediaMetadata)
+      if (selection.size === 0) {
+        console.log("[TvShowPanel] handleRenamePlanConfirm: selection empty, showing toast")
+        toast.info(t('tvShowEpisodeTable.noFilesSelectedForRename', { defaultValue: 'No files selected for rename' }))
+        return
+      }
+      await executeRenamePlan(plan, mediaMetadata, updateMediaMetadata as any, updatePlan, fetchPendingPlans, refreshMediaMetadata, selection)
     },
-    [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans, refreshMediaMetadata]
+    [mediaMetadata, updateMediaMetadata, updatePlan, fetchPendingPlans, refreshMediaMetadata, t]
   )
 
   useEffect(() => {
@@ -488,12 +500,15 @@ function TvShowPanel() {
   }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect, seasons])
 
   const handleRuleBasedRenameConfirm = useCallback(() => {
-    console.log('[TvShowPanel] handleRuleBasedRenameConfirm CALLED', {
-      timestamp: new Date().toISOString(),
-      stackTrace: new Error().stack
-    })
-    startToRenameFiles()
-  }, [startToRenameFiles])
+    const selection = renameSelectionRef.current
+    console.log("[TvShowPanel] handleRuleBasedRenameConfirm called, renameSelection.size:", selection.size, "ids:", [...selection].sort())
+    if (selection.size === 0) {
+      console.log("[TvShowPanel] handleRuleBasedRenameConfirm: selection empty, showing toast")
+      toast.info(t('tvShowEpisodeTable.noFilesSelectedForRename', { defaultValue: 'No files selected for rename' }))
+      return
+    }
+    startToRenameFiles(undefined, selection)
+  }, [startToRenameFiles, t])
 
   // Handler for rule-based recognition button click
   const handleRuleBasedRecognizeButtonClick = useCallback(() => {
@@ -578,6 +593,33 @@ function TvShowPanel() {
         : seasons,
     [ruleBasedRecognizePrompt.isOpen, aiBasedRenameFilePrompt.isOpen, aiBasedRecognizePrompt.isOpen, seasonsForPreview, seasons]
   )
+
+  // When rename prompt *just* opened, or when prompt is open and effectiveSeasons first gets episodes with renames (e.g. file name generation ran), set initial selection. Do NOT overwrite when user has already changed selection (ref.size > 0).
+  const renamePromptWasOpenRef = useRef(false)
+  useEffect(() => {
+    const promptOpen = ruleBasedRenameFilePrompt.isOpen || aiBasedRenameFilePrompt.isOpen
+    const justOpened = promptOpen && !renamePromptWasOpenRef.current
+    renamePromptWasOpenRef.current = promptOpen
+
+    if (!promptOpen) return
+
+    const initial = new Set<string>()
+    for (const seasonModel of effectiveSeasons) {
+      const seasonNo = seasonModel.season.season_number
+      for (const episodeModel of seasonModel.episodes) {
+        const episodeNo = episodeModel.episode.episode_number
+        const videoFile = episodeModel.files.find((f) => f.type === "video")
+        if (videoFile?.newPath && videoFile.path !== videoFile.newPath) {
+          const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
+          initial.add(episodeId)
+        }
+      }
+    }
+    const shouldSet = justOpened || (initial.size > 0 && renameSelectionRef.current.size === 0)
+    if (!shouldSet) return
+    console.log("[TvShowPanel] renameSelection init effect: justOpened:", justOpened, "effectiveSeasons length:", effectiveSeasons.length, "initial selection size:", initial.size, "ids:", [...initial].sort())
+    setRenameSelection(initial)
+  }, [ruleBasedRenameFilePrompt.isOpen, aiBasedRenameFilePrompt.isOpen, effectiveSeasons])
 
   const episodeTableData = useMemo<TvShowEpisodeTableRow[]>(() => {
     const rows: TvShowEpisodeTableRow[] = []
@@ -714,6 +756,8 @@ function TvShowPanel() {
                 onEditTags={handleEditTagsForRow}
                 preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
                 layout={episodeTableLayout}
+                renameSelection={renameSelection}
+                onRenameSelectionChange={setRenameSelection}
               />
             )}
           </div>

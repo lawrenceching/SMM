@@ -882,8 +882,10 @@ export async function executeRenamePlan(
   _updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>,
   fetchPendingPlans: () => Promise<void>,
-  refreshMediaMetadata: (path: string) => Promise<void>
+  refreshMediaMetadata: (path: string) => Promise<void>,
+  selectedEpisodeIds?: Set<string>
 ): Promise<void> {
+  console.log("[executeRenamePlan] called, selectedEpisodeIds:", selectedEpisodeIds == null ? "undefined" : `Set(${selectedEpisodeIds.size})`, selectedEpisodeIds ? [...selectedEpisodeIds].sort() : [])
   if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
     toast.error("Plan does not match current media folder")
     return
@@ -896,10 +898,17 @@ export async function executeRenamePlan(
   const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
   const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
 
+  const filterBySelection = selectedEpisodeIds != null && selectedEpisodeIds.size > 0
+  console.log("[executeRenamePlan] filterBySelection:", filterBySelection, "seasonsFromPlan length:", seasonsFromPlan.length)
   let filesToRename: Array<{ from: string; to: string }> = []
 
   for (const season of seasonsFromPlan) {
+    const seasonNo = season.season.season_number
     for (const episode of season.episodes) {
+      const episodeNo = episode.episode.episode_number
+      const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
+      if (filterBySelection && !selectedEpisodeIds!.has(episodeId)) continue
+
       for (const file of episode.files) {
         if (file.newPath && file.path !== file.newPath) {
           filesToRename.push({ from: file.path, to: file.newPath })

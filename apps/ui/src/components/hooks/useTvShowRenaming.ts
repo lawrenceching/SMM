@@ -47,7 +47,8 @@ export function useTvShowRenaming({
 }: UseTvShowRenamingParams) {
   const latestSeasons = useLatest(seasons)
 
-  const startToRenameFiles = useCallback(async (seasonsOverride?: SeasonModel[]): Promise<boolean> => {
+  const startToRenameFiles = useCallback(async (seasonsOverride?: SeasonModel[], selectedEpisodeIds?: Set<string>): Promise<boolean> => {
+    console.log("[useTvShowRenaming] startToRenameFiles called, selectedEpisodeIds:", selectedEpisodeIds == null ? "undefined" : `Set(${selectedEpisodeIds.size})`, selectedEpisodeIds ? [...selectedEpisodeIds].sort() : [])
     if (mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
       return false
     }
@@ -55,12 +56,21 @@ export function useTvShowRenaming({
     const seasonsToUse = seasonsOverride ?? latestSeasons.current
 
     // Collect files that need renaming, keeping video and associated separate
-    // so video files are always renamed before their associated files
+    // so video files are always renamed before their associated files.
+    // When selectedEpisodeIds is provided and non-empty, only include episodes whose id (SxxEyy) is in the set.
     const videoFilesToRename: Array<{ from: string; to: string }> = []
     const associatedFilesToRename: Array<{ from: string; to: string }> = []
 
+    const filterBySelection = selectedEpisodeIds != null && selectedEpisodeIds.size > 0
+    console.log("[useTvShowRenaming] filterBySelection:", filterBySelection, "seasonsToUse length:", seasonsToUse.length)
+
     for (const season of seasonsToUse) {
+      const seasonNo = season.season.season_number
       for (const episode of season.episodes) {
+        const episodeNo = episode.episode.episode_number
+        const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
+        if (filterBySelection && !selectedEpisodeIds!.has(episodeId)) continue
+
         for (const file of episode.files) {
           if (file.newPath && file.path !== file.newPath) {
             if (file.type === "video") {

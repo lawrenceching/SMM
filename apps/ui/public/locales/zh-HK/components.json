@@ -214,7 +214,11 @@
     "unlinkFailed": "取消劇集關聯失敗",
     "expand": "展開",
     "collapse": "收起",
-    "noFile": "-"
+    "noFile": "-",
+    "renameCheckboxHeader": "",
+    "renameCheckboxTitle": "參與重新命名",
+    "renameCheckboxAria": "參與重新命名",
+    "noFilesSelectedForRename": "未選擇要重新命名的檔案"
   },
   "movieEpisodeTable": {
     "columns": {

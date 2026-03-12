@@ -215,7 +215,11 @@
     "unlinkFailed": "Failed to unlink episode",
     "expand": "Expand",
     "collapse": "Collapse",
-    "noFile": "-"
+    "noFile": "-",
+    "renameCheckboxHeader": "",
+    "renameCheckboxTitle": "Include in rename",
+    "renameCheckboxAria": "Include in rename",
+    "noFilesSelectedForRename": "No files selected for rename"
   },
   "movieEpisodeTable": {
     "columns": {
