@@ -163,27 +163,15 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
-  build-electron:
-    name: Build Electron Distribution
+  build-electron-ci:
+    name: Build Electron (CI)
     needs: [build-ui, build-cli]
-    runs-on: ${{ matrix.os }}
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [ 
-          ubuntu-latest, 
-          windows-latest, 
-          macos-latest
-        ]
-        include:
-          - os: ubuntu-latest
-            platform: linux
-            build-command: build:linux
-          - os: windows-latest
-            platform: win
-            build-command: build:win
-          - os: macos-latest
-            platform: mac
-            build-command: build:mac
+        platform: [win]
+        arch: [x64]
     
     defaults:
       run:
@@ -215,8 +203,99 @@ jobs:
       - name: Build ui
         run: cd apps/ui && pnpm run build
 
-      - name: Build Electron (${{ matrix.platform }})
-        run: cd apps/electron && pnpm run ${{ matrix.build-command }}
+      - name: Build Electron (Windows x64)
+        run: cd apps/electron && pnpm run build:win -- --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract version and commit info
+        id: version-info
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+        working-directory: ./apps/electron
+
+      - name: Upload Electron CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smm-v${{ steps.version-info.outputs.version }}-${{ steps.version-info.outputs.short_sha }}-win-x64
+          path: |
+            apps/electron/dist/*.exe
+          retention-days: 30
+
+  build-electron-release:
+    name: Build Electron (Release)
+    needs: [build-ui, build-cli]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 
+          ubuntu-latest, 
+          windows-latest, 
+          macos-13,
+          macos-14
+        ]
+        arch: [x64, arm64]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            build-command: build:linux
+          - os: windows-latest
+            platform: win
+            build-command: build:win
+          - os: macos-13
+            platform: mac
+            build-command: build:mac
+            arch: x64
+          - os: macos-14
+            platform: mac
+            build-command: build:mac
+            arch: arm64
+        exclude:
+          - os: windows-latest
+            arch: arm64
+          - os: macos-13
+            arch: arm64
+          - os: macos-14
+            arch: x64
+    
+    defaults:
+      run:
+        working-directory: .
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install electron dependencies
+        run: cd apps/electron && pnpm install --frozen-lockfile
+
+      - name: Build cli
+        run: cd apps/cli && pnpm run build
+      
+      - name: Build ui
+        run: cd apps/ui && pnpm run build
+
+      - name: Build Electron (${{ matrix.platform }}-${{ matrix.arch }})
+        run: cd apps/electron && pnpm run ${{ matrix.build-command }} -- --${{ matrix.arch }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -233,7 +312,7 @@ jobs:
       - name: Upload Electron distribution artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: smm-v${{ steps.version-info.outputs.version }}-${{ steps.version-info.outputs.short_sha }}-${{ matrix.platform }}
+          name: smm-v${{ steps.version-info.outputs.version }}-${{ steps.version-info.outputs.short_sha }}-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             apps/electron/dist/*.exe
             apps/electron/dist/*.dmg
@@ -244,7 +323,7 @@ jobs:
 
   release-electron:
     name: Create GitHub Release (Electron installers)
-    needs: [build-electron]
+    needs: [build-electron-release]
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
