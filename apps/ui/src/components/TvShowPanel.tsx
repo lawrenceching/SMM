@@ -85,6 +85,9 @@ function TvShowPanel() {
   const [openScrape] = scrapeDialog
   const [openEditMediaFile] = editMediaFileDialog
   const { userConfig } = useConfig()
+  
+  const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
+  
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
@@ -476,7 +479,6 @@ function TvShowPanel() {
   // Handle opening file picker for episode
   const handleOpenFilePickerForEpisode = useCallback((episode: TMDBEpisode) => {
 
-
     // Validate mediaMetadata is available
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media metadata available")
@@ -486,19 +488,47 @@ function TvShowPanel() {
     // Convert media folder path from POSIX to platform-specific format for the file picker
     const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
 
-    // Create file selection handler for this specific episode
-    const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
+    if (isElectron) {
+      // Use native file dialog in Electron environment
+      const electron = (window as any).electron
+      if (electron?.dialog?.showOpenDialog) {
+        electron.dialog.showOpenDialog({
+          properties: ['openFile'],
+          title: "Select Video File",
+          defaultPath: mediaFolderPlatformPath,
+          filters: [
+            { name: 'Video Files', extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'ts'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        }).then((result: any) => {
+          if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+            const selectedFile = {
+              path: result.filePaths[0],
+              isDirectory: false
+            }
+            handleEpisodeFileSelect(episode, selectedFile)
+          }
+        }).catch((error: Error) => {
+          console.error('[handleOpenFilePickerForEpisode] Error opening native dialog:', error)
+          toast.error(`Failed to open file dialog: ${error.message}`)
+        })
+      } else {
+        toast.error("Native dialog not available")
+      }
+    } else {
+      // Use custom file picker dialog in web environment
+      const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
+        handleEpisodeFileSelect(episode, selectedFile)
+      }
 
-      handleEpisodeFileSelect(episode, selectedFile)
+      openFilePicker(fileSelectHandler, {
+        title: "Select Video File",
+        description: "Choose a video file for this episode",
+        selectFolder: false,
+        initialPath: mediaFolderPlatformPath
+      })
     }
-
-    openFilePicker(fileSelectHandler, {
-      title: "Select Video File",
-      description: "Choose a video file for this episode",
-      selectFolder: false,
-      initialPath: mediaFolderPlatformPath
-    })
-  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect, seasons])
+  }, [mediaMetadata, isElectron, openFilePicker, handleEpisodeFileSelect, seasons])
 
   const handleRuleBasedRenameConfirm = useCallback(() => {
     const selection = renameSelectionRef.current
