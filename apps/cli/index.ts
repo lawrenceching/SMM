@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
-import { executeHelloTask, getAppDataDir } from 'tasks/HelloTask';
-import { getUserDataDir, getLogDir } from '@/utils/config';
+import { executeHelloTask } from 'tasks/HelloTask';
+import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
 

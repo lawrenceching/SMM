@@ -1,4 +1,4 @@
-import { getUserConfig, getUserDataDir } from '@/utils/config';
+import { getUserConfig, getUserDataDir, getAppDataDir } from '@/utils/config';
 import { Path } from '@core/path';
 import path from 'path';
 import logger from '../../lib/logger';
@@ -16,6 +16,9 @@ export async function validatePathIsInAllowlist(filePath: string): Promise<boole
 
   const userDataDir = getUserDataDir();
   allowlist.push(Path.posix(userDataDir));
+
+  const appDataDir = getAppDataDir();
+  allowlist.push(Path.posix(appDataDir));
 
   const userConfig = await getUserConfig();
   const folders = userConfig.folders;

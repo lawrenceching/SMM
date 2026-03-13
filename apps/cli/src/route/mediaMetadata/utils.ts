@@ -1,4 +1,4 @@
-import { getAppDataDir } from "tasks/HelloTask";
+import { getAppDataDir } from "@/utils/config";
 import path, { join } from "path";
 
 const appDataDir = getAppDataDir();
