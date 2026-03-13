@@ -49,6 +49,10 @@ export function matchesEpisodePattern(filename: string, seasonNumber: number, ep
     // Check standard patterns
     for (const pattern of patterns) {
         if (upperFilename.includes(pattern.toUpperCase())) {
+            // When season is 1, episode-only patterns (e.g. E01, EP01) must not match files that explicitly indicate season 0 (e.g. S00E01)
+            if (seasonNumber === 1 && !pattern.toUpperCase().startsWith('S') && upperFilename.includes('S00')) {
+                continue;
+            }
             return true;
         }
     }
@@ -112,7 +116,11 @@ export function matchesEpisodePattern(filename: string, seasonNumber: number, ep
     
     // Pattern 6: Single season formats (when season is 1)
     // Patterns: " XX ", " #XX ", "- XX"
+    // Do not match files that explicitly indicate season 0 (e.g. S00E01)
     if (seasonNumber === 1) {
+        if (upperFilename.includes('S00')) {
+            return false;
+        }
         const singleSeasonPatterns = [
             // " XX " format (space-number-space)
             ` ${episodeStr} `,
@@ -148,32 +156,31 @@ export function lookup(files: string[], seasonNumber: number, episodeNumber: num
         const ext = extname(file).toLowerCase();
         return videoFileExtensions.includes(ext);
     });
-    
-    // 2. exclude OP/ED files
+
+    // 2. exclude OP/ED/MENU files
     const nonOpEdFiles = videoFiles.filter(file => {
         const filename = (basename(file) || file).toUpperCase();
-        return !filename.includes('OP') && !filename.includes('ED');
+        return !filename.includes('OP') && !filename.includes('ED') && !filename.includes('MENU');
     });
-    
+
     // 3. exclude specials folder files for non-zero seasons
     const filteredFiles = nonOpEdFiles.filter(file => {
         if (seasonNumber === 0) return true;
         const upperPath = file.toUpperCase();
-        return !upperPath.includes('/SPS/') && 
-               !upperPath.includes('/SP/') && 
-               !upperPath.includes('/SPEICALS') && 
-               !upperPath.includes('/EXTRAS/') && 
-               !file.includes('/特典');
+        return !upperPath.includes('/SPS/') &&
+               !upperPath.includes('/SP/') &&
+               !upperPath.includes('/SPEICALS') &&
+               !upperPath.includes('/EXTRAS/') &&
+               !file.includes('/特典') &&
+               !file.includes('/映像特典');
     });
-    
+
     // 4. filter files by various episode naming patterns
     const matchingFiles = filteredFiles.filter(file => {
         const filename = basename(file) || file;
         return matchesEpisodePattern(filename, seasonNumber, episodeNumber);
     });
-    
+
     // 5. return the first file
-    const ret = matchingFiles.length > 0 ? matchingFiles[0] : null;
-    console.log(`>>> lookup(${seasonNumber}, ${episodeNumber}) => ${ret}`)
-    return ret;
+    return matchingFiles.length > 0 ? matchingFiles[0] : null;
 }

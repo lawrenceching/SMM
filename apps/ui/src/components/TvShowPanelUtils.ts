@@ -1019,11 +1019,6 @@ export function buildTemporaryRecognitionPlan(
     return null
   }
 
-  console.log('[buildTemporaryRecognitionPlan]', {
-    files,
-    mediaFolderPath: mediaMetadata.mediaFolderPath
-  })
-
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
     files
