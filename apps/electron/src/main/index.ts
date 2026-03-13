@@ -14,15 +14,22 @@ let uiDevProcess: ChildProcess | null = null
 // Control whether to start dev dependencies (CLI and UI dev processes) on startup
 const startUpDependencies: boolean = false
 
+// Get the CLI binary file name based on current platform
+function getCLIBinaryName(): string {
+  return process.platform === 'win32' ? 'cli.exe' : 'cli'
+}
+
 // Get the CLI executable path - works in both dev and production
 function getCLIExecutablePath(): string {
+  const cliBinaryName = getCLIBinaryName()
+
   if (is.dev) {
     // Development: use the actual path
-    return join(__dirname, '../../../cli/dist/cli.exe')
+    return join(__dirname, '../../../cli/dist', cliBinaryName)
   } else {
     // Production: use extraResources path
-    // On Windows, extraResources are placed in resources/ folder
-    return join(process.resourcesPath, 'cli.exe')
+    // On Windows and other platforms, extraResources are placed in resources/ folder
+    return join(process.resourcesPath, cliBinaryName)
   }
 }
 

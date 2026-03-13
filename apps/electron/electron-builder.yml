@@ -13,28 +13,25 @@ files:
 asarUnpack:
   - resources/**
 extraResources:
-  - from: '../cli/dist/cli.exe'
-    to: 'cli.exe'
-    filter:
-      - '**/*'
   - from: '../ui/dist'
     to: 'public'
     filter:
       - '**/*'
-  - from: '../../bin/ffmpeg'
-    to: 'bin/ffmpeg'
-    filter:
-      - '**/*.exe'
-  - from: '../../bin/yt-dlp'
-    to: 'bin/yt-dlp'
-    filter:
-      - '**/*.exe'
-  - from: '../../bin/openlist'
-    to: 'bin/openlist'
-    filter:
-      - '**/*.exe'
 win:
   executableName: SMM
+  extraResources:
+    - from: '../cli/dist/cli.exe'
+      to: 'cli.exe'
+      filter:
+        - '**/*'
+    - from: '../../bin/ffmpeg'
+      to: 'bin/ffmpeg'
+      filter:
+        - '**/*.exe'
+    - from: '../../bin/yt-dlp'
+      to: 'bin/yt-dlp'
+      filter:
+        - '**/*.exe'
 nsis:
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -49,6 +46,11 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  extraResources:
+    - from: '../cli/dist/cli'
+      to: 'cli'
+      filter:
+        - '**/*'
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -58,6 +60,11 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
+  extraResources:
+    - from: '../cli/dist/cli'
+      to: 'cli'
+      filter:
+        - '**/*'
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

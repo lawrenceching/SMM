@@ -197,6 +197,13 @@ jobs:
       - name: Install electron dependencies
         run: cd apps/electron && pnpm install --frozen-lockfile
 
+      - name: Download third-party binaries
+        run: bash ci/download-3pp-binary.sh
+        env:
+          PLATFORM: win
+          ARCH: x64
+          PLUGINS_VERSION: v1.0.0
+
       - name: Build cli
         run: cd apps/cli && pnpm run build
       
@@ -282,6 +289,13 @@ jobs:
 
       - name: Install electron dependencies
         run: cd apps/electron && pnpm install --frozen-lockfile
+
+      - name: Download third-party binaries
+        run: bash ci/download-3pp-binary.sh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          PLUGINS_VERSION: v1.0.0
 
       - name: Build cli
         run: cd apps/cli && pnpm run build
