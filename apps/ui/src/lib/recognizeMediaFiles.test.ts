@@ -1,6 +1,130 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import { recognizeTvShowMediaFiles } from './recognizeMediaFiles'
+import { collectRecognizedEpisodes, recognizeTvShowMediaFiles } from './recognizeMediaFiles'
+
+describe('collectRecognizedEpisodes', () => {
+  it('returns empty array when mm.files is undefined', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any],
+      } as any,
+    }
+    const lookup = vi.fn(() => '/path/video.mkv')
+    expect(collectRecognizedEpisodes(mm, lookup)).toEqual([])
+    expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it('returns empty array when mm.tmdbTvShow is undefined', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      files: ['/path/S01E01.mkv'],
+    }
+    const lookup = vi.fn(() => '/path/S01E01.mkv')
+    expect(collectRecognizedEpisodes(mm, lookup)).toEqual([])
+    expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it('returns collected episodes when lookup returns paths', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      files: ['/media/S01E01.mkv', '/media/S01E02.mkv'],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { episode_number: 1, season_number: 1 } as any,
+              { episode_number: 2, season_number: 1 } as any,
+            ],
+          } as any,
+        ],
+      } as any,
+    }
+    const lookup = vi.fn((_files: string[], sn: number, en: number) => {
+      if (sn === 1 && en === 1) return '/media/S01E01.mkv'
+      if (sn === 1 && en === 2) return '/media/S01E02.mkv'
+      return null
+    })
+    const result = collectRecognizedEpisodes(mm, lookup)
+    expect(result).toHaveLength(2)
+    expect(result).toContainEqual({ season: 1, episode: 1, videoFilePath: '/media/S01E01.mkv' })
+    expect(result).toContainEqual({ season: 1, episode: 2, videoFilePath: '/media/S01E02.mkv' })
+    expect(lookup).toHaveBeenCalledWith(mm.files, 1, 1)
+    expect(lookup).toHaveBeenCalledWith(mm.files, 1, 2)
+  })
+
+  it('deduplicates by videoFilePath so the same file is not returned twice', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      files: ['/media/S01E01.mkv'],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { episode_number: 1, season_number: 1 } as any,
+              { episode_number: 2, season_number: 1 } as any,
+            ],
+          } as any,
+        ],
+      } as any,
+    }
+    const lookup = vi.fn((_files: string[], sn: number, en: number) => {
+      // Both episodes resolve to the same underlying file
+      if (sn === 1 && (en === 1 || en === 2)) return '/media/S01E01.mkv'
+      return null
+    })
+    const result = collectRecognizedEpisodes(mm, lookup)
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      season: 1,
+      episode: 1,
+      videoFilePath: '/media/S01E01.mkv',
+    })
+    // lookup is still called for both episodes; dedup happens on collection
+    expect(lookup).toHaveBeenCalledWith(mm.files, 1, 1)
+    expect(lookup).toHaveBeenCalledWith(mm.files, 1, 2)
+  })
+
+  it('skips episodes when lookup returns null', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      files: [],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any],
+      } as any,
+    }
+    const lookup = vi.fn(() => null)
+    expect(collectRecognizedEpisodes(mm, lookup)).toEqual([])
+    expect(lookup).toHaveBeenCalledWith([], 1, 1)
+  })
+
+  it('handles episodes array being undefined', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      files: ['/media/S01E01.mkv'],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [{ id: 1, season_number: 1, episodes: undefined } as any],
+      } as any,
+    }
+    const lookup = vi.fn(() => '/media/S01E01.mkv')
+    expect(collectRecognizedEpisodes(mm, lookup)).toEqual([])
+    expect(lookup).not.toHaveBeenCalled()
+  })
+})
 
 describe('recognizeTvShowMediaFiles', () => {
     it('should return empty array when mm.files is undefined', () => {

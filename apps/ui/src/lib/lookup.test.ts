@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchesEpisodePattern } from './lookup'
+import { matchesEpisodePattern, lookup } from './lookup'
 
 describe('matchesEpisodePattern', () => {
   describe('Pattern 1: SXXEYY formats', () => {
@@ -225,6 +225,184 @@ describe('matchesEpisodePattern', () => {
     it('should handle filenames with multiple patterns', () => {
       expect(matchesEpisodePattern('Show Name S01E05 [1080p].mkv', 1, 5)).toBe(true)
       expect(matchesEpisodePattern('Show Name - S01E05 - Episode Title.mkv', 1, 5)).toBe(true)
+    })
+  })
+})
+
+describe('lookup', () => {
+  describe('OP/ED exclusion', () => {
+    it('should exclude files with OP in filename', () => {
+      const files = [
+        '/path/to/Show S01E01 OP.mkv',
+        '/path/to/Show S01E01.mkv',
+        '/path/to/Show S01E01 ED.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
+    })
+
+    it('should exclude files with ED in filename', () => {
+      const files = [
+        '/path/to/Show S01E01 ED.mkv',
+        '/path/to/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
+    })
+
+    it('should be case-insensitive for OP/ED', () => {
+      const files = [
+        '/path/to/Show S01E01 op.mkv',
+        '/path/to/Show S01E01.mkv',
+        '/path/to/Show S01E01 Ed.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
+    })
+
+    it('should return null when all files contain OP or ED', () => {
+      const files = [
+        '/path/to/Show S01E01 OP.mkv',
+        '/path/to/Show S01E01 ED.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBeNull()
+    })
+  })
+
+  describe('Specials folder exclusion', () => {
+    it('should exclude files in /SPs/ folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/SPs/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should exclude files in /SP/ folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/SP/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should exclude files in /Speicals folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/Speicals/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should exclude files in /特典 folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/特典/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should exclude files in /Extras/ folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/Extras/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should NOT exclude files in specials folders for season 0', () => {
+      const files = [
+        '/path/to/SPs/Show S00E01.mkv',
+        '/path/to/SP/Show S00E02.mkv',
+        '/path/to/Speicals/Show S00E03.mkv',
+        '/path/to/Extras/Show S00E04.mkv',
+      ]
+      expect(lookup(files, 0, 1)).toBe('/path/to/SPs/Show S00E01.mkv')
+      expect(lookup(files, 0, 2)).toBe('/path/to/SP/Show S00E02.mkv')
+      expect(lookup(files, 0, 3)).toBe('/path/to/Speicals/Show S00E03.mkv')
+      expect(lookup(files, 0, 4)).toBe('/path/to/Extras/Show S00E04.mkv')
+    })
+
+    it('should be case-insensitive for special folder names', () => {
+      const files = [
+        '/path/to/sps/Show S01E01.mkv',
+        '/path/to/sp/Show S01E02.mkv',
+        '/path/to/speicals/Show S01E03.mkv',
+        '/path/to/extras/Show S01E04.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E02.mkv',
+        '/path/to/Season 01/Show S01E03.mkv',
+        '/path/to/Season 01/Show S01E04.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+      expect(lookup(files, 1, 2)).toBe('/path/to/Season 01/Show S01E02.mkv')
+      expect(lookup(files, 1, 3)).toBe('/path/to/Season 01/Show S01E03.mkv')
+      expect(lookup(files, 1, 4)).toBe('/path/to/Season 01/Show S01E04.mkv')
+    })
+  })
+
+  describe('Normal lookup', () => {
+    it('should return the first matching file', () => {
+      const files = [
+        '/path/to/Show S01E05.mkv',
+        '/path/to/Show S01E05 (2).mkv',
+      ]
+      expect(lookup(files, 1, 5)).toBe('/path/to/Show S01E05.mkv')
+    })
+
+    it('should match various episode patterns', () => {
+      const files = [
+        '/path/to/Show S01E05.mkv',
+        '/path/to/Show S1E5.mkv',
+        '/path/to/Show 第1季第5集.mkv',
+        '/path/to/Show 第5話.mkv',
+      ]
+      expect(lookup(files, 1, 5)).toBe('/path/to/Show S01E05.mkv')
+    })
+
+    it('should return null when no matching file found', () => {
+      const files = [
+        '/path/to/Show S01E01.mkv',
+        '/path/to/Show S01E02.mkv',
+      ]
+      expect(lookup(files, 1, 5)).toBeNull()
+    })
+
+    it('should filter non-video files', () => {
+      const files = [
+        '/path/to/Show S01E05.txt',
+        '/path/to/Show S01E05.srt',
+        '/path/to/Show S01E05.mkv',
+      ]
+      expect(lookup(files, 1, 5)).toBe('/path/to/Show S01E05.mkv')
+    })
+
+  })
+
+  describe('Combined exclusions', () => {
+    it('should exclude both OP/ED files and specials folder files', () => {
+      const files = [
+        '/path/to/SPs/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01 OP.mkv',
+        '/path/to/Season 01/Show S01E01 ED.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
+    it('should return null when all files are excluded', () => {
+      const files = [
+        '/path/to/SPs/Show S01E01.mkv',
+        '/path/to/SP/Show S01E01 OP.mkv',
+        '/path/to/Speicals/Show S01E01 ED.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBeNull()
+    })
+
+    it('should work correctly for season 0 with OP/ED exclusions', () => {
+      const files = [
+        '/path/to/SPs/Show S00E01 OP.mkv',
+        '/path/to/SPs/Show S00E01 ED.mkv',
+        '/path/to/SPs/Show S00E01.mkv',
+      ]
+      expect(lookup(files, 0, 1)).toBe('/path/to/SPs/Show S00E01.mkv')
     })
   })
 })

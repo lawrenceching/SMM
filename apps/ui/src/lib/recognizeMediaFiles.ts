@@ -3,39 +3,49 @@ import { isNil, isNotNil } from "es-toolkit";
 import { lookup } from "./lookup";
 import { findVideoFiles } from "./MovieMediaMetadataUtils";
 
-export function recognizeTvShowMediaFiles(mm: UIMediaMetadata): {
-    season: number,
-    episode: number,
-    videoFilePath: string,
-}[] {
-    if(isNil(mm.files)) {
+export type LookupFn = (files: string[], seasonNumber: number, episodeNumber: number) => string | null;
+
+export type RecognizedEpisode = {
+    season: number;
+    episode: number;
+    videoFilePath: string;
+};
+
+/**
+ * Shared core: iterate tmdbTvShow seasons/episodes, call lookupFn, collect non-null matches.
+ * Performs de-duplication by videoFilePath so the same file is not assigned to multiple episodes.
+ * Does not build associated files and does not decide []/null policy — callers decide.
+ */
+export function collectRecognizedEpisodes(
+    mm: UIMediaMetadata,
+    lookupFn: LookupFn
+): RecognizedEpisode[] {
+    if (isNil(mm.files) || isNil(mm.tmdbTvShow)) {
         return [];
     }
-
-    if(isNil(mm.tmdbTvShow)) {
-        return [];
-    }
-
-    const ret: {
-        season: number,
-        episode: number,
-        videoFilePath: string,
-    }[] = [];
-    
+    const assignedVideoFilePaths = new Set<string>();
+    const ret: RecognizedEpisode[] = [];
     mm.tmdbTvShow.seasons.forEach(season => {
         season.episodes?.forEach(episode => {
-            const videoFilePath = lookup(mm.files!, season.season_number, episode.episode_number);
-            if(isNotNil(videoFilePath)) {
+            const videoFilePath = lookupFn(mm.files!, season.season_number, episode.episode_number);
+            if (isNotNil(videoFilePath)) {
+                if (assignedVideoFilePaths.has(videoFilePath)) {
+                    return;
+                }
+                assignedVideoFilePaths.add(videoFilePath);
                 ret.push({
                     season: season.season_number,
                     episode: episode.episode_number,
-                    videoFilePath: videoFilePath,
+                    videoFilePath,
                 });
             }
         });
     });
-
     return ret;
+}
+
+export function recognizeTvShowMediaFiles(mm: UIMediaMetadata): RecognizedEpisode[] {
+    return collectRecognizedEpisodes(mm, lookup);
 }
 
 

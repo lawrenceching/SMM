@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlan, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -1881,6 +1881,86 @@ describe('buildTmdbEpisodeByNFO', () => {
   })
 })
 
+describe('buildTemporaryRecognitionPlan', () => {
+  it('returns null when mediaFolderPath is missing', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      mediaFolderPath: undefined,
+      files: ['/media/S01E01.mkv'],
+      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+    }
+    const lookup = vi.fn(() => '/media/S01E01.mkv')
+    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+  })
+
+  it('returns null when files is missing', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      mediaFolderPath: '/media',
+      files: undefined,
+      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+    }
+    const lookup = vi.fn(() => '/media/S01E01.mkv')
+    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+  })
+
+  it('returns null when tmdbTvShow is missing', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      mediaFolderPath: '/media',
+      files: ['/media/S01E01.mkv'],
+      tmdbTvShow: undefined,
+    }
+    const lookup = vi.fn(() => '/media/S01E01.mkv')
+    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+  })
+
+  it('returns null when no files are recognized', () => {
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      mediaFolderPath: '/media',
+      files: ['/media/other.mkv'],
+      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+    }
+    const lookup = vi.fn(() => null)
+    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+  })
+
+  it('returns plan with files and mediaFolderPath when lookup returns matches', () => {
+    const mediaFolderPath = '/media/show'
+    const mm: UIMediaMetadata = {
+      status: 'ok',
+      mediaFolderPath,
+      files: ['/media/show/S01E01.mkv', '/media/show/S01E02.mkv'],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Show',
+        seasons: [
+          {
+            id: 1,
+            season_number: 1,
+            episodes: [
+              { episode_number: 1, season_number: 1 } as any,
+              { episode_number: 2, season_number: 1 } as any,
+            ],
+          } as any,
+        ],
+      } as any,
+    }
+    const lookup = vi.fn((_files: string[], sn: number, en: number) => {
+      if (sn === 1 && en === 1) return '/media/show/S01E01.mkv'
+      if (sn === 1 && en === 2) return '/media/show/S01E02.mkv'
+      return null
+    })
+    const result = buildTemporaryRecognitionPlan(mm, lookup)
+    expect(result).not.toBeNull()
+    expect(result!.mediaFolderPath).toBe(mediaFolderPath)
+    expect(result!.files).toHaveLength(2)
+    expect(result!.files).toContainEqual({ season: 1, episode: 1, path: '/media/show/S01E01.mkv' })
+    expect(result!.files).toContainEqual({ season: 1, episode: 2, path: '/media/show/S01E02.mkv' })
+  })
+})
+
 describe('buildSeasonsByRecognizeMediaFilePlan', () => {
   it('returns SeasonModel[] with one season and one episode when plan has one recognized file and mm has tmdbTvShow and files', () => {
     const mediaFolderPath = '/media/show'
@@ -3150,7 +3230,7 @@ describe('recognizeMediaFilesByRules', () => {
     )
   })
 
-  it('should skip duplicate video file assignments and log warning', () => {
+  it('should ignore duplicate video file paths so later episodes remain empty', () => {
     const mediaFolderPath = '/media/tvshow'
     const videoFilePath1 = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
     const videoFilePath2 = '/media/tvshow/Season 01/Show.Name.S01E02.mkv'
@@ -3281,10 +3361,9 @@ describe('recognizeMediaFilesByRules', () => {
     // Verify lookup was called for all episodes
     expect(lookup).toHaveBeenCalledTimes(3)
 
-    // Verify warning was logged for duplicate assignment
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[TvShowPanelUtils] Warning: Video file already assigned to another episode: ' + videoFilePath1 + '. Skipping S1E3'
-    )
+    // With core-level deduplication, duplicate video paths are filtered earlier,
+    // so no warning is expected here anymore.
+    expect(consoleWarnSpy).not.toHaveBeenCalled()
 
     consoleWarnSpy.mockRestore()
   })

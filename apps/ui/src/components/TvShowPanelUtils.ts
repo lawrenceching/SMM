@@ -29,6 +29,7 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
+import { collectRecognizedEpisodes } from "@/lib/recognizeMediaFiles";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -53,6 +54,28 @@ export function newPath(mediaFolderPath: string, videoFilePath: string, associat
     const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
     const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
     return join(mediaFolderPath, associatedRelativePath)
+}
+
+/**
+ * Build FileProps[] for an episode from a video path: video file plus associated files (subtitle, nfo, poster, etc.).
+ * Used when building SeasonModel preview from recognized paths (rule-based or plan-based).
+ */
+export function buildFilePropsForVideoPath(
+  mediaFolderPath: string,
+  fileList: string[],
+  videoFilePath: string
+): FileProps[] {
+  if (!mediaFolderPath || fileList.length === 0) {
+    return [{ type: "video", path: videoFilePath }]
+  }
+  const associatedFiles = findAssociatedFiles(mediaFolderPath, fileList, videoFilePath)
+  return [
+    { type: "video", path: videoFilePath },
+    ...associatedFiles.map((file) => ({
+      type: mapTagToFileType(file.tag),
+      path: join(mediaFolderPath, file.path),
+    })),
+  ]
 }
 
 export function buildFileProps(mm: UIMediaMetadata, seasonNumber: number, episodeNumber: number): FileProps[] {
@@ -762,16 +785,7 @@ export function buildSeasonsByRecognizeMediaFilePlan(mm: UIMediaMetadata, plan: 
           runtime: 0,
         } as TMDBEpisode)
 
-      const files: FileProps[] =
-        mediaFolderPath && fileList.length > 0
-          ? [
-              { type: "video", path: videoPath },
-              ...findAssociatedFiles(mediaFolderPath, fileList, videoPath).map((file) => ({
-                type: mapTagToFileType(file.tag),
-                path: join(mediaFolderPath, file.path),
-              })),
-            ]
-          : [{ type: "video", path: videoPath }]
+      const files: FileProps[] = buildFilePropsForVideoPath(mediaFolderPath, fileList, videoPath)
 
       return { episode: tmdbEpisode, files }
     })
@@ -994,23 +1008,12 @@ export function buildTemporaryRecognitionPlan(
     return null
   }
 
-  const files: RecognizedFile[] = []
-
-  // Iterate through all seasons and episodes to build the file mappings
-  mediaMetadata.tmdbTvShow.seasons.forEach(season => {
-    season.episodes?.forEach(episode => {
-      // Always use lookup utility to find the file based on filename patterns
-      // Don't use existing mediaMetadata.mediaFiles as they may be incorrect
-      const videoFilePath = lookup(mediaMetadata.files || [], season.season_number, episode.episode_number)
-      if (videoFilePath) {
-        files.push({
-          season: season.season_number,
-          episode: episode.episode_number,
-          path: videoFilePath
-        })
-      }
-    })
-  })
+  const collected = collectRecognizedEpisodes(mediaMetadata, lookup)
+  const files: RecognizedFile[] = collected.map(({ season, episode, videoFilePath }) => ({
+    season,
+    episode,
+    path: videoFilePath,
+  }))
 
   if (files.length === 0) {
     return null
@@ -1142,39 +1145,22 @@ export function recognizeMediaFilesByRules(
         return
       }
 
-      // Find associated files (subtitles, audio, nfo, poster)
-      const associatedFiles = findAssociatedFiles(mediaMetadata.mediaFolderPath, mediaMetadata.files, videoFilePath)
-
-      // Build the new files array
-      const newFiles: FileProps[] = [
-        {
-          type: "video",
-          path: videoFilePath,
-        },
-        ...associatedFiles.map(file => ({
-          type: mapTagToFileType(file.tag),
-          // Convert relative path to absolute path
-          path: join(mediaMetadata.mediaFolderPath!, file.path),
-        }))
-      ]
+      const newFiles = buildFilePropsForVideoPath(
+        mediaMetadata.mediaFolderPath,
+        mediaMetadata.files,
+        videoFilePath
+      )
 
       // Update the episode's files
       console.log(`[TvShowPanelUtils] updating episode files:`, episode.files, newFiles)
       episode.files = newFiles
     }
 
-    mediaMetadata.tmdbTvShow?.seasons.forEach(season => {
-      season.episodes?.forEach(episode => {
-        // Always use lookup for rule-based recognition to get fresh recognition results
-        // This handles cases where mediaFiles may be outdated or incorrect
-        const videoFilePath = lookup(mediaMetadata.files!, season.season_number, episode.episode_number)
-        console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
-
-        if (videoFilePath !== null) {
-          updateSeasonsForPreview(season.season_number, episode.episode_number, videoFilePath)
-        }
-      })
-    })
+    const collected = collectRecognizedEpisodes(mediaMetadata, lookup)
+    for (const { season: seasonNumber, episode: episodeNumber, videoFilePath } of collected) {
+      console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
+      updateSeasonsForPreview(seasonNumber, episodeNumber, videoFilePath)
+    }
 
     console.log(`[TvShowPanelUtils] seasons for preview:`, seasonsForPreview)
     return seasonsForPreview

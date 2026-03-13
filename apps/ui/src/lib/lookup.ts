@@ -149,12 +149,31 @@ export function lookup(files: string[], seasonNumber: number, episodeNumber: num
         return videoFileExtensions.includes(ext);
     });
     
-    // 2. filter files by various episode naming patterns
-    const matchingFiles = videoFiles.filter(file => {
+    // 2. exclude OP/ED files
+    const nonOpEdFiles = videoFiles.filter(file => {
+        const filename = (basename(file) || file).toUpperCase();
+        return !filename.includes('OP') && !filename.includes('ED');
+    });
+    
+    // 3. exclude specials folder files for non-zero seasons
+    const filteredFiles = nonOpEdFiles.filter(file => {
+        if (seasonNumber === 0) return true;
+        const upperPath = file.toUpperCase();
+        return !upperPath.includes('/SPS/') && 
+               !upperPath.includes('/SP/') && 
+               !upperPath.includes('/SPEICALS') && 
+               !upperPath.includes('/EXTRAS/') && 
+               !file.includes('/特典');
+    });
+    
+    // 4. filter files by various episode naming patterns
+    const matchingFiles = filteredFiles.filter(file => {
         const filename = basename(file) || file;
         return matchesEpisodePattern(filename, seasonNumber, episodeNumber);
     });
     
-    // 3. return the first file
-    return matchingFiles.length > 0 ? matchingFiles[0] : null;
+    // 5. return the first file
+    const ret = matchingFiles.length > 0 ? matchingFiles[0] : null;
+    console.log(`>>> lookup(${seasonNumber}, ${episodeNumber}) => ${ret}`)
+    return ret;
 }
