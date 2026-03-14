@@ -27,7 +27,9 @@
     "renameTitle": "重命名媒体",
     "renameDescription": "输入此媒体的新名称",
     "renameError": "无法重命名文件夹：{{error}}",
-    "initializing": "正在初始化媒体目录..."
+    "initializing": "正在初始化媒体目录...",
+    "folderNotFound": "文件夹未找到",
+    "errorLoadingMetadata": "加载元数据时出错"
   },
   "toolbar": {
     "refresh": "刷新",

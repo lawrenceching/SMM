@@ -27,7 +27,9 @@
     "renameTitle": "Rename Media",
     "renameDescription": "Enter the new name for this media",
     "renameError": "Could not rename folder: {{error}}",
-    "initializing": "Initializing media folder..."
+    "initializing": "Initializing media folder...",
+    "folderNotFound": "Folder not found",
+    "errorLoadingMetadata": "Error loading metadata"
   },
   "toolbar": {
     "refresh": "Refresh",

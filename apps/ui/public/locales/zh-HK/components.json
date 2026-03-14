@@ -27,7 +27,9 @@
     "renameTitle": "重新命名媒體",
     "renameDescription": "輸入此媒體的新名稱",
     "renameError": "無法重新命名資料夾：{{error}}",
-    "initializing": "正在初始化媒體目錄..."
+    "initializing": "正在初始化媒體目錄...",
+    "folderNotFound": "資料夾未找到",
+    "errorLoadingMetadata": "載入元資料時出錯"
   },
   "toolbar": {
     "refresh": "重新整理",

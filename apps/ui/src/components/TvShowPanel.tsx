@@ -1,5 +1,3 @@
-import { TVShowHeader } from "./tv-show-header"
-import { SeasonSection } from "./season-section"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
@@ -15,7 +13,7 @@ import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
-import { getTvShowById, getTMDBImageUrl } from "@/api/tmdb"
+import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { mapSearchLanguageToTmdb } from "./TMDBSearchbox"
 import type { SupportedLanguage } from "@/lib/i18n"
@@ -31,8 +29,7 @@ import { TvShowEpisodeTable, type TvShowEpisodeTableRow, type TvShowFolderFileRo
 import { basename } from "@/lib/path"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
-
-const v2 = true;
+import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -666,58 +663,22 @@ function TvShowPanel() {
     setRenameSelection(initial)
   }, [ruleBasedRenameFilePrompt.isOpen, aiBasedRenameFilePrompt.isOpen, effectiveSeasons])
 
-  const episodeTableData = useMemo<TvShowEpisodeTableRow[]>(() => {
-    const rows: TvShowEpisodeTableRow[] = []
+  const tableData = useMemo(() => {
 
-    if (mediaMetadata?.files && mediaMetadata.mediaFolderPath) {
-      rows.push(...buildFolderFileRows(mediaMetadata.files))
-    }
+    if (!mediaMetadata) return []
 
-    for (const seasonModel of effectiveSeasons) {
-      const seasonNo = seasonModel.season.season_number
-      const seasonText = seasonModel.season.name || `Season ${seasonNo}`
-      rows.push({
-        id: `season-${seasonNo}`,
-        type: "divider",
-        text: seasonText,
+    if(pendingPlans.length === 0) {
+      return buildTvShowEpisodeTableRows(mediaMetadata, (key: string) => {
+       return t(key as any)
       })
-
-      for (const episodeModel of seasonModel.episodes) {
-        const episodeNo = episodeModel.episode.episode_number
-        const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
-        const videoFile = episodeModel.files.find((file) => file.type === "video")
-        const thumbnailFile = episodeModel.files.find((file) => file.type === "poster")
-        const subtitleFile = episodeModel.files.find((file) => file.type === "subtitle")
-        const nfoFile = episodeModel.files.find((file) => file.type === "nfo")
-        rows.push({
-          id: episodeId,
-          type: "episode",
-          videoFile: videoFile?.path,
-          thumbnail: thumbnailFile?.path,
-          subtitle: subtitleFile?.path,
-          nfo: nfoFile?.path,
-          episodeTitle: episodeModel.episode.name ?? "",
-          newVideoFile: videoFile?.newPath,
-          newThumbnail: thumbnailFile?.newPath,
-          newSubtitle: subtitleFile?.newPath,
-          newNfo: nfoFile?.newPath,
-        })
-      }
+    } else {
+      return buildTvShowEpisodeTableRowsForPlan(mediaMetadata, pendingPlans[0], (key: string) => {
+       return t(key as any)
+      })
     }
-
-    console.log("[TvShowPanel] episodeTableData useMemo", {
-      mediaFolderPath: mediaMetadata?.mediaFolderPath,
-      effectiveSeasonsLength: effectiveSeasons.length,
-      rowsLength: rows.length,
-    })
-    return rows
-  }, [effectiveSeasons, mediaMetadata?.files, mediaMetadata?.mediaFolderPath])
-
-  const currentPath = mediaMetadata?.mediaFolderPath
-  const tableData =
-    currentPath !== undefined && currentPath === seasonsPathRef.current
-      ? episodeTableData
-      : []
+    
+  }, [mediaMetadata, pendingPlans])
+  
 
   const handleVideoFileSelectForRow = useCallback(
     (rowId: string) => {
@@ -763,19 +724,15 @@ function TvShowPanel() {
     [effectiveSeasons, openEditMediaFile]
   )
 
-  const backdropUrl = getTMDBImageUrl(mediaMetadata?.tmdbTvShow?.backdrop_path, 'w780');
-
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TvShowPanelPrompts />
 
-      {v2 && (
-        <>
-          <div className="shrink-0 px-4 pt-4">
-            <TvShowHeaderV2
-              onSearchResultSelected={handleSelectResult}
-              onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
-              onRenameClick={() => {
+      <div className="shrink-0 px-4 pt-4">
+        <TvShowHeaderV2
+          onSearchResultSelected={handleSelectResult}
+          onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
+          onRenameClick={() => {
         setEpisodeTableLayout('simple')
         openRuleBasedRenameFilePrompt({
           toolbarOptions,
@@ -785,67 +742,30 @@ function TvShowPanel() {
           onCancel: () => {},
         })
       }}
-              selectedMediaMetadata={mediaMetadata}
-              openScrape={openScrape}
-              episodeTableLayout={episodeTableLayout}
-              onEpisodeTableLayoutChange={setEpisodeTableLayout}
-            />
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {mediaMetadata?.status === "initializing" ? (
-              <MediaPanelInitializingHint />
-            ) : (
-              <TvShowEpisodeTable
-                key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-                data={tableData}
-                mediaFolderPath={mediaMetadata?.mediaFolderPath}
-                onVideoFileSelect={handleVideoFileSelectForRow}
-                onUnlinkEpisode={handleUnlinkEpisode}
-                onEditTags={handleEditTagsForRow}
-                preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
-                layout={episodeTableLayout}
-                renameSelection={renameSelection}
-                onRenameSelectionChange={setRenameSelection}
-              />
-            )}
-          </div>
-        </>
-      )}
-      {!v2 && (
-      <div className="relative w-full overflow-hidden flex flex-col">
-        {backdropUrl && (
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-10"
-            style={{ backgroundImage: `url(${backdropUrl})` }}
+          selectedMediaMetadata={mediaMetadata}
+          openScrape={openScrape}
+          episodeTableLayout={episodeTableLayout}
+          onEpisodeTableLayoutChange={setEpisodeTableLayout}
+        />
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto">
+        {mediaMetadata?.status === "initializing" ? (
+          <MediaPanelInitializingHint />
+        ) : (
+          <TvShowEpisodeTable
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
+            onVideoFileSelect={handleVideoFileSelectForRow}
+            onUnlinkEpisode={handleUnlinkEpisode}
+            onEditTags={handleEditTagsForRow}
+            preview={aiBasedRenameFilePrompt.isOpen || ruleBasedRenameFilePrompt.isOpen}
+            layout={episodeTableLayout}
+            renameSelection={renameSelection}
+            onRenameSelectionChange={setRenameSelection}
           />
         )}
-        <div className="relative p-6 flex-1 overflow-y-auto space-y-6">
-          <TVShowHeader
-            onSearchResultSelected={handleSelectResult}
-            onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
-            onRenameClick={() => openRuleBasedRenameFilePrompt({
-              toolbarOptions,
-              selectedNamingRule,
-              setSelectedNamingRule,
-              onConfirm: handleRuleBasedRenameConfirm,
-              onCancel: () => {},
-            })}
-            selectedMediaMetadata={mediaMetadata}
-            openScrape={openScrape}
-          />
-
-          <SeasonSection
-            selectedMediaMetadata={mediaMetadata}
-            seasons={effectiveSeasons}
-            scrollToEpisodeId={scrollToEpisodeId}
-            onEpisodeFileSelect={handleOpenFilePickerForEpisode}
-          />
-
-          
-        </div>
       </div>
-      )}
-      
     </div>
   )
 }
