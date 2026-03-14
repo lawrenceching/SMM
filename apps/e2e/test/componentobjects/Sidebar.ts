@@ -120,17 +120,42 @@ class Sidebar {
     }
 
     /**
+     * Get names of all folders currently displayed in the sidebar.
+     * Useful for debugging when waitForFolder fails (e.g. wrong expected name in test).
+     */
+    async getDisplayedFolderNames(): Promise<string[]> {
+        try {
+            const folderNameElements = await $$('[data-testid="sidebar-folder-items"] h5')
+            const elementsArray = Array.from(folderNameElements)
+            const names = await Promise.all(elementsArray.map((el) => el.getText()))
+            return names
+        } catch {
+            return []
+        }
+    }
+
+    /**
      * Wait for a folder to appear in the sidebar
      * @param folderName The name of the folder to wait for
      * @param timeout Timeout in milliseconds (default: 30000)
      */
     async waitForFolder(folderName: string, timeout: number = 30000): Promise<boolean> {
-        return await browser.waitUntil(async () => {
-            return await this.isFolderDisplayed(folderName)
-        }, {
-            timeout,
-            timeoutMsg: `Folder "${folderName}" was not displayed in sidebar after ${timeout}ms`
-        })
+        try {
+            return await browser.waitUntil(async () => {
+                return await this.isFolderDisplayed(folderName)
+            }, {
+                timeout,
+                timeoutMsg: `Folder "${folderName}" was not displayed in sidebar after ${timeout}ms`
+            })
+        } catch (err) {
+            const displayed = await this.getDisplayedFolderNames()
+            const displayedStr = displayed.length > 0
+                ? ` Displayed folders: [${displayed.map((n) => `"${n}"`).join(', ')}].`
+                : ' Sidebar has no folder items (empty or loading).'
+            throw new Error(
+                `Folder "${folderName}" was not displayed in sidebar after ${timeout}ms.${displayedStr}`
+            )
+        }
     }
 
     /**

@@ -1,12 +1,14 @@
-import { expect, browser } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
-import ConfigDialog from '../componentobjects/ConfigDialog'
+import TVShowPanel from '../componentobjects/TVShowPanel'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
+import { folder2 } from 'test/actions/import-folders'
+import { setApplicationLanguage } from 'test/actions/setApplicationLanguage'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
@@ -17,14 +19,7 @@ describe('Search Movie', () => {
 
     beforeEach(async () => {
         console.log('Setting language to zh-CN for Chinese search test...')
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        await ConfigDialog.selectLanguage('zh-CN')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(200)
-        await ConfigDialog.pressEscape()
-        await ConfigDialog.waitForClosed()
+        await setApplicationLanguage('zh-CN')
         console.log('Language set to zh-CN')
     })
 
@@ -35,14 +30,7 @@ describe('Search Movie', () => {
         }
 
         console.log('Resetting language to en...')
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        await ConfigDialog.selectLanguage('en')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(200)
-        await ConfigDialog.pressEscape()
-        await ConfigDialog.waitForClosed()
+        await setApplicationLanguage('en')
         console.log('Language reset to en')
     })
 
@@ -68,33 +56,16 @@ describe('Search Movie', () => {
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${randomFolderName}" is now displayed in sidebar`)
 
-        const immersiveInput = await $('[data-testid="immersive-input"]')
+        const immersiveInput = await TVShowPanel.immersiveInput
         await immersiveInput.waitForDisplayed({ timeout: 15000 })
         await browser.waitUntil(
             async () => (await immersiveInput.getValue()) === '',
             { timeout: 10000, timeoutMsg: 'ImmersiveMovieSearchbox should be empty for unknown folder' }
         )
 
-        await immersiveInput.click()
-        const expectedTitle = '流浪地球'
-        await immersiveInput.setValue(expectedTitle)
-        await browser.pause(300)
+        const expectedTitle = folder2.folderName
+        await TVShowPanel.searchAndSelectByTitle(expectedTitle)
 
-        const searchButton = await $('[data-testid="immersive-input-search-button"]')
-        await searchButton.waitForClickable({ timeout: 5000 })
-        await searchButton.click()
-        const resultItem = await $(`//h3[contains(text(),"${expectedTitle}")]`)
-        await resultItem.waitForDisplayed({ timeout: 15000 })
-        const clickableRow = await resultItem.$('..').$('..').$('..')
-        await clickableRow.click()
-
-        await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === expectedTitle,
-            {
-                timeout: 10000,
-                timeoutMsg: `Expected immersive-input value to be "${expectedTitle}", but got "${await immersiveInput.getValue()}"`
-            }
-        )
         expect(await immersiveInput.getValue()).toBe(expectedTitle)
     })
 })

@@ -16,11 +16,7 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('Media Folder Initialization', () => {
 
-    before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
-
-    beforeEach(async () => {
-        console.log('Setup before each test')
-    })
+    beforeEach(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
     afterEach(async () => {
         if (fs.existsSync(tmpMediaRoot)) {
@@ -80,7 +76,7 @@ describe('Media Folder Initialization', () => {
         const stepTimeoutMs = 1 * 1000
         this.timeout(stepTimeoutMs * 2 + 30 * 1000) // sidebar wait + immersive wait + buffer
 
-        const folderNameWithTmdbId = '哪吒之魔童降世 (2019) {tmdbid=552524}'
+        const folderNameWithTmdbId = '哪吒之魔童降世 (2019) {tmdbid=615453}'
         const expectedMovieTitle = '哪吒之魔童降世'
         const testMediaFolder = path.join(mediaDir, folderNameWithTmdbId)
         fs.mkdirSync(testMediaFolder, { recursive: true })
@@ -101,7 +97,7 @@ describe('Media Folder Initialization', () => {
             await delay(10 * 1000)
         }
 
-        await Sidebar.waitForFolder(expectedMovieTitle, stepTimeoutMs)
+        await Sidebar.waitForFolder(folderNameWithTmdbId, stepTimeoutMs)
 
         console.log(`Folder "${folderNameWithTmdbId}" is now displayed in sidebar`)
         // Wait for immersive-input to show TMDB title

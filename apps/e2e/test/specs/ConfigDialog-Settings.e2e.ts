@@ -38,17 +38,20 @@ async function isOfficialHostAccessible(): Promise<boolean> {
 // Read TMDB_API_KEY from .env.local in project root
 function getTmdbApiKey(): string {
     const envFilePath = path.resolve(__dirname, '..', '..', '..', '..', '.env.local')
-    try {
-        const content = fs.readFileSync(envFilePath, 'utf-8')
-        const match = content.match(/TMDB_API_KEY=(.+)/)
-        if (match && match[1]) {
-            // Remove quotes if present
-            return match[1].replace(/^['"]|['"]$/g, '')
-        }
-    } catch (e) {
-        console.warn('Could not read TMDB_API_KEY from .env.local:', e)
+    if (!fs.existsSync(envFilePath)) {
+        throw new Error(
+            `.env.local not found at ${envFilePath}. Create it with TMDB_API_KEY=your_key to run TMDB-related e2e tests.`
+        )
     }
-    return ''
+    const content = fs.readFileSync(envFilePath, 'utf-8')
+    const match = content.match(/TMDB_API_KEY=(.+)/)
+    if (match && match[1]) {
+        // Remove quotes if present
+        return match[1].replace(/^['"]|['"]$/g, '')
+    }
+    throw new Error(
+        `TMDB_API_KEY is missing or empty in .env.local (${envFilePath}). Add TMDB_API_KEY=your_key to run TMDB-related e2e tests.`
+    )
 }
 
 describe('Config Dialog Settings', () => {

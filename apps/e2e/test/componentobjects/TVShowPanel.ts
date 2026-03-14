@@ -38,6 +38,13 @@ export interface TvShowPanelState {
 
 class TVShowPanel {
     /**
+     * Get the immersive search input (movie/tv title input)
+     */
+    get immersiveInput() {
+        return $('[data-testid="immersive-input"]')
+    }
+
+    /**
      * Get the episode table element
      */
     get episodeTable() {
@@ -236,7 +243,7 @@ class TVShowPanel {
         }
 
         try {
-            const input = await $('[data-testid="immersive-input"]')
+            const input = await this.immersiveInput
             if (await input.isExisting()) {
                 state.title = await input.getValue()
             }
@@ -312,13 +319,49 @@ class TVShowPanel {
     }
 
     async waitForTitleToBe(expected: string, timeout: number = 10000): Promise<void> {
-        const input = await $('[data-testid="immersive-input"]')
+        const input = await this.immersiveInput
         await input.waitForDisplayed({ timeout })
         await browser.waitUntil(
             async () => (await input.getValue()) === expected,
             {
                 timeout,
                 timeoutMsg: `Expected title to be "${expected}", but got "${await input.getValue()}"`
+            }
+        )
+    }
+
+    /**
+     * Type a query in the immersive input, run search, and select the result by title.
+     * Waits for the result row with the given title to appear and clicks it.
+     * @param title The movie/tv title to search for and select
+     * @param options.waitForResultTimeout Timeout for result to appear (default 15000)
+     * @param options.waitForInputUpdateTimeout Timeout for input value to update after selection (default 10000)
+     */
+    async searchAndSelectByTitle(
+        title: string,
+        options: { waitForResultTimeout?: number; waitForInputUpdateTimeout?: number } = {}
+    ): Promise<void> {
+        const { waitForResultTimeout = 15000, waitForInputUpdateTimeout = 10000 } = options
+        const immersiveInput = await this.immersiveInput
+        await immersiveInput.waitForDisplayed({ timeout: waitForResultTimeout })
+        await immersiveInput.click()
+        await immersiveInput.setValue(title)
+        await browser.pause(300)
+
+        const searchButton = await $('[data-testid="immersive-input-search-button"]')
+        await searchButton.waitForClickable({ timeout: 5000 })
+        await searchButton.click()
+
+        const resultItem = await $(`//h3[contains(text(),"${title}")]`)
+        await resultItem.waitForDisplayed({ timeout: waitForResultTimeout })
+        const clickableRow = await resultItem.$('..').$('..').$('..')
+        await clickableRow.click()
+
+        await browser.waitUntil(
+            async () => (await immersiveInput.getValue()) === title,
+            {
+                timeout: waitForInputUpdateTimeout,
+                timeoutMsg: `Expected immersive-input value to be "${title}", but got "${await immersiveInput.getValue()}"`
             }
         )
     }
