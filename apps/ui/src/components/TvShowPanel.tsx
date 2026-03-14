@@ -8,7 +8,6 @@ import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import { lookup } from "@/lib/lookup"
 import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
@@ -555,7 +554,7 @@ function TvShowPanel() {
       seasonsCount: mediaMetadata.tmdbTvShow?.seasons?.length,
       episodeCountsBySeason: mediaMetadata.tmdbTvShow?.seasons?.map(s => ({ season: s.season_number, episodes: s.episodes?.length })),
     })
-    const planData = buildTemporaryRecognitionPlan(mediaMetadata, lookup)
+    const planData = buildTemporaryRecognitionPlan(mediaMetadata)
     if (!planData || planData.files.length === 0) {
       toast.error("No recognized files found")
       return
@@ -615,7 +614,6 @@ function TvShowPanel() {
 
     const updatedSeasons = recognizeMediaFilesByRules(
       mediaMetadata,
-      lookup
     )
 
     if (updatedSeasons !== null) {

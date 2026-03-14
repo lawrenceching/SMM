@@ -1,8 +1,9 @@
 import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
-import { recognizeMovieMediaFiles, recognizeTvShowMediaFiles } from "./lib/recognizeMediaFiles";
+import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { getTvShowById } from "./api/tmdb";
+import { recognizeEpisodes } from "./lib/recognizeEpisodes";
 
 /**
  * For a folder name like:
@@ -47,10 +48,10 @@ export async function doPreprocessMediaFolder(
 
     console.log(`[${traceId}] recognizing media files by rules`)
     // TODO: recognize media files by nfo
-    const recognizedMediaFiles = recognizeTvShowMediaFiles(mm)
+    const recognizedMediaFiles = recognizeEpisodes(mm)
     if (recognizedMediaFiles) {
       mm.mediaFiles = recognizedMediaFiles.map((i) => ({
-        absolutePath: i.videoFilePath,
+        absolutePath: i.file,
         seasonNumber: i.season,
         episodeNumber: i.episode,
       }));

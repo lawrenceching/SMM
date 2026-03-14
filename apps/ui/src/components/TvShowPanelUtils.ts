@@ -29,7 +29,7 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
-import { collectRecognizedEpisodes } from "@/lib/recognizeMediaFiles";
+import { recognizeEpisodes as doRecognizeEpisodes, type RecognizedEpisode } from "@/lib/recognizeEpisodes";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -1002,28 +1002,20 @@ export async function executeRenamePlan(
  */
 export function buildTemporaryRecognitionPlan(
   mediaMetadata: UIMediaMetadata,
-  lookup: (files: string[], seasonNumber: number, episodeNumber: number) => string | null
 ): Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] } | null {
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
     return null
   }
 
-  const collected = collectRecognizedEpisodes(mediaMetadata, lookup)
-  const files: RecognizedFile[] = collected.map(({ season, episode, videoFilePath }) => ({
-    season,
-    episode,
-    path: videoFilePath,
-  }))
-
-  console.log('[buildTemporaryRecognitionPlan] collected', { collectedCount: collected.length, filesCount: files.length, s01e10: collected.find(c => c.season === 1 && c.episode === 10) })
-
-  if (files.length === 0) {
-    return null
-  }
+  let collected: RecognizedEpisode[] = doRecognizeEpisodes(mediaMetadata);
 
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
-    files
+    files: collected.map(({ season, episode, file }) => ({
+      season,
+      episode,
+      path: file,
+    }))
   }
 }
 
@@ -1087,7 +1079,6 @@ export function buildSeasonsModelFromMediaMetadata(mediaMetadata: UIMediaMetadat
  */
 export function recognizeMediaFilesByRules(
   mediaMetadata: UIMediaMetadata,
-  lookup: (files: string[], seasonNumber: number, episodeNumber: number) => string | null
 ): SeasonModel[] | null {
   if (!mediaMetadata) {
     return null
@@ -1153,8 +1144,9 @@ export function recognizeMediaFilesByRules(
       episode.files = newFiles
     }
 
-    const collected = collectRecognizedEpisodes(mediaMetadata, lookup)
-    for (const { season: seasonNumber, episode: episodeNumber, videoFilePath } of collected) {
+    const collected: RecognizedEpisode[] = doRecognizeEpisodes(mediaMetadata);
+
+    for (const { season: seasonNumber, episode: episodeNumber, file: videoFilePath } of collected) {
       console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
       updateSeasonsForPreview(seasonNumber, episodeNumber, videoFilePath)
     }
