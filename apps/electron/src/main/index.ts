@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
@@ -199,6 +200,51 @@ async function getFreePort(): Promise<number> {
 
 function getLoadingPageDataUrl(): string {
   return `data:text/html;charset=utf-8,${encodeURIComponent(LOADING_HTML)}`
+}
+
+/**
+ * Log diagnostics for bundled ffmpeg/yt-dlp (extraResources) to help troubleshoot packaging.
+ * Call in production only; logs resources path and whether bin/ffmpeg and bin/yt-dlp exist.
+ */
+function logBundledBinariesDiagnostics(): void {
+  const resourcesPath = process.resourcesPath
+  const isWin = process.platform === 'win32'
+  const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg'
+  const ytdlpExe = isWin ? 'yt-dlp.exe' : 'yt-dlp'
+
+  console.log('[SMM] Bundled binaries diagnostics:')
+  console.log('[SMM]   process.resourcesPath:', resourcesPath)
+  console.log('[SMM]   process.platform:', process.platform)
+
+  const binFfmpegDir = join(resourcesPath, 'bin', 'ffmpeg')
+  const binFfmpegPath = join(binFfmpegDir, ffmpegExe)
+  const binFfmpegDirExists = existsSync(binFfmpegDir)
+  const binFfmpegExists = existsSync(binFfmpegPath)
+  console.log('[SMM]   bin/ffmpeg directory:', binFfmpegDir, 'exists:', binFfmpegDirExists)
+  console.log('[SMM]   bin/ffmpeg executable:', binFfmpegPath, 'exists:', binFfmpegExists)
+  if (binFfmpegDirExists) {
+    try {
+      const entries = readdirSync(binFfmpegDir)
+      console.log('[SMM]   bin/ffmpeg contents:', entries.join(', ') || '(empty)')
+    } catch (e) {
+      console.log('[SMM]   bin/ffmpeg readdir error:', e)
+    }
+  }
+
+  const binYtdlpDir = join(resourcesPath, 'bin', 'yt-dlp')
+  const binYtdlpPath = join(binYtdlpDir, ytdlpExe)
+  const binYtdlpDirExists = existsSync(binYtdlpDir)
+  const binYtdlpExists = existsSync(binYtdlpPath)
+  console.log('[SMM]   bin/yt-dlp directory:', binYtdlpDir, 'exists:', binYtdlpDirExists)
+  console.log('[SMM]   bin/yt-dlp executable:', binYtdlpPath, 'exists:', binYtdlpExists)
+  if (binYtdlpDirExists) {
+    try {
+      const entries = readdirSync(binYtdlpDir)
+      console.log('[SMM]   bin/yt-dlp contents:', entries.join(', ') || '(empty)')
+    } catch (e) {
+      console.log('[SMM]   bin/yt-dlp readdir error:', e)
+    }
+  }
 }
 
 /**
@@ -532,6 +578,7 @@ app.whenReady().then(() => {
     // Production: show loading immediately, start CLI, poll until server ready, then navigate
     ;(async () => {
       try {
+        logBundledBinariesDiagnostics()
         if (cliPort === null) {
           cliPort = await getFreePort()
           console.log(`Using CLI port: ${cliPort}`)
