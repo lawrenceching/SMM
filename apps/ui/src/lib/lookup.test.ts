@@ -13,8 +13,7 @@ describe('matchesEpisodePattern', () => {
       expect(matchesEpisodePattern('Show Name S2E12.mkv', 2, 12)).toBe(true)
     })
 
-    it('should match mixed padding formats', () => {
-      expect(matchesEpisodePattern('Show Name S01E5.mkv', 1, 5)).toBe(true)
+    it('should match S1E05 (1-digit season, 2-digit episode allowed)', () => {
       expect(matchesEpisodePattern('Show Name S1E05.mkv', 1, 5)).toBe(true)
     })
 
@@ -209,6 +208,26 @@ describe('matchesEpisodePattern', () => {
       expect(matchesEpisodePattern('Show Name 第1話.mkv', 1, 1)).toBe(true)
     })
 
+    it('should NOT match S01E10 when looking for episode 1 (E1 must not match E10)', () => {
+      expect(matchesEpisodePattern('Show Name S01E10.mkv', 1, 1)).toBe(false)
+      expect(matchesEpisodePattern('Show S01E10.mkv', 1, 1)).toBe(false)
+    })
+
+    it('should NOT match S01E1 for episode 1 (season 2-digit requires episode 2-digit)', () => {
+      expect(matchesEpisodePattern('Show S01E1.mkv', 1, 1)).toBe(false)
+      expect(matchesEpisodePattern('Show S01E5.mkv', 1, 5)).toBe(false)
+    })
+
+    it('should match S01E01 and S1E1 for episode 1', () => {
+      expect(matchesEpisodePattern('Show S01E01.mkv', 1, 1)).toBe(true)
+      expect(matchesEpisodePattern('Show S1E1.mkv', 1, 1)).toBe(true)
+    })
+
+    it('should match S01E10 when looking for episode 10', () => {
+      expect(matchesEpisodePattern('Show Name S01E10.mkv', 1, 10)).toBe(true)
+      expect(matchesEpisodePattern('Show S01E10.mkv', 1, 10)).toBe(true)
+    })
+
     it('should handle episode 99', () => {
       expect(matchesEpisodePattern('Show Name S01E99.mkv', 1, 99)).toBe(true)
       expect(matchesEpisodePattern('Show Name S1E99.mkv', 1, 99)).toBe(true)
@@ -230,7 +249,7 @@ describe('matchesEpisodePattern', () => {
 })
 
 describe('lookup', () => {
-  describe('OP/ED exclusion', () => {
+  describe('OP/ED/MENU exclusion', () => {
     it('should exclude files with OP in filename', () => {
       const files = [
         '/path/to/Show S01E01 OP.mkv',
@@ -248,19 +267,29 @@ describe('lookup', () => {
       expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
     })
 
-    it('should be case-insensitive for OP/ED', () => {
+    it('should exclude files with MENU in filename', () => {
       const files = [
-        '/path/to/Show S01E01 op.mkv',
+        '/path/to/Show S01E01 MENU.mkv',
         '/path/to/Show S01E01.mkv',
-        '/path/to/Show S01E01 Ed.mkv',
       ]
       expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
     })
 
-    it('should return null when all files contain OP or ED', () => {
+    it('should be case-insensitive for OP/ED/MENU', () => {
+      const files = [
+        '/path/to/Show S01E01 op.mkv',
+        '/path/to/Show S01E01.mkv',
+        '/path/to/Show S01E01 Ed.mkv',
+        '/path/to/Show S01E01 menu.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Show S01E01.mkv')
+    })
+
+    it('should return null when all files contain OP, ED, or MENU', () => {
       const files = [
         '/path/to/Show S01E01 OP.mkv',
         '/path/to/Show S01E01 ED.mkv',
+        '/path/to/Show S01E01 MENU.mkv',
       ]
       expect(lookup(files, 1, 1)).toBeNull()
     })
@@ -299,6 +328,14 @@ describe('lookup', () => {
       expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
     })
 
+    it('should exclude files in /映像特典 folder for non-zero seasons', () => {
+      const files = [
+        '/path/to/映像特典/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
+    })
+
     it('should exclude files in /Extras/ folder for non-zero seasons', () => {
       const files = [
         '/path/to/Extras/Show S01E01.mkv',
@@ -313,11 +350,15 @@ describe('lookup', () => {
         '/path/to/SP/Show S00E02.mkv',
         '/path/to/Speicals/Show S00E03.mkv',
         '/path/to/Extras/Show S00E04.mkv',
+        '/path/to/特典/Show S00E05.mkv',
+        '/path/to/映像特典/Show S00E06.mkv',
       ]
       expect(lookup(files, 0, 1)).toBe('/path/to/SPs/Show S00E01.mkv')
       expect(lookup(files, 0, 2)).toBe('/path/to/SP/Show S00E02.mkv')
       expect(lookup(files, 0, 3)).toBe('/path/to/Speicals/Show S00E03.mkv')
       expect(lookup(files, 0, 4)).toBe('/path/to/Extras/Show S00E04.mkv')
+      expect(lookup(files, 0, 5)).toBe('/path/to/特典/Show S00E05.mkv')
+      expect(lookup(files, 0, 6)).toBe('/path/to/映像特典/Show S00E06.mkv')
     })
 
     it('should be case-insensitive for special folder names', () => {
@@ -335,6 +376,14 @@ describe('lookup', () => {
       expect(lookup(files, 1, 2)).toBe('/path/to/Season 01/Show S01E02.mkv')
       expect(lookup(files, 1, 3)).toBe('/path/to/Season 01/Show S01E03.mkv')
       expect(lookup(files, 1, 4)).toBe('/path/to/Season 01/Show S01E04.mkv')
+    })
+
+    it('should exclude files in /映像特典 folder for non-zero seasons (combined test)', () => {
+      const files = [
+        '/path/to/映像特典/Show S01E01.mkv',
+        '/path/to/Season 01/Show S01E01.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/Show S01E01.mkv')
     })
   })
 
@@ -374,6 +423,21 @@ describe('lookup', () => {
       expect(lookup(files, 1, 5)).toBe('/path/to/Show S01E05.mkv')
     })
 
+    it('should match Chinese title with S01E01 pattern', () => {
+      const files = [
+        '/path/to/爱杀宝贝 - S01E01 - 狗、忍者、盛开的樱花.mkv',
+      ]
+      expect(lookup(files, 1, 1)).toBe('/path/to/爱杀宝贝 - S01E01 - 狗、忍者、盛开的樱花.mkv')
+    })
+
+    it('should not match S00E01 as S01E01 when both exist (episode-only pattern must not match specials)', () => {
+      const files = [
+        '/path/to/Specials/爱杀宝贝 - S00E01 - 伪万圣节.mkv',
+        '/path/to/Season 01/爱杀宝贝 - S01E01 - 狗、忍者、盛开的樱花.mkv',
+      ]
+      expect(lookup(files, 0, 1)).toBe('/path/to/Specials/爱杀宝贝 - S00E01 - 伪万圣节.mkv')
+      expect(lookup(files, 1, 1)).toBe('/path/to/Season 01/爱杀宝贝 - S01E01 - 狗、忍者、盛开的樱花.mkv')
+    })
   })
 
   describe('Combined exclusions', () => {

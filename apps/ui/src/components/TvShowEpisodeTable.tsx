@@ -606,7 +606,11 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                 {isSimpleLayout && columnVisibility.video && (
                   <TableCell className="max-w-px px-2 py-1">
                     {row.videoFile ? (
-                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                      preview && !row.newVideoFile ? (
+                        <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                          {getDisplayPath(row.videoFile, mediaFolderPath)}
+                        </div>
+                      ) : preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
                         <div className="min-w-0 space-y-0.5">
                           <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
                             {getDisplayPath(row.videoFile, mediaFolderPath)}
@@ -620,6 +624,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
                       )
+                    ) : preview ? (
+                      <span className="text-muted-foreground text-xs">{t('tvShowEpisodeTable.unrecognizedVideoFile', { defaultValue: 'Cannot recognize video file' })}</span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}

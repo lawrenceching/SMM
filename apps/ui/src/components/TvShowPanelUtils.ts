@@ -1015,14 +1015,11 @@ export function buildTemporaryRecognitionPlan(
     path: videoFilePath,
   }))
 
+  console.log('[buildTemporaryRecognitionPlan] collected', { collectedCount: collected.length, filesCount: files.length, s01e10: collected.find(c => c.season === 1 && c.episode === 10) })
+
   if (files.length === 0) {
     return null
   }
-
-  console.log('[buildTemporaryRecognitionPlan]', {
-    files,
-    mediaFolderPath: mediaMetadata.mediaFolderPath
-  })
 
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,

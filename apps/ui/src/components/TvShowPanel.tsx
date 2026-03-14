@@ -548,6 +548,13 @@ function TvShowPanel() {
       return
     }
 
+    console.log('[TvShowPanel] recognize button clicked', {
+      mediaFolderPath: mediaMetadata.mediaFolderPath,
+      filesCount: mediaMetadata.files?.length,
+      filesSample: mediaMetadata.files?.slice(0, 5),
+      seasonsCount: mediaMetadata.tmdbTvShow?.seasons?.length,
+      episodeCountsBySeason: mediaMetadata.tmdbTvShow?.seasons?.map(s => ({ season: s.season_number, episodes: s.episodes?.length })),
+    })
     const planData = buildTemporaryRecognitionPlan(mediaMetadata, lookup)
     if (!planData || planData.files.length === 0) {
       toast.error("No recognized files found")

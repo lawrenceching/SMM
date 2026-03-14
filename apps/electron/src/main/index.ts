@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
@@ -6,10 +7,111 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { channelRoute } from './ChannelRoute'
 
+const POLL_INTERVAL_MS = 50
+const SERVER_READY_TIMEOUT_MS = 30_000
+
+const LOADING_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading - SMM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        "toolbar"
+        "content"
+        "statusbar";
+    }
+    .toolbar {
+      grid-area: toolbar;
+      height: 36px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #d0d0d0;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .toolbar-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+    .content {
+      grid-area: content;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      padding: 24px;
+    }
+    .loading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 24px 32px;
+      background: #f8f8f8;
+      border: 1px solid #d0d0d0;
+      border-radius: 0.65rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #e5e5e5;
+      border-top-color: #e67e22;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .loading-text {
+      font-size: 14px;
+      color: #555;
+    }
+    .statusbar {
+      grid-area: statusbar;
+      height: 28px;
+      background: #f0f0f0;
+      border-top: 1px solid #d0d0d0;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #666;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <span class="toolbar-title">SMM</span>
+  </header>
+  <main class="content">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <span class="loading-text">Loading…</span>
+    </div>
+  </main>
+  <footer class="statusbar">
+    <span>Starting…</span>
+  </footer>
+</body>
+</html>`
+
 let cliProcess: ChildProcess | null = null
 let cliPort: number | null = null
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
+let mainWindow: BrowserWindow | null = null
 
 // Control whether to start dev dependencies (CLI and UI dev processes) on startup
 const startUpDependencies: boolean = false
@@ -25,11 +127,15 @@ function getCLIExecutablePath(): string {
 
   if (is.dev) {
     // Development: use the actual path
-    return join(__dirname, '../../../cli/dist', cliBinaryName)
+    const ret = join(__dirname, '../../../cli/dist', cliBinaryName)
+    console.log(`cli folder path: ${ret}`)
+    return ret;
   } else {
     // Production: use extraResources path
     // On Windows and other platforms, extraResources are placed in resources/ folder
-    return join(process.resourcesPath, cliBinaryName)
+    const ret = join(process.resourcesPath, cliBinaryName)
+    console.log(`cli folder path: ${ret}`)
+    return ret;
   }
 }
 
@@ -37,11 +143,15 @@ function getCLIExecutablePath(): string {
 function getPublicFolderPath(): string {
   if (is.dev) {
     // Development: use the actual path
-    return join(__dirname, '../../../ui/dist')
+    const ret = join(__dirname, '../../../ui/dist')
+    console.log(`ui folder path: ${ret}`)
+    return ret;
   } else {
     // Production: use extraResources path
     // Public folder is bundled to 'public' in resources/
-    return join(process.resourcesPath, 'public')
+    const ret = join(process.resourcesPath, 'public')
+    console.log(`ui folder path: ${ret}`)
+    return ret;
   }
 }
 
@@ -86,6 +196,79 @@ async function getFreePort(): Promise<number> {
     throw new Error('No free port found in range [30000, 65535]')
   }
   return port
+}
+
+function getLoadingPageDataUrl(): string {
+  return `data:text/html;charset=utf-8,${encodeURIComponent(LOADING_HTML)}`
+}
+
+/**
+ * Log diagnostics for bundled ffmpeg/yt-dlp (extraResources) to help troubleshoot packaging.
+ * Call in production only; logs resources path and whether bin/ffmpeg and bin/yt-dlp exist.
+ */
+function logBundledBinariesDiagnostics(): void {
+  const resourcesPath = process.resourcesPath
+  const isWin = process.platform === 'win32'
+  const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg'
+  const ytdlpExe = isWin ? 'yt-dlp.exe' : 'yt-dlp'
+
+  console.log('[SMM] Bundled binaries diagnostics:')
+  console.log('[SMM]   process.resourcesPath:', resourcesPath)
+  console.log('[SMM]   process.platform:', process.platform)
+
+  const binFfmpegDir = join(resourcesPath, 'bin', 'ffmpeg')
+  const binFfmpegPath = join(binFfmpegDir, ffmpegExe)
+  const binFfmpegDirExists = existsSync(binFfmpegDir)
+  const binFfmpegExists = existsSync(binFfmpegPath)
+  console.log('[SMM]   bin/ffmpeg directory:', binFfmpegDir, 'exists:', binFfmpegDirExists)
+  console.log('[SMM]   bin/ffmpeg executable:', binFfmpegPath, 'exists:', binFfmpegExists)
+  if (binFfmpegDirExists) {
+    try {
+      const entries = readdirSync(binFfmpegDir)
+      console.log('[SMM]   bin/ffmpeg contents:', entries.join(', ') || '(empty)')
+    } catch (e) {
+      console.log('[SMM]   bin/ffmpeg readdir error:', e)
+    }
+  }
+
+  const binYtdlpDir = join(resourcesPath, 'bin', 'yt-dlp')
+  const binYtdlpPath = join(binYtdlpDir, ytdlpExe)
+  const binYtdlpDirExists = existsSync(binYtdlpDir)
+  const binYtdlpExists = existsSync(binYtdlpPath)
+  console.log('[SMM]   bin/yt-dlp directory:', binYtdlpDir, 'exists:', binYtdlpDirExists)
+  console.log('[SMM]   bin/yt-dlp executable:', binYtdlpPath, 'exists:', binYtdlpExists)
+  if (binYtdlpDirExists) {
+    try {
+      const entries = readdirSync(binYtdlpDir)
+      console.log('[SMM]   bin/yt-dlp contents:', entries.join(', ') || '(empty)')
+    } catch (e) {
+      console.log('[SMM]   bin/yt-dlp readdir error:', e)
+    }
+  }
+}
+
+/**
+ * Poll until localhost:port returns HTML (e.g. CLI server is ready).
+ * Uses fetch every POLL_INTERVAL_MS. Resolves when response is OK and content-type is HTML.
+ */
+async function waitForServerReady(port: number): Promise<void> {
+  const url = `http://localhost:${port}`
+  const deadline = Date.now() + SERVER_READY_TIMEOUT_MS
+
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url, { method: 'GET' })
+      const contentType = res.headers.get('content-type') ?? ''
+      if (res.ok && contentType.includes('text/html')) {
+        return
+      }
+    } catch {
+      // Server not ready, continue polling
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+  }
+
+  throw new Error(`Server at ${url} did not become ready within ${SERVER_READY_TIMEOUT_MS}ms`)
 }
 
 async function startCLI(): Promise<void> {
@@ -278,9 +461,15 @@ function stopDevProcesses(): void {
   }
 }
 
-function createWindow(): void {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
+interface CreateWindowOptions {
+  /** When true (production only), load loading page first; app URL is loaded by caller after CLI is ready */
+  showLoadingFirst?: boolean
+}
+
+function createWindow(options: CreateWindowOptions = {}): void {
+  const { showLoadingFirst = false } = options
+
+  const win = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -293,26 +482,35 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  mainWindow = win
+
+  win.on('ready-to-show', () => {
+    win.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  win.on('closed', () => {
+    mainWindow = null
+  })
+
+  win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // Load the appropriate URL based on execution mode
   if (is.dev) {
-    // Development mode: Connect to Vite dev server
-    mainWindow.loadURL('http://localhost:5173')
-  } else {
-    // Production mode: Connect to bundled CLI server
-    if (cliPort === null) {
-      console.error('Production mode: CLI port not allocated. Window may not load correctly.')
-    }
-    mainWindow.loadURL(`http://localhost:${cliPort || 5173}`)
+    win.loadURL('http://localhost:5173')
+    return
   }
+
+  if (showLoadingFirst) {
+    win.loadURL(getLoadingPageDataUrl())
+    return
+  }
+
+  if (cliPort === null) {
+    console.error('Production mode: CLI port not allocated. Window may not load correctly.')
+  }
+  win.loadURL(`http://localhost:${cliPort ?? 5173}`)
 }
 
 // This method will be called when Electron has finished
@@ -377,14 +575,27 @@ app.whenReady().then(() => {
       createWindow()
     }
   } else {
-    // Production mode: Start CLI then create window
-    startCLI().then(() => {
-      createWindow()
-    }).catch((error) => {
-      console.error('Failed to start CLI:', error)
-      // Still create window even if CLI fails to start
-      createWindow()
-    })
+    // Production: show loading immediately, start CLI, poll until server ready, then navigate
+    ;(async () => {
+      try {
+        logBundledBinariesDiagnostics()
+        if (cliPort === null) {
+          cliPort = await getFreePort()
+          console.log(`Using CLI port: ${cliPort}`)
+        }
+        createWindow({ showLoadingFirst: true })
+        startCLI()
+        await waitForServerReady(cliPort)
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadURL(`http://localhost:${cliPort}`)
+        }
+      } catch (error) {
+        console.error('Production startup failed:', error)
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadURL(getLoadingPageDataUrl())
+        }
+      }
+    })()
   }
 
   app.on('activate', function () {
