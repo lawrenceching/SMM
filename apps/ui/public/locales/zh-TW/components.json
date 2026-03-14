@@ -218,7 +218,8 @@
     "renameCheckboxHeader": "",
     "renameCheckboxTitle": "參與重新命名",
     "renameCheckboxAria": "參與重新命名",
-    "noFilesSelectedForRename": "未選擇要重新命名的檔案"
+    "noFilesSelectedForRename": "未選擇要重新命名的檔案",
+    "unrecognizedVideoFile": "無法識別影片檔案"
   },
   "movieEpisodeTable": {
     "columns": {

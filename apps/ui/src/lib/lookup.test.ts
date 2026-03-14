@@ -13,8 +13,7 @@ describe('matchesEpisodePattern', () => {
       expect(matchesEpisodePattern('Show Name S2E12.mkv', 2, 12)).toBe(true)
     })
 
-    it('should match mixed padding formats', () => {
-      expect(matchesEpisodePattern('Show Name S01E5.mkv', 1, 5)).toBe(true)
+    it('should match S1E05 (1-digit season, 2-digit episode allowed)', () => {
       expect(matchesEpisodePattern('Show Name S1E05.mkv', 1, 5)).toBe(true)
     })
 
@@ -207,6 +206,26 @@ describe('matchesEpisodePattern', () => {
       expect(matchesEpisodePattern('Show Name S1E1.mkv', 1, 1)).toBe(true)
       expect(matchesEpisodePattern('Show Name 第1季第1集.mkv', 1, 1)).toBe(true)
       expect(matchesEpisodePattern('Show Name 第1話.mkv', 1, 1)).toBe(true)
+    })
+
+    it('should NOT match S01E10 when looking for episode 1 (E1 must not match E10)', () => {
+      expect(matchesEpisodePattern('Show Name S01E10.mkv', 1, 1)).toBe(false)
+      expect(matchesEpisodePattern('Show S01E10.mkv', 1, 1)).toBe(false)
+    })
+
+    it('should NOT match S01E1 for episode 1 (season 2-digit requires episode 2-digit)', () => {
+      expect(matchesEpisodePattern('Show S01E1.mkv', 1, 1)).toBe(false)
+      expect(matchesEpisodePattern('Show S01E5.mkv', 1, 5)).toBe(false)
+    })
+
+    it('should match S01E01 and S1E1 for episode 1', () => {
+      expect(matchesEpisodePattern('Show S01E01.mkv', 1, 1)).toBe(true)
+      expect(matchesEpisodePattern('Show S1E1.mkv', 1, 1)).toBe(true)
+    })
+
+    it('should match S01E10 when looking for episode 10', () => {
+      expect(matchesEpisodePattern('Show Name S01E10.mkv', 1, 10)).toBe(true)
+      expect(matchesEpisodePattern('Show S01E10.mkv', 1, 10)).toBe(true)
     })
 
     it('should handle episode 99', () => {

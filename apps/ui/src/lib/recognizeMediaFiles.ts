@@ -27,20 +27,30 @@ export function collectRecognizedEpisodes(
     const ret: RecognizedEpisode[] = [];
     mm.tmdbTvShow.seasons.forEach(season => {
         season.episodes?.forEach(episode => {
-            const videoFilePath = lookupFn(mm.files!, season.season_number, episode.episode_number);
+            const sn = season.season_number;
+            const en = episode.episode_number;
+            const videoFilePath = lookupFn(mm.files!, sn, en);
+            console.log(`[collectRecognizedEpisodes] lookup result:`, { season: sn, episode: en, videoFilePath })
             if (isNotNil(videoFilePath)) {
                 if (assignedVideoFilePaths.has(videoFilePath)) {
+                    const recognizedEpisode = ret.find(e => e.videoFilePath === videoFilePath);
+                    console.log(`Found video for S${sn.toString().padStart(2, '0')}E${en.toString().padStart(2, '0')} but it's already assigned to S${recognizedEpisode?.season.toString().padStart(2, '0')}E${recognizedEpisode?.episode.toString().padStart(2, '0')}`)                    
                     return;
                 }
                 assignedVideoFilePaths.add(videoFilePath);
                 ret.push({
-                    season: season.season_number,
-                    episode: episode.episode_number,
+                    season: sn,
+                    episode: en,
                     videoFilePath,
                 });
+            } else if (sn === 1 && en === 10) {
+                console.log('[collectRecognizedEpisodes] S01E10 no file from lookup');
             }
         });
     });
+    
+    console.log(`recognized media files: `, ret)
+
     return ret;
 }
 
