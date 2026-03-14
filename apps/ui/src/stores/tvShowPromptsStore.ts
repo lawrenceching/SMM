@@ -55,6 +55,7 @@ interface RuleBasedRecognizePromptData {
   isOpen: boolean
   tvShowTitle: string | undefined
   tvShowTmdbId: number | undefined
+  planId: string | undefined
   onConfirm: (() => void) | undefined
   onCancel: (() => void) | undefined
 }
@@ -126,6 +127,7 @@ interface TvShowPromptsState {
   openRuleBasedRecognizePrompt: (config: {
     tvShowTitle: string
     tvShowTmdbId: number
+    planId?: string
     onConfirm?: () => void
     onCancel?: () => void
   }) => void
@@ -182,6 +184,9 @@ const initialState = {
 
   ruleBasedRecognizePrompt: {
     isOpen: false,
+    tvShowTitle: undefined,
+    tvShowTmdbId: undefined,
+    planId: undefined,
     onConfirm: undefined,
     onCancel: undefined,
   } as RuleBasedRecognizePromptData,
@@ -319,13 +324,14 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
         })
       },
 
-      openRuleBasedRecognizePrompt: ({ tvShowTitle, tvShowTmdbId, onConfirm, onCancel }) => {
+      openRuleBasedRecognizePrompt: ({ tvShowTitle, tvShowTmdbId, planId, onConfirm, onCancel }) => {
         get().closeAllPrompts()
         set({
           ruleBasedRecognizePrompt: {
             isOpen: true,
             tvShowTitle,
             tvShowTmdbId,
+            planId,
             onConfirm,
             onCancel,
           },

@@ -7,15 +7,22 @@ import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow } from "@core/types"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
+import { usePlansStore } from "@/stores/plansStore"
 
 export function TvShowPanelPrompts() {
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
-  
+  const pendingPlans = usePlansStore((state) => state.pendingPlans)
+
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
   const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
   const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
   const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
   const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
+
+  const ruleBasedPlan = ruleBasedRecognizePrompt.planId
+    ? pendingPlans.find((p) => p.id === ruleBasedRecognizePrompt.planId)
+    : undefined
+  const isRuleBasedRecognizeLoading = ruleBasedPlan?.status === 'loading'
   
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
   const closeRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
@@ -235,6 +242,8 @@ export function TvShowPanelPrompts() {
         isOpen={ruleBasedRecognizePrompt.isOpen}
         tvShowTitle={ruleBasedRecognizePrompt.tvShowTitle || ""}
         tvShowTmdbId={ruleBasedRecognizePrompt.tvShowTmdbId || -1}
+        isLoading={isRuleBasedRecognizeLoading}
+        isConfirmButtonDisabled={isRuleBasedRecognizeLoading}
         onConfirm={() => {
           console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt onConfirm TRIGGERED', {
             timestamp: new Date().toISOString(),

@@ -12,7 +12,14 @@ interface PlansState {
   loading: boolean
   fetchPendingPlans: () => Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
-  addTmpPlan: (plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) => void
+  addTmpPlan: (
+    plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] },
+    options?: { status?: 'loading' | 'pending' }
+  ) => string
+  updateTmpPlan: (
+    planId: string,
+    payload: { status?: 'pending' | 'rejected'; files?: RecognizedFile[] }
+  ) => void
 }
 
 export const usePlansStore = create<PlansState>((set, get) => ({
@@ -71,15 +78,37 @@ export const usePlansStore = create<PlansState>((set, get) => ({
     }
   },
 
-  addTmpPlan: (plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) => {
+  addTmpPlan: (
+    plan: Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] },
+    options?: { status?: 'loading' | 'pending' }
+  ) => {
+    const status = options?.status ?? 'pending'
     const tmpPlan: UIRecognizeMediaFilePlan = {
       ...plan,
       id: plan.id || crypto.randomUUID(),
       tmp: true,
       task: 'recognize-media-file',
-      status: 'pending',
-    } as UIRecognizeMediaFilePlan
+      status,
+      files: plan.files ?? [],
+    }
     set(state => ({ pendingPlans: [...state.pendingPlans, tmpPlan] }))
-    console.log('[usePlansStore] Temporary plan added to state', { planId: tmpPlan.id, mediaFolderPath: tmpPlan.mediaFolderPath })
+    console.log('[usePlansStore] Temporary plan added to state', { planId: tmpPlan.id, mediaFolderPath: tmpPlan.mediaFolderPath, status })
+    return tmpPlan.id
+  },
+
+  updateTmpPlan: (planId: string, payload: { status?: 'pending' | 'rejected'; files?: RecognizedFile[] }) => {
+    const { pendingPlans } = get()
+    const index = pendingPlans.findIndex(p => p.id === planId && p.tmp === true)
+    if (index === -1) return
+    const plan = pendingPlans[index]
+    const updated: UIRecognizeMediaFilePlan = {
+      ...plan,
+      ...(payload.status !== undefined && { status: payload.status }),
+      ...(payload.files !== undefined && { files: payload.files }),
+    }
+    set(state => ({
+      pendingPlans: state.pendingPlans.map((p, i) => (i === index ? updated : p)),
+    }))
+    console.log('[usePlansStore] Temporary plan updated', { planId, status: updated.status, filesCount: updated.files?.length })
   },
 }))

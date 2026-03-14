@@ -29,7 +29,8 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
-import { recognizeEpisodes as doRecognizeEpisodes, type RecognizedEpisode } from "@/lib/recognizeEpisodes";
+import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import { usePlansStore } from "@/stores/plansStore";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -1000,14 +1001,14 @@ export async function executeRenamePlan(
  * @returns A partial recognition plan with file mappings, or null if no files found
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
-export function buildTemporaryRecognitionPlan(
+export async function buildTemporaryRecognitionPlanAsync(
   mediaMetadata: UIMediaMetadata,
-): Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] } | null {
+): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
     return null
   }
 
-  let collected: RecognizedEpisode[] = doRecognizeEpisodes(mediaMetadata);
+  const collected = await recognizeEpisodesAsync(mediaMetadata);
 
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
@@ -1074,12 +1075,11 @@ export function buildSeasonsModelFromMediaMetadata(mediaMetadata: UIMediaMetadat
  * by using the lookup function to find video files for episodes that don't have mediaFiles assigned.
  *
  * @param mediaMetadata - The media metadata containing files and TV show info
- * @param lookup - Function to lookup files based on season/episode numbers
  * @returns Updated season models with recognized files, or null if mediaMetadata is invalid
  */
-export function recognizeMediaFilesByRules(
+export async function recognizeMediaFilesByRulesAsync(
   mediaMetadata: UIMediaMetadata,
-): SeasonModel[] | null {
+): Promise<SeasonModel[] | null> {
   if (!mediaMetadata) {
     return null
   }
@@ -1144,7 +1144,7 @@ export function recognizeMediaFilesByRules(
       episode.files = newFiles
     }
 
-    const collected: RecognizedEpisode[] = doRecognizeEpisodes(mediaMetadata);
+    const collected = await recognizeEpisodesAsync(mediaMetadata);
 
     for (const { season: seasonNumber, episode: episodeNumber, file: videoFilePath } of collected) {
       console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
@@ -1205,6 +1205,7 @@ export interface HandlePendingPlansParams {
   openRuleBasedRecognizePrompt: (options: {
     tvShowTitle: string
     tvShowTmdbId: number
+    planId?: string
     onConfirm?: () => void
     onCancel?: () => void
   }) => void
@@ -1252,28 +1253,38 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
   const plan = pendingPlans.find(
     p =>
       p.task === "recognize-media-file" &&
-      p.status === 'pending' &&
+      (p.status === 'pending' || p.status === 'loading') &&
       p.mediaFolderPath === mediaMetadata.mediaFolderPath
   )
 
   if (plan) {
     console.log('[TvShowPanel] Found plan:', plan)
-    const seasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan)
-    console.log('[TvShowPanel] Seasons:', seasons)
+    const seasons =
+      plan.status === 'pending' && plan.files.length > 0
+        ? buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan as RecognizeMediaFilePlan)
+        : []
     setSeasonsForPreview(seasons)
+    if (plan.status === 'pending' && plan.files.length > 0) {
+      console.log('[TvShowPanel] Seasons:', seasons)
+    }
 
     if (plan.tmp) {
       if (mediaMetadata.tmdbTvShow !== undefined) {
         openRuleBasedRecognizePrompt({
           tvShowTitle: mediaMetadata.tmdbTvShow.name,
           tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
+          planId: plan.id,
           onConfirm: () => {
-            console.log('[TvShowPanel] Rule-based recognition confirmed')
-            recognizeEpisodes(seasons, mediaMetadata, updateMediaMetadata)
-            toast.success(t('toolbar.recognizeEpisodesSuccess'))
-            updatePlan(plan.id, 'completed').catch(error => {
-              console.error('[TvShowPanel] Error removing temporary plan:', error)
-            })
+            const currentPlan = usePlansStore.getState().pendingPlans.find(p => p.id === plan.id)
+            if (currentPlan?.status === 'pending' && currentPlan.files.length > 0) {
+              console.log('[TvShowPanel] Rule-based recognition confirmed')
+              const currentSeasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, currentPlan as RecognizeMediaFilePlan)
+              recognizeEpisodes(currentSeasons, mediaMetadata, updateMediaMetadata)
+              toast.success(t('toolbar.recognizeEpisodesSuccess'))
+              updatePlan(plan.id, 'completed').catch(error => {
+                console.error('[TvShowPanel] Error removing temporary plan:', error)
+              })
+            }
           },
           onCancel: () => {
             console.log('[TvShowPanel] Rule-based recognition cancelled')
@@ -1290,7 +1301,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
         confirmButtonDisabled: false,
         isRenaming: false,
-        onConfirm: () => handleAiRecognizeConfirmCallback(plan),
+        onConfirm: () => handleAiRecognizeConfirmCallback(plan as RecognizeMediaFilePlan),
         onCancel: async () => {
           console.log('[TvShowPanel] AI recognition cancelled')
           try {

@@ -259,3 +259,49 @@ export function recognizeEpisodes(
 
     return [];
 }
+
+/** Request id for matching worker responses when using a singleton worker */
+let nextRequestId = 0;
+
+type WorkerMessage = { type: 'result'; id: number; payload: RecognizedEpisode[] } | { type: 'error'; id: number; message: string };
+
+/**
+ * Run recognizeEpisodes in a Web Worker to avoid blocking the main thread.
+ * Uses a singleton worker; concurrent calls are serialized.
+ */
+export function recognizeEpisodesAsync(mm: MediaMetadata): Promise<RecognizedEpisode[]> {
+  return new Promise((resolve, reject) => {
+    const id = nextRequestId++;
+    const worker = getRecognizeEpisodesWorker();
+
+    const onMessage = (e: MessageEvent<WorkerMessage>) => {
+      const msg = e.data;
+      if (msg?.id !== id) return;
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (msg.type === 'result') {
+        resolve(msg.payload);
+      } else {
+        reject(new Error(msg.message));
+      }
+    };
+
+    const onError = (err: ErrorEvent) => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      reject(err.message ? new Error(err.message) : new Error('RecognizeEpisodes worker error'));
+    };
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    worker.postMessage({ type: 'recognize', id, payload: mm });
+  });
+}
+
+let workerInstance: Worker | null = null;
+
+function getRecognizeEpisodesWorker(): Worker {
+  if (workerInstance) return workerInstance;
+  workerInstance = new Worker(new URL('./recognizeEpisodes.worker.ts', import.meta.url), { type: 'module' });
+  return workerInstance;
+}

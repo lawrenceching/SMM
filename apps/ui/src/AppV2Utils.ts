@@ -3,7 +3,7 @@ import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { getTvShowById } from "./api/tmdb";
-import { recognizeEpisodes } from "./lib/recognizeEpisodes";
+import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
 
 /**
  * For a folder name like:
@@ -48,7 +48,7 @@ export async function doPreprocessMediaFolder(
 
     console.log(`[${traceId}] recognizing media files by rules`)
     // TODO: recognize media files by nfo
-    const recognizedMediaFiles = recognizeEpisodes(mm)
+    const recognizedMediaFiles = await recognizeEpisodesAsync(mm)
     if (recognizedMediaFiles) {
       mm.mediaFiles = recognizedMediaFiles.map((i) => ({
         absolutePath: i.file,

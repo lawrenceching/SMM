@@ -8,7 +8,7 @@ import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual } from "./TvShowPanelUtils"
+import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlanAsync, recognizeMediaFilesByRulesAsync, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
@@ -75,7 +75,7 @@ function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
 
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
-  const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan } = usePlansStore()
+  const { pendingPlans, pendingRenamePlans, updatePlan, fetchPendingPlans, addTmpPlan, updateTmpPlan } = usePlansStore()
   const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
@@ -554,24 +554,32 @@ function TvShowPanel() {
       seasonsCount: mediaMetadata.tmdbTvShow?.seasons?.length,
       episodeCountsBySeason: mediaMetadata.tmdbTvShow?.seasons?.map(s => ({ season: s.season_number, episodes: s.episodes?.length })),
     })
-    const planData = buildTemporaryRecognitionPlan(mediaMetadata)
-    if (!planData || planData.files.length === 0) {
-      toast.error("No recognized files found")
-      return
-    }
 
-    // Create and add temporary plan to global state
-    // addTmpPlan will set tmp flag, id, task, and status automatically
-    addTmpPlan({
-      mediaFolderPath: planData.mediaFolderPath,
-      files: planData.files,
-    })
+    // 1. Add tmp plan with loading state so RuleBasedRecognizePrompt shows immediately
+    const planId = addTmpPlan(
+      { mediaFolderPath: mediaMetadata.mediaFolderPath, files: [] },
+      { status: 'loading' }
+    )
 
-    console.log('[TvShowPanel] Temporary recognition plan created and added to state', {
-      fileCount: planData.files.length,
-      mediaFolderPath: planData.mediaFolderPath
-    })
-  }, [mediaMetadata, addTmpPlan])
+    // 2. Run recognition in background, then update plan with result
+    void buildTemporaryRecognitionPlanAsync(mediaMetadata)
+      .then(planData => {
+        if (planData && planData.files.length > 0) {
+          updateTmpPlan(planId, { status: 'pending', files: planData.files })
+          console.log('[TvShowPanel] Temporary recognition plan updated with result', {
+            fileCount: planData.files.length,
+            mediaFolderPath: planData.mediaFolderPath,
+          })
+        } else {
+          updateTmpPlan(planId, { status: 'rejected' })
+          toast.error(t('toolbar.noRecognizedFiles', { defaultValue: 'No recognized files found' }))
+        }
+      })
+      .catch(err => {
+        updateTmpPlan(planId, { status: 'rejected' })
+        toast.error(err instanceof Error ? err.message : 'Recognition failed')
+      })
+  }, [mediaMetadata, addTmpPlan, updateTmpPlan, t])
 
   const handleMediaFolderSelected = useCallback((mm: UIMediaMetadata): boolean => {
     return onMediaFolderSelected({
@@ -612,14 +620,15 @@ function TvShowPanel() {
       return
     }
 
-    const updatedSeasons = recognizeMediaFilesByRules(
-      mediaMetadata,
-    )
-
-    if (updatedSeasons !== null) {
-      setSeasonsForPreview(updatedSeasons)
-      console.log(`[TvShowPanel] set the seasonsForPreview state`)
-    }
+    let cancelled = false
+    void (async () => {
+      const updatedSeasons = await recognizeMediaFilesByRulesAsync(mediaMetadata)
+      if (!cancelled && updatedSeasons !== null) {
+        setSeasonsForPreview(updatedSeasons)
+        console.log(`[TvShowPanel] set the seasonsForPreview state`)
+      }
+    })()
+    return () => { cancelled = true }
   }, [mediaMetadata, ruleBasedRecognizePrompt.isOpen])
 
   const effectiveSeasons = useMemo(

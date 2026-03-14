@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlan, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRules, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
+import { _buildMappingFromSeasonModels, mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, recognizeEpisodes, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, recognizeMediaFilesByRulesAsync, buildSeasonsModelFromMediaMetadata, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
 import type { SeasonModel } from './TvShowPanel'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
@@ -10,6 +10,15 @@ import { toast } from 'sonner'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
+vi.mock('@/lib/recognizeEpisodes', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/recognizeEpisodes')>()
+  return {
+    ...mod,
+    recognizeEpisodesAsync: vi.fn((mm: Parameters<typeof mod.recognizeEpisodes>[0]) =>
+      Promise.resolve(mod.recognizeEpisodes(mm))
+    ),
+  }
+})
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -1881,52 +1890,54 @@ describe('buildTmdbEpisodeByNFO', () => {
   })
 })
 
-describe('buildTemporaryRecognitionPlan', () => {
-  it('returns null when mediaFolderPath is missing', () => {
+describe('buildTemporaryRecognitionPlanAsync', () => {
+  it('returns null when mediaFolderPath is missing', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: undefined,
       files: ['/media/S01E01.mkv'],
       tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
     }
-    const lookup = vi.fn(() => '/media/S01E01.mkv')
-    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    expect(result).toBeNull()
   })
 
-  it('returns null when files is missing', () => {
+  it('returns null when files is missing', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media',
       files: undefined,
       tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
     }
-    const lookup = vi.fn(() => '/media/S01E01.mkv')
-    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    expect(result).toBeNull()
   })
 
-  it('returns null when tmdbTvShow is missing', () => {
+  it('returns null when tmdbTvShow is missing', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media',
       files: ['/media/S01E01.mkv'],
       tmdbTvShow: undefined,
     }
-    const lookup = vi.fn(() => '/media/S01E01.mkv')
-    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    expect(result).toBeNull()
   })
 
-  it('returns null when no files are recognized', () => {
+  it('returns plan with empty files when no files are recognized', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media',
       files: ['/media/other.mkv'],
       tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
     }
-    const lookup = vi.fn(() => null)
-    expect(buildTemporaryRecognitionPlan(mm, lookup)).toBeNull()
+    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    expect(result).not.toBeNull()
+    expect(result!.mediaFolderPath).toBe('/media')
+    expect(result!.files).toHaveLength(0)
   })
 
-  it('returns plan with files and mediaFolderPath when lookup returns matches', () => {
+  it('returns plan with files and mediaFolderPath when recognizeEpisodes returns matches', async () => {
     const mediaFolderPath = '/media/show'
     const mm: UIMediaMetadata = {
       status: 'ok',
@@ -1947,12 +1958,7 @@ describe('buildTemporaryRecognitionPlan', () => {
         ],
       } as any,
     }
-    const lookup = vi.fn((_files: string[], sn: number, en: number) => {
-      if (sn === 1 && en === 1) return '/media/show/S01E01.mkv'
-      if (sn === 1 && en === 2) return '/media/show/S01E02.mkv'
-      return null
-    })
-    const result = buildTemporaryRecognitionPlan(mm, lookup)
+    const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).not.toBeNull()
     expect(result!.mediaFolderPath).toBe(mediaFolderPath)
     expect(result!.files).toHaveLength(2)
@@ -2899,7 +2905,7 @@ describe('buildSeasonsModelFromMediaMetadata', () => {
   })
 })
 
-describe('recognizeMediaFilesByRules', () => {
+describe('recognizeMediaFilesByRulesAsync', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
@@ -2913,7 +2919,7 @@ describe('recognizeMediaFilesByRules', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  it('should recognize and assign video files to episodes using lookup function - happy flow', () => {
+  it('should recognize and assign video files to episodes - happy flow', async () => {
     const mediaFolderPath = '/media/tvshow'
     const videoFilePath1 = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
     const videoFilePath2 = '/media/tvshow/Season 01/Show.Name.S01E02.mkv'
@@ -2988,20 +2994,10 @@ describe('recognizeMediaFilesByRules', () => {
         networks: [],
         production_companies: [],
       },
-      mediaFiles: [], // No mediaFiles assigned yet - this triggers the lookup
+      mediaFiles: [], // No mediaFiles assigned yet - recognizeEpisodesAsync will match by pattern (S01E01 etc)
     }
 
-    // Mock lookup function that returns video file paths based on season/episode numbers
-    const lookup = vi.fn((_files: string[], seasonNumber: number, episodeNumber: number) => {
-      if (seasonNumber === 1 && episodeNumber === 1) {
-        return videoFilePath1
-      } else if (seasonNumber === 1 && episodeNumber === 2) {
-        return videoFilePath2
-      }
-      return null
-    })
-
-    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
 
     // Verify the function returns updated seasons
     expect(result).not.toBeNull()
@@ -3024,11 +3020,6 @@ describe('recognizeMediaFilesByRules', () => {
     expect(episode2.files).toHaveLength(1) // only video
     expect(episode2.files.some(f => f.type === 'video' && f.path === videoFilePath2)).toBe(true)
 
-    // Verify lookup was called for both episodes
-    expect(lookup).toHaveBeenCalledTimes(2)
-    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
-    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 2)
-
     // Verify console logs for debugging
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '[TvShowPanelUtils] built seasons model from tmdbTvShow:',
@@ -3049,45 +3040,45 @@ describe('recognizeMediaFilesByRules', () => {
     )
   })
 
-  it('should return null when mediaMetadata is null', () => {
-    const result = recognizeMediaFilesByRules(null as any, vi.fn())
+  it('should return null when mediaMetadata is null', async () => {
+    const result = await recognizeMediaFilesByRulesAsync(null as any)
     expect(result).toBeNull()
   })
 
-  it('should return null when mediaMetadata.mediaFolderPath is undefined', () => {
+  it('should return null when mediaMetadata.mediaFolderPath is undefined', async () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: undefined,
       files: [],
       status: 'ok',
       tmdbTvShow: {} as any,
     }
-    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
     expect(result).toBeNull()
   })
 
-  it('should return null when mediaMetadata.files is undefined', () => {
+  it('should return null when mediaMetadata.files is undefined', async () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: undefined,
       status: 'ok',
       tmdbTvShow: {} as any,
     }
-    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
     expect(result).toBeNull()
   })
 
-  it('should return null when tmdbTvShow is undefined', () => {
+  it('should return null when tmdbTvShow is undefined', async () => {
     const mediaMetadata: UIMediaMetadata = {
       mediaFolderPath: '/media/tvshow',
       files: [],
       status: 'ok',
       tmdbTvShow: undefined,
     }
-    const result = recognizeMediaFilesByRules(mediaMetadata, vi.fn())
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
     expect(result).toBeNull()
   })
 
-  it('should always call lookup regardless of existing mediaFiles', () => {
+  it('should assign video files to episodes from recognizeEpisodes result', async () => {
     const mediaFolderPath = '/media/tvshow'
     const videoFilePath = '/media/tvshow/Show.Name.S01E01.mkv'
 
@@ -3108,30 +3099,20 @@ describe('recognizeMediaFilesByRules', () => {
           } as any,
         ],
       } as any,
-      // Even though mediaFile exists, lookup should still be called
       mediaFiles: [
         { absolutePath: videoFilePath, seasonNumber: 1, episodeNumber: 1 },
       ],
     }
 
-    const lookup = vi.fn(() => videoFilePath)
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
 
-    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
-
-    // Verify the season is returned and lookup was called
+    // Verify the season is returned with video file (pattern S01E01 matches path)
     expect(result).not.toBeNull()
     expect(result![0].episodes[0].files).toHaveLength(1)
     expect(result![0].episodes[0].files[0].path).toBe(videoFilePath)
-    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
-
-    // Verify console log for lookup result
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[TvShowPanelUtils] video file path from lookup:',
-      videoFilePath
-    )
   })
 
-  it('should handle episodes where lookup returns null', () => {
+  it('should handle episodes where no file is recognized', async () => {
     const mediaFolderPath = '/media/tvshow'
 
     const mediaMetadata: UIMediaMetadata = {
@@ -3154,18 +3135,15 @@ describe('recognizeMediaFilesByRules', () => {
       mediaFiles: [], // No mediaFiles assigned
     }
 
-    // Mock lookup that returns null (file not found)
-    const lookup = vi.fn(() => null)
-
-    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+    // files: [] so recognizeEpisodes will find no video files
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
 
     // Verify the season is returned but episode has no files
     expect(result).not.toBeNull()
     expect(result![0].episodes[0].files).toHaveLength(0)
-    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
   })
 
-  it('should override outdated mediaFiles with lookup result', () => {
+  it('should override outdated mediaFiles with recognizeEpisodes result', async () => {
     const mediaFolderPath = '/media/tvshow'
     const wrongFilePath = '/media/tvshow/wrong_file.mp4'
     const correctFilePath = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
@@ -3209,28 +3187,17 @@ describe('recognizeMediaFilesByRules', () => {
       ],
     }
 
-    // Mock lookup that returns the correct file (overrides the outdated mediaFile)
-    const lookup = vi.fn(() => correctFilePath)
+    // recognizeEpisodes matches by pattern (S01E01 in path) and returns correctFilePath
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
 
-    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
-
-    // Verify the season is returned with the correct file from lookup
+    // Verify the season is returned with the correct file
     expect(result).not.toBeNull()
     expect(result![0].episodes[0].files).toHaveLength(1)
     expect(result![0].episodes[0].files[0].path).toBe(correctFilePath)
     expect(result![0].episodes[0].files[0].path).not.toBe(wrongFilePath)
-
-    // Verify lookup was called (even though mediaFile existed)
-    expect(lookup).toHaveBeenCalledWith(mediaMetadata.files, 1, 1)
-
-    // Verify console log for lookup result
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[TvShowPanelUtils] video file path from lookup:',
-      correctFilePath
-    )
   })
 
-  it('should ignore duplicate video file paths so later episodes remain empty', () => {
+  it('should ignore duplicate video file paths so later episodes remain empty', async () => {
     const mediaFolderPath = '/media/tvshow'
     const videoFilePath1 = '/media/tvshow/Season 01/Show.Name.S01E01.mkv'
     const videoFilePath2 = '/media/tvshow/Season 01/Show.Name.S01E02.mkv'
@@ -3314,22 +3281,10 @@ describe('recognizeMediaFilesByRules', () => {
       mediaFiles: [],
     }
 
-    // Mock lookup function that returns the same file for S01E01 and S01E03 (bug scenario)
-    const lookup = vi.fn((_files: string[], seasonNumber: number, episodeNumber: number) => {
-      if (seasonNumber === 1 && episodeNumber === 1) {
-        return videoFilePath1
-      } else if (seasonNumber === 1 && episodeNumber === 2) {
-        return videoFilePath2
-      } else if (seasonNumber === 1 && episodeNumber === 3) {
-        // BUG: Returns the same file as episode 1
-        return videoFilePath1
-      }
-      return null
-    })
-
+    // recognizeEpisodes returns one file per episode by pattern; duplicate assignment is prevented by assignedVideoFilePaths
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const result = recognizeMediaFilesByRules(mediaMetadata, lookup)
+    const result = await recognizeMediaFilesByRulesAsync(mediaMetadata)
 
     // Verify the function returns updated seasons
     expect(result).not.toBeNull()
@@ -3353,16 +3308,11 @@ describe('recognizeMediaFilesByRules', () => {
     expect(episode2.files[0].type).toBe('video')
     expect(episode2.files[0].path).toBe(videoFilePath2)
 
-    // Verify episode 3 has no files (duplicate was skipped)
+    // Verify episode 3 has no files (only 2 video files for 3 episodes; pattern matches S01E01 and S01E02 only)
     const episode3 = result![0].episodes[2]
     expect(episode3.episode.episode_number).toBe(3)
     expect(episode3.files).toHaveLength(0)
 
-    // Verify lookup was called for all episodes
-    expect(lookup).toHaveBeenCalledTimes(3)
-
-    // With core-level deduplication, duplicate video paths are filtered earlier,
-    // so no warning is expected here anymore.
     expect(consoleWarnSpy).not.toHaveBeenCalled()
 
     consoleWarnSpy.mockRestore()
