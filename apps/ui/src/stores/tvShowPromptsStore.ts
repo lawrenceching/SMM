@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { TMDBTVShow, TMDBTVShowDetails } from '@core/types'
+import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
+import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 
 interface ToolbarOption {
   value: "plex" | "emby"
@@ -56,7 +58,7 @@ interface RuleBasedRecognizePromptData {
   tvShowTitle: string | undefined
   tvShowTmdbId: number | undefined
   planId: string | undefined
-  onConfirm: (() => void) | undefined
+  onConfirm: ((plan: UIRecognizeMediaFilePlan) => void) | undefined
   onCancel: (() => void) | undefined
 }
 
@@ -128,7 +130,7 @@ interface TvShowPromptsState {
     tvShowTitle: string
     tvShowTmdbId: number
     planId?: string
-    onConfirm?: () => void
+    onConfirm?: (plan: RecognizeMediaFilePlan) => void
     onCancel?: () => void
   }) => void
 
@@ -332,7 +334,7 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
             tvShowTitle,
             tvShowTmdbId,
             planId,
-            onConfirm,
+            onConfirm: onConfirm ? (plan) => onConfirm(plan) : undefined,
             onCancel,
           },
         })

@@ -244,19 +244,27 @@ export function TvShowPanelPrompts() {
         tvShowTmdbId={ruleBasedRecognizePrompt.tvShowTmdbId || -1}
         isLoading={isRuleBasedRecognizeLoading}
         isConfirmButtonDisabled={isRuleBasedRecognizeLoading}
-        onConfirm={() => {
+        onConfirm={async () => {
           console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt onConfirm TRIGGERED', {
             timestamp: new Date().toISOString(),
             hasCallback: !!ruleBasedRecognizePrompt.onConfirm,
+            planId: ruleBasedRecognizePrompt.planId,
             stackTrace: new Error().stack
           })
           const callback = ruleBasedRecognizePrompt.onConfirm
+          const plan = ruleBasedPlan
           closeRuleBasedRecognizePrompt()
-          if (callback) {
+          
+          if (callback && plan) {
             console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt INVOKING callback', {
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              planId: plan.id
             })
-            callback()
+            try {
+              await callback(plan)
+            } catch (error) {
+              console.error('[TvShowPanelPrompts] Error in onConfirm:', error)
+            }
           }
         }}
         onCancel={() => {

@@ -6,7 +6,7 @@ import type { FileProps } from "@/lib/types"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import { recognizeEpisodes, updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlanAsync, recognizeMediaFilesByRulesAsync, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual } from "./TvShowPanelUtils"
+import { updateMediaFileMetadatas, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan, executeRenamePlan, buildTemporaryRecognitionPlanAsync, recognizeMediaFilesByRulesAsync, buildSeasonsModelFromMediaMetadata, handleAiRecognizeConfirm, handlePendingPlans, onMediaFolderSelected, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
@@ -30,6 +30,7 @@ import { basename } from "@/lib/path"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
+import { useLatest } from "react-use"
 
 export interface EpisodeModel {
     episode: TMDBEpisode,
@@ -311,6 +312,35 @@ function TvShowPanel() {
     await handleAiRecognizeConfirm(plan, mediaMetadata, updateMediaMetadata, updatePlan)
   }, [mediaMetadata, updateMediaMetadata, updatePlan])
 
+  const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: RecognizeMediaFilePlan) => {
+    if (!mediaMetadata) {
+      toast.error("No media metadata available")
+      return
+    }
+
+    if (!plan || !plan.mediaFolderPath) {
+      toast.error("Plan not found or invalid")
+      return
+    }
+
+    try {
+      const selectedEpisodes = latestTableData.current
+        .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
+        .map(row => ({ season: row.season, episode: row.episode }))
+
+      const filteredPlan = rebuildPlanWithSelectedEpisodes(plan, selectedEpisodes)
+      const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
+      
+      await applyRecognizeMediaFilePlan(filteredPlan, mediaMetadata, updateMediaMetadata, { traceId })
+      await updatePlan(plan.id, 'completed')
+      
+      toast.success(t('toolbar.recognizeEpisodesSuccess'))
+    } catch (error) {
+      console.error('[TvShowPanel] Error applying rule-based recognition:', error)
+      toast.error("Failed to apply recognition")
+    }
+  }, [mediaMetadata, updateMediaMetadata, updatePlan, t])
+
   // When panel shows a media folder, fetch pending plans so we can open the right prompt (rename or recognize)
   useEffect(() => {
     if (mediaMetadata?.mediaFolderPath) {
@@ -557,6 +587,7 @@ function TvShowPanel() {
   }, [openRuleBasedRecognizePrompt, updateMediaMetadata, setSeasons])
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([]);
+  const latestTableData = useLatest(tableData)
 
   const previewMode: "rename" | "recognize" | undefined = useMemo(() => {
 
@@ -652,10 +683,10 @@ function TvShowPanel() {
         openAiBasedRecognizePrompt,
         closeAiBasedRecognizePrompt,
         handleAiRecognizeConfirmCallback,
+        handleRuleBasedRecognizeConfirmCallback: handleRuleBasedRecognizePromptConfirmButtonClick,
         updatePlan,
         updateMediaMetadata,
         t,
-        recognizeEpisodes,
         toast,
       })
     }

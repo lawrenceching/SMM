@@ -212,6 +212,25 @@ export function applyRecognizeMediaFilePlan(
     return Promise.resolve(result);
 }
 
+export function rebuildPlanWithSelectedEpisodes(
+    originalPlan: RecognizeMediaFilePlan,
+    selectedEpisodes: {season: number, episode: number}[]
+): RecognizeMediaFilePlan {
+    if (selectedEpisodes.length === 0) {
+        return originalPlan
+    }
+
+    const selectedSet = new Set(selectedEpisodes.map(e => `${e.season}-${e.episode}`))
+    const filteredFiles = originalPlan.files.filter(file => 
+        selectedSet.has(`${file.season}-${file.episode}`)
+    )
+
+    return {
+        ...originalPlan,
+        files: filteredFiles
+    }
+}
+
 export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] {
     const mapping: {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] = [];
 
@@ -1218,10 +1237,10 @@ export interface HandlePendingPlansParams {
   }) => void
   closeAiBasedRecognizePrompt: () => void
   handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
+  handleRuleBasedRecognizeConfirmCallback?: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
   t: ReturnType<typeof import('react-i18next').useTranslation>['t']
-  recognizeEpisodes: (seasons: SeasonModel[], mediaMetadata: UIMediaMetadata, updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void) => void
   toast: typeof toast
 }
 
@@ -1233,11 +1252,9 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     openAiBasedRecognizePrompt,
     closeAiBasedRecognizePrompt,
     handleAiRecognizeConfirmCallback,
+    handleRuleBasedRecognizeConfirmCallback,
     updatePlan,
-    updateMediaMetadata,
     t,
-    recognizeEpisodes,
-    toast,
   } = params
 
   console.log('[TvShowPanel] Pending plans:', pendingPlans)
@@ -1269,18 +1286,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
           tvShowTitle: mediaMetadata.tmdbTvShow.name,
           tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
           planId: plan.id,
-          onConfirm: () => {
-            const currentPlan = usePlansStore.getState().pendingPlans.find(p => p.id === plan.id)
-            if (currentPlan?.status === 'pending' && currentPlan.files.length > 0) {
-              console.log('[TvShowPanel] Rule-based recognition confirmed')
-              const currentSeasons = buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, currentPlan as RecognizeMediaFilePlan)
-              recognizeEpisodes(currentSeasons, mediaMetadata, updateMediaMetadata)
-              toast.success(t('toolbar.recognizeEpisodesSuccess'))
-              updatePlan(plan.id, 'completed').catch(error => {
-                console.error('[TvShowPanel] Error removing temporary plan:', error)
-              })
-            }
-          },
+          onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as RecognizeMediaFilePlan),
           onCancel: () => {
             console.log('[TvShowPanel] Rule-based recognition cancelled')
             updatePlan(plan.id, 'rejected').catch(error => {
@@ -1296,7 +1302,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
         confirmButtonDisabled: false,
         isRenaming: false,
-        onConfirm: () => handleAiRecognizeConfirmCallback(plan as RecognizeMediaFilePlan),
+        onConfirm: () => handleAiRecognizeConfirmCallback(plan),
         onCancel: async () => {
           console.log('[TvShowPanel] AI recognition cancelled')
           try {

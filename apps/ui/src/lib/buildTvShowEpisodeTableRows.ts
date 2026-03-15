@@ -94,7 +94,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
         newThumbnail: thumbnailFile?.newPath,
         newSubtitle: subtitleFile?.newPath,
         newNfo: nfoFile?.newPath,
-        checked: false,
+        checked: true,
       })
     }
   }
