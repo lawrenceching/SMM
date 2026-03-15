@@ -101,14 +101,14 @@ async function clickRecognizeButton() {
 describe('TVShow - Rename Episodes By Rule', () => {
   before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
-  afterEach(async () => {
-    if (fs.existsSync(tmpMediaRoot)) {
-      fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
-      console.log('Removed tmp media folder:', tmpMediaRoot)
-    }
-  })
+  // afterEach(async () => {
+  //   if (fs.existsSync(tmpMediaRoot)) {
+  //     fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
+  //     console.log('Removed tmp media folder:', tmpMediaRoot)
+  //   }
+  // })
 
-  it('renames S01E01/S01E02 files, renames by rule, and shows new names in UI', async function () {
+  it.only('renames S01E01/S01E02 files, renames by rule, and shows new names in UI', async function () {
     this.timeout(90 * 1000)
 
     const testMediaFolder = path.join(mediaDir, FOLDER_NAME)

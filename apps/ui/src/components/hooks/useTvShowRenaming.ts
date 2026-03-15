@@ -1,13 +1,12 @@
 import { useCallback } from "react"
-import { useLatest } from "react-use"
 import { toast } from "sonner"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../TvShowPanel"
 import { Path } from "@core/path"
+import { basename, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
+import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 
 interface UseTvShowRenamingParams {
-  seasons: SeasonModel[]
   mediaMetadata: MediaMetadata | undefined
   refreshMediaMetadata: (mediaFolderPath: string) => void
   setIsRenaming: (renaming: boolean) => void
@@ -40,20 +39,21 @@ async function renameBatch(
 }
 
 export function useTvShowRenaming({
-  seasons,
   mediaMetadata,
   refreshMediaMetadata,
   setIsRenaming,
 }: UseTvShowRenamingParams) {
-  const latestSeasons = useLatest(seasons)
-
-  const startToRenameFiles = useCallback(async (seasonsOverride?: SeasonModel[], selectedEpisodeIds?: Set<string>): Promise<boolean> => {
-    console.log("[useTvShowRenaming] startToRenameFiles called, selectedEpisodeIds:", selectedEpisodeIds == null ? "undefined" : `Set(${selectedEpisodeIds.size})`, selectedEpisodeIds ? [...selectedEpisodeIds].sort() : [])
+  
+  const startToRenameFiles = useCallback(async (renamePlan: RenameFilesPlan): Promise<boolean> => {
+    
     if (mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
       return false
     }
 
-    const seasonsToUse = seasonsOverride ?? latestSeasons.current
+    if(renamePlan.files.length === 0) {
+      console.warn(`skip RenameFilesPlan because no files to rename`)
+      return false
+    }
 
     // Collect files that need renaming, keeping video and associated separate
     // so video files are always renamed before their associated files.
@@ -61,22 +61,36 @@ export function useTvShowRenaming({
     const videoFilesToRename: Array<{ from: string; to: string }> = []
     const associatedFilesToRename: Array<{ from: string; to: string }> = []
 
-    const filterBySelection = selectedEpisodeIds != null && selectedEpisodeIds.size > 0
-    console.log("[useTvShowRenaming] filterBySelection:", filterBySelection, "seasonsToUse length:", seasonsToUse.length)
+    if (renamePlan && renamePlan.files) {
+      // Use files from the rename plan
+      for (const { from, to } of renamePlan.files) {
+        // Find the media file for this path to get season/episode info
+        const mediaFile = mediaMetadata.mediaFiles?.find(
+          file => file.absolutePath === from
+        );
 
-    for (const season of seasonsToUse) {
-      const seasonNo = season.season.season_number
-      for (const episode of season.episodes) {
-        const episodeNo = episode.episode.episode_number
-        const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
-        if (filterBySelection && !selectedEpisodeIds!.has(episodeId)) continue
+        // Add to appropriate rename list
+        videoFilesToRename.push({ from, to })
 
-        for (const file of episode.files) {
-          if (file.newPath && file.path !== file.newPath) {
-            if (file.type === "video") {
-              videoFilesToRename.push({ from: file.path, to: file.newPath })
-            } else {
-              associatedFilesToRename.push({ from: file.path, to: file.newPath })
+        // Process associated files (subtitles, audio, etc.)
+        if (mediaFile) {
+          if (mediaFile.subtitleFilePaths) {
+            for (const subtitlePath of mediaFile.subtitleFilePaths) {
+              // Generate new path for subtitle file
+              const newSubtitlePath = generateNewPathForAssociatedFile(from, to, subtitlePath);
+              if (subtitlePath !== newSubtitlePath) {
+                associatedFilesToRename.push({ from: subtitlePath, to: newSubtitlePath });
+              }
+            }
+          }
+
+          if (mediaFile.audioFilePaths) {
+            for (const audioPath of mediaFile.audioFilePaths) {
+              // Generate new path for audio file
+              const newAudioPath = generateNewPathForAssociatedFile(from, to, audioPath);
+              if (audioPath !== newAudioPath) {
+                associatedFilesToRename.push({ from: audioPath, to: newAudioPath });
+              }
             }
           }
         }
@@ -178,9 +192,24 @@ export function useTvShowRenaming({
       console.error("All rename operations failed:", allErrors)
     }
     return false
-  }, [mediaMetadata, latestSeasons, refreshMediaMetadata, setIsRenaming])
+  }, [mediaMetadata, refreshMediaMetadata, setIsRenaming])
 
   return {
     startToRenameFiles,
   }
+}
+
+/**
+ * Generate new path for associated files (subtitles, audio) based on the new video file path
+ */
+function generateNewPathForAssociatedFile(videoPath: string, newVideoPath: string, associatedPath: string): string {
+  // Get the base name of the video file without extension
+  const videoBase = basename(videoPath) ?? '';
+  const videoExt = extname(videoPath);
+  const videoBaseName = videoExt ? videoBase.slice(0, -videoExt.length) : videoBase;
+  const newVideoBase = basename(newVideoPath) ?? '';
+  const newVideoExt = extname(newVideoPath);
+  const newVideoBaseName = newVideoExt ? newVideoBase.slice(0, -newVideoExt.length) : newVideoBase;
+  // Replace the video base name in the associated file path
+  return associatedPath.replace(videoBaseName, newVideoBaseName);
 }

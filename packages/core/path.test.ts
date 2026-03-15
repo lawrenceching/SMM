@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Path, split } from './path';
+import { describe, it, expect } from 'vitest';
+import { Path, split, ext } from './path';
 
 describe('split', () => {
   it('should split POSIX path correctly', () => {
@@ -32,6 +32,40 @@ describe('split', () => {
 
   it('should handle empty string', () => {
     expect(split('')).toEqual([]);
+  });
+});
+
+describe('ext', () => {
+  it('should return single extension with default level 1', () => {
+    expect(ext('file.mkv')).toBe('.mkv');
+    expect(ext('video.mp4')).toBe('.mp4');
+  });
+
+  it('should return last part only with level 1 (e.g. file type)', () => {
+    expect(ext('S01E01.en.srt', 1)).toBe('.srt');
+    expect(ext('episode.zh-CN.ass', 1)).toBe('.ass');
+  });
+
+  it('should return last two parts with level 2 (e.g. subtitle with language)', () => {
+    expect(ext('S01E01.en.srt', 2)).toBe('.en.srt');
+    expect(ext('episode.zh-CN.ass', 2)).toBe('.zh-CN.ass');
+  });
+
+  it('should use default level 1 when level not provided', () => {
+    expect(ext('S01E01.en.srt')).toBe('.srt');
+  });
+
+  it('should throw when level is less than 1', () => {
+    expect(() => ext('file.mkv', 0)).toThrow('InvalidArgumentError: level must be greater than 0');
+    expect(() => ext('file.mkv', -1)).toThrow('InvalidArgumentError: level must be greater than 0');
+  });
+
+  it('should return all parts when level equals number of dot-separated parts', () => {
+    expect(ext('file.mkv', 2)).toBe('.file.mkv');
+  });
+
+  it('should return all parts when level exceeds number of parts (slice from start)', () => {
+    expect(ext('file.mkv', 3)).toBe('.file.mkv');
   });
 });
 

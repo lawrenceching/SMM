@@ -2,12 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getTmdbIdFromFolderName, doPreprocessMediaFolder } from './AppV2Utils'
 import { recognizeMediaFolder } from './lib/recognizeMediaFolder'
 import { recognizeTvShowMediaFiles } from './lib/recognizeMediaFiles'
+import { recognizeEpisodesAsync } from './lib/recognizeEpisodes'
 import { getTvShowById } from './api/tmdb'
 import type { UIMediaMetadata } from './types/UIMediaMetadata'
 import type { TMDBTVShowDetails } from '@core/types'
 
 vi.mock('./lib/recognizeMediaFolder')
 vi.mock('./lib/recognizeMediaFiles')
+vi.mock('./lib/recognizeEpisodes')
 vi.mock('./api/tmdb')
 
 describe('getTmdbIdFromFolderName', () => {
@@ -230,6 +232,7 @@ describe('getTmdbIdFromFolderName', () => {
 describe('doPreprocessMediaFolder', () => {
   const mockRecognizeMediaFolder = vi.mocked(recognizeMediaFolder)
   const mockRecognizeTvShowMediaFiles = vi.mocked(recognizeTvShowMediaFiles)
+  const mockRecognizeEpisodesAsync = vi.mocked(recognizeEpisodesAsync)
   const mockGetTvShowById = vi.mocked(getTvShowById)
 
   beforeEach(() => {
@@ -290,6 +293,9 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeTvShowMediaFiles.mockReturnValue([
         { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
       ])
+      mockRecognizeEpisodesAsync.mockResolvedValue([
+        { season: 1, episode: 1, file: '/path/to/video.mkv' },
+      ])
       mockGetTvShowById.mockResolvedValue({
         data: fullTvShowData,
       })
@@ -299,9 +305,9 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(12345, 'zh-CN')
-      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
-        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+        mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
@@ -359,6 +365,9 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeTvShowMediaFiles.mockReturnValue([
         { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
       ])
+      mockRecognizeEpisodesAsync.mockResolvedValue([
+        { season: 1, episode: 1, file: '/path/to/video.mkv' },
+      ])
       mockGetTvShowById.mockResolvedValue({
         data: fullTvShowData,
       })
@@ -368,9 +377,9 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(67890, 'zh-CN')
-      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
-        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+        mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
@@ -413,6 +422,9 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeTvShowMediaFiles.mockReturnValue([
         { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
       ])
+      mockRecognizeEpisodesAsync.mockResolvedValue([
+        { season: 1, episode: 1, file: '/path/to/video.mkv' },
+      ])
       mockGetTvShowById.mockResolvedValue({
         error: 'API rate limit exceeded',
       })
@@ -422,9 +434,9 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(22222, 'zh-CN')
-      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
-        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+        mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
@@ -468,6 +480,9 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeTvShowMediaFiles.mockReturnValue([
         { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
       ])
+      mockRecognizeEpisodesAsync.mockResolvedValue([
+        { season: 1, episode: 1, file: '/path/to/video.mkv' },
+      ])
       mockGetTvShowById.mockResolvedValue({
         // data is undefined, no error
       })
@@ -477,9 +492,9 @@ describe('doPreprocessMediaFolder', () => {
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(33333, 'zh-CN')
-      // Verify getTvShowById was called before recognizeTvShowMediaFiles
+      // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
-        mockRecognizeTvShowMediaFiles.mock.invocationCallOrder[0]
+        mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
@@ -532,6 +547,9 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)
       mockRecognizeTvShowMediaFiles.mockReturnValue([
         { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
+      ])
+      mockRecognizeEpisodesAsync.mockResolvedValue([
+        { season: 1, episode: 1, file: '/path/to/video.mkv' },
       ])
 
       const onSuccess = vi.fn()

@@ -20,13 +20,13 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     (async () => {
 
       const payload = recognizeEpisodes(mm);
-      (self as Worker).postMessage({ type: 'result', id, payload } satisfies WorkerResult);
+      (self as unknown as Worker).postMessage({ type: 'result', id, payload } satisfies WorkerResult);
 
     })()
 
     
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    (self as Worker).postMessage({ type: 'error', id, message } satisfies WorkerError);
+    (self as unknown as Worker).postMessage({ type: 'error', id, message } satisfies WorkerError);
   }
 };

@@ -181,8 +181,8 @@ export function preciselyRecognizeEpisodes(
 }
 
 export function fuzzyRecognizeEpisodes(
-    episodes: { season: number, episode: number }[],
-    videoFiles: string[]
+    _episodes: { season: number, episode: number }[],
+    _videoFiles: string[]
 ): RecognizedEpisode[] {
     // TODO: no solution yet
     return [];

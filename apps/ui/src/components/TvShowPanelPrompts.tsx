@@ -8,24 +8,27 @@ import type { TMDBTVShow } from "@core/types"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { usePlansStore } from "@/stores/plansStore"
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 
 export function TvShowPanelPrompts() {
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
-  const pendingPlans = usePlansStore((state) => state.pendingPlans)
+  const plans = usePlansStore((state) => state.plans)
 
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
   const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
   const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
   const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
   const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
-
+   
+  // Rule-based recognize tmp plan is added via setPlans() in TvShowPanel (in `plans`), not via addTmpRecognizePlan (in `pendingPlans`).
   const ruleBasedPlan = ruleBasedRecognizePrompt.planId
-    ? pendingPlans.find((p) => p.id === ruleBasedRecognizePrompt.planId)
+    ? (plans.find((p) => p.id === ruleBasedRecognizePrompt.planId) ?? plans.find((p) => p.id === ruleBasedRecognizePrompt.planId))
     : undefined
   const isRuleBasedRecognizeLoading = ruleBasedPlan?.status === 'loading'
-  
+
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
   const closeRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
+  const updateRuleBasedRenameFilePromptSelectedRule = useTvShowPromptsStore((state) => state.updateRuleBasedRenameFilePromptSelectedRule)
   const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
   const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
   const closeRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRecognizePrompt)
@@ -37,12 +40,6 @@ export function TvShowPanelPrompts() {
         mediaName={useNfoPrompt.mediaName}
         tmdbid={useNfoPrompt.tmdbid}
         onConfirm={() => {
-          console.log('[TvShowPanelPrompts] UseNfoPrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            hasNfoData: !!useNfoPrompt.data,
-            nfoDataId: useNfoPrompt.data?.id,
-            hasCallback: !!useNfoPrompt.onConfirm
-          })
           const callback = useNfoPrompt.onConfirm
           const nfoData = useNfoPrompt.data
           closeUseNfoPrompt()
@@ -81,18 +78,8 @@ export function TvShowPanelPrompts() {
         tmdbid={tmdbPromptStore.tmdbId}
         status={tmdbPromptStore.status ?? "ready"}
         onConfirm={() => {
-          console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            status: tmdbPromptStore.status ?? "ready",
-            tmdbId: tmdbPromptStore.tmdbId,
-            stackTrace: new Error().stack
-          })
           const currentStatus = tmdbPromptStore.status ?? "ready"
           if (currentStatus !== "ready") {
-            console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt onConfirm BLOCKED - status not ready', {
-              timestamp: new Date().toISOString(),
-              currentStatus
-            })
             return
           }
 
@@ -102,11 +89,6 @@ export function TvShowPanelPrompts() {
           const tmdbId = tmdbPromptStore.tmdbId
           
           if (tmdbId !== undefined && tmdbId !== null && !isNaN(tmdbId) && typeof tmdbId === 'number' && callback) {
-            console.log('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt INVOKING callback', {
-              timestamp: new Date().toISOString(),
-              tmdbId,
-              callbackType: typeof callback
-            })
             const minimalTvShow: TMDBTVShow = {
               id: tmdbId,
               name: '',
@@ -124,17 +106,6 @@ export function TvShowPanelPrompts() {
             }
             
             callback(minimalTvShow)
-          } else {
-            if (callback && (tmdbId === undefined || tmdbId === null || isNaN(tmdbId) || typeof tmdbId !== 'number')) {
-              console.warn('[TvShowPanelPrompts] Attempted to call onConfirm with invalid tmdbId:', tmdbId, 'status:', currentStatus)
-            } else {
-              console.warn('[TvShowPanelPrompts] UseTmdbidFromFolderNamePrompt callback NOT invoked', {
-                timestamp: new Date().toISOString(),
-                hasCallback: !!callback,
-                tmdbId,
-                tmdbIdType: typeof tmdbId
-              })
-            }
           }
         }}
         onCancel={() => {
@@ -151,23 +122,22 @@ export function TvShowPanelPrompts() {
         namingRuleOptions={ruleBasedRenameFilePrompt.toolbarOptions || []}
         selectedNamingRule={ruleBasedRenameFilePrompt.selectedNamingRule || "plex"}
         onNamingRuleChange={(value) => {
+          updateRuleBasedRenameFilePromptSelectedRule(value as "plex" | "emby")
           if (ruleBasedRenameFilePrompt.setSelectedNamingRule) {
             ruleBasedRenameFilePrompt.setSelectedNamingRule(value as "plex" | "emby")
           }
         }}
+        onNamingRulesSelected={(value) => {
+          if (ruleBasedRenameFilePrompt.onNamingRulesSelected) {
+            ruleBasedRenameFilePrompt.onNamingRulesSelected(value as "plex" | "emby")
+          }
+        }}
         onConfirm={() => {
-          console.log('[TvShowPanelPrompts] RuleBasedRenameFilePrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            hasCallback: !!ruleBasedRenameFilePrompt.onConfirm,
-            stackTrace: new Error().stack
-          })
           const callback = ruleBasedRenameFilePrompt.onConfirm
+          const planId = ruleBasedRenameFilePrompt.planId
           closeRuleBasedRenameFilePrompt()
-          if (callback) {
-            console.log('[TvShowPanelPrompts] RuleBasedRenameFilePrompt INVOKING callback', {
-              timestamp: new Date().toISOString()
-            })
-            callback()
+          if (callback && planId) {
+            callback(planId)
           }
         }}
         onCancel={() => {
@@ -183,18 +153,9 @@ export function TvShowPanelPrompts() {
         isOpen={aiBasedRenameFilePrompt.isOpen}
         status={aiBasedRenameFilePrompt.status || "generating"}
         onConfirm={() => {
-          console.log('[TvShowPanelPrompts] AiBasedRenameFilePrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            hasCallback: !!aiBasedRenameFilePrompt.onConfirm,
-            status: aiBasedRenameFilePrompt.status,
-            stackTrace: new Error().stack
-          })
           const callback = aiBasedRenameFilePrompt.onConfirm
           closeAiBasedRenameFilePrompt()
           if (callback) {
-            console.log('[TvShowPanelPrompts] AiBasedRenameFilePrompt INVOKING callback', {
-              timestamp: new Date().toISOString()
-            })
             callback()
           }
         }}
@@ -211,18 +172,9 @@ export function TvShowPanelPrompts() {
         isOpen={aiBasedRecognizePrompt.isOpen}
         status={aiBasedRecognizePrompt.status || "generating"}
         onConfirm={() => {
-          console.log('[TvShowPanelPrompts] AiBasedRecognizePrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            hasCallback: !!aiBasedRecognizePrompt.onConfirm,
-            status: aiBasedRecognizePrompt.status,
-            stackTrace: new Error().stack
-          })
           const callback = aiBasedRecognizePrompt.onConfirm
           closeAiBasedRecognizePrompt()
           if (callback) {
-            console.log('[TvShowPanelPrompts] AiBasedRecognizePrompt INVOKING callback', {
-              timestamp: new Date().toISOString()
-            })
             callback()
           }
         }}
@@ -245,23 +197,13 @@ export function TvShowPanelPrompts() {
         isLoading={isRuleBasedRecognizeLoading}
         isConfirmButtonDisabled={isRuleBasedRecognizeLoading}
         onConfirm={async () => {
-          console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt onConfirm TRIGGERED', {
-            timestamp: new Date().toISOString(),
-            hasCallback: !!ruleBasedRecognizePrompt.onConfirm,
-            planId: ruleBasedRecognizePrompt.planId,
-            stackTrace: new Error().stack
-          })
           const callback = ruleBasedRecognizePrompt.onConfirm
           const plan = ruleBasedPlan
           closeRuleBasedRecognizePrompt()
           
           if (callback && plan) {
-            console.log('[TvShowPanelPrompts] RuleBasedRecognizePrompt INVOKING callback', {
-              timestamp: new Date().toISOString(),
-              planId: plan.id
-            })
             try {
-              await callback(plan)
+              await callback(plan as UIRecognizeMediaFilePlan)
             } catch (error) {
               console.error('[TvShowPanelPrompts] Error in onConfirm:', error)
             }

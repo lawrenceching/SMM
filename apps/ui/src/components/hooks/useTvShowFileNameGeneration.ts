@@ -1,108 +1,86 @@
-import { useCallback, useEffect } from "react"
-import { useLatest } from "react-use"
+import { useCallback } from "react"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../TvShowPanel"
+import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { newFileName } from "@/api/newFileName"
-import { newPath } from "../TvShowPanelUtils"
 import { join } from "@/lib/path"
-import { useRuleBasedRenameFilePrompt } from "@/stores/tvShowPromptsStore"
+
 
 interface UseTvShowFileNameGenerationParams {
-  seasons: SeasonModel[]
-  setSeasons: (updater: (prev: SeasonModel[]) => SeasonModel[]) => void
   mediaMetadata: MediaMetadata | undefined
   selectedNamingRule: "plex" | "emby"
 }
 
 export function useTvShowFileNameGeneration({
-  seasons,
-  setSeasons,
   mediaMetadata,
-  selectedNamingRule,
 }: UseTvShowFileNameGenerationParams) {
-  const ruleBasedRenameFilePrompt = useRuleBasedRenameFilePrompt()
-  const latestSeasons = useLatest(seasons)
 
   // Generate new file names for preview mode
-  const generateNewFileNames = useCallback((selectedNamingRule: "plex" | "emby") => {
+  const generateNewFileNames = useCallback(async (selectedNamingRule: "plex" | "emby"): Promise<RenameFilesPlan | null> => {
     if(!selectedNamingRule) {
-      return;
+      return null;
     }
 
     if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
-      return;
+      return null;
     }
 
     const tvShow = mediaMetadata.tmdbTvShow
     if(!tvShow) {
-      return;
+      return null;
     }
 
-    (async () => {
-      const newSeasons = structuredClone(latestSeasons.current);
-      for(const season of newSeasons) {
-        for(const episode of season.episodes) {
-          const videoFile = episode.files.find(file => file.type === "video");
-          if(videoFile === undefined) {
-            console.error(`Video file is undefined for episode ${episode.episode.episode_number} in season ${season.season.season_number}`)
-            continue;
-          }
+    const files: Array<{ from: string; to: string }> = [];
 
-          const response = await newFileName({
-            ruleName: selectedNamingRule,
-            type: "tv",
-            seasonNumber: season.season.season_number,
-            episodeNumber: episode.episode.episode_number,
-            episodeName: episode.episode.name || "",
-            tvshowName: tvShow.name || "",
-            file: videoFile.path,
-            tmdbId: tvShow.id?.toString() || "",
-            releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
-          })
+    // Process each season and episode
+    for(const season of tvShow.seasons) {
+      if(!season.episodes) continue;
+      
+      for(const episode of season.episodes) {
+        // Find the media file for this episode
+        const mediaFile = mediaMetadata.mediaFiles?.find(
+          file => file.seasonNumber === season.season_number && file.episodeNumber === episode.episode_number
+        );
+        
+        if(!mediaFile) continue;
+
+        const response = await newFileName({
+          ruleName: selectedNamingRule,
+          type: "tv",
+          seasonNumber: season.season_number,
+          episodeNumber: episode.episode_number,
+          episodeName: episode.name || "",
+          tvshowName: tvShow.name || "",
+          file: mediaFile.absolutePath,
+          tmdbId: tvShow.id?.toString() || "",
+          releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
+        });
+        
+        if (response.data) {
+          const relativePath = response.data;
+          const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath);
           
-          if (response.data) {
-            const relativePath = response.data
-            const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath)
-            videoFile.newPath = absolutePath
-            if(videoFile.path === videoFile.newPath) {
-              videoFile.newPath = undefined;
-            } else {
-              // Generate new paths for all associated files (subtitles, audio, nfo, poster, etc.)
-              for(const file of episode.files) {
-                if(file.type === "video") {
-                  continue;
-                }
-                // Only set newPath for associated files if video file has a newPath
-                file.newPath = newPath(mediaMetadata.mediaFolderPath!, absolutePath, file.path)
+          files.push({
+            from: mediaFile.absolutePath,
+            to: absolutePath
+          });
 
-                if(file.path === file.newPath) {
-                  file.newPath = undefined;
-                }
-              }
-            }
+          console.log(`[TvShowPanel] generated new file name for episode ${season.season_number}x${episode.episode_number}: ${relativePath}`)
 
-          } else {
-            // If video file rename failed, clear newPath for associated files
-            for(const file of episode.files) {
-              if(file.type !== "video") {
-                file.newPath = undefined
-              }
-            }
-          }
         }
       }
-      setSeasons(() => newSeasons);
-    })();
-  }, [mediaMetadata, latestSeasons, setSeasons])
-
-  // Trigger file name generation when preview mode is enabled
-  useEffect(() => {
-    if(!ruleBasedRenameFilePrompt.isOpen) {
-      return;
     }
-    
-    generateNewFileNames(selectedNamingRule);
-  }, [ruleBasedRenameFilePrompt.isOpen, selectedNamingRule, generateNewFileNames])
+
+    // Create and return the rename plan
+    const renamePlan: RenameFilesPlan = {
+      id: crypto.randomUUID(),
+      task: "rename-files",
+      status: "pending",
+      mediaFolderPath: mediaMetadata.mediaFolderPath,
+      files: files,
+    };
+
+    return renamePlan;
+  }, [mediaMetadata])
 
   return {
     generateNewFileNames,

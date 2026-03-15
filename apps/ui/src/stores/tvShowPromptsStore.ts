@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { TMDBTVShow, TMDBTVShowDetails } from '@core/types'
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 
 interface ToolbarOption {
@@ -32,8 +31,10 @@ interface RuleBasedRenameFilePromptData {
   toolbarOptions: ToolbarOption[] | undefined
   selectedNamingRule: "plex" | "emby" | undefined
   setSelectedNamingRule: ((rule: "plex" | "emby") => void) | undefined
-  onConfirm: (() => void) | undefined
+  planId: string | undefined
+  onConfirm: ((planId: string) => void) | undefined
   onCancel: (() => void) | undefined
+  onNamingRulesSelected: ((rule: "plex" | "emby") => void) | undefined
 }
 
 interface AiBasedRenameFilePromptData {
@@ -93,10 +94,13 @@ interface TvShowPromptsState {
     toolbarOptions: ToolbarOption[]
     selectedNamingRule: "plex" | "emby" | undefined
     setSelectedNamingRule: (rule: "plex" | "emby") => void
-    onConfirm?: () => void
+    planId: string
+    onConfirm?: (planId: string) => void
     onCancel?: () => void
+    onNamingRulesSelected?: (rule: "plex" | "emby") => void
   }) => void
 
+  updateRuleBasedRenameFilePromptSelectedRule: (rule: "plex" | "emby") => void
   closeRuleBasedRenameFilePrompt: () => void
 
   openAiBasedRenameFilePrompt: (config: {
@@ -130,7 +134,7 @@ interface TvShowPromptsState {
     tvShowTitle: string
     tvShowTmdbId: number
     planId?: string
-    onConfirm?: (plan: RecognizeMediaFilePlan) => void
+    onConfirm?: (plan: UIRecognizeMediaFilePlan) => void
     onCancel?: () => void
   }) => void
 
@@ -165,6 +169,7 @@ const initialState = {
     setSelectedNamingRule: undefined,
     onConfirm: undefined,
     onCancel: undefined,
+    onNamingRulesSelected: undefined,
   } as RuleBasedRenameFilePromptData,
 
   aiBasedRenameFilePrompt: {
@@ -249,7 +254,7 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
         })
       },
 
-      openRuleBasedRenameFilePrompt: ({ toolbarOptions, selectedNamingRule, setSelectedNamingRule, onConfirm, onCancel }) => {
+      openRuleBasedRenameFilePrompt: ({ toolbarOptions, selectedNamingRule, setSelectedNamingRule, planId, onConfirm, onCancel, onNamingRulesSelected }) => {
         get().closeAllPrompts()
         set({
           ruleBasedRenameFilePrompt: {
@@ -257,8 +262,10 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
             toolbarOptions,
             selectedNamingRule,
             setSelectedNamingRule,
+            planId,
             onConfirm,
             onCancel,
+            onNamingRulesSelected,
           },
         })
       },
@@ -267,6 +274,15 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
         set({
           ruleBasedRenameFilePrompt: initialState.ruleBasedRenameFilePrompt,
         })
+      },
+
+      updateRuleBasedRenameFilePromptSelectedRule: (rule: "plex" | "emby") => {
+        set((state) => ({
+          ruleBasedRenameFilePrompt: {
+            ...state.ruleBasedRenameFilePrompt,
+            selectedNamingRule: rule,
+          },
+        }))
       },
 
       openAiBasedRenameFilePrompt: ({ status, onConfirm, onCancel }) => {
@@ -422,10 +438,11 @@ export const useRuleBasedRenameFilePromptControl = () => {
   const state = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
   const open = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
   const close = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
+  const updateSelectedRule = useTvShowPromptsStore((state) => state.updateRuleBasedRenameFilePromptSelectedRule)
 
   return {
     states: state,
-    setState: (config: { open?: boolean; toolbarOptions?: ToolbarOption[]; selectedNamingRule?: "plex" | "emby" | undefined; setSelectedNamingRule?: ((rule: "plex" | "emby") => void) | undefined; onConfirm?: () => void; onCancel?: () => void }) => {
+    setState: (config: { open?: boolean; planId?: string; toolbarOptions?: ToolbarOption[]; selectedNamingRule?: "plex" | "emby" | undefined; setSelectedNamingRule?: ((rule: "plex" | "emby") => void) | undefined; onConfirm?: (planId: string) => void; onCancel?: () => void; onNamingRulesSelected?: (rule: "plex" | "emby") => void }) => {
       if (config.open === false) {
         close()
       } else if (config.open === true) {
@@ -433,11 +450,14 @@ export const useRuleBasedRenameFilePromptControl = () => {
           toolbarOptions: config.toolbarOptions || [],
           selectedNamingRule: config.selectedNamingRule,
           setSelectedNamingRule: config.setSelectedNamingRule || (() => {}),
+          planId: config.planId ?? '',
           onConfirm: config.onConfirm,
           onCancel: config.onCancel,
+          onNamingRulesSelected: config.onNamingRulesSelected,
         })
       }
-    }
+    },
+    updateSelectedRule,
   }
 }
 

@@ -1,4 +1,3 @@
-import type { SeasonModel } from "./TvShowPanel";
 import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
@@ -30,7 +29,8 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
-import { usePlansStore } from "@/stores/plansStore";
+import { type UIPlan } from "@/stores/plansStore";
+import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -208,6 +208,7 @@ export function applyRecognizeMediaFilePlan(
         ...mediaMetadata,
         mediaFiles: updatedMediaFiles,
     };
+    console.log(`[applyRecognizeMediaFilePlan] updatedMetadata:`, structuredClone(updatedMetadata))
     const result = updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
     return Promise.resolve(result);
 }
@@ -231,55 +232,21 @@ export function rebuildPlanWithSelectedEpisodes(
     }
 }
 
-export function _buildMappingFromSeasonModels(seasons: SeasonModel[]): {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] {
-    const mapping: {seasonNumber: number, episodeNumber: number, videoFilePath: string}[] = [];
+export function rebuildRenamePlanWithSelectedEpisodes(
+    originalPlan: RenameFilesPlan,
+    selectedEpisodePaths: string[]
+): RenameFilesPlan {
+  
+  return {
+    ...originalPlan,
+    files: originalPlan.files.filter(file => {
+      return selectedEpisodePaths.some(path => path === file.from)
+    })
+  }
 
-    for (const season of seasons) {
-        for (const episode of season.episodes) {
-            // Find the video file for this episode
-            const videoFile = episode.files.find(file => file.type === "video");
-            
-            if (videoFile) {
-                mapping.push({
-                    seasonNumber: season.season.season_number,
-                    episodeNumber: episode.episode.episode_number,
-                    videoFilePath: videoFile.path,
-                });
-            }
-        }
-    }
-
-    return mapping;
 }
 
-export async function recognizeEpisodes(
-    seasons: SeasonModel[], 
-    mediaMetadata: UIMediaMetadata, 
-    updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void) {
-    const mapping = _buildMappingFromSeasonModels(seasons);
-    console.log(`[TvShowPanelUtils] recognized episodes:`, mapping);
 
-    // Map the recognized episodes to MediaFileMetadata format
-    const mediaFiles: MediaFileMetadata[] = mapping.map(item => ({
-        absolutePath: item.videoFilePath,
-        seasonNumber: item.seasonNumber,
-        episodeNumber: item.episodeNumber,
-    }));
-
-    // Update mediaMetadata with the new mediaFiles
-    const updatedMetadata: UIMediaMetadata = {
-        ...mediaMetadata,
-        mediaFiles: mediaFiles,
-    };
-
-    // Call updateMediaMetadata to persist the changes
-    if (mediaMetadata.mediaFolderPath) {
-        const traceId = `TvShowPanelUtils-recognizeEpisodes-${nextTraceId()}`
-        updateMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, { traceId });
-    } else {
-        console.error(`[TvShowPanelUtils] mediaFolderPath is undefined, cannot update media metadata`);
-    }
-}
 
 function createInitialTMDBSeason(seasonNumber: number): TMDBSeason {
     return {
@@ -756,168 +723,16 @@ export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDet
     return tvShowDetails
 }
 
-/**
- * Build SeasonModel[] from a RecognizeMediaFilePlan for preview/display.
- * Groups plan.files by season, resolves TMDB season/episode from mm.tmdbTvShow when present,
- * and builds FileProps (video + associated files) per episode using the plan's paths.
- */
-export function buildSeasonsByRecognizeMediaFilePlan(mm: UIMediaMetadata, plan: RecognizeMediaFilePlan): SeasonModel[] {
-
-
-  const mediaFolderPath = plan.mediaFolderPath ?? mm.mediaFolderPath
-  const fileList = mm.files ?? []
-
-  if (!plan.files?.length) {
-    return []
-  }
-
-  // Group by season number, then by episode number for stable ordering
-  const bySeason = new Map<number, { season: number; episode: number; path: string }[]>()
-  for (const f of plan.files) {
-    const list = bySeason.get(f.season) ?? []
-    list.push({ season: f.season, episode: f.episode, path: f.path })
-    bySeason.set(f.season, list)
-  }
-
-  const seasonNumbers = Array.from(bySeason.keys()).sort((a, b) => a - b)
-  const result: SeasonModel[] = []
-
-  for (const seasonNumber of seasonNumbers) {
-    const entries = bySeason.get(seasonNumber)!
-    entries.sort((a, b) => a.episode - b.episode)
-
-    const tmdbSeason =
-      mm.tmdbTvShow?.seasons?.find((s) => s.season_number === seasonNumber) ??
-      createInitialTMDBSeason(seasonNumber)
-
-    const episodes = entries.map(({ episode: episodeNumber, path: videoPath }) => {
-      const tmdbEpisode =
-        tmdbSeason.episodes?.find((e) => e.episode_number === episodeNumber) ?? ({
-          id: 0,
-          name: "",
-          overview: "",
-          still_path: null,
-          air_date: "",
-          episode_number: episodeNumber,
-          season_number: seasonNumber,
-          vote_average: 0,
-          vote_count: 0,
-          runtime: 0,
-        } as TMDBEpisode)
-
-      const files: FileProps[] = buildFilePropsForVideoPath(mediaFolderPath, fileList, videoPath)
-
-      return { episode: tmdbEpisode, files }
-    })
-
-    result.push({ season: tmdbSeason, episodes })
-  }
-
-  return result
-}
 
 /**
- * Build SeasonModel[] from a RenameFilesPlan for preview/display.
- * Resolves season/episode from mm.mediaFiles by matching "from" path.
- * Only includes entries whose "from" exists in mm.files (source file must exist).
- * FileProps use path = source path, newPath = destination path ("to" from the plan).
+ * @deprecated, use startToRenameFiles in useTvShowRenaming instead
+ * @param plan 
+ * @param mediaMetadata 
+ * @returns 
  */
-export function buildSeasonsByRenameFilesPlan(mm: UIMediaMetadata, plan: RenameFilesPlan): SeasonModel[] {
-  const mediaFolderPath = plan.mediaFolderPath ?? mm.mediaFolderPath
-  const fileList = mm.files ?? []
-  const mediaFiles = mm.mediaFiles ?? []
-
-  if (!plan.files?.length || !mediaFolderPath) {
-    return []
-  }
-
-  const filesSet = new Set(fileList)
-
-  const bySeasonEpisode = new Map<string, { season: number; episode: number; from: string; to: string }>()
-  for (const { from, to } of plan.files) {
-    if (!filesSet.has(from)) continue
-    const mf = mediaFiles.find((x) => x.absolutePath === from)
-    if (!mf || mf.seasonNumber === undefined || mf.episodeNumber === undefined) continue
-    const key = `${mf.seasonNumber}:${mf.episodeNumber}`
-    if (!bySeasonEpisode.has(key)) {
-      bySeasonEpisode.set(key, {
-        season: mf.seasonNumber,
-        episode: mf.episodeNumber,
-        from,
-        to,
-      })
-    }
-  }
-
-  const keys = Array.from(bySeasonEpisode.keys()).sort((a, b) => {
-    const [s1, e1] = a.split(":").map(Number)
-    const [s2, e2] = b.split(":").map(Number)
-    return s1 !== s2 ? s1 - s2 : e1 - e2
-  })
-
-  const result: SeasonModel[] = []
-  let lastSeason = -1
-  let currentSeasonModel: SeasonModel | null = null
-
-  for (const key of keys) {
-    const entry = bySeasonEpisode.get(key)!
-    const { season: seasonNumber, episode: episodeNumber, from, to } = entry
-
-    const tmdbSeason =
-      mm.tmdbTvShow?.seasons?.find((s) => s.season_number === seasonNumber) ??
-      createInitialTMDBSeason(seasonNumber)
-
-    const tmdbEpisode =
-      tmdbSeason.episodes?.find((e) => e.episode_number === episodeNumber) ?? ({
-        id: 0,
-        name: "",
-        overview: "",
-        still_path: null,
-        air_date: "",
-        episode_number: episodeNumber,
-        season_number: seasonNumber,
-        vote_average: 0,
-        vote_count: 0,
-        runtime: 0,
-      } as TMDBEpisode)
-
-    const videoFileProps: FileProps =
-      { type: "video", path: from, newPath: to }
-
-    const associated = findAssociatedFiles(mediaFolderPath, fileList, from)
-    const associatedFileProps: FileProps[] = associated.map((file) => {
-      const currentPath = join(mediaFolderPath, file.path)
-      return {
-        type: mapTagToFileType(file.tag),
-        path: currentPath,
-        newPath: newPath(mediaFolderPath, to, currentPath),
-      }
-    })
-
-    const files: FileProps[] =
-      fileList.length > 0 ? [videoFileProps, ...associatedFileProps] : [videoFileProps]
-
-    const episodeModel = { episode: tmdbEpisode, files }
-
-    if (seasonNumber !== lastSeason) {
-      currentSeasonModel = { season: tmdbSeason, episodes: [] }
-      result.push(currentSeasonModel)
-      lastSeason = seasonNumber
-    }
-    currentSeasonModel!.episodes.push(episodeModel)
-  }
-
-  return result
-}
-
 export async function executeRenamePlan(
   plan: RenameFilesPlan,
   mediaMetadata: UIMediaMetadata,
-  _updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
-  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>,
-  fetchPendingPlans: () => Promise<void>,
-  refreshMediaMetadata: (path: string) => Promise<void>,
-  selectedEpisodeIds?: Set<string>
 ): Promise<void> {
   if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
     toast.error("Plan does not match current media folder")
@@ -928,45 +743,17 @@ export async function executeRenamePlan(
     toast.error("Media folder path is not available")
     return
   }
-  const seasonsFromPlan = buildSeasonsByRenameFilesPlan(mediaMetadata, plan)
   const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
 
-  const filterBySelection = selectedEpisodeIds != null && selectedEpisodeIds.size > 0
-  let filesToRename: Array<{ from: string; to: string }> = []
-
-  for (const season of seasonsFromPlan) {
-    const seasonNo = season.season.season_number
-    for (const episode of season.episodes) {
-      const episodeNo = episode.episode.episode_number
-      const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
-      if (filterBySelection && !selectedEpisodeIds!.has(episodeId)) continue
-
-      for (const file of episode.files) {
-        if (file.newPath && file.path !== file.newPath) {
-          filesToRename.push({ from: file.path, to: file.newPath })
-        }
-      }
-    }
-  }
-
-  // Fallback: use plan.files when buildSeasonsByRenameFilesPlan yielded nothing (e.g. stale mediaMetadata)
-  if (filesToRename.length === 0 && plan.files.length > 0) {
-    filesToRename = plan.files
-  }
-
-  if (filesToRename.length === 0) {
-    toast.info("No files to rename")
-    await updatePlan(plan.id, "completed")
-    await fetchPendingPlans()
-    await refreshMediaMetadata(mediaFolderPath)
-    return
+  if (plan.files.length === 0) {
+    console.warn(`empty RenameFilesPlan, do nothing but mark plan as completed`)
   }
 
   try {
     // Pass platform-specific paths so the backend can perform file system operations correctly.
     // mediaFolder is used for metadata update and broadcast; files.from/to must be platform format.
     const response = await renameFilesApi({
-      files: filesToRename.map(({ from, to }) => ({
+      files: plan.files.map(({ from, to }) => ({
         from: Path.toPlatformPath(from),
         to: Path.toPlatformPath(to),
       })),
@@ -996,10 +783,6 @@ export async function executeRenamePlan(
       toast.warning(`Renamed ${successCount} file(s), ${errorCount} failed`)
     }
 
-    await updatePlan(plan.id, "completed")
-    await fetchPendingPlans()
-    // Ensure UI shows updated file paths; backend broadcasts mediaMetadataUpdated, but refresh is a reliable fallback
-    await refreshMediaMetadata(mediaFolderPath)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     toast.error(`Failed to rename files: ${errorMessage}`)
@@ -1040,149 +823,13 @@ export async function buildTemporaryRecognitionPlanAsync(
 }
 
 
-/**
- * Build SeasonModel[] from mediaMetadata.tmdbTvShow
- * This creates a new seasons model with all episodes from tmdbTvShow, initialized with empty files array.
- *
- * @param mediaMetadata - The media metadata containing tmdbTvShow
- * @returns SeasonModel array with episodes from tmdbTvShow, or null if tmdbTvShow is undefined
- */
-export function buildSeasonsModelFromMediaMetadata(mediaMetadata: UIMediaMetadata): SeasonModel[] | null {
-  if (!mediaMetadata.tmdbTvShow) {
-    return null
-  }
 
-  const seasons: SeasonModel[] = []
-
-  for (const tmdbSeason of mediaMetadata.tmdbTvShow.seasons || []) {
-    const episodes: Array<{ episode: TMDBEpisode; files: FileProps[] }> = []
-
-    for (const tmdbEpisode of tmdbSeason.episodes || []) {
-      episodes.push({
-        episode: tmdbEpisode,
-        files: [], // Initialize with empty files array
-      })
-    }
-
-    seasons.push({
-      season: tmdbSeason,
-      episodes,
-    })
-  }
-
-  seasons.forEach(season => {
-    const seasonNumber = season.season.season_number
-    season.episodes.forEach(episode => {
-      const episodeNumber = episode.episode.episode_number
-
-      const mediaFile = mediaMetadata.mediaFiles?.find(mf => mf.seasonNumber === seasonNumber && mf.episodeNumber === episodeNumber)
-      const videoFile = mediaFile?.absolutePath
-
-      if(videoFile) {
-        episode.files.push(...buildFileProps(mediaMetadata, seasonNumber, episodeNumber))
-      }
-    })
-  })
-  
-
-  return seasons
-}
-
-/**
- * Recognize media files by rules and update season models for preview.
- * This function builds a new seasons model from tmdbTvShow and populates episode files
- * by using the lookup function to find video files for episodes that don't have mediaFiles assigned.
- *
- * @param mediaMetadata - The media metadata containing files and TV show info
- * @returns Updated season models with recognized files, or null if mediaMetadata is invalid
- */
-export async function recognizeMediaFilesByRulesAsync(
-  mediaMetadata: UIMediaMetadata,
-): Promise<SeasonModel[] | null> {
-  if (!mediaMetadata) {
-    return null
-  }
-
-  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
-    return null
-  }
-
-  try {
-    // Build initial seasons model from tmdbTvShow
-    const seasonsForPreview = buildSeasonsModelFromMediaMetadata(mediaMetadata)
-    if (!seasonsForPreview) {
-      return null
-    }
-
-    // reset files for preview
-    seasonsForPreview.forEach(season => {
-      season.episodes.forEach(episode => {
-        episode.files = []
-      })
-    })
-
-    console.log(`[TvShowPanelUtils] built seasons model from tmdbTvShow:`, seasonsForPreview)
-
-    // Track which video files have already been assigned to prevent duplicate recognition
-    const assignedVideoFilePaths = new Set<string>()
-
-    const updateSeasonsForPreview = (seasonNumber: number, episodeNumber: number, videoFilePath: string) => {
-      // Check if this video file has already been assigned to another episode
-      if (assignedVideoFilePaths.has(videoFilePath)) {
-        console.warn(`[TvShowPanelUtils] Warning: Video file already assigned to another episode: ${videoFilePath}. Skipping S${seasonNumber}E${episodeNumber}`)
-        return
-      }
-
-      // Mark this video file as assigned
-      assignedVideoFilePaths.add(videoFilePath)
-
-      // Find the matching season and episode
-      const season = seasonsForPreview.find(s => s.season.season_number === seasonNumber)
-      if (!season) {
-        return
-      }
-
-      const episode = season.episodes.find(ep => ep.episode.episode_number === episodeNumber)
-      if (!episode) {
-        return
-      }
-
-      // Check that mediaMetadata has required properties
-      if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
-        return
-      }
-
-      const newFiles = buildFilePropsForVideoPath(
-        mediaMetadata.mediaFolderPath,
-        mediaMetadata.files,
-        videoFilePath
-      )
-
-      // Update the episode's files
-      console.log(`[TvShowPanelUtils] updating episode files:`, episode.files, newFiles)
-      episode.files = newFiles
-    }
-
-    const collected = await recognizeEpisodesAsync(mediaMetadata);
-
-    for (const { season: seasonNumber, episode: episodeNumber, file: videoFilePath } of collected) {
-      console.log(`[TvShowPanelUtils] video file path from lookup:`, videoFilePath)
-      updateSeasonsForPreview(seasonNumber, episodeNumber, videoFilePath)
-    }
-
-    console.log(`[TvShowPanelUtils] seasons for preview:`, seasonsForPreview)
-    return seasonsForPreview
-  } catch (error) {
-    console.error('[TvShowPanelUtils] Error building seasons state from media metadata', error)
-    return null
-  }
-}
 
 export async function handleAiRecognizeConfirm(
   plan: RecognizeMediaFilePlan,
   mediaMetadata: UIMediaMetadata,
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
-  updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
+  setPlanById: (id: string, planProps: { status: UIPlan['status']}) => void
 ): Promise<void> {
   const traceId = `TvShowPanelUtils-handleAiRecognizeConfirm-${nextTraceId()}`
   console.log(`[${traceId}] handleAiRecognizeConfirm CALLED`, {
@@ -1207,7 +854,7 @@ export async function handleAiRecognizeConfirm(
   }
 
   try {
-    await updatePlan(plan.id, 'completed')
+    setPlanById(plan.id, { status: 'completed'})
     await applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>, { traceId })
     console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
     toast.success(`Applied recognition for ${plan.files.length} file(s)`)
@@ -1218,7 +865,7 @@ export async function handleAiRecognizeConfirm(
 }
 
 export interface HandlePendingPlansParams {
-  pendingPlans: UIRecognizeMediaFilePlan[]
+  pendingPlans: (UIRecognizeMediaFilePlan | UIRenameFilesPlan)[]
   mediaMetadata: UIMediaMetadata | undefined
   openRuleBasedRecognizePrompt: (options: {
     tvShowTitle: string
@@ -1244,6 +891,10 @@ export interface HandlePendingPlansParams {
   toast: typeof toast
 }
 
+/**
+ * @param params 
+ * @returns 
+ */
 export function handlePendingPlans(params: HandlePendingPlansParams): void {
   const {
     pendingPlans,
@@ -1253,11 +904,9 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     closeAiBasedRecognizePrompt,
     handleAiRecognizeConfirmCallback,
     handleRuleBasedRecognizeConfirmCallback,
-    updatePlan,
+    updatePlan: setPlayById,
     t,
   } = params
-
-  console.log('[TvShowPanel] Pending plans:', pendingPlans)
 
   if (!mediaMetadata?.mediaFolderPath) {
     return
@@ -1267,29 +916,20 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     p =>
       p.task === "recognize-media-file" &&
       (p.status === 'pending' || p.status === 'loading') &&
+      p.tmp === false &&
       p.mediaFolderPath === mediaMetadata.mediaFolderPath
   )
-
+  
   if (plan) {
-    console.log('[TvShowPanel] Found plan:', plan)
-    const seasons =
-      plan.status === 'pending' && plan.files.length > 0
-        ? buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan as RecognizeMediaFilePlan)
-        : []
-    if (plan.status === 'pending' && plan.files.length > 0) {
-      console.log('[TvShowPanel] Seasons:', seasons)
-    }
-
     if (plan.tmp) {
       if (mediaMetadata.tmdbTvShow !== undefined) {
         openRuleBasedRecognizePrompt({
           tvShowTitle: mediaMetadata.tmdbTvShow.name,
           tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
           planId: plan.id,
-          onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as RecognizeMediaFilePlan),
+          onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as UIRecognizeMediaFilePlan),
           onCancel: () => {
-            console.log('[TvShowPanel] Rule-based recognition cancelled')
-            updatePlan(plan.id, 'rejected').catch(error => {
+            setPlayById(plan.id, 'rejected').catch(error => {
               console.error('[TvShowPanel] Error removing temporary plan:', error)
             })
           }
@@ -1302,12 +942,10 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
         confirmButtonLabel: t('toolbar.confirm') || "Confirm",
         confirmButtonDisabled: false,
         isRenaming: false,
-        onConfirm: () => handleAiRecognizeConfirmCallback(plan),
+        onConfirm: () => handleAiRecognizeConfirmCallback(plan as RecognizeMediaFilePlan),
         onCancel: async () => {
-          console.log('[TvShowPanel] AI recognition cancelled')
           try {
-            await updatePlan(plan.id, 'rejected')
-            console.log('[TvShowPanel] Plan rejected successfully')
+            await setPlayById(plan.id, 'rejected')
           } catch (error) {
             console.error('[TvShowPanel] Error rejecting plan:', error)
           }
@@ -1328,8 +966,6 @@ export interface OnMediaFolderSelectedParams {
     onCancel?: () => void
   }) => void
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
-  buildSeasonsModelFromMediaMetadata: (mediaMetadata: UIMediaMetadata) => SeasonModel[] | null
-  setSeasons: (seasons: SeasonModel[]) => void
 }
 
 export interface UnlinkEpisodeParams {
@@ -1371,14 +1007,12 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
     })
 }
 
-/** @returns true if seasons were set for the current folder (caller may tie ref to path); false if skipped or build failed */
+/** @returns true if media folder was processed successfully */
 export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): boolean {
   const {
     mediaMetadata,
     openRuleBasedRecognizePrompt,
     updateMediaMetadata,
-    buildSeasonsModelFromMediaMetadata,
-    setSeasons,
   } = params
 
   console.log("[onMediaFolderSelected] called", {
@@ -1393,7 +1027,7 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
   }
 
   if (mediaMetadata.status !== 'ok') {
-    console.log('[TvShowPanelUtils] skip to update seasons model because status is not ok', {
+    console.log('[TvShowPanelUtils] skip processing because status is not ok', {
       mediaFolderPath: mediaMetadata.mediaFolderPath,
       status: mediaMetadata.status,
     })
@@ -1424,16 +1058,5 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
     }
   })()
 
-  const seasons = buildSeasonsModelFromMediaMetadata(mediaMetadata)
-  if (seasons !== null) {
-    console.log("[onMediaFolderSelected] setSeasons", {
-      mediaFolderPath: mediaMetadata.mediaFolderPath,
-      seasonsCount: seasons.length,
-      episodesCount: seasons.reduce((n, s) => n + s.episodes.length, 0),
-    })
-    setSeasons(seasons)
-    return true
-  }
-  console.warn('[TvShowPanelUtils] onMediaFolderSelected: failed to build seasons model')
-  return false
+  return true
 }

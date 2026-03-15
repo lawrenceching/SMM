@@ -5,13 +5,11 @@ import type {
   AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
 import type { MediaMetadata } from "@core/types"
-import type { SeasonModel } from "../TvShowPanel"
-import { renameFiles } from "../TvShowPanelUtils"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 interface UseTvShowWebSocketEventsParams {
   mediaMetadata: MediaMetadata | undefined
-  setSeasons: (updater: (prev: SeasonModel[]) => SeasonModel[]) => void
-  setScrollToEpisodeId: (id: number | null) => void
+  setScrollToEpisodeId?: (id: number | null) => void
   setSelectedMediaMetadataByMediaFolderPath: (path: string) => void
   openAiBasedRenameFilePrompt: (params: {
     status: "generating" | "wait-for-ack"
@@ -19,15 +17,15 @@ interface UseTvShowWebSocketEventsParams {
     onCancel?: () => void
   }) => void
   setAiBasedRenameFileStatus: (status: "generating" | "wait-for-ack") => void
+  updateMediaMetadata: (path: string, updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>
 }
 
 export function useTvShowWebSocketEvents({
   mediaMetadata,
-  setSeasons,
-  setScrollToEpisodeId,
   setSelectedMediaMetadataByMediaFolderPath,
   openAiBasedRenameFilePrompt,
   setAiBasedRenameFileStatus,
+  updateMediaMetadata,
 }: UseTvShowWebSocketEventsParams) {
   useWebSocketEvent((message) => {
     // Handle getSelectedMediaMetadata event with Socket.IO acknowledgement
@@ -47,67 +45,39 @@ export function useTvShowWebSocketEvents({
         onCancel: () => {},
       })
 
-      setSeasons(prev => {
-        return prev.map(season => ({
-          ...season,
-          episodes: season.episodes.map(episode => ({
-            ...episode,
-            files: episode.files.map(file => ({
-              ...file,
-              newPath: undefined,
-            })),
-          })),
-        }))
-      })
+      // Clear newPath for all media files
+      if (mediaMetadata?.mediaFiles && mediaMetadata.mediaFolderPath) {
+        const updatedMediaFiles = mediaMetadata.mediaFiles.map(file => ({
+          ...file,
+          newPath: undefined,
+        }));
+        updateMediaMetadata(mediaMetadata.mediaFolderPath, (current) => ({
+          ...current,
+          mediaFiles: updatedMediaFiles,
+        }));
+      }
     } else if (message.event === AskForRenameFilesConfirmation.addFileEvent) {
       console.log('AskForRenameFilesConfirmation.addFileEvent received', message.data);
       const data: AskForRenameFilesConfirmationAddFileResponseData = message.data as AskForRenameFilesConfirmationAddFileResponseData;
       const from = data.from;
       const to = data.to;
 
-      setSeasons(prev => {
-        let foundEpisodeId: number | null = null;
-        const updatedSeasons = prev.map(season => ({
-          ...season,
-          episodes: season.episodes.map(episode => 
-          {
-            const videoFile = episode.files.find(file => file.type === "video");
-            if(videoFile === undefined) {
-              return episode;
-            }
-
-            if(videoFile.path !== from) {
-              return episode;
-            }
-
-            // Found the matching episode, store its ID for scrolling
-            foundEpisodeId = episode.episode.id;
-
-            const newFileFromAI = {
-              from: from,
-              to: to,
-            }
-
-            if(newFileFromAI === undefined) {
-              return episode;
-            }
-
-            const newFiles = renameFiles(mediaMetadata!.mediaFolderPath!, newFileFromAI.to, episode.files);
+      // Update media file with newPath
+      if (mediaMetadata?.mediaFiles && mediaMetadata.mediaFolderPath) {
+        const updatedMediaFiles = mediaMetadata.mediaFiles.map(file => {
+          if (file.absolutePath === from) {
             return {
-              episode: episode.episode,
-              files: newFiles,
-            }
+              ...file,
+              newPath: to,
+            };
           }
-          ),
+          return file;
+        });
+        updateMediaMetadata(mediaMetadata.mediaFolderPath, (current) => ({
+          ...current,
+          mediaFiles: updatedMediaFiles,
         }));
-
-        // Set scroll target if episode was found
-        if (foundEpisodeId !== null) {
-          setScrollToEpisodeId(foundEpisodeId);
-        }
-
-        return updatedSeasons;
-      })
+      }
     } else if (message.event === AskForRenameFilesConfirmation.endEvent) {
       console.log('AskForRenameFilesConfirmation.endEvent received', message.data);
       setAiBasedRenameFileStatus("wait-for-ack")

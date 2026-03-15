@@ -79,7 +79,7 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
 export function useBackgroundJobs() {
   const context = useContext(BackgroundJobsContext);
   if (context === undefined) {
-    throw new Error("useBackgroundJobs must be used within a GlobalStatesProvider")
+    throw new Error("useBackgroundJobs must be used within a BackgroundJobsProvider")
   }
   return context;
 }

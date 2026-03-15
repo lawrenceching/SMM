@@ -1,11 +1,10 @@
 import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/TvShowEpisodeTable";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
-import { buildSeasonsModelFromMediaMetadata, buildSeasonsByRecognizeMediaFilePlan, buildSeasonsByRenameFilesPlan } from "@/components/TvShowPanelUtils";
-import { basename } from "@/lib/path";
-import type { TFunction } from "i18next";
+import { basename, join } from "@/lib/path";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
+import { findAssociatedFiles } from "@/lib/utils";
+import { mapTagToFileType } from "@/components/TvShowPanelUtils";
+import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
 const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
 
@@ -61,26 +60,61 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     rows.push(...buildFolderFileRows(mm.files))
   }
 
-  const seasons = buildSeasonsModelFromMediaMetadata(mm)
-  if (!seasons) {
+  if (!mm.tmdbTvShow) {
     return rows
   }
 
-  for (const seasonModel of seasons) {
-    const seasonNo = seasonModel.season.season_number
-    const seasonText = seasonModel.season.name || `Season ${seasonNo}`
+  // Process each season and episode directly from tmdbTvShow
+  for (const season of mm.tmdbTvShow.seasons || []) {
+    const seasonNo = season.season_number
+    const seasonText = season.name || `Season ${seasonNo}`
     rows.push({
       id: `season-${seasonNo}`,
       type: "divider",
       text: seasonText,
     })
 
-    for (const episodeModel of seasonModel.episodes) {
-      const episodeNo = episodeModel.episode.episode_number
-      const videoFile = episodeModel.files.find((file) => file.type === "video")
-      const thumbnailFile = episodeModel.files.find((file) => file.type === "poster")
-      const subtitleFile = episodeModel.files.find((file) => file.type === "subtitle")
-      const nfoFile = episodeModel.files.find((file) => file.type === "nfo")
+    for (const episode of season.episodes || []) {
+      const episodeNo = episode.episode_number
+      
+      // Find the media file for this episode
+      const mediaFile = mm.mediaFiles?.find(
+        file => file.seasonNumber === seasonNo && file.episodeNumber === episodeNo
+      )
+      
+      let videoFile: { path: string; newPath?: string } | undefined
+      let thumbnailFile: { path: string; newPath?: string } | undefined
+      let subtitleFile: { path: string; newPath?: string } | undefined
+      let nfoFile: { path: string; newPath?: string } | undefined
+
+      if (mediaFile && mm.mediaFolderPath && mm.files) {
+        // Get video file path
+        videoFile = {
+          path: mediaFile.absolutePath,
+          newPath: undefined
+        }
+        
+        // Find associated files
+        const associatedFiles = findAssociatedFiles(mm.mediaFolderPath, mm.files, mediaFile.absolutePath)
+        
+        for (const file of associatedFiles) {
+          const filePath = join(mm.mediaFolderPath, file.path)
+          const fileType = mapTagToFileType(file.tag)
+          
+          switch (fileType) {
+            case 'poster':
+              thumbnailFile = { path: filePath }
+              break
+            case 'subtitle':
+              subtitleFile = { path: filePath }
+              break
+            case 'nfo':
+              nfoFile = { path: filePath }
+              break
+          }
+        }
+      }
+      
       rows.push({
         season: seasonNo,
         episode: episodeNo,
@@ -89,12 +123,12 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
         thumbnail: thumbnailFile?.path,
         subtitle: subtitleFile?.path,
         nfo: nfoFile?.path,
-        episodeTitle: episodeModel.episode.name ?? "",
+        episodeTitle: episode.name ?? "",
         newVideoFile: videoFile?.newPath,
         newThumbnail: thumbnailFile?.newPath,
         newSubtitle: subtitleFile?.newPath,
         newNfo: nfoFile?.newPath,
-        checked: true,
+        checked: videoFile?.path ? true : false,
       })
     }
   }
@@ -104,7 +138,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
 
 export function buildTvShowEpisodeTableRowsForPlan(
     mm: UIMediaMetadata, 
-    plan: RenameFilesPlan | UIRecognizeMediaFilePlan,
+    plan: UIRenameFilesPlan | UIRecognizeMediaFilePlan,
     t: (key: string) => string
 ): TvShowEpisodeTableRow[] {
 
@@ -166,6 +200,11 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
       row.videoFile = recognizedFile.path;
       row.newVideoFile = undefined;
     }
+
+    if(row.videoFile === undefined) {
+      row.checked = false;
+    }
+
   }
 
   return rows;
@@ -174,16 +213,23 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
 
 export function fillTvShowEpisodeTableRowByRenameFilesPlan(
     _in_rows: TvShowEpisodeTableRow[],
-    plan: RenameFilesPlan,
+    plan: UIRenameFilesPlan,
 ) {
   const rows = structuredClone(_in_rows) as TvShowEpisodeDataRow[]
   const renameFiles = plan.files
 
   for(const renameFile of renameFiles) {
     for(const row of rows) {
+
+      if(row.type !== "episode") {
+        continue;
+      }
+
       if(row.videoFile === renameFile.from) {
         row.newVideoFile = renameFile.to;
+        row.checked = true;
       }
+
     }
   }
 

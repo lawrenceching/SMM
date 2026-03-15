@@ -100,7 +100,6 @@ export function ConfigProvider({
 
     if(!latestAppConfig.current.userDataDir) {
       console.error(`[${traceId}] saveUserConfig: User data directory not found`)
-      debugger;
       throw new Error("User data directory not found")
     }
 

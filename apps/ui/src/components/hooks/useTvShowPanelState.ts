@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import type { SeasonModel } from "../TvShowPanel"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
@@ -17,7 +16,6 @@ interface UseTvShowPanelStateParams {
 
 export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts }: UseTvShowPanelStateParams) {
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
-  const [seasons, setSeasons] = useState<SeasonModel[]>([])
   const [isRenaming, setIsRenaming] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
   const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
@@ -32,9 +30,7 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     openUseNfoPromptRef.current = usePrompts.openUseNfoPrompt
   }, [usePrompts.openUseNfoPrompt])
 
-  // When media folder path changes: close prompts and reset processed path. Do NOT clear seasons here -
-  // TvShowPanel uses seasonsPathRef to pass table data only when path matches, so clearing would race
-  // with handleMediaFolderSelected's setSeasons and can overwrite the new folder's data if this effect runs after.
+  // When media folder path changes: close prompts and reset processed path
   useEffect(() => {
     const currentPath = mediaMetadata?.mediaFolderPath
     const prevPath = prevMediaFolderPathRef.current
@@ -69,8 +65,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   }, [scrollToEpisodeId])
 
   return {
-    seasons,
-    setSeasons,
     selectedNamingRule,
     setSelectedNamingRule,
     aiBasedRenameFileStatus,

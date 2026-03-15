@@ -76,11 +76,11 @@ interface TvShowEpisodeTableProps {
   /** When set, video paths are shown relative to this path. */
   mediaFolderPath?: string
   /** Called when user chooses "Select File" from context menu; row is the row data. */
-  onVideoFileSelect?: (row: TvShowEpisodeDataRow) => void
+  onSelectFileContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Unlink" from context menu; row is the row data. */
-  onUnlinkEpisode?: (row: TvShowEpisodeDataRow) => void
+  onUnlinkContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Edit tags" from context menu; row is the row data. */
-  onEditTags?: (row: TvShowEpisodeDataRow) => void
+  onEditTagsContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /**
    * NOTE: preview mode is different concept from preview layout.
    * ** Preivew Mode ** Preview the recognition or rename plan
@@ -351,9 +351,9 @@ export function TvShowEpisodeTable({
   data,
   // checkboxes,
   mediaFolderPath,
-  onVideoFileSelect,
-  onUnlinkEpisode,
-  onEditTags,
+  onSelectFileContextMenuClick: onSelectFileContextMenuClick,
+  onUnlinkContextMenuClick,
+  onEditTagsContextMenuClick,
   preview,
   previewStatus,
   layout = "simple",
@@ -860,23 +860,23 @@ export function TvShowEpisodeTable({
                     {t('episodeFile.rename', { ns: 'components' })}
                   </ContextMenuItem>
                   <ContextMenuItem
-                    disabled={!row.videoFile || !onEditTags}
-                    onClick={() => onEditTags?.(row)}
+                    disabled={!row.videoFile || !onEditTagsContextMenuClick}
+                    onClick={() => onEditTagsContextMenuClick?.(row)}
                   >
                     {t('tvShowEpisodeTable.contextMenu.editTags')}
                   </ContextMenuItem>
                   <ContextMenuItem
-                    disabled={!onVideoFileSelect}
+                    disabled={!onSelectFileContextMenuClick}
                     onClick={() => {
-                      onVideoFileSelect?.(row)
+                      onSelectFileContextMenuClick?.(row)
                     }}
                   >
                     {t('episodeFile.selectFile', { ns: 'components' })}
                   </ContextMenuItem>
                   <ContextMenuItem
-                    disabled={!row.videoFile || !onUnlinkEpisode}
+                    disabled={!row.videoFile || !onUnlinkContextMenuClick}
                     onClick={() => {
-                      onUnlinkEpisode?.(row)
+                      onUnlinkContextMenuClick?.(row)
                     }}
                   >
                     {t('tvShowEpisodeTable.contextMenu.unlink')}

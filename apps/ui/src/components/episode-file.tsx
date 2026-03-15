@@ -27,6 +27,12 @@ interface EpisodeFileProps {
 }
 
 /**
+ * @deprecated This method cannot handle associated files in season folders.
+ * If video file is expected to `Season 01/S01E01.mp4`
+ * And subtitle should be renamed to `Season 01/S01E01.en.srt`
+ * But this method return `S01E01.en.srt`, missing season folder on the front
+ * 
+ * 
  * Computes rename entries for all files that share the same stem as the video
  * being renamed. Operates directly on the raw file list from media metadata so
  * it is not affected by how the UI has classified/grouped those files.
