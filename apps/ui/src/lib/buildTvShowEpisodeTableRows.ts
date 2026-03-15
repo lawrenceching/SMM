@@ -77,13 +77,13 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
 
     for (const episodeModel of seasonModel.episodes) {
       const episodeNo = episodeModel.episode.episode_number
-      const episodeId = `S${String(seasonNo).padStart(2, "0")}E${String(episodeNo).padStart(2, "0")}`
       const videoFile = episodeModel.files.find((file) => file.type === "video")
       const thumbnailFile = episodeModel.files.find((file) => file.type === "poster")
       const subtitleFile = episodeModel.files.find((file) => file.type === "subtitle")
       const nfoFile = episodeModel.files.find((file) => file.type === "nfo")
       rows.push({
-        id: episodeId,
+        season: seasonNo,
+        episode: episodeNo,
         type: "episode",
         videoFile: videoFile?.path,
         thumbnail: thumbnailFile?.path,
@@ -94,6 +94,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
         newThumbnail: thumbnailFile?.newPath,
         newSubtitle: subtitleFile?.newPath,
         newNfo: nfoFile?.newPath,
+        checked: false,
       })
     }
   }
@@ -156,8 +157,7 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
   const recognizedFiles = plan.files
 
   for(const recognizedFile of recognizedFiles) {
-    const episodeId = `S${String(recognizedFile.season).padStart(2, "0")}E${String(recognizedFile.episode).padStart(2, "0")}`
-    const row: TvShowEpisodeDataRow | undefined = rows.find((row) => row.id === episodeId) as TvShowEpisodeDataRow
+    const row: TvShowEpisodeDataRow | undefined = rows.find((row) => row.season === recognizedFile.season && row.episode === recognizedFile.episode) as TvShowEpisodeDataRow
     if(!row) {
       console.warn(`recognized video file ${recognizedFile.path} for season ${recognizedFile.season} episode ${recognizedFile.episode} but not found in episode table rows`)
       continue

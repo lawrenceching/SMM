@@ -1201,7 +1201,6 @@ export async function handleAiRecognizeConfirm(
 export interface HandlePendingPlansParams {
   pendingPlans: UIRecognizeMediaFilePlan[]
   mediaMetadata: UIMediaMetadata | undefined
-  setSeasonsForPreview: (seasons: SeasonModel[]) => void
   openRuleBasedRecognizePrompt: (options: {
     tvShowTitle: string
     tvShowTmdbId: number
@@ -1222,7 +1221,6 @@ export interface HandlePendingPlansParams {
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
   t: ReturnType<typeof import('react-i18next').useTranslation>['t']
-  buildSeasonsByRecognizeMediaFilePlan: (mediaMetadata: UIMediaMetadata, plan: RecognizeMediaFilePlan) => SeasonModel[]
   recognizeEpisodes: (seasons: SeasonModel[], mediaMetadata: UIMediaMetadata, updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void) => void
   toast: typeof toast
 }
@@ -1231,7 +1229,6 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
   const {
     pendingPlans,
     mediaMetadata,
-    setSeasonsForPreview,
     openRuleBasedRecognizePrompt,
     openAiBasedRecognizePrompt,
     closeAiBasedRecognizePrompt,
@@ -1239,7 +1236,6 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     updatePlan,
     updateMediaMetadata,
     t,
-    buildSeasonsByRecognizeMediaFilePlan,
     recognizeEpisodes,
     toast,
   } = params
@@ -1263,7 +1259,6 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
       plan.status === 'pending' && plan.files.length > 0
         ? buildSeasonsByRecognizeMediaFilePlan(mediaMetadata, plan as RecognizeMediaFilePlan)
         : []
-    setSeasonsForPreview(seasons)
     if (plan.status === 'pending' && plan.files.length > 0) {
       console.log('[TvShowPanel] Seasons:', seasons)
     }
@@ -1332,7 +1327,8 @@ export interface OnMediaFolderSelectedParams {
 }
 
 export interface UnlinkEpisodeParams {
-  rowId: string
+  season: number,
+  episode: number,
   mediaMetadata: UIMediaMetadata | undefined
   updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => Promise<void>
   t: (key: string, options?: Record<string, unknown>) => string
@@ -1344,19 +1340,13 @@ export interface UnlinkEpisodeParams {
  * out the matching entry from mediaMetadata.mediaFiles.
  */
 export function unlinkEpisode(params: UnlinkEpisodeParams): void {
-  const { rowId, mediaMetadata, updateMediaMetadata, t } = params
+  const { season, episode, mediaMetadata, updateMediaMetadata, t } = params
 
   if (!mediaMetadata?.mediaFolderPath || !mediaMetadata.mediaFiles) return
 
-  const match = rowId.match(/^S(\d+)E(\d+)$/)
-  if (!match) return
-
-  const seasonNo = parseInt(match[1], 10)
-  const episodeNo = parseInt(match[2], 10)
-
   // Filter out the media file entry for this episode
   const updatedMediaFiles = mediaMetadata.mediaFiles.filter(
-    (mf) => !(mf.seasonNumber === seasonNo && mf.episodeNumber === episodeNo)
+    (mf) => !(mf.seasonNumber === season && mf.episodeNumber === episode)
   )
 
   const traceId = `TvShowPanel-unlinkEpisode-${nextTraceId()}`

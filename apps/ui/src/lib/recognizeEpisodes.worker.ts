@@ -5,7 +5,6 @@
 import { recognizeEpisodes } from './recognizeEpisodes';
 import type { MediaMetadata } from '@core/types';
 import type { RecognizedEpisode } from './recognizeEpisodes';
-import { delay } from 'es-toolkit';
 export type WorkerRequest = { type: 'recognize'; id: number; payload: MediaMetadata };
 export type WorkerResult = { type: 'result'; id: number; payload: RecognizedEpisode[] };
 export type WorkerError = { type: 'error'; id: number; message: string };
@@ -20,8 +19,6 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
 
     (async () => {
 
-      // TODO: add delay temporarily to test the worker
-      await delay(10000);
       const payload = recognizeEpisodes(mm);
       (self as Worker).postMessage({ type: 'result', id, payload } satisfies WorkerResult);
 

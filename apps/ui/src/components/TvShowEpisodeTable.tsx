@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/ui/spinner"
 import { basename, isAbsPath, join, relative } from "@/lib/path"
 import { Path } from "@core/path"
 import { pathToFileURL } from "@core/url"
@@ -41,7 +42,8 @@ export interface TvShowEpisodeDividerRow {
 }
 
 export interface TvShowEpisodeDataRow {
-  id: string
+  season: number,
+  episode: number,
   type: "episode"
   videoFile: string | undefined
   thumbnail: string | undefined
@@ -54,6 +56,7 @@ export interface TvShowEpisodeDataRow {
   newThumbnail?: string
   newSubtitle?: string
   newNfo?: string
+  checked: boolean
 }
 
 export type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
@@ -68,22 +71,31 @@ export type TvShowEpisodeTableRow = TvShowEpisodeDividerRow | TvShowEpisodeDataR
 
 interface TvShowEpisodeTableProps {
   data: TvShowEpisodeTableRow[]
+  /** Checkboxes state, used to show checked state in table. */
+  // checkboxes: {season: number, episode: number, checked: boolean}[]
   /** When set, video paths are shown relative to this path. */
   mediaFolderPath?: string
-  /** Called when user chooses "Select File" from context menu; rowId is e.g. "S01E01". */
-  onVideoFileSelect?: (rowId: string) => void
-  /** Called when user chooses "Unlink" from context menu; rowId is e.g. "S01E01". */
-  onUnlinkEpisode?: (rowId: string) => void
-  /** Called when user chooses "Edit tags" from context menu; rowId is e.g. "S01E01". */
-  onEditTags?: (rowId: string) => void
-  /** When true, shows rename preview with strikethrough old name and new name. */
-  preview?: boolean
-  /** Table layout: simple | detail (cover + title + path) | preview (no ID, larger cover, video screenshot). */
+  /** Called when user chooses "Select File" from context menu; row is the row data. */
+  onVideoFileSelect?: (row: TvShowEpisodeDataRow) => void
+  /** Called when user chooses "Unlink" from context menu; row is the row data. */
+  onUnlinkEpisode?: (row: TvShowEpisodeDataRow) => void
+  /** Called when user chooses "Edit tags" from context menu; row is the row data. */
+  onEditTags?: (row: TvShowEpisodeDataRow) => void
+  /**
+   * NOTE: preview mode is different concept from preview layout.
+   * ** Preivew Mode ** Preview the recognition or rename plan
+   * ** Preivew Layout ** Display video screenshots for video
+   */
+  preview?: "rename" | "recognize"
+  previewStatus?: "loading" | "ok"
+  /**
+   * NOTE: preview mode is different concept from preview layout.
+   * ** Preivew Mode ** Preview the recognition or rename plan
+   * ** Preivew Layout ** Display video screenshots for video 
+   * Table layout: simple | detail (cover + title + path) | preview (no ID, larger cover, video screenshot). 
+   * */
   layout?: "simple" | "detail" | "preview"
-  /** When preview is true, episode row ids (SxxEyy) selected for rename. Checked rows are renamed on confirm. */
-  renameSelection?: Set<string>
-  /** Called when user toggles the rename checkbox for an episode row. */
-  onRenameSelectionChange?: (ids: Set<string>) => void
+  onCheck?: (row: TvShowEpisodeDataRow, checked: boolean) => void
 }
 
 /**
@@ -335,7 +347,17 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   nfo: true,
 }
 
-export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, onUnlinkEpisode, onEditTags, preview, layout = "simple", renameSelection, onRenameSelectionChange }: TvShowEpisodeTableProps) {
+export function TvShowEpisodeTable({
+  data,
+  // checkboxes,
+  mediaFolderPath,
+  onVideoFileSelect,
+  onUnlinkEpisode,
+  onEditTags,
+  preview,
+  previewStatus,
+  layout = "simple",
+  onCheck }: TvShowEpisodeTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const folderAbortRef = useRef<AbortController | null>(null)
@@ -368,8 +390,6 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
 
   const columnLabels = getColumnLabels(t as (key: string, options?: Record<string, unknown>) => string)
 
-  console.log("[TvShowEpisodeTable] render", { dataLength: data.length, firstRowId: data[0]?.id ?? "(empty)" })
-
   const sectionIdByIndex = useMemo(() => {
     const map = new Map<number, string>()
     let currentId = ""
@@ -399,9 +419,9 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
   const isPreviewLayout = layout === "preview"
   const showThumbnailColumn = (!isSimpleLayout && layout === "detail") || isPreviewLayout || columnVisibility.thumbnail
   const showIdColumn = layout !== "preview"
-  const showRenameCheckboxColumn = Boolean(preview && renameSelection != null && onRenameSelectionChange != null)
+  const showCheckboxColumn = preview !== undefined
   const visibleColumnCount =
-    (showRenameCheckboxColumn ? 1 : 0) +
+    (showCheckboxColumn ? 1 : 0) +
     (showIdColumn ? 1 : 0) +
     (showThumbnailColumn ? 1 : 0) +
     (columnVisibility.video ? 1 : 0) +
@@ -412,7 +432,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
 
   const headerRow = (
     <TableRow className="hover:bg-transparent">
-      {showRenameCheckboxColumn && (
+      {showCheckboxColumn && (
         <TableHead className="h-8 w-10 shrink-0 px-0 py-1 text-center" title={t('tvShowEpisodeTable.renameCheckboxTitle', { defaultValue: 'Include in rename' })}>
           {t('tvShowEpisodeTable.renameCheckboxHeader', { defaultValue: '' })}
         </TableHead>
@@ -512,8 +532,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
               const isCollapsed = collapsedIds.has(row.id)
               return (
                 <TableRow key={`${row.id}-${index}`} className="bg-muted/60 hover:bg-muted/70">
-                  {showRenameCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
-                  <TableCell colSpan={visibleColumnCount - (showRenameCheckboxColumn ? 1 : 0)} className="px-2 py-1.5 font-semibold">
+                  {showCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
+                  <TableCell colSpan={visibleColumnCount - (showCheckboxColumn ? 1 : 0)} className="px-2 py-1.5 font-semibold">
                     <div className="flex items-center justify-between gap-2">
                       <span>{row.text}</span>
                       <button
@@ -538,9 +558,9 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
             if (row.type === "folderFile") {
               const folderFileRow = (
                 <TableRow key={`${row.id}-${index}`}>
-                  {showRenameCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
+                  {showCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
                   <TableCell className="px-2 py-1 font-mono w-[100px]">{row.id}</TableCell>
-                  <TableCell colSpan={visibleColumnCount - (showRenameCheckboxColumn ? 2 : 1)} className="max-w-px px-2 py-1 truncate" title={row.path}>
+                  <TableCell colSpan={visibleColumnCount - (showCheckboxColumn ? 2 : 1)} className="max-w-px px-2 py-1 truncate" title={row.path}>
                     {getDisplayPath(row.path, mediaFolderPath)}
                   </TableCell>
                 </TableRow>
@@ -573,44 +593,32 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
               return null
             }
 
-            const hasRename = Boolean(
-              row.videoFile &&
-              row.newVideoFile &&
-              basename(row.videoFile) !== basename(row.newVideoFile)
-            )
             const episodeRow = (
-              <TableRow key={`${row.id}-${index}`}>
-                {showRenameCheckboxColumn && (
+              <TableRow key={`${row.season}-${row.episode}-${index}`}>
+                {showCheckboxColumn && (
                   <TableCell className="w-10 shrink-0 px-0 py-1 text-center align-middle">
                     <input
                       type="checkbox"
                       role="checkbox"
-                      aria-label={hasRename ? t('tvShowEpisodeTable.renameCheckboxAria', { defaultValue: 'Include in rename' }) : undefined}
                       className="h-3.5 w-3.5 cursor-pointer"
-                      disabled={!hasRename}
-                      checked={hasRename && renameSelection!.has(row.id)}
+                      checked={row.checked}
                       onChange={(e) => {
-                        if (!onRenameSelectionChange || !hasRename) return
-                        const next = new Set(renameSelection!)
-                        if (e.target.checked) next.add(row.id)
-                        else next.delete(row.id)
-                        console.log("[TvShowEpisodeTable] rename checkbox toggled, row.id:", row.id, "checked:", e.target.checked, "next size:", next.size, "ids:", [...next].sort())
-                        onRenameSelectionChange(next)
+                        onCheck?.(row, e.target.checked)
                       }}
                     />
                   </TableCell>
                 )}
                 {showIdColumn && (
-                  <TableCell className="px-2 py-1 font-mono">{row.id}</TableCell>
+                  <TableCell className="px-2 py-1 font-mono">{`S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}`}</TableCell>
                 )}
                 {isSimpleLayout && columnVisibility.video && (
                   <TableCell className="max-w-px px-2 py-1">
                     {row.videoFile ? (
-                      preview && !row.newVideoFile ? (
+                      preview === 'rename' && !row.newVideoFile ? (
                         <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
-                      ) : preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                      ) : preview === 'rename' && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
                         <div className="min-w-0 space-y-0.5">
                           <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
                             {getDisplayPath(row.videoFile, mediaFolderPath)}
@@ -624,8 +632,12 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
                       )
-                    ) : preview ? (
-                      <span className="text-muted-foreground text-xs">{t('tvShowEpisodeTable.unrecognizedVideoFile', { defaultValue: 'Cannot recognize video file' })}</span>
+                    ) : preview === 'recognize' ? (
+                      previewStatus === 'loading' ? (
+                        <span className="text-muted-foreground text-xs"><Spinner className="size-4" /></span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">{t('tvShowEpisodeTable.unrecognizedVideoFile', { defaultValue: 'Cannot recognize video file' })}</span>
+                      )
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -710,8 +722,8 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                   <TableCell className="max-w-px px-2 py-1">
                     {isPreviewLayout ? (
                       <div className="min-w-0 space-y-2">
-                        <div className="truncate font-medium text-foreground" title={`${row.id} ${row.episodeTitle || ""}`.trim()}>
-                          {row.id} {row.episodeTitle ? `· ${row.episodeTitle}` : ""}
+                        <div className="truncate font-medium text-foreground" title={`${row.season}-${row.episode} ${row.episodeTitle || ""}`.trim()}>
+                          {`S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}`} {row.episodeTitle ? `· ${row.episodeTitle}` : ""}
                         </div>
                         {row.videoFile ? (
                           <>
@@ -730,11 +742,11 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                       </div>
                     ) : layout === "detail" ? (
                       <div className="min-w-0 space-y-0.5">
-                        <div className="truncate font-medium text-foreground" title={row.episodeTitle || row.id}>
-                          {row.episodeTitle || row.id || "-"}
+                        <div className="truncate font-medium text-foreground" title={row.episodeTitle || `${row.season}-${row.episode}`}>
+                          {row.episodeTitle || `S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}` || "-"}
                         </div>
                         {row.videoFile ? (
-                          preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                          preview === 'rename' && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
                             <>
                               <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
                                 {getDisplayPath(row.videoFile, mediaFolderPath)}
@@ -753,7 +765,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                         )}
                       </div>
                     ) : row.videoFile ? (
-                      preview && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
+                      preview === 'rename' && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
                         <div className="min-w-0 space-y-0.5">
                           <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
                             {getDisplayPath(row.videoFile, mediaFolderPath)}
@@ -786,7 +798,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
             )
 
             return (
-              <ContextMenu key={`${row.id}-${index}`}>
+              <ContextMenu key={`${row.season}-${row.episode}-${index}`}>
                 <ContextMenuTrigger asChild>
                   {episodeRow}
                 </ContextMenuTrigger>
@@ -849,14 +861,14 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={!row.videoFile || !onEditTags}
-                    onClick={() => onEditTags?.(row.id)}
+                    onClick={() => onEditTags?.(row)}
                   >
                     {t('tvShowEpisodeTable.contextMenu.editTags')}
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={!onVideoFileSelect}
                     onClick={() => {
-                      onVideoFileSelect?.(row.id)
+                      onVideoFileSelect?.(row)
                     }}
                   >
                     {t('episodeFile.selectFile', { ns: 'components' })}
@@ -864,7 +876,7 @@ export function TvShowEpisodeTable({ data, mediaFolderPath, onVideoFileSelect, o
                   <ContextMenuItem
                     disabled={!row.videoFile || !onUnlinkEpisode}
                     onClick={() => {
-                      onUnlinkEpisode?.(row.id)
+                      onUnlinkEpisode?.(row)
                     }}
                   >
                     {t('tvShowEpisodeTable.contextMenu.unlink')}
