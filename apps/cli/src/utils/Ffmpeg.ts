@@ -94,9 +94,10 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
   } catch {
   }
 
+  const exeName = os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
+
   const resourcesPath = process.env.SMM_RESOURCES_PATH;
   if (resourcesPath) {
-    const exeName = os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
     const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
     if (fs.existsSync(bundledPath)) {
       return bundledPath;
@@ -104,13 +105,13 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
   }
 
   const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin/ffmpeg/ffmpeg.exe");
+  const devBinPath = path.join(projectRoot, "bin/ffmpeg", exeName);
   if (fs.existsSync(devBinPath)) {
     return devBinPath;
   }
 
   const smmDataDir = getSmmDataDir();
-  const installBinPath = path.join(smmDataDir, "bin/ffmpeg/ffmpeg.exe");
+  const installBinPath = path.join(smmDataDir, "bin/ffmpeg", exeName);
   if (fs.existsSync(installBinPath)) {
     return installBinPath;
   }
@@ -451,9 +452,10 @@ export async function discoverFfprobe(): Promise<string | undefined> {
   } catch {
   }
 
+  const exeName = os.platform() === "win32" ? "ffprobe.exe" : "ffprobe";
+
   const resourcesPath = process.env.SMM_RESOURCES_PATH;
   if (resourcesPath) {
-    const exeName = os.platform() === "win32" ? "ffprobe.exe" : "ffprobe";
     const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
     if (fs.existsSync(bundledPath)) {
       return bundledPath;
@@ -461,13 +463,13 @@ export async function discoverFfprobe(): Promise<string | undefined> {
   }
 
   const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin/ffmpeg/ffprobe.exe");
+  const devBinPath = path.join(projectRoot, "bin/ffmpeg", exeName);
   if (fs.existsSync(devBinPath)) {
     return devBinPath;
   }
 
   const smmDataDir = getSmmDataDir();
-  const installBinPath = path.join(smmDataDir, "bin/ffmpeg/ffprobe.exe");
+  const installBinPath = path.join(smmDataDir, "bin/ffmpeg", exeName);
   if (fs.existsSync(installBinPath)) {
     return installBinPath;
   }

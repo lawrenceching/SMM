@@ -55,8 +55,7 @@ mac:
       to: 'bin/ffmpeg'
       filter:
         - '**/*'
-    # Single file: copy yt-dlp_linux and rename to yt-dlp (no filter needed)
-    - from: '../../bin/yt-dlp/yt-dlp_linux'
+    - from: '../../bin/yt-dlp/yt-dlp'
       to: 'bin/yt-dlp/yt-dlp'
 dmg:
   artifactName: ${name}-${version}.${ext}
@@ -76,7 +75,7 @@ linux:
       to: 'bin/ffmpeg'
       filter:
         - '**/*'
-    - from: '../../bin/yt-dlp/yt-dlp_linux'
+    - from: '../../bin/yt-dlp/yt-dlp'
       to: 'bin/yt-dlp/yt-dlp'
 appImage:
   artifactName: ${name}-${version}.${ext}
