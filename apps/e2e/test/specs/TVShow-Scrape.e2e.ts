@@ -5,6 +5,7 @@ import * as os from 'node:os'
 import Menu from '../componentobjects/Menu'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
+import TVShowPanel from '../componentobjects/TVShowPanel'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
@@ -119,7 +120,26 @@ describe('TVShow - Scrape', () => {
 
     await clickScrapeDialogStart()
     await waitForScrapeDialogDone()
-    await delay(2000)
+
+    // Wait for TvShowPanel to reflect newly scraped files in the episode table.
+    // Expected rows (thumbnail and nfo columns should both be "V"):
+    //
+    // S01E01 S01E01.mp4 V - V
+    // S01E02 S01E02.mp4 V - V
+    const panelState = await TVShowPanel.waitFor((state) => {
+      return (
+        state.includes(`fanart
+poster
+nfo
+特别篇
+S00E01 - - - -
+第 1 季
+S01E01 S01E01.mp4 V - V
+S01E02 S01E02.mp4 V - V`)
+      )
+    }, 5_000)
+
+    console.log('[TVShow-Scrape] TvShowPanel state after scraping:\n' + panelState)
 
     const filesInMediaFolder = fs.readdirSync(testMediaFolder)
 

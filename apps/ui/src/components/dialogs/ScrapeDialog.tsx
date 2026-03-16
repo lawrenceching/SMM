@@ -28,6 +28,8 @@ import { Path } from "@core/path"
 import { basename, extname, dirname } from "@/lib/path"
 import type { MediaMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { nextTraceId } from "@/lib/utils"
 
 interface Task {
   id: string;
@@ -391,6 +393,7 @@ export function ScrapeDialog({
   const handlePosterDownload = useHandlePosterDownload()
   const handleFanartDownload = useHandleFanartDownload()
   const handleThumbnailDownload = useHandleThumbnailDownload()
+  const { refreshMediaMetadata } = useMediaMetadataActions()
 
   const [tasks, setTasks] = useState<Task[]>([])
 
@@ -487,6 +490,8 @@ export function ScrapeDialog({
     } else if (mediaMetadata) {
       // Execute tasks sequentially
       const currentTasks = [...tasks]
+      const traceId = `ScrapeDialog-handleStart-${nextTraceId()}`
+
       for (let i = 0; i < currentTasks.length; i++) {
         // Skip tasks that are already completed or failed
         if (currentTasks[i].status === "completed" || currentTasks[i].status === "failed") {
@@ -519,6 +524,16 @@ export function ScrapeDialog({
           })
           console.error(`Task "${currentTasks[i].name}" failed:`, error)
           // Error toast is shown by the hook/API layer with more specific error messages
+        }
+      }
+
+      // After all tasks have been processed, refresh media metadata so that
+      // newly scraped files are reflected in mediaMetadata.files
+      if (mediaMetadata.mediaFolderPath) {
+        try {
+          await refreshMediaMetadata(mediaMetadata.mediaFolderPath, { traceId })
+        } catch (error) {
+          console.error('[ScrapeDialog] Failed to refresh media metadata after scraping:', error)
         }
       }
     }

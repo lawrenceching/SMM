@@ -35,8 +35,6 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-
 interface ToolbarOption {
   value: "plex" | "emby",
   label: string,
@@ -423,12 +421,15 @@ function TvShowPanel() {
       return
     }
 
-    requireMediaMetadata(mediaMetadata);
+    const currentMediaMetadata = requireMediaMetadata();
+    if (!currentMediaMetadata) {
+      return
+    }
 
     const traceId = `UserLinkFileToEpisode-${nextTraceId()}`
 
     const updated = handleEpisodeFileSelectHelper(
-      mediaMetadata!,
+      currentMediaMetadata,
       seasonNumber,
       episodeNumber,
       file.path,
@@ -438,11 +439,11 @@ function TvShowPanel() {
     )
 
     // If helper returns the same object, treat it as no-op (likely due to error)
-    if (updated === mediaMetadata) {
+    if (updated === currentMediaMetadata) {
       return
     }
 
-    updateMediaMetadata(mediaMetadata!.mediaFolderPath!, updated, { traceId })
+    updateMediaMetadata(currentMediaMetadata.mediaFolderPath!, updated, { traceId })
     toast.success("File added successfully")
   }, [mediaMetadata, updateMediaMetadata, requireMediaMetadata])
 
