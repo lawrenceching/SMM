@@ -30,11 +30,15 @@ export function MovieHeaderV2({
 
     const movie = selectedMediaMetadata?.tmdbMovie
     const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
+    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
     const initialSearchValue = movie?.title
 
     const hasValidTmdbMovie = movie != null && movie.id != null
     const actionsDisabled = !hasValidTmdbMovie
-    const unrecognizedHint = actionsDisabled ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string) : undefined
+    const unrecognizedHint =
+        isMediaMetadataOk && actionsDisabled
+            ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
+            : undefined
 
     const tmdbId = movie?.id
     const hasTmdbId = tmdbId != null

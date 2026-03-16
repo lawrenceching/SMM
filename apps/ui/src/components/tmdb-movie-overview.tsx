@@ -150,6 +150,8 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
         }
     }, [selectedMediaMetadata, updateMediaMetadata, t])
     
+    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
+
     // When movie is undefined, show only ImmersiveMovieSearchbox
     if (!movie && !isUpdatingMovie) {
         return (
@@ -167,7 +169,11 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                 searchError={searchError}
                                 placeholder={t("movie.searchPlaceholderUnrecognized" as any) as string}
                                 inputClassName="text-3xl font-bold mb-2 block"
-                                unrecognizedHint={t("movie.unrecognizedFolderHint" as any) as string}
+                                unrecognizedHint={
+                                    isMediaMetadataOk
+                                        ? (t("movie.unrecognizedFolderHint" as any) as string)
+                                        : undefined
+                                }
                             />
                         </div>
                     </div>

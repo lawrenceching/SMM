@@ -41,11 +41,15 @@ export function TvShowHeaderV2({
     const tvShow = selectedMediaMetadata?.tmdbTvShow
     const movie = selectedMediaMetadata?.tmdbMovie
     const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
+    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
     const initialSearchValue = tvShow?.name
 
     const hasValidTmdbTvShow = tvShow != null && tvShow.id != null
     const actionsDisabled = !hasValidTmdbTvShow
-    const unrecognizedHint = actionsDisabled ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string) : undefined
+    const unrecognizedHint =
+        isMediaMetadataOk && actionsDisabled
+            ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
+            : undefined
 
     const tmdbId = tvShow?.id ?? movie?.id
     const hasTmdbId = tmdbId != null
