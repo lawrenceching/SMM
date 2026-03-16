@@ -2,11 +2,11 @@ import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stor
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
+import { buildTemporaryRecognitionPlanAsync, handleAiRecognizeConfirm, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import { updateMediaFileMetadatas, buildTemporaryRecognitionPlanAsync, handleAiRecognizeConfirm, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
@@ -34,6 +34,8 @@ import { fetchPlans, savePlan } from "@/actions/planActions"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { renameFiles } from "@/api/renameFiles"
+import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 interface ToolbarOption {
   value: "plex" | "emby",
@@ -397,6 +399,21 @@ function TvShowPanel() {
     updateMediaMetadata,
   })
 
+  const requireMediaMetadata = useCallback(() => {
+    if (!mediaMetadata) {
+      toast.error("No media metadata available")
+      console.error("No media metadata available")
+      return
+    }
+
+    if (!mediaMetadata.mediaFolderPath) {
+      toast.error("No media folder path available")
+      console.error("No media folder path available")
+      return
+    }
+
+    return mediaMetadata
+  }, [mediaMetadata])
 
   // Handle file selection for episode
   const handleEpisodeFileSelect = useCallback((seasonNumber: number, episodeNumber: number, file: { path: string; isDirectory?: boolean }) => {
@@ -406,56 +423,28 @@ function TvShowPanel() {
       return
     }
 
-    // Validate mediaMetadata is available
-    if (!mediaMetadata) {
-      toast.error("No media metadata available")
-      return
-    }
+    requireMediaMetadata(mediaMetadata);
 
-    // Validate files array is available
-    if (!mediaMetadata.files) {
-      toast.error("Files list is not available")
-      return
-    }
+    const traceId = `UserLinkFileToEpisode-${nextTraceId()}`
 
-    // Validate season and episode numbers
-    if (seasonNumber === undefined || episodeNumber === undefined) {
-      toast.error("Invalid episode: season or episode number is missing")
-      return
-    }
-
-    // Convert file path to POSIX format
-    const filePathInPosix = Path.posix(file.path)
-
-    // Validate the file exists in the media folder files
-    if (!mediaMetadata.files.includes(filePathInPosix)) {
-      toast.error("Selected file is not in the media folder")
-      return
-    }
-
-    // Validate mediaFolderPath is available
-    if (!mediaMetadata.mediaFolderPath) {
-      toast.error("Media folder path is not available")
-      return
-    }
-
-    // Update media file metadata
-    const updatedMediaFiles = updateMediaFileMetadatas(
-      mediaMetadata.mediaFiles ?? [],
-      filePathInPosix,
+    const updated = handleEpisodeFileSelectHelper(
+      mediaMetadata!,
       seasonNumber,
-      episodeNumber
+      episodeNumber,
+      file.path,
+      (errorMessage) => {
+        toast.error(errorMessage)
+      }
     )
 
-    // Update media metadata
-    const traceId = `TvShowPanel-handleFileSelect-${nextTraceId()}`
-    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
-      ...mediaMetadata,
-      mediaFiles: updatedMediaFiles
-    }, { traceId })
+    // If helper returns the same object, treat it as no-op (likely due to error)
+    if (updated === mediaMetadata) {
+      return
+    }
 
+    updateMediaMetadata(mediaMetadata!.mediaFolderPath!, updated, { traceId })
     toast.success("File added successfully")
-  }, [mediaMetadata, updateMediaMetadata])
+  }, [mediaMetadata, updateMediaMetadata, requireMediaMetadata])
 
   // Handle opening file picker for episode
   const handleOpenFilePickerForEpisode = useCallback((seasonNumber: number, episodeNumber: number) => {
@@ -464,6 +453,24 @@ function TvShowPanel() {
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media metadata available")
       return
+    }
+
+    // In test environment, allow mocking file picker result via localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const mockFilePick = window.localStorage.getItem('test.mockFilePick')
+        console.log(`[Mock] mock file pick: ${mockFilePick}`)
+        if (mockFilePick && mockFilePick.trim().length > 0) {
+          const selectedFile = {
+            path: mockFilePick,
+            isDirectory: false,
+          }
+          handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
+          return
+        }
+      } catch (error) {
+        console.error('[handleOpenFilePickerForEpisode] Failed to read localStorage.test.mockFilePick:', error)
+      }
     }
 
     // Convert media folder path from POSIX to platform-specific format for the file picker

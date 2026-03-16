@@ -1,10 +1,11 @@
 /**
  * Test Bed - Common E2E Test Setup Utilities
  *
- * This module provides shared setup functions for E2E tests.
+ * This module provides shared setup functions and helpers for E2E tests.
  * Import these functions in your test files to avoid code duplication.
  */
 import * as path from 'node:path'
+import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
 import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, prepareMediaMetadata } from '@smm/test'
@@ -106,5 +107,40 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
         if (customSetup) {
             await customSetup()
         }
+    }
+}
+
+/**
+ * Assert that media metadata JSON for a given media folder path satisfies the provided predicate.
+ * 
+ * @param mediaFolderPathInPlatformFormat Absolute media folder path in platform-specific format.
+ *                                        It will be converted to POSIX and then to metadata cache file name.
+ * @param predicate A function that receives the parsed JSON object and should return true when expectations are met.
+ */
+export async function expectMediaMetadataToBe(
+    mediaFolderPathInPlatformFormat: string,
+    predicate: (json: any) => boolean
+): Promise<void> {
+    const metadataDir = await getMetadataDir()
+
+    // Convert media folder path to POSIX format for metadata file naming
+    const mediaFolderPosix = Path.posix(mediaFolderPathInPlatformFormat)
+    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const metadataFilePath = path.join(metadataDir, `${safeFileName}.json`)
+
+    // Wait a bit for metadata write to complete
+    const { setTimeout } = await import('node:timers/promises')
+    await setTimeout(2000)
+
+    if (!fs.existsSync(metadataFilePath)) {
+        throw new Error(`Expect file "${metadataFilePath}" to exist but it didn't`)
+    }
+
+    const metadataRaw = fs.readFileSync(metadataFilePath, 'utf-8')
+    const metadataJson = JSON.parse(metadataRaw)
+
+    const ok = predicate(metadataJson)
+    if (!ok) {
+        throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(metadataJson, null, 2)}`)
     }
 }

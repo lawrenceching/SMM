@@ -231,6 +231,60 @@ class TVShowPanel {
     }
 
     /**
+     * Open the context menu for a specific episode row by its ID (e.g., 'S01E01').
+     * This simulates a right-click on the corresponding table row.
+     */
+    async openContextMenuForEpisode(episodeId: string): Promise<void> {
+        const episodeIdCell = await $('td=' + episodeId)
+        await episodeIdCell.waitForDisplayed({ timeout: 10000 })
+        const row = await episodeIdCell.parentElement()
+        await row.click({ button: 'right' })
+    }
+
+    /**
+     * Open context menu for given episode and click a specific item by English label.
+     * Internally maps the English label to localized variants (currently zh-CN).
+     */
+    async openAndClickContextMenuForEpisode(episodeId: string, labelEn: string): Promise<void> {
+        const labelMap: Record<string, string[]> = {
+            'Select File': ['Select File', '选择文件'],
+        }
+
+        const labels = labelMap[labelEn] ?? [labelEn]
+
+        await this.openContextMenuForEpisode(episodeId)
+        await browser.pause(300)
+        console.log(`[TVShowPanel] Right-clicked on episode row ${episodeId}`)
+
+        await browser.waitUntil(
+            async () => {
+                for (const label of labels) {
+                    const item = await $(`[role="menuitem"]=${label}`)
+                    if (await item.isDisplayed().catch(() => false)) return true
+                }
+                return false
+            },
+            {
+                timeout: 5000,
+                interval: 200,
+                timeoutMsg: `Context menu item [${labels.join(', ')}] did not appear`,
+            }
+        )
+
+        for (const label of labels) {
+            const item = await $(`[role="menuitem"]=${label}`)
+            if (await item.isDisplayed().catch(() => false)) {
+                await item.waitForClickable({ timeout: 3000 })
+                await item.click()
+                console.log(`[TVShowPanel] Clicked context menu item: ${label}`)
+                return
+            }
+        }
+
+        throw new Error(`[TVShowPanel] Context menu item [${labels.join(', ')}] not found`)
+    }
+
+    /**
      * Get the current state of the TV show panel
      */
     async getState(): Promise<TvShowPanelState> {
@@ -385,6 +439,37 @@ class TVShowPanel {
             timeoutMsg: `TVShowPanel state did not match predicate after ${timeout}ms`,
             interval
         })
+    }
+
+    /**
+     * Wait for the panel string representation using a predicate.
+     * The predicate receives the result of toString().
+     */
+    async waitFor(
+        predicate: (state: string) => boolean,
+        timeout: number = 5000,
+        interval: number = 500
+    ): Promise<string> {
+        let lastState = ''
+        try {
+            await browser.waitUntil(
+                async () => {
+                    lastState = await this.toString()
+                    return predicate(lastState)
+                },
+                {
+                    timeout,
+                    interval,
+                },
+            )
+        } catch (err: any) {
+            const baseMessage = `TVShowPanel string state did not match predicate after ${timeout}ms.\nLast state:\n${lastState}`
+            if (err && err.message) {
+                throw new Error(`${baseMessage}\nOriginal error: ${err.message}`)
+            }
+            throw new Error(baseMessage)
+        }
+        return lastState
     }
 
     /**

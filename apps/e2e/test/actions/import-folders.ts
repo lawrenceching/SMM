@@ -57,7 +57,7 @@ export function createFolderInTestFolder(folder: TestFolder) {
   return testMediaFolder
 }
 
-export async function importFolderToApp(folder: TestFolder, traceId: string) {
+export async function createAndImportFolder(folder: TestFolder, traceId: string) {
   const testMediaFolder = createFolderInTestFolder(folder)
 
   await Menu.importMediaFolder({

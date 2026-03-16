@@ -8,7 +8,7 @@ import Sidebar from '../componentobjects/Sidebar'
 import TVShowPanel, { type TvShowEpisodeTableRow } from '../componentobjects/TVShowPanel'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
-import { folder1, importFolderToApp } from '../actions/import-folders'
+import { folder1, createAndImportFolder } from '../actions/import-folders'
 
 const __filename = fileURLToPath(import.meta.url)
 const slowdown = process.env.SLOWDOWN === 'true'
@@ -86,7 +86,7 @@ describe('Media Folder Initialization', () => {
         const expectedShowTitle = '天使降临到我身边！'
 
         // 1. Import folder using folder1 definition
-        await importFolderToApp(folder1, 'e2eTest:Import Media Folder TMDB ID')
+        await createAndImportFolder(folder1, 'e2eTest:Import Media Folder TMDB ID')
 
         // 2. Wait for folder to appear in sidebar
         await Sidebar.waitForFolder(expectedShowTitle, stepTimeoutMs)

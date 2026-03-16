@@ -9,7 +9,7 @@ import { delay } from 'es-toolkit'
 import { Path } from '@smm/core'
 import { hello } from '@smm/test'
 import type { RenameFilesPlan, RenameFileEntry } from '@smm/core/types/RenameFilesPlan.ts'
-import { folder1, importFolderToApp } from '../actions/import-folders'
+import { folder1, createAndImportFolder } from '../actions/import-folders'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
@@ -50,7 +50,7 @@ describe('TVShow - Rename By Plan', () => {
     this.timeout(90 * 1000)
 
     // 1. Create test TV folder and two episodes (video, poster, .sc.ass, .tc.ass, nfo) using folder1
-    const testMediaFolder = await importFolderToApp(folder1, 'e2eTest:TVShow Rename By Plan - Import')
+    const testMediaFolder = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Import')
 
     // 2. Wait for initialization
     await TVShowPanel.waitForState(
@@ -145,7 +145,7 @@ describe('TVShow - Rename By Plan', () => {
     this.timeout(90 * 1000)
 
     // 1. Create test TV folder with three episodes using folder1
-    const testMediaFolder = await importFolderToApp(folder1, 'e2eTest:TVShow Rename By Plan - Selective')
+    const testMediaFolder = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Selective')
 
     // 2. Wait for initialization
     await TVShowPanel.waitForState(
