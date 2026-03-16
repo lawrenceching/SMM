@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { randomUUID } from 'node:crypto'
-import TVShowPanel from '../componentobjects/TVShowPanel'
+import TVShowPanel from '../componentobjects/TVShowPanel.co'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { Path } from '@smm/core'
@@ -111,6 +111,8 @@ describe('TVShow - Rename By Plan', () => {
     const uiState = await TVShowPanel.toString()
     console.log('UI state after rename:\n', uiState)
     expect(uiState).toContain('第 1 季')
+    // TODO: https://github.com/lawrenceching/SMM/issues/10
+    // The associated files were not renamed so UI display "- - - " instead of V V V
     expect(uiState).toContain(PREFIX_E01_NEW + '.mkv V V V')
     expect(uiState).toContain(PREFIX_E02_NEW + '.mkv V V V')
 

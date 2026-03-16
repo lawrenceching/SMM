@@ -312,49 +312,46 @@ function TvShowPanel() {
     
   }, [mediaMetadata?.mediaFolderPath, setPlans])
 
-  // Use renaming hook (used for both legacy rename and rename-plan V2 confirm)
-  const { startToRenameFiles } = useTvShowRenaming({
-    mediaMetadata,
-    refreshMediaMetadata,
-    setIsRenaming,
-  })
+  const handleRenamePromptConfirm = useCallback(async (planId: string) => {
+    
+    const plan = getPlanById(planId)
+    
+    if (plan) {
 
-  const handleAiBasedRenamePlanConfirm = useCallback(
-    async (plan: RenameFilesPlan) => {
-      
-      if (!mediaMetadata) {
-        return
-      }
-      
       const selectedEpisodePaths = latestTableData.current
         .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
         .map(row => row.videoFile)
-        .filter(row => row !== undefined)
+        .filter(path => path !== undefined)
 
-      const actualPlan = rebuildRenamePlanWithSelectedEpisodes(plan, selectedEpisodePaths)
-
-      setPlanById(plan.id, {status: 'loading'})
-      try {
-        // TODO: who fill the associated files in the plan so that subtitle files will be renamed together?
-        await startToRenameFiles(actualPlan)
+      const actualPlan = rebuildRenamePlanWithSelectedEpisodes(plan as RenameFilesPlan, selectedEpisodePaths)
+      await setPlanById(planId, { status: 'loading' })
+      // applyRenameFilesPlanForTvShow calls renameFiles API under the hood
+      // and renameFiles API triggers mediaMetadataUpdated socket.io event which will cause app to refresh media metadata
+      // Therefore, we don't need to update mediaMetadata here
+      await applyRenameFilesPlanForTvShow({ 
+        mediaFolderPath: mediaMetadata!.mediaFolderPath!,
+        localFiles: mediaMetadata!.files!,
+        plan: actualPlan as UIRenameFilesPlan, 
+        traceId: `RuleBasedRenameConfirm-${planId}` }, 
+        { renameFilesApi: renameFiles }
+      )
+      if (!plan.tmp) {
         savePlan(plan as UIPlan, {
-        onSuccess: (plan) => {
-          setPlanById(plan.id, {status: 'completed'})
-        },
-        onError: (error) => {
-          console.error(`[savePlan] Failed to save plan ${plan.id}:`, error)
-        },
+          onSuccess: (savedPlan) => {
+            setPlanById(savedPlan.id, { status: 'completed' })
+          },
+          onError: (error) => {
+            console.error(`[savePlan] Failed to save plan ${planId}:`, error)
+          },
         })
-      } catch(error) {
-        console.error(`[TvShowPanel] Failed to execute rename plan ${plan.id}:`, error)
-        // TODO: throw error toast
+      } else {
+        setPlanById(planId, { status: 'completed' })
       }
-      
-      
-
-    },
-    [mediaMetadata, updateMediaMetadata, refreshMediaMetadata, t]
-  )
+    } else {
+      console.error("[TvShowPanel] No temporary rename plan found")
+      toast.error("Failed to find rename plan")
+    }
+  }, [mediaMetadata, getPlanById, setPlanById])
 
   /**
    * Open AI based rename file prompt
@@ -373,7 +370,7 @@ function TvShowPanel() {
       setEpisodeTableLayout('simple')
       openAiBasedRenameFilePrompt({
         status: "wait-for-ack",
-        onConfirm: () => handleAiBasedRenamePlanConfirm(plan as RenameFilesPlan),
+        onConfirm: () => handleRenamePromptConfirm(plan.id),
         onCancel: async () => {
           try {
             setPlanById(plan.id, { status: "rejected" })
@@ -386,7 +383,7 @@ function TvShowPanel() {
       closeAiBasedRenameFilePrompt()
       // Do not close recognize prompt here; handlePendingPlans manages AiBasedRecognizePrompt.
     }
-  }, [plans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleAiBasedRenamePlanConfirm])
+  }, [plans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleRenamePromptConfirm])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({
@@ -518,35 +515,6 @@ function TvShowPanel() {
       })
     }
   }, [mediaMetadata, isElectron, openFilePicker, handleEpisodeFileSelect])
-
-  const handleRuleBasedRenameConfirm = useCallback(async (planId: string) => {
-    
-    const plan = getPlanById(planId)
-    
-    if (plan) {
-
-      const selectedEpisodePaths = latestTableData.current
-        .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
-        .map(row => row.videoFile)
-        .filter(path => path !== undefined)
-
-      const actualPlan = rebuildRenamePlanWithSelectedEpisodes(plan as RenameFilesPlan, selectedEpisodePaths)
-      // applyRenameFilesPlanForTvShow calls renameFiles API under the hood
-      // and renameFiles API triggers mediaMetadataUpdated socket.io event which will cause app to refresh media metadata
-      // Therefore, we don't need to update mediaMetadata here
-      await applyRenameFilesPlanForTvShow({ 
-        mediaFolderPath: mediaMetadata!.mediaFolderPath!,
-        localFiles: mediaMetadata!.files!,
-        plan: actualPlan as UIRenameFilesPlan, 
-        traceId: `RuleBasedRenameConfirm-${planId}` }, 
-        { renameFilesApi: renameFiles }
-      )
-      setPlanById(planId, { status: 'completed' })
-    } else {
-      console.error("[TvShowPanel] No temporary rename plan found")
-      toast.error("Failed to find rename plan")
-    }
-  }, [mediaMetadata, t])
 
   // Handler for rule-based recognition button click
   const handleRuleBasedRecognizeButtonClick = useCallback(() => {
@@ -803,7 +771,7 @@ function TvShowPanel() {
               setSelectedNamingRule,
               planId: newPlan.id,
               onConfirm: () => {
-                handleRuleBasedRenameConfirm(newPlan.id)
+                handleRenamePromptConfirm(newPlan.id)
               },
               onCancel: async () => {
                 try {

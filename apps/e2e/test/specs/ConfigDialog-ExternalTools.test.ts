@@ -56,12 +56,17 @@ describe('Config Dialog - External Tools', () => {
                 await delay(1000)
             }
 
-            // Step 2: Verify yt-dlp executable path is displayed
-            console.log('Verifying yt-dlp executable path is displayed...')
+            // Step 2: Wait for yt-dlp path to load, then verify it is displayed
+            console.log('Waiting for yt-dlp executable path to load...')
+            await browser.waitUntil(async () => {
+                const path = await ConfigDialog.getYtdlpPath()
+                return path.length > 0
+            }, {
+                timeout: 15000,
+                timeoutMsg: 'yt-dlp executable path was not displayed after loading'
+            })
             const ytdlpPath = await ConfigDialog.getYtdlpPath()
             console.log(`yt-dlp path: ${ytdlpPath}`)
-            
-            // Assert 1: yt-dlp executable path should be displayed
             expect(ytdlpPath.length).toBeGreaterThan(0)
             console.log('✓ Assert 1: yt-dlp executable path is displayed on screen')
 
@@ -69,12 +74,17 @@ describe('Config Dialog - External Tools', () => {
                 await delay(1000)
             }
 
-            // Step 3: Verify ffmpeg executable path is displayed
-            console.log('Verifying ffmpeg executable path is displayed...')
+            // Step 3: Wait for ffmpeg path to load, then verify it is displayed
+            console.log('Waiting for ffmpeg executable path to load...')
+            await browser.waitUntil(async () => {
+                const path = await ConfigDialog.getFfmpegPath()
+                return path.length > 0
+            }, {
+                timeout: 15000,
+                timeoutMsg: 'ffmpeg executable path was not displayed after loading'
+            })
             const ffmpegPath = await ConfigDialog.getFfmpegPath()
             console.log(`ffmpeg path: ${ffmpegPath}`)
-            
-            // Assert 1: ffmpeg executable path should be displayed
             expect(ffmpegPath.length).toBeGreaterThan(0)
             console.log('✓ Assert 1: ffmpeg executable path is displayed on screen')
 
