@@ -103,6 +103,34 @@ class ConfigDialog {
         return $('[data-testid="setting-mcp-port"]')
     }
 
+    /**
+     * Get yt-dlp executable path input
+     */
+    get ytdlpPathInput() {
+        return $('[data-testid="setting-ytdlp-executable-path"]')
+    }
+
+    /**
+     * Get ffmpeg executable path input
+     */
+    get ffmpegPathInput() {
+        return $('[data-testid="setting-ffmpeg-executable-path"]')
+    }
+
+    /**
+     * Get yt-dlp browse button
+     */
+    get ytdlpBrowseButton() {
+        return $('[data-testid="setting-ytdlp-browse"]')
+    }
+
+    /**
+     * Get ffmpeg browse button
+     */
+    get ffmpegBrowseButton() {
+        return $('[data-testid="setting-ffmpeg-browse"]')
+    }
+
     // ==================== AI Settings ====================
 
     /**
@@ -332,6 +360,86 @@ class ConfigDialog {
      */
     async getMcpPort(): Promise<string> {
         return await this.getInputValue(this.mcpPortInput)
+    }
+
+    /**
+     * Get yt-dlp executable path value
+     */
+    async getYtdlpPath(): Promise<string> {
+        return await this.getInputValue(this.ytdlpPathInput)
+    }
+
+    /**
+     * Get ffmpeg executable path value
+     */
+    async getFfmpegPath(): Promise<string> {
+        return await this.getInputValue(this.ffmpegPathInput)
+    }
+
+    // ==================== External Tools Actions ====================
+
+    /**
+     * Check if yt-dlp version is displayed
+     */
+    async isYtdlpVersionDisplayed(): Promise<boolean> {
+        try {
+            // Look for version text containing "Version:" 
+            const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
+            for (const textElement of versionTexts) {
+                const text = await textElement.getText()
+                if (text.includes('Version:')) {
+                    return true
+                }
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * Check if ffmpeg version is displayed
+     */
+    async isFfmpegVersionDisplayed(): Promise<boolean> {
+        try {
+            // Look for version text containing "Version:"
+            const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
+            for (const textElement of versionTexts) {
+                const text = await textElement.getText()
+                if (text.includes('Version:')) {
+                    return true
+                }
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * Get yt-dlp version text
+     */
+    async getYtdlpVersion(): Promise<string> {
+        const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
+        for (const textElement of versionTexts) {
+            const text = await textElement.getText()
+            if (text.includes('Version:')) {
+                return text
+            }
+        }
+        return ''
+    }
+
+    /**
+     * Get ffmpeg version text
+     */
+    async getFfmpegVersion(): Promise<string> {
+        const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
+        // Return the second one (first is yt-dlp, second is ffmpeg)
+        if (versionTexts.length >= 2) {
+            return await versionTexts[1].getText()
+        }
+        return ''
     }
 
     // ==================== AI Settings Actions ====================

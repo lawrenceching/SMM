@@ -101,3 +101,19 @@ export async function writeMediaTags(
   });
   return (await resp.json()) as FfmpegWriteTagsResponse;
 }
+
+export async function discoverFfmpeg(): Promise<{ path?: string; error?: string }> {
+  const resp = await fetch("/api/ffmpeg/discover", {
+    method: "GET",
+  });
+
+  return (await resp.json()) as { path?: string; error?: string };
+}
+
+export async function getFfmpegVersion(): Promise<{ version?: string; error?: string }> {
+  const resp = await fetch("/api/ffmpeg/version", {
+    method: "GET",
+  });
+
+  return (await resp.json()) as { version?: string; error?: string };
+}

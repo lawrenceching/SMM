@@ -37,6 +37,8 @@ import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
 import { handleFfmpegTags } from './src/route/ffmpeg/Tags';
 import { handleFfmpegWriteTags } from './src/route/ffmpeg/WriteTags';
+import { handleFfmpegDiscover } from './src/route/ffmpeg/Discover';
+import { handleFfmpegVersion } from './src/route/ffmpeg/Version';
 import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
@@ -189,6 +191,8 @@ export class Server {
     handleFfmpegConvert(this.app);
     handleFfmpegTags(this.app);
     handleFfmpegWriteTags(this.app);
+    handleFfmpegDiscover(this.app);
+    handleFfmpegVersion(this.app);
     handleTmdb(this.app);
     handleLog(this.app);
 

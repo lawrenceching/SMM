@@ -9,6 +9,8 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem } from "@/components/dialogs/types"
+import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
+import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
 
 export function GeneralSettings() {
   const { userConfig, setAndSaveUserConfig } = useConfig()
@@ -39,6 +41,8 @@ export function GeneralSettings() {
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
   const [ytdlpExecutablePath, setYtdlpExecutablePath] = useState(initialValues.ytdlpExecutablePath)
   const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
+  const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null)
+  const [ffmpegVersion, setFfmpegVersion] = useState<string | null>(null)
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -52,6 +56,39 @@ export function GeneralSettings() {
     setYtdlpExecutablePath(initialValues.ytdlpExecutablePath)
     setFfmpegExecutablePath(initialValues.ffmpegExecutablePath)
   }, [initialValues])
+
+  // Discover ytdlp and ffmpeg paths when component mounts
+  useEffect(() => {
+    const discoverPaths = async () => {
+      try {
+        // Discover ytdlp path
+        const ytdlpResult = await discoverYtdlp()
+        if (ytdlpResult.path) {
+          setYtdlpExecutablePath(ytdlpResult.path)
+          // Get ytdlp version
+          const ytdlpVersionResult = await getYtdlpVersion()
+          if (ytdlpVersionResult.version) {
+            setYtdlpVersion(ytdlpVersionResult.version)
+          }
+        }
+
+        // Discover ffmpeg path
+        const ffmpegResult = await discoverFfmpeg()
+        if (ffmpegResult.path) {
+          setFfmpegExecutablePath(ffmpegResult.path)
+          // Get ffmpeg version
+          const ffmpegVersionResult = await getFfmpegVersion()
+          if (ffmpegVersionResult.version) {
+            setFfmpegVersion(ffmpegVersionResult.version)
+          }
+        }
+      } catch (error) {
+        console.error('Error discovering tool paths:', error)
+      }
+    }
+
+    discoverPaths()
+  }, [])
 
   // Detect changes
   const hasChanges = useMemo(() => {
@@ -230,6 +267,11 @@ export function GeneralSettings() {
                 {t('general.browse')}
               </Button>
             </div>
+            {ytdlpVersion && (
+              <p className="text-sm text-muted-foreground">
+                Version: {ytdlpVersion}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="ffmpeg-executable-path">{t('general.ffmpegExecutablePath')}</Label>
@@ -258,6 +300,11 @@ export function GeneralSettings() {
                 {t('general.browse')}
               </Button>
             </div>
+            {ffmpegVersion && (
+              <p className="text-sm text-muted-foreground">
+                Version: {ffmpegVersion}
+              </p>
+            )}
           </div>
         </div>
       </div>
