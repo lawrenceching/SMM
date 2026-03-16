@@ -2,7 +2,8 @@ import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stor
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
-import { buildTemporaryRecognitionPlanAsync, handleAiRecognizeConfirm, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
+import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
+import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"

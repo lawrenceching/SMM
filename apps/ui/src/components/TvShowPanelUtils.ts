@@ -29,7 +29,6 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
-import { type UIPlan } from "@/stores/plansStore";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -824,45 +823,6 @@ export async function buildTemporaryRecognitionPlanAsync(
 
 
 
-
-export async function handleAiRecognizeConfirm(
-  plan: RecognizeMediaFilePlan,
-  mediaMetadata: UIMediaMetadata,
-  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void,
-  setPlanById: (id: string, planProps: { status: UIPlan['status']}) => void
-): Promise<void> {
-  const traceId = `TvShowPanelUtils-handleAiRecognizeConfirm-${nextTraceId()}`
-  console.log(`[${traceId}] handleAiRecognizeConfirm CALLED`, {
-    timestamp: new Date().toISOString(),
-    plan,
-    mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    stackTrace: new Error().stack
-  })
-
-  if (!mediaMetadata?.mediaFolderPath) {
-    toast.error("No media folder path available")
-    return
-  }
-
-  if (plan.mediaFolderPath !== mediaMetadata.mediaFolderPath) {
-    console.warn(`[${traceId}] Plan mediaFolderPath does not match current media metadata`, {
-      planPath: plan.mediaFolderPath,
-      currentPath: mediaMetadata.mediaFolderPath
-    })
-    toast.error("Plan does not match current media folder")
-    return
-  }
-
-  try {
-    setPlanById(plan.id, { status: 'completed'})
-    await applyRecognizeMediaFilePlan(plan, mediaMetadata, updateMediaMetadata as (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>, { traceId })
-    console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
-    toast.success(`Applied recognition for ${plan.files.length} file(s)`)
-  } catch (error) {
-    console.error(`[${traceId}] Error applying recognition:`, error)
-    toast.error("Failed to apply recognition")
-  }
-}
 
 export interface HandlePendingPlansParams {
   pendingPlans: (UIRecognizeMediaFilePlan | UIRenameFilesPlan)[]
