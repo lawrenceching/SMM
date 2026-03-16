@@ -12,7 +12,6 @@ import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
-import { useTvShowRenaming } from "./hooks/useTvShowRenaming"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
@@ -46,7 +45,7 @@ function TvShowPanel() {
   const { plans, setPlans, setPlanById, getPlanById } = usePlansStore()
   const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
-  const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
+  const { updateMediaMetadata } = useMediaMetadataActions()
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
@@ -198,7 +197,6 @@ function TvShowPanel() {
   const {
     selectedNamingRule,
     setSelectedNamingRule,
-    setIsRenaming,
   } = useTvShowPanelState({ 
     mediaMetadata, 
     toolbarOptions, 
