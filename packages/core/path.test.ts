@@ -51,6 +51,16 @@ describe('ext', () => {
     expect(ext('episode.zh-CN.ass', 2)).toBe('.zh-CN.ass');
   });
 
+  it('should handle edge cases', () => {
+    expect(ext('.env.local', 1)).toBe('.local');
+    expect(ext('.env.local', 2)).toBe('.env.local');
+    expect(ext('S01E01.srt', 1)).toBe('.srt');
+    expect(ext('S01E01.srt', 2)).toBe('.srt');
+    expect(ext('1.mkv', 2)).toBe('.mkv');
+    expect(ext('1.mkv', 3)).toBe('.mkv');
+    expect(ext('env', 2)).toBe('');
+  });
+
   it('should use default level 1 when level not provided', () => {
     expect(ext('S01E01.en.srt')).toBe('.srt');
   });
@@ -60,12 +70,12 @@ describe('ext', () => {
     expect(() => ext('file.mkv', -1)).toThrow('InvalidArgumentError: level must be greater than 0');
   });
 
-  it('should return all parts when level equals number of dot-separated parts', () => {
-    expect(ext('file.mkv', 2)).toBe('.file.mkv');
+  it('should return just extension when level equals number of parts', () => {
+    expect(ext('file.mkv', 2)).toBe('.mkv');
   });
 
-  it('should return all parts when level exceeds number of parts (slice from start)', () => {
-    expect(ext('file.mkv', 3)).toBe('.file.mkv');
+  it('should return just extension when level exceeds number of parts', () => {
+    expect(ext('file.mkv', 3)).toBe('.mkv');
   });
 });
 

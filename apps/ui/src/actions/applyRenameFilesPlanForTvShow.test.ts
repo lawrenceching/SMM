@@ -119,7 +119,7 @@ describe.skipIf(Path.isWindows())('applyRenameFilesPlanForTvShow', () => {
     expect(req.mediaFolder).toBe(mediaFolderPath)
     expect(req.files).toHaveLength(5)
     expect(req.files[0].from).toBe(Path.toPlatformPath('/media/show/1.mkv'))
-    expect(req.files[0].to).toBe(Path.toPlatformPath('/media/show/S01E01.mkv'))
+    expect(req.files[0].to).toBe(Path.toPlatformPath('/media/show/Season 01/S01E01.mkv'))
     expect(req.files).toContainEqual({ from: Path.toPlatformPath('/media/show/1.jpg'), to: Path.toPlatformPath('/media/show/Season 01/S01E01.jpg') })
     expect(req.files).toContainEqual({ from: Path.toPlatformPath('/media/show/1.srt'), to: Path.toPlatformPath('/media/show/Season 01/S01E01.srt') })
     expect(req.files).toContainEqual({ from: Path.toPlatformPath('/media/show/1.mka'), to: Path.toPlatformPath('/media/show/Season 01/S01E01.mka') })

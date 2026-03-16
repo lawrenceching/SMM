@@ -267,6 +267,8 @@ export class Path {
  * Use to get extension with multiple parts.
  * Level counts from the end: level 1 = last part (e.g. .srt), level 2 = last two parts (e.g. .en.srt).
  * For example, `S01E01.en.srt` -> `ext(1)` returns `.srt`, `ext(2)` returns `.en.srt`
+ * If the path has fewer extension parts than requested, returns just the extension.
+ * For example, `S01E01.srt` -> `ext(2)` returns `.srt`, `1.mkv` -> `ext(2)` returns `.mkv`
  * @param level Number of extension parts to take from the end
  */
 export function ext(path: string, level: number = 1) {
@@ -275,5 +277,11 @@ export function ext(path: string, level: number = 1) {
     }
 
     const parts = path.split('.');
+    if (parts.length === 1) {
+        return '';
+    }
+    if (level > parts.length - 1) {
+        return '.' + parts[parts.length - 1];
+    }
     return '.' + parts.slice(-level).join('.');
 }

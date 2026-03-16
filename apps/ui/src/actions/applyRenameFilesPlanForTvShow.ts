@@ -1,4 +1,4 @@
-import { extname, join } from "@/lib/path";
+import { basename, extname, join } from "@/lib/path";
 import { findAssociatedFiles } from "@/lib/utils";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import { ext, Path } from "@core/path";
@@ -45,7 +45,14 @@ export async function applyRenameFilesPlanForTvShow(
 
             // TODO: handle subtitle files with language code
             if(subtitleFileExtensions.includes(_ext)) {
-                _ext = ext(associatedFile, 2);
+                const filename = basename(associatedFile);
+                if(filename === undefined) {
+                    throw new Error(`basename of ${associatedFile} is undefined`)
+                }
+                const parts = filename.split('.');
+                if (parts.length > 2) {
+                    _ext = ext(filename, 2);
+                }
             }
 
             const to = join(mediaFolderPath, newFileRelativePathWithExt + _ext);
