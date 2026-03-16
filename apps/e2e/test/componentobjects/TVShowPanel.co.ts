@@ -62,18 +62,22 @@ class TVShowPanel {
      * Get the confirm button (supports en and zh-CN labels)
      */
     get confirmButton() {
-        return this.getConfirmButton()
+        return $('[data-testid="floating-prompt-confirm-button"]')
     }
 
-    private async getConfirmButton() {
-        for (const label of CONFIRM_LABELS) {
-            const btn = await $('button=' + label)
-            if (await btn.isExisting().catch(() => false)) {
-                return btn
-            }
-        }
-        return await $('button=Confirm')
+    get recognizeButton() {
+        return $('[data-testid="recognize-button"]')
     }
+
+    // private async getConfirmButton() {
+    //     for (const label of CONFIRM_LABELS) {
+    //         const btn = await $('button=' + label)
+    //         if (await btn.isExisting().catch(() => false)) {
+    //             return btn
+    //         }
+    //     }
+    //     return await $('button=Confirm')
+    // }
 
     /**
      * Check if the episode table is displayed

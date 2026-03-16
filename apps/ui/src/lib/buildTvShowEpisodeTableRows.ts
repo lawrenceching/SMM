@@ -199,6 +199,7 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
     if(row) {
       row.videoFile = recognizedFile.path;
       row.newVideoFile = undefined;
+      row.checked = true;
     }
 
     if(row.videoFile === undefined) {

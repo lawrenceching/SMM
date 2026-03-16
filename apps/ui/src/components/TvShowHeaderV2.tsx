@@ -150,6 +150,7 @@ export function TvShowHeaderV2({
                                 onClick={() => {
                                     onRecognizeButtonClick?.()
                                 }}
+                                data-testid="recognize-button"
                             >
                                 <Scan className="size-4 mr-2" />
                                 {t('tvShow.recognize', { ns: 'components', defaultValue: 'Recognize' })}

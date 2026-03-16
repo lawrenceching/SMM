@@ -270,7 +270,7 @@ function TvShowPanel() {
   }, [mediaMetadata, updateMediaMetadata, setPlanById])
 
   const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
-    console.log('[TvShowPanel] User clicked the confirm button in RuleBasedRecognizePrompt')
+    console.log('[TvShowPanel] User clicked the confirm button in RuleBasedRecognizePrompt', structuredClone(plan))
     if (!mediaMetadata) {
       toast.error("No media metadata available")
       return
@@ -288,7 +288,6 @@ function TvShowPanel() {
 
       const actualPlan = rebuildPlanWithSelectedEpisodes(plan as RecognizeMediaFilePlan, selectedEpisodes)
       const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
-      
       await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, updateMediaMetadata, { traceId })
       setPlanById(plan.id, { status: 'completed' })
       
@@ -541,13 +540,14 @@ function TvShowPanel() {
       planId: newPlan.id,
       onConfirm: () => {
         console.log(`[TvShowPanel] RuleBasedRecognizePrompt.onConfirm() CALLED`)
-        handleRuleBasedRecognizePromptConfirmButtonClick?.(newPlan)
+        handleRuleBasedRecognizePromptConfirmButtonClick?.(getPlanById(newPlan.id) as UIRecognizeMediaFilePlan)
       },
       onCancel: () => {
         setPlanById(newPlan.id, { status: 'rejected' })
       }
     })
     setPlans(prev => [...prev, newPlan])
+    console.log(`[TvShowPanel] setPlans: `, structuredClone(plans))
    
     // 2. Run recognition in background, then update plan with result
     void buildTemporaryRecognitionPlanAsync(mediaMetadata)
@@ -555,34 +555,9 @@ function TvShowPanel() {
         console.log(`[${traceId}] recognize episodes: `, structuredClone(planData))
 
         if (planData && planData.files.length > 0) {
-          setPlans(prev => {
-            const ret = prev.map(plan => {
-              if (plan.id === newPlan.id) {
-                const updated: UIRecognizeMediaFilePlan = {
-                  ...(plan as UIRecognizeMediaFilePlan),
-                  status: 'pending',
-                  files: planData.files,
-                }
-                return updated
-              }
-              return plan
-            })
-            console.log(`[${traceId}] updated plans: `, structuredClone(ret))
-            return ret;
-          })
-
-          // RuleBasedRecognizePrompt is opened automatically once plan was created.
-          // If user click confirm, go to handleRuleBasedRecognizePromptConfirmButtonClick()
-
+          setPlanById(newPlan.id, { status: 'pending', files: planData.files })
         } else {
-          setPlans(prev => {
-            return prev.map(plan => {
-              if(plan.id === newPlan.id) {
-                return { ...plan, status: 'rejected' }
-              }
-              return plan;
-            })
-          })
+          setPlanById(newPlan.id, { status: 'rejected' })
           toast.error(t('toolbar.noRecognizedFiles', { defaultValue: 'No recognized files found' }))
         }
       })
@@ -714,6 +689,18 @@ function TvShowPanel() {
 
   useEffect(() => {
     if(plan !== undefined) {
+
+      if(plan.status !== 'pending') {
+        return;
+      }
+
+      if(plan.task === 'recognize-media-file' && plan.tmp === true) {
+        // This plan will be handled by handleRuleBasedRecognizeButtonClick
+        // don't need to handle by handlePendingPlans
+        return;
+      }
+
+      console.log(`[TvShowPanel] useEffect handlePendingPlans CALLED: `, structuredClone(plan))
       handlePendingPlans({
         pendingPlans: [plan],
         mediaMetadata,

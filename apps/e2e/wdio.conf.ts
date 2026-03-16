@@ -84,6 +84,7 @@ export const config: WebdriverIO.Config = {
                 : [
                     '--disable-gpu',
                     '--no-sandbox',
+                    // '--force-device-scale-factor=0.8'
                 ]
         }
     }],

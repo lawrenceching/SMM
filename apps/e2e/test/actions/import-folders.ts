@@ -69,3 +69,20 @@ export async function createAndImportFolder(folder: TestFolder, traceId: string)
   return testMediaFolder
 }
 
+/**
+ * Rename a file inside a test media folder (under tmpMediaRoot/media).
+ * @param folderName - Name of the folder (e.g. from TestFolder.folderName)
+ * @param oldFileName - Current file name
+ * @param newFileName - New file name
+ */
+export function renameFileInFolder(folderName: string, oldFileName: string, newFileName: string) {
+  const folderPath = path.join(mediaDir, folderName)
+  const oldPath = path.join(folderPath, oldFileName)
+  const newPath = path.join(folderPath, newFileName)
+  if (!fs.existsSync(oldPath)) {
+    throw new Error(`renameFileInFolder: file not found: ${oldPath}`)
+  }
+  fs.renameSync(oldPath, newPath)
+  console.log(`Renamed "${oldFileName}" to "${newFileName}" in ${folderName}`)
+}
+

@@ -126,6 +126,7 @@ export function FloatingPrompt({
                 {defaultCancelLabel}
               </Button>
               <Button
+                data-testid="floating-prompt-confirm-button"
                 onClick={onConfirm}
                 disabled={isConfirmButtonDisabled}
                 className={cn(
@@ -176,6 +177,7 @@ export function FloatingPrompt({
                 {defaultCancelLabel}
               </Button>
               <Button
+                data-testid="floating-prompt-confirm-button"
                 onClick={onConfirm}
                 disabled={isConfirmButtonDisabled}
                 className={cn(

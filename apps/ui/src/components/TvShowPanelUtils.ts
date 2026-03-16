@@ -208,6 +208,7 @@ export function applyRecognizeMediaFilePlan(
         mediaFiles: updatedMediaFiles,
     };
     console.log(`[applyRecognizeMediaFilePlan] updatedMetadata:`, structuredClone(updatedMetadata))
+    // TODO: didn't update media metadata to disk
     const result = updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
     return Promise.resolve(result);
 }
@@ -859,11 +860,9 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
   const {
     pendingPlans,
     mediaMetadata,
-    openRuleBasedRecognizePrompt,
     openAiBasedRecognizePrompt,
     closeAiBasedRecognizePrompt,
     handleAiRecognizeConfirmCallback,
-    handleRuleBasedRecognizeConfirmCallback,
     updatePlan: setPlayById,
     t,
   } = params
@@ -872,6 +871,8 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     return
   }
 
+  console.log(`[handlePendingPlans] pendingPlans: `, structuredClone(pendingPlans))
+
   const plan = pendingPlans.find(
     p =>
       p.task === "recognize-media-file" &&
@@ -879,21 +880,24 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
       p.tmp === false &&
       p.mediaFolderPath === mediaMetadata.mediaFolderPath
   )
+
+  console.log(`[handlePendingPlans] plan: `, structuredClone(plan))
   
   if (plan) {
     if (plan.tmp) {
       if (mediaMetadata.tmdbTvShow !== undefined) {
-        openRuleBasedRecognizePrompt({
-          tvShowTitle: mediaMetadata.tmdbTvShow.name,
-          tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
-          planId: plan.id,
-          onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as UIRecognizeMediaFilePlan),
-          onCancel: () => {
-            setPlayById(plan.id, 'rejected').catch(error => {
-              console.error('[TvShowPanel] Error removing temporary plan:', error)
-            })
-          }
-        })
+        console.error(`code should NOT reach this line, it's deprecated`)
+        // openRuleBasedRecognizePrompt({
+        //   tvShowTitle: mediaMetadata.tmdbTvShow.name,
+        //   tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
+        //   planId: plan.id,
+        //   onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as UIRecognizeMediaFilePlan),
+        //   onCancel: () => {
+        //     setPlayById(plan.id, 'rejected').catch(error => {
+        //       console.error('[TvShowPanel] Error removing temporary plan:', error)
+        //     })
+        //   }
+        // })
       }
       closeAiBasedRecognizePrompt()
     } else {
