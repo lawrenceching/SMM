@@ -1,3 +1,6 @@
+import os from 'os';
+import path from 'path';
+
 const chromeOptionsForDockerEnv: string[] = [
     '--disable-dev-shm-usage',
     '--disable-software-rasterizer',
@@ -18,6 +21,9 @@ const chromeOptionsForDockerEnv: string[] = [
     '--unsafely-treat-insecure-origin-as-secure=http://*'
 ]
 
+/**
+ * https://webdriver.io/docs/capabilities/
+ */
 export const config: WebdriverIO.Config = {
     //
     // ====================
@@ -26,6 +32,13 @@ export const config: WebdriverIO.Config = {
     // WebdriverIO supports running e2e tests as well as unit and component tests.
     runner: 'local',
     tsConfigPath: './tsconfig.json',
+
+    //
+    // ============
+    // Cache Directory
+    // ============
+    // Directory to cache browser drivers
+    cacheDir: path.join(os.homedir(), 'wdio-cache'),
     
     //
     // ==================
