@@ -268,7 +268,7 @@ export function GeneralSettings() {
               </Button>
             </div>
             {ytdlpVersion && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground" data-testid="setting-ytdlp-version">
                 Version: {ytdlpVersion}
               </p>
             )}
@@ -301,7 +301,7 @@ export function GeneralSettings() {
               </Button>
             </div>
             {ffmpegVersion && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground" data-testid="setting-ffmpeg-version">
                 Version: {ffmpegVersion}
               </p>
             )}

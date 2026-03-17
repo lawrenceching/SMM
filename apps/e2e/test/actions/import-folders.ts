@@ -6,7 +6,7 @@ import Menu from '../componentobjects/Menu'
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
 
-interface TestFolder {
+export interface TestFolder {
     folderName: string,
     files: string[],
     type: "tvshow" | "movie" | "music"

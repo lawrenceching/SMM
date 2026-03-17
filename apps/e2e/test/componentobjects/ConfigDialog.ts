@@ -117,6 +117,15 @@ class ConfigDialog {
         return $('[data-testid="setting-ffmpeg-executable-path"]')
     }
 
+    get ytdlpVersion() {
+        return $('[data-testid="setting-ytdlp-version"]')
+    }
+
+
+    get ffmpegVersion() {
+        return $('[data-testid="setting-ffmpeg-version"]')
+    }
+
     /**
      * Get yt-dlp browse button
      */

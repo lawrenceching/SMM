@@ -45,101 +45,37 @@ describe('Config Dialog - External Tools', () => {
             if (slowdown) {
                 this.timeout(120 * 1000)
             }
-
-            // Step1: Open config dialog
+            
             console.log('Opening config dialog...')
             await Menu.openConfigDialog()
             await ConfigDialog.waitForDisplayed()
             expect(await ConfigDialog.isDisplayed()).toBe(true)
 
-            if (slowdown) {
-                await delay(1000)
-            }
+            ConfigDialog.ytdlpPathInput.scrollIntoView()
+            ConfigDialog.ytdlpPathInput.waitForDisplayed()
+            ConfigDialog.ffmpegPathInput.waitForDisplayed()
+            ConfigDialog.ytdlpVersion.waitForDisplayed()
+            ConfigDialog.ffmpegVersion.waitForDisplayed()
 
-            // Step 2: Wait for yt-dlp path to load, then verify it is displayed
-            console.log('Waiting for yt-dlp executable path to load...')
             await browser.waitUntil(async () => {
-                const path = await ConfigDialog.getYtdlpPath()
-                return path.length > 0
+                const ytdlpPath = await ConfigDialog.ytdlpPathInput.getValue() as string
+                const ffmpegPath = await ConfigDialog.ffmpegPathInput.getValue() as string
+                const ytdlpVersion = await ConfigDialog.ytdlpVersion.getText() as string
+                const ffmpegVersion = await ConfigDialog.ffmpegVersion.getText() as string
+
+                console.log(`yt-dlp path: ${ytdlpPath}`)
+                console.log(`ffmpeg path: ${ffmpegPath}`)
+                console.log(`yt-dlp version: ${ytdlpVersion}`)
+                console.log(`ffmpeg version: ${ffmpegVersion}`)
+                
+                return ytdlpPath.length > 0 
+                && ffmpegPath.length > 0 
+                && ytdlpVersion.length > 0 
+                && ffmpegVersion.length > 0
             }, {
-                timeout: 15000,
-                timeoutMsg: 'yt-dlp executable path was not displayed after loading'
+                timeout: 10000,
+                interval: 500
             })
-            const ytdlpPath = await ConfigDialog.getYtdlpPath()
-            console.log(`yt-dlp path: ${ytdlpPath}`)
-            expect(ytdlpPath.length).toBeGreaterThan(0)
-            console.log('✓ Assert 1: yt-dlp executable path is displayed on screen')
-
-            if (slowdown) {
-                await delay(1000)
-            }
-
-            // Step 3: Wait for ffmpeg path to load, then verify it is displayed
-            console.log('Waiting for ffmpeg executable path to load...')
-            await browser.waitUntil(async () => {
-                const path = await ConfigDialog.getFfmpegPath()
-                return path.length > 0
-            }, {
-                timeout: 15000,
-                timeoutMsg: 'ffmpeg executable path was not displayed after loading'
-            })
-            const ffmpegPath = await ConfigDialog.getFfmpegPath()
-            console.log(`ffmpeg path: ${ffmpegPath}`)
-            expect(ffmpegPath.length).toBeGreaterThan(0)
-            console.log('✓ Assert 1: ffmpeg executable path is displayed on screen')
-
-            if (slowdown) {
-                await delay(1000)
-            }
-
-            // Step 4: Wait for async API calls to complete and verify yt-dlp version is displayed
-            console.log('Waiting for yt-dlp version to be loaded (async API call)...')
-            
-            // Wait for version text to appear (API calls are async)
-            await browser.waitUntil(async () => {
-                const hasVersion = await ConfigDialog.isYtdlpVersionDisplayed()
-                return hasVersion
-            }, {
-                timeout: 15000, // Give enough time for async API calls
-                timeoutMsg: 'yt-dlp version was not displayed after API call'
-            })
-
-            const ytdlpVersion = await ConfigDialog.getYtdlpVersion()
-            console.log(`yt-dlp version: ${ytdlpVersion}`)
-            
-            // Assert 2: yt-dlp version should be displayed
-            expect(ytdlpVersion).toContain('Version:')
-            expect(ytdlpVersion.length).toBeGreaterThan(10) // Version string should have some content
-            console.log('✓ Assert 2: yt-dlp version is displayed on screen')
-
-            if (slowdown) {
-                await delay(1000)
-            }
-
-            // Step 5: Wait for async API calls to complete and verify ffmpeg version is displayed
-            console.log('Waiting for ffmpeg version to be loaded (async API call)...')
-            
-            await browser.waitUntil(async () => {
-                const hasVersion = await ConfigDialog.isFfmpegVersionDisplayed()
-                return hasVersion
-            }, {
-                timeout: 15000, // Give enough time for async API calls
-                timeoutMsg: 'ffmpeg version was not displayed after API call'
-            })
-
-            const ffmpegVersion = await ConfigDialog.getFfmpegVersion()
-            console.log(`ffmpeg version: ${ffmpegVersion}`)
-            
-            // Assert 2: ffmpeg version should be displayed
-            expect(ffmpegVersion).toContain('Version:')
-            expect(ffmpegVersion.length).toBeGreaterThan(10) // Version string should have some content
-            console.log('✓ Assert 2: ffmpeg version is displayed on screen')
-
-            if (slowdown) {
-                await delay(1000)
-            }
-
-            console.log('External tools test completed successfully')
         })
     })
 })
