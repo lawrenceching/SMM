@@ -46,6 +46,26 @@
   "feedback": {
     "title": "反馈",
     "description": "分享您的反馈、报告错误或建议新功能",
+    "open": "打开",
+    "openLink": "打开链接",
+    "links": {
+      "githubIssues": {
+        "title": "GitHub · 报告问题（Bug）",
+        "description": "打开 GitHub Issues 来报告错误。"
+      },
+      "githubDiscussions": {
+        "title": "GitHub · 反馈/讨论",
+        "description": "打开 GitHub Discussions 提交反馈或提问。"
+      },
+      "gitcodeIssues": {
+        "title": "GitCode · 反馈问题（中国大陆）",
+        "description": "打开 GitCode Issues（中国大陆建议使用）。"
+      },
+      "gitcodeDiscussions": {
+        "title": "GitCode · 用户反馈/讨论（中国大陆）",
+        "description": "打开 GitCode Discussions（中国大陆建议使用）。"
+      }
+    },
     "type": "类型",
     "typeBug": "错误报告",
     "typeFeature": "功能请求",

@@ -35,6 +35,26 @@
   "feedback": {
     "title": "意見回饋",
     "description": "分享您的意見、回報錯誤或建議新功能",
+    "open": "開啟",
+    "openLink": "開啟連結",
+    "links": {
+      "githubIssues": {
+        "title": "GitHub · 回報問題（Bug）",
+        "description": "開啟 GitHub Issues 來回報錯誤。"
+      },
+      "githubDiscussions": {
+        "title": "GitHub · 意見回饋/討論",
+        "description": "開啟 GitHub Discussions 提交意見或提問。"
+      },
+      "gitcodeIssues": {
+        "title": "GitCode · 回報問題（中國大陸）",
+        "description": "開啟 GitCode Issues（中國大陸建議使用）。"
+      },
+      "gitcodeDiscussions": {
+        "title": "GitCode · 討論/社群（中國大陸）",
+        "description": "開啟 GitCode Discussions（中國大陸建議使用）。"
+      }
+    },
     "type": "類型",
     "typeBug": "錯誤回報",
     "typeFeature": "功能請求",

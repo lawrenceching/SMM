@@ -1,12 +1,49 @@
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Send } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
+
+const FEEDBACK_LINKS = [
+  {
+    id: "github-issues",
+    url: "https://github.com/lawrenceching/SMM/issues",
+    titleKey: "feedback.links.githubIssues.title",
+    defaultTitle: "GitHub · Report Bugs",
+    descKey: "feedback.links.githubIssues.description",
+    defaultDesc: "Open GitHub Issues to report bugs.",
+  },
+  {
+    id: "github-discussions",
+    url: "https://github.com/lawrenceching/SMM/discussions/landing",
+    titleKey: "feedback.links.githubDiscussions.title",
+    defaultTitle: "GitHub · Feedback or Discussion",
+    descKey: "feedback.links.githubDiscussions.description",
+    defaultDesc: "Open GitHub Discussions for feedback and questions.",
+  },
+  {
+    id: "gitcode-issues",
+    url: "https://gitcode.com/lawrenceching/simple-media-manager/issues",
+    titleKey: "feedback.links.gitcodeIssues.title",
+    defaultTitle: "GitCode · 反馈问题（中国大陆）",
+    descKey: "feedback.links.gitcodeIssues.description",
+    defaultDesc: "Open GitCode Issues (recommended in mainland China).",
+  },
+  {
+    id: "gitcode-discussions",
+    url: "https://gitcode.com/lawrenceching/simple-media-manager/discussions",
+    titleKey: "feedback.links.gitcodeDiscussions.title",
+    defaultTitle: "GitCode · 讨论/社区论坛（中国大陆）",
+    descKey: "feedback.links.gitcodeDiscussions.description",
+    defaultDesc: "Open GitCode Discussions (recommended in mainland China).",
+  },
+] as const
 
 export function Feedback() {
   const { t } = useTranslation('settings')
-  
+
+  const openLink = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -16,35 +53,38 @@ export function Feedback() {
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="feedback-type">{t('feedback.type')}</Label>
-          <select
-            id="feedback-type"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      <div className="grid gap-3 sm:grid-cols-2">
+        {FEEDBACK_LINKS.map((link) => (
+          <div
+            key={link.id}
+            className="rounded-lg border bg-card p-4"
+            data-testid={`feedback-link-${link.id}`}
           >
-            <option value="bug">{t('feedback.typeBug')}</option>
-            <option value="feature">{t('feedback.typeFeature')}</option>
-            <option value="improvement">{t('feedback.typeImprovement')}</option>
-            <option value="other">{t('feedback.typeOther')}</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="feedback-message">{t('feedback.message')}</Label>
-          <Textarea
-            id="feedback-message"
-            placeholder={t('feedback.messagePlaceholder')}
-            className="min-h-[200px]"
-          />
-        </div>
-
-        <div className="flex justify-end">
-          <Button>
-            <Send className="mr-2 h-4 w-4" />
-            {t('feedback.send')}
-          </Button>
-        </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium leading-6">
+                  {t(link.titleKey, { defaultValue: link.defaultTitle })}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {t(link.descKey, { defaultValue: link.defaultDesc })}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => openLink(link.url)}
+                aria-label={t('feedback.openLink', { defaultValue: 'Open link' })}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3">
+              <Button variant="secondary" className="w-full" onClick={() => openLink(link.url)}>
+                {t('feedback.open', { defaultValue: 'Open' })}
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

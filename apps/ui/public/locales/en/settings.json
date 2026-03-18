@@ -46,6 +46,26 @@
   "feedback": {
     "title": "Feedback",
     "description": "Share your feedback, report bugs, or suggest new features",
+    "open": "Open",
+    "openLink": "Open link",
+    "links": {
+      "githubIssues": {
+        "title": "GitHub · Report Bugs",
+        "description": "Open GitHub Issues to report bugs."
+      },
+      "githubDiscussions": {
+        "title": "GitHub · Feedback or Discussion",
+        "description": "Open GitHub Discussions for feedback and questions."
+      },
+      "gitcodeIssues": {
+        "title": "GitCode · Report issues (Mainland China)",
+        "description": "Open GitCode Issues (recommended in mainland China)."
+      },
+      "gitcodeDiscussions": {
+        "title": "GitCode · Discussions (Mainland China)",
+        "description": "Open GitCode Discussions (recommended in mainland China)."
+      }
+    },
     "type": "Type",
     "typeBug": "Bug Report",
     "typeFeature": "Feature Request",
