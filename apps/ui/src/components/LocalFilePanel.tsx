@@ -78,15 +78,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        width: "100%",
-        backgroundColor: "#ffffff",
-      }}
-    >
+    <div className="flex h-full w-full flex-col bg-background">
       {/* Warning bar - only shown when media type is unknown */}
       {mediaType === "unknown" && selectedMediaMetadata?.status === 'ok' && (
         <UnknownMediaTypeWarning

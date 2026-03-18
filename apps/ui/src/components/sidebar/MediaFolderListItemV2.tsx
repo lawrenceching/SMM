@@ -236,8 +236,11 @@ export function MediaFolderListItemV2({
         <div
           className={cn(
             "group relative flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all duration-200 ease-out",
-            selected && (isPrimary ? "border-l-4 border-l-primary bg-primary/5" : "border-l-4 border-l-sidebar-primary bg-white"),
-            !selected && "bg-white hover:bg-gray-100"
+            selected &&
+              (isPrimary
+                ? "border-l-4 border-l-primary bg-primary/5"
+                : "border-l-4 border-l-sidebar-primary bg-sidebar-accent"),
+            !selected && "bg-sidebar hover:bg-sidebar-accent/80"
           )}
           onClick={onClick}
         >
@@ -254,7 +257,7 @@ export function MediaFolderListItemV2({
             </h5>
             <p className={cn(
               "text-xs truncate mt-0.5",
-              selected ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50 hover:sidebar-foreground/60"
+              selected ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60"
             )}>
               {folderName}
             </p>

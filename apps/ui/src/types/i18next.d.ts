@@ -411,6 +411,11 @@ interface SettingsResources {
     title: string
     language: string
     languageDescription: string
+    theme: string
+    themeDescription: string
+    themeLight: string
+    themeDark: string
+    themeSystem: string
     tmdbHost: string
     tmdbHostPlaceholder: string
     tmdbApiKey: string

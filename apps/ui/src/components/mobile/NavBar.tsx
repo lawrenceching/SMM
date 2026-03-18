@@ -6,39 +6,13 @@ export interface NavBarProps {
 
 export function NavBar({ title, onBack, children }: NavBarProps) {
   return (
-    <div
-      style={{
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #e0e0e0",
-        padding: "0 16px",
-        height: "48px",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      }}
-    >
-      {/* Back button - only shown when onBack is provided */}
+    <div className="flex h-12 items-center gap-3 border-b border-border bg-background px-4 shadow-sm">
       {onBack && (
         <button
+          type="button"
           onClick={onBack}
-          style={{
-            backgroundColor: "transparent",
-            border: "none",
-            padding: "8px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "4px",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#f0f0f0"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent"
-          }}
+          className="flex shrink-0 cursor-pointer items-center justify-center rounded-md p-2 transition-colors hover:bg-accent"
+          aria-label="Back"
         >
           <svg
             width="20"
@@ -46,6 +20,7 @@ export function NavBar({ title, onBack, children }: NavBarProps) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
+            className="text-foreground"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -55,36 +30,17 @@ export function NavBar({ title, onBack, children }: NavBarProps) {
         </button>
       )}
 
-      {/* Title */}
       <h1
-        style={{
-          margin: 0,
-          fontSize: onBack ? "18px" : "20px",
-          fontWeight: "600",
-          color: "#333333",
-          flex: 1,
-          minWidth: 0,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
+        className={`min-w-0 flex-1 truncate font-semibold text-foreground ${
+          onBack ? "text-lg" : "text-xl"
+        }`}
       >
         {title}
       </h1>
 
-      {/* Actions slot - rendered on the right */}
       {children && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          {children}
-        </div>
+        <div className="flex shrink-0 items-center gap-2">{children}</div>
       )}
     </div>
   )
 }
-

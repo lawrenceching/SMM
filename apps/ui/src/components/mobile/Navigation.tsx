@@ -35,24 +35,12 @@ export function Navigation({
         className="hide-scrollbar"
       >
         {filteredAndSortedFolders.length === 0 ? (
-          <div
-            style={{
-              padding: "16px",
-              textAlign: "center",
-              color: "#666666",
-              fontSize: "14px",
-            }}
-          >
+          <div className="p-4 text-center text-sm text-muted-foreground">
             没有找到媒体文件夹
           </div>
         ) : (
           filteredAndSortedFolders.map((folder) => (
-            <div
-              key={folder.path}
-              style={{
-                borderBottom: "1px solid #e8e8e8",
-              }}
-            >
+            <div key={folder.path} className="border-b border-border">
               <MediaFolderListItemV2
                   mediaName={folder.mediaName}
                   mediaType={folder.mediaType}

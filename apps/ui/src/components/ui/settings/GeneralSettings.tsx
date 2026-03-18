@@ -11,8 +11,12 @@ import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem } from "@/components/dialogs/types"
 import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
 import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
+import { useTheme } from "@/providers/theme-provider"
+
+const THEME_OPTIONS = ["light", "dark", "system"] as const
 
 export function GeneralSettings() {
+  const { theme, setTheme } = useTheme()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
   const { filePickerDialog } = useDialogs()
@@ -163,6 +167,34 @@ export function GeneralSettings() {
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{t('general.languageDescription')}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="theme-mode">{t('general.theme')}</Label>
+          <Select
+            value={theme}
+            onValueChange={(value) =>
+              setTheme(value as (typeof THEME_OPTIONS)[number])
+            }
+          >
+            <SelectTrigger id="theme-mode" data-testid="setting-theme-trigger">
+              <SelectValue placeholder={t('general.themeDescription')} />
+            </SelectTrigger>
+            <SelectContent data-testid="setting-theme-content">
+              <SelectItem value="light" data-testid="setting-theme-light">
+                {t('general.themeLight')}
+              </SelectItem>
+              <SelectItem value="dark" data-testid="setting-theme-dark">
+                {t('general.themeDark')}
+              </SelectItem>
+              <SelectItem value="system" data-testid="setting-theme-system">
+                {t('general.themeSystem')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            {t('general.themeDescription')}
+          </p>
         </div>
 
         <div className="space-y-2">

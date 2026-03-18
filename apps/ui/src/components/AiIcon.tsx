@@ -66,17 +66,17 @@ export function AiIcon({ size = 80, className }: AiIconProps) {
 
       {/* Inner core with Bot icon */}
       <div
-        className="relative z-10 flex items-center justify-center w-14 h-14 rounded-full bg-linear-to-br from-white/95 via-white/90 to-white/80 backdrop-blur-sm"
+        className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border border-border/60 bg-linear-to-br from-background via-background to-muted/80 backdrop-blur-sm dark:from-card dark:via-card dark:to-muted"
         style={{
           boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.4),
-            0 0 30px rgba(139, 92, 246, 0.4),
-            0 0 60px rgba(236, 72, 153, 0.2)
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 0 30px rgba(139, 92, 246, 0.35),
+            0 0 60px rgba(236, 72, 153, 0.15)
           `,
           animation: "ai-core-glow 2s ease-in-out infinite alternate",
         }}
       >
-        <Bot className="w-7 h-7 text-violet-600 drop-shadow-sm" />
+        <Bot className="w-7 h-7 text-violet-600 drop-shadow-sm dark:text-violet-400" />
       </div>
 
       {/* Holographic overlay */}

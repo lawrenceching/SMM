@@ -502,16 +502,8 @@ function AppV2Content() {
 
         {/* 工具栏 */}
         <div
-          style={{
-            gridArea: "toolbar",
-            backgroundColor: "#f8f8f8",
-            borderBottom: "1px solid #d0d0d0",
-            padding: "6px 12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          }}
+          className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm"
+          style={{ gridArea: "toolbar" }}
         >
           <Toolbar 
             onOpenFolderMenuClick={handleOpenFolderMenuClick}
@@ -525,14 +517,8 @@ function AppV2Content() {
         {/* 侧边栏 */}
         <div
           ref={sidebarRef}
-          style={{
-            gridArea: "sidebar",
-            backgroundColor: "#f5f5f5",
-            borderRight: "1px solid #d0d0d0",
-            position: "relative",
-            overflow: "hidden",
-            minWidth: 0,
-          }}
+          className="relative min-w-0 overflow-hidden border-r border-border bg-muted/30"
+          style={{ gridArea: "sidebar" }}
         >
           <Sidebar
             sortOrder={sortOrder}
@@ -554,40 +540,16 @@ function AppV2Content() {
             ref={resizeRef}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
-            style={{
-              position: "absolute",
-              top: 0,
-              right: "-2px",
-              width: "8px",
-              height: "100%",
-              cursor: "col-resize",
-              backgroundColor: isResizing ? "#4a9eff" : "transparent",
-              transition: "background-color 0.15s",
-              zIndex: 10,
-              touchAction: "none",
-            }}
-            onMouseEnter={(e) => {
-              if (!isResizing) {
-                e.currentTarget.style.backgroundColor = "#b0b0b0"
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isResizing) {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }
-            }}
+            className={`absolute top-0 -right-0.5 z-10 h-full w-2 cursor-col-resize touch-none transition-colors ${
+              isResizing ? "bg-primary" : "bg-transparent hover:bg-muted-foreground/30"
+            }`}
           />
         </div>
 
         {/* 内容区 */}
         <div
-          style={{
-            gridArea: "content",
-            backgroundColor: "#ffffff",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
+          className="flex flex-col overflow-hidden bg-background"
+          style={{ gridArea: "content" }}
         >
           {folders.length === 0 && (
             <div style={{ padding: "20px", overflow: "auto" }}>

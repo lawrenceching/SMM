@@ -19,21 +19,8 @@ export function Toolbox({
   onSearchQueryChange,
 }: ToolboxProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #e0e0e0",
-      }}
-    >
-      {/* 工具栏：排序和筛选按钮 */}
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
+    <div className="flex flex-col border-b border-border bg-background">
+      <div className="border-b border-border px-3 py-2">
         <MediaFolderToolbar
           sortOrder={sortOrder}
           onSortOrderChange={onSortOrderChange}
@@ -42,12 +29,7 @@ export function Toolbox({
         />
       </div>
 
-      {/* 搜索框 */}
-      <div
-        style={{
-          padding: "8px 12px",
-        }}
-      >
+      <div className="px-3 py-2">
         <SearchForm
           value={searchQuery}
           onValueChange={onSearchQueryChange}
@@ -57,4 +39,3 @@ export function Toolbox({
     </div>
   )
 }
-

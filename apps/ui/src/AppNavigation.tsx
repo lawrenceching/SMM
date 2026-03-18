@@ -119,56 +119,26 @@ export default function AppNavigation() {
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
-      <div
-        style={{
-          width: "100vw",
-          height: "100vh",
-          overflow: "hidden",
-          position: "relative",
-          backgroundColor: "#ffffff",
-        }}
-      >
+      <div className="relative h-screen w-screen overflow-hidden bg-background">
       {/* 列表页 */}
       <div
+        className="absolute inset-0 flex h-full w-full flex-col bg-muted/30 transition-transform duration-300 ease-out"
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
           transform: currentPage === "list" ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 300ms ease-out",
-          backgroundColor: "#f5f5f5",
-          display: "flex",
-          flexDirection: "column",
         }}
       >
         {/* 列表页导航栏 */}
         <NavBar title="列表">
           <button
+            type="button"
             onClick={() => setIsToolboxExpanded(!isToolboxExpanded)}
-            style={{
-              backgroundColor: "transparent",
-              border: "none",
-              padding: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "4px",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f0f0f0"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent"
-            }}
+            className="flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors hover:bg-accent"
+            aria-expanded={isToolboxExpanded}
           >
             {isToolboxExpanded ? (
-              <ChevronUp className="h-5 w-5" color="#333333" />
+              <ChevronUp className="h-5 w-5 text-foreground" />
             ) : (
-              <ChevronDown className="h-5 w-5" color="#333333" />
+              <ChevronDown className="h-5 w-5 text-foreground" />
             )}
           </button>
         </NavBar>
@@ -200,17 +170,9 @@ export default function AppNavigation() {
 
       {/* 内容页 */}
       <div
+        className="absolute inset-0 flex h-full w-full flex-col bg-background transition-transform duration-300 ease-out"
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
           transform: currentPage === "detail" ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 300ms ease-out",
-          backgroundColor: "#ffffff",
-          display: "flex",
-          flexDirection: "column",
         }}
       >
         {/* 内容页导航栏 */}
@@ -235,17 +197,7 @@ export default function AppNavigation() {
           }}
         >
           {!selectedMediaMetadata ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                fontSize: "18px",
-                color: "#666666",
-                padding: "16px",
-              }}
-            >
+            <div className="flex h-full items-center justify-center p-4 text-lg text-muted-foreground">
               请选择一个媒体文件夹
             </div>
           ) : (

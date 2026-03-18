@@ -20,6 +20,11 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+function applyResolvedTheme(root: HTMLElement, resolved: "light" | "dark") {
+  root.classList.remove("light", "dark")
+  root.classList.add(resolved)
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "system",
@@ -33,26 +38,25 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
-
-      root.classList.add(systemTheme)
+    if (theme !== "system") {
+      applyResolvedTheme(root, theme)
       return
     }
 
-    root.classList.add(theme)
+    const mql = window.matchMedia("(prefers-color-scheme: dark)")
+    const sync = () =>
+      applyResolvedTheme(root, mql.matches ? "dark" : "light")
+
+    sync()
+    mql.addEventListener("change", sync)
+    return () => mql.removeEventListener("change", sync)
   }, [theme])
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: (next: Theme) => {
+      localStorage.setItem(storageKey, next)
+      setTheme(next)
     },
   }
 

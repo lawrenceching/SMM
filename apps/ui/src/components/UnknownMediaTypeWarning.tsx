@@ -24,34 +24,10 @@ export function UnknownMediaTypeWarning({
   disabled,
 }: UnknownMediaTypeWarningProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        padding: "10px 12px",
-        borderBottom: "1px solid #fbbf24",
-        backgroundColor: "#fef3c7",
-      }}
-    >
-      {/* 媒体类型选择 */}
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "6px",
-          padding: "2px",
-          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-        }}
-      >
+    <div className="flex items-center gap-3 border-b border-amber-400/70 bg-amber-100 px-3 py-2.5 dark:border-amber-500/35 dark:bg-amber-950/45">
+      <div className="rounded-md bg-card p-0.5 shadow-sm">
         <Select value={mediaType} onValueChange={(value) => onMediaTypeChange(value as MediaType)}>
-          <SelectTrigger
-            style={{
-              width: "120px",
-              height: "32px",
-              border: "none",
-              boxShadow: "none",
-            }}
-          >
+          <SelectTrigger className="h-8 w-[120px] border-0 shadow-none">
             <SelectValue placeholder="类型" />
           </SelectTrigger>
           <SelectContent>
@@ -63,45 +39,20 @@ export function UnknownMediaTypeWarning({
         </Select>
       </div>
 
-      {/* 警告消息 */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          flex: 1,
-          color: "#92400e",
-          fontSize: "14px",
-          fontWeight: 500,
-        }}
-      >
-        <AlertTriangle className="h-4 w-4" style={{ flexShrink: 0 }} />
+      <div className="flex flex-1 items-center gap-2 text-sm font-medium text-amber-900 dark:text-amber-100">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>请选择媒体类型</span>
       </div>
 
-      {/* 确认按钮 */}
       <Button
         size="sm"
-        style={{
-          height: "32px",
-          padding: "0 16px",
-          backgroundColor: "#f59e0b",
-          color: "#ffffff",
-          fontWeight: 500,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#d97706"
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#f59e0b"
-        }}
+        className="h-8 bg-amber-600 px-4 font-medium text-white hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500"
         onClick={onConfirm}
         disabled={disabled || mediaType === "unknown"}
       >
-        <Check className="h-4 w-4 mr-2" />
+        <Check className="mr-2 h-4 w-4" />
         确认
       </Button>
     </div>
   )
 }
-
