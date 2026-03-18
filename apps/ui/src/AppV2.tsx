@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
+import { AppWarningBanner } from "./components/AppWarningBanner"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import TvShowPanel from "./components/TvShowPanel"
@@ -483,16 +484,22 @@ function AppV2Content() {
         style={{
           display: "grid",
           gridTemplateAreas: `
+            "warning warning"
             "toolbar toolbar"
             "sidebar content"
             "statusbar statusbar"
           `,
-          gridTemplateRows: "auto 1fr auto",
+          gridTemplateRows: "auto auto 1fr auto",
           gridTemplateColumns: `${sidebarWidth}px 1fr`,
           height: "100vh",
           width: "100vw",
         }}
       >
+        {/* Warning Banner */}
+        <div style={{ gridArea: "warning" }}>
+          <AppWarningBanner />
+        </div>
+
         {/* 工具栏 */}
         <div
           style={{
