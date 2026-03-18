@@ -8,7 +8,7 @@ import Sidebar from '../componentobjects/Sidebar'
 import TVShowPanel, { type TvShowEpisodeTableRow } from '../componentobjects/TVShowPanel.co'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
-import { folder1, createAndImportFolder } from '../actions/import-folders'
+import { folder1, createAndImportFolder, type TestFolder } from '../actions/import-folders'
 
 const __filename = fileURLToPath(import.meta.url)
 const slowdown = process.env.SLOWDOWN === 'true'
@@ -33,46 +33,41 @@ describe('Media Folder Initialization', () => {
     })
 
     it('TV Show - Folder Name', async function() {
+
         if(slowdown) {
             this.timeout(60 * 1000)
         }
 
-        // Create empty folder in media directory
-        const testMediaFolder = path.join(mediaDir, FOLDER_NAME)
-        fs.mkdirSync(testMediaFolder, { recursive: true })
-        console.log('Created empty media folder:', testMediaFolder)
+        const EXPECTED_FOLDER_NAME = '天使降临到我身边！'
+        const folder: TestFolder = {
+            ...folder1,
+            folderName: EXPECTED_FOLDER_NAME,
+        }
+        
+        await createAndImportFolder(folder, 'e2eTest:Import Media Folder')
+        console.log(`Imported folder "${folder.folderName}"`)
+        
 
         if(slowdown) {
             await delay(10 * 1000)
         }
 
-        console.log('Importing media folder:', testMediaFolder)
-        await Menu.importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: testMediaFolder,
-            traceId: 'e2eTest:Import Media Folder'
-        })
+        
 
-        if(slowdown) {
-            await delay(10 * 1000)
-        }
-
-        // Import media folder will trigger async media folder initialization, wait for it to complete
-        await delay(5 * 1000)
-
-        console.log(`Waiting for folder "${FOLDER_NAME}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolder(FOLDER_NAME, 60000)
+        
+        console.log(`Waiting for folder "${EXPECTED_FOLDER_NAME}" to appear in sidebar...`)
+        const isDisplayed = await Sidebar.waitForFolder(EXPECTED_FOLDER_NAME, 60000)
         expect(isDisplayed).toBe(true)
-        console.log(`Folder "${FOLDER_NAME}" is now displayed in sidebar`)
+        console.log(`Folder "${EXPECTED_FOLDER_NAME}" is now displayed in sidebar`)
 
         // Assert immersive-input displays the folder name
         const immersiveInput = await $('[data-testid="immersive-input"]')
         await immersiveInput.waitForDisplayed({ timeout: 15000 })
         await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === FOLDER_NAME,
+            async () => (await immersiveInput.getValue()) === EXPECTED_FOLDER_NAME,
             { timeout: 10000, timeoutMsg: `ImmersiveSearchbox title did not become "${FOLDER_NAME}"` }
         )
-        expect(await immersiveInput.getValue()).toBe(FOLDER_NAME)
+        expect(await immersiveInput.getValue()).toBe(EXPECTED_FOLDER_NAME)
 
         if(slowdown) {
             await delay(10 * 1000)

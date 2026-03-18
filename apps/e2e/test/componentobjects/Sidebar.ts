@@ -113,7 +113,7 @@ class Sidebar {
      */
     async isFolderDisplayed(folderName: string): Promise<boolean> {
         try {
-            const element = $(`//div[contains(@class, 'group') and contains(@class, 'relative')]//h5[text()="${folderName}"]`)
+            const element = $(`//*[@data-testid="sidebar-folder-name" and text()="${folderName}"]`)
             return await element.isExisting()
         } catch {
             return false
@@ -143,7 +143,9 @@ class Sidebar {
     async waitForFolder(folderName: string, timeout: number = 30000): Promise<boolean> {
         try {
             return await browser.waitUntil(async () => {
-                return await this.isFolderDisplayed(folderName)
+                const folders = await this.getFolders()
+                console.log(`Folders in Sidebar: ${folders.join(', ')}`)
+                return folders.includes(folderName)
             }, {
                 timeout,
                 timeoutMsg: `Folder "${folderName}" was not displayed in sidebar after ${timeout}ms`

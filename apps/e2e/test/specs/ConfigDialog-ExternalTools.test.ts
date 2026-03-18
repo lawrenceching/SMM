@@ -25,26 +25,9 @@ describe('Config Dialog - External Tools', () => {
         console.log('Page reloaded and ready')
     })
 
-    /**
-     * Helper function to reload page and wait for it to be ready
-     */
-    async function reloadAndWaitForReady(): Promise<void> {
-        await Page.refresh()
-        await browser.waitUntil(async () => {
-            return await StatusBar.isDisplayed()
-        }, {
-            timeout: 10000,
-            timeoutMsg: 'Status bar was not displayed after page reload'
-        })
-        await browser.pause(500)
-        console.log('Page reloaded and ready')
-    }
-
     describe('External Tools - Display Executable Paths and Versions', () => {
         it('should display yt-dlp and ffmpeg executable paths and their versions', async function() {
-            if (slowdown) {
-                this.timeout(120 * 1000)
-            }
+            this.timeout(120 * 1000)
             
             console.log('Opening config dialog...')
             await Menu.openConfigDialog()
