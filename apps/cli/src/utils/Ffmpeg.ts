@@ -6,6 +6,7 @@ import fs from "fs";
 import crypto from "crypto";
 import { execSync, spawn } from "child_process";
 import { Path } from "@core/path";
+import logger from "lib/logger";
 
 const NUM_SCREENSHOTS = 5;
 
@@ -534,6 +535,8 @@ export async function getMediaTags(filePath: string): Promise<MediaTagsResult> {
       Number.isFinite(durationRaw) && durationRaw >= 0 ? durationRaw : undefined;
     return { tags, ...(duration !== undefined && { duration }) };
   } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error({ err, filePath }, 'Unable to read tags by ffprobe');
     if (error instanceof Error) {
       if (error.message.includes("timeout")) {
         return { error: "request timed out" };
