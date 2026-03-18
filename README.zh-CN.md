@@ -20,3 +20,12 @@ Simple Media Manger(SMM) 一款简单的多媒体管理、重命名和刮削工�
 * Edit Tag
 * Build-in AI Assistant
 * MCP Server
+
+
+## 问题反馈
+
+[GitHub | Report Bugs](https://github.com/lawrenceching/SMM/issues)
+[GitHub | Feedback or Dicussion](https://github.com/lawrenceching/SMM/discussions/landing)
+
+[GitCode | 问题反馈 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/issues)
+[GitCode | 用户反馈、讨论、社区论坛 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/discussions)

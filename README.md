@@ -19,3 +19,11 @@ Download latest version from [Release Page](https://github.com/lawrenceching/fan
 * Edit Tag
 * Build-in AI Assistant
 * MCP Server
+
+## Report Issue and Feedabck
+
+[GitHub | Report Bugs](https://github.com/lawrenceching/SMM/issues)
+[GitHub | Feedback or Dicussion](https://github.com/lawrenceching/SMM/discussions/landing)
+
+[GitCode | 反馈问题 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/issues)
+[GitCode | 用户反馈、讨论、社区论坛 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/discussions)
