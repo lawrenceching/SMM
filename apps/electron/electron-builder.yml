@@ -33,7 +33,8 @@ win:
       filter:
         - '**/*.exe'
 nsis:
-  artifactName: ${productName}-${version}-setup.${ext}
+  # ${arch} distinguishes x64 vs arm64 when both Windows installers are published
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

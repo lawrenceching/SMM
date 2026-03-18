@@ -54,10 +54,6 @@ jobs:
             build-command: build:mac
             arch: arm64
         exclude:
-          - os: windows-latest
-            arch: arm64
-          - os: macos-13
-            arch: arm64
           - os: macos-14
             arch: x64
 
@@ -93,7 +89,12 @@ jobs:
           PLUGINS_VERSION: v1.0.0
 
       - name: Build cli
-        run: cd apps/cli && pnpm run build
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" = "win" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
+            export CLI_COMPILE_TARGET=bun-windows-arm64
+          fi
+          cd apps/cli && pnpm run build
 
       - name: Build ui
         run: cd apps/ui && pnpm run build

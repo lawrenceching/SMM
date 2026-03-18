@@ -18,8 +18,11 @@ writeFileSync(versionFilePath, versionFileContent, 'utf-8');
 
 console.log(`✓ Generated version.ts with version: ${version}`);
 
-// Now run the actual build
-const buildResult = await $`bun build index.ts --compile --outfile dist/cli`.quiet();
+// Now run the actual build (CLI_COMPILE_TARGET e.g. bun-windows-arm64 for Win ARM64 on x64 CI)
+const compileTarget = process.env.CLI_COMPILE_TARGET?.trim();
+const buildResult = compileTarget
+  ? await $`bun build index.ts --compile --target=${compileTarget} --outfile dist/cli`.quiet()
+  : await $`bun build index.ts --compile --outfile dist/cli`.quiet();
 if (buildResult.exitCode !== 0) {
   console.error('Build failed');
   process.exit(1);
