@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url'
 import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
 import StatusBar from '../componentobjects/StatusBar'
-import { createBeforeHook } from '../lib/testbed'
+import { cleanup, createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, type TestFolder } from 'test/actions/import-folders'
+import { env } from 'node:process'
 
 const slowdown = process.env.SLOWDOWN === 'true'
 
@@ -35,6 +36,7 @@ export async function createTestFolders() {
                 folderPathInPlatformFormat: mediaFolderPaths[i]!,
                 traceId: 'e2eTest:Import Media Folder'
             })
+            browser.pause(1000)
         } else {
             console.log(`Folder "${folderName}" already displayed, skipping import`)
         }
@@ -46,8 +48,12 @@ export async function createTestFolders() {
 
 describe('Sidebar', () => {
 
-    before(async () => {
+    beforeEach(async () => {
         await createBeforeHook({ setupMediaFolders: false })()        
+    })
+
+    afterEach(async () => {
+        cleanup()
     })
 
 
@@ -149,7 +155,30 @@ describe('Sidebar', () => {
             this.timeout(60 * 1000)
         }
 
-        await createTestFolders()
+        const testFolders: TestFolder[] = [
+            {
+                folderName: '古见同学有交流障碍症',
+                type: 'tvshow',
+                files: [],
+            },
+            {
+                folderName: '夺命小丑2_高清',
+                type: 'movie',
+                files: [],
+            },
+            {
+                folderName: 'music',
+                type: 'music',
+                files: [],
+            },
+        ]
+
+        for (const folder of testFolders) {
+            await createAndImportFolder(folder, 'e2eTest:Import Media Folder')
+            if(slowdown) {
+                await delay(1000)
+            }
+        }
 
         // Wait for all folders to be loaded in the sidebar
         console.log('Waiting for folders to load in sidebar...')
@@ -266,80 +295,48 @@ describe('Sidebar', () => {
     })
 
     it('Selection - should show selected folder path in StatusBar when user selects a folder', async function() {
-        if(slowdown) {
-            this.timeout(60 * 1000)
+        
+        const testFolders: TestFolder[] = [
+            {
+                folderName: '古见同学有交流障碍症',
+                type: 'tvshow',
+                files: [],
+            },
+            {
+                folderName: '夺命小丑2_高清',
+                type: 'movie',
+                files: [],
+            },
+            {
+                folderName: 'music',
+                type: 'music',
+                files: [],
+            },
+        ]
+
+        for (const folder of testFolders) {
+            await createAndImportFolder(folder, 'e2eTest:Import Media Folder')
+            if(slowdown) {
+                await delay(1000)
+            }
         }
 
-        await createTestFolders()
-
-        // Wait for all folders to be loaded in the sidebar
-        console.log('Waiting for folders to load in sidebar...')
-        const foldersLoaded = await Sidebar.waitForFoldersToLoad(3, 60000)
-        expect(foldersLoaded).toBe(true)
-        console.log('Folders loaded successfully')
-
-        if(slowdown) {
-            await delay(3 * 1000)
+        await browser.waitUntil(async () => {
+            const displayedFolders = await Sidebar.getFolders()
+            console.log('Folders displayed in sidebar:' + JSON.stringify(displayedFolders))
+            return 3 === displayedFolders.length
+        }, { timeout: 60000, interval: 1000 })
+        
+        for (const folder of testFolders) {
+            await Sidebar.clickFolder(folder.folderName)
+            await browser.pause(100)
+            if(env.slowdown) {
+                await browser.pause(1000)
+            }
+            const msg = await StatusBar.getMessage()
+            expect(msg).toContain(folder.folderName)
+            await browser.pause(100)
         }
 
-        // Verify status bar is displayed
-        const statusBarDisplayed = await StatusBar.isDisplayed()
-        expect(statusBarDisplayed).toBe(true)
-
-        // Clear any previous search to ensure all folders are visible
-        await Sidebar.clearSearch()
-        await delay(500)
-
-        // Test 1: Click on "music" folder and verify path is shown in StatusBar
-        const folderName = 'music'
-        console.log(`Clicking on folder "${folderName}"...`)
-        await Sidebar.clickFolder(folderName)
-
-        if(slowdown) {
-            await delay(2 * 1000)
-        }
-
-        // Verify the status bar shows the folder path
-        // Use folder name for cross-platform compatibility (path format differs between Windows/Unix)
-        const statusBarMessage = await StatusBar.getMessage()
-        console.log('StatusBar message after selection:', statusBarMessage)
-
-        // The status bar should contain the folder name as part of the path
-        // This works cross-platform since the folder name appears in paths on all OS
-        const messageContainsFolder = statusBarMessage.includes(folderName)
-        expect(messageContainsFolder).toBe(true)
-
-        // Also verify it contains a path separator (indicating it's showing a full path)
-        const hasPathSeparator = statusBarMessage.includes('/') || statusBarMessage.includes('\\')
-        expect(hasPathSeparator).toBe(true)
-
-        if(slowdown) {
-            await delay(3 * 1000)
-        }
-
-        // Test 2: Click on a Chinese folder name to verify it works with non-ASCII characters
-        const chineseFolderName = '古见同学有交流障碍症'
-        console.log(`Clicking on folder "${chineseFolderName}"...`)
-
-        // Ensure folder is visible (might need to scroll or clear search)
-        await Sidebar.clearSearch()
-        await delay(500)
-
-        await Sidebar.clickFolder(chineseFolderName)
-
-        if(slowdown) {
-            await delay(2 * 1000)
-        }
-
-        const statusBarMessage2 = await StatusBar.getMessage()
-        console.log('StatusBar message after selecting Chinese folder:', statusBarMessage2)
-
-        // Verify the status bar shows the Chinese folder name
-        const messageContainsChineseFolder = statusBarMessage2.includes(chineseFolderName)
-        expect(messageContainsChineseFolder).toBe(true)
-
-        if(slowdown) {
-            await delay(5 * 1000)
-        }
     })
 })

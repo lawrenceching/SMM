@@ -16,11 +16,18 @@ const listFilesRequestSchema = z.object({
 });
 
 export async function doListFiles(body: ListFilesRequestBody): Promise<ListFilesResponseBody> {
+  const requestId = `listFiles-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  logger.info({ requestId, body }, '[ListFiles] request received');
+
   try {
     // Validate request body
     const validationResult = listFilesRequestSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
+      logger.info(
+        { requestId, issues: validationResult.error.issues },
+        '[ListFiles] validation failed'
+      );
       return {
         data: {
           path: '',
@@ -32,6 +39,10 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
     }
 
     let { path: folderPath, onlyFiles, onlyFolders, includeHiddenFiles = false, recursively = false } = validationResult.data;
+    logger.info(
+      { requestId, folderPath, onlyFiles, onlyFolders, includeHiddenFiles, recursively },
+      '[ListFiles] validated params'
+    );
     
     // Resolve "~" to user home directory
     if (folderPath === '~' || folderPath.startsWith('~/')) {
@@ -62,17 +73,21 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
         folderPath = Path.toPlatformPath(folderPath);
       }
     } catch (error) {
-      // If Path operations fail (e.g., relative path, invalid format), 
+      // If Path operations fail (e.g., relative path, invalid format),
       // use path.resolve directly - it handles relative paths and other edge cases
+      logger.info({ requestId, folderPath, error }, '[ListFiles] Path normalization threw, using path.resolve');
     }
-    
+
     // Resolve to absolute path (no validation - all paths are allowed)
     const validatedPath = path.resolve(folderPath);
+    logger.info({ requestId, validatedPath }, '[ListFiles] resolved absolute path');
 
     // Check if path exists and is a directory
     try {
       const stats = await stat(validatedPath);
+      logger.info({ requestId, validatedPath, isDirectory: stats.isDirectory(), isFile: stats.isFile() }, '[ListFiles] stat result');
       if (!stats.isDirectory()) {
+        logger.info({ requestId, validatedPath }, '[ListFiles] path is not a directory');
         return {
           data: {
             path: validatedPath,
@@ -83,6 +98,10 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
         };
       }
     } catch (error) {
+      logger.info(
+        { requestId, validatedPath, folderPath, errMessage: error instanceof Error ? error.message : String(error), errCode: error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined },
+        '[ListFiles] stat failed (path not found or not accessible)'
+      );
       return {
         data: {
           path: validatedPath,
@@ -95,10 +114,12 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
 
     // List directory contents
     try {
+      logger.info({ requestId, validatedPath }, '[ListFiles] starting readdir');
       const results: Array<{ path: string; size: number; mtime: number; isDirectory: boolean }> = [];
       let totalCount = 0; // Count of all items in the immediate directory (before onlyFiles/onlyFolders filtering)
 
       async function scanDirectory(dirPath: string, isTopLevel: boolean = false): Promise<void> {
+        logger.info({ requestId, dirPath, isTopLevel }, '[ListFiles] scanDirectory readdir');
         const items = await readdir(dirPath);
 
         for (const item of items) {
@@ -173,23 +194,40 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
         },
       };
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errNo = (error as NodeJS.ErrnoException)?.code;
+      logger.info(
+        {
+          requestId,
+          validatedPath,
+          errMessage: err.message,
+          errCode: errNo,
+          errStack: err.stack,
+        },
+        '[ListFiles] readdir/list failed (EPERM often means sandbox or Full Disk Access)'
+      );
       return {
         data: {
           path: validatedPath,
           items: [],
           size: 0,
         },
-        error: `List Directory Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: `List Directory Failed: ${err.message}`,
       };
     }
   } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.info(
+      { requestId, errMessage: err.message, errStack: err.stack },
+      '[ListFiles] unexpected error in doListFiles'
+    );
     return {
       data: {
         path: '',
         items: [],
         size: 0,
       },
-      error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Unexpected Error: ${err.message}`,
     };
   }
 }
@@ -197,8 +235,9 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
 export function handleListFiles(app: Hono) {
   // GET /api/listFiles - supports query parameters
   app.get('/api/listFiles', async (c) => {
+    const query = c.req.query();
+    logger.info({ query }, '[ListFiles] GET /api/listFiles');
     try {
-      const query = c.req.query();
       const body: any = {
         path: query.path || '',
       };
@@ -215,9 +254,12 @@ export function handleListFiles(app: Hono) {
         body.recursively = query.recursively === 'true';
       }
       const result = await doListFiles(body);
+      if (result.error) {
+        logger.info({ body, resultError: result.error }, '[ListFiles] GET result has error');
+      }
       return c.json(result, 200);
     } catch (error) {
-      logger.error({ error }, 'ListFiles route error:');
+      logger.error({ error }, 'ListFiles GET route error');
       return c.json({ 
         data: {
           path: '',
@@ -233,10 +275,14 @@ export function handleListFiles(app: Hono) {
   app.post('/api/listFiles', async (c) => {
     try {
       const rawBody = await c.req.json();
+      logger.info({ rawBody }, '[ListFiles] POST /api/listFiles');
       const result = await doListFiles(rawBody);
+      if (result.error) {
+        logger.info({ rawBody, resultError: result.error }, '[ListFiles] POST result has error');
+      }
       return c.json(result, 200);
     } catch (error) {
-      logger.error({ error }, 'ListFiles route error:');
+      logger.error({ error }, 'ListFiles POST route error');
       return c.json({ 
         data: {
           path: '',

@@ -6,6 +6,7 @@ import Menu from '../componentobjects/Menu'
 import RenameDialog from '../componentobjects/RenameDialog'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
+import env from '../lib/env'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
@@ -153,6 +154,9 @@ describe('TVShow - Rename Episode File', () => {
 
     // 7. Enter the new file name
     await RenameDialog.setInputValue(RENAMED_FILE_NAME)
+    if(env.slowdown) {
+      await delay(1 * 1000)
+    }
     expect(await RenameDialog.getInputValue()).toBe(RENAMED_FILE_NAME)
     expect(await RenameDialog.isConfirmDisabled()).toBe(false)
     console.log('Confirm button is enabled after name change (expected)')

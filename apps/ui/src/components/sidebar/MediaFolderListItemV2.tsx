@@ -243,10 +243,13 @@ export function MediaFolderListItemV2({
         >
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <h5 className={cn(
-              "text-sm font-medium truncate",
-              selected ? "text-sidebar-foreground font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
-            )}>
+            <h5
+              className={cn(
+                "text-sm font-medium truncate",
+                selected ? "text-sidebar-foreground font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+              )}
+              data-testid="sidebar-folder-name"
+            >
               {mediaName}
             </h5>
             <p className={cn(

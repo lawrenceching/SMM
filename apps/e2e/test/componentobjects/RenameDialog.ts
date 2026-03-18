@@ -1,6 +1,7 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
+import env from 'test/lib/env'
 
 // Key constants for keyboard simulation
 const Key = {
@@ -102,12 +103,17 @@ class RenameDialog {
         await inputElement.waitForExist({ timeout: 5000 })
         await inputElement.click()
 
-        // Select all and delete
-        await browser.keys([Key.Ctrl, 'a'])
-        await browser.keys([Key.Backspace])
+    
+        await inputElement.clearValue()
 
         // Small delay to let React process the change
         await browser.pause(100)
+        if(env.slowdown) {
+            await browser.pause(1000)
+        }
+
+        // regain focus on the input element
+        await inputElement.click()
 
         // Type the new value
         if (value.length > 0) {
@@ -122,9 +128,7 @@ class RenameDialog {
         const inputElement = await this.input
         await inputElement.waitForExist({ timeout: 5000 })
         await inputElement.click()
-
-        await browser.keys([Key.Ctrl, 'a'])
-        await browser.keys([Key.Backspace])
+        await inputElement.clearValue()
     }
 
     /**

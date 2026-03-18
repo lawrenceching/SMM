@@ -5,7 +5,9 @@ import { browser } from '@wdio/globals'
 // Key constants for keyboard simulation
 const Key = {
     Ctrl: '\uE009',
-    Backspace: '\uE003'
+    Cmd: '\uE03D',
+    Backspace: '\uE003',
+    End: '\uE017'
 }
 
 class Sidebar {
@@ -83,12 +85,11 @@ class Sidebar {
 
     /**
      * Find a folder item by name within the sidebar
-     * The folder name is displayed in an h5 element within each folder item div
+     * The folder name is displayed in an element with data-testid="sidebar-folder-name"
      * @param folderName The name of the folder to find
      */
     async getFolderByName(folderName: string): Promise<ChainablePromiseElement> {
-        // Use xpath to find h5 elements containing the folder name
-        const folderElement = $(`//div[contains(@class, 'group') and contains(@class, 'relative')]//h5[text()="${folderName}"]`)
+        const folderElement = $(`//*[@data-testid="sidebar-folder-name" and text()="${folderName}"]`)
 
         // Wait for the element to exist
         await folderElement.waitForExist({ timeout: 5000 })
@@ -241,6 +242,11 @@ class Sidebar {
         await searchInput.waitForExist({ timeout: 5000 })
         await searchInput.click()
 
+        await searchInput.clearValue()
+
+        // regain focus on the input element
+        await searchInput.click()
+
         // Clear existing text using keyboard shortcuts to trigger React events
         await browser.keys([Key.Ctrl, 'a'])
         await browser.keys([Key.Backspace])
@@ -262,10 +268,14 @@ class Sidebar {
         const searchInput = await this.getSearchInput()
         await searchInput.waitForExist({ timeout: 5000 })
         await searchInput.click()
+        
+        for (let i = 0; i < 50; i++) {
+            await browser.keys([Key.End])
+            browser.pause(50)
 
-        // Select all and delete using keyboard to trigger React events
-        await browser.keys([Key.Ctrl, 'a'])
-        await browser.keys([Key.Backspace])
+            await browser.keys([Key.Backspace])
+            browser.pause(50)
+        }
     }
 
     /**
@@ -273,7 +283,7 @@ class Sidebar {
      */
     async getSearchValue(): Promise<string> {
         const searchInput = await this.getSearchInput()
-        return await searchInput.getValue()
+        return await searchInput.getValue() as string
     }
 
     /**
@@ -415,6 +425,16 @@ class Sidebar {
         const openOption = $('[data-testid="context-menu-open-in-explorer"]')
         await openOption.waitForClickable({ timeout: 5000 })
         await openOption.click()
+    }
+
+    async getFolders(): Promise<string[]> {
+        const folderElements = await $$('[data-testid="sidebar-folder-name"]')
+        const names: string[] = []
+        for (const element of folderElements) {
+            const name = await element.getText()
+            names.push(name)
+        }
+        return names
     }
 }
 

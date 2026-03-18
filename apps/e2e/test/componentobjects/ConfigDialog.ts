@@ -233,12 +233,14 @@ class ConfigDialog {
         await element.waitForExist({ timeout: 5000 })
         await element.click()
 
-        // Select all and delete
-        await browser.keys([Key.Ctrl, 'a'])
-        await browser.keys([Key.Backspace])
+        // Clear existing value (works cross-platform; Ctrl+A fails on macOS where Select All is Cmd+A)
+        await element.clearValue()
 
         // Small delay to let React process the change
         await browser.pause(100)
+
+        // regain focus on the input element
+        await element.click()
 
         // Type the new value
         if (value.length > 0) {
@@ -252,8 +254,7 @@ class ConfigDialog {
     async clearInput(element: ChainablePromiseElement): Promise<void> {
         await element.waitForExist({ timeout: 5000 })
         await element.click()
-        await browser.keys([Key.Ctrl, 'a'])
-        await browser.keys([Key.Backspace])
+        await element.clearValue()
     }
 
     // ==================== General Settings Actions ====================

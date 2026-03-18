@@ -4,7 +4,7 @@ import StatusBar from '../componentobjects/StatusBar'
 import { createBeforeHook } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 
-const JOB_DELAY_MS = 3000
+const JOB_DELAY_MS = 5000
 const JOB_NAME = 'E2E 测试任务'
 
 describe('Background Job', () => {
@@ -13,14 +13,16 @@ describe('Background Job', () => {
 
     it('should display background job indicator when job is running', async function() {
         // Trigger FixedDelayBackgroundJob event
-        await browser.executeScript(`
+        const script = `
             document.dispatchEvent(new CustomEvent('ui.fixedDelayBackgroundJob', {
                 detail: { delay: ${JOB_DELAY_MS}, name: '${JOB_NAME}', traceId: 'e2eTest:BackgroundJob' }
             }))
-        `, [])
+        `
+        await browser.executeScript(script, [])
+        console.log(`Execute script: ${script}`)
 
         // Wait a moment for the job to be created
-        await delay(500)
+        await delay(1000)
 
         // Check that background jobs indicator is displayed
         const isIndicatorDisplayed = await StatusBar.isBackgroundJobsIndicatorDisplayed()

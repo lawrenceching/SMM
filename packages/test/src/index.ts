@@ -28,7 +28,7 @@ export function setupTestMediaFolders(): {
     tmpDir: string,
     mediaDir: string,
 } {
-    const tmpDir = path.join(os.tmpdir(), 'smm-test-media')
+    const tmpDir = TEST_MEDIA_TMP_DIR
 
     // 1. Create or recreate tmp folder
     if (fs.existsSync(tmpDir)) {
@@ -72,6 +72,22 @@ export function setupTestMediaFolders(): {
         tmpDir,
         mediaDir: targetMediaPath,
     }
+}
+
+const TEST_MEDIA_TMP_DIR = path.join(os.tmpdir(), 'smm-test-media')
+
+/**
+ * Remove the test media tmp directory created by setupTestMediaFolders().
+ * Does not require the app or hello() API to be running.
+ * @returns The path that was removed, or null if the directory did not exist
+ */
+export function removeTestMediaTmpDir(): string | null {
+    if (fs.existsSync(TEST_MEDIA_TMP_DIR)) {
+        fs.rmSync(TEST_MEDIA_TMP_DIR, { recursive: true, force: true })
+        console.log(`Removed test media tmp directory: ${TEST_MEDIA_TMP_DIR}`)
+        return TEST_MEDIA_TMP_DIR
+    }
+    return null
 }
 
 /**
@@ -171,6 +187,15 @@ export async function getAppDataDir(): Promise<string> {
     return data.appDataDir
 }
 
+/**
+ * Get the user data directory by calling hello() API.
+ * @returns The path to the user data directory (where smm.json and plans live)
+ */
+export async function getUserDataDir(): Promise<string> {
+    const data = await hello()
+    return data.userDataDir
+}
+
 export async function getMetadataDir(): Promise<string> {
     const appDataDir = await getAppDataDir()
     return path.join(appDataDir, 'metadata')
@@ -187,6 +212,22 @@ export async function removeMetadataDir(): Promise<string | null> {
         fs.rmSync(metadataDir, { recursive: true, force: true })
         console.log(`Removed metadata directory: ${metadataDir}`)
         return metadataDir
+    }
+    return null
+}
+
+/**
+ * Remove the plans directory (userDataDir/plans) if it exists.
+ * Requires the app (hello API) to be running to resolve userDataDir.
+ * @returns The path to the plans directory that was removed, or null if it did not exist
+ */
+export async function removePlansDir(): Promise<string | null> {
+    const userDataDir = await getUserDataDir()
+    const plansDir = path.join(userDataDir, 'plans')
+    if (fs.existsSync(plansDir)) {
+        fs.rmSync(plansDir, { recursive: true, force: true })
+        console.log(`Removed plans directory: ${plansDir}`)
+        return plansDir
     }
     return null
 }

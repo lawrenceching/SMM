@@ -8,11 +8,11 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, prepareMediaMetadata } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata } from '@smm/test'
 import { Path } from '@smm/core'
 import type { UserConfig } from '@smm/core/types'
 // Re-export for convenience
-export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir }
+export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -107,6 +107,27 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
         if (customSetup) {
             await customSetup()
         }
+    }
+}
+
+/**
+ * Delete test media tmp dir, plans in user data dir, and metadata in app data dir.
+ * Use in after/afterEach hooks to tear down test artifacts.
+ * removeMetadataDir and removePlansDir require the app (hello API) to be running.
+ */
+export async function cleanup(): Promise<void> {
+    removeTestMediaTmpDir()
+    await removePlansDir()
+    await removeMetadataDir()
+}
+
+/**
+ * Create an after hook that runs cleanup().
+ * Use with Mocha after() or afterEach(), e.g. after(createAfterHook()).
+ */
+export function createAfterHook(): () => Promise<void> {
+    return async function () {
+        await cleanup()
     }
 }
 

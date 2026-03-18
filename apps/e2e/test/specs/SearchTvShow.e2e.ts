@@ -89,13 +89,20 @@ describe('Search TV Show', () => {
         const clickableRow = await resultItem.$('..').$('..')
         await clickableRow.click()
 
+        await browser.pause(1000)
+
         await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === expectedTitle,
+            async () => {
+                // query the element again because HTML may re-render
+                // And above immersiveInput variable may be stale
+                const value = await $('[data-testid="immersive-input"]').getValue()
+                return value === expectedTitle
+            },
             {
                 timeout: 10000,
                 timeoutMsg: `Expected immersive-input value to be "${expectedTitle}", but got "${await immersiveInput.getValue()}"`
             }
         )
-        expect(await immersiveInput.getValue()).toBe(expectedTitle)
+        // expect(await immersiveInput.getValue()).toBe(expectedTitle)
     })
 })
