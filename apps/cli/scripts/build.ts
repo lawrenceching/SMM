@@ -20,12 +20,40 @@ console.log(`✓ Generated version.ts with version: ${version}`);
 
 // Now run the actual build (CLI_COMPILE_TARGET e.g. bun-windows-arm64 for Win ARM64 on x64 CI)
 const compileTarget = process.env.CLI_COMPILE_TARGET?.trim();
-const buildResult = compileTarget
-  ? await $`bun build index.ts --compile --target=${compileTarget} --outfile dist/cli`.quiet()
-  : await $`bun build index.ts --compile --outfile dist/cli`.quiet();
-if (buildResult.exitCode !== 0) {
-  console.error('Build failed');
-  process.exit(1);
+
+async function runBuildWithRetry(maxAttempts: number): Promise<void> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // NOTE: `--target` may trigger downloading bun target binaries.
+      // In CI this download/extract can occasionally be incomplete, so we retry.
+      const buildCmd = compileTarget
+        ? $`bun build index.ts --compile --target=${compileTarget} --outfile dist/cli`
+        : $`bun build index.ts --compile --outfile dist/cli`;
+
+      const result = await buildCmd.quiet();
+      if (result.exitCode !== 0) {
+        throw new Error(`bun build failed with exit code ${result.exitCode}`);
+      }
+
+      console.log('✓ Build completed successfully');
+      return;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[cli build] attempt ${attempt}/${maxAttempts} failed`);
+
+      if (attempt < maxAttempts) {
+        // incremental backoff; helps when CI network/filesystem is briefly flaky
+        await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+        continue;
+      }
+    }
+  }
+
+  // If we got here, all attempts failed
+  throw lastError;
 }
-console.log('✓ Build completed successfully');
+
+await runBuildWithRetry(3);
 

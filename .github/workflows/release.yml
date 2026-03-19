@@ -92,7 +92,8 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.platform }}" = "win" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
-            export CLI_COMPILE_TARGET=bun-windows-arm64
+            # Bun Windows ARM64 cross-compilation target
+            export CLI_COMPILE_TARGET=bun-windows-aarch64
           fi
           cd apps/cli && pnpm run build
 
