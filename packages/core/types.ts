@@ -15,6 +15,13 @@ export interface TMDBConfig {
   httpProxy?: string
 }
 
+export interface TVDBConfig {
+  host?: string
+  apiKey?: string
+}
+
+export type PrimaryDatabase = 'TMDB' | 'TVDB'
+
 export interface OpenAICompatibleConfig {
   baseURL?: string
   apiKey?: string
@@ -35,6 +42,14 @@ export interface AIConfig {
 export interface UserConfig {
   applicationLanguage: LanguageCode;
   tmdb: TMDBConfig;
+  /**
+   * TVDB (TheTVDB) API configuration for search and metadata.
+   */
+  tvdb?: TVDBConfig;
+  /**
+   * Which database to use as primary for media search (TMDB or TVDB).
+   */
+  primaryDatabase?: PrimaryDatabase;
   /**
    * The opened media folder paths in SMM. Path is in Platform-specific format.
    */

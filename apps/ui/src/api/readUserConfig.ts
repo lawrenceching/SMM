@@ -10,6 +10,11 @@ export const defaultUserConfig: UserConfig = {
     apiKey: '',
     httpProxy: ''
   },
+  tvdb: {
+    host: '',
+    apiKey: ''
+  },
+  primaryDatabase: 'TMDB',
   ai: {
     deepseek: {
       baseURL: 'https://api.deepseek.com',

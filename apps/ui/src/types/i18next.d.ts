@@ -100,7 +100,9 @@ interface ComponentsResources {
     notAvailable: string
   }
   tmdbSearchbox: {
+    database: string
     searchLanguage: string
+    tvdbSearchOnlyHint: string
   }
   movie: {
     searchPlaceholder: string
@@ -420,6 +422,14 @@ interface SettingsResources {
     tmdbHostPlaceholder: string
     tmdbApiKey: string
     tmdbApiKeyPlaceholder: string
+    primaryDatabase: string
+    primaryDatabaseDescription: string
+    primaryDatabaseTmdb: string
+    primaryDatabaseTvdb: string
+    tvdbHost: string
+    tvdbHostPlaceholder: string
+    tvdbApiKey: string
+    tvdbApiKeyPlaceholder: string
     httpProxy: string
     httpProxyPlaceholder: string
     enableMcpServer: string

@@ -74,7 +74,9 @@
     "layoutPreview": "预览模式"
   },
   "tmdbSearchbox": {
-    "searchLanguage": "搜索语言"
+    "database": "数据库",
+    "searchLanguage": "搜索语言",
+    "tvdbSearchOnlyHint": "TVDB 结果仅供搜索。请切换至 TMDB 以选择并保存。"
   },
   "movie": {
     "searchPlaceholder": "输入电影名称",

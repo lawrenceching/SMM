@@ -38,6 +38,10 @@ interface ImmersiveSearchboxProps {
     unrecognizedHint?: string
     /** Rendered at the top of the dropdown popover (e.g. search language selector). Shown when user enters edit mode; results list appears below after search. */
     slotBetweenInputAndList?: React.ReactNode
+    /** When true, result rows are not selectable (e.g. TVDB search-only mode). */
+    disableSelect?: boolean
+    /** Shown when disableSelect is true and there are results; explains why selection is disabled. */
+    disabledSelectReason?: React.ReactNode
 }
 
 export function ImmersiveSearchbox({
@@ -53,6 +57,8 @@ export function ImmersiveSearchbox({
     inputClassName,
     unrecognizedHint,
     slotBetweenInputAndList,
+    disableSelect = false,
+    disabledSelectReason,
 }: ImmersiveSearchboxProps) {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [popoverWidth, setPopoverWidth] = React.useState<number | undefined>(undefined)
@@ -81,9 +87,10 @@ export function ImmersiveSearchbox({
     }, [isSearchOpen, onSearch])
 
     const handleSelectResult = React.useCallback((result: TMDBTVShow | TMDBMovie) => {
+        if (disableSelect) return
         setIsSearchOpen(false)
         onSelect(result)
-    }, [onSelect])
+    }, [onSelect, disableSelect])
 
     const getResultDisplayName = (result: TMDBTVShow | TMDBMovie) => ('name' in result ? result.name : result.title)
     const getResultOriginalName = (result: TMDBTVShow | TMDBMovie) => ('original_name' in result ? result.original_name : result.original_title)
@@ -171,7 +178,13 @@ export function ImmersiveSearchbox({
                                     {searchError}
                                 </div>
                             ) : searchResults.length > 0 ? (
-                                searchResults.map((result) => {
+                                <>
+                                    {disableSelect && disabledSelectReason && (
+                                        <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border">
+                                            {disabledSelectReason}
+                                        </div>
+                                    )}
+                                    {searchResults.map((result) => {
                                     const resultPosterUrl = getTMDBImageUrl(result.poster_path, "w200")
                                     const displayName = getResultDisplayName(result)
                                     const originalName = getResultOriginalName(result)
@@ -181,7 +194,10 @@ export function ImmersiveSearchbox({
                                         <div
                                             key={result.id}
                                             onClick={() => handleSelectResult(result)}
-                                            className="flex gap-3 p-3 rounded-md cursor-pointer hover:bg-accent transition-colors"
+                                            className={cn(
+                                                "flex gap-3 p-3 rounded-md transition-colors",
+                                                disableSelect ? "cursor-not-allowed opacity-90" : "cursor-pointer hover:bg-accent"
+                                            )}
                                         >
                                             {resultPosterUrl && (
                                                 <div className="shrink-0">
@@ -227,7 +243,8 @@ export function ImmersiveSearchbox({
                                             </div>
                                         </div>
                                     )
-                                })
+                                })}
+                                </>
                             ) : (
                                 <div className="flex items-center justify-center h-32 text-muted-foreground">
                                     {value.trim() ? 'No results found' : 'Enter a search query and click search'}

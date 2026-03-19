@@ -73,7 +73,9 @@
     "layoutPreview": "預覽模式"
   },
   "tmdbSearchbox": {
-    "searchLanguage": "搜尋語言"
+    "database": "資料庫",
+    "searchLanguage": "搜尋語言",
+    "tvdbSearchOnlyHint": "TVDB 結果僅供搜尋。請切換至 TMDB 以選擇並儲存。"
   },
   "movie": {
     "searchPlaceholder": "輸入電影名稱",

@@ -12,8 +12,16 @@ import type { FileItem } from "@/components/dialogs/types"
 import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
 import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
 import { useTheme } from "@/providers/theme-provider"
+import type { PrimaryDatabase } from "@core/types"
 
 const THEME_OPTIONS = ["light", "dark", "system"] as const
+const PRIMARY_DATABASE_OPTIONS: {
+  value: PrimaryDatabase
+  labelKey: 'general.primaryDatabaseTmdb' | 'general.primaryDatabaseTvdb'
+}[] = [
+  { value: 'TMDB', labelKey: 'general.primaryDatabaseTmdb' },
+  { value: 'TVDB', labelKey: 'general.primaryDatabaseTvdb' },
+]
 
 export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
@@ -28,6 +36,9 @@ export function GeneralSettings() {
     tmdbHost: userConfig.tmdb?.host || '',
     tmdbApiKey: userConfig.tmdb?.apiKey || '',
     tmdbProxy: userConfig.tmdb?.httpProxy || '',
+    tvdbHost: userConfig.tvdb?.host || '',
+    tvdbApiKey: userConfig.tvdb?.apiKey || '',
+    primaryDatabase: (userConfig.primaryDatabase || 'TMDB') as PrimaryDatabase,
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
     mcpPort: userConfig.mcpPort ?? 30001,
@@ -40,6 +51,9 @@ export function GeneralSettings() {
   const [tmdbHost, setTmdbHost] = useState(initialValues.tmdbHost)
   const [tmdbApiKey, setTmdbApiKey] = useState(initialValues.tmdbApiKey)
   const [tmdbProxy, setTmdbProxy] = useState(initialValues.tmdbProxy)
+  const [tvdbHost, setTvdbHost] = useState(initialValues.tvdbHost)
+  const [tvdbApiKey, setTvdbApiKey] = useState(initialValues.tvdbApiKey)
+  const [primaryDatabase, setPrimaryDatabase] = useState<PrimaryDatabase>(initialValues.primaryDatabase)
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
@@ -54,6 +68,9 @@ export function GeneralSettings() {
     setTmdbHost(initialValues.tmdbHost)
     setTmdbApiKey(initialValues.tmdbApiKey)
     setTmdbProxy(initialValues.tmdbProxy)
+    setTvdbHost(initialValues.tvdbHost)
+    setTvdbApiKey(initialValues.tvdbApiKey)
+    setPrimaryDatabase(initialValues.primaryDatabase)
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
@@ -101,13 +118,16 @@ export function GeneralSettings() {
       tmdbHost !== initialValues.tmdbHost ||
       tmdbApiKey !== initialValues.tmdbApiKey ||
       tmdbProxy !== initialValues.tmdbProxy ||
+      tvdbHost !== initialValues.tvdbHost ||
+      tvdbApiKey !== initialValues.tvdbApiKey ||
+      primaryDatabase !== initialValues.primaryDatabase ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
       mcpPort !== String(initialValues.mcpPort) ||
       ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
       ffmpegExecutablePath !== initialValues.ffmpegExecutablePath
     )
-  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
+  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, tvdbHost, tvdbApiKey, primaryDatabase, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
 
   // Handle save
   const handleSave = async () => {
@@ -130,6 +150,12 @@ export function GeneralSettings() {
         apiKey: tmdbApiKey || undefined,
         httpProxy: tmdbProxy || undefined,
       },
+      tvdb: {
+        ...userConfig.tvdb,
+        host: tvdbHost || undefined,
+        apiKey: tvdbApiKey || undefined,
+      },
+      primaryDatabase,
       enableMcpServer,
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
@@ -228,6 +254,49 @@ export function GeneralSettings() {
             onChange={(e) => setTmdbProxy(e.target.value)}
             placeholder={t('general.httpProxyPlaceholder')}
             data-testid="setting-tmdb-proxy"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="primary-database">{t('general.primaryDatabase')}</Label>
+          <Select
+            value={primaryDatabase}
+            onValueChange={(v) => setPrimaryDatabase(v as PrimaryDatabase)}
+          >
+            <SelectTrigger id="primary-database" data-testid="setting-primary-database-trigger">
+              <SelectValue placeholder={t('general.primaryDatabaseDescription')} />
+            </SelectTrigger>
+            <SelectContent data-testid="setting-primary-database-content">
+              {PRIMARY_DATABASE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} data-testid={`setting-primary-database-option-${opt.value}`}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">{t('general.primaryDatabaseDescription')}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="tvdb-host">{t('general.tvdbHost')}</Label>
+          <Input
+            id="tvdb-host"
+            value={tvdbHost}
+            onChange={(e) => setTvdbHost(e.target.value)}
+            placeholder={t('general.tvdbHostPlaceholder')}
+            data-testid="setting-tvdb-host"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="tvdb-api-key">{t('general.tvdbApiKey')}</Label>
+          <Input
+            id="tvdb-api-key"
+            type="password"
+            value={tvdbApiKey}
+            onChange={(e) => setTvdbApiKey(e.target.value)}
+            placeholder={t('general.tvdbApiKeyPlaceholder')}
+            data-testid="setting-tvdb-api-key"
           />
         </div>
 

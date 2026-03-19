@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
 import { searchTmdb } from "@/api/tmdb"
+import { searchTvdb } from "@/api/tvdb"
 import { useConfig } from "@/providers/config-provider"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import type { TMDBTVShow, TMDBMovie } from "@core/types"
+import type { TMDBTVShow, TMDBMovie, PrimaryDatabase } from "@core/types"
 
 /** Map app SupportedLanguage to TMDB search API language. Exported for callers that need a default (e.g. NFO / folder-name flow). */
 export function mapSearchLanguageToTmdb(lang: SupportedLanguage): TmdbSearchLanguage {
@@ -43,6 +44,9 @@ export function TMDBSearchbox({
     () => new Set(SUPPORTED_LANGUAGES.map((l) => l.code)),
     []
   )
+  const [searchDatabase, setSearchDatabase] = useState<PrimaryDatabase>(() => {
+    return (userConfig?.primaryDatabase || "TMDB") as PrimaryDatabase
+  })
   const [searchLanguage, setSearchLanguage] = useState<SupportedLanguage>(() => {
     const appLang = userConfig?.applicationLanguage
     if (appLang && validCodes.has(appLang)) return appLang as SupportedLanguage
@@ -52,6 +56,11 @@ export function TMDBSearchbox({
   const [searchResults, setSearchResults] = useState<(TMDBTVShow | TMDBMovie)[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const db = userConfig?.primaryDatabase
+    if (db === "TMDB" || db === "TVDB") setSearchDatabase(db)
+  }, [userConfig?.primaryDatabase])
 
   useEffect(() => {
     const appLang = userConfig?.applicationLanguage
@@ -76,6 +85,24 @@ export function TMDBSearchbox({
     setSearchResults([])
 
     try {
+      if (searchDatabase === "TVDB") {
+        const response = await searchTvdb(searchQuery.trim(), mediaType)
+        if (response.error) {
+          setSearchError(response.error)
+          setSearchResults([])
+          return
+        }
+        const results = response.results.filter(
+          (item): item is TMDBTVShow | TMDBMovie =>
+            mediaType === "tv" ? "name" in item : "title" in item
+        ) as (TMDBTVShow | TMDBMovie)[]
+        setSearchResults(results)
+        if (results.length === 0) {
+          setSearchError(t("errors:searchNoResults"))
+        }
+        return
+      }
+
       const language = mapSearchLanguageToTmdb(searchLanguage)
       const response = await searchTmdb(searchQuery.trim(), mediaType, language)
 
@@ -103,7 +130,7 @@ export function TMDBSearchbox({
     } finally {
       setIsSearching(false)
     }
-  }, [searchQuery, searchLanguage, mediaType, t])
+  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t])
 
   const tvShowResults: TMDBTVShow[] = mediaType === "tv" 
     ? (searchResults as TMDBTVShow[]) 
@@ -116,28 +143,52 @@ export function TMDBSearchbox({
     [onSearchResultSelected, searchLanguage]
   )
 
-  const searchLanguageSlot = (
-    <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">
-        {t("components:tmdbSearchbox.searchLanguage" as "components:movie.searchPlaceholder")}
-      </Label>
-      <Select
-        value={searchLanguage}
-        onValueChange={(v) => setSearchLanguage(v as SupportedLanguage)}
-      >
-        <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <SelectItem key={lang.code} value={lang.code}>
-              {lang.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+  const searchOptionsSlot = (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">
+          {t("components:tmdbSearchbox.database" as "components:movie.searchPlaceholder")}
+        </Label>
+        <Select
+          value={searchDatabase}
+          onValueChange={(v) => setSearchDatabase(v as PrimaryDatabase)}
+        >
+          <SelectTrigger id="tmdb-search-database" size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="TMDB">TMDB</SelectItem>
+            <SelectItem value="TVDB">TVDB</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">
+          {t("components:tmdbSearchbox.searchLanguage" as "components:movie.searchPlaceholder")}
+        </Label>
+        <Select
+          value={searchLanguage}
+          onValueChange={(v) => setSearchLanguage(v as SupportedLanguage)}
+        >
+          <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                {lang.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   )
+
+  const isTvdbSearchOnly = searchDatabase === "TVDB"
+  const disabledSelectReason = isTvdbSearchOnly
+    ? t("components:tmdbSearchbox.tvdbSearchOnlyHint" as "components:movie.searchPlaceholder")
+    : undefined
 
   if (mediaType === "tv") {
     return (
@@ -152,7 +203,9 @@ export function TMDBSearchbox({
         placeholder={placeholder}
         inputClassName={inputClassName}
         unrecognizedHint={unrecognizedHint}
-        slotBetweenInputAndList={searchLanguageSlot}
+        slotBetweenInputAndList={searchOptionsSlot}
+        disableSelect={isTvdbSearchOnly}
+        disabledSelectReason={disabledSelectReason}
       />
     )
   }
@@ -169,7 +222,9 @@ export function TMDBSearchbox({
       placeholder={placeholder}
       inputClassName={inputClassName}
       unrecognizedHint={unrecognizedHint}
-      slotBetweenInputAndList={searchLanguageSlot}
+      slotBetweenInputAndList={searchOptionsSlot}
+      disableSelect={isTvdbSearchOnly}
+      disabledSelectReason={disabledSelectReason}
     />
   )
 }

@@ -74,7 +74,9 @@
     "layoutPreview": "Preview layout"
   },
   "tmdbSearchbox": {
-    "searchLanguage": "Search language"
+    "database": "Database",
+    "searchLanguage": "Search language",
+    "tvdbSearchOnlyHint": "TVDB results are for search only. Switch to TMDB to select and save."
   },
   "movie": {
     "searchPlaceholder": "Enter movie name",

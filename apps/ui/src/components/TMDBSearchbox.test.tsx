@@ -26,6 +26,10 @@ vi.mock('@/api/tmdb', () => ({
   searchTmdb: vi.fn(),
 }))
 
+vi.mock('@/api/tvdb', () => ({
+  searchTvdb: vi.fn(),
+}))
+
 vi.mock('@/lib/i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/i18n')>()
   return {
@@ -40,6 +44,7 @@ vi.mock('@/providers/config-provider', () => ({
   useConfig: vi.fn(() => ({
     userConfig: {
       applicationLanguage: 'en-US',
+      primaryDatabase: 'TMDB',
     },
   })),
 }))
