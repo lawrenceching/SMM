@@ -89,13 +89,10 @@ jobs:
           PLUGINS_VERSION: v1.0.0
 
       - name: Build cli
-        shell: bash
-        run: |
-          if [ "${{ matrix.platform }}" = "win" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
-            # Bun Windows ARM64 cross-compilation target
-            export CLI_COMPILE_TARGET=bun-windows-aarch64
-          fi
-          cd apps/cli && pnpm run build
+        run: pnpm --filter cli run build
+        env:
+          # Windows ARM64: cross-compile CLI on x64 runner (build.ts reads this)
+          CLI_COMPILE_TARGET: ${{ matrix.platform == 'win' && matrix.arch == 'arm64' && 'bun-windows-aarch64' || '' }}
 
       - name: Build ui
         run: cd apps/ui && pnpm run build
