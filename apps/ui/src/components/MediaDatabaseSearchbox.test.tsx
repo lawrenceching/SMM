@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { TMDBSearchbox } from './TMDBSearchbox'
+import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 
 const mockImmersiveSearchboxValue = { current: '' }
 
@@ -49,7 +49,7 @@ vi.mock('@/providers/config-provider', () => ({
   })),
 }))
 
-describe('TMDBSearchbox', () => {
+describe('MediaDatabaseSearchbox', () => {
   const defaultProps = {
     mediaType: 'tv' as const,
     onSearchResultSelected: vi.fn(),
@@ -62,7 +62,7 @@ describe('TMDBSearchbox', () => {
 
   it('passes value1 to ImmersiveSearchbox when value prop is value1', () => {
     const value1 = 'Test TV Show 1'
-    render(<TMDBSearchbox {...defaultProps} value={value1} />)
+    render(<MediaDatabaseSearchbox {...defaultProps} value={value1} />)
 
     expect(mockImmersiveSearchboxValue.current).toBe(value1)
   })
@@ -71,11 +71,11 @@ describe('TMDBSearchbox', () => {
     const value1 = 'Test TV Show 1'
     const value2 = 'Test TV Show 2'
 
-    const { rerender } = render(<TMDBSearchbox {...defaultProps} value={value1} />)
+    const { rerender } = render(<MediaDatabaseSearchbox {...defaultProps} value={value1} />)
 
     expect(mockImmersiveSearchboxValue.current).toBe(value1)
 
-    rerender(<TMDBSearchbox {...defaultProps} value={value2} />)
+    rerender(<MediaDatabaseSearchbox {...defaultProps} value={value2} />)
 
     expect(mockImmersiveSearchboxValue.current).toBe(value2)
   })

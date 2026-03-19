@@ -1,8 +1,8 @@
 import type { TMDBTVShow, TMDBMovie } from "@core/types"
-import type { TmdbSearchLanguage } from "./TMDBSearchbox"
+import type { TmdbSearchLanguage } from "./MediaDatabaseSearchbox"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
-import { TMDBSearchbox } from "./TMDBSearchbox"
+import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
 import {
@@ -66,7 +66,7 @@ export function TvShowHeaderV2({
                     {isUpdatingTvShow ? (
                         <Skeleton className="h-9 w-full max-w-md" />
                     ) : (
-                        <TMDBSearchbox
+                        <MediaDatabaseSearchbox
                             mediaType="tv"
                             value={initialSearchValue}
                             onSearchResultSelected={onSearchResultSelected}

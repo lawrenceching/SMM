@@ -2,7 +2,7 @@ import type { TMDBTVShow, TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, Globe, FileEdit, Download, Scan } from "lucide-react"
-import { TMDBSearchbox } from "./TMDBSearchbox"
+import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
 import { useTranslation } from "@/lib/i18n"
@@ -28,7 +28,7 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
 }
 
 interface TVShowHeaderProps {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: import("./TMDBSearchbox").TmdbSearchLanguage) => void
+    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: import("./MediaDatabaseSearchbox").TmdbSearchLanguage) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
@@ -78,7 +78,7 @@ export function TVShowHeader({
                                 </div>
                             ) : (
                                 <>
-                                    <TMDBSearchbox
+                                    <MediaDatabaseSearchbox
                                         mediaType="tv"
                                         value={initialSearchValue}
                                         onSearchResultSelected={onSearchResultSelected}

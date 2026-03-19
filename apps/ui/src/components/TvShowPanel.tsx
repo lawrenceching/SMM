@@ -15,7 +15,7 @@ import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTvShowById } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
-import { mapSearchLanguageToTmdb } from "./TMDBSearchbox"
+import { mapSearchLanguageToTmdb } from "./MediaDatabaseSearchbox"
 import type { SupportedLanguage } from "@/lib/i18n"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"

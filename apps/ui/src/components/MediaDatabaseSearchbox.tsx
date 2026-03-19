@@ -29,7 +29,7 @@ interface TMDBSearchboxProps {
   unrecognizedHint?: string
 }
 
-export function TMDBSearchbox({
+export function MediaDatabaseSearchbox({
   mediaType,
   value,
   onSearchResultSelected,
