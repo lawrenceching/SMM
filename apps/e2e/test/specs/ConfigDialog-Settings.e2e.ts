@@ -237,7 +237,7 @@ describe('Config Dialog Settings', () => {
     })
 
     describe('General Settings - TMDB Host', () => {
-        it('should change and persist TMDB host setting', async function() {
+        it.only('should change and persist TMDB host setting', async function() {
             
             if (slowdown) {
                 this.timeout(120 * 1000)

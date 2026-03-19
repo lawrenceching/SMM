@@ -84,13 +84,36 @@ function getProjectRoot(): string {
 }
 
 export async function discoverFfmpeg(): Promise<string | undefined> {
+  logger.debug(
+    {
+      platform: os.platform(),
+      cwd: process.cwd(),
+      resourcesPath: process.env.SMM_RESOURCES_PATH,
+      projectRoot: getProjectRoot(),
+      smmDataDir: getSmmDataDir(),
+    },
+    "discoverFfmpeg: start"
+  );
+
   try {
     const userConfig = await getUserConfig();
     if (userConfig.ffmpegExecutablePath) {
       const customPath = userConfig.ffmpegExecutablePath;
       if (fs.existsSync(customPath)) {
+        logger.info(
+          {
+            customPath,
+          },
+          "discoverFfmpeg: using user-configured ffmpeg path"
+        );
         return customPath;
       }
+      logger.warn(
+        {
+          customPath,
+        },
+        "discoverFfmpeg: user-configured ffmpeg path does not exist"
+      );
     }
   } catch {
   }
@@ -101,21 +124,57 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
   if (resourcesPath) {
     const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
     if (fs.existsSync(bundledPath)) {
+      logger.info(
+        {
+          bundledPath,
+        },
+        "discoverFfmpeg: using bundled ffmpeg in resources path"
+      );
       return bundledPath;
     }
+    logger.debug(
+      {
+        bundledPath,
+      },
+      "discoverFfmpeg: bundled ffmpeg not found at expected path"
+    );
   }
 
   const projectRoot = getProjectRoot();
   const devBinPath = path.join(projectRoot, "bin/ffmpeg", exeName);
   if (fs.existsSync(devBinPath)) {
+    logger.info(
+      {
+        devBinPath,
+      },
+      "discoverFfmpeg: using dev ffmpeg from project bin directory"
+    );
     return devBinPath;
   }
+  logger.debug(
+    {
+      devBinPath,
+    },
+    "discoverFfmpeg: dev ffmpeg not found at expected path"
+  );
 
   const smmDataDir = getSmmDataDir();
   const installBinPath = path.join(smmDataDir, "bin/ffmpeg", exeName);
   if (fs.existsSync(installBinPath)) {
+    logger.info(
+      {
+        installBinPath,
+      },
+      "discoverFfmpeg: using ffmpeg from installed data directory"
+    );
     return installBinPath;
   }
+  logger.warn(
+    {
+      installBinPath,
+    },
+    "discoverFfmpeg: ffmpeg not found in any known location"
+  );
 
   return undefined;
 }

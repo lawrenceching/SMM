@@ -13,10 +13,13 @@ export interface FfmpegDiscoverResponseData {
  */
 export async function processFfmpegDiscover(): Promise<FfmpegDiscoverResponseData> {
   try {
+    logger.debug('processFfmpegDiscover: discovering ffmpeg');
     const path = await discoverFfmpeg();
     if (path) {
+      logger.info({ path }, 'processFfmpegDiscover: ffmpeg discovered');
       return { path };
     }
+    logger.warn('processFfmpegDiscover: ffmpeg not found');
     return { error: 'ffmpeg not found' };
   } catch (error) {
     logger.error({ error }, 'Error discovering ffmpeg');
