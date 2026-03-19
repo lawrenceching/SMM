@@ -49,6 +49,12 @@ And the test status of v1.1.0
 | AI Tools - Rename Media Files                    | MANUAL |         |
 | AI Tools - Recognize Media Files                 | MANUAL |         |
 |                                                  |        |         |
+| AI Provider - OpenAI                             | MANUAL |         |
+| AI Provider - DeepSeek                           | MANUAL |         |
+| AI Provider - OpenRouter                         | MANUAL |         |
+| AI Provider - GLM                                | MANUAL |         |
+| AI Provider - Other                              | MANUAL |         |
+|                                                  |        |         |
 | MCP Server - get-media-folders                   | AUTO   |         |
 | MCP Server - readme                              | AUTO   |         |
 | MCP Server - howToRenameEpisodeVideoFiles        | AUTO   |         |

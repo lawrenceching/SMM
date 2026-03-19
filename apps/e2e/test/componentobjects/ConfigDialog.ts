@@ -286,6 +286,13 @@ class ConfigDialog {
      * Set the TMDB host
      */
     async setTmdbHost(value: string): Promise<void> {
+        if(value === '') {
+            await this.tmdbHostInput.clearValue()
+            await this.tmdbHostInput.click()
+            await browser.keys('a')
+            await browser.keys('Backspace')
+            return
+        }
         await this.setInputValue(this.tmdbHostInput, value)
     }
 
