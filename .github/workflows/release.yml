@@ -49,6 +49,10 @@ jobs:
           - os: windows-latest
             platform: win
             build-command: build:win
+          - os: windows-11-arm
+            platform: win
+            build-command: build:win
+            arch: arm64
           - os: macos-14
             platform: mac
             build-command: build:mac
@@ -56,6 +60,8 @@ jobs:
         exclude:
           - os: macos-14
             arch: x64
+          - os: windows-latest
+            arch: arm64
 
     defaults:
       run:
@@ -90,9 +96,7 @@ jobs:
 
       - name: Build cli
         run: pnpm --filter cli run build
-        env:
-          # Windows ARM64: cross-compile CLI on x64 runner (build.ts reads this)
-          CLI_COMPILE_TARGET: ${{ matrix.platform == 'win' && matrix.arch == 'arm64' && 'bun-windows-aarch64' || '' }}
+        # Windows ARM64 uses windows-11-arm runner (native), no CLI_COMPILE_TARGET needed
 
       - name: Build ui
         run: cd apps/ui && pnpm run build
