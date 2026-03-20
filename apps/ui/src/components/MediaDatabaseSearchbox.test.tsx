@@ -31,32 +31,6 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-vi.mock('./ImmersiveSearchboxTvdb', () => ({
-  ImmersiveSearchboxTvdb: vi.fn((props: any) => {
-    const { value, onChange, placeholder, inputClassName, onSelect } = props
-    mockImmersiveSearchboxValue.current = value
-    const fakeResult = { tvdb_id: 42, name: 'TVDB Show' }
-    return (
-      <div data-testid="immersive-searchbox-tvdb">
-        <input
-          data-testid="search-input"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={inputClassName}
-        />
-        <button
-          type="button"
-          data-testid="select-result-tvdb"
-          onClick={() => onSelect(fakeResult)}
-        >
-          Select
-        </button>
-      </div>
-    )
-  }),
-}))
-
 vi.mock('@/api/tmdb', () => ({
   searchTmdb: vi.fn(),
 }))
@@ -131,7 +105,7 @@ describe('MediaDatabaseSearchbox', () => {
       />
     )
 
-    getByTestId('select-result-tvdb').click()
+    getByTestId('select-result').click()
 
     expect(onSearchResultSelected).toHaveBeenCalledTimes(1)
     expect(onSearchResultSelected).toHaveBeenCalledWith(

@@ -5,8 +5,11 @@ import { ImmersiveInput } from "./ImmersiveInput"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { getTMDBImageUrl } from "@/api/tmdb"
-import type { TMDBTVShow, TMDBMovie } from "@core/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { useTranslation } from "@/lib/i18n"
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
+import type { PrimaryDatabase } from "@core/types"
 
 // Helper function to format date
 function formatDate(dateString: string): string {
@@ -27,8 +30,8 @@ interface ImmersiveSearchboxProps {
     value: string
     onChange: (value: string) => void
     onSearch: () => void
-    onSelect: (result: TMDBTVShow | TMDBMovie) => void
-    searchResults: (TMDBTVShow | TMDBMovie)[]
+    onSelect: (result: ImmersiveSearchResultItem) => void
+    searchResults: ImmersiveSearchResultItem[]
     isSearching: boolean
     searchError: string | null
     className?: string
@@ -36,12 +39,25 @@ interface ImmersiveSearchboxProps {
     inputClassName?: string
     /** When set, a Hover Card with this hint is always shown (not triggered by hover). */
     unrecognizedHint?: string
-    /** Rendered at the top of the dropdown popover (e.g. search language selector). Shown when user enters edit mode; results list appears below after search. */
-    slotBetweenInputAndList?: React.ReactNode
+    searchDatabase?: PrimaryDatabase
+    onSearchDatabaseChange?: (value: PrimaryDatabase) => void
+    searchLanguage?: SupportedLanguage
+    onSearchLanguageChange?: (value: SupportedLanguage) => void
     /** When true, result rows are not selectable (e.g. TVDB search-only mode). */
     disableSelect?: boolean
     /** Shown when disableSelect is true and there are results; explains why selection is disabled. */
     disabledSelectReason?: React.ReactNode
+}
+
+export interface ImmersiveSearchResultItem {
+    id: string | number
+    displayName: string
+    originalName?: string
+    overview?: string
+    posterUrl?: string | null
+    dateText?: string
+    voteAverage?: number
+    raw: unknown
 }
 
 export function ImmersiveSearchbox({
@@ -56,10 +72,14 @@ export function ImmersiveSearchbox({
     placeholder = "Enter TV show name",
     inputClassName,
     unrecognizedHint,
-    slotBetweenInputAndList,
+    searchDatabase,
+    onSearchDatabaseChange,
+    searchLanguage,
+    onSearchLanguageChange,
     disableSelect = false,
     disabledSelectReason,
 }: ImmersiveSearchboxProps) {
+    const { t } = useTranslation(["components"])
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [popoverWidth, setPopoverWidth] = React.useState<number | undefined>(undefined)
     const inputContainerRef = React.useRef<HTMLDivElement>(null)
@@ -86,15 +106,11 @@ export function ImmersiveSearchbox({
         onSearch()
     }, [isSearchOpen, onSearch])
 
-    const handleSelectResult = React.useCallback((result: TMDBTVShow | TMDBMovie) => {
+    const handleSelectResult = React.useCallback((result: ImmersiveSearchResultItem) => {
         if (disableSelect) return
         setIsSearchOpen(false)
         onSelect(result)
     }, [onSelect, disableSelect])
-
-    const getResultDisplayName = (result: TMDBTVShow | TMDBMovie) => ('name' in result ? result.name : result.title)
-    const getResultOriginalName = (result: TMDBTVShow | TMDBMovie) => ('original_name' in result ? result.original_name : result.original_title)
-    const getResultDate = (result: TMDBTVShow | TMDBMovie) => ('first_air_date' in result ? result.first_air_date : result.release_date)
 
     const handleContainerClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         const target = e.target as HTMLElement
@@ -162,9 +178,47 @@ export function ImmersiveSearchbox({
                         }
                     }}
                 >
-                    {slotBetweenInputAndList && (
+                    {(searchDatabase && searchLanguage && onSearchDatabaseChange && onSearchLanguageChange) && (
                         <div className="px-2 pt-2 pb-1 border-b border-border">
-                            {slotBetweenInputAndList}
+                            <div className="space-y-3">
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                        {t("components:tmdbSearchbox.database" as "components:movie.searchPlaceholder")}
+                                    </Label>
+                                    <Select
+                                        value={searchDatabase}
+                                        onValueChange={(v) => onSearchDatabaseChange(v as PrimaryDatabase)}
+                                    >
+                                        <SelectTrigger id="tmdb-search-database" size="sm" className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="TMDB">TMDB</SelectItem>
+                                            <SelectItem value="TVDB">TVDB</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                        {t("components:tmdbSearchbox.searchLanguage" as "components:movie.searchPlaceholder")}
+                                    </Label>
+                                    <Select
+                                        value={searchLanguage}
+                                        onValueChange={(v) => onSearchLanguageChange(v as SupportedLanguage)}
+                                    >
+                                        <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {SUPPORTED_LANGUAGES.map((lang) => (
+                                                <SelectItem key={lang.code} value={lang.code}>
+                                                    {lang.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
                     )}
                     <ScrollArea className="max-h-[400px]">
@@ -185,11 +239,7 @@ export function ImmersiveSearchbox({
                                         </div>
                                     )}
                                     {searchResults.map((result) => {
-                                    const resultPosterUrl = getTMDBImageUrl(result.poster_path, "w200")
-                                    const displayName = getResultDisplayName(result)
-                                    const originalName = getResultOriginalName(result)
-                                    const dateStr = getResultDate(result)
-                                    const voteAvg = result.vote_average ?? 0
+                                    const voteAvg = result.voteAverage ?? 0
                                     return (
                                         <div
                                             key={result.id}
@@ -199,11 +249,11 @@ export function ImmersiveSearchbox({
                                                 disableSelect ? "cursor-not-allowed opacity-90" : "cursor-pointer hover:bg-accent"
                                             )}
                                         >
-                                            {resultPosterUrl && (
+                                            {result.posterUrl && (
                                                 <div className="shrink-0">
                                                     <img
-                                                        src={resultPosterUrl}
-                                                        alt={displayName}
+                                                        src={result.posterUrl}
+                                                        alt={result.displayName}
                                                         className="w-16 h-24 object-cover rounded-md bg-muted"
                                                         onError={(e) => {
                                                             const target = e.target as HTMLImageElement
@@ -214,22 +264,22 @@ export function ImmersiveSearchbox({
                                             )}
                                             <div className="flex-1 min-w-0" data-testid="tmdb-search-result-item">
                                                 <h3 className="font-semibold text-base mb-1">
-                                                    {displayName}
+                                                    {result.displayName}
                                                 </h3>
-                                                {originalName !== displayName && (
+                                                {result.originalName && result.originalName !== result.displayName && (
                                                     <p className="text-sm text-muted-foreground mb-1">
-                                                        {originalName}
+                                                        {result.originalName}
                                                     </p>
                                                 )}
                                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                                                     {result.overview || 'No overview available'}
                                                 </p>
-                                                {(dateStr || voteAvg > 0) && (
+                                                {(result.dateText || voteAvg > 0) && (
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        {dateStr && (
-                                                            <span>{formatDate(dateStr)}</span>
+                                                        {result.dateText && (
+                                                            <span>{formatDate(result.dateText)}</span>
                                                         )}
-                                                        {dateStr && voteAvg > 0 && (
+                                                        {result.dateText && voteAvg > 0 && (
                                                             <span>•</span>
                                                         )}
                                                         {voteAvg > 0 && (

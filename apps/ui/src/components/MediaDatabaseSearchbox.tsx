@@ -1,14 +1,17 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { ImmersiveSearchbox } from "./ImmersiveSearchbox"
-import { searchTmdb } from "@/api/tmdb"
+import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
+import { getTMDBImageUrl, searchTmdb } from "@/api/tmdb"
 import { useConfig } from "@/providers/config-provider"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import type { TMDBTVShow, TMDBMovie, PrimaryDatabase } from "@core/types"
-import { ImmersiveSearchboxTvdb } from "./ImmersiveSearchboxTvdb"
 import { TVDBv4, type TVDBv4Envelope, type TVDBv4SearchResult } from "@smm/tvdb4"
+import {
+  getTvdbSearchResultAlternateName,
+  getTvdbSearchResultName,
+  getTvdbSearchResultOverview,
+  tvdbTranslationCodesForUiLanguage,
+} from "@/lib/tvdbSearchDisplay"
 
 /** Map app SupportedLanguage to TMDB search API language. Exported for callers that need a default (e.g. NFO / folder-name flow). */
 export function mapSearchLanguageToTmdb(lang: SupportedLanguage): TmdbSearchLanguage {
@@ -78,6 +81,19 @@ function buildTvdbSearchResults(raw: TVDBv4SearchResult[]): TVDBSearchItem[] {
   })
 }
 
+function formatDate(dateString: string | undefined): string | undefined {
+  if (!dateString) return undefined
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  } catch {
+    return dateString
+  }
+}
+
 export type SearchResultSelectedArgs =
   | { database: "TMDB"; result: TMDBTVShow | TMDBMovie; searchLanguage: TmdbSearchLanguage }
   | { database: "TVDB"; result: TVDBSearchItem; searchLanguage: TmdbSearchLanguage }
@@ -117,7 +133,7 @@ export function MediaDatabaseSearchbox({
   })
   const [searchQuery, setSearchQuery] = useState(value || "")
   const [searchResults, setSearchResults] = useState<(TMDBTVShow | TMDBMovie)[]>([])
-  const [tvdbSearchResults, setTvdbSearchResults] = useState<Array<Record<string, unknown>>>([])
+  const [tvdbSearchResultsRaw, setTvdbSearchResultsRaw] = useState<TVDBSearchItem[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
 
@@ -140,7 +156,7 @@ export function MediaDatabaseSearchbox({
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
-      setTvdbSearchResults([])
+      setTvdbSearchResultsRaw([])
       setSearchError(null)
       return
     }
@@ -148,7 +164,7 @@ export function MediaDatabaseSearchbox({
     setIsSearching(true)
     setSearchError(null)
     setSearchResults([])
-    setTvdbSearchResults([])
+    setTvdbSearchResultsRaw([])
 
     try {
       if (searchDatabase === "TVDB") {
@@ -174,7 +190,7 @@ export function MediaDatabaseSearchbox({
           }
 
           const items = buildTvdbSearchResults(resp.data);
-          setTvdbSearchResults(items)
+          setTvdbSearchResultsRaw(items)
         } else {
           setSearchError(`TVDB Search Failure: ${resp.message}`)
         }
@@ -213,88 +229,79 @@ export function MediaDatabaseSearchbox({
   }, [searchQuery, searchLanguage, searchDatabase, mediaType, t])
 
   const handleSelect = useCallback(
-    (result: TMDBTVShow | TMDBMovie) => {
+    (item: ImmersiveSearchResultItem) => {
+      if (searchDatabase === "TVDB") {
+        onSearchResultSelected({
+          database: "TVDB",
+          result: item.raw as TVDBSearchItem,
+          searchLanguage: mapSearchLanguageToTmdb(searchLanguage),
+        })
+        return
+      }
       onSearchResultSelected({
         database: "TMDB",
-        result,
+        result: item.raw as TMDBTVShow | TMDBMovie,
         searchLanguage: mapSearchLanguageToTmdb(searchLanguage),
       })
     },
     [onSearchResultSelected, searchLanguage, searchDatabase]
   )
 
-  const handleSelectTvdb = useCallback(
-    (result: Record<string, unknown>) => {
-      onSearchResultSelected({
-        database: "TVDB",
-        result,
-        searchLanguage: mapSearchLanguageToTmdb(searchLanguage),
+  const uiSearchResults = useMemo<ImmersiveSearchResultItem[]>(() => {
+    if (searchDatabase === "TVDB") {
+      const tvdbCodes = tvdbTranslationCodesForUiLanguage(searchLanguage)
+      return tvdbSearchResultsRaw.map((item, idx) => {
+        const displayName = getTvdbSearchResultName(item, tvdbCodes, mediaType)
+        const originalName = getTvdbSearchResultAlternateName(item, displayName, mediaType)
+        const dateText =
+          mediaType === "tv"
+            ? formatDate(typeof item.first_air_time === "string" ? item.first_air_time : undefined)
+            : formatDate(
+                typeof item.release_date === "string"
+                  ? item.release_date
+                  : typeof item.year === "string"
+                    ? item.year
+                    : undefined
+              )
+        const posterUrl =
+          (typeof item.image_url === "string" && item.image_url) ||
+          (typeof item.poster === "string" && item.poster) ||
+          (typeof item.thumbnail === "string" && item.thumbnail) ||
+          null
+        const id =
+          typeof item.tvdb_id === "number" || typeof item.tvdb_id === "string"
+            ? String(item.tvdb_id)
+            : typeof item.id === "string" || typeof item.id === "number"
+              ? String(item.id)
+              : String(idx)
+        return {
+          id,
+          displayName,
+          originalName,
+          overview: getTvdbSearchResultOverview(item, tvdbCodes),
+          posterUrl,
+          dateText,
+          raw: item,
+        }
       })
-    },
-    [onSearchResultSelected, searchLanguage, searchDatabase]
-  )
+    }
 
-  const searchOptionsSlot = (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">
-          {t("components:tmdbSearchbox.database" as "components:movie.searchPlaceholder")}
-        </Label>
-        <Select
-          value={searchDatabase}
-          onValueChange={(v) => setSearchDatabase(v as PrimaryDatabase)}
-        >
-          <SelectTrigger id="tmdb-search-database" size="sm" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TMDB">TMDB</SelectItem>
-            <SelectItem value="TVDB">TVDB</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">
-          {t("components:tmdbSearchbox.searchLanguage" as "components:movie.searchPlaceholder")}
-        </Label>
-        <Select
-          value={searchLanguage}
-          onValueChange={(v) => setSearchLanguage(v as SupportedLanguage)}
-        >
-          <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <SelectItem key={lang.code} value={lang.code}>
-                {lang.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  )
-
-  if (searchDatabase === "TVDB") {
-    return (
-      <ImmersiveSearchboxTvdb
-        value={searchQuery}
-        onChange={setSearchQuery}
-        onSearch={handleSearch}
-        onSelect={handleSelectTvdb}
-        searchResults={tvdbSearchResults}
-        isSearching={isSearching}
-        searchError={searchError}
-        placeholder={placeholder}
-        inputClassName={inputClassName}
-        unrecognizedHint={unrecognizedHint}
-        slotBetweenInputAndList={searchOptionsSlot}
-        mediaType={mediaType}
-        searchLanguage={searchLanguage}
-      />
-    )
-  }
+    return searchResults.map((result) => {
+      const displayName = "name" in result ? result.name : result.title
+      const originalName = "original_name" in result ? result.original_name : result.original_title
+      const dateText = "first_air_date" in result ? result.first_air_date : result.release_date
+      return {
+        id: result.id,
+        displayName,
+        originalName,
+        overview: result.overview || undefined,
+        posterUrl: getTMDBImageUrl(result.poster_path, "w200"),
+        dateText,
+        voteAverage: result.vote_average ?? 0,
+        raw: result,
+      }
+    })
+  }, [searchDatabase, searchLanguage, mediaType, searchResults, tvdbSearchResultsRaw])
 
   return (
     <ImmersiveSearchbox
@@ -302,13 +309,16 @@ export function MediaDatabaseSearchbox({
       onChange={setSearchQuery}
       onSearch={handleSearch}
       onSelect={handleSelect}
-      searchResults={searchResults}
+      searchResults={uiSearchResults}
       isSearching={isSearching}
       searchError={searchError}
       placeholder={placeholder}
       inputClassName={inputClassName}
       unrecognizedHint={unrecognizedHint}
-      slotBetweenInputAndList={searchOptionsSlot}
+      searchDatabase={searchDatabase}
+      onSearchDatabaseChange={setSearchDatabase}
+      searchLanguage={searchLanguage}
+      onSearchLanguageChange={setSearchLanguage}
     />
   )
 }
