@@ -4,13 +4,13 @@ import { Path } from "@core/path";
 import type { ScrapeRequestBody, ScrapeResponseBody } from "@core/types";
 import scrape from "@/utils/scrape";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
-import { logHttpIn, logHttpOut } from "../../lib/logger";
+import { logHttpReqIn, logHttpRespOut } from "../../lib/logger";
 
 export async function handleScrapeRequest(app: Hono) {
     app.post('/api/scrape', async (c) => {
         const raw = await c.req.json() as ScrapeRequestBody;
 
-        logHttpIn(c, raw);
+        logHttpReqIn(c, raw);
 
         const { mediaFolderPath } = raw;
 
@@ -19,7 +19,7 @@ export async function handleScrapeRequest(app: Hono) {
             const resp: ScrapeResponseBody = {
                 error: 'Invalid Request: mediaFolderPath is required'
             };
-            logHttpOut(c, resp, 200);
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
 
@@ -32,14 +32,14 @@ export async function handleScrapeRequest(app: Hono) {
                 const resp: ScrapeResponseBody = {
                     error: `Folder Not Found: ${folderPathInPlatformFormat} is not a directory`
                 };
-                logHttpOut(c, resp, 200);
+                logHttpRespOut(c, resp, 200);
                 return c.json(resp, 200);
             }
         } catch (error) {
             const resp: ScrapeResponseBody = {
                 error: `unexpected error: ${error instanceof Error ? error.message : String(error)}`
             };
-            logHttpOut(c, resp, 200);
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
 
@@ -49,7 +49,7 @@ export async function handleScrapeRequest(app: Hono) {
             const resp: ScrapeResponseBody = {
                 error: `Media Metadata Not Found: No metadata found for ${mediaFolderPath}`
             };
-            logHttpOut(c, resp, 200);
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
 
@@ -65,19 +65,19 @@ export async function handleScrapeRequest(app: Hono) {
                 const resp: ScrapeResponseBody = {
                     error: `Invalid Media Type: Media metadata does not contain valid TMDB TV show or movie data`
                 };
-                logHttpOut(c, resp, 200);
+                logHttpRespOut(c, resp, 200);
                 return c.json(resp, 200);
             }
 
             const resp: ScrapeResponseBody = {};
-            logHttpOut(c, resp, 200);
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const resp: ScrapeResponseBody = {
                 error: `Scrape Failed: ${errorMessage}`
             };
-            logHttpOut(c, resp, 200);
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
     });

@@ -6,7 +6,7 @@ import { Path } from '@core/path';
 import { existedFileError, isError, ExistedFileError } from '@core/errors';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
-import { logger, logHttpIn, logHttpOut } from '../../lib/logger';
+import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
 import { getUserConfigPath } from '@/utils/config';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 
@@ -148,17 +148,17 @@ export function handleWriteFile(app: Hono) {
 
     try {
       const rawBody = await c.req.json();
-      logHttpIn(c, rawBody);
+      logHttpReqIn(c, rawBody);
       const result = await doWriteFile(rawBody, traceId);
 
       // If there's an error, check if it's a "file already exists" error
       if (result.error) {
         // Return 200 status if file already exists, otherwise 400
         if (isError(result.error, ExistedFileError)) {
-          logHttpOut(c, result, 200);
+          logHttpRespOut(c, result, 200);
           return c.json(result, 200);
         }
-        logHttpOut(c, result, 400);
+        logHttpRespOut(c, result, 400);
         return c.json(result, 400);
       }
 
@@ -171,14 +171,14 @@ export function handleWriteFile(app: Hono) {
         );
       }
 
-      logHttpOut(c, result, 200);
+      logHttpRespOut(c, result, 200);
       return c.json(result, 200);
     } catch (error) {
       const respBody = {
         error: 'Failed to process write file request',
         details: error instanceof Error ? error.message : 'Unknown error'
       };
-      logHttpOut(c, respBody, 500);
+      logHttpRespOut(c, respBody, 500);
       return c.json(respBody, 500);
     }
   });

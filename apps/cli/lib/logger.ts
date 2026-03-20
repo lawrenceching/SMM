@@ -54,7 +54,7 @@ async function createLogger() {
  * Logs incoming HTTP request.
  * In debug mode, includes the request body; otherwise only logs method and URL.
  */
-export function logHttpIn(c: Context, body?: unknown) {
+export function logHttpReqIn(c: Context, body?: unknown) {
   if (logger.isLevelEnabled('debug')) {
     logger.debug({
       method: c.req.method,
@@ -74,7 +74,7 @@ export function logHttpIn(c: Context, body?: unknown) {
  * In debug mode, includes the response body; otherwise only logs method, URL, and status code.
  * Automatically determines error state by checking for 'error' property in body or status code >= 400.
  */
-export function logHttpOut(c: Context, body: unknown, statusCode: number = 200) {
+export function logHttpRespOut(c: Context, body: unknown, statusCode: number = 200) {
   // Check if response is an error
   const isError = statusCode >= 400 || (typeof body === 'object' && body !== null && 'error' in body);
   
@@ -95,8 +95,53 @@ export function logHttpOut(c: Context, body: unknown, statusCode: number = 200) 
   }
 }
 
+/**
+ * Logs outgoing HTTP request to external API.
+ * In debug mode, includes the request body; otherwise only logs method and URL.
+ */
+export function logHttpReqOut(url: string, method: string = 'GET', body?: unknown) {
+  const logData: Record<string, unknown> = {
+    method,
+    url,
+    target: 'external',
+  };
+
+  if (logger.isLevelEnabled('debug') && body !== undefined) {
+    logData.body = body;
+  }
+
+  logger.info(logData, 'HTTP request sent to external API');
+}
+
+/**
+ * Logs incoming HTTP response from external API.
+ * In debug mode, includes the response body; otherwise only logs method, URL, and status code.
+ * Automatically determines error state by checking status code >= 400.
+ */
+export function logHttpRespIn(url: string, statusCode: number, body?: unknown) {
+  const logData: Record<string, unknown> = {
+    url,
+    statusCode,
+    target: 'external',
+  };
+
+  console.log(`logger.isLevelEnabled('debug'): ${logger.isLevelEnabled('debug')}`)
+  console.log(`body: ${JSON.stringify(body, null, 2)}`)
+
+  if (logger.isLevelEnabled('debug') && body !== undefined) {
+    logData.body = body;
+  }
+
+  if (statusCode >= 400) {
+    logger.error(logData, 'HTTP response received from external API (error)');
+  } else {
+    logger.info(logData, 'HTTP response received from external API');
+  }
+}
+
 // Create and export the logger instance
 export const logger = await createLogger();
+logger.debug(`pino: log level is ${logger.level}`)
 
 // Export a default as well for convenience
 export default logger;

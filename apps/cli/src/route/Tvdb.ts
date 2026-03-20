@@ -1,12 +1,13 @@
 import type { UserConfig } from "@core/types";
-import { getUserDataDir } from "@/utils/config";
+import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import path from "path";
-import type { Hono } from "hono";
-import { logger } from "../../lib/logger";
+import type { Context, Hono } from "hono";
+import { logger, logHttpReqOut, logHttpRespIn } from "../../lib/logger";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+import fs from "fs";
+import { Mutex } from "es-toolkit";
 
 const TVDB_DEFAULT_HOST = "https://api4.thetvdb.com/v4";
-const TOKEN_EXPIRY_BUFFER_MS = 60 * 60 * 1000; // refresh 1h before expiry
-const TOKEN_VALIDITY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 async function getUserConfig(): Promise<UserConfig | null> {
   try {
@@ -22,220 +23,224 @@ async function getUserConfig(): Promise<UserConfig | null> {
   }
 }
 
-async function getTvdbConfig(): Promise<{
-  host: string;
-  apiKey: string | undefined;
-  error?: string;
-}> {
-  const userConfig = await getUserConfig();
-  if (!userConfig) {
-    return { host: "", apiKey: undefined, error: "User config not found. Please configure TVDB settings." };
-  }
-  const tvdb = userConfig.tvdb;
-  const host = (tvdb?.host || TVDB_DEFAULT_HOST).replace(/\/+$/, "");
-  const apiKey = tvdb?.apiKey;
-  if (!apiKey || !apiKey.trim()) {
-    return { host: "", apiKey: undefined, error: "TVDB API key is not configured. Please set your API key in settings." };
-  }
-  return { host, apiKey };
+function tvdbTokenCacheFilePath(appDataDir: string) {
+  return path.join(appDataDir, 'tvdb-token.txt');
 }
 
-let cachedToken: string | null = null;
-let tokenExpiryAt = 0;
+/**
+ * The content format for TVDB token cache file
+ * The key is domain without scheme and port, such as "api4.thetvdb.com"
+ */
+interface TokenCacheFile {
+  [domain: string]: string;
+}
 
-async function getToken(host: string, apiKey: string): Promise<string | null> {
-  if (cachedToken && Date.now() < tokenExpiryAt - TOKEN_EXPIRY_BUFFER_MS) {
-    return cachedToken;
-  }
-  const url = `${host}/login`;
+const tokenRwMutex = new Mutex();
+
+async function getTokenFromCache(appDataDir: string, domain: string): Promise<string | null> {
+  await tokenRwMutex.acquire();
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ apikey: apiKey }),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      logger.warn({ status: res.status, text }, "Tvdb login failed");
+    const tokenPath = tvdbTokenCacheFilePath(appDataDir);
+    const file = fs.readFileSync(tokenPath, 'utf-8');
+    const obj = JSON.parse(file) as TokenCacheFile;
+    return obj[domain] ?? null;
+  } catch (error) { 
+    const message = error instanceof Error ? error.message : String(error);
+    if(message.includes('ENOENT: no such file or directory')) {
       return null;
     }
-    const json = (await res.json()) as { data?: { token?: string } };
-    const token = json?.data?.token;
-    if (!token) return null;
-    cachedToken = token;
-    tokenExpiryAt = Date.now() + TOKEN_VALIDITY_MS;
-    return token;
-  } catch (error) {
-    logger.error({ error }, "Tvdb login request error");
-    return null;
+    throw error;
+  } finally {
+    tokenRwMutex.release();
   }
+  
 }
 
-async function tvdbFetch(host: string, path: string, token: string): Promise<{ data: unknown; error?: string }> {
-  const url = `${host}${path}`;
+async function saveTokenToCache(appDataDir: string, domain: string, token: string) {
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      return { data: null, error: `TVDB API error: ${res.status} ${res.statusText}. ${text}` };
+    await tokenRwMutex.acquire();
+
+    // IMPORTANT: do NOT reuse getTokenFromCache method, because it acquire lock internally.
+    // Reusing getTokenFromCache will cause deadlock.
+    const tokenPath = tvdbTokenCacheFilePath(appDataDir);
+
+    if(await Bun.file(tokenPath).exists()) {
+
+      const file = fs.readFileSync(tokenPath, 'utf-8');
+      const obj = JSON.parse(file) as TokenCacheFile;
+      obj[domain] = token;
+
+      fs.writeFileSync(tokenPath, token);
+
+    } else {
+
+      logger.debug(`TVDB token cache file not found, create new one`);
+      const obj: TokenCacheFile = {};
+      obj[domain] = token;
+      fs.writeFileSync(tokenPath, JSON.stringify(obj, null, 2));
+
     }
-    let data: unknown;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return { data: null, error: "Invalid JSON response from TVDB" };
-    }
-    const obj = data as { data?: unknown; status?: string };
-    return { data: obj?.data ?? data };
-  } catch (error) {
-    logger.error({ error, url }, "Tvdb fetch error");
-    return { data: null, error: `Failed to fetch from TVDB: ${error instanceof Error ? error.message : "Unknown error"}` };
+
+  } finally {
+    tokenRwMutex.release();
   }
 }
 
-// TVDB search result shape (from v4 API)
-interface TvdbSearchResultItem {
-  id?: string;
-  tvdb_id?: string;
-  name?: string;
-  title?: string;
-  overview?: string;
-  overview_translated?: string;
-  image_url?: string;
-  poster?: string;
-  first_air_time?: string;
-  year?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-// Normalize to TMDB-like shape for UI compatibility
-function mapTvdbSearchItemToTmdbLike(item: TvdbSearchResultItem): { id: number; name?: string; title?: string; overview?: string; poster_path?: string | null; first_air_date?: string; release_date?: string; vote_average?: number; media_type?: "tv" | "movie" } {
-  const id = parseInt(item.id || item.tvdb_id || "0", 10) || 0;
-  const isSeries = item.type === "series" || !!item.name;
-  const name = item.name ?? item.title;
-  const title = item.title ?? item.name;
-  const overview = item.overview ?? (Array.isArray(item.overview_translated) ? undefined : (item.overview_translated as string));
-  const poster = item.image_url || item.poster || null;
-  const date = item.first_air_time || item.year || "";
-  return {
-    id,
-    ...(isSeries ? { name, first_air_date: date, media_type: "tv" as const } : { title, release_date: date, media_type: "movie" as const }),
-    overview: overview ?? undefined,
-    poster_path: poster,
-    vote_average: 0,
+interface LoginResponse {
+  data: {
+    token: string;
   };
+  status: string;
 }
 
-export interface TvdbSearchRequestBody {
-  keyword: string;
-  type: "movie" | "tv";
-  language?: string;
+async function login(host: string, apiKey: string): Promise<LoginResponse> {
+  const url = `${host}/login`;
+  logHttpReqOut(url, 'POST', { apikey: `******${apiKey.slice(-10)}` });
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ apikey: apiKey }),
+  });
+  const obj = (await resp.json()) as unknown as LoginResponse;
+  logHttpRespIn(url, resp.status, obj);
+  return obj;
 }
 
-export interface TvdbSearchResponseBody {
-  results: Array<{ id: number; name?: string; title?: string; overview?: string; poster_path?: string | null; first_air_date?: string; release_date?: string; vote_average?: number; media_type?: "tv" | "movie" }>;
-  page: number;
-  total_pages: number;
-  total_results: number;
-  error?: string;
-}
-
-export async function searchTvdb(body: TvdbSearchRequestBody): Promise<TvdbSearchResponseBody> {
-  const config = await getTvdbConfig();
-  if (config.error) {
-    return { results: [], page: 0, total_pages: 0, total_results: 0, error: config.error };
+function createHeaders(resp: Response) {
+  const headers: Record<string, string> = {
+    'Via': "simple-media-manager"
   }
-  const token = await getToken(config.host, config.apiKey!);
-  if (!token) {
-    return { results: [], page: 0, total_pages: 0, total_results: 0, error: "Failed to obtain TVDB auth token. Check your API key." };
+
+  // Forward response headers (excluding hop-by-hop headers).
+  // If the remote proxy already added a `Via` header, append ours after it.
+  const hopByHopHeaders = new Set([
+    // RFC 9110 hop-by-hop headers
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    // Not useful/unsafe to forward
+    "content-length",
+  ]);
+
+  resp.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if(lowerKey === 'content-encoding') return;
+    if (lowerKey === "via") return;
+    if (hopByHopHeaders.has(lowerKey)) return;
+    headers[key] = value;
+  });
+
+  const viaFromResp = resp.headers.get("Via");
+  if (viaFromResp) {
+    headers["Via"] = `${headers["Via"]}, ${viaFromResp}`;
   }
-  const type = body.type === "movie" ? "movie" : "series";
-  const query = encodeURIComponent(body.keyword.trim());
-  const path = `/search?query=${query}&type=${type}`;
-  const { data, error } = await tvdbFetch(config.host, path, token);
-  if (error) return { results: [], page: 0, total_pages: 0, total_results: 0, error };
-  const list = Array.isArray(data) ? data as TvdbSearchResultItem[] : [];
-  const results = list.map(mapTvdbSearchItemToTmdbLike);
-  return { results, page: 1, total_pages: 1, total_results: results.length };
+
+  return headers;
 }
 
-export interface TvdbSeriesResponseBody {
-  data?: unknown;
-  error?: string;
-}
+const TVDB_PROXY_HOST = 'https://tmdb-mcp-server.imlc.me/api/tvdb';
 
-export async function getTvdbSeries(id: number): Promise<TvdbSeriesResponseBody> {
-  if (!id || id <= 0) return { error: "Invalid series ID" };
-  const config = await getTvdbConfig();
-  if (config.error) return { error: config.error };
-  const token = await getToken(config.host, config.apiKey!);
-  if (!token) return { error: "Failed to obtain TVDB auth token. Check your API key." };
-  const { data, error } = await tvdbFetch(config.host, `/series/${id}/extended`, token);
-  if (error) return { error };
-  return { data };
-}
+async function forwardToTvdb(c: Context, _host: string, apiKey?: string) {
+  
+  /**
+   * Indicating it used SMM provided TVDB proxy server.
+   * which does NOT require token to login
+   */
+  const useTvdbProxy = _host === TVDB_PROXY_HOST;
+  const host = _host.endsWith('/v4') ? _host : `${_host}/v4`;
+  const incomingUrl = new URL(c.req.url);
+  const tvdbApiPath = incomingUrl.pathname.replace('/api/tvdb', '');
+  const upstreamUrl = `${host}${tvdbApiPath}${incomingUrl.search}`;
 
-export interface TvdbMovieResponseBody {
-  data?: unknown;
-  error?: string;
-}
+  let token: string | null = null;
 
-export async function getTvdbMovie(id: number): Promise<TvdbMovieResponseBody> {
-  if (!id || id <= 0) return { error: "Invalid movie ID" };
-  const config = await getTvdbConfig();
-  if (config.error) return { error: config.error };
-  const token = await getToken(config.host, config.apiKey!);
-  if (!token) return { error: "Failed to obtain TVDB auth token. Check your API key." };
-  const { data, error } = await tvdbFetch(config.host, `/movies/${id}/extended`, token);
-  if (error) return { error };
-  return { data };
+  if(!useTvdbProxy) {
+
+    if(apiKey === undefined) {
+      logger.error(`Missing TVDB API Key for TVDB ${host}`);
+      return c.json({
+        error: 'Missing TVDB API Key',
+      }, 400);
+    }
+
+    token = await getTokenFromCache(getAppDataDir(), new URL(host).host);
+    if(token === null) {
+      const loginResp = await login(host, apiKey);
+      await saveTokenToCache(getAppDataDir(), new URL(host).host, loginResp.data.token);
+      token = loginResp.data.token;
+      logger.debug(`TVDB token cached: ******${token.slice(-10)}`);
+    } else {
+      logger.debug(`Use TVDB token from cache: ******${token.slice(-10)}`);
+    }
+  }
+
+  const reqHeaders: Record<string, string> = {
+    "Content-Type": c.req.header("content-type") ?? "application/json",
+    Accept: c.req.header("accept") ?? "application/json",
+  }
+
+  if(!useTvdbProxy) {  
+    if (!token) {
+      return c.json({ error: "Failed to obtain TVDB auth token" }, 502);
+    }
+    reqHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
+  const method = c.req.method;
+  const hasRequestBody = method !== "GET" && method !== "HEAD";
+  const requestBody = hasRequestBody ? await c.req.arrayBuffer().catch(() => undefined) : undefined;
+
+  logHttpReqOut(upstreamUrl, method, requestBody);
+  const resp = await fetch(upstreamUrl, {
+    method,
+    headers: reqHeaders,
+    body: requestBody,
+  });
+
+  const obj = await resp.json();
+
+  logHttpRespIn(upstreamUrl, resp.status, obj);
+
+  const respHeaders = createHeaders(resp);
+  const respContentType = resp.headers.get("content-type") ?? "";
+
+  if (respContentType.includes("application/json")) {
+    return c.json(obj, resp.status as ContentfulStatusCode, respHeaders);
+  }
+
+  if (method === "HEAD") {
+    return new Response(null, { status: resp.status, headers: respHeaders });
+  }
+
+  const buf = await resp.arrayBuffer();
+  return new Response(buf, { status: resp.status, headers: respHeaders });
+
 }
 
 export function handleTvdb(app: Hono) {
-  app.post("/api/tvdb/search", async (c) => {
-    try {
-      const rawBody = await c.req.json();
-      const keyword = typeof (rawBody as Record<string, unknown>).keyword === "string" ? (rawBody as TvdbSearchRequestBody).keyword : "";
-      const type = ((rawBody as Record<string, unknown>).type === "movie" || (rawBody as Record<string, unknown>).type === "tv") ? (rawBody as TvdbSearchRequestBody).type : "tv";
-      const result = await searchTvdb({ keyword, type });
-      return c.json(result, 200);
-    } catch (error) {
-      logger.error({ error }, "TVDB search route error");
-      return c.json({
-        results: [],
-        page: 0,
-        total_pages: 0,
-        total_results: 0,
-        error: `Failed to process TVDB search request: ${error instanceof Error ? error.message : "Unknown error"}`,
-      }, 200);
-    }
-  });
+  app.all("/api/tvdb/*", async (c) => {
+    const userConfig = await getUserConfig();    
 
-  app.get("/api/tvdb/series/:id", async (c) => {
-    try {
-      const id = parseInt(c.req.param("id"), 10);
-      if (isNaN(id)) return c.json({ data: undefined, error: "Invalid series ID" }, 200);
-      const result = await getTvdbSeries(id);
-      return c.json(result, 200);
-    } catch (error) {
-      logger.error({ error }, "TVDB get series route error");
-      return c.json({ data: undefined, error: `Failed to get series: ${error instanceof Error ? error.message : "Unknown error"}` }, 200);
-    }
-  });
+    if(userConfig !== null) {
 
-  app.get("/api/tvdb/movie/:id", async (c) => {
-    try {
-      const id = parseInt(c.req.param("id"), 10);
-      if (isNaN(id)) return c.json({ data: undefined, error: "Invalid movie ID" }, 200);
-      const result = await getTvdbMovie(id);
-      return c.json(result, 200);
-    } catch (error) {
-      logger.error({ error }, "TVDB get movie route error");
-      return c.json({ data: undefined, error: `Failed to get movie: ${error instanceof Error ? error.message : "Unknown error"}` }, 200);
+      const hostFromUserConfig = userConfig?.tvdb?.host ?? '';
+      const apiKeyFromUserConfig = userConfig?.tvdb?.apiKey ?? '';
+
+      if(hostFromUserConfig !== '' && apiKeyFromUserConfig !== '') {
+        return await forwardToTvdb(c, hostFromUserConfig, apiKeyFromUserConfig);
+      }
+
     }
+
+    return forwardToTvdb(c, TVDB_PROXY_HOST);
+    
   });
 }
