@@ -14,14 +14,17 @@ import type {
   TVDBv4SearchResult,
   TVDBv4SeasonBaseRecord,
   TVDBv4SeriesBaseRecord,
+  TVDBv4SeriesSeasonsExtendedResponseEpisode,
+  TVDBv4SeriesSeasonsExtendedResponse,
   TVDBv4FetchResponse,
   TVDBv4ErrorBody,
+  TVDBv4SeriesExtendedResponse,
 } from "./types";
 import type { Logger } from "./logger";
 import { noopLogger } from "./logger";
 
 export interface TVDBv4ClientOptions {
-  apiKey: string;
+  apiKey?: string;
   pin?: string;
   baseUrl?: string;
   fetchImpl?: TVDBv4Fetch;
@@ -29,6 +32,7 @@ export interface TVDBv4ClientOptions {
   tokenExpiryBufferMs?: number;
   /** Optional pino-compatible logger (e.g. `pino()` or `pino.child({ ... })`). */
   logger?: Logger;
+  disableAuth?: boolean;
 }
 
 export class TVDBv4Error extends Error {
@@ -64,7 +68,10 @@ function encodePathSegment(segment: string | number): string {
 async function safeParseJson(resp: TVDBv4FetchResponse): Promise<unknown> {
   try {
     return await resp.json();
-  } catch {
+  } catch(e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.log(`tvdb4: safeParseJson failed: ${message}`);
+    
     const text = await resp.text();
     // Try to parse JSON from text, but keep raw text if parsing fails.
     try {
@@ -83,13 +90,14 @@ export class TVDBv4 {
   private readonly tokenValidityMs: number;
   private readonly tokenExpiryBufferMs: number;
   private readonly logger: Logger;
-
+  private readonly disableAuth: boolean;
   private token: string | null = null;
   private tokenExpiresAt = 0;
   private loginInFlight: Promise<string> | null = null;
 
   constructor(options: TVDBv4ClientOptions) {
-    this.apiKey = options.apiKey;
+    this.disableAuth = options.disableAuth ?? true;
+    this.apiKey = options.apiKey ?? "";
     this.pin = options.pin;
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? TVDB_DEFAULT_BASE_URL);
     this.fetchImpl =
@@ -154,20 +162,29 @@ export class TVDBv4 {
     path: string,
     init: { method: string; headers?: Record<string, string>; query?: URLSearchParams }
   ): Promise<TVDBv4Envelope<TData>> {
-    const token = await this.ensureToken();
+
+    
+
+    
     const queryString = init.query?.toString();
     const url = `${this.baseUrl}${ensureLeadingSlash(path)}${queryString ? `?${queryString}` : ""}`;
-    this.logger.trace({ method: init.method, path, url }, "tvdb4: request");
+    this.logger.debug({ method: init.method, path, url }, "tvdb4: request");
+
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...(init.headers ?? {}),
+    };
+    if(!this.disableAuth) {
+      const token = await this.ensureToken();
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const resp = await this.fetchImpl(url, {
       method: init.method,
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
 
-    this.logger.trace({ method: init.method, path, status: resp.status }, "tvdb4: response");
+    this.logger.debug({ method: init.method, path, status: resp.status }, "tvdb4: response");
 
     if (!resp.ok) {
       const body = await safeParseJson(resp);
@@ -177,7 +194,7 @@ export class TVDBv4 {
     }
 
     const data = (await safeParseJson(resp)) as TVDBv4Envelope<TData>;
-    this.logger.trace({ method: init.method, path, status: resp.status, data }, "tvdb4: response body");
+    this.logger.debug({ method: init.method, path, status: resp.status, data }, "tvdb4: response body");
     return data;
   }
 
@@ -194,7 +211,7 @@ export class TVDBv4 {
 
   async search(params: TVDBv4SearchParams): Promise<TVDBv4Envelope<TVDBv4SearchResult[]>> {
     const query = params.query.trim();
-    const type = params.type === "movie" ? "movie" : "series";
+    const type = params.type;
 
     const sp = this.buildQuery({
       query,
@@ -286,12 +303,12 @@ export class TVDBv4 {
   }
 
   // Series
-  async series(params: TVDBv4ListSeriesParams = {}): Promise<TVDBv4Envelope<TVDBv4SeriesBaseRecord[]>> {
+  async series(params: TVDBv4ListSeriesParams = {}): Promise<TVDBv4Envelope<TVDBv4SeasonBaseRecord[]>> {
     const sp = this.buildQuery({ page: params.page });
-    return this.request<TVDBv4SeriesBaseRecord[]>("/series", { method: "GET", query: sp });
+    return this.request<TVDBv4SeasonBaseRecord[]>("/series", { method: "GET", query: sp });
   }
 
-  getSeries(params: TVDBv4ListSeriesParams = {}): Promise<TVDBv4Envelope<TVDBv4SeriesBaseRecord[]>> {
+  getSeries(params: TVDBv4ListSeriesParams = {}): Promise<TVDBv4Envelope<TVDBv4SeasonBaseRecord[]>> {
     return this.series(params);
   }
 
@@ -303,11 +320,11 @@ export class TVDBv4 {
     return this.seriesById(id);
   }
 
-  async seriesExtendedById(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesBaseRecord>> {
-    return this.request<TVDBv4SeriesBaseRecord>(`/series/${encodePathSegment(id)}/extended`, { method: "GET" });
+  async seriesExtendedById(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesExtendedResponse>> {
+    return this.request<TVDBv4SeriesExtendedResponse>(`/series/${encodePathSegment(id)}/extended`, { method: "GET" });
   }
 
-  getSeriesExtended(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesBaseRecord>> {
+  getSeriesExtended(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesExtendedResponse>> {
     return this.seriesExtendedById(id);
   }
 
