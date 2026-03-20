@@ -1,0 +1,120 @@
+# The example of TVDB Seasons API
+
+The id (season id) comes from `/series/{seriesId}/extended` API.
+
+```bash
+curl `https://tmdb-mcp-server.imlc.me/api/tvdb/v4/seasons/421069/extended`
+```
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 2004592,
+    "seriesId": 421069,
+    "type": {
+      "id": 1,
+      "name": "Aired Order",
+      "type": "official",
+      "alternateName": null
+    },
+    "number": 0,
+    "nameTranslations": [],
+    "overviewTranslations": [],
+    "image": "https://artworks.thetvdb.com/banners/v4/season/2004592/posters/66d5f92d04d1d.jpg",
+    "imageType": 7,
+    "companies": {
+      "studio": [],
+      "network": [],
+      "production": [],
+      "distributor": [],
+      "special_effects": []
+    },
+    "lastUpdated": "2026-03-18 09:25:34",
+    "year": "2023",
+    "episodes": [
+      {
+        "id": 9807573,
+        "seriesId": 421069,
+        "name": "振り返り特番～【推しの子】は推せるときに推せ!～",
+        "aired": "2023-05-31",
+        "runtime": 24,
+        "nameTranslations": [
+          "jpn",
+          "eng",
+          "deu",
+          "kor",
+          "fra",
+          "rus"
+        ],
+        "overview": "大好評放送中のTVアニメ【推しの子】5月31日(水)は「TVアニメ【推しの子】振り返り特番～【推しの子】は推せるときに推せ！～」を放送致します。この振り返り特番ではアクア役・大塚剛央さん、ルビー役・伊駒ゆりえさんのインタビューと共にTVアニメ【推しの子】第一話～第七話を一挙振り返り。この番組を見れば『【推しの子】』を更に推せること間違いなし！",
+        "overviewTranslations": [
+          "jpn",
+          "eng",
+          "deu",
+          "kor",
+          "rus"
+        ],
+        "image": "https://artworks.thetvdb.com/banners/v4/episode/9807573/screencap/64791ffb9fd8e.jpg",
+        "imageType": 11,
+        "isMovie": 0,
+        "seasons": null,
+        "number": 1,
+        "absoluteNumber": 0,
+        "seasonNumber": 0,
+        "lastUpdated": "2025-06-06 12:45:12",
+        "finaleType": null,
+        "airsBeforeSeason": 1,
+        "airsBeforeEpisode": 8,
+        "year": "2023"
+      },
+      {
+        "id": 10665804,
+        "seriesId": 421069,
+        "name": "【推しの子】振り返り特番～【推しの子】は推せるときに推せ！～Vol.2",
+        "aired": "2024-09-04",
+        "runtime": 25,
+        "nameTranslations": [
+          "jpn",
+          "eng",
+          "rus"
+        ],
+        "overview": "大好評放送中のTVアニメ【推しの子】\r\n9月4日(水)は「TVアニメ【推しの子】振り返り特番～【推しの子】は推せるときに推せ！～Vol.2」を放送致します。\r\n\r\nこの振り返り特番では、有馬かな役・潘めぐみさんと黒川あかね役・石見舞菜香さんのインタビューや、アクア役・大塚剛央さんのナレーションと共にTVアニメ【推しの子】第十二話～第二十話を一挙振り返り。",
+        "overviewTranslations": [
+          "jpn",
+          "eng",
+          "rus"
+        ],
+        "image": null,
+        "imageType": null,
+        "isMovie": 0,
+        "seasons": null,
+        "number": 2,
+        "absoluteNumber": 0,
+        "seasonNumber": 0,
+        "lastUpdated": "2026-03-18 09:25:34",
+        "finaleType": null,
+        "airsBeforeSeason": 2,
+        "airsBeforeEpisode": 10,
+        "year": "2024"
+      }
+    ],
+    "trailers": [],
+    "artwork": [
+      {
+        "id": 64074817,
+        "image": "https://artworks.thetvdb.com/banners/v4/season/2004592/posters/66d5f92d04d1d.jpg",
+        "thumbnail": "https://artworks.thetvdb.com/banners/v4/season/2004592/posters/66d5f92d04d1d_t.jpg",
+        "language": "eng",
+        "type": 7,
+        "score": 0,
+        "width": 680,
+        "height": 1000,
+        "includesText": true
+      }
+    ],
+    "tagOptions": null
+  }
+}
+
+```
