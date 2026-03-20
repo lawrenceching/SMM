@@ -1,4 +1,3 @@
-import { getTvdbSeriesById, getTvdbSeriesSeasonById } from "@/api/tvdb"
 import type { TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4Season } from "@smm/tvdb4/types"
@@ -12,8 +11,19 @@ export function extractSeriesId(objectId: string): number {
     return parseInt(str, 10)
 }
 
+export function getTVDBv4Client() {
+    return new TVDBv4({
+        baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/tvdb`,
+        // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
+        // 导致 `TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation`。
+        // 绑定到 `window` 后可避免该问题。
+        fetchImpl: window.fetch.bind(window),
+      })
+}
+
 export async function fetchTvdbAndBuildTvShowMediaMetadata(
     seriesId: number,
+    lang: "zh-CN" | "en-US" | "ja-JP",
     callbacks: {
         onSeasonsAPIError?: (error: Error) => void,
         onSeriesAPIError?: (error: Error) => void,
@@ -27,17 +37,15 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         seasons: [],
     }
 
-    // const seriesResp = await getTvdbSeriesById(seriesId) as any
-    const tvdb = new TVDBv4({
-        baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/tvdb`,
-        // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
-        // 导致 `TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation`。
-        // 绑定到 `window` 后可避免该问题。
-        fetchImpl: window.fetch.bind(window),
-      })
+    const tvdbLangCode = mapToTvdbLangCode(lang)
+    const tvdb = getTVDBv4Client();
     const seriesResp = await tvdb.seriesExtendedById(seriesId)
     if(seriesResp.status === 'success') {
-        m.name = seriesResp.data.name
+
+        
+        const translatedName = seriesResp.data.nameTranslations.find((name: string) => name === tvdbLangCode)
+
+        m.name = translatedName || seriesResp.data.name
         const seasons = seriesResp.data.seasons
         .filter((season: TVDBv4Season) => season.type.name === 'Aired Order')
 
@@ -53,13 +61,24 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         for(const season of seasons) {
 
             const seasonId = season.id;
-            const seasonResp = await getTvdbSeriesSeasonById(seasonId)
+            
+            const seasonResp = await tvdb.seasonExtendedById(seasonId)
             
             if(seasonResp.status === 'success') {
                 seasonResp.data.episodes.forEach((episode) => {
 
                     const season = m.seasons.find((s) => s.season === episode.seasonNumber);
+
+                    
+                    // season.nameTranslations indicates what translation provided
+                    // TODO need to call /seasons/{id}/translations/{lang} to get the translated text
+                    season?.name
+
                     if(season) {
+                        
+                        // episode.nameTranslations indicates what translation provided
+                        // TODO need to call /episodes/{id}/translations/{lang} to get the translated text
+
                         season.episodes.push({
                             season: episode.seasonNumber,
                             episode: episode.number,
@@ -97,4 +116,22 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
     console.log(`built TvShowMediaMetadata`, m)
 
     return m;
+}
+
+/**
+ * Map IETF BCP 47 / RFC 5646 lang code to ISO 639 lang code(which is used by TVDB)
+ * For example, zh-CN -> zho
+ */
+export function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
+    switch(lang) {
+        case "zh-CN":
+            return "zho"
+        case "en-US":
+            return "eng"
+        case "ja-JP":
+            return "jpn"
+        default:
+            console.warn(`[mapToTvdbLangCode] Unknown language: ${lang}, use default eng`)
+            return "eng"
+    }
 }

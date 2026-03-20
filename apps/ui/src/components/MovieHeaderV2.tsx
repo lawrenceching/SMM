@@ -14,7 +14,7 @@ import {
 import { useTranslation } from "@/lib/i18n"
 
 export interface MovieHeaderV2Props {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: TmdbSearchLanguage) => void
+    onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -29,11 +29,17 @@ export function MovieHeaderV2({
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
     const movie = selectedMediaMetadata?.tmdbMovie
+    const tvdbMovie = selectedMediaMetadata?.tvdbMovie
+    const tvdbMovieTitle =
+        (tvdbMovie as any)?.data?.title ??
+        (tvdbMovie as any)?.data?.name ??
+        (tvdbMovie as any)?.title ??
+        (tvdbMovie as any)?.name
     const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
-    const initialSearchValue = movie?.title
+    const initialSearchValue = movie?.title ?? tvdbMovieTitle
 
-    const hasValidTmdbMovie = movie != null && movie.id != null
+    const hasValidTmdbMovie = (movie != null && movie.id != null) || (selectedMediaMetadata?.tvdbMovie != null)
     const actionsDisabled = !hasValidTmdbMovie
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled

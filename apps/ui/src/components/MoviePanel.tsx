@@ -10,13 +10,18 @@ import { nextTraceId } from "@/lib/utils"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
-import type { MediaMetadata } from "@core/types"
-import type { TMDBMovie, TMDBTVShow } from "@core/types"
+import type { MediaMetadata, MovieMediaMetadata } from "@core/types"
+import type { TMDBMovie } from "@core/types"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
+import type { SearchResultSelectedArgs, TVDBSearchItem } from "./MediaDatabaseSearchbox"
+import { getTVDBv4Client, mapToTvdbLangCode } from "@/lib/TvdbUtils"
+import Debug from 'debug'
+import type { TVDBv4SearchResult } from "@smm/tvdb4"
+const debug = Debug('MoviePanel')
 
 export interface MovieFileModel {
     files: FileProps[]
@@ -57,6 +62,8 @@ function MoviePanel() {
     }
 
     const clone: MediaMetadata = structuredClone(rawMediaMetadata)
+
+    // move this step to Media Folder Initialization process
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [rawMediaMetadata])
 
@@ -170,41 +177,79 @@ function MoviePanel() {
     }
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
 
-  // Handle search result selection (MoviePanel only uses TMDBMovie; TV show type is for shared header; searchLanguage from TMDBSearchbox is unused for movie)
-  const handleSelectResult = useCallback((result: TMDBTVShow | TMDBMovie, _searchLanguage: import("./MediaDatabaseSearchbox").TmdbSearchLanguage) => {
-    if (!('title' in result)) return // movie panel expects movie result
-    const movie = result
-    if (mediaMetadata?.tmdbMovie?.id === movie.id) {
+  // Handle search result selection
+  const handleSelectResult = useCallback(async (args: SearchResultSelectedArgs) => {
+    debug(`[MoviePanel] handleSelectResult() called`, {
+      args,
+    })
+
+    if(rawMediaMetadata === undefined) {
+      console.error(`[MoviePanel] handleSelectResult() rawMediaMetadata is undefined, skip`)
       return
     }
 
-    if (!mediaMetadata?.mediaFolderPath) {
-      console.error("No media metadata path available")
-      return
-    }
+    const { database, result, searchLanguage } = args
 
-    const traceId = `movie-panel-handleSelectResult-${nextTraceId()}`
-    updateMediaMetadata(mediaMetadata.mediaFolderPath, {
-      ...mediaMetadata,
+    const traceId = `MovieSearchResultSelected-${nextTraceId()}`
+    const mediaFolderPath = rawMediaMetadata.mediaFolderPath!
+
+    updateMediaMetadata(mediaFolderPath, {
+      ...rawMediaMetadata,
       status: 'updating',
     }, { traceId })
 
-    try {
-      updateMediaMetadata(mediaMetadata.mediaFolderPath, {
-        ...mediaMetadata,
-        tmdbMovie: movie,
-        tmdbMediaType: 'movie',
-        type: 'movie-folder',
-        status: 'ok',
-      }, { traceId })
-    } catch (error) {
-      console.error("Failed to update media metadata:", error)
-      updateMediaMetadata(mediaMetadata.mediaFolderPath, {
-        ...mediaMetadata,
-        status: 'ok',
-      }, { traceId })
+    if(database === 'TVDB') {
+
+      const tvdbResult: TVDBv4SearchResult = result as TVDBv4SearchResult
+
+      const tvdbLangCode = mapToTvdbLangCode(searchLanguage)
+      const translatedName = tvdbResult.translations[tvdbLangCode]
+
+      const tvdbMovie: MovieMediaMetadata = {
+        id: tvdbResult.tvdb_id,
+        name: translatedName || tvdbResult.name,
+        database: 'TVDB',
+      }
+
+      updateMediaMetadata(
+        rawMediaMetadata!.mediaFolderPath!,
+        (prev) => {
+          return {
+            ...prev,
+            tmdbMovie: undefined,
+            tvdbMovie,
+            status: 'ok',
+          }
+        },
+        { traceId }
+      )
+
+    } else if(database === 'TMDB') {
+      
+      const movie = result as TMDBMovie
+
+      try {
+        updateMediaMetadata(mediaFolderPath, {
+          ...rawMediaMetadata,
+          tmdbMovie: movie,
+          tvdbMovie: undefined,
+          type: 'movie-folder',
+          status: 'ok',
+        }, { traceId })
+      } catch (error) {
+        console.error("Failed to update media metadata:", error)
+        updateMediaMetadata(mediaFolderPath, {
+          ...rawMediaMetadata,
+          status: 'ok',
+        }, { traceId })
+      }
+    } else {
+      toast.error("Invalid database")
+      return
     }
-  }, [mediaMetadata, updateMediaMetadata])
+
+    
+  }, [updateMediaMetadata, rawMediaMetadata])
 
   // Handle confirm button click - rename all files
   const handleRuleBasedRenameConfirm = useCallback(async () => {

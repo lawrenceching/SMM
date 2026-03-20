@@ -195,7 +195,6 @@ export function MediaDatabaseSearchbox({
           setSearchError(`TVDB Search Failure: ${resp.message}`)
         }
 
-
         return
       }
 

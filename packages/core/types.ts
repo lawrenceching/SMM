@@ -479,6 +479,15 @@ export interface TvShowMediaMetadata {
   seasons: TvShowSeasonMetadata[]
 }
 
+export interface MovieMediaMetadata {
+  /**
+   * TMDB ID or TVDB ID
+   */
+  id: string,
+  name: string,
+  database: "TMDB" | "TVDB",
+}
+
 /**
  * TVDB (TheTVDB) v4 raw payload stored for persistence.
  * We intentionally keep it loosely typed because the exact response shape can vary
@@ -559,7 +568,7 @@ export interface MediaMetadata {
   tmdbMovie?: TMDBMovie,
 
   tvdbTvShow?: TvShowMediaMetadata,
-  tvdbMovie?: TVDBMovie,
+  tvdbMovie?: MovieMediaMetadata,
 }
 
 // TMDB Search Types

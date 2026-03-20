@@ -1,42 +1,54 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("@/api/tvdb", () => ({
-  getTvdbSeriesById: vi.fn(),
-  getTvdbSeriesSeasonById: vi.fn(),
+const {
+  mockSeriesExtendedById,
+  mockSeasonExtendedById,
+  MockTVDBv4,
+} = vi.hoisted(() => {
+  const seriesExtendedById = vi.fn()
+  const seasonExtendedById = vi.fn()
+  class MockTVDBv4 {
+    seriesExtendedById = seriesExtendedById
+    seasonExtendedById = seasonExtendedById
+  }
+
+  return {
+    mockSeriesExtendedById: seriesExtendedById,
+    mockSeasonExtendedById: seasonExtendedById,
+    MockTVDBv4,
+  }
+})
+
+vi.mock("@smm/tvdb4", () => ({
+  TVDBv4: MockTVDBv4,
 }))
 
 import { fetchTvdbAndBuildTvShowMediaMetadata } from "./TvdbUtils"
-import { getTvdbSeriesById, getTvdbSeriesSeasonById } from "@/api/tvdb"
 
 describe("fetchTvdbAndBuildTvShowMediaMetadata", () => {
-  const mockGetTvdbSeriesById = getTvdbSeriesById as ReturnType<typeof vi.fn>
-  const mockGetTvdbSeriesSeasonById = getTvdbSeriesSeasonById as ReturnType<
-    typeof vi.fn
-  >
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it("happy flow builds TvShowMediaMetadata", async () => {
-    // Parsed from `docs/tvdb/example/series_api_resp_example.json` and normalized
-    // to the shape `fetchTvdbAndBuildTvShowMediaMetadata` expects.
-    mockGetTvdbSeriesById.mockResolvedValue({
+    mockSeriesExtendedById.mockResolvedValue({
       status: "success",
       data: {
+        name: "Oshi no Ko",
+        nameTranslations: [],
         seasons: [
           {
             id: 2004592,
-            name: "Aired Order",
-            seasonNumber: 0,
+            number: 0,
+            type: {
+              name: "Aired Order",
+            },
           },
         ],
       },
     } as any)
 
-    // Parsed from `docs/tvdb/example/seasons_api_resp_example.json` (episode fields
-    // already match the shape `fetchTvdbAndBuildTvShowMediaMetadata` expects).
-    mockGetTvdbSeriesSeasonById.mockResolvedValue({
+    mockSeasonExtendedById.mockResolvedValue({
       status: "success",
       data: {
         episodes: [
@@ -57,23 +69,28 @@ describe("fetchTvdbAndBuildTvShowMediaMetadata", () => {
     const onSeasonsAPIError = vi.fn()
     const onSeriesAPIError = vi.fn()
 
-    const result = await fetchTvdbAndBuildTvShowMediaMetadata(421069, {
-      onSeasonsAPIError,
-      onSeriesAPIError,
-    })
+    const result = await fetchTvdbAndBuildTvShowMediaMetadata(
+      421069,
+      "zh-CN",
+      {
+        onSeasonsAPIError,
+        onSeriesAPIError,
+      }
+    )
 
-    expect(mockGetTvdbSeriesById).toHaveBeenCalledWith(421069)
-    expect(mockGetTvdbSeriesSeasonById).toHaveBeenCalledWith(2004592)
+    expect(mockSeriesExtendedById).toHaveBeenCalledWith(421069)
+    expect(mockSeasonExtendedById).toHaveBeenCalledWith(2004592)
     expect(onSeasonsAPIError).not.toHaveBeenCalled()
     expect(onSeriesAPIError).not.toHaveBeenCalled()
 
     expect(result).toEqual({
       id: "421069",
+      name: "Oshi no Ko",
       database: "TVDB",
       seasons: [
         {
           season: 0,
-          name: "Aired Order",
+          name: "",
           episodes: [
             {
               season: 0,

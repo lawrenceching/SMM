@@ -86,32 +86,6 @@ export interface TVDBv4Artwork {
   tagOptions: Record<string, unknown> | null,
 }
 
-/**
- * {
-        "id": 2004592,
-        "seriesId": 421069,
-        "type": {
-          "id": 1,
-          "name": "Aired Order",
-          "type": "official",
-          "alternateName": null
-        },
-        "number": 0,
-        "nameTranslations": [],
-        "overviewTranslations": [],
-        "image": "https://artworks.thetvdb.com/banners/v4/season/2004592/posters/66d5f92d04d1d.jpg",
-        "imageType": 7,
-        "companies": {
-          "studio": null,
-          "network": null,
-          "production": null,
-          "distributor": null,
-          "special_effects": null
-        },
-        "lastUpdated": "2026-03-18 09:25:34"
-      }
- */
-
 export interface TVDBv4Season {
 
   id: number,
@@ -173,6 +147,11 @@ export interface TVDBv4LanguageRecord {
   shortCode?: string;
 }
 
+/**
+ * See example responses in:
+ * docs\tvdb\example\search_api_movie_resp_example.jsonl
+ * docs\tvdb\example\search_api_series_resp_example.jsonl
+ */
 export type TVDBv4SearchResult = Record<string, unknown> & {
   id: string;
   objectID: string;
@@ -183,6 +162,7 @@ export type TVDBv4SearchResult = Record<string, unknown> & {
   type: "series" | "movie";
   overviews: Record<string, string>;
   translations: Record<string, string>;
+  extended_title: string;
 };
 
 // Common list params.

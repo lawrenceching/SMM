@@ -11,9 +11,22 @@ vi.mock('./TMDBSearchbox', () => ({
   )),
 }))
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    t: (key: string) => key,
+vi.mock('@/lib/i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/i18n')>()
+  return {
+    ...actual,
+    useTranslation: vi.fn(() => ({
+      t: (key: string) => key,
+    })),
+  }
+})
+
+vi.mock('@/providers/config-provider', () => ({
+  useConfig: vi.fn(() => ({
+    userConfig: {
+      applicationLanguage: 'en',
+      primaryDatabase: 'TMDB',
+    },
   })),
 }))
 

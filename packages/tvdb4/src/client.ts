@@ -302,6 +302,14 @@ export class TVDBv4 {
     return this.seasonById(id);
   }
 
+  async seasonExtendedById(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesSeasonsExtendedResponse>> {
+    return this.request<TVDBv4SeriesSeasonsExtendedResponse>(`/seasons/${encodePathSegment(id)}/extended`, { method: "GET" });
+  }
+
+  getSeasonExtendedById(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesSeasonsExtendedResponse>> {
+    return this.seasonExtendedById(id);
+  }
+
   // Series
   async series(params: TVDBv4ListSeriesParams = {}): Promise<TVDBv4Envelope<TVDBv4SeasonBaseRecord[]>> {
     const sp = this.buildQuery({ page: params.page });

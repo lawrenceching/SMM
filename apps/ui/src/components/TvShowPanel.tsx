@@ -1,7 +1,7 @@
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions, useMediaMetadataStore } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { TMDBTVShow, TMDBMovie, TvShowMediaMetadata } from "@core/types"
+import type { TMDBTVShow } from "@core/types"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 
@@ -14,7 +14,6 @@ import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { getTvShowById } from "@/api/tmdb"
-import { getTvdbSeriesById } from "@/api/tvdb"
 import { useConfig } from "@/providers/config-provider"
 import { mapSearchLanguageToTmdb } from "./MediaDatabaseSearchbox"
 import type { SupportedLanguage } from "@/lib/i18n"
@@ -36,8 +35,8 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
-import type { SearchResultSelectedArgs, TVDBSearchItem } from "./MediaDatabaseSearchbox"
-import { extractSeriesId, fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
+import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
+import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 import Debug from 'debug'
@@ -84,7 +83,8 @@ function TvShowPanel() {
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
 
   const handleSelectResult = useCallback(async (args: SearchResultSelectedArgs) => {
-    const { database, result, searchLanguage } = args
+    const { database, result, searchLanguage } = args;
+    const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
 
     console.log('[TvShowPanel] handleSelectResult CALLED', {
       timestamp: new Date().toISOString(),
@@ -100,7 +100,7 @@ function TvShowPanel() {
       const tvdbId = selectedTvdbSearchResult.tvdb_id;
       const seriesId = parseInt(tvdbId, 10);
       debug(`start to fetch TVDB series data for series id: ${seriesId}, name: ${selectedTvdbSearchResult.name}`)
-      const tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(seriesId, {
+      const tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(seriesId, searchLanguage, {
         onSeasonsAPIError: (error: Error) => {
           toast.error(`TVDB Seasons API Error: ${error.message}`)
         },
@@ -108,6 +108,17 @@ function TvShowPanel() {
           toast.error(`TVDB Series API Error: ${error.message}`)
         },
       })
+
+      updateMediaMetadata(
+        mediaMetadata!.mediaFolderPath!,
+        (prev: UIMediaMetadata) => {
+          return {
+            ...prev,
+            status: 'updating',
+          }
+        }, 
+        {traceId}
+      )
 
       if(tvdbTvShow) {
         debug(`successfully fetched TVDB series data for series id: ${seriesId}, name: ${selectedTvdbSearchResult.name}`)
@@ -118,8 +129,10 @@ function TvShowPanel() {
               ...prev,
               tmdbTvShow: undefined,
               tvdbTvShow: tvdbTvShow,
+              status: 'ok',
             }
-          }
+          }, 
+          {traceId}
         )
       } else {
         toast.error(`Failed to fetch TVDB series ${seriesId}`)
@@ -127,7 +140,6 @@ function TvShowPanel() {
 
     } else {
 
-      const traceId = `tmdb-tvshow-overview-handleSelectResult-${nextTraceId()}`
         updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
           ...mediaMetadata,
           status: 'updating',
