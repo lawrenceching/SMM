@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 export type EpisodeTableLayout = "simple" | "detail" | "preview"
 
 export interface TvShowHeaderV2Props {
-    onSearchResultSelected: (result: TMDBTVShow | TMDBMovie, searchLanguage: TmdbSearchLanguage) => void
+    onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
@@ -39,12 +39,14 @@ export function TvShowHeaderV2({
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
     const tvShow = selectedMediaMetadata?.tmdbTvShow
+    const tvdbTvShow = selectedMediaMetadata?.tvdbTvShow
+    const tvdbTvShowName = tvdbTvShow?.name ?? ''
     const movie = selectedMediaMetadata?.tmdbMovie
     const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
-    const initialSearchValue = tvShow?.name
+    const initialSearchValue = tvShow?.name ?? tvdbTvShowName
 
-    const hasValidTmdbTvShow = tvShow != null && tvShow.id != null
+    const hasValidTmdbTvShow = (tvShow != null && tvShow.id != null) || (selectedMediaMetadata?.tvdbTvShow != null)
     const actionsDisabled = !hasValidTmdbTvShow
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled

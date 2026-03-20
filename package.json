@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:ui\" \"pnpm run dev:cli\"",
+    "dev": "npm-run-all2 --parallel dev:ui dev:cli",
     "dev:ui": "pnpm --filter ui dev",
     "dev:cli": "pnpm --filter cli dev",
     "dev:electron": "cd apps/electron && pnpm run dev",
@@ -37,7 +37,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "npm-run-all2": "^8.0.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["electron"]

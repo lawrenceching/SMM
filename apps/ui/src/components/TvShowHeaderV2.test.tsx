@@ -3,17 +3,30 @@ import { render, screen } from '@testing-library/react'
 import { TvShowHeaderV2 } from './TvShowHeaderV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
-vi.mock('./TMDBSearchbox', () => ({
-  TMDBSearchbox: vi.fn(() => (
-    <div data-testid="tmdb-searchbox">
-      <input data-testid="search-input" readOnly />
-    </div>
-  )),
+const mockMediaDatabaseSearchbox = vi.fn((props: any) => (
+  <div data-testid="media-database-searchbox" data-value={props.value ?? ''} />
+))
+
+vi.mock('./MediaDatabaseSearchbox', () => ({
+  MediaDatabaseSearchbox: (props: any) => mockMediaDatabaseSearchbox(props),
 }))
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    t: (key: string) => key,
+vi.mock('@/lib/i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/i18n')>()
+  return {
+    ...actual,
+    useTranslation: vi.fn(() => ({
+      t: (key: string) => key,
+    })),
+  }
+})
+
+vi.mock('@/providers/config-provider', () => ({
+  useConfig: vi.fn(() => ({
+    userConfig: {
+      applicationLanguage: 'en',
+      primaryDatabase: 'TMDB',
+    },
   })),
 }))
 
@@ -80,6 +93,29 @@ describe('TvShowHeaderV2', () => {
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
       expect(moreButton).not.toBeDisabled()
+    })
+  })
+
+  describe('TVDB TV Show Metadata', () => {
+    it('passes tvdbTvShow.name as value when tmdbTvShow is undefined', () => {
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/show',
+              mediaFiles: [],
+              tmdbTvShow: undefined,
+              tvdbTvShow: { id: 'tvdb-1', name: 'TVDB Show Name' },
+            } as unknown as UIMediaMetadata
+          }
+        />
+      )
+
+      expect(mockMediaDatabaseSearchbox).toHaveBeenCalled()
+      const firstCallProps = mockMediaDatabaseSearchbox.mock.calls[0]?.[0]
+      expect(firstCallProps?.value).toBe('TVDB Show Name')
     })
   })
 })

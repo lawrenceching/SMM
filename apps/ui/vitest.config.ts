@@ -31,6 +31,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@core': path.resolve(__dirname, '../../packages/core'),
+      '@smm/tvdb4': path.resolve(__dirname, '../../packages/tvdb4/src/index.ts'),
+      '@smm/tvdb4/': `${path.resolve(__dirname, '../../packages/tvdb4/src')}/`,
     },
   },
 })

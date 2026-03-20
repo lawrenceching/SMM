@@ -5,7 +5,8 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { findAssociatedFiles } from "@/lib/utils";
 import { mapTagToFileType } from "@/components/TvShowPanelUtils";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
-
+import Debug from 'debug'
+const debug = Debug('buildTvShowEpisodeTableRows')
 const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
 
 function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string | undefined {
@@ -20,6 +21,11 @@ function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string
   })
 }
 
+/**
+ * Build rows for fanart, poster, theme, nfo files
+ * @param files
+ * @returns 
+ */
 function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
   const rows: TvShowFolderFileRow[] = []
   for (const id of FOLDER_FILE_IDS) {
@@ -60,12 +66,32 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     rows.push(...buildFolderFileRows(mm.files))
   }
 
-  if (!mm.tmdbTvShow) {
+  if (mm.tmdbTvShow !== undefined) {
+    debug(`use tmdbTvShow to build episode table rows`)
+    return _buildTvShowEpisodeTableRowsFromTmdb(mm)
+  }
+
+
+  if(mm.tvdbTvShow !== undefined) {
+    debug(`use tvdbTvShow to build episode table rows`)
+    return _buildTvShowEpisodeTableRowsFromTvdb(mm)
+  }
+
+  debug(`empty tmdbTvShow and tvdbTvShow, return empty rows`)
+
+  return rows
+}
+
+export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
+
+  const rows: TvShowEpisodeTableRow[] = []
+
+  if (!_in_mm.tmdbTvShow) {
     return rows
   }
 
   // Process each season and episode directly from tmdbTvShow
-  for (const season of mm.tmdbTvShow.seasons || []) {
+  for (const season of _in_mm.tmdbTvShow.seasons || []) {
     const seasonNo = season.season_number
     const seasonText = season.name || `Season ${seasonNo}`
     rows.push({
@@ -78,7 +104,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
       const episodeNo = episode.episode_number
       
       // Find the media file for this episode
-      const mediaFile = mm.mediaFiles?.find(
+      const mediaFile = _in_mm.mediaFiles?.find(
         file => file.seasonNumber === seasonNo && file.episodeNumber === episodeNo
       )
       
@@ -87,7 +113,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
       let subtitleFile: { path: string; newPath?: string } | undefined
       let nfoFile: { path: string; newPath?: string } | undefined
 
-      if (mediaFile && mm.mediaFolderPath && mm.files) {
+      if (mediaFile && _in_mm.mediaFolderPath && _in_mm.files) {
         // Get video file path
         videoFile = {
           path: mediaFile.absolutePath,
@@ -95,10 +121,93 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
         }
         
         // Find associated files
-        const associatedFiles = findAssociatedFiles(mm.mediaFolderPath, mm.files, mediaFile.absolutePath)
+        const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, _in_mm.files, mediaFile.absolutePath)
         
         for (const file of associatedFiles) {
-          const filePath = join(mm.mediaFolderPath, file.path)
+          const filePath = join(_in_mm.mediaFolderPath, file.path)
+          const fileType = mapTagToFileType(file.tag)
+          
+          switch (fileType) {
+            case 'poster':
+              thumbnailFile = { path: filePath }
+              break
+            case 'subtitle':
+              subtitleFile = { path: filePath }
+              break
+            case 'nfo':
+              nfoFile = { path: filePath }
+              break
+          }
+        }
+      }
+      
+      rows.push({
+        season: seasonNo,
+        episode: episodeNo,
+        type: "episode",
+        videoFile: videoFile?.path,
+        thumbnail: thumbnailFile?.path,
+        subtitle: subtitleFile?.path,
+        nfo: nfoFile?.path,
+        episodeTitle: episode.name ?? "",
+        newVideoFile: videoFile?.newPath,
+        newThumbnail: thumbnailFile?.newPath,
+        newSubtitle: subtitleFile?.newPath,
+        newNfo: nfoFile?.newPath,
+        checked: videoFile?.path ? true : false,
+      })
+    }
+  }
+
+  return rows;
+}
+
+export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: UIMediaMetadata) {
+  const rows: TvShowEpisodeTableRow[] = []
+
+  if (_in_mm.files && _in_mm.mediaFolderPath) {
+    rows.push(...buildFolderFileRows(_in_mm.files))
+  }
+
+  if(!_in_mm.tvdbTvShow || !_in_mm.tvdbTvShow.seasons) {
+    return rows;
+  }
+
+  // Process each season and episode directly from tmdbTvShow
+  for (const season of _in_mm.tvdbTvShow.seasons || []) {
+    const seasonNo = season.season
+    const seasonText = season.name || `Season ${seasonNo}`
+    rows.push({
+      id: `season-${seasonNo}`,
+      type: "divider",
+      text: seasonText,
+    })
+
+    for (const episode of season.episodes || []) {
+      const episodeNo = episode.episode
+      
+      // Find the media file for this episode
+      const mediaFile = _in_mm.mediaFiles?.find(
+        file => file.seasonNumber === seasonNo && file.episodeNumber === episodeNo
+      )
+      
+      let videoFile: { path: string; newPath?: string } | undefined
+      let thumbnailFile: { path: string; newPath?: string } | undefined
+      let subtitleFile: { path: string; newPath?: string } | undefined
+      let nfoFile: { path: string; newPath?: string } | undefined
+
+      if (mediaFile && _in_mm.mediaFolderPath && _in_mm.files) {
+        // Get video file path
+        videoFile = {
+          path: mediaFile.absolutePath,
+          newPath: undefined
+        }
+        
+        // Find associated files
+        const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, _in_mm.files, mediaFile.absolutePath)
+        
+        for (const file of associatedFiles) {
+          const filePath = join(_in_mm.mediaFolderPath, file.path)
           const fileType = mapTagToFileType(file.tag)
           
           switch (fileType) {

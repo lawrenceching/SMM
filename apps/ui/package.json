@@ -15,6 +15,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@smm/tvdb4": "workspace:*",
     "@ai-sdk/openai": "^3.0.11",
     "@ai-sdk/openai-compatible": "^2.0.11",
     "@ai-sdk/react": "^3.0.38",

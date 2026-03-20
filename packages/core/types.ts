@@ -426,15 +426,14 @@ export const RenameRules = {
 
 
 export interface TvShowEpisodeMetadata {
-  seasonNumber: number,
-  episodeNumber: number,
-  episodeName: string,
+  season: number,
+  episode: number,
+  name: string,
 }
 
 export interface TvShowSeasonMetadata {
-    seasonNumber: number,
-    seasonName: string,
-    seasonTitle: string,
+    season: number,
+    name: string,
     episodes: TvShowEpisodeMetadata[]
 }
 
@@ -468,6 +467,33 @@ export interface MediaFileMetadata {
 }
 
 export type TMDBMediaType = 'movie' | 'tv'
+
+
+export interface TvShowMediaMetadata {
+  /**
+   * TMDB ID or TVDB ID
+   */
+  id: string,
+  name: string,
+  database: "TMDB" | "TVDB",
+  seasons: TvShowSeasonMetadata[]
+}
+
+/**
+ * TVDB (TheTVDB) v4 raw payload stored for persistence.
+ * We intentionally keep it loosely typed because the exact response shape can vary
+ * across endpoints and response options (e.g. "extended").
+ */
+export interface TVDBSeries {
+  [key: string]: unknown
+}
+
+/**
+ * TVDB (TheTVDB) v4 raw payload stored for persistence.
+ */
+export interface TVDBMovie {
+  [key: string]: unknown
+}
 
 export interface MediaMetadata {
   /**
@@ -531,6 +557,9 @@ export interface MediaMetadata {
 
   tmdbTvShow?: TMDBTVShowDetails,
   tmdbMovie?: TMDBMovie,
+
+  tvdbTvShow?: TvShowMediaMetadata,
+  tvdbMovie?: TVDBMovie,
 }
 
 // TMDB Search Types

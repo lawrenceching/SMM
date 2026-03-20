@@ -16,7 +16,7 @@ export type {
   TVDBv4LanguageRecord,
   TVDBv4MovieBaseRecord,
   TVDBv4SeasonBaseRecord,
-  TVDBv4SeriesBaseRecord,
+  TVDBv4SeriesExtendedResponse as TVDBv4SeriesBaseRecord,
   TVDBv4SearchResult,
 } from "./types";
 
