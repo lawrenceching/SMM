@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
+import { useConfig } from '@/providers/config-provider'
 import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 
 const mockImmersiveSearchboxValue = { current: '' }
 
 vi.mock('./ImmersiveSearchbox', () => ({
   ImmersiveSearchbox: vi.fn((props: any) => {
-    const { value, onChange, placeholder, inputClassName } = props
+    const { value, onChange, placeholder, inputClassName, onSelect } = props
     mockImmersiveSearchboxValue.current = value
+    const fakeResult = { id: 1, name: 'Test Show' }
     return (
       <div data-testid="immersive-searchbox">
         <input
@@ -17,6 +19,39 @@ vi.mock('./ImmersiveSearchbox', () => ({
           placeholder={placeholder}
           className={inputClassName}
         />
+        <button
+          type="button"
+          data-testid="select-result"
+          onClick={() => onSelect(fakeResult)}
+        >
+          Select
+        </button>
+      </div>
+    )
+  }),
+}))
+
+vi.mock('./ImmersiveSearchboxTvdb', () => ({
+  ImmersiveSearchboxTvdb: vi.fn((props: any) => {
+    const { value, onChange, placeholder, inputClassName, onSelect } = props
+    mockImmersiveSearchboxValue.current = value
+    const fakeResult = { tvdb_id: 42, name: 'TVDB Show' }
+    return (
+      <div data-testid="immersive-searchbox-tvdb">
+        <input
+          data-testid="search-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={inputClassName}
+        />
+        <button
+          type="button"
+          data-testid="select-result-tvdb"
+          onClick={() => onSelect(fakeResult)}
+        >
+          Select
+        </button>
       </div>
     )
   }),
@@ -43,7 +78,7 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
 vi.mock('@/providers/config-provider', () => ({
   useConfig: vi.fn(() => ({
     userConfig: {
-      applicationLanguage: 'en-US',
+      applicationLanguage: 'en',
       primaryDatabase: 'TMDB',
     },
   })),
@@ -78,5 +113,32 @@ describe('MediaDatabaseSearchbox', () => {
     rerender(<MediaDatabaseSearchbox {...defaultProps} value={value2} />)
 
     expect(mockImmersiveSearchboxValue.current).toBe(value2)
+  })
+
+  it('calls onSearchResultSelected with result, searchLanguage, and database when result is selected', () => {
+    const onSearchResultSelected = vi.fn()
+    vi.mocked(useConfig).mockReturnValue({
+      userConfig: {
+        applicationLanguage: 'en',
+        primaryDatabase: 'TVDB',
+      },
+    } as any)
+
+    const { getByTestId } = render(
+      <MediaDatabaseSearchbox
+        mediaType="tv"
+        onSearchResultSelected={onSearchResultSelected}
+      />
+    )
+
+    getByTestId('select-result-tvdb').click()
+
+    expect(onSearchResultSelected).toHaveBeenCalledTimes(1)
+    expect(onSearchResultSelected).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database: 'TVDB',
+        searchLanguage: 'en-US',
+      })
+    )
   })
 })
