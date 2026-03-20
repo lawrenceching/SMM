@@ -1,0 +1,21 @@
+{
+  "name": "@smm/tvdb4",
+  "version": "1.1.5",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "vitest run test/"
+  },
+  "devDependencies": {
+    "dotenv": "^17.3.1",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
