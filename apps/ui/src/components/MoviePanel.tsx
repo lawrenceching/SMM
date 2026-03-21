@@ -17,8 +17,8 @@ import { MovieHeaderV2 } from "./MovieHeaderV2"
 import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
-import type { SearchResultSelectedArgs, TVDBSearchItem } from "./MediaDatabaseSearchbox"
-import { getTVDBv4Client, mapToTvdbLangCode } from "@/lib/TvdbUtils"
+import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
+import { mapToTvdbLangCode } from "@/lib/TvdbUtils"
 import Debug from 'debug'
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 const debug = Debug('MoviePanel')

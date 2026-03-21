@@ -1,0 +1,13 @@
+// https://tmdb-mcp-server.imlc.me/api/tvdb/v4/series/421069/translations/zho
+{
+  "status": "success",
+  "data": {
+    "name": "【我推的孩子】",
+    "overview": "吾郎是一位在小城市任职的妇产科医生。某一天，他单推的偶像“B小町”的小爱出现在他的面前，吾郎发现了她的身上隐藏着禁忌的秘密。两个人在“最糟糕”的情况相遇，命运的齿轮开始转动…！？",
+    "language": "zho",
+    "aliases": [
+      "【我单推的孩子】",
+      "我推的孩子"
+    ]
+  }
+}

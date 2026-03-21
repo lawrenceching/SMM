@@ -68,7 +68,7 @@ describe("ImmersiveSearchbox", () => {
     fireEvent.click(await screen.findByRole("option", { name: "TVDB" }))
 
     fireEvent.click(triggers[1])
-    fireEvent.click(await screen.findByRole("option", { name: "Chinese Simplified" }))
+    fireEvent.click(await screen.findByRole("option", { name: "简体中文" }))
 
     expect(screen.getByText("components:tmdbSearchbox.database")).toBeInTheDocument()
     expect(screen.getByText("components:tmdbSearchbox.searchLanguage")).toBeInTheDocument()

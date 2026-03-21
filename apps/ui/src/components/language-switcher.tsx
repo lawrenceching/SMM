@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useConfig } from "@/providers/config-provider"
-import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
+import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 
@@ -32,11 +32,11 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="w-full justify-start">
           <span className="mr-2">🌐</span>
-          {SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage)?.name || currentLanguage}
+          {SUPPORTED_APP_LANGUAGES.find(l => l.code === currentLanguage)?.name || currentLanguage}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[200px]">
-        {SUPPORTED_LANGUAGES.map((lang) => (
+        {SUPPORTED_APP_LANGUAGES.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => handleLanguageChange(lang.code)}

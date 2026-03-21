@@ -14,7 +14,6 @@ import type {
   TVDBv4SearchResult,
   TVDBv4SeasonBaseRecord,
   TVDBv4SeriesBaseRecord,
-  TVDBv4SeriesSeasonsExtendedResponseEpisode,
   TVDBv4SeriesSeasonsExtendedResponse,
   TVDBv4FetchResponse,
   TVDBv4ErrorBody,
@@ -334,6 +333,14 @@ export class TVDBv4 {
 
   getSeriesExtended(id: number): Promise<TVDBv4Envelope<TVDBv4SeriesExtendedResponse>> {
     return this.seriesExtendedById(id);
+  }
+
+  async seriesTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.request<Record<string, string>>(`/series/${id}/translations/${langCode}`, { method: "GET" });
+  }
+
+  getSeriesTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.seriesTranslationByLangCode(id, langCode);
   }
 
   // Convenience type exports (helps app code avoid importing from ./types)

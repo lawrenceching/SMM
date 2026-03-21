@@ -1,4 +1,4 @@
-import { useMediaMetadataStoreState, useMediaMetadataStoreActions, useMediaMetadataStore } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow } from "@core/types"
@@ -53,7 +53,6 @@ function TvShowPanel() {
   const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { updateMediaMetadata } = useMediaMetadataActions()
-  const { updateMediaMetadata: updateMediaMetadataByFolderPath } = useMediaMetadataStore()
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog

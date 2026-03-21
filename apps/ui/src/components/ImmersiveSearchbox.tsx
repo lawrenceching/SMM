@@ -8,9 +8,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useTranslation } from "@/lib/i18n"
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
+import { type SupportedLanguage } from "@/lib/i18n"
 import type { PrimaryDatabase } from "@core/types"
-
+export const SUPPORTED_MEDIA_LANGUAGES = [
+    { code: 'zh-CN', name: '简体中文' },
+    { code: 'en', name: 'English' },
+  ] as const
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -193,8 +196,8 @@ export function ImmersiveSearchbox({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="TMDB">TMDB</SelectItem>
-                                            <SelectItem value="TVDB">TVDB</SelectItem>
+                                            <SelectItem value="TMDB" data-testid="tmdb-search-database-option-TMDB">TMDB</SelectItem>
+                                            <SelectItem value="TVDB" data-testid="tmdb-search-database-option-TVDB">TVDB</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -210,8 +213,8 @@ export function ImmersiveSearchbox({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {SUPPORTED_LANGUAGES.map((lang) => (
-                                                <SelectItem key={lang.code} value={lang.code}>
+                                            {SUPPORTED_MEDIA_LANGUAGES.map((lang) => (
+                                                <SelectItem key={lang.code} value={lang.code} data-testid={`tmdb-search-language-option-${lang.code}`}>
                                                     {lang.name}
                                                 </SelectItem>
                                             ))}

@@ -36,6 +36,84 @@ export interface TvShowPanelState {
     table: TvShowEpisodeTableRow[]
 }
 
+class MediaDatabaseSearchboxCO {
+
+    get input() {
+        return $('[data-testid="immersive-input"]')
+    }
+
+    get database() {
+        return $('#tmdb-search-database')
+    }
+
+    get language() {
+        return $('#tmdb-search-language')
+    }
+
+    get searchButton() {
+        return $('[data-testid="immersive-input-search-button"]')
+    }
+
+    async setDatabase(database: string) {
+        const selectTrigger = await this.database
+        
+        await selectTrigger.waitForExist({ timeout: 5000 })
+        await selectTrigger.waitForDisplayed({ timeout: 5000 })
+        await selectTrigger.waitForClickable({ timeout: 5000 })
+        await selectTrigger.click()
+
+        await browser.pause(300)
+        console.log(`>>> try to select database ${database}`)
+        const selectItem = await $(`[data-testid="tmdb-search-database-option-${database}"]`)
+        await selectItem.waitForExist({ timeout: 5000 })
+        await selectItem.waitForDisplayed({ timeout: 5000 })
+        await selectItem.waitForClickable({ timeout: 5000 })
+        await selectItem.click()
+
+        console.log(`>>> clicked database ${database}`)
+    }
+
+    async setLanguage(language: string) {
+        const selectTrigger = await this.language
+        
+        await selectTrigger.waitForExist({ timeout: 5000 })
+        await selectTrigger.waitForDisplayed({ timeout: 5000 })
+        await selectTrigger.waitForClickable({ timeout: 5000 })
+        await selectTrigger.click()
+
+        await browser.pause(300)
+        console.log(`>>> try to select language ${language}`)
+        
+        const selectItems = await $$(`[data-testid^="tmdb-search-language-option-"]`)
+        let targetItem
+        
+        for (const item of selectItems) {
+            const text = await item.getText()
+            if (text === language) {
+                targetItem = item
+                break
+            }
+        }
+        
+        if (!targetItem) {
+            throw new Error(`Language option "${language}" not found`)
+        }
+        
+        await targetItem.waitForClickable({ timeout: 5000 })
+        await targetItem.click()
+
+        console.log(`>>> clicked language ${language}`)
+    }
+
+    async selectSearchResultByText(text: string) {
+        const resultItem = await $(`//h3[contains(text(),"${text}")]`)
+        await resultItem.waitForDisplayed({ timeout: 1000 })
+        const clickableRow = await resultItem.$('..').$('..').$('..')
+        await clickableRow.click()
+    }
+
+}
+
 class TVShowPanel {
     /**
      * Get the immersive search input (movie/tv title input)
@@ -531,6 +609,11 @@ class TVShowPanel {
 
         return lines.join('\n')
     }
+
+    get searchbox() {
+        return new MediaDatabaseSearchboxCO()
+    }
+    
 }
 
 export default new TVShowPanel()

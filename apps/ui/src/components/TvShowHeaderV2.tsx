@@ -1,5 +1,3 @@
-import type { TMDBTVShow, TMDBMovie } from "@core/types"
-import type { TmdbSearchLanguage } from "./MediaDatabaseSearchbox"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { SUPPORTED_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
+import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -185,7 +185,7 @@ export function GeneralSettings() {
               <SelectValue placeholder={t('general.languageDescription')} />
             </SelectTrigger>
             <SelectContent data-testid="setting-language-content">
-              {SUPPORTED_LANGUAGES.map((lang) => (
+              {SUPPORTED_APP_LANGUAGES.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code} data-testid={`setting-language-option-${lang.code}`}>
                   {lang.name}
                 </SelectItem>

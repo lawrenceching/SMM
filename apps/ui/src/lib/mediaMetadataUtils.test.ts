@@ -426,7 +426,7 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        seasons: [{ seasonNumber: 1, seasonName: 'Season 1', seasonTitle: '', episodes: [] }],
+        seasons: [{ season: 1, name: 'Season 1', episodes: [] }],
       },
     ]
 

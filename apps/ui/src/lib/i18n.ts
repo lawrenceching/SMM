@@ -4,14 +4,14 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
 
 // Supported languages
-export const SUPPORTED_LANGUAGES = [
+export const SUPPORTED_APP_LANGUAGES = [
   { code: 'zh-CN', name: '简体中文' },
   { code: 'zh-HK', name: '繁體中文（香港）' },
   { code: 'zh-TW', name: '繁體中文（台灣）' },
   { code: 'en', name: 'English' },
 ] as const
 
-export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
+export type SupportedLanguage = typeof SUPPORTED_APP_LANGUAGES[number]['code']
 
 // Language detection options
 const detectionOptions = {

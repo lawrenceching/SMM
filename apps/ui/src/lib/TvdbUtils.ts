@@ -37,15 +37,18 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         seasons: [],
     }
 
-    const tvdbLangCode = mapToTvdbLangCode(lang)
     const tvdb = getTVDBv4Client();
+
+    const tvdbLangCode = mapToTvdbLangCode(lang);
+    const translationResp = await tvdb.seriesTranslationByLangCode(seriesId, tvdbLangCode)
+    if(translationResp.status === 'success') {
+        const translatedName = translationResp.data['name'] || ''
+        console.log(`fetched translated name in ${tvdbLangCode}: ${translatedName}`)
+        m.name = translatedName || ''
+    }
+    
     const seriesResp = await tvdb.seriesExtendedById(seriesId)
     if(seriesResp.status === 'success') {
-
-        
-        const translatedName = seriesResp.data.nameTranslations.find((name: string) => name === tvdbLangCode)
-
-        m.name = translatedName || seriesResp.data.name
         const seasons = seriesResp.data.seasons
         .filter((season: TVDBv4Season) => season.type.name === 'Aired Order')
 
