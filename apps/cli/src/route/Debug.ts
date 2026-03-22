@@ -206,115 +206,6 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
         }
       }
 
-      case 'beginRenameFilesTask': {
-        try {
-          console.log(`[DebugAPI] Executing beginRenameFilesTask:`, {
-            mediaFolderPath: validatedBody.mediaFolderPath,
-            clientId: validatedBody.clientId || 'not provided'
-          });
-          
-          const { createBeginRenameFilesTaskTool } = await import('../tools/renameFilesTask');
-          const clientId = validatedBody.clientId || '';
-          const tool = await createBeginRenameFilesTaskTool(clientId);
-          
-          const result = await tool.execute({
-            mediaFolderPath: validatedBody.mediaFolderPath,
-          });
-          
-          if (result.error) {
-            console.log(`[DebugAPI] beginRenameFilesTask completed with error:`, result.error);
-          } else {
-            console.log(`[DebugAPI] beginRenameFilesTask completed successfully, taskId:`, result.taskId);
-          }
-          
-          return {
-            success: !result.error,
-            data: result,
-            error: result.error,
-          };
-        } catch (error) {
-          console.error(`[DebugAPI] Error executing beginRenameFilesTask:`, error);
-          return {
-            success: false,
-            error: `Failed to execute beginRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          };
-        }
-      }
-
-      case 'addRenameFileToTask': {
-        try {
-          console.log(`[DebugAPI] Executing addRenameFileToTask:`, {
-            taskId: validatedBody.taskId,
-            from: validatedBody.from,
-            to: validatedBody.to,
-            clientId: validatedBody.clientId || 'not provided'
-          });
-          
-          const { createAddRenameFileToTaskTool } = await import('../tools/renameFilesTask');
-          const clientId = validatedBody.clientId || '';
-          const tool = await createAddRenameFileToTaskTool(clientId);
-          
-          const result = await tool.execute({
-            taskId: validatedBody.taskId,
-            from: validatedBody.from,
-            to: validatedBody.to,
-          });
-          
-          if (result.error) {
-            console.log(`[DebugAPI] addRenameFileToTask completed with error:`, result.error);
-          } else {
-            console.log(`[DebugAPI] addRenameFileToTask completed successfully`);
-          }
-          
-          return {
-            success: !result.error,
-            data: result,
-            error: result.error,
-          };
-        } catch (error) {
-          console.error(`[DebugAPI] Error executing addRenameFileToTask:`, error);
-          return {
-            success: false,
-            error: `Failed to execute addRenameFileToTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          };
-        }
-      }
-
-      case 'endRenameFilesTask': {
-        try {
-          console.log(`[DebugAPI] Executing endRenameFilesTask:`, {
-            taskId: validatedBody.taskId,
-            clientId: validatedBody.clientId || 'not provided'
-          });
-          
-          const { createEndRenameFilesTaskTool } = await import('../tools/renameFilesTask');
-          const clientId = validatedBody.clientId || '';
-          const tool = await createEndRenameFilesTaskTool(clientId);
-          
-          const result = await tool.execute({
-            taskId: validatedBody.taskId,
-          });
-          
-          if (result.error) {
-            console.log(`[DebugAPI] endRenameFilesTask completed with error:`, result.error);
-          } else {
-            console.log(`[DebugAPI] endRenameFilesTask completed successfully`);
-          }
-          
-          return {
-            success: !result.error,
-            data: result,
-            error: result.error,
-          };
-        } catch (error) {
-          console.error(`[DebugAPI] Error executing endRenameFilesTask:`, error);
-          return {
-            success: false,
-            error: `Failed to execute endRenameFilesTask: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          };
-        }
-      }
-
       case 'renameFilesPlanReady': {
         try {
           console.log(`[DebugAPI] Executing renameFilesPlanReady:`, {
@@ -408,10 +299,8 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           };
         }
       }
-
+      
       default: {
-        // TypeScript narrowing: this should never happen with discriminated union
-        const _exhaustive: never = validatedBody;
         return {
           success: false,
           error: `Unknown debug function: ${(validatedBody as any).name}`,

@@ -56,7 +56,7 @@ export function AiBasedRecognizePrompt({
       status={floatingPromptStatus}
       className={cn(className)}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-testid="ai-based-recognize-status">
         {status === "generating" && (
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
         )}

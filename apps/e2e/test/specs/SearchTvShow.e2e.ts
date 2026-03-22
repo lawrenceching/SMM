@@ -17,7 +17,7 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 describe('Search TV Show', () => {
 
     before(async () => {
-        createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false })();
+        await createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false })();
         console.log('Setting language to zh-CN for Chinese search test...')
         await Menu.openConfigDialog()
         await ConfigDialog.waitForDisplayed()

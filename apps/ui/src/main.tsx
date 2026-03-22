@@ -17,6 +17,7 @@ import { MediaFolderImportedEventHandler } from './components/eventlisteners/Med
 import { MediaLibraryImportedEventHandler } from './components/eventlisteners/MediaLibraryImportedEventHandler.tsx'
 import { FixedDelayBackgroundJobHandler } from './components/eventlisteners/FixedDelayBackgroundJobHandler.tsx'
 import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/RenameFilesPlanReadyEventListener.tsx'
+import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlisteners/RecognizeMediaFilePlanReadyEventListener.tsx'
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
@@ -171,6 +172,7 @@ function EventListeners() {
       <SocketIoUserConfigFolderRenamedEventListener />
       <PingEventListener />
       <RenameFilesPlanReadyEventListener />
+      <RecognizeMediaFilePlanReadyEventListener />
       <UserConfigUpdatedEventListener />
       <MediaMetadataUpdatedEventListener />
       <MediaFolderImportedEventHandler />

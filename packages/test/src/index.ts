@@ -201,6 +201,11 @@ export async function getMetadataDir(): Promise<string> {
     return path.join(appDataDir, 'metadata')
 }
 
+export async function getPlanDir(): Promise<string> {
+    const appDataDir = await getAppDataDir()
+    return path.join(appDataDir, 'plans')
+}
+
 /**
  * Remove the metadata directory if it exists.
  * This is useful to clean up metadata files from previous tests.
@@ -212,6 +217,16 @@ export async function removeMetadataDir(): Promise<string | null> {
         fs.rmSync(metadataDir, { recursive: true, force: true })
         console.log(`Removed metadata directory: ${metadataDir}`)
         return metadataDir
+    }
+    return null
+}
+
+export async function removePlanFolder(): Promise<string | null> {
+    const planDir = await getPlanDir()
+    if (fs.existsSync(planDir)) {
+        fs.rmSync(planDir, { recursive: true, force: true })
+        console.log(`Removed plan directory: ${planDir}`)
+        return planDir
     }
     return null
 }

@@ -8,7 +8,6 @@ import {
   getRenameTask,
 } from './renameFilesToolV2'
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils'
-import { getLocalizedToolDescription } from '@/i18n/helpers'
 
 const logger = pino()
 

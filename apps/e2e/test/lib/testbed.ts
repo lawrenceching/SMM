@@ -8,9 +8,9 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata, removePlanFolder } from '@smm/test'
 import { Path } from '@smm/core'
-import type { UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/core/types'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
@@ -31,6 +31,8 @@ export interface TestBedBeforeOptions {
     customSetup?: () => Promise<void>
     userConfig?: Partial<UserConfig>
 }
+
+
 
 /**
  * Create a before hook with common test setup
@@ -54,6 +56,7 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
 
         // Remove metadata directory if it exists. The metadata dir may contain files from previous tests.
         await removeMetadataDir();
+        await removePlanFolder();
         
 
         // Set up test media folders if requested
@@ -162,6 +165,27 @@ export async function expectMediaMetadataToBe(
 
     const ok = predicate(metadataJson)
     if (!ok) {
-        throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(metadataJson, null, 2)}`)
+        const m: MediaMetadata = metadataJson as MediaMetadata;
+        const obj = {
+            ...m,
+            tmdbTvShow: m.tmdbTvShow !== undefined ? {
+                id: m.tmdbTvShow?.id,
+                name: m.tmdbTvShow?.name,
+            } : undefined,
+            tmdbMovie: m.tmdbMovie !== undefined ? {
+                id: m.tmdbMovie?.id,
+                name: m.tmdbMovie?.title,
+            } : undefined,
+            tvdbTvShow: m.tvdbTvShow !== undefined ? {
+                id: m.tvdbTvShow?.id,
+                name: m.tvdbTvShow?.name,
+            } : undefined,
+            tvdbMovie: m.tvdbMovie !== undefined ? {
+                id: m.tvdbMovie?.id,
+                name: m.tvdbMovie?.name,
+            } : undefined,
+        }
+
+        throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(obj)}`)
     }
 }

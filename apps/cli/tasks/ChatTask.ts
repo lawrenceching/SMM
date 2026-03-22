@@ -1,11 +1,6 @@
 import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from 'ai';
 import { config } from 'dotenv';
 import {
-  isFolderExistTool,
-  createMatchEpisodesInBatchTool,
-  createBeginRenameFilesTaskTool,
-  createAddRenameFileToTaskTool,
-  createEndRenameFilesTaskTool,
   createBeginRenameFilesTaskV2Tool,
   createAddRenameFileToTaskV2Tool,
   createEndRenameFilesTaskV2Tool,

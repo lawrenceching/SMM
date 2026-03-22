@@ -8,12 +8,15 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 
 export interface TestFolder {
     folderName: string,
+    mediaName?: string,
     files: string[],
     type: "tvshow" | "movie" | "music"
+    path?: string
 }
 
 export const folder1: TestFolder = {
     folderName: "天使降临到我身边！ (2019) {tmdbid=84666}",
+    mediaName: '天使降临到我身边！',
     files: [
         "S01E01.mkv",
         "S01E01.jpg",
@@ -54,7 +57,12 @@ export function createFolderInTestFolder(folder: TestFolder) {
 
   console.log(`Created test folder "${folder.folderName}" with ${folder.files.length} files:`, testMediaFolder)
 
-  return testMediaFolder
+  folder.path = testMediaFolder
+  return folder
+}
+
+export function createMediaMetadata(folder: TestFolder) {
+  
 }
 
 export async function createAndImportFolder(folder: TestFolder, traceId: string) {
@@ -62,7 +70,7 @@ export async function createAndImportFolder(folder: TestFolder, traceId: string)
 
   await Menu.importMediaFolder({
     type: folder.type,
-    folderPathInPlatformFormat: testMediaFolder,
+    folderPathInPlatformFormat: testMediaFolder.path!,
     traceId,
   })
 

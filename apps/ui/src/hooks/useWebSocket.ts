@@ -198,6 +198,8 @@ export function useWebSocket(): UseWebSocketReturn {
           data
         });
 
+        console.log(`event data: ${JSON.stringify(data)}`)
+
         const message: WebSocketMessage = {
           event,
           data,
