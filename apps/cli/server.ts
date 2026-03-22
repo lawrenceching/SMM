@@ -29,6 +29,7 @@ import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
+import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
 import { handleGetPendingPlans } from './src/route/GetPendingPlans';
 import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { handleYtdlpDiscover } from './src/route/ytdlp/Discover';
@@ -184,6 +185,7 @@ export class Server {
     handleScrapeRequest(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
+    handleDebugRenameFilesTaskRoutes(this.app);
     handleGetPendingPlans(this.app);
     handleUpdatePlan(this.app);
     handleYtdlpDiscover(this.app);
