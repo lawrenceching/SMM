@@ -35,6 +35,8 @@ import { handleDebugGetMediaMetadataRoute } from './src/route/debug/debugGetMedi
 import { handleDebugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
 import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesTool';
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
+import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
+import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handleGetPendingPlans } from './src/route/GetPendingPlans';
 import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { handleYtdlpDiscover } from './src/route/ytdlp/Discover';
@@ -196,6 +198,8 @@ export class Server {
     handleDebugRenameFolderToolRoute(this.app);
     handleDebugListFilesToolRoute(this.app);
     handleDebugGetMediaFoldersRoute(this.app);
+    handleDebugGetEpisodesToolRoute(this.app);
+    handleDebugIsFolderExistToolRoute(this.app);
     handleGetPendingPlans(this.app);
     handleUpdatePlan(this.app);
     handleYtdlpDiscover(this.app);
