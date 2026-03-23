@@ -693,6 +693,7 @@ function TvShowPanel() {
       })
     };
 
+    console.log(`[TvShowPanel] setTableData: ${JSON.stringify(ret)}`)
     setTableData(ret);
     
   }, [mediaMetadata, plan, t])

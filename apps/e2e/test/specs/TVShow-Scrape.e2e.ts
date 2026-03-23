@@ -89,10 +89,10 @@ describe('TVShow - Scrape', () => {
   before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
   afterEach(async () => {
-    if (fs.existsSync(tmpMediaRoot)) {
-      fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
-      console.log('Removed tmp media folder:', tmpMediaRoot)
-    }
+    // if (fs.existsSync(tmpMediaRoot)) {
+    //   fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
+    //   console.log('Removed tmp media folder:', tmpMediaRoot)
+    // }
   })
 
   it('opens ScrapeDialog, runs scrape tasks, and stores poster, fanart, nfo in media folder', async function () {
@@ -127,6 +127,7 @@ describe('TVShow - Scrape', () => {
     // S01E01 S01E01.mp4 V - V
     // S01E02 S01E02.mp4 V - V
     const panelState = await TVShowPanel.waitFor((state) => {
+      console.log(`>>> ${state}`)
       return (
         state.includes(`fanart
 poster

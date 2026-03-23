@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
+  buildTvShowEpisodeTableRows,
+  buildTvShowEpisodeTableRowsForPlan,
   fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan,
+  fillTvShowEpisodeTableRowByRenameFilesPlan,
 } from './buildTvShowEpisodeTableRows'
 import type { TvShowEpisodeTableRow, TvShowEpisodeDataRow } from '@/components/TvShowEpisodeTable'
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
+import type { UIRenameFilesPlan } from '@/types/UIRenameFilesPlan'
+import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 function episodeRow(season: number, episode: number, videoFile?: string, checked = false): TvShowEpisodeDataRow {
   return {
@@ -26,6 +31,17 @@ function recognizePlan(files: { season: number; episode: number; path: string }[
     status: 'completed',
     mediaFolderPath: '/media/show',
     files: files.map((f) => ({ season: f.season, episode: f.episode, path: f.path })),
+    tmp: false,
+  }
+}
+
+function renamePlan(files: { from: string; to: string }[]): UIRenameFilesPlan {
+  return {
+    id: 'rename-plan-1',
+    task: 'rename-files',
+    status: 'completed',
+    mediaFolderPath: '/media/show',
+    files,
     tmp: false,
   }
 }
@@ -154,5 +170,473 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
     const row = result[0] as TvShowEpisodeDataRow
     expect(row.videoFile).toBeUndefined()
     expect(row.checked).toBe(false)
+  })
+})
+
+describe('fillTvShowEpisodeTableRowByRenameFilesPlan', () => {
+  it('sets newVideoFile and checked when rename from matches episode videoFile', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/S01E01.mkv', false),
+      episodeRow(1, 2, '/media/show/S01E02.mkv', false),
+    ]
+    const plan = renamePlan([
+      { from: '/media/show/S01E01.mkv', to: '/media/show/Season 01/Episode 01.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
+
+    expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/Season 01/Episode 01.mkv')
+    expect((result[0] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
+    expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+  })
+
+  it('applies multiple rename mappings to multiple episode rows', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/S01E01.mkv', false),
+      episodeRow(1, 2, '/media/show/S01E02.mkv', false),
+      episodeRow(2, 1, '/media/show/S02E01.mkv', false),
+    ]
+    const plan = renamePlan([
+      { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },
+      { from: '/media/show/S02E01.mkv', to: '/media/show/new/S02E01.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
+
+    expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/new/S01E01.mkv')
+    expect((result[0] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
+    expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[2] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/new/S02E01.mkv')
+    expect((result[2] as TvShowEpisodeDataRow).checked).toBe(true)
+  })
+
+  it('keeps rows unchanged when no rename from path matches', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/S01E01.mkv', false),
+      episodeRow(1, 2, '/media/show/S01E02.mkv', false),
+    ]
+    const plan = renamePlan([
+      { from: '/media/show/UNKNOWN.mkv', to: '/media/show/new/UNKNOWN.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
+
+    expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
+    expect((result[0] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
+    expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+  })
+
+  it('ignores non-episode rows', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      { id: 'season-1', type: 'divider', text: 'Season 1' },
+      episodeRow(1, 1, '/media/show/S01E01.mkv', false),
+      { id: 'fanart', type: 'folderFile', path: '/media/show/fanart.jpg' },
+    ]
+    const plan = renamePlan([
+      { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
+
+    expect(result[0]).toEqual({ id: 'season-1', type: 'divider', text: 'Season 1' })
+    expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/new/S01E01.mkv')
+    expect((result[1] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect(result[2]).toEqual({ id: 'fanart', type: 'folderFile', path: '/media/show/fanart.jpg' })
+  })
+
+  it('does not mutate input rows', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/S01E01.mkv', false),
+    ]
+    const plan = renamePlan([
+      { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },
+    ])
+
+    fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
+
+    expect((rows[0] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
+    expect((rows[0] as TvShowEpisodeDataRow).checked).toBe(false)
+  })
+})
+
+describe('buildTvShowEpisodeTableRows', () => {
+  it('returns initializing divider row when status is initializing', () => {
+    const mm = {
+      status: 'initializing',
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'initializing',
+        type: 'divider',
+        text: 'mediaFolder.initializing',
+      },
+    ])
+  })
+
+  it('returns folder_not_found divider row when status is folder_not_found', () => {
+    const mm = {
+      status: 'folder_not_found',
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'folder_not_found',
+        type: 'divider',
+        text: 'mediaFolder.folderNotFound',
+      },
+    ])
+  })
+
+  it('returns error_loading_metadata divider row when status is error_loading_metadata', () => {
+    const mm = {
+      status: 'error_loading_metadata',
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'error_loading_metadata',
+        type: 'divider',
+        text: 'mediaFolder.errorLoadingMetadata',
+      },
+    ])
+  })
+
+  it('bulid rows for fanart, poster, theme, nfo files', () => {
+    const mm = {
+      status: 'ok',
+      mediaFolderPath: '/media/show',
+      files: [
+        '/media/show/fanart.jpg',
+        '/media/show/poster.png',
+        '/media/show/theme.mp3',
+        '/media/show/tvshow.nfo',
+      ],
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const folderRows = rows.filter((row) => row.type === 'folderFile')
+
+    expect(folderRows).toEqual([
+      { id: 'fanart', type: 'folderFile', path: '/media/show/fanart.jpg' },
+      { id: 'poster', type: 'folderFile', path: '/media/show/poster.png' },
+      { id: 'theme', type: 'folderFile', path: '/media/show/theme.mp3' },
+      { id: 'nfo', type: 'folderFile', path: '/media/show/tvshow.nfo' },
+    ])
+  })
+})
+
+describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
+  it('includes fanart row when tmdbTvShow branch is used', () => {
+    const mm = {
+      status: 'ok',
+      mediaFolderPath: '/media/show',
+      files: ['/media/show/fanart.jpg'],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Test Show',
+        original_name: 'Test Show',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        number_of_seasons: 0,
+        number_of_episodes: 0,
+        seasons: [],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-01',
+        networks: [],
+        production_companies: [],
+      },
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+
+    expect(rows).toContainEqual({
+      id: 'fanart',
+      type: 'folderFile',
+      path: '/media/show/fanart.jpg',
+    })
+  })
+
+  it('includes fanart row when tvdbTvShow branch is used', () => {
+    const mm = {
+      status: 'ok',
+      mediaFolderPath: '/media/show',
+      files: ['/media/show/fanart.jpg'],
+      tvdbTvShow: {
+        id: '1',
+        name: 'Test Show',
+        database: 'TVDB',
+        seasons: [],
+      },
+    } as UIMediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+
+    expect(rows).toContainEqual({
+      id: 'fanart',
+      type: 'folderFile',
+      path: '/media/show/fanart.jpg',
+    })
+  })
+})
+
+describe('buildTvShowEpisodeTableRowsForPlan', () => {
+  it('returns initializing divider when media metadata is initializing', () => {
+    const mm = { status: 'initializing' } as UIMediaMetadata
+    const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'initializing',
+        type: 'divider',
+        text: 'mediaFolder.initializing',
+      },
+    ])
+  })
+
+  it('returns folder_not_found divider when media metadata is folder_not_found', () => {
+    const mm = { status: 'folder_not_found' } as UIMediaMetadata
+    const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'folder_not_found',
+        type: 'divider',
+        text: 'mediaFolder.folderNotFound',
+      },
+    ])
+  })
+
+  it('returns error_loading_metadata divider when media metadata is error_loading_metadata', () => {
+    const mm = { status: 'error_loading_metadata' } as UIMediaMetadata
+    const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+
+    expect(rows).toEqual([
+      {
+        id: 'error_loading_metadata',
+        type: 'divider',
+        text: 'mediaFolder.errorLoadingMetadata',
+      },
+    ])
+  })
+
+  it('returns base rows unchanged when recognize plan is loading', () => {
+    const mm = {
+      status: 'ok',
+      tmdbTvShow: {
+        id: 1,
+        name: 'Test Show',
+        original_name: 'Test Show',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        number_of_seasons: 1,
+        number_of_episodes: 1,
+        seasons: [
+          {
+            id: 100,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 1001,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 0,
+                vote_count: 0,
+                runtime: 24,
+              },
+            ],
+          },
+        ],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-01',
+        networks: [],
+        production_companies: [],
+      },
+    } as UIMediaMetadata
+    const plan = {
+      ...recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }]),
+      status: 'loading',
+    } as UIRecognizeMediaFilePlan
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
+
+    expect(ep.videoFile).toBeUndefined()
+    expect(ep.checked).toBe(false)
+  })
+
+  it('fills episode row from recognize plan when recognize plan is completed', () => {
+    const mm = {
+      status: 'ok',
+      tmdbTvShow: {
+        id: 1,
+        name: 'Test Show',
+        original_name: 'Test Show',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        number_of_seasons: 1,
+        number_of_episodes: 1,
+        seasons: [
+          {
+            id: 100,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 1001,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 0,
+                vote_count: 0,
+                runtime: 24,
+              },
+            ],
+          },
+        ],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-01',
+        networks: [],
+        production_companies: [],
+      },
+    } as UIMediaMetadata
+    const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
+
+    expect(ep.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(ep.checked).toBe(true)
+    expect(ep.newVideoFile).toBeUndefined()
+  })
+
+  it('fills newVideoFile from rename plan when rename plan is completed', () => {
+    const mm = {
+      status: 'ok',
+      mediaFolderPath: '/media/show',
+      files: ['/media/show/S01E01.mkv'],
+      mediaFiles: [
+        {
+          absolutePath: '/media/show/S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
+      tmdbTvShow: {
+        id: 1,
+        name: 'Test Show',
+        original_name: 'Test Show',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2024-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        number_of_seasons: 1,
+        number_of_episodes: 1,
+        seasons: [
+          {
+            id: 100,
+            name: 'Season 1',
+            overview: '',
+            poster_path: null,
+            season_number: 1,
+            air_date: '2024-01-01',
+            episode_count: 1,
+            episodes: [
+              {
+                id: 1001,
+                name: 'Episode 1',
+                overview: '',
+                still_path: null,
+                air_date: '2024-01-01',
+                episode_number: 1,
+                season_number: 1,
+                vote_average: 0,
+                vote_count: 0,
+                runtime: 24,
+              },
+            ],
+          },
+        ],
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2024-01-01',
+        networks: [],
+        production_companies: [],
+      },
+    } as UIMediaMetadata
+    const plan = renamePlan([
+      { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },
+    ])
+
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
+
+    expect(ep.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(ep.newVideoFile).toBe('/media/show/new/S01E01.mkv')
+    expect(ep.checked).toBe(true)
   })
 })

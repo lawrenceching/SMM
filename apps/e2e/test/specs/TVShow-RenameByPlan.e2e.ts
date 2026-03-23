@@ -50,7 +50,10 @@ describe('TVShow - Rename By Plan', () => {
     this.timeout(90 * 1000)
 
     // 1. Create test TV folder and two episodes (video, poster, .sc.ass, .tc.ass, nfo) using folder1
-    const testMediaFolder = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Import')
+    const { path: testMediaFolder } = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Import')
+    if (!testMediaFolder) {
+      throw new Error('testMediaFolder is undefined')
+    }
 
     // 2. Wait for initialization
     await TVShowPanel.waitForState(
@@ -147,7 +150,10 @@ describe('TVShow - Rename By Plan', () => {
     this.timeout(90 * 1000)
 
     // 1. Create test TV folder with three episodes using folder1
-    const testMediaFolder = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Selective')
+    const { path: testMediaFolder } = await createAndImportFolder(folder1, 'e2eTest:TVShow Rename By Plan - Selective')
+    if (!testMediaFolder) {
+      throw new Error('testMediaFolder is undefined')
+    }
 
     // 2. Wait for initialization
     await TVShowPanel.waitForState(

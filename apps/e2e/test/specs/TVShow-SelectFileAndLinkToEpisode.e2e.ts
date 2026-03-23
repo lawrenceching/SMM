@@ -39,7 +39,10 @@ describe('TVShow - Select File and Link To Episode', () => {
       type: 'tvshow' as const,
     }
 
-    const testMediaFolder = await createAndImportFolder(testFolder, 'e2eTest:TVShow SelectFileAndLinkToEpisode')
+    const { path: testMediaFolder } = await createAndImportFolder(testFolder, 'e2eTest:TVShow SelectFileAndLinkToEpisode')
+    if (!testMediaFolder) {
+      throw new Error('testMediaFolder is undefined')
+    }
     const dummyFilePath = path.join(testMediaFolder, DUMMY_FILE_NAME)
     console.log('Created media folder with video files via importFolderToApp:', testMediaFolder)
     console.log('Files created:', fs.readdirSync(testMediaFolder))

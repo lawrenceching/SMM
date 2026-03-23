@@ -168,7 +168,10 @@ describe('TVShow - Recognize By Plan', () => {
      * 'S01E01.mp4' will be recognized in Media Folder Initialization
      * 'SecondEpisode.mp4' is not able to be recognized because its name doesn't match the build-in recognition rules
      */
-    const testMediaFolder = await createAndImportFolder(testFolder, 'e2eTest:shows rule-based recognize prompt, confirms plan')
+    const { path: testMediaFolder } = await createAndImportFolder(testFolder, 'e2eTest:shows rule-based recognize prompt, confirms plan')
+    if (!testMediaFolder) {
+      throw new Error('testMediaFolder is undefined')
+    }
     await TVShowPanel.waitForDisplay()
 
     /**

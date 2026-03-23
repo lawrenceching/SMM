@@ -27,11 +27,17 @@ function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string
  * @returns 
  */
 function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
+
+  console.log(`buildFolderFileRows CALLED: ${JSON.stringify(files)}`)
+
   const rows: TvShowFolderFileRow[] = []
   for (const id of FOLDER_FILE_IDS) {
     const path = matchFolderFile(files, id)
     if (path) rows.push({ id, type: "folderFile", path })
   }
+
+  console.log(`buildFolderFileRows RETURNED: ${JSON.stringify(rows)}`)
+
   return rows
 }
 
@@ -68,13 +74,19 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
 
   if (mm.tmdbTvShow !== undefined) {
     debug(`use tmdbTvShow to build episode table rows`)
-    return _buildTvShowEpisodeTableRowsFromTmdb(mm)
+    const rowsFromTmdbTvShow = _buildTvShowEpisodeTableRowsFromTmdb(mm)
+    rows.push(...rowsFromTmdbTvShow)
+    console.log(`buildTvShowEpisodeTableRows with tmdbTvShow RETURNED: ${JSON.stringify(rows)}`)
+    return rows;
   }
 
 
   if(mm.tvdbTvShow !== undefined) {
     debug(`use tvdbTvShow to build episode table rows`)
-    return _buildTvShowEpisodeTableRowsFromTvdb(mm)
+    const rowsFromTvdbTvShow = _buildTvShowEpisodeTableRowsFromTvdb(mm)
+    rows.push(...rowsFromTvdbTvShow)
+    console.log(`buildTvShowEpisodeTableRows with tvdbTvShow RETURNED: ${JSON.stringify(rows)}`)
+    return rows;
   }
 
   debug(`empty tmdbTvShow and tvdbTvShow, return empty rows`)
@@ -164,10 +176,6 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
 
 export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: UIMediaMetadata) {
   const rows: TvShowEpisodeTableRow[] = []
-
-  if (_in_mm.files && _in_mm.mediaFolderPath) {
-    rows.push(...buildFolderFileRows(_in_mm.files))
-  }
 
   if(!_in_mm.tvdbTvShow || !_in_mm.tvdbTvShow.seasons) {
     return rows;
@@ -287,6 +295,8 @@ export function buildTvShowEpisodeTableRowsForPlan(
     } else if(plan.task === "rename-files") {
       return fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
     }
+
+    console.log(`buildTvShowEpisodeTableRowsForPlan RETURNED: ${JSON.stringify(rows)}`)
 
     return rows
 }
