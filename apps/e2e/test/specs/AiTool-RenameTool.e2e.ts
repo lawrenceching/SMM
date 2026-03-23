@@ -1,4 +1,4 @@
-import { expect, browser } from '@wdio/globals'
+import { browser } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
@@ -29,7 +29,7 @@ describe('AI Assistant - Recognize Tool', async () => {
             console.log('Removed tmp media folder:', tmpMediaRoot)
         }
     })
-    
+
     it('Recognize TV Show episode files', async function() {
         if(env.slowdown) {
             this.timeout(5 * 60 * 1000)
