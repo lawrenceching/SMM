@@ -772,7 +772,7 @@ function TvShowPanel() {
 
 
   return (
-    <div className='w-full h-full min-h-0 relative flex flex-col'>
+    <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       <TvShowPanelPrompts />
 
       <div className="shrink-0 px-4 pt-4">

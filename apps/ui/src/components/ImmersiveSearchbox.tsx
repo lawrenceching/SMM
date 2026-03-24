@@ -280,7 +280,7 @@ export function ImmersiveSearchbox({
                                                 {(result.dateText || voteAvg > 0) && (
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                         {result.dateText && (
-                                                            <span>{formatDate(result.dateText)}</span>
+                                                            <span data-testid="search-result-item-date">{formatDate(result.dateText)}</span>
                                                         )}
                                                         {result.dateText && voteAvg > 0 && (
                                                             <span>•</span>

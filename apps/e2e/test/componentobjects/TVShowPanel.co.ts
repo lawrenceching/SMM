@@ -63,14 +63,12 @@ class MediaDatabaseSearchboxCO {
         await selectTrigger.click()
 
         await browser.pause(300)
-        console.log(`>>> try to select database ${database}`)
         const selectItem = await $(`[data-testid="tmdb-search-database-option-${database}"]`)
         await selectItem.waitForExist({ timeout: 5000 })
         await selectItem.waitForDisplayed({ timeout: 5000 })
         await selectItem.waitForClickable({ timeout: 5000 })
         await selectItem.click()
 
-        console.log(`>>> clicked database ${database}`)
     }
 
     async setLanguage(language: string) {
@@ -82,7 +80,6 @@ class MediaDatabaseSearchboxCO {
         await selectTrigger.click()
 
         await browser.pause(300)
-        console.log(`>>> try to select language ${language}`)
         
         const selectItems = await $$(`[data-testid^="tmdb-search-language-option-"]`)
         let targetItem
@@ -102,13 +99,83 @@ class MediaDatabaseSearchboxCO {
         await targetItem.waitForClickable({ timeout: 5000 })
         await targetItem.click()
 
-        console.log(`>>> clicked language ${language}`)
     }
 
     async selectSearchResultByText(text: string) {
         const resultItem = await $(`//h3[contains(text(),"${text}")]`)
         await resultItem.waitForDisplayed({ timeout: 1000 })
         const clickableRow = await resultItem.$('..').$('..').$('..')
+        await clickableRow.click()
+    }
+
+    async selectSearchResult(options: {title?: string, date?: string}) {
+
+        const { title, date } = options
+        if(title === undefined && date === undefined) {
+            throw new Error('Either title or date must be provided')
+        }
+
+        const expectedDate = date
+
+        await browser.waitUntil(
+            async () => {
+                const resultItems = await $$('[data-testid="tmdb-search-result-item"]')
+                return (await resultItems.length) > 0
+            },
+            {
+                timeout: 10000,
+                interval: 200,
+                timeoutMsg: 'Search result items did not appear after 10000ms',
+            }
+        )
+
+        const rows = await $$('[data-testid="tmdb-search-result-item"]')
+        const matchedRows = []
+        for (const row of rows) {
+            let matches = true
+
+            if (title !== undefined) {
+                const titleEl = await row.$('h3')
+                const titleText = (await titleEl.getText()).trim()
+                matches = matches && titleText === title
+            }
+
+            if (date !== undefined) {
+                const dateEl = await row.$('[data-testid="search-result-item-date"]')
+                const hasDate = await dateEl.isExisting().catch(() => false)
+                if (!hasDate) {
+                    matches = false
+                } else {
+                    const dateText = (await dateEl.getText()).trim()
+                    matches = matches && dateText === expectedDate
+                }
+            }
+
+            if (matches) {
+                matchedRows.push(row)
+            }
+        }
+
+        if (matchedRows.length === 0) {
+            throw new Error(
+                `No search result matched title="${title ?? '*'}" date="${expectedDate ?? '*'}"`
+            )
+        }
+
+        if (matchedRows.length > 1) {
+            throw new Error(
+                `Multiple search results matched title="${title ?? '*'}" date="${expectedDate ?? '*'}". Please provide both title and date to disambiguate.`
+            )
+        }
+
+        const matchedRow = matchedRows[0]
+        if (!matchedRow) {
+            throw new Error('Internal error: matched row is undefined')
+        }
+
+        // Click the actual clickable row wrapper.
+        const clickableRow = await matchedRow.$('..')
+        await clickableRow.waitForClickable({ timeout: 5000 })
         await clickableRow.click()
     }
 

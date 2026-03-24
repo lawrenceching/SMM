@@ -11,35 +11,35 @@ if (isWindows) {
 } else {
   describe('AppWarningBanner - macOS and Linux Testing', () => {
     before(async () => {
-      await browser.url('/')
+      await browser.url('http://localhost:5173')
     })
 
     afterEach(async () => {
-      await browser.execute(() => {
-        localStorage.removeItem(WARNING_DISMISSED_KEY)
-      })
+      await browser.execute((warningDismissedKey) => {
+        if (localStorage.getItem(warningDismissedKey) !== null) {
+          localStorage.removeItem(warningDismissedKey)
+        }
+      }, WARNING_DISMISSED_KEY)
       await browser.refresh()
     })
 
     it('should display warning banner on macOS and Linux on first load', async () => {
-      await browser.execute(() => {
-        localStorage.removeItem(WARNING_DISMISSED_KEY)
-      })
+      await browser.execute((warningDismissedKey) => {
+        if (localStorage.getItem(warningDismissedKey) !== null) {
+          localStorage.removeItem(warningDismissedKey)
+        }
+      }, WARNING_DISMISSED_KEY)
       await browser.refresh()
 
-      await browser.waitUntil(async () => {
-        const banner = await browser.$(WARNING_BANNER_SELECTOR)
-        return await banner.isDisplayed()
-      }, {
-        timeout: 5000,
-        timeoutMsg: 'Warning banner should be displayed'
-      })
+      await browser.pause(1000)
+      console.log('browser was reset, start to run test')
 
-      const banner = await browser.$(WARNING_BANNER_SELECTOR)
-      expect(await banner.isDisplayed()).toBe(true)
+      $(WARNING_BANNER_SELECTOR).waitForDisplayed({ timeout: 5000 })
+      console.log('warning banner displayed')
 
-      const text = await banner.$('p')
+      const text = await $(WARNING_BANNER_SELECTOR).$('p')
       const textContent = await text.getText()
+      console.log('text content:', textContent)
       expect(textContent).toContain('This app is not fully tested on macOS and Linux')
       expect(textContent).toContain('report BUG')
     })

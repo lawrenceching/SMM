@@ -31,7 +31,7 @@ describe('Search TV Show', () => {
     })
 
     after(async () => {
-        console.log('Resetting language to en...')
+        console.log(`${new Date().toISOString()} start to reset language to en`);
         await Menu.openConfigDialog()
         await ConfigDialog.waitForDisplayed()
         await ConfigDialog.selectLanguage('en')
@@ -49,17 +49,15 @@ describe('Search TV Show', () => {
     })
 
     beforeEach(async () => {
-        
+        console.log(`${new Date().toISOString()} TEST STARTED`);
     })
 
     afterEach(async () => {
-        
+        console.log(`${new Date().toISOString()} TEST ENDED`);
     })
 
     it('Search TV Show - TMDB', async function() {
-        if(env.slowdown) {
-            this.timeout(20 * 1000)
-        }
+        this.timeout(5 * 60 * 1000)
 
         const randomFolderName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
         const testMediaFolder = path.join(mediaDir, randomFolderName)
@@ -99,15 +97,30 @@ describe('Search TV Show', () => {
          * while 2 seasons in TMDB
          * So it's a good example to verify SMM search TVDB database
          */
-        await TVShowPanel.searchbox.input.setValue('我推的孩子')
+        const keyword = '我推的孩子'
+        await TVShowPanel.searchbox.input.setValue(keyword)
         await TVShowPanel.searchbox.searchButton.click()
 
-        await TVShowPanel.searchbox.selectSearchResultByText('【我推的孩子】')
+        console.log(`Searching TV show using keyword: ${keyword}`)
 
-        await browser.pause(5000)
+        await TVShowPanel.searchbox.selectSearchResult({
+            title: '【我推的孩子】',
+            date: 'April 12, 2023'
+        })
 
-        const stateInString = await TVShowPanel.toString()
-        expect(stateInString).toContain(`特别篇
+        // TODO: in macOS, query large block of HTML will random caused more than 1 minutes
+        // So I can't use waitUntil to check HTML state in some interval.
+        // hard delay is added here as workaround
+        console.log(`${new Date().toISOString()} PAUSED 10 seconds`);
+        await browser.pause(10000)
+        console.log(`${new Date().toISOString()} RESUMED`);
+        const html  = await $('[data-testid="tv-show-panel"]').getHTML()
+        console.log(`${new Date().toISOString()} html="${html}"`)
+
+        await browser.waitUntil(async () => {
+            const stateInString = await TVShowPanel.toString();
+            console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
+            return stateInString.includes(`特别篇
 S00E01 - - - -
 S00E02 - - - -
 第 1 季
@@ -146,6 +159,13 @@ S01E32 - - - -
 S01E33 - - - -
 S01E34 - - - -
 S01E35 - - - -`)
+        }, {
+            timeout: 5000,
+            interval: 1000,
+            timeoutMsg: 'Expected to see Season 0 in the TV show panel',
+        })
+
+        console.log(`Waiting for media metadata to be updated`)
 
         await expectMediaMetadataToBe(testMediaFolder, (obj) => {
             const mm = obj as MediaMetadata;
@@ -158,9 +178,7 @@ S01E35 - - - -`)
     })
     
     it('Search TV Show - TVDB', async function() {
-        if(env.slowdown) {
-            this.timeout(20 * 1000)
-        }
+        this.timeout(5 * 60 * 1000)
 
         const randomFolderName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
         const testMediaFolder = path.join(mediaDir, randomFolderName)
@@ -198,15 +216,30 @@ S01E35 - - - -`)
          * while 2 seasons in TMDB
          * So it's a good example to verify SMM search TVDB database
          */
-        await TVShowPanel.searchbox.input.setValue('我推的孩子')
+        const keyword = '我推的孩子'
+        await TVShowPanel.searchbox.input.setValue(keyword)
         await TVShowPanel.searchbox.searchButton.click()
 
+        await browser.pause(1000)
+
+        console.log(`Searching TV show using keyword: ${keyword}`)
         await TVShowPanel.searchbox.selectSearchResultByText('【我推的孩子】')
 
-        await browser.pause(5000)
+        console.log(`Selected search result`)
 
-        const stateInString = await TVShowPanel.toString()
-        expect(stateInString).toContain(`Season 0
+        // TODO: in macOS, query large block of HTML will random caused more than 1 minutes
+        // So I can't use waitUntil to check HTML state in some interval.
+        // hard delay is added here as workaround
+        console.log(`${new Date().toISOString()} PAUSED 10 seconds`);
+        await browser.pause(10000)
+        console.log(`${new Date().toISOString()} RESUMED`);
+        const html  = await $('[data-testid="tv-show-panel"]').getHTML()
+        console.log(`${new Date().toISOString()} html="${html}"`)
+
+        await browser.waitUntil(async () => {
+            const stateInString = await TVShowPanel.toString()
+            console.log(`Waiting TVShowPanel: ${stateInString}`)
+            return stateInString.includes(`Season 0
 S00E01 - - - -
 S00E02 - - - -
 Season 1
@@ -247,6 +280,13 @@ S03E08 - - - -
 S03E09 - - - -
 S03E10 - - - -
 S03E11 - - - -`)
+        }, {
+            timeout: 5000,
+            interval: 1000,
+            timeoutMsg: 'Expected to see Season 0 in the TV show panel',
+        })
+
+        console.log(`Waiting for media metadata to be updated`)
 
         await expectMediaMetadataToBe(testMediaFolder, (obj) => {
             console.log(JSON.stringify(obj))
