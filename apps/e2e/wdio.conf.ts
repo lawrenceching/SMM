@@ -86,6 +86,8 @@ export const config: WebdriverIO.Config = {
     //
     capabilities: [{
         browserName: 'chrome',
+        // Pin Chrome so WDIO doesn't switch/download a different stable version.
+        browserVersion: '146.0.7680.153',
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
             args: process.env.BUILD_ENV === 'docker'
@@ -264,8 +266,9 @@ export const config: WebdriverIO.Config = {
         });
 
         // 监听浏览器页面错误
-        browser.on('pageerror', (error) => {
-            const errorMessage = error.message || String(error);
+        // NOTE: TypeScript event typings may not include `pageerror` for the current WebDriver BiDi adapter.
+        (browser as any).on('pageerror', (error: any) => {
+            const errorMessage = error?.message ?? String(error);
             console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
         });
     },
