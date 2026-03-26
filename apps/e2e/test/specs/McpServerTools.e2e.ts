@@ -1,13 +1,20 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import StatusBar from '../componentobjects/StatusBar'
-import { createBeforeHook } from '../lib/testbed'
+import { createBeforeHook, expectMediaMetadataToBe } from '../lib/testbed'
 import { getMetadataDir } from '@smm/test'
 import { delay } from 'es-toolkit'
+import Prompts from '../componentobjects/Prompts'
+import Menu from '../componentobjects/Menu'
+import Sidebar from '../componentobjects/Sidebar'
+import TVShowPanel from '../componentobjects/TVShowPanel.co'
+import { createFolderInTestFolder, folder1 } from '../actions/import-folders'
+import type { MediaMetadata } from '@smm/core/types'
+import { Path } from '@smm/core'
 
 const execFileAsync = promisify(execFile)
 
@@ -57,6 +64,15 @@ async function ensureMcpPopoverOpen(): Promise<void> {
   }
   const opened = await StatusBar.waitForMcpPopover(5000)
   expect(opened).toBe(true)
+}
+
+function extractJsonObjectFromStdout(stdout: string): Record<string, unknown> {
+  const first = stdout.indexOf('{')
+  const last = stdout.lastIndexOf('}')
+  if (first === -1 || last === -1 || last < first) {
+    throw new Error(`Unable to parse JSON from stdout: ${stdout}`)
+  }
+  return JSON.parse(stdout.slice(first, last + 1)) as Record<string, unknown>
 }
 
 describe('MCP Server Tools', () => {
@@ -286,5 +302,318 @@ describe('MCP Server Tools', () => {
       fs.rmSync(metadataFilePath, { force: true })
       fs.rmSync(mediaFolder, { recursive: true, force: true })
     }
+  })
+
+  it('MCP rename task tools should rename episode video file via begin/add/end flow', async function () {
+    const folder = createFolderInTestFolder({
+      ...folder1,
+      files: ['S01E01.mp4'],
+    })
+    const mediaFolder = folder.path as string
+    const fromFile = path.join(mediaFolder, 'S01E01.mp4')
+    const toFile = path.join(mediaFolder, '[1].mp4')
+
+    try {
+      await Menu.importMediaFolder({
+        type: 'tvshow',
+        folderPathInPlatformFormat: mediaFolder,
+        traceId: 'e2eTest:McpRenameTaskTools',
+      })
+      await Sidebar.waitForFolder(folder.mediaName as string, 60000)
+      await TVShowPanel.waitForTable()
+      await browser.waitUntil(
+        async () => (await TVShowPanel.toString()).includes('S01E01 S01E01.mp4'),
+        { timeout: 10000, interval: 500 },
+      )
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        const mf = mm.mediaFiles?.[0]
+        return (
+          (mm.mediaFiles?.length ?? 0) > 0 &&
+          mf?.seasonNumber === 1 &&
+          mf?.episodeNumber === 1 &&
+          mf?.absolutePath === Path.posix(fromFile)
+        )
+      })
+
+      const beginRes = await runToolWithRetries(
+        clientCwd,
+        mcpAddress,
+        'begin-rename-episode-video-file-task',
+        { mediaFolderPath: mediaFolder },
+      )
+      const beginStdout = beginRes.stdout ?? ''
+      const beginStderr = beginRes.stderr ?? ''
+      if (beginStderr) console.log(`mcp-test-client stderr: ${beginStderr}`)
+      const beginObj = extractJsonObjectFromStdout(beginStdout)
+      const taskId = beginObj.taskId
+      expect(typeof taskId).toBe('string')
+      expect((taskId as string).length).toBeGreaterThan(0)
+
+      const addRes = await runToolWithRetries(
+        clientCwd,
+        mcpAddress,
+        'add-rename-episode-video-file',
+        {
+          taskId: taskId as string,
+          from: fromFile,
+          to: toFile,
+        },
+      )
+      const addStdout = addRes.stdout ?? ''
+      const addStderr = addRes.stderr ?? ''
+      if (addStderr) console.log(`mcp-test-client stderr: ${addStderr}`)
+      expect(addStdout).toContain('"success": true')
+
+      const endRes = await runToolWithRetries(
+        clientCwd,
+        mcpAddress,
+        'end-rename-episode-video-file-task',
+        { taskId: taskId as string },
+      )
+      const endStdout = endRes.stdout ?? ''
+      const endStderr = endRes.stderr ?? ''
+      if (endStderr) console.log(`mcp-test-client stderr: ${endStderr}`)
+      expect(endStdout).toContain('"success": true')
+
+      // End tool emits a rename plan; apply it via the UI prompt.
+      await Prompts.aiBasedRenamePrompt.waitForDisplayed({ timeout: 10000 })
+      await Prompts.confirmButton.click()
+
+      // Wait for the async rename plan execution to finish.
+      await browser.waitUntil(
+        async () => fs.existsSync(toFile) && !fs.existsSync(fromFile),
+        { timeout: 60000, interval: 500 },
+      )
+      expect(fs.existsSync(fromFile)).toBe(false)
+      expect(fs.existsSync(toFile)).toBe(true)
+    } finally {
+      fs.rmSync(fromFile, { force: true })
+      fs.rmSync(toFile, { force: true })
+      fs.rmSync(mediaFolder, { recursive: true, force: true })
+    }
+  })
+
+  it('MCP recognize task tools should recognize episode video file via begin/add/end flow', async function () {
+    const isolatedRoot = path.join(os.tmpdir(), `smm-mcp-recognize-task-${Date.now()}`)
+    const mediaFolder = path.join(isolatedRoot, folder1.folderName)
+    fs.mkdirSync(mediaFolder, { recursive: true })
+    const recognizedFile = path.join(mediaFolder, '[1].mp4')
+    fs.writeFileSync(recognizedFile, 'video-content', 'utf8')
+
+    try {
+      await Menu.importMediaFolder({
+        type: 'tvshow',
+        folderPathInPlatformFormat: mediaFolder,
+        traceId: 'e2eTest:McpRecognizeTaskTools',
+      })
+      await Sidebar.waitForFolder(folder1.mediaName as string, 60000)
+      await TVShowPanel.waitForTable()
+      await browser.waitUntil(
+        async () => (await TVShowPanel.toString()).includes('S01E01 - - - -'),
+        { timeout: 20000, interval: 500 },
+      )
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        return mm.mediaFiles === undefined || mm.mediaFiles.length === 0
+      })
+
+      const beginRes = await runToolWithRetries(
+        clientCwd,
+        mcpAddress,
+        'begin-recognize-task',
+        { mediaFolderPath: mediaFolder },
+      )
+      const beginStdout = beginRes.stdout ?? ''
+      const beginStderr = beginRes.stderr ?? ''
+      if (beginStderr) console.log(`mcp-test-client stderr: ${beginStderr}`)
+      const beginObj = extractJsonObjectFromStdout(beginStdout)
+      const taskId = beginObj.taskId
+      expect(typeof taskId).toBe('string')
+      expect((taskId as string).length).toBeGreaterThan(0)
+
+      const addRes = await runToolWithRetries(
+        clientCwd,
+        mcpAddress,
+        'add-recognized-file',
+        {
+          taskId: taskId as string,
+          season: 1,
+          episode: 1,
+          path: recognizedFile,
+        },
+      )
+      const addStdout = addRes.stdout ?? ''
+      const addStderr = addRes.stderr ?? ''
+      if (addStderr) console.log(`mcp-test-client stderr: ${addStderr}`)
+      expect(addStdout).toContain('"success": true')
+
+      const endRes = await runToolWithRetries(clientCwd, mcpAddress, 'end-recognize-task', {
+        taskId: taskId as string,
+      })
+      const endStdout = endRes.stdout ?? ''
+      const endStderr = endRes.stderr ?? ''
+      if (endStderr) console.log(`mcp-test-client stderr: ${endStderr}`)
+      expect(endStdout).toContain('"success": true')
+
+      await Prompts.aiBasedRecognizePrompt.waitForDisplayed({ timeout: 10000 })
+      await Prompts.confirmButton.click()
+
+      await browser.waitUntil(
+        async () => (await TVShowPanel.toString()).includes('S01E01 [1].mp4 - - -'),
+        { timeout: 15000, interval: 500 },
+      )
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        const mf = mm.mediaFiles?.[0]
+        return (
+          (mm.mediaFiles?.length ?? 0) > 0 &&
+          mf?.seasonNumber === 1 &&
+          mf?.episodeNumber === 1 &&
+          mf?.absolutePath === Path.posix(recognizedFile)
+        )
+      })
+    } finally {
+      fs.rmSync(recognizedFile, { force: true })
+      fs.rmSync(mediaFolder, { recursive: true, force: true })
+      fs.rmSync(isolatedRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('GetEpisodeTool should return mapped video file path', async function () {
+    const isolatedRoot = path.join(os.tmpdir(), `smm-mcp-get-episode-${Date.now()}`)
+    const mediaFolder = path.join(isolatedRoot, folder1.folderName)
+    fs.mkdirSync(mediaFolder, { recursive: true })
+    const expectedVideoPath = path.join(mediaFolder, 'S01E01.mp4')
+    fs.writeFileSync(expectedVideoPath, 'video-content', 'utf8')
+
+    try {
+      await Menu.importMediaFolder({
+        type: 'tvshow',
+        folderPathInPlatformFormat: mediaFolder,
+        traceId: 'e2eTest:McpGetEpisodeTool',
+      })
+      await Sidebar.waitForFolder(folder1.mediaName as string, 60000)
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        const mf = mm.mediaFiles?.[0]
+        return (
+          (mm.mediaFiles?.length ?? 0) > 0 &&
+          mf?.seasonNumber === 1 &&
+          mf?.episodeNumber === 1 &&
+          mf?.absolutePath === Path.posix(expectedVideoPath)
+        )
+      })
+
+      const res = await runToolWithRetries(clientCwd, mcpAddress, 'get-episode', {
+        mediaFolderPath: mediaFolder,
+        season: 1,
+        episode: 1,
+      })
+      const stdout = res.stdout ?? ''
+      const stderr = res.stderr ?? ''
+      if (stderr) console.log(`mcp-test-client stderr: ${stderr}`)
+
+      expect(stdout).toContain('"videoFilePath"')
+      expect(stdout).toContain('S01E01.mp4')
+      expect(stdout).toContain('"season": 1')
+      expect(stdout).toContain('"episode": 1')
+      expect(stdout).toContain('"message": "succeeded"')
+
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        const mf = mm.mediaFiles?.[0]
+        return mf?.absolutePath === Path.posix(expectedVideoPath)
+      })
+    } finally {
+      fs.rmSync(expectedVideoPath, { force: true })
+      fs.rmSync(mediaFolder, { recursive: true, force: true })
+      fs.rmSync(isolatedRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('GetEpisodesTool should return episodes list with mapped video path', async function () {
+    const isolatedRoot = path.join(os.tmpdir(), `smm-mcp-get-episodes-${Date.now()}`)
+    const mediaFolder = path.join(isolatedRoot, folder1.folderName)
+    fs.mkdirSync(mediaFolder, { recursive: true })
+    const videoFilePath = path.join(mediaFolder, 'S01E01.mp4')
+    fs.writeFileSync(videoFilePath, 'video-content', 'utf8')
+
+    try {
+      await Menu.importMediaFolder({
+        type: 'tvshow',
+        folderPathInPlatformFormat: mediaFolder,
+        traceId: 'e2eTest:McpGetEpisodesTool',
+      })
+      await Sidebar.waitForFolder(folder1.mediaName as string, 60000)
+      await expectMediaMetadataToBe(mediaFolder, (obj) => {
+        const mm = obj as MediaMetadata
+        const mf = mm.mediaFiles?.[0]
+        return (
+          (mm.mediaFiles?.length ?? 0) > 0 &&
+          mf?.seasonNumber === 1 &&
+          mf?.episodeNumber === 1 &&
+          mf?.absolutePath === Path.posix(videoFilePath)
+        )
+      })
+
+      const res = await runToolWithRetries(clientCwd, mcpAddress, 'get-episodes', {
+        mediaFolderPath: mediaFolder,
+      })
+      const stdout = res.stdout ?? ''
+      const stderr = res.stderr ?? ''
+      if (stderr) console.log(`mcp-test-client stderr: ${stderr}`)
+
+      expect(stdout).toContain('"episodes"')
+      expect(stdout).toContain('"showName"')
+      expect(stdout).toContain('"totalCount"')
+      expect(stdout).toContain('"season": 1')
+      expect(stdout).toContain('"episode": 1')
+      expect(stdout).toContain('S01E01.mp4')
+    } finally {
+      fs.rmSync(videoFilePath, { force: true })
+      fs.rmSync(mediaFolder, { recursive: true, force: true })
+      fs.rmSync(isolatedRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('TmdbSearchTool should return search results', async function () {
+    const res = await runToolWithRetries(clientCwd, mcpAddress, 'tmdb-search', {
+      keyword: '天使降临到我身边',
+      type: 'tv',
+      language: 'zh-CN',
+    })
+    const stdout = res.stdout ?? ''
+    const stderr = res.stderr ?? ''
+    if (stderr) console.log(`mcp-test-client stderr: ${stderr}`)
+
+    expect(stdout).toContain('"results"')
+    expect(stdout).toContain('"total_results"')
+  })
+
+  it('TmdbGetMovieTool should return movie details by id', async function () {
+    const res = await runToolWithRetries(clientCwd, mcpAddress, 'tmdb-get-movie', {
+      id: 552524,
+      language: 'zh-CN',
+    })
+    const stdout = res.stdout ?? ''
+    const stderr = res.stderr ?? ''
+    if (stderr) console.log(`mcp-test-client stderr: ${stderr}`)
+
+    expect(stdout).toContain('"id": 552524')
+    expect(stdout).toContain('"title"')
+  })
+
+  it('TmdbGetTvShowTool should return tv show details by id', async function () {
+    const res = await runToolWithRetries(clientCwd, mcpAddress, 'tmdb-get-tv-show', {
+      id: 84666,
+      language: 'zh-CN',
+    })
+    const stdout = res.stdout ?? ''
+    const stderr = res.stderr ?? ''
+    if (stderr) console.log(`mcp-test-client stderr: ${stderr}`)
+
+    expect(stdout).toContain('"id": 84666')
+    expect(stdout).toContain('"seasons"')
   })
 })
