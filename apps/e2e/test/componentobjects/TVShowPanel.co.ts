@@ -198,6 +198,8 @@ class TVShowPanel {
 
     /**
      * Get the floating prompt container
+     * @deprecated Use Prompts.aiBasedRenamePrompt instead
+     *
      */
     get floatingPrompt() {
         return $('[data-testid="ai-rename-floating-prompt"]')

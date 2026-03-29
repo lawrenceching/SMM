@@ -256,3 +256,4 @@ export async function getUserConfigPath(): Promise<string> {
     const userConfigPath = path.join(data.userDataDir, 'smm.json')
     return userConfigPath
 }
+

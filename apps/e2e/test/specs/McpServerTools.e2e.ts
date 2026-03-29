@@ -1,9 +1,11 @@
 import { expect, browser } from '@wdio/globals'
+import { expect as expectChai } from 'chai'
+
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import StatusBar from '../componentobjects/StatusBar'
-import { createBeforeHook, expectMediaMetadataToBe } from '../lib/testbed'
+import { cleanup, createBeforeHook, expectMediaMetadataToBe } from '../lib/testbed'
 import mcpClient from '../lib/McpClient'
 import { getMetadataDir } from '@smm/test'
 import { delay } from 'es-toolkit'
@@ -25,27 +27,38 @@ async function ensureMcpPopoverOpen(): Promise<void> {
 }
 
 describe('MCP Server Tools', () => {
-  before(createBeforeHook())
-  const repoRoot = path.resolve(process.cwd(), '..', '..')
-  const clientCwd = path.resolve(repoRoot, 'test/mcp-test-client')
-  let mcpAddress = ''
-
-  beforeEach(async () => {
-    await ensureMcpPopoverOpen()
+  before(async () => {
+    await (createBeforeHook()());
+    await ensureMcpPopoverOpen();
 
     // Enable MCP server and capture the runtime address for each test.
-    await StatusBar.clickMcpSwitch()
+    await StatusBar.mcpSwitch.waitForDisplayed();
+    await StatusBar.mcpSwitch.click();
     await delay(1000)
 
     mcpAddress = await StatusBar.getMcpAddress()
     expect(mcpAddress).toContain('http://')
   })
 
-  afterEach(async () => {
-    // Ensure MCP server is turned off to avoid leaking state to next test.
-    await ensureMcpPopoverOpen()
-    await StatusBar.clickMcpSwitch()
+  after(async () => {
+    await ensureMcpPopoverOpen();
+    await StatusBar.mcpSwitch.waitForDisplayed();
+    await StatusBar.mcpSwitch.click();
+    await delay(1000)
   })
+
+  const repoRoot = path.resolve(process.cwd(), '..', '..')
+  const clientCwd = path.resolve(repoRoot, 'test/mcp-test-client')
+  let mcpAddress = ''
+
+  afterEach(async () => {
+    cleanup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+    });
+  }) 
 
   it('ReadmeTool should return README markdown', async function () {
     const r = await mcpClient.readme(clientCwd, mcpAddress)
@@ -60,42 +73,38 @@ describe('MCP Server Tools', () => {
   })
 
   it('GetMediaFoldersTool should return folders field', async function () {
-    const r = await mcpClient.getMediaFolders(clientCwd, mcpAddress)
-    expect(Array.isArray(r.folders)).toBe(true)
+    let r = await mcpClient.getMediaFolders(clientCwd, mcpAddress)
+    expect(r.folders.length).toEqual(0)
+
+    await createAndImportFolder(folder1, 'e2eTest:GetMediaFoldersTool')
+    r = await mcpClient.getMediaFolders(clientCwd, mcpAddress)
+    expect(r.folders.length).toEqual(1)
   })
 
   it('IsFolderExistTool should return exists=true for existing folder', async function () {
-    const testDir = path.join(os.tmpdir(), `smm-mcp-exist-${Date.now()}`)
-    fs.mkdirSync(testDir, { recursive: true })
-    try {
-      const r = await mcpClient.isFolderExist(clientCwd, mcpAddress, { path: testDir })
-      expect(r.exists).toBe(true)
-      expect(r.path).toBeTruthy()
-    } finally {
-      fs.rmSync(testDir, { recursive: true, force: true })
-    }
+    const inexistentPath = path.join(os.tmpdir(), `smm-mcp-inexistent-${Date.now()}`)
+    let r = await mcpClient.isFolderExist(clientCwd, mcpAddress, { path: inexistentPath })
+    expect(r.exists).toBe(false)
+    expect(r.path).toBe(inexistentPath)
+
+    await createAndImportFolder(folder1, 'e2eTest:IsFolderExistTool')
+
+    r = await mcpClient.isFolderExist(clientCwd, mcpAddress, { path: folder1.path! })
+    expect(r.exists).toBe(true)
+    expect(r.path).toBe(folder1.path!)
   })
 
   it('ListFilesTool should list files from target folder', async function () {
-    const testDir = path.join(os.tmpdir(), `smm-mcp-list-${Date.now()}`)
-    fs.mkdirSync(testDir, { recursive: true })
-    const fileA = path.join(testDir, 'a.txt')
-    const fileB = path.join(testDir, 'b.mp4')
-    fs.writeFileSync(fileA, 'a', 'utf8')
-    fs.writeFileSync(fileB, 'b', 'utf8')
-
-    try {
-      const r = await mcpClient.listFiles(clientCwd, mcpAddress, {
-        folderPath: testDir,
-        videoFileOnly: false,
-      })
-      expect(r.count).toBeGreaterThanOrEqual(2)
-      const joined = r.files.join('\n')
-      expect(joined).toContain('a.txt')
-      expect(joined).toContain('b.mp4')
-    } finally {
-      fs.rmSync(testDir, { recursive: true, force: true })
-    }
+    const folder = await createAndImportFolder(folder1, 'e2eTest:ListFilesTool')
+    const r = await mcpClient.listFiles(clientCwd, mcpAddress, { 
+      folderPath: folder.path!,
+      recursive: false,
+      filter: undefined,
+      videoFileOnly: false
+    })
+    
+    const expectedFilePaths = folder.files.map((file) => path.join(folder.path!, file))
+    expectChai(r.files).to.have.deep.members(expectedFilePaths)
   })
 
   it('HowToRenameEpisodeVideoFilesTool should return guideline markdown', async function () {
@@ -111,36 +120,24 @@ describe('MCP Server Tools', () => {
   })
 
   it('RenameFolderTool should rename folder in file system', async function () {
-    const isolatedRoot = path.join(os.tmpdir(), `smm-mcp-rename-${Date.now()}`)
-    const fromDir = path.join(isolatedRoot, 'from-folder')
-    const toDir = path.join(isolatedRoot, 'to-folder')
-    fs.mkdirSync(fromDir, { recursive: true })
-    fs.writeFileSync(path.join(fromDir, 'keep.txt'), 'keep', 'utf8')
+    const folder = await createAndImportFolder(folder1, 'e2eTest:RenameFolderTool')
+    const newFolderName = `new-${folder.folderName}`
+    const newFolderPath = path.join(path.dirname(folder.path!), newFolderName)
+    const r = await mcpClient.renameFolder(clientCwd, mcpAddress, {
+      from: folder.path!,
+      to: newFolderPath,
+    })
+    expect(r.renamed).toBe(true)
+    expect(r.from).toBe(folder.path!)
+    expect(r.to).toBe(newFolderPath)
+    
+    expectMediaMetadataToBe(newFolderPath, (obj) => {
+      const mm = obj as MediaMetadata
+      return mm.mediaFolderPath === newFolderPath
+    })
 
-    try {
-      const metadataDir = await getMetadataDir()
-      const toSafeFileName = (folderPath: string) => folderPath.replace(/[\/\\:?*|<>"]/g, '_')
-      fs.mkdirSync(metadataDir, { recursive: true })
-      const fromMetadataPath = path.join(metadataDir, `${toSafeFileName(Path.posix(fromDir))}.json`)
-      fs.writeFileSync(fromMetadataPath, '{}', 'utf8')
-
-      const r = await mcpClient.renameFolder(clientCwd, mcpAddress, {
-        from: fromDir,
-        to: toDir,
-      })
-      expect(r.renamed).toBe(true)
-      expect(fs.existsSync(fromDir)).toBe(false)
-      expect(fs.existsSync(toDir)).toBe(true)
-      expect(fs.existsSync(path.join(toDir, 'keep.txt'))).toBe(true)
-    } finally {
-      const metadataDir = await getMetadataDir()
-      const toSafeFileName = (folderPath: string) => folderPath.replace(/[\/\\:?*|<>"]/g, '_')
-      fs.rmSync(path.join(metadataDir, `${toSafeFileName(Path.posix(fromDir))}.json`), { force: true })
-      fs.rmSync(path.join(metadataDir, `${toSafeFileName(Path.posix(toDir))}.json`), { force: true })
-      fs.rmSync(fromDir, { recursive: true, force: true })
-      fs.rmSync(toDir, { recursive: true, force: true })
-      fs.rmSync(isolatedRoot, { recursive: true, force: true })
-    }
+    expect(fs.existsSync(newFolderPath)).toBe(true)
+    expect(fs.statSync(newFolderPath).isDirectory()).toBe(true)
   })
 
   it('GetMediaMetadataTool should return cached metadata for folder', async function () {
@@ -154,9 +151,11 @@ describe('MCP Server Tools', () => {
     expect(json).toContain(folder.mediaName!)
   })
 
-  it.only('MCP rename task tools should rename episode video file via begin/add/end flow', async function () {
+  it('MCP rename task tools should rename episode video file via begin/add/end flow', async function () {
     const folder = await createAndImportFolder(folder1, 'e2eTest:McpRenameTaskTools')
     await TVShowPanel.waitForTitleToBe(folder.mediaName!)
+
+    expect(await TVShowPanel.toString()).toContain('S01E01 S01E01.mkv V V V')
 
     const r = await mcpClient.beginRenameEpisodeVideoFileTask(clientCwd, mcpAddress, {
       mediaFolderPath: folder.path!,
@@ -174,7 +173,18 @@ describe('MCP Server Tools', () => {
       taskId: taskId,
     })
 
-    await TVShowPanel.floatingPrompt.waitForDisplayed()
+    await Prompts.aiBasedRenamePrompt.waitForDisplayed();
+    await Prompts.confirmButton.click();
+
+    await browser.pause(1000);
+
+    expect(await TVShowPanel.toString()).toContain('S01E01 [1].mp4 V V V')
+
+    await expectMediaMetadataToBe(folder.path!, (obj) => {
+      const mm = obj as MediaMetadata
+      return mm.mediaFiles?.length === 3 && mm.mediaFiles?.[0]?.absolutePath === Path.posix(path.join(folder.path!, '[1].mp4'))
+    })
+
   })
 
   it('MCP recognize task tools should recognize episode video file via begin/add/end flow', async function () {

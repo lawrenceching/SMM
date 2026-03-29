@@ -7,6 +7,7 @@ const Key = {
     Ctrl: '\uE009',
     Cmd: '\uE03D',
     Backspace: '\uE003',
+    Delete: '\uE017',
     End: '\uE017'
 }
 
@@ -437,6 +438,25 @@ class Sidebar {
             names.push(name)
         }
         return names
+    }
+
+    async deleteFolder(folderName: string): Promise<void> {
+        await this.clickFolder(folderName)
+        await browser.pause(500)
+        await browser.keys([Key.Delete])
+        await browser.pause(500)
+    }
+
+    /**
+     * Delete every folder listed in the sidebar: select each folder, then send Delete (matches the
+     * sidebar folder list Delete shortcut). Focus moves to the folder list so the key handler runs.
+     * Does nothing when there are no folders.
+     */
+    async deleteAllFolders(): Promise<void> {
+        const folders = await this.getFolders()
+        for (const folder of folders) {
+            await this.deleteFolder(folder)
+        }
     }
 }
 

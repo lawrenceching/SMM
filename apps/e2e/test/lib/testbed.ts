@@ -13,6 +13,7 @@ import { Path } from '@smm/core'
 import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaMetadata'
 import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
 import type { TestFolder } from 'test/actions/import-folders'
+import Sidebar from '../componentobjects/Sidebar'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
@@ -120,10 +121,31 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
  * Use in after/afterEach hooks to tear down test artifacts.
  * removeMetadataDir and removePlansDir require the app (hello API) to be running.
  */
-export async function cleanup(): Promise<void> {
-    removeTestMediaTmpDir()
-    await removePlansDir()
-    await removeMetadataDir()
+export async function cleanup(options?: {
+    removeMetadataDir: boolean,
+    removePlansDir: boolean,
+    removeMediaFolders: boolean,
+    removeDirInSidebar: boolean,
+}): Promise<void> {
+    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true } = options ?? {
+        removeMetadataDir: true,
+    };
+    if (isToRemoveMediaFolders) {
+        removeTestMediaTmpDir()
+    }
+    if (isToRemovePlansDir) {
+        await removePlansDir()
+    }
+    if (isToRemoveMetadataDir) {
+        await removeMetadataDir()
+    }
+    if (isToRemoveDirInSidebar) {
+        await removeDirInSidebar()
+    }
+}
+
+export async function removeDirInSidebar(): Promise<void> {
+    await Sidebar.deleteAllFolders()
 }
 
 /**
