@@ -49,7 +49,7 @@ bun test/mcp-test-client/index.ts --tool is-folder-exist --args '{"path": "C:/Us
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SMM_MCP_URL` | MCP server URL | `http://localhost:3000/mcp` |
+| `SMM_MCP_URL` | MCP server URL | `http://localhost:30001/mcp` |
 
 Example with custom URL:
 

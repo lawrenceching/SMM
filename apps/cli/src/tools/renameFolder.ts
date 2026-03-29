@@ -196,6 +196,26 @@ export async function handleRenameFolder(
       }, "[MCP] rename-folder tool: destination folder does not exist, proceeding")
     }
 
+    const fromPosix = Path.posix(from);
+    const toPosix = Path.posix(to);
+    const metadataCacheFromPath = metadataCacheFilePath(fromPosix);
+    const metadataCacheToPath = metadataCacheFilePath(toPosix);
+    const fromCacheExists = await Bun.file(metadataCacheFromPath).exists();
+    const toCacheExists = await Bun.file(metadataCacheToPath).exists();
+    logger.info(
+      {
+        traceId,
+        fromFolder: fromPlatformPath,
+        toFolder: toPlatformPath,
+        metadataCacheFromPath,
+        metadataCacheToPath,
+        fromCacheExists,
+        toCacheExists,
+        file: "tools/renameFolder.ts",
+      },
+      "[MCP] rename-folder tool: metadata cache files on disk (keys follow metadataCacheFilePath(normalized media folder path))",
+    );
+
     // TODO: There are implementations for rename function
     // 1. ui\src\api\renameFile.ts
     // 2. renameFolderAgentTool in this file
@@ -207,11 +227,11 @@ export async function handleRenameFolder(
     // Step 1: Rename folder in media metadata
     logger.info({
       traceId,
-      from: Path.posix(from),
-      to: Path.posix(to),
+      fromFolder: fromPlatformPath,
+      toFolder: toPlatformPath,
       file: "tools/renameFolder.ts"
     }, "[MCP] rename-folder tool: starting renameFolderInMediaMetadataAndSave")
-    await renameFolderInMediaMetadataAndSave({mediaFolderPath: Path.posix(from), from: Path.posix(from), to: Path.posix(to), traceId})
+    await renameFolderInMediaMetadataAndSave({mediaFolderPath: fromPosix, from: fromPosix, to: toPosix, traceId})
     logger.info({
       traceId,
       file: "tools/renameFolder.ts"
@@ -220,11 +240,14 @@ export async function handleRenameFolder(
     // Step 2: Rename metadata cache file
     logger.info({
       traceId,
-      from: Path.posix(from),
-      to: Path.posix(to),
+      fromFolder: fromPlatformPath,
+      toFolder: toPlatformPath,
+      metadataCacheFromPath,
+      metadataCacheToPath,
+      fromCacheExists,
       file: "tools/renameFolder.ts"
     }, "[MCP] rename-folder tool: starting renameMediaMetadataCacheFile")
-    await renameMediaMetadataCacheFile(Path.posix(from), Path.posix(to), { traceId });
+    await renameMediaMetadataCacheFile(fromPosix, toPosix, { traceId });
     logger.info({
       traceId,
       file: "tools/renameFolder.ts"

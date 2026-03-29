@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
 import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata, removePlanFolder } from '@smm/test'
 import { Path } from '@smm/core'
-import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaMetadata'
+import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
+import type { TestFolder } from 'test/actions/import-folders'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 

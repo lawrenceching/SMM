@@ -60,11 +60,35 @@ export async function renameMediaMetadataCacheFile(
         
     const fromFilePath = metadataCacheFilePath(fromInPosix)
     const toFilePath = metadataCacheFilePath(toInPosix)
+    const fromExists = await Bun.file(fromFilePath).exists()
+    const toExists = await Bun.file(toFilePath).exists()
+    const fromFolderPlatform = Path.toPlatformPath(fromInPosix)
+    const toFolderPlatform = Path.toPlatformPath(toInPosix)
+    logger.info({
+        fromFolder: fromFolderPlatform,
+        toFolder: toFolderPlatform,
+        fromFilePath,
+        toFilePath,
+        fromExists,
+        toExists,
+        traceId,
+        file: "utils/mediaMetadata.ts"
+    }, 'renameMediaMetadataCacheFile: before fs.rename')
+    if (!fromExists) {
+        logger.warn({
+            fromFolder: fromFolderPlatform,
+            toFolder: toFolderPlatform,
+            fromFilePath,
+            toFilePath,
+            traceId,
+            file: "utils/mediaMetadata.ts"
+        }, 'renameMediaMetadataCacheFile: source cache file missing (ENOENT on rename); ensure metadata file name matches metadataCacheFilePath for this media folder')
+    }
     await rename(fromFilePath, toFilePath)
 
     logger.info({
-        fromInPosix,
-        toInPosix,
+        fromFolder: fromFolderPlatform,
+        toFolder: toFolderPlatform,
         traceId,
         file: "utils/mediaMetadata.ts"
     }, 'renamed media metadata cache file');
