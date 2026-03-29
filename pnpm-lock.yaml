@@ -117,6 +117,9 @@ importers:
       '@smm/test':
         specifier: workspace:*
         version: link:../../packages/test
+      chai:
+        specifier: ^6.2.2
+        version: 6.2.2
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
@@ -130,6 +133,9 @@ importers:
       '@types/bun':
         specifier: latest
         version: 1.3.9
+      '@types/chai':
+        specifier: ^5.2.3
+        version: 5.2.3
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10

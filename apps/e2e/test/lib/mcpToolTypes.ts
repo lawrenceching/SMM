@@ -3,6 +3,8 @@
  * Keep in sync with apps/cli/src/tools and apps/cli/src/mcp/tools (see mcp.ts registrations).
  */
 
+import type { TmdbMovieResponseBody, TmdbTvShowResponseBody } from '@smm/core/types'
+
 /** Kebab-case names passed to `mcp-test-client --tool`. */
 export const McpToolName = {
   getAppContext: 'get-app-context',
@@ -241,6 +243,13 @@ export interface TmdbGetTvShowRequest {
   baseURL?: string
 }
 
-/** TMDB payload varies; use `unknown` for strict callers or narrow at call site. */
-export type TmdbMovieDetailsResponse = Record<string, unknown>
-export type TmdbTvShowDetailsResponse = Record<string, unknown>
+/**
+ * MCP `tmdb-get-movie` prints the JSON of `createSuccessResponse(getMovie(...))`, i.e. the
+ * {@link TmdbMovieResponseBody} shape (`{ data?: TMDBMovie, error?: string }`).
+ */
+export type TmdbMovieDetailsResponse = TmdbMovieResponseBody
+
+/**
+ * Same for `tmdb-get-tv-show` and {@link TmdbTvShowResponseBody}.
+ */
+export type TmdbTvShowDetailsResponse = TmdbTvShowResponseBody

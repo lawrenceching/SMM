@@ -149,6 +149,7 @@ class McpClient {
     args?: Record<string, unknown>,
   ): Promise<T> {
     const { stdout } = await this.runTool(clientCwd, mcpAddress, toolName, args)
+    console.log(`MCP tool ${toolName} response: ${stdout}`)
     return parseJsonObjectFromStdout<T>(stdout)
   }
 

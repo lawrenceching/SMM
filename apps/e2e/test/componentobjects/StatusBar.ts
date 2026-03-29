@@ -126,6 +126,15 @@ class StatusBar {
     }
 
     /**
+     * Whether the MCP switch (`data-testid="mcp-switch"`) is on.
+     * Open the MCP popover first if the switch is not mounted until then.
+     */
+    async isMcpToggleOn(): Promise<boolean> {
+        const ariaChecked = await this.mcpSwitch.getAttribute('aria-checked')
+        return ariaChecked === 'true'
+    }
+
+    /**
      * Check if connection status indicator is displayed
      */
     async isConnectionStatusDisplayed(): Promise<boolean> {
