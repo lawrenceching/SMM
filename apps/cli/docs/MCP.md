@@ -76,10 +76,10 @@ This runs only the MCP server over stdio (stdin/stdout). Do not write to stdout 
 ### Media Metadata
 
 #### Tool: get-media-metadata
-- **Description**: Get media metadata for a folder. Returns cached metadata if it exists.
+- **Description**: Get media metadata for a folder. Returns cached metadata if it exists, including a unified TV show block `tvShow` (`source`, `id`, `name`, `seasons`) plus movie blocks (`tmdbMovie`, `tvdbMovie`) when present in the cache.
 - **Parameters**:
   - `mediaFolderPath` (string, required): Path to the media folder
-- **Success**: Returns JSON containing the complete media metadata object
+- **Success**: Returns JSON `{ data: { ... }, error?: string }` with folder type, `tvShow` (for TV folders), and movie blocks (or placeholder strings when a source is not yet matched)
 - **Error**: Returns error if folder doesn't exist, is not accessible, or path is invalid
 
 #### Tool: write-media-metadata
@@ -100,11 +100,11 @@ This runs only the MCP server over stdio (stdin/stdout). Do not write to stdout 
 ### Episodes and Context
 
 #### Tool: get-episodes
-- **Description**: Get all episodes for a TV show media folder. Returns a flat array of all episodes across all seasons.
+- **Description**: Get all episodes for a TV show media folder. Returns a flat array of all episodes across all seasons, merging cached **TMDB** or **TVDB** episode lists with local `mediaFiles` paths.
 - **Parameters**:
   - `mediaFolderPath` (string, required): Path to the TV show media folder
-- **Success**: Returns JSON with `status: "success"`, `episodes` array, and `count` of episodes
-- **Error**: Returns JSON with `status: "failure"` and error message if folder not found or metadata missing
+- **Success**: Returns JSON with `episodes`, `totalCount`, `showName`, and `numberOfSeasons`
+- **Error**: Returns an error result if folder metadata is missing or neither TMDB nor TVDB TV show data is cached
 
 #### Tool: get-application-context
 - **Description**: Get application context including configured media folders and settings.

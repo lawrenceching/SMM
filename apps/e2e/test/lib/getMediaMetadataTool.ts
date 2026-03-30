@@ -10,7 +10,7 @@ export type MediaFolderType = 'tvshow-folder' | 'movie-folder' | 'music-folder'
 export interface GetMediaMetadataData {
   mediaFolderPath: string
   type: MediaFolderType
-  tmdbTvShow?: unknown
+  tvShow?: unknown
 }
 
 export interface DebugApiResponse<T = any> {

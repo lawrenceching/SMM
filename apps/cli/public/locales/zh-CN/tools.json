@@ -12,7 +12,7 @@
     "description": "递归列出文件夹中的所有文件。接受 POSIX 或 Windows 格式的路径。以 POSIX 格式返回文件路径。支持可选的过滤模式来过滤结果。"
   },
   "get-media-metadata": {
-    "description": "获取文件夹的缓存媒体元数据。返回元数据，包括类型、TMDB ID、名称和季数。"
+    "description": "获取文件夹的缓存媒体元数据。返回类型、统一的电视剧/动画字段 `tvShow`（包含 `source`、`id`、`name` 与季集列表），以及电影的 TMDB/TVDB 信息（若存在）。"
   },
   "rename-folder": {
     "description": "重命名媒体文件夹。这是一个破坏性操作 - 文件夹将在磁盘上重命名，元数据缓存将被更新。"

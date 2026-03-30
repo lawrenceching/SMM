@@ -1,5 +1,12 @@
 import { stat } from "node:fs/promises";
 import { Path } from "@core/path";
+import type {
+  MediaMetadata,
+  MovieMediaMetadata,
+  TMDBMovie,
+  TMDBTVShowDetails,
+  TvShowMediaMetadata,
+} from "@core/types";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
@@ -9,7 +16,6 @@ import { getLocalizedToolDescription } from '@/i18n/helpers';
 export interface GetMediaMetadataParams {
   mediaFolderPath: string;
 }
-
 
 export interface GetMediaMetadataResponseTvShowEpisodeData {
   seasonNumber: number;
@@ -23,18 +29,199 @@ export interface GetMediaMetadataResponseTvShowSeasonData {
   episodes: GetMediaMetadataResponseTvShowEpisodeData[];
 }
 
+/** TMDB-shaped TV show block in MCP responses */
 export interface GetMediaMetadataResponseTvShowData {
-  tmdbId: number;
+  source: "TMDB" | "TVDB";
+  id: number;
   name: string;
   seasons: GetMediaMetadataResponseTvShowSeasonData[];
+}
+
+/** TMDB movie subset for MCP */
+export interface GetMediaMetadataResponseTmdbMovieData {
+  tmdbId: number;
+  title: string;
+  originalTitle: string;
+  overview: string;
+  releaseDate: string;
+  posterPath: string | null;
+}
+
+/** TVDB movie subset for MCP */
+export interface GetMediaMetadataResponseTvdbMovieData {
+  tvdbId: number;
+  name: string;
+  database: "TMDB" | "TVDB";
 }
 
 export interface GetMediaMetadataResponseData {
   mediaFolderPath: string;
   type: "tvshow-folder" | "movie-folder" | "music-folder";
-  tmdbTvShow?: GetMediaMetadataResponseTvShowData | string;
+  tvShow?: GetMediaMetadataResponseTvShowData | string;
+  tmdbMovie?: GetMediaMetadataResponseTmdbMovieData | string;
+  tvdbMovie?: GetMediaMetadataResponseTvdbMovieData | string;
 }
 
+const MSG_UNRECOGNIZED_MEDIA =
+  "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配媒体";
+
+function parseTvdbIdString(id: string): number {
+  const n = Number.parseInt(id, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function mapTmdbTvShowDetailsToResponse(
+  tmdbTvShow: TMDBTVShowDetails
+): GetMediaMetadataResponseTvShowData {
+  return {
+    source: "TMDB",
+    id: tmdbTvShow.id,
+    name: tmdbTvShow.name,
+    seasons:
+      tmdbTvShow.seasons?.map((season) => ({
+        seasonNumber: season.season_number,
+        seasonName: season.name,
+        episodes:
+          season.episodes?.map((episode) => ({
+            seasonNumber: episode.season_number,
+            episodeNumber: episode.episode_number,
+            episodeName: episode.name,
+          })) ?? [],
+      })) ?? [],
+  };
+}
+
+function mapTvdbTvShowToResponse(
+  tv: TvShowMediaMetadata
+): GetMediaMetadataResponseTvShowData {
+  return {
+    source: "TVDB",
+    id: parseTvdbIdString(tv.id),
+    name: tv.name,
+    seasons:
+      tv.seasons?.map((season) => ({
+        seasonNumber: season.season,
+        seasonName: season.name,
+        episodes:
+          season.episodes?.map((ep) => ({
+            seasonNumber: ep.season,
+            episodeNumber: ep.episode,
+            episodeName: ep.name,
+          })) ?? [],
+      })) ?? [],
+  };
+}
+
+function mapTmdbMovieToResponse(m: TMDBMovie): GetMediaMetadataResponseTmdbMovieData {
+  return {
+    tmdbId: m.id,
+    title: m.title,
+    originalTitle: m.original_title,
+    overview: m.overview,
+    releaseDate: m.release_date,
+    posterPath: m.poster_path,
+  };
+}
+
+function mapTvdbMovieToResponse(m: MovieMediaMetadata): GetMediaMetadataResponseTvdbMovieData {
+  return {
+    tvdbId: parseTvdbIdString(m.id),
+    name: m.name,
+    database: m.database,
+  };
+}
+
+/**
+ * Build MCP `data` payload from cached {@link MediaMetadata}.
+ */
+export function fillMediaMetadataResponseData(
+  metadata: MediaMetadata,
+  posixPath: string
+): GetMediaMetadataResponseData {
+  const data: GetMediaMetadataResponseData = {
+    mediaFolderPath: Path.toPlatformPath(metadata.mediaFolderPath || posixPath),
+    type: metadata.type || "tvshow-folder",
+  };
+
+  if (data.type === "tvshow-folder") {
+    if (metadata.tvdbTvShow) {
+      data.tvShow = mapTvdbTvShowToResponse(metadata.tvdbTvShow);
+    } else if (metadata.tmdbTvShow) {
+      data.tvShow = mapTmdbTvShowDetailsToResponse(metadata.tmdbTvShow);
+    } else {
+      data.tvShow = MSG_UNRECOGNIZED_MEDIA;
+    }
+  } else if (data.type === "movie-folder") {
+    if (metadata.tmdbMovie) {
+      data.tmdbMovie = mapTmdbMovieToResponse(metadata.tmdbMovie);
+    } else {
+      data.tmdbMovie = MSG_UNRECOGNIZED_MEDIA;
+    }
+    if (metadata.tvdbMovie) {
+      data.tvdbMovie = mapTvdbMovieToResponse(metadata.tvdbMovie);
+    } else {
+      data.tvdbMovie = MSG_UNRECOGNIZED_MEDIA;
+    }
+  }
+
+  return data;
+}
+
+const seasonEpisodeSchema = z.object({
+  seasonNumber: z.number(),
+  seasonName: z.string(),
+  episodes: z.array(
+    z.object({
+      seasonNumber: z.number(),
+      episodeNumber: z.number(),
+      episodeName: z.string(),
+    })
+  ),
+});
+
+const getMediaMetadataDataOutputSchema = z.object({
+  mediaFolderPath: z.string().describe("The path of the media folder"),
+  type: z
+    .enum(["tvshow-folder", "movie-folder", "music-folder"])
+    .describe("The type of the media folder"),
+  tvShow: z
+    .union([
+      z.object({
+        source: z.enum(["TMDB", "TVDB"]),
+        id: z.number(),
+        name: z.string(),
+        seasons: z.array(seasonEpisodeSchema),
+      }),
+      z.string(),
+    ])
+    .optional()
+    .describe("Normalized TV show data or message if not recognized"),
+  tmdbMovie: z
+    .union([
+      z.object({
+        tmdbId: z.number(),
+        title: z.string(),
+        originalTitle: z.string(),
+        overview: z.string(),
+        releaseDate: z.string(),
+        posterPath: z.string().nullable(),
+      }),
+      z.string(),
+    ])
+    .optional()
+    .describe("TMDB movie data or message if not recognized"),
+  tvdbMovie: z
+    .union([
+      z.object({
+        tvdbId: z.number().describe("TheTVDB movie ID"),
+        name: z.string(),
+        database: z.enum(["TMDB", "TVDB"]),
+      }),
+      z.string(),
+    ])
+    .optional()
+    .describe("TVDB movie data or message if not recognized"),
+});
 
 /**
  * Get media metadata for a folder.
@@ -57,13 +244,11 @@ export async function handleGetMediaMetadata(
   try {
     const normalizedPath = Path.toPlatformPath(mediaFolderPath);
 
-    // Build base response data
     const baseData: GetMediaMetadataResponseData = {
       mediaFolderPath: normalizedPath,
       type: "tvshow-folder",
     };
 
-    // Check if folder exists
     try {
       const stats = await stat(normalizedPath);
       if (!stats.isDirectory()) {
@@ -76,7 +261,6 @@ export async function handleGetMediaMetadata(
       throw error;
     }
 
-    // Find metadata using POSIX path
     const posixPath = Path.posix(mediaFolderPath);
     const metadata = await findMediaMetadata(posixPath);
 
@@ -84,31 +268,7 @@ export async function handleGetMediaMetadata(
       return createSuccessResponse({ data: { ...baseData }, error: "No metadata cached for this folder" });
     }
 
-    // Build GetMediaMetadataResponseData from metadata; return mediaFolderPath in OS-native format for tool consumers
-    const data: GetMediaMetadataResponseData = {
-      mediaFolderPath: Path.toPlatformPath(metadata.mediaFolderPath || posixPath),
-      type: metadata.type || "tvshow-folder",
-    };
-
-    // Transform TMDB TV show data if available
-    if (metadata.tmdbTvShow) {
-      data.tmdbTvShow = {
-        tmdbId: metadata.tmdbTvShow.id,
-        name: metadata.tmdbTvShow.name,
-        seasons: metadata.tmdbTvShow.seasons?.map((season) => ({
-          seasonNumber: season.season_number,
-          seasonName: season.name,
-          episodes: season.episodes?.map((episode) => ({
-            seasonNumber: episode.season_number,
-            episodeNumber: episode.episode_number,
-            episodeName: episode.name,
-          })) || [],
-        })) || [],
-      };
-    } else {
-      data.tmdbTvShow = "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配电视剧或动画"
-    }
-
+    const data = fillMediaMetadataResponseData(metadata, posixPath);
     return createSuccessResponse({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -117,8 +277,7 @@ export async function handleGetMediaMetadata(
 }
 
 export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolDefinition> {
-  // Use i18n to get localized tool description based on global user's language preference
-  const description = await getLocalizedToolDescription('get-media-metadata');
+  const description = await getLocalizedToolDescription("get-media-metadata");
 
   return {
     toolName: "get-media-metadata",
@@ -127,70 +286,36 @@ export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolD
       mediaFolderPath: z.string().describe("The absolute path of the media folder"),
     }),
     outputSchema: z.object({
-      data: z.object({
-        mediaFolderPath: z.string().describe("The path of the media folder"),
-        type: z.enum(["tvshow-folder", "movie-folder", "music-folder"]).describe("The type of the media folder"),
-        tmdbTvShow: z.union([
-          z.object({
-            tmdbId: z.number().describe("TMDB ID"),
-            name: z.string().describe("Show name"),
-            seasons: z.array(
-              z.object({
-                seasonNumber: z.number().describe("Season number"),
-                seasonName: z.string().describe("Season name"),
-                episodes: z.array(
-                  z.object({
-                    seasonNumber: z.number().describe("Season number"),
-                    episodeNumber: z.number().describe("Episode number"),
-                    episodeName: z.string().describe("Episode name"),
-                  })
-                ).describe("Episodes in the season"),
-              })
-            ).describe("Seasons"),
-          }),
-          z.string(),
-        ]).optional().describe("TMDB TV show data or message if not recognized"),
-      }).describe("Media metadata response data"),
+      data: getMediaMetadataDataOutputSchema.describe("Media metadata response data"),
       error: z.string().optional().describe("Error message if not found"),
     }),
     execute: async (args: { mediaFolderPath: string }) => {
       return handleGetMediaMetadata(args, abortSignal);
     },
   };
-}
+};
 
 /**
- * Returns a tool definition with localized description for AI agent usage.
- * The description is localized based on the global user's language preference.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @param abortSignal - Optional abort signal for request cancellation
- * @returns Promise resolving to localized tool definition
- */
-/**
  * Returns a tool definition for AI agent usage.
- * Uses fixed English description for synchronous return.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @param abortSignal - Optional abort signal for request cancellation
- * @returns Tool definition (synchronous)
  */
 export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortSignal) {
   return {
-    description: "Get cached media metadata for a folder, including TMDB TV show or movie information.",
+    description:
+      "Get cached media metadata for a folder, including normalized TV show data and TMDB/TVDB movie information when available.",
     inputSchema: z.object({
       mediaFolderPath: z.string().describe("The absolute path of the media folder"),
     }),
     outputSchema: z.object({
       mediaFolderPath: z.string(),
       type: z.string(),
-      tmdbTvShow: z.any().optional(),
+      tvShow: z.any().optional(),
       tmdbMovie: z.any().optional(),
+      tvdbMovie: z.any().optional(),
       error: z.string().optional(),
     }),
     execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
       if (abortSignal?.aborted) {
-        throw new Error('Request was aborted');
+        throw new Error("Request was aborted");
       }
 
       if (!mediaFolderPath || typeof mediaFolderPath !== "string" || mediaFolderPath.trim() === "") {
@@ -224,29 +349,7 @@ export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortS
           return createSuccessResponse({ data: { ...baseData }, error: "No metadata cached for this folder" });
         }
 
-        const data: GetMediaMetadataResponseData = {
-          mediaFolderPath: Path.toPlatformPath(metadata.mediaFolderPath || posixPath),
-          type: metadata.type || "tvshow-folder",
-        };
-
-        if (metadata.tmdbTvShow) {
-          data.tmdbTvShow = {
-            tmdbId: metadata.tmdbTvShow.id,
-            name: metadata.tmdbTvShow.name,
-            seasons: metadata.tmdbTvShow.seasons?.map((season) => ({
-              seasonNumber: season.season_number,
-              seasonName: season.name,
-              episodes: season.episodes?.map((episode) => ({
-                seasonNumber: episode.season_number,
-                episodeNumber: episode.episode_number,
-                episodeName: episode.name,
-              })) || [],
-            })) || [],
-          };
-        } else {
-          data.tmdbTvShow = "SMM未识别本文件夹, 请提示用户从SMM界面中搜索并匹配电视剧或动画"
-        }
-
+        const data = fillMediaMetadataResponseData(metadata, posixPath);
         return createSuccessResponse({ data });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -258,9 +361,6 @@ export function getMediaMetadataAgentTool(clientId: string, abortSignal?: AbortS
 
 /**
  * Returns a tool definition with localized description for MCP server usage.
- * MCP tools use the global user's language preference.
- *
- * @returns Promise resolving to tool definition
  */
 export async function getMediaMetadataMcpTool() {
   return getTool();

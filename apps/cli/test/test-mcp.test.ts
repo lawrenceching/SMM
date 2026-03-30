@@ -410,14 +410,14 @@ describe('MCP Server - GetMediaMetadataTool', () => {
 
     // Parse the inner JSON response
     const innerResponse = JSON.parse(textContent!.text!);
-    // The response contains { data: { mediaFolderPath, type, tmdbTvShow }, error?: string }
+    // The response contains { data: { mediaFolderPath, type, tvShow }, error?: string }
     expect(innerResponse.data).toBeDefined();
     expect(innerResponse.data.mediaFolderPath).toBeDefined();
     expect(innerResponse.data.type).toBeDefined();
     // The test folder should have metadata cached (prepared in beforeAll)
-    expect(innerResponse.data.tmdbTvShow).toBeDefined();
-    // tmdbTvShow should be an object (not a string meaning unrecognized)
-    expect(typeof innerResponse.data.tmdbTvShow === 'object').toBe(true);
+    expect(innerResponse.data.tvShow).toBeDefined();
+    // tvShow should be an object (not a string meaning unrecognized)
+    expect(typeof innerResponse.data.tvShow === 'object').toBe(true);
   });
 
   it('should return error when folder does not exist', async () => {

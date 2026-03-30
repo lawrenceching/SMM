@@ -8,7 +8,9 @@ type MediaFolderType = 'tvshow-folder' | 'movie-folder' | 'music-folder';
 interface GetMediaMetadataData {
   mediaFolderPath: string;
   type: MediaFolderType;
-  tmdbTvShow?: unknown;
+  tvShow?: unknown;
+  tmdbMovie?: unknown;
+  tvdbMovie?: unknown;
 }
 
 interface GetMediaMetadataStructuredContent {

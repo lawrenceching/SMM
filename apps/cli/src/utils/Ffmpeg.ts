@@ -6,7 +6,7 @@ import fs from "fs";
 import crypto from "crypto";
 import { execSync, spawn } from "child_process";
 import { Path } from "@core/path";
-import logger from "lib/logger";
+import { logger } from "../../lib/logger";
 
 const NUM_SCREENSHOTS = 5;
 

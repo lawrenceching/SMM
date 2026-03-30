@@ -62,6 +62,20 @@ class ConfigDialog {
     }
 
     /**
+     * Get the primary database (TMDB / TVDB) select trigger
+     */
+    get primaryDatabaseSelectTrigger() {
+        return $('[data-testid="setting-primary-database-trigger"]')
+    }
+
+    /**
+     * Get a primary database option by value
+     */
+    async getPrimaryDatabaseOption(db: "TMDB" | "TVDB") {
+        return $(`[data-testid="setting-primary-database-option-${db}"]`)
+    }
+
+    /**
      * Get the TMDB host input
      */
     get tmdbHostInput() {
@@ -279,6 +293,31 @@ class ConfigDialog {
      */
     async getSelectedLanguage(): Promise<string> {
         const trigger = await this.languageSelectTrigger
+        return await trigger.getText()
+    }
+
+    /**
+     * Select the primary metadata database (TMDB or TVDB)
+     */
+    async setPrimaryDatabase(db: "TMDB" | "TVDB"): Promise<void> {
+        const trigger = await this.primaryDatabaseSelectTrigger
+        await trigger.waitForDisplayed({ timeout: 5000 })
+        await trigger.waitForClickable({ timeout: 5000 })
+        await trigger.click()
+
+        await browser.pause(200)
+
+        const option = await this.getPrimaryDatabaseOption(db)
+        await option.waitForDisplayed({ timeout: 5000 })
+        await option.waitForClickable({ timeout: 5000 })
+        await option.click()
+    }
+
+    /**
+     * Get the current primary database selection (localized label text)
+     */
+    async getSelectedPrimaryDatabase(): Promise<string> {
+        const trigger = await this.primaryDatabaseSelectTrigger
         return await trigger.getText()
     }
 

@@ -84,15 +84,33 @@ export interface GetMediaMetadataTvShowSeason {
 }
 
 export interface GetMediaMetadataTvShowData {
-  tmdbId: number
+  source: 'TMDB' | 'TVDB'
+  id: number
   name: string
   seasons: GetMediaMetadataTvShowSeason[]
+}
+
+export interface GetMediaMetadataTmdbMovieData {
+  tmdbId: number
+  title: string
+  originalTitle: string
+  overview: string
+  releaseDate: string
+  posterPath: string | null
+}
+
+export interface GetMediaMetadataTvdbMovieData {
+  tvdbId: number
+  name: string
+  database: 'TMDB' | 'TVDB'
 }
 
 export interface GetMediaMetadataData {
   mediaFolderPath: string
   type: 'tvshow-folder' | 'movie-folder' | 'music-folder'
-  tmdbTvShow?: GetMediaMetadataTvShowData | string
+  tvShow?: GetMediaMetadataTvShowData | string
+  tmdbMovie?: GetMediaMetadataTmdbMovieData | string
+  tvdbMovie?: GetMediaMetadataTvdbMovieData | string
 }
 
 export interface GetMediaMetadataResponse {

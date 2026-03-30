@@ -12,7 +12,7 @@
     "description": "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in POSIX format. Supports optional filter pattern for filtering results."
   },
   "get-media-metadata": {
-    "description": "Get cached media metadata for a folder. Returns metadata including type, TMDB ID, name, and seasons."
+    "description": "Get cached media metadata for a folder. Returns type, a unified TV show field `tvShow` (with `source`, `id`, `name`, seasons/episodes), and TMDB/TVDB movie sections when present."
   },
   "rename-folder": {
     "description": "Rename a media folder. This is a destructive operation - the folder will be renamed on disk and metadata cache will be updated."
@@ -48,7 +48,7 @@
     "description": "The instruction for renaming episode video files. Call this tool when user ask to rename files or episode."
   },
   "get-episodes": {
-    "description": "Get all episodes for a TV show with their video file paths. Combines TMDB episode data with local media file paths. For each episode, returns season, episode number, title, and video file path (which may be undefined if the episode hasn't been recognized yet)."
+    "description": "Get all episodes for a TV show with their video file paths. Combines cached TMDB or TVDB episode data with local media file paths. For each episode, returns season, episode number, and video file path (which may be undefined if the episode hasn't been recognized yet)."
   },
   "readme": {
     "description": "MUST call this tool to get SMM MCP tools document before calling other SMM MCP tools"
