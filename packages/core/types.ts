@@ -21,6 +21,7 @@ export interface TVDBConfig {
 }
 
 export type PrimaryDatabase = 'TMDB' | 'TVDB'
+export type PreferMediaLanguage = 'zh-CN' | 'en-US' | 'ja-JP'
 
 export interface OpenAICompatibleConfig {
   baseURL?: string
@@ -50,6 +51,11 @@ export interface UserConfig {
    * Which database to use as primary for media search (TMDB or TVDB).
    */
   primaryDatabase?: PrimaryDatabase;
+  /**
+   * Preferred language for media metadata/search requests.
+   * Undefined means no explicit preference.
+   */
+  preferMediaLanguage?: PreferMediaLanguage;
   /**
    * The opened media folder paths in SMM. Path is in Platform-specific format.
    */

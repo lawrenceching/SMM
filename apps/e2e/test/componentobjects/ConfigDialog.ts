@@ -11,6 +11,7 @@ const Key = {
 }
 
 type SettingsTab = 'general' | 'ai' | 'rename-rules' | 'feedback'
+type PreferMediaLanguageCode = "__unset__" | "zh-CN" | "en-US" | "ja-JP"
 
 class ConfigDialog {
     /**
@@ -73,6 +74,20 @@ class ConfigDialog {
      */
     async getPrimaryDatabaseOption(db: "TMDB" | "TVDB") {
         return $(`[data-testid="setting-primary-database-option-${db}"]`)
+    }
+
+    /**
+     * Get the prefer media language select trigger
+     */
+    get preferMediaLanguageSelectTrigger() {
+        return $('[data-testid="setting-prefer-media-language-trigger"]')
+    }
+
+    /**
+     * Get a prefer media language option by value
+     */
+    async getPreferMediaLanguageOption(code: PreferMediaLanguageCode) {
+        return $(`[data-testid="setting-prefer-media-language-option-${code}"]`)
     }
 
     /**
@@ -318,6 +333,31 @@ class ConfigDialog {
      */
     async getSelectedPrimaryDatabase(): Promise<string> {
         const trigger = await this.primaryDatabaseSelectTrigger
+        return await trigger.getText()
+    }
+
+    /**
+     * Set preferred media language
+     */
+    async setPreferMediaLanguage(code: PreferMediaLanguageCode): Promise<void> {
+        const trigger = await this.preferMediaLanguageSelectTrigger
+        await trigger.waitForDisplayed({ timeout: 5000 })
+        await trigger.waitForClickable({ timeout: 5000 })
+        await trigger.click()
+
+        await browser.pause(200)
+
+        const option = await this.getPreferMediaLanguageOption(code)
+        await option.waitForDisplayed({ timeout: 5000 })
+        await option.waitForClickable({ timeout: 5000 })
+        await option.click()
+    }
+
+    /**
+     * Get currently selected preferred media language (localized label text)
+     */
+    async getSelectedPreferMediaLanguage(): Promise<string> {
+        const trigger = await this.preferMediaLanguageSelectTrigger
         return await trigger.getText()
     }
 

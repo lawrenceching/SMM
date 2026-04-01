@@ -15,6 +15,7 @@ export const defaultUserConfig: UserConfig = {
     apiKey: ''
   },
   primaryDatabase: 'TMDB',
+  preferMediaLanguage: undefined,
   ai: {
     deepseek: {
       baseURL: 'https://api.deepseek.com',

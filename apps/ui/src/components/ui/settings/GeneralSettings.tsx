@@ -12,7 +12,7 @@ import type { FileItem } from "@/components/dialogs/types"
 import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
 import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
 import { useTheme } from "@/providers/theme-provider"
-import type { PrimaryDatabase } from "@core/types"
+import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
 const THEME_OPTIONS = ["light", "dark", "system"] as const
 const PRIMARY_DATABASE_OPTIONS: {
@@ -21,6 +21,14 @@ const PRIMARY_DATABASE_OPTIONS: {
 }[] = [
   { value: 'TMDB', labelKey: 'general.primaryDatabaseTmdb' },
   { value: 'TVDB', labelKey: 'general.primaryDatabaseTvdb' },
+]
+
+const PREFER_MEDIA_LANGUAGE_UNSET = "__unset__"
+const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{ value: PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET; labelKey: string }> = [
+  { value: PREFER_MEDIA_LANGUAGE_UNSET, labelKey: 'general.preferMediaLanguageUnset' },
+  { value: 'zh-CN', labelKey: 'general.preferMediaLanguageZhCn' },
+  { value: 'en-US', labelKey: 'general.preferMediaLanguageEnUs' },
+  { value: 'ja-JP', labelKey: 'general.preferMediaLanguageJaJp' },
 ]
 
 export function GeneralSettings() {
@@ -39,6 +47,7 @@ export function GeneralSettings() {
     tvdbHost: userConfig.tvdb?.host || '',
     tvdbApiKey: userConfig.tvdb?.apiKey || '',
     primaryDatabase: (userConfig.primaryDatabase || 'TMDB') as PrimaryDatabase,
+    preferMediaLanguage: userConfig.preferMediaLanguage || PREFER_MEDIA_LANGUAGE_UNSET,
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
     mcpPort: userConfig.mcpPort ?? 30001,
@@ -54,6 +63,7 @@ export function GeneralSettings() {
   const [tvdbHost, setTvdbHost] = useState(initialValues.tvdbHost)
   const [tvdbApiKey, setTvdbApiKey] = useState(initialValues.tvdbApiKey)
   const [primaryDatabase, setPrimaryDatabase] = useState<PrimaryDatabase>(initialValues.primaryDatabase)
+  const [preferMediaLanguage, setPreferMediaLanguage] = useState<PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET>(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
@@ -71,6 +81,7 @@ export function GeneralSettings() {
     setTvdbHost(initialValues.tvdbHost)
     setTvdbApiKey(initialValues.tvdbApiKey)
     setPrimaryDatabase(initialValues.primaryDatabase)
+    setPreferMediaLanguage(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
@@ -121,13 +132,14 @@ export function GeneralSettings() {
       tvdbHost !== initialValues.tvdbHost ||
       tvdbApiKey !== initialValues.tvdbApiKey ||
       primaryDatabase !== initialValues.primaryDatabase ||
+      preferMediaLanguage !== initialValues.preferMediaLanguage ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
       mcpPort !== String(initialValues.mcpPort) ||
       ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
       ffmpegExecutablePath !== initialValues.ffmpegExecutablePath
     )
-  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, tvdbHost, tvdbApiKey, primaryDatabase, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
+  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, tvdbHost, tvdbApiKey, primaryDatabase, preferMediaLanguage, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
 
   // Handle save
   const handleSave = async () => {
@@ -156,6 +168,7 @@ export function GeneralSettings() {
         apiKey: tvdbApiKey || undefined,
       },
       primaryDatabase,
+      preferMediaLanguage: preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
       enableMcpServer,
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
@@ -275,6 +288,26 @@ export function GeneralSettings() {
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{t('general.primaryDatabaseDescription')}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="prefer-media-language">{t('general.preferMediaLanguage')}</Label>
+          <Select
+            value={preferMediaLanguage}
+            onValueChange={(v) => setPreferMediaLanguage(v as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)}
+          >
+            <SelectTrigger id="prefer-media-language" data-testid="setting-prefer-media-language-trigger">
+              <SelectValue placeholder={t('general.preferMediaLanguageDescription')} />
+            </SelectTrigger>
+            <SelectContent data-testid="setting-prefer-media-language-content">
+              {PREFER_MEDIA_LANGUAGE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} data-testid={`setting-prefer-media-language-option-${opt.value}`}>
+                  {t(opt.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">{t('general.preferMediaLanguageDescription')}</p>
         </div>
 
         <div className="space-y-2">

@@ -22,6 +22,7 @@ const DEFAULT_USER_CONFIG: UserConfig = {
     apiKey: ''
   },
   primaryDatabase: 'TMDB',
+  preferMediaLanguage: undefined,
   ai: {
     deepseek: {
       baseURL: 'https://api.deepseek.com',
