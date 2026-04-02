@@ -685,4 +685,8 @@ class TVShowPanel {
     
 }
 
-export default new TVShowPanel()
+/**
+ * Keep both default export and named export for backwards compatibility.
+ */
+export const TvShowPanelCO = new TVShowPanel()
+export default TvShowPanelCO

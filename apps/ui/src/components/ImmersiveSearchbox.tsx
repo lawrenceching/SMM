@@ -8,12 +8,13 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useTranslation } from "@/lib/i18n"
-import { type SupportedLanguage } from "@/lib/i18n"
-import type { PrimaryDatabase } from "@core/types"
+import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
+
 export const SUPPORTED_MEDIA_LANGUAGES = [
-    { code: 'zh-CN', name: '简体中文' },
-    { code: 'en', name: 'English' },
-  ] as const
+  { code: "zh-CN", name: "简体中文" },
+  { code: "en-US", name: "English (US)" },
+  { code: "ja-JP", name: "日本語" },
+] as const satisfies ReadonlyArray<{ code: PreferMediaLanguage; name: string }>
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -44,8 +45,8 @@ interface ImmersiveSearchboxProps {
     unrecognizedHint?: string
     searchDatabase?: PrimaryDatabase
     onSearchDatabaseChange?: (value: PrimaryDatabase) => void
-    searchLanguage?: SupportedLanguage
-    onSearchLanguageChange?: (value: SupportedLanguage) => void
+    searchLanguage?: PreferMediaLanguage
+    onSearchLanguageChange?: (value: PreferMediaLanguage) => void
     /** When true, result rows are not selectable (e.g. TVDB search-only mode). */
     disableSelect?: boolean
     /** Shown when disableSelect is true and there are results; explains why selection is disabled. */
@@ -207,7 +208,7 @@ export function ImmersiveSearchbox({
                                     </Label>
                                     <Select
                                         value={searchLanguage}
-                                        onValueChange={(v) => onSearchLanguageChange(v as SupportedLanguage)}
+                                        onValueChange={(v) => onSearchLanguageChange(v as PreferMediaLanguage)}
                                     >
                                         <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
                                             <SelectValue />

@@ -203,9 +203,11 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    const lang = mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
+    const lang =
+      userConfig?.preferMediaLanguage ??
+      mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
     handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: lang })
-  }, [handleSelectResult, userConfig?.applicationLanguage])
+  }, [handleSelectResult, userConfig?.applicationLanguage, userConfig?.preferMediaLanguage])
 
   const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
     console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
@@ -219,9 +221,11 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    const lang = mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
+    const lang =
+      userConfig?.preferMediaLanguage ??
+      mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
     handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: lang })
-  }, [handleSelectResult, userConfig?.applicationLanguage])
+  }, [handleSelectResult, userConfig?.applicationLanguage, userConfig?.preferMediaLanguage])
 
   // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
   const openUseNfoPromptWithCallbacks = useCallback((params: {

@@ -2,8 +2,7 @@ import { useState } from "react"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
-import type { PrimaryDatabase } from "@core/types"
-import type { SupportedLanguage } from "@/lib/i18n"
+import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
@@ -17,7 +16,7 @@ vi.mock("@/lib/i18n", () => ({
 
 function TestHost() {
   const [searchDatabase, setSearchDatabase] = useState<PrimaryDatabase>("TMDB")
-  const [searchLanguage, setSearchLanguage] = useState<SupportedLanguage>("en")
+  const [searchLanguage, setSearchLanguage] = useState<PreferMediaLanguage>("en-US")
 
   const searchResults: ImmersiveSearchResultItem[] = [
     {

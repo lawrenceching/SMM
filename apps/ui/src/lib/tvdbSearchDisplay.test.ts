@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   getTvdbSearchResultName,
   getTvdbSearchResultOverview,
+  tvdbTranslationCodesForMediaLanguage,
   tvdbTranslationCodesForUiLanguage,
 } from "./tvdbSearchDisplay"
 
@@ -10,6 +11,12 @@ describe("tvdbSearchDisplay", () => {
     expect(tvdbTranslationCodesForUiLanguage("en")).toEqual(["eng"])
     expect(tvdbTranslationCodesForUiLanguage("zh-CN")[0]).toBe("zho")
     expect(tvdbTranslationCodesForUiLanguage("zh-HK")[0]).toBe("yue")
+  })
+
+  it("maps media search languages to TVDB code preference lists", () => {
+    expect(tvdbTranslationCodesForMediaLanguage("en-US")).toEqual(["eng"])
+    expect(tvdbTranslationCodesForMediaLanguage("zh-CN")[0]).toBe("zho")
+    expect(tvdbTranslationCodesForMediaLanguage("ja-JP")[0]).toBe("jpn")
   })
 
   it("picks name from translations map by language order", () => {

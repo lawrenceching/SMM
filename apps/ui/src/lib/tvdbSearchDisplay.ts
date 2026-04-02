@@ -1,3 +1,4 @@
+import type { PreferMediaLanguage } from "@core/types"
 import type { SupportedLanguage } from "@/lib/i18n"
 
 /**
@@ -16,6 +17,21 @@ export function tvdbTranslationCodesForUiLanguage(lang: SupportedLanguage): read
       return ["zho", "cmn", "chi", "yue"]
     default:
       return ["eng"]
+  }
+}
+
+/**
+ * Same as {@link tvdbTranslationCodesForUiLanguage} but for TMDB-style media language codes
+ * used in search (`zh-CN` / `en-US` / `ja-JP`).
+ */
+export function tvdbTranslationCodesForMediaLanguage(lang: PreferMediaLanguage): readonly string[] {
+  switch (lang) {
+    case "zh-CN":
+      return ["zho", "cmn", "chi"]
+    case "en-US":
+      return ["eng"]
+    case "ja-JP":
+      return ["jpn", "eng"]
   }
 }
 
