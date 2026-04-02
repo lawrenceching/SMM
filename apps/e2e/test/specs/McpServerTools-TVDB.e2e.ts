@@ -150,6 +150,17 @@ describe('MCP Server Tools - TVDB', () => {
     expect(ep.totalCount).toBe(ep.episodes.length)
     expect(ep.showName.length).toBeGreaterThan(0)
     expect(ep.numberOfSeasons).toBeGreaterThan(0)
+
+    const getEpisodeResponse = await mcpClient.getEpisode(clientCwd, mcpAddress, {
+      mediaFolderPath: folder.path!,
+      season: 3,
+      episode: 1,
+    })
+
+    expect(getEpisodeResponse.videoFilePath).toContain('')
+    expect(getEpisodeResponse.season).toBe(3)
+    expect(getEpisodeResponse.episode).toBe(1)
+    expect(getEpisodeResponse.message).toBe('No media files found in the media folder metadata.')
   })
 
 })
