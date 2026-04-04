@@ -29,6 +29,7 @@ import {
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
 import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
+import { buildMediaFolderListItemV2PropsByUIMediaMetadatas } from "./AppV2Utils"
 
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
@@ -290,14 +291,7 @@ function AppV2Content() {
 
   // Convert mediaMetadatas to folders
   const folders: MediaFolderListItemV2Props[] = useMemo(() => {
-    return mediaMetadatas.map((metadata) => {
-      return {
-        mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
-        path: metadata.mediaFolderPath,
-        mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
-        status: metadata.status,
-      } as MediaFolderListItemV2Props
-    })
+    return buildMediaFolderListItemV2PropsByUIMediaMetadatas(mediaMetadatas)
   }, [mediaMetadatas])
 
   // Filter and sort folders

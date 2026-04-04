@@ -1,8 +1,7 @@
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { TMDBTVShow } from "@core/types"
-import { tvShowMediaMetadataFromTmdbDetails } from "@/lib/tvShowMediaMetadataFromTmdbDetails"
+import type { TMDBTVShow, PreferMediaLanguage } from "@core/types"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 
@@ -14,7 +13,8 @@ import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
-import { getTvShowById } from "@/api/tmdb"
+import { useTmdbQueries } from "@/hooks/useTmdbQueries"
+import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation"
 import { useConfig } from "@/providers/config-provider"
 import { mapSearchLanguageToTmdb } from "./MediaDatabaseSearchbox"
 import type { SupportedLanguage } from "@/lib/i18n"
@@ -41,7 +41,6 @@ import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 import Debug from 'debug'
-import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils"
 const debug = Debug('TvShowPanel')
 
 interface ToolbarOption {
@@ -60,7 +59,52 @@ function TvShowPanel() {
   const [openScrape] = scrapeDialog
   const [openEditMediaFile] = editMediaFileDialog
   const { userConfig } = useConfig()
-  
+  const { getTvShowById } = useTmdbQueries()
+
+  type ApplyTmdbTvShowSelectionVars = {
+    id: number
+    language?: PreferMediaLanguage
+    mediaFolderPath: string
+    traceId: string
+  }
+
+  const applyTmdbTvShowSelectionMutation = useGetTmdbTvShowMutation<ApplyTmdbTvShowSelectionVars>({
+    onMutate: (variables) => {
+      updateMediaMetadata(
+        variables.mediaFolderPath,
+        (prev: UIMediaMetadata) => ({
+          ...prev,
+          status: "updating",
+        }),
+        { traceId: variables.traceId }
+      )
+    },
+    onSuccess: (tvShow, variables) => {
+      updateMediaMetadata(
+        variables.mediaFolderPath,
+        (prev: UIMediaMetadata) => ({
+          ...prev,
+          tvShow,
+          status: "ok",
+        }),
+        { traceId: variables.traceId }
+      )
+    },
+    onError: (error, variables) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to get TV show details"
+      )
+      updateMediaMetadata(
+        variables.mediaFolderPath,
+        (prev: UIMediaMetadata) => ({
+          ...prev,
+          status: "error_loading_metadata",
+        }),
+        { traceId: variables.traceId }
+      )
+    },
+  })
+
   const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
   
   const toolbarOptions: ToolbarOption[] = [
@@ -140,68 +184,20 @@ function TvShowPanel() {
       }
 
     } else {
-        updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-          ...mediaMetadata,
-          status: 'updating',
-        }, { traceId })
-
-        try {
-
-          const tvShow = await getTvShowByIdFromTMDB(result.id, searchLanguage)
-
-          // TODO: udpate status to loading and failed
-          if (tvShow) {
-            updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-              ...mediaMetadata,
-              tvShow: tvShow,
-              status: 'ok',
-            }, { traceId })
-          }
-
-          // const response = await getTvShowById(result.id, searchLanguage)
-          
-          // if (response.error) {
-          //   console.error("Failed to get TV show details:", response.error)
-          //   updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-          //     ...mediaMetadata,
-          //     status: 'ok',
-          //   }, { traceId })
-          //   return
-          // }
-
-          // if (!response.data) {
-          //   console.error("No TV show data returned")
-          //   updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-          //     ...mediaMetadata,
-          //     status: 'ok',
-          //   }, { traceId })
-          //   return
-          // }
-
-          // console.log('[TvShowPanel] handleSelectResult SUCCESS', {
-          //   timestamp: new Date().toISOString(),
-          //   response,
-          //   stackTrace: new Error().stack
-          // })
-
-          // updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-          //   ...mediaMetadata,
-          //   tmdbTvShow: response.data,
-          //   tvShow: tvShowMediaMetadataFromTmdbDetails(response.data),
-          //   type: 'tvshow-folder',
-          //   status: 'ok',
-          // }, { traceId })
-        } catch (error) {
-          console.error("Failed to update media metadata:", error)
-          updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-            ...mediaMetadata,
-            status: 'ok',
-          }, { traceId })
+        if (!mediaMetadata?.mediaFolderPath) {
+          toast.error("No media metadata available")
+          return
         }
+
+        applyTmdbTvShowSelectionMutation.mutate({
+          id: result.id,
+          language: searchLanguage,
+          mediaFolderPath: mediaMetadata.mediaFolderPath,
+          traceId,
+        })
     }
 
-
-  }, [mediaMetadata, updateMediaMetadata])
+  }, [applyTmdbTvShowSelectionMutation, mediaMetadata, updateMediaMetadata])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -321,7 +317,7 @@ function TvShowPanel() {
       })
       toast.error(t('toolbar.queryTmdbFailed'))
     }
-  }, [handleUseTmdbidFromFolderNameConfirm, t])
+  }, [getTvShowById, handleUseTmdbidFromFolderNameConfirm, t])
 
   useEffect(() => {
     const detection = startToRecognizeByTmdbIdInFolderName(mediaMetadata, userConfig)

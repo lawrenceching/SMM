@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getTmdbIdFromFolderName, doPreprocessMediaFolder } from './AppV2Utils'
+import {
+  getTmdbIdFromFolderName,
+  doPreprocessMediaFolder,
+  buildMediaFolderListItemV2PropsByUIMediaMetadatas,
+} from './AppV2Utils'
 import { recognizeMediaFolder } from './lib/recognizeMediaFolder'
 import { recognizeTvShowMediaFiles } from './lib/recognizeMediaFiles'
 import { recognizeEpisodesAsync } from './lib/recognizeEpisodes'
@@ -226,6 +230,126 @@ describe('getTmdbIdFromFolderName', () => {
       const result = getTmdbIdFromFolderName('TV Show 📺 (tmdbid=123456)')
       expect(result).toBe('123456')
     })
+  })
+})
+
+describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
+  it('returns an empty array when input is empty', () => {
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas([])).toEqual([])
+  })
+
+  it('maps tvshow-folder using tvShow.name and mediaType tvshow', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'ok',
+        type: 'tvshow-folder',
+        mediaFolderPath: '/media/shows/BCS',
+        tvShow: {
+          id: '1',
+          name: 'Better Call Saul',
+          database: 'TMDB',
+          seasons: [],
+        },
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
+      {
+        mediaName: 'Better Call Saul',
+        path: '/media/shows/BCS',
+        mediaType: 'tvshow',
+        status: 'ok',
+      },
+    ])
+  })
+
+  it('falls back to folder basename when tvShow name is missing', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'idle',
+        type: 'tvshow-folder',
+        mediaFolderPath: '/media/shows/Unmatched Name',
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
+      {
+        mediaName: 'Unmatched Name',
+        path: '/media/shows/Unmatched Name',
+        mediaType: 'tvshow',
+        status: 'idle',
+      },
+    ])
+  })
+
+  it('maps movie-folder to mediaType movie and uses basename for display when no tvShow', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'loading',
+        type: 'movie-folder',
+        mediaFolderPath: '/media/movies/Inception',
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
+      {
+        mediaName: 'Inception',
+        path: '/media/movies/Inception',
+        mediaType: 'movie',
+        status: 'loading',
+      },
+    ])
+  })
+
+  it('uses tvShow.name for movie-folder when tvShow is present', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'ok',
+        type: 'movie-folder',
+        mediaFolderPath: '/media/movies/folder-name',
+        tvShow: {
+          id: '99',
+          name: 'Title From TvShow',
+          database: 'TMDB',
+          seasons: [],
+        },
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)[0].mediaName).toBe(
+      'Title From TvShow'
+    )
+  })
+
+  it('maps music-folder to mediaType tvshow-folder and basename for mediaName', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'ok',
+        type: 'music-folder',
+        mediaFolderPath: '/media/music/My Album',
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
+      {
+        mediaName: 'My Album',
+        path: '/media/music/My Album',
+        mediaType: 'tvshow-folder',
+        status: 'ok',
+      },
+    ])
+  })
+
+  it('preserves input order', () => {
+    const a: UIMediaMetadata = {
+      status: 'ok',
+      type: 'tvshow-folder',
+      mediaFolderPath: '/a',
+      tvShow: { id: '1', name: 'A', database: 'TMDB', seasons: [] },
+    }
+    const b: UIMediaMetadata = {
+      status: 'ok',
+      type: 'movie-folder',
+      mediaFolderPath: '/b',
+    }
+    const result = buildMediaFolderListItemV2PropsByUIMediaMetadatas([a, b])
+    expect(result.map((r) => r.path)).toEqual(['/a', '/b'])
+    expect(result.map((r) => r.mediaName)).toEqual(['A', 'b'])
   })
 })
 

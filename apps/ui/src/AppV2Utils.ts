@@ -1,5 +1,7 @@
 import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@core/path";
+import { basename } from "./lib/path"
+import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
@@ -18,6 +20,24 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
   // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
   const match = folderName.match(/[\(\{\[]\s*tmdbid\s*=\s*(\d+)\s*[\}\)\]]/i);
   return match ? match[1] : null;
+}
+
+export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
+  mediaMetadatas: UIMediaMetadata[]
+): MediaFolderListItemV2Props[] {
+  return mediaMetadatas.map((metadata) => {
+    return {
+      mediaName: metadata.tvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? "未识别媒体名称"),
+      path: metadata.mediaFolderPath,
+      mediaType:
+        metadata.type === "tvshow-folder"
+          ? "tvshow"
+          : metadata.type === "movie-folder"
+            ? "movie"
+            : "tvshow-folder",
+      status: metadata.status,
+    } as MediaFolderListItemV2Props
+  })
 }
 
 /**

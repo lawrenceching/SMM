@@ -80,17 +80,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     return rows;
   }
 
-
-  if(mm.tvShow !== undefined) {
-    debug(`use tvdbTvShow to build episode table rows`)
-    const rowsFromTvdbTvShow = _buildTvShowEpisodeTableRowsFromTvdb(mm)
-    rows.push(...rowsFromTvdbTvShow)
-    console.log(`buildTvShowEpisodeTableRows with tvdbTvShow RETURNED: ${JSON.stringify(rows)}`)
-    return rows;
-  }
-
   debug(`empty tmdbTvShow and tvdbTvShow, return empty rows`)
-
   return rows
 }
 

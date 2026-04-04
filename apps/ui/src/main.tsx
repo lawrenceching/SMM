@@ -21,6 +21,7 @@ import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlist
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // Hook to detect mobile screen
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -209,19 +210,23 @@ function AppSwitcher() {
   )
 }
 
+const queryClient = new QueryClient()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <ConfigProvider>
-        <MediaMetadataStoreProvider>
-          <DialogProvider>
-            <BackgroundJobsProvider>
-              <AppInitializer />
-              <AppSwitcher />
-            </BackgroundJobsProvider>
-          </DialogProvider>
-        </MediaMetadataStoreProvider>
-      </ConfigProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <ConfigProvider>
+          <MediaMetadataStoreProvider>
+            <DialogProvider>
+              <BackgroundJobsProvider>
+                <AppInitializer />
+                <AppSwitcher />
+              </BackgroundJobsProvider>
+            </DialogProvider>
+          </MediaMetadataStoreProvider>
+        </ConfigProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   </StrictMode>,
 )
