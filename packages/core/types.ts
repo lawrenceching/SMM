@@ -482,12 +482,17 @@ export type TMDBMediaType = 'movie' | 'tv'
 
 
 export interface TvShowMediaMetadata {
+  database: "TMDB" | "TVDB",
+
   /**
    * TMDB ID or TVDB ID
    */
   id: string,
   name: string,
-  database: "TMDB" | "TVDB",
+  /**
+   * yyyy-MM-dd format
+   */
+  airDate?: string,
   seasons: TvShowSeasonMetadata[]
 }
 

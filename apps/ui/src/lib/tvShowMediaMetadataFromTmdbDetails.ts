@@ -26,6 +26,7 @@ export function tvShowMediaMetadataFromTmdbDetails(
     id: String(details.id),
     name: details.name,
     database: "TMDB",
+    airDate: details.first_air_date,
     seasons,
   };
 }

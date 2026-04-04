@@ -67,7 +67,7 @@ describe('MusicPanel', () => {
       openFolderDialog: [vi.fn(), vi.fn()],
       filePickerDialog: [vi.fn(), vi.fn()],
       mediaSearchDialog: [vi.fn(), vi.fn()],
-      renameDialog: [vi.fn(), vi.fn()],
+      renameDialog: [vi.fn(), vi.fn(), vi.fn()],
       scrapeDialog: [vi.fn(), vi.fn()],
       editMediaFileDialog: [vi.fn(), vi.fn()],
     });
@@ -435,7 +435,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameDialog: [vi.fn(), vi.fn()],
+        renameDialog: [vi.fn(), vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
         editMediaFileDialog: [vi.fn(), vi.fn()],
       });
@@ -584,7 +584,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameDialog: [vi.fn(), vi.fn()],
+        renameDialog: [vi.fn(), vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
         editMediaFileDialog: [vi.fn(), vi.fn()],
       });

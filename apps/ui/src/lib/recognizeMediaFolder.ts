@@ -48,11 +48,9 @@ export async function recognizeMediaFolder(_in_mm: UIMediaMetadata, preferLangua
             const ret = await tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath, language, signal)
             if(ret.tvShow !== undefined) {
                 console.log(`[recognizeMediaFolder] successfully recognized TV show by TMDB ID in folder name: ${ret.tvShow.name} ${ret.tvShow.id}`)
-                
             }
             if(ret.movie !== undefined) {
                 console.log(`[recognizeMediaFolder] successfully recognized movie by TMDB ID in folder name: ${ret.movie.name} ${parseInt(ret.movie.id)}`)
-                
             }
             mm.tvShow = ret.tvShow;
             mm.movie = ret.movie;

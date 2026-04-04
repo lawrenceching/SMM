@@ -65,6 +65,9 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
     
     const seriesResp = await tvdb.seriesExtendedById(seriesId)
     if(seriesResp.status === 'success') {
+
+        m.airDate = seriesResp.data.firstAired
+        
         const seasons = seriesResp.data.seasons
         .filter((season: TVDBv4Season) => season.type.name === 'Aired Order')
 

@@ -6,17 +6,26 @@ import Menu from '../componentobjects/Menu'
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
 
+export type LangCode = 'en-US' | 'zh-CN'
+
 export interface TestFolder {
     folderName: string,
     mediaName?: string,
     files: string[],
     type: "tvshow" | "movie" | "music"
     path?: string
+    translations?: Record<string, Record<LangCode, string>>
 }
 
 export const folder1: TestFolder = {
     folderName: "天使降临到我身边！ (2019) {tmdbid=84666}",
     mediaName: '天使降临到我身边！',
+    translations: {
+      title: {
+        'en-US': 'WATATEN!: an Angel Flew Down to Me',
+        'zh-CN': '天使降临到我身边！'
+      }
+    },
     files: [
         "S01E01.mkv",
         "S01E01.jpg",

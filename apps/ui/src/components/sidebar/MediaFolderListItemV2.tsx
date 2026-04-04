@@ -1,15 +1,13 @@
 import { useCallback, useMemo } from "react"
-import { basename, dirname, join } from "@/lib/path"
+import { basename } from "@/lib/path"
 import { cn, nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
-import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
+import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
+import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useConfig } from "@/providers/config-provider"
 import { useDialogs } from "@/providers/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
-import { renameFolder } from "@/api/renameFolder"
-import type { RenameFolderParams } from "@/api/renameFolder"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -17,73 +15,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-
-/** Dependencies for doRenameFolder; all passed as params to keep it decoupled from the component. */
-export interface DoRenameFolderDeps {
-  renameFolderApi: (params: RenameFolderParams) => Promise<unknown>
-  deleteMediaMetadata: (path: string, options?: { traceId?: string }) => Promise<void>
-  updateMediaMetadata: (
-    path: string,
-    metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-    options?: { traceId?: string }
-  ) => void | Promise<void>
-  refreshMediaMetadata: (path: string) => void | Promise<void>
-}
-
-/**
- * Performs folder rename: calls API, updates metadata, and refreshes.
- * Decoupled from UI; all dependencies are passed in via deps.
- */
-export async function doRenameFolder(
-  path: string,
-  newName: string,
-  currentMetadata: UIMediaMetadata,
-  deps: DoRenameFolderDeps,
-  traceId?: string
-): Promise<void> {
-  const id = traceId ?? `doRenameFolder-${nextTraceId()}`
-  console.log(`[${id}] Renaming folder ${path} to ${newName}`)
-
-  try {
-    const parentDir = dirname(path)
-    const newFolderPath = join(parentDir, newName)
-
-    await deps.renameFolderApi({ from: path, to: newFolderPath })
-
-    const updatedMetadata: UIMediaMetadata = {
-      ...currentMetadata,
-      mediaFolderPath: newFolderPath,
-    }
-    if (updatedMetadata.tvShow) {
-      updatedMetadata.tvShow = {
-        ...updatedMetadata.tvShow,
-        name: newName,
-      }
-    } else if (updatedMetadata.movie) {
-      updatedMetadata.movie = {
-        ...updatedMetadata.movie,
-        name: newName,
-      }
-    } else {
-      updatedMetadata.mediaName = newName
-    }
-
-    if (path !== newFolderPath) {
-      await deps.deleteMediaMetadata(path, { traceId: id })
-    }
-
-    await deps.updateMediaMetadata(newFolderPath, updatedMetadata, { traceId: id })
-    await deps.refreshMediaMetadata(newFolderPath)
-
-    console.log("Folder renamed successfully:", path, "->", newFolderPath)
-  } catch (error) {
-    console.error("Failed to rename folder:", error)
-    throw error
-  }
-}
 
 export interface MediaFolderListItemV2Props {
   mediaName: string,
@@ -130,12 +62,11 @@ export function MediaFolderListItemV2({
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
 
-  const { selectedMediaMetadata } = useMediaMetadataStoreState();
-  const { getMediaMetadata } = useMediaMetadataStoreActions();
-  const { updateMediaMetadata, deleteMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions();
+  const { selectedMediaMetadata } = useMediaMetadataStoreState()
+  const { deleteMediaMetadata } = useMediaMetadataActions()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { renameDialog } = useDialogs()
-  const [openRenameDialog] = renameDialog
+  const [, , openRenameForMediaFolder] = renameDialog
   const selectedFromProvider = useMemo(
     () => selectedMediaMetadata?.mediaFolderPath === path,
     [selectedMediaMetadata, path]
@@ -187,48 +118,11 @@ export function MediaFolderListItemV2({
   }, [path])
 
   const handleRenameButtonClick = useCallback(() => {
-    const currentMetadata = getMediaMetadata(path)
-    if (!currentMetadata) {
-      console.error('Media metadata not found for path:', path)
-      return
-    }
-
-    const suggestions: string[] = []
-    if (currentMetadata.tvShow) {
-      // TODO: add firstAirData field in TvShowMediaMetadata
-      // const tvShow = currentMetadata.tvShow;
-      // const year = tvShow.first_air_date ? tvShow.first_air_date.split('-')[0] : ''
-      // const suggestion = `${tvShow.name}${year ? ` (${year})` : ''} {tmdbid=${tvShow.id}}`
-      // suggestions.push(suggestion)
-    }
-
-    const traceId = `MediaFolderListItemV2-${nextTraceId()}`
-    const deps: DoRenameFolderDeps = {
-      renameFolderApi: renameFolder,
-      deleteMediaMetadata: deleteMediaMetadata,
-      updateMediaMetadata: updateMediaMetadata,
-      refreshMediaMetadata: refreshMediaMetadata,
-    }
-
-    openRenameDialog(
-      async (newName: string) => {
-        try {
-          await doRenameFolder(path, newName, currentMetadata, deps, traceId)
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error'
-          toast.error(
-            (t as (key: string, opts?: { error?: string }) => string)('mediaFolder.renameError', { error: message })
-          )
-        }
-      },
-      {
-        initialValue: mediaName,
-        title: t('mediaFolder.renameTitle'),
-        description: t('mediaFolder.renameDescription'),
-        suggestions: suggestions.length > 0 ? suggestions : undefined,
-      }
-    )
-  }, [path, mediaName, getMediaMetadata, openRenameDialog, updateMediaMetadata, deleteMediaMetadata, refreshMediaMetadata])
+    openRenameForMediaFolder(path, {
+      title: t('mediaFolder.renameTitle'),
+      description: t('mediaFolder.renameDescription'),
+    })
+  }, [path, openRenameForMediaFolder, t])
 
   return (
     <ContextMenu>
@@ -281,4 +175,3 @@ export function MediaFolderListItemV2({
     </ContextMenu>
   )
 }
-

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -12,83 +12,177 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { RenameDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
+import { basename } from "@/lib/path"
+import { useMediaMetadataStore } from "@/stores/mediaMetadataStore"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { useRenameMediaFolderMutation } from "@/hooks/useRenameMediaFolderMutation"
+import { Loader2 } from "lucide-react"
 
-export function RenameDialog({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  initialValue = "", 
-  title, 
+function buildTvShowFolderRenameSuggestions(metadata: UIMediaMetadata): string[] {
+  const suggestions: string[] = []
+  const tvShow = metadata.tvShow
+  if (tvShow && tvShow.airDate !== undefined) {
+    try {
+      const year = tvShow.airDate.split("-")[0]
+      const suggestion = `${tvShow.name}${year ? ` (${year})` : ""} {tmdbid=${tvShow.id}}`
+      suggestions.push(suggestion)
+    } catch (error) {
+      console.warn(`[RenameDialog] Failed to get year from air date: ${tvShow.airDate}`, error)
+    }
+  }
+  return suggestions
+}
+
+export function RenameDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  initialValue = "",
+  title,
   description,
-  suggestions = []
+  suggestions = [],
+  mediaFolderPath,
 }: RenameDialogProps) {
-  const { t } = useTranslation(['dialogs', 'common'])
-  const defaultTitle = title || t('rename.defaultTitle')
-  const defaultDescription = description || t('rename.defaultDescription')
-  const [newName, setNewName] = useState(initialValue)
+  const { t } = useTranslation(["dialogs", "common"])
+  const defaultTitle = title || t("rename.defaultTitle")
+  const defaultDescription = description || t("rename.defaultDescription")
 
-  // Reset to initial value when dialog opens or initialValue changes
+  const { mutateAsync: renameMediaFolderAsync, reset: resetRenameFolderMutation, isPending: isRenameFolderPending } =
+    useRenameMediaFolderMutation()
+
+  const folderMetadata = useMediaMetadataStore((state) =>
+    mediaFolderPath
+      ? state.mediaMetadatas.find((m) => m.mediaFolderPath === mediaFolderPath)
+      : undefined
+  )
+
+  /** Folder rename: initial text is the on-disk folder name (basename), not tvShow/movie display titles. */
+  const effectiveInitialValue = useMemo(() => {
+    if (mediaFolderPath) {
+      return basename(mediaFolderPath) ?? ""
+    }
+    return initialValue ?? ""
+  }, [mediaFolderPath, initialValue])
+
+  const effectiveSuggestions = useMemo(() => {
+    if (mediaFolderPath) {
+      return folderMetadata ? buildTvShowFolderRenameSuggestions(folderMetadata) : []
+    }
+    return suggestions
+  }, [mediaFolderPath, folderMetadata, suggestions])
+
+  const [newName, setNewName] = useState(effectiveInitialValue)
+
+  const isMutating = Boolean(mediaFolderPath && isRenameFolderPending)
+
+  // Reset when dialog opens or effective initial value changes
   useEffect(() => {
     if (isOpen) {
-      setNewName(initialValue)
+      setNewName(effectiveInitialValue)
     }
-  }, [isOpen, initialValue])
+  }, [isOpen, effectiveInitialValue])
 
-  const handleConfirm = () => {
-    if (newName.trim()) {
-      onConfirm(newName.trim())
-      onClose()
+  useEffect(() => {
+    if (!isOpen) {
+      resetRenameFolderMutation()
     }
-  }
+  }, [isOpen, resetRenameFolderMutation])
 
-  const handleCancel = () => {
-    setNewName(initialValue)
+  const handleConfirm = useCallback(async () => {
+    const trimmed = newName.trim()
+    if (!trimmed) return
+
+    if (mediaFolderPath) {
+      try {
+        await renameMediaFolderAsync({ mediaFolderPath, newName: trimmed })
+        onClose()
+      } catch (error) {
+        console.error("[RenameDialog] renameMediaFolderAsync failed:", error)
+      }
+      return
+    }
+
+    void onConfirm(trimmed)
     onClose()
-  }
+  }, [newName, mediaFolderPath, onConfirm, onClose, renameMediaFolderAsync])
+
+  const handleCancel = useCallback(() => {
+    if (isMutating) return
+    setNewName(effectiveInitialValue)
+    onClose()
+  }, [effectiveInitialValue, isMutating, onClose])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isMutating) return
     if (e.key === "Enter") {
-      handleConfirm()
+      void handleConfirm()
     } else if (e.key === "Escape") {
       handleCancel()
     }
   }
 
   const handleSuggestionClick = (suggestion: string) => {
+    if (isMutating) return
     setNewName(suggestion)
   }
 
+  const confirmDisabled =
+    isMutating ||
+    !newName.trim() ||
+    newName.trim() === (effectiveInitialValue || "").trim()
+
+  const blockDismiss = isMutating
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent showCloseButton={true} className="max-w-md" data-testid="rename-dialog">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !blockDismiss) {
+          handleCancel()
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={!blockDismiss}
+        className="max-w-md"
+        data-testid="rename-dialog"
+        onInteractOutside={(e) => {
+          if (blockDismiss) e.preventDefault()
+        }}
+        onEscapeKeyDown={(e) => {
+          if (blockDismiss) e.preventDefault()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{defaultTitle}</DialogTitle>
           <DialogDescription>{defaultDescription}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="newName">{t('rename.newNameLabel')}</Label>
+            <Label htmlFor="newName">{t("rename.newNameLabel")}</Label>
             <Input
               id="newName"
               type="text"
-              placeholder={t('rename.placeholder')}
+              placeholder={t("rename.placeholder")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
+              disabled={isMutating}
               data-testid="rename-dialog-input"
             />
           </div>
-          {suggestions && suggestions.length > 0 && (
+          {effectiveSuggestions && effectiveSuggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">{t('rename.suggestions')}</span>
+              <span className="text-xs text-muted-foreground">{t("rename.suggestions")}</span>
               <div className="flex flex-wrap gap-1.5" data-testid="rename-dialog-suggestions">
-                {suggestions.map((suggestion, index) => (
+                {effectiveSuggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     type="button"
+                    disabled={isMutating}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="text-left px-2 py-1 rounded text-xs border bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer whitespace-nowrap"
+                    className="text-left px-2 py-1 rounded text-xs border bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer whitespace-nowrap disabled:pointer-events-none disabled:opacity-50"
                     data-testid={`rename-dialog-suggestion-${index}`}
                   >
                     {suggestion}
@@ -99,15 +193,31 @@ export function RenameDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} data-testid="rename-dialog-cancel">
-            {t('cancel', { ns: 'common' })}
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isMutating}
+            data-testid="rename-dialog-cancel"
+          >
+            {t("cancel", { ns: "common" })}
           </Button>
-          <Button onClick={handleConfirm} disabled={!newName.trim() || newName.trim() === (initialValue || "").trim()} data-testid="rename-dialog-confirm">
-            {t('confirm', { ns: 'common' })}
+          <Button
+            className={isMutating ? "inline-flex items-center gap-2" : undefined}
+            onClick={() => void handleConfirm()}
+            disabled={confirmDisabled}
+            data-testid="rename-dialog-confirm"
+          >
+            {isMutating ? (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                {t("confirm", { ns: "common" })}
+              </>
+            ) : (
+              t("confirm", { ns: "common" })
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-
