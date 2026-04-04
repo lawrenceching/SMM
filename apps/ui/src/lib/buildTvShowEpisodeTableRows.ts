@@ -81,7 +81,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
   }
 
 
-  if(mm.tvdbTvShow !== undefined) {
+  if(mm.tvShow !== undefined) {
     debug(`use tvdbTvShow to build episode table rows`)
     const rowsFromTvdbTvShow = _buildTvShowEpisodeTableRowsFromTvdb(mm)
     rows.push(...rowsFromTvdbTvShow)
@@ -177,12 +177,12 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
 export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: UIMediaMetadata) {
   const rows: TvShowEpisodeTableRow[] = []
 
-  if(!_in_mm.tvdbTvShow || !_in_mm.tvdbTvShow.seasons) {
+  if(!_in_mm.tvShow || !_in_mm.tvShow.seasons) {
     return rows;
   }
 
   // Process each season and episode directly from tmdbTvShow
-  for (const season of _in_mm.tvdbTvShow.seasons || []) {
+  for (const season of _in_mm.tvShow.seasons || []) {
     const seasonNo = season.season
     const seasonText = season.name || `Season ${seasonNo}`
     rows.push({

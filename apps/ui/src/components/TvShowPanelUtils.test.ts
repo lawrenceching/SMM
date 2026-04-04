@@ -902,12 +902,12 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null when tmdbTvShow is missing', async () => {
+  it('returns null when tvShow is missing', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: '/media',
       files: ['/media/S01E01.mkv'],
-      tmdbTvShow: undefined,
+      tvShow: undefined,
     }
     const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).toBeNull()
@@ -919,6 +919,12 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       mediaFolderPath: '/media',
       files: ['/media/other.mkv'],
       tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+      tvShow: {
+        id: '1',
+        name: 'Show',
+        database: 'TMDB',
+        seasons: [{ season: 1, name: '', episodes: [{ season: 1, episode: 1, name: '' }] }],
+      },
     }
     const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).not.toBeNull()
@@ -946,6 +952,21 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
           } as any,
         ],
       } as any,
+      tvShow: {
+        id: '1',
+        name: 'Show',
+        database: 'TMDB',
+        seasons: [
+          {
+            season: 1,
+            name: '',
+            episodes: [
+              { season: 1, episode: 1, name: '' },
+              { season: 1, episode: 2, name: '' },
+            ],
+          },
+        ],
+      },
     }
     const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).not.toBeNull()

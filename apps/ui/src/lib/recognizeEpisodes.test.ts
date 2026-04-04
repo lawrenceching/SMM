@@ -106,43 +106,21 @@ function makeMM(overrides: Partial<MediaMetadata> = {}): MediaMetadata {
   return {
     mediaFolderPath: '/media/Show',
     files: [],
-    tmdbTvShow: {
-      id: 1,
+    tvShow: {
+      id: '1',
       name: 'Show',
-      original_name: 'Show',
-      overview: '',
-      poster_path: null,
-      backdrop_path: null,
-      first_air_date: '2020-01-01',
-      vote_average: 0,
-      vote_count: 0,
-      popularity: 0,
-      genre_ids: [],
-      origin_country: [],
-      number_of_seasons: 1,
-      number_of_episodes: 3,
+      database: 'TMDB',
       seasons: [
         {
-          id: 1,
+          season: 1,
           name: 'Season 1',
-          overview: '',
-          poster_path: null,
-          season_number: 1,
-          air_date: '2020-01-01',
-          episode_count: 3,
           episodes: [
-            { id: 1, name: 'Ep1', overview: '', still_path: null, air_date: '', episode_number: 1, season_number: 1, vote_average: 0, vote_count: 0, runtime: 0 },
-            { id: 2, name: 'Ep2', overview: '', still_path: null, air_date: '', episode_number: 2, season_number: 1, vote_average: 0, vote_count: 0, runtime: 0 },
-            { id: 3, name: 'Ep3', overview: '', still_path: null, air_date: '', episode_number: 3, season_number: 1, vote_average: 0, vote_count: 0, runtime: 0 },
+            { season: 1, episode: 1, name: 'Ep1' },
+            { season: 1, episode: 2, name: 'Ep2' },
+            { season: 1, episode: 3, name: 'Ep3' },
           ],
         },
       ],
-      status: '',
-      type: '',
-      in_production: false,
-      last_air_date: '',
-      networks: [],
-      production_companies: [],
     },
     ...overrides,
   } as MediaMetadata
@@ -173,20 +151,20 @@ describe('recognizeEpisodes', () => {
     expect(recognizeEpisodes(mm)).toEqual([])
   })
 
-  it('returns empty array when tmdbTvShow is undefined', () => {
-    const mm = makeMM({ files: ['Show - 1.mp4'], tmdbTvShow: undefined })
+  it('returns empty array when tvShow is undefined', () => {
+    const mm = makeMM({ files: ['Show - 1.mp4'], tvShow: undefined })
     expect(recognizeEpisodes(mm)).toEqual([])
   })
 
-  it('returns empty array when tmdbTvShow.seasons is empty', () => {
+  it('returns empty array when tvShow.seasons is empty', () => {
     const mm = makeMM({ files: ['Show - 1.mp4'] })
-    if (mm.tmdbTvShow) mm.tmdbTvShow.seasons = []
+    if (mm.tvShow) mm.tvShow.seasons = []
     expect(recognizeEpisodes(mm)).toEqual([])
   })
 
   it('returns empty array when first season has no episodes', () => {
     const mm = makeMM({ files: ['Show - 1.mp4'] })
-    if (mm.tmdbTvShow?.seasons?.[0]) mm.tmdbTvShow.seasons[0].episodes = []
+    if (mm.tvShow?.seasons?.[0]) mm.tvShow.seasons[0].episodes = []
     expect(recognizeEpisodes(mm)).toEqual([])
   })
 

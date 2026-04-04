@@ -27,7 +27,7 @@ export function MovieHeaderV2({
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
     const movie = selectedMediaMetadata?.tmdbMovie
-    const tvdbMovie = selectedMediaMetadata?.tvdbMovie
+    const tvdbMovie = selectedMediaMetadata?.movie
     const tvdbMovieTitle =
         (tvdbMovie as any)?.data?.title ??
         (tvdbMovie as any)?.data?.name ??
@@ -37,7 +37,7 @@ export function MovieHeaderV2({
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
     const initialSearchValue = movie?.title ?? tvdbMovieTitle
 
-    const hasValidTmdbMovie = (movie != null && movie.id != null) || (selectedMediaMetadata?.tvdbMovie != null)
+    const hasValidTmdbMovie = (movie != null && movie.id != null) || (selectedMediaMetadata?.movie != null)
     const actionsDisabled = !hasValidTmdbMovie
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled

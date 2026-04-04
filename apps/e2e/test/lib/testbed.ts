@@ -14,6 +14,7 @@ import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaM
 import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
 import type { TestFolder } from 'test/actions/import-folders'
 import Sidebar from '../componentobjects/Sidebar'
+import StatusBar from '../componentobjects/StatusBar'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
@@ -35,7 +36,37 @@ export interface TestBedBeforeOptions {
     userConfig?: Partial<UserConfig>
 }
 
+export async function setup(options: {
+    removeMetadataDir: boolean,
+    removePlansDir: boolean,
+    removeMediaFolders: boolean,
+    removeDirInSidebar: boolean,
+    resetUserConfig: boolean,
+    openBrowserPage: boolean,
+}) {
 
+    await cleanup({
+        removePlansDir: options.removePlansDir,
+        removeMetadataDir: options.removeMetadataDir,
+        removeMediaFolders: options.removeMediaFolders,
+        removeDirInSidebar: options.removeDirInSidebar,
+        resetUserConfig: options.resetUserConfig,
+    })
+
+
+    if(options.openBrowserPage) {
+        const { default: Page } = await import('../pageobjects/page')
+        await Page.open()
+        
+        await browser.waitUntil(async () => {
+            return await StatusBar.isDisplayed()
+        }, {
+            timeout: 10000,
+            timeoutMsg: 'Status bar was not displayed after 10 seconds'
+        })
+    }
+    
+}
 
 /**
  * Create a before hook with common test setup
@@ -47,6 +78,7 @@ export interface TestBedBeforeOptions {
  * 5. Waits for StatusBar to be displayed
  * 6. Checks Sidebar is in initial state (no folders displayed)
  *
+ * @deprecated 
  * @param options - Configuration options for the before hook
  * @returns A before hook function for Mocha describe blocks
  */
@@ -126,8 +158,9 @@ export async function cleanup(options?: {
     removePlansDir: boolean,
     removeMediaFolders: boolean,
     removeDirInSidebar: boolean,
+    resetUserConfig: boolean,
 }): Promise<void> {
-    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true } = options ?? {
+    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig } = options ?? {
         removeMetadataDir: true,
     };
     if (isToRemoveMediaFolders) {
@@ -141,6 +174,9 @@ export async function cleanup(options?: {
     }
     if (isToRemoveDirInSidebar) {
         await removeDirInSidebar()
+    }
+    if(needToResetUserConfig) {
+        await resetUserConfig()
     }
 }
 
@@ -200,13 +236,13 @@ export async function expectMediaMetadataToBe(
                 id: m.tmdbMovie?.id,
                 name: m.tmdbMovie?.title,
             } : undefined,
-            tvdbTvShow: m.tvdbTvShow !== undefined ? {
-                id: m.tvdbTvShow?.id,
-                name: m.tvdbTvShow?.name,
+            tvdbTvShow: m.tvShow !== undefined ? {
+                id: m.tvShow?.id,
+                name: m.tvShow?.name,
             } : undefined,
-            tvdbMovie: m.tvdbMovie !== undefined ? {
-                id: m.tvdbMovie?.id,
-                name: m.tvdbMovie?.name,
+            tvdbMovie: m.movie !== undefined ? {
+                id: m.movie?.id,
+                name: m.movie?.name,
             } : undefined,
         }
 

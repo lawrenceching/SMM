@@ -63,6 +63,12 @@ export async function doRenameFolder(
         ...updatedMetadata.tmdbTvShow,
         name: newName,
       }
+    }
+    if (updatedMetadata.tvShow) {
+      updatedMetadata.tvShow = {
+        ...updatedMetadata.tvShow,
+        name: newName,
+      }
     } else if (updatedMetadata.tmdbMovie) {
       updatedMetadata.tmdbMovie = {
         ...updatedMetadata.tmdbMovie,

@@ -43,7 +43,7 @@ export function ConfigProvider({
 
   if(debug) {
     useEffect(() => {
-      console.log('[ConfigProvider] userConfig', userConfig)
+      console.log('[ConfigProvider] userConfig: ' + JSON.stringify(userConfig))
     }, [userConfig])
   }
   

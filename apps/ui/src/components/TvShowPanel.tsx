@@ -2,6 +2,7 @@ import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stor
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow } from "@core/types"
+import { tvShowMediaMetadataFromTmdbDetails } from "@/lib/tvShowMediaMetadataFromTmdbDetails"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 
@@ -127,7 +128,7 @@ function TvShowPanel() {
             return {
               ...prev,
               tmdbTvShow: undefined,
-              tvdbTvShow: tvdbTvShow,
+              tvShow: tvdbTvShow,
               status: 'ok',
             }
           }, 
@@ -174,7 +175,7 @@ function TvShowPanel() {
           updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
             ...mediaMetadata,
             tmdbTvShow: response.data,
-            tvdbTvShow: undefined,
+            tvShow: tvShowMediaMetadataFromTmdbDetails(response.data),
             type: 'tvshow-folder',
             status: 'ok',
           }, { traceId })

@@ -97,7 +97,7 @@ describe('TvShowHeaderV2', () => {
   })
 
   describe('TVDB TV Show Metadata', () => {
-    it('passes tvdbTvShow.name as value when tmdbTvShow is undefined', () => {
+    it('passes tvShow.name as value when tmdbTvShow is undefined', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -107,7 +107,7 @@ describe('TvShowHeaderV2', () => {
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tmdbTvShow: undefined,
-              tvdbTvShow: { id: 'tvdb-1', name: 'TVDB Show Name' },
+              tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
             } as unknown as UIMediaMetadata
           }
         />

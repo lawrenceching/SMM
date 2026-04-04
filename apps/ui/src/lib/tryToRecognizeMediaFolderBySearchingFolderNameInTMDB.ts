@@ -3,7 +3,7 @@ import { searchTmdb } from "@/api/tmdb";
 import { basename } from "./path";
 import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes";
 
-export async function tryToRecognizeMediaFolderByFolderName(
+export async function tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(
     folderPath: string,
     language: 'zh-CN' | 'en-US' | 'ja-JP' = 'en-US'
 ): Promise<RecognizeMediaFolderResult> {

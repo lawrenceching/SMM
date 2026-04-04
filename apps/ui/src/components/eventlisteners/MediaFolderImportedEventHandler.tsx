@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useMount, useUnmount } from "react-use";
+import { useLatest, useMount, useUnmount } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadataStore, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
 import { useConfig } from "@/providers/config-provider";
@@ -18,7 +18,8 @@ const mutex = new Mutex();
 
 export function MediaFolderImportedEventHandler() {
 
-    const { addMediaFolderInUserConfig } = useConfig()
+    const { addMediaFolderInUserConfig, userConfig } = useConfig()
+    const latestUserConfig = useLatest(userConfig)
     const { getMediaMetadata, setSelectedByMediaFolderPath, addMediaMetadata } = useMediaMetadataStoreActions()
     const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions();
     const backgroundJobs = useBackgroundJobsStore()
@@ -153,7 +154,11 @@ export function MediaFolderImportedEventHandler() {
                     return
                 }
 
-                const isMetadataIncomplete = !initializedMetadata.tmdbTvShow && !initializedMetadata.tmdbMovie;
+                const isMetadataIncomplete =
+                    !initializedMetadata.tmdbTvShow &&
+                    !initializedMetadata.tvShow &&
+                    !initializedMetadata.tmdbMovie &&
+                    !initializedMetadata.movie;
 
                 if (isMetadataIncomplete) {
                     saveMediaMetadata(initializedMetadata, { traceId })
@@ -174,6 +179,7 @@ export function MediaFolderImportedEventHandler() {
 
                         await doPreprocessMediaFolder(initializedMetadata, {
                             traceId,
+                            preferLanguage: latestUserConfig.current.preferMediaLanguage,
                             onSuccess: (processedMetadata) => {
                                 updateMediaMetadata(processedMetadata.mediaFolderPath!, {
                                     ...processedMetadata,

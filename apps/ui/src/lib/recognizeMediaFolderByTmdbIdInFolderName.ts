@@ -1,9 +1,9 @@
 import { getMovieById, getTvShowById } from "@/api/tmdb";
 import { basename } from "./path";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
-import type { TMDBMovie, TMDBTVShowDetails } from "@core/types";
+import type { PreferMediaLanguage, TMDBMovie, TMDBTVShowDetails } from "@core/types";
 
-export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: string, signal?: AbortSignal): Promise<{
+export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: string, language: PreferMediaLanguage, signal?: AbortSignal): Promise<{
     tmdbTvShow?: TMDBTVShowDetails;
     tmdbMovie?: TMDBMovie;
 }> {
@@ -23,7 +23,7 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
         return { }
     }
 
-    const resp = await getTvShowById(tmdbIdNumber, 'zh-CN', signal)
+    const resp = await getTvShowById(tmdbIdNumber, language, signal)
     if(resp.error) {
         console.error('[preprocessMediaFolder] failed to get TV show by ID:', resp.error)
     } else {
@@ -38,7 +38,7 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
     }
     
     // Try to get movie by TMDB ID
-    const movieResp = await getMovieById(tmdbIdNumber, 'zh-CN', signal);
+    const movieResp = await getMovieById(tmdbIdNumber, language, signal);
     if (movieResp.error) {
         console.error('[tryToRecognizeMediaFolderByTmdbIdInFolderName] failed to get movie by ID:', movieResp.error);
         return {};

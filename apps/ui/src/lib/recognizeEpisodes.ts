@@ -127,23 +127,23 @@ export function buildEpisodes(mm: MediaMetadata): { season: number, episode: num
     if( mm.files === undefined 
         || mm.files === null
         || mm.files.length === 0
-        || mm.tmdbTvShow === undefined 
-        || mm.tmdbTvShow.seasons === undefined
-        || mm.tmdbTvShow.seasons.length === 0
-        || mm.tmdbTvShow.seasons[0].episodes === undefined
-        || mm.tmdbTvShow.seasons[0].episodes.length === 0
+        || mm.tvShow === undefined 
+        || mm.tvShow.seasons === undefined
+        || mm.tvShow.seasons.length === 0
+        || mm.tvShow.seasons[0].episodes === undefined
+        || mm.tvShow.seasons[0].episodes.length === 0
     ) {
         return [];
     }
 
     const ret: { season: number, episode: number }[] = [];
 
-    for(const season of mm.tmdbTvShow.seasons) {
+    for(const season of mm.tvShow.seasons) {
         if(season.episodes === undefined || season.episodes.length === 0) {
             continue;
         }
         for(const episode of season.episodes) {
-            ret.push({ season: season.season_number, episode: episode.episode_number });
+            ret.push({ season: episode.season, episode: episode.episode });
         }
     }
 
@@ -215,11 +215,11 @@ export function recognizeEpisodes(
     if( mm.files === undefined 
         || mm.files === null
         || mm.files.length === 0
-        || mm.tmdbTvShow === undefined 
-        || mm.tmdbTvShow.seasons === undefined
-        || mm.tmdbTvShow.seasons.length === 0
-        || mm.tmdbTvShow.seasons[0].episodes === undefined
-        || mm.tmdbTvShow.seasons[0].episodes.length === 0
+        || mm.tvShow === undefined 
+        || mm.tvShow.seasons === undefined
+        || mm.tvShow.seasons.length === 0
+        || mm.tvShow.seasons[0].episodes === undefined
+        || mm.tvShow.seasons[0].episodes.length === 0
     ) {
         return [];
     }

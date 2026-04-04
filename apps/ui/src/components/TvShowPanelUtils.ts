@@ -29,6 +29,7 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import { tvShowMediaMetadataFromTmdbDetails } from "@/lib/tvShowMediaMetadataFromTmdbDetails";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -369,6 +370,10 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: media file not found: ${episodeNfo.originalFilename}`)
         }
         mm.mediaFiles = updateMediaFileMetadatas(mm.mediaFiles, mediaFileAbsPath!, episodeNfo.season!, episodeNfo.episode!)
+    }
+
+    if (mm.tmdbTvShow !== undefined) {
+        mm.tvShow = tvShowMediaMetadataFromTmdbDetails(mm.tmdbTvShow)
     }
 
     return mm;
@@ -806,7 +811,7 @@ export async function executeRenamePlan(
 export async function buildTemporaryRecognitionPlanAsync(
   mediaMetadata: UIMediaMetadata,
 ): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
-  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tmdbTvShow) {
+  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tvShow) {
     return null
   }
 
@@ -999,7 +1004,7 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
   }
 
   ;(async () => {
-    if (mediaMetadata.type === undefined || (mediaMetadata.tmdbTvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
+    if (mediaMetadata.type === undefined || (mediaMetadata.tmdbTvShow === undefined && mediaMetadata.tvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
       const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata);
       if (recognized !== undefined) {
         if (recognized.tmdbTvShow !== undefined) {

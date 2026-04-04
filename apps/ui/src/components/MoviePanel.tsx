@@ -217,7 +217,7 @@ function MoviePanel() {
           return {
             ...prev,
             tmdbMovie: undefined,
-            tvdbMovie,
+            movie: tvdbMovie,
             status: 'ok',
           }
         },
@@ -232,7 +232,7 @@ function MoviePanel() {
         updateMediaMetadata(mediaFolderPath, {
           ...rawMediaMetadata,
           tmdbMovie: movie,
-          tvdbMovie: undefined,
+          movie: undefined,
           type: 'movie-folder',
           status: 'ok',
         }, { traceId })

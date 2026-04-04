@@ -291,7 +291,7 @@ S03E11 - - - -`)
         await expectMediaMetadataToBe(testMediaFolder, (obj) => {
             console.log(JSON.stringify(obj))
             const mm = obj as MediaMetadata;
-            return mm.tvdbTvShow !== undefined
+            return mm.tvShow !== undefined
         })
 
         if(env.slowdown) {

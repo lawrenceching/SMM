@@ -118,6 +118,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
             glm: {},
             other: {},
         },
+        preferMediaLanguage: undefined,
         selectedAI: 'DeepSeek',
         selectedTMDBIntance: 'public',
         selectedRenameRule: 'Plex(TvShow/Anime)',

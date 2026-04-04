@@ -311,8 +311,12 @@ export const NameVariable: RenameRuleVariable = {
   description: 'The name of episode',
   example: 'The Long Episode, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
-    // Get episode name from TMDB data if available
     if (mediaFileMetadata?.seasonNumber !== undefined && mediaFileMetadata?.episodeNumber !== undefined) {
+      const seasonUnified = mediaMetadata.tvShow?.seasons?.find(s => s.season === mediaFileMetadata.seasonNumber)
+      const episodeUnified = seasonUnified?.episodes?.find(e => e.episode === mediaFileMetadata.episodeNumber)
+      if (episodeUnified?.name) {
+        return episodeUnified.name
+      }
       const season = mediaMetadata.tmdbTvShow?.seasons?.find(s => s.season_number === mediaFileMetadata.seasonNumber)
       const episode = season?.episodes?.find(e => e.episode_number === mediaFileMetadata.episodeNumber)
       if (episode?.name) {
@@ -330,7 +334,7 @@ export const TvShowNameVariable: RenameRuleVariable = {
   description: 'The name of TV show',
   example: 'The Long TV Show, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    return mediaMetadata.tmdbTvShow?.name || '';
+    return mediaMetadata.tvShow?.name || mediaMetadata.tmdbTvShow?.name || '';
   }
 }
 
@@ -570,11 +574,17 @@ export interface MediaMetadata {
   tmdbMediaType?: TMDBMediaType,
   type?: "music-folder" | "tvshow-folder" | "movie-folder"
 
+  /**
+   * @deprecated use tvShow instead
+   */
   tmdbTvShow?: TMDBTVShowDetails,
+  /**
+   * @deprecated use movie instead
+   */
   tmdbMovie?: TMDBMovie,
 
-  tvdbTvShow?: TvShowMediaMetadata,
-  tvdbMovie?: MovieMediaMetadata,
+  tvShow?: TvShowMediaMetadata,
+  movie?: MovieMediaMetadata,
 }
 
 // TMDB Search Types

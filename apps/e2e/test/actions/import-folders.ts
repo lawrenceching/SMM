@@ -56,6 +56,24 @@ export const folder3: TestFolder = {
     type: "tvshow"
 }
 
+export const folder4: TestFolder = {
+  folderName: "我推的孩子 {tvdbid=421069}",
+  mediaName: "我推的孩子",
+  files: [
+    "S01E01.mkv",
+  ],
+  type: "tvshow"
+}
+
+export const folder5: TestFolder = {
+  folderName: "The Dark Knight {tvdbid=116}",
+  mediaName: "蝙蝠侠：黑暗骑士",
+  files: [
+    "The Dark Knight [1080P].mkv",
+  ],
+  type: "movie"
+}
+
 export function createFolderInTestFolder(folder: TestFolder) {
   const testMediaFolder = path.join(mediaDir, folder.folderName)
   fs.mkdirSync(testMediaFolder, { recursive: true })

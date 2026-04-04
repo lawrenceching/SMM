@@ -248,6 +248,17 @@ export class TVDBv4 {
     return this.episodeById(id);
   }
 
+  async episodeTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.request<Record<string, string>>(
+      `/episodes/${encodePathSegment(id)}/translations/${encodePathSegment(langCode)}`,
+      { method: "GET" },
+    );
+  }
+
+  getEpisodeTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.episodeTranslationByLangCode(id, langCode);
+  }
+
   // Languages
   async languages(): Promise<TVDBv4Envelope<TVDBv4LanguageRecord[]>> {
     return this.request<TVDBv4LanguageRecord[]>("/languages", { method: "GET" });
@@ -281,6 +292,17 @@ export class TVDBv4 {
 
   getMovieExtended(id: number): Promise<TVDBv4Envelope<TVDBv4MovieBaseRecord>> {
     return this.movieExtendedById(id);
+  }
+
+  async movieTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.request<Record<string, string>>(
+      `/movies/${encodePathSegment(id)}/translations/${encodePathSegment(langCode)}`,
+      { method: "GET" },
+    );
+  }
+
+  getMovieTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
+    return this.movieTranslationByLangCode(id, langCode);
   }
 
   // Seasons

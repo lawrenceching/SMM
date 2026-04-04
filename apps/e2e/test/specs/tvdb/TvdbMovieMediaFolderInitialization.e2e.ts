@@ -1,0 +1,79 @@
+import { expect } from '@wdio/globals'
+import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
+import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
+import { delay } from 'es-toolkit'
+import { createAndImportFolder, type TestFolder, folder4, folder5 } from '../../actions/import-folders'
+import { setup } from '../../lib/testbed'
+import env from 'test/lib/env'
+import type { MediaMetadata } from '@smm/core/types'
+import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
+import ConfigDialog from 'test/componentobjects/ConfigDialog'
+import Menu from 'test/componentobjects/Menu'
+
+describe('TVDB Movie Media Folder Initialization', () => {
+
+    beforeEach(async () => {
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            openBrowserPage: true,
+            resetUserConfig: true,
+        })
+    })
+
+    afterEach(async () => {
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
+    })
+
+    it('import media folder with tvdbid in folder name', async function() {
+
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        await Menu.openConfigDialog()
+        await ConfigDialog.waitForDisplayed()
+        expect(await ConfigDialog.isDisplayed()).toBe(true)
+
+        if (env.slowdown) {
+            await delay(1000)
+        }
+
+        await ConfigDialog.setPreferMediaLanguage('zh-CN')
+        await ConfigDialog.clickSave()
+        await ConfigDialog.pressEscape()
+        await browser.pause(1000)
+        
+        const folder = await createAndImportFolder(folder5, 'TVDB Movie Media Folder Initialization:import media folder with tvdbid in folder name');
+
+        await delay(10 * 1000)
+
+        expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：黑暗骑士')
+
+        const text = await MoviePanelCO.table.getText()
+
+        expect(text).toContain(`Type File Poster Sub NFO
+Video
+The Dark Knight [1080P].mkv`)
+
+        await expectMediaMetadataToBe(folder.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.movie).toBeDefined()
+            expect(mm.tmdbMovie).toBeUndefined()
+            expect(mm.movie?.id).toBe('116')
+            expect(mm.movie?.name).toBe('蝙蝠侠：黑暗骑士')
+            expect(mm.movie?.database).toBe('TVDB')
+            return true;
+        })
+
+    })
+
+})

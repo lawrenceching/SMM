@@ -1,6 +1,9 @@
-import type { TvShowMediaMetadata } from "@core/types"
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4Season } from "@smm/tvdb4/types"
+import Debug from "debug"
+
+const debug = Debug('TvdbUtils')
 
 /**
  * The TVDB search API return object id in form "series-421069".
@@ -9,6 +12,15 @@ import type { TVDBv4Season } from "@smm/tvdb4/types"
 export function extractSeriesId(objectId: string): number {
     const str = objectId.replace('series-', '').trim()
     return parseInt(str, 10)
+}
+
+/**
+ * TVDB search returns movie `objectID` / `id` like "movie-15778".
+ */
+export function extractMovieId(objectId: string): number {
+    const str = objectId.replace(/^movie-/i, '').trim()
+    const n = parseInt(str, 10)
+    return Number.isFinite(n) && n > 0 ? n : NaN
 }
 
 export function getTVDBv4Client() {
@@ -30,6 +42,8 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
     }
 ): Promise<TvShowMediaMetadata | undefined> {
 
+    debug(`fetchTvdbAndBuildTvShowMediaMetadata CALLED: seriesId: ${seriesId}, lang: ${lang}`)
+
     const m: TvShowMediaMetadata = {
         id: seriesId.toString(),
         name: '',
@@ -45,6 +59,8 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         const translatedName = translationResp.data['name'] || ''
         console.log(`fetched translated name in ${tvdbLangCode}: ${translatedName}`)
         m.name = translatedName || ''
+    } else {
+        console.warn(`Failed to get TVDB series ${seriesId} translation (${tvdbLangCode}): ${translationResp.message ?? 'N/A'}`)
     }
     
     const seriesResp = await tvdb.seriesExtendedById(seriesId)
@@ -68,25 +84,37 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
             const seasonResp = await tvdb.seasonExtendedById(seasonId)
             
             if(seasonResp.status === 'success') {
-                seasonResp.data.episodes.forEach((episode) => {
+                for (const episode of seasonResp.data.episodes) {
+                    const mediaSeason = m.seasons.find((s) => s.season === episode.seasonNumber);
+                    // season (TVDB `season` in outer loop) nameTranslations: could use
+                    // GET /seasons/{id}/translations/{lang} to populate mediaSeason.name when needed.
 
-                    const season = m.seasons.find((s) => s.season === episode.seasonNumber);
+                    let episodeName = episode.name;
+                    if (episode.nameTranslations?.includes(tvdbLangCode)) {
+                        try {
+                            const tr = await tvdb.episodeTranslationByLangCode(episode.id, tvdbLangCode);
+                            if (tr.status === 'success') {
+                                const translated = tr.data['name'];
+                                if (typeof translated === 'string' && translated.trim()) {
+                                    episodeName = translated;
+                                }
+                            } else {
+                                console.warn(`Failed to get TVDB episode ${episode.id} translation (${tvdbLangCode}): ${tr.message ?? 'N/A'}`)
+                            }
+                        } catch (e) {
+                            console.warn(
+                                `TVDB episode ${episode.id} translation (${tvdbLangCode}) failed; using default title`,
+                                e,
+                            );
+                        }
+                    }
 
-                    
-                    // season.nameTranslations indicates what translation provided
-                    // TODO need to call /seasons/{id}/translations/{lang} to get the translated text
-                    season?.name
-
-                    if(season) {
-                        
-                        // episode.nameTranslations indicates what translation provided
-                        // TODO need to call /episodes/{id}/translations/{lang} to get the translated text
-
-                        season.episodes.push({
+                    if (mediaSeason) {
+                        mediaSeason.episodes.push({
                             season: episode.seasonNumber,
                             episode: episode.number,
-                            name: episode.name,
-                        })
+                            name: episodeName,
+                        });
                     } else {
                         debugger;
                         console.warn(`Failed to find season ${episode.seasonNumber} in TVDB series ${seriesId}`)
@@ -96,12 +124,11 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
                             episodes: [{
                                 season: episode.seasonNumber,
                                 episode: episode.number,
-                                name: episode.name,
+                                name: episodeName,
                             }],
                         })
                     }
-
-                })
+                }
             } else {
                 console.warn(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`)
                 callbacks.onSeasonsAPIError?.(new Error(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`))
@@ -119,6 +146,48 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
     console.log(`built TvShowMediaMetadata`, m)
 
     return m;
+}
+
+export async function fetchTvdbAndBuildMovieMediaMetadata(
+    movieId: number,
+    lang: "zh-CN" | "en-US" | "ja-JP",
+    callbacks: {
+        onMovieAPIError?: (error: Error) => void,
+    }
+): Promise<MovieMediaMetadata | undefined> {
+
+    const m: MovieMediaMetadata = {
+        id: movieId.toString(),
+        name: '',
+        database: "TVDB",
+    }
+
+    const tvdb = getTVDBv4Client()
+    const tvdbLangCode = mapToTvdbLangCode(lang)
+
+    const translationResp = await tvdb.movieTranslationByLangCode(movieId, tvdbLangCode)
+    if (translationResp.status === 'success') {
+        const translatedName = translationResp.data['name'] || ''
+        console.log(`fetched movie translated name in ${tvdbLangCode}: ${translatedName}`)
+        m.name = translatedName || ''
+    }
+
+    const movieResp = await tvdb.movieExtendedById(movieId)
+    if (movieResp.status !== 'success') {
+        const msg = `Failed to get TVDB movie ${movieId}: ${movieResp.message ?? 'N/A'}`
+        console.error(msg)
+        callbacks.onMovieAPIError?.(new Error(msg))
+        return undefined
+    }
+
+    const data = movieResp.data as Record<string, unknown>
+    const defaultName = typeof data.name === 'string' ? data.name : ''
+    if (!m.name.trim()) {
+        m.name = defaultName
+    }
+
+    console.log('built MovieMediaMetadata', m)
+    return m
 }
 
 /**

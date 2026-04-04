@@ -174,7 +174,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
 
   return (
     <section className="bg-card">
-      <Table className="text-xs table-fixed w-full">
+      <Table className="text-xs table-fixed w-full" data-testid="movie-episode-table">
         <TableHeader>
           <ContextMenu>
             <ContextMenuTrigger asChild>
