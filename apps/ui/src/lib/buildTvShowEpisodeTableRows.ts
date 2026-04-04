@@ -72,7 +72,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     rows.push(...buildFolderFileRows(mm.files))
   }
 
-  if (mm.tmdbTvShow !== undefined) {
+  if (mm.tvShow !== undefined) {
     debug(`use tmdbTvShow to build episode table rows`)
     const rowsFromTmdbTvShow = _buildTvShowEpisodeTableRowsFromTmdb(mm)
     rows.push(...rowsFromTmdbTvShow)
@@ -98,13 +98,13 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
 
   const rows: TvShowEpisodeTableRow[] = []
 
-  if (!_in_mm.tmdbTvShow) {
+  if (!_in_mm.tvShow) {
     return rows
   }
 
   // Process each season and episode directly from tmdbTvShow
-  for (const season of _in_mm.tmdbTvShow.seasons || []) {
-    const seasonNo = season.season_number
+  for (const season of _in_mm.tvShow.seasons || []) {
+    const seasonNo = season.season
     const seasonText = season.name || `Season ${seasonNo}`
     rows.push({
       id: `season-${seasonNo}`,
@@ -113,7 +113,7 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
     })
 
     for (const episode of season.episodes || []) {
-      const episodeNo = episode.episode_number
+      const episodeNo = episode.episode
       
       // Find the media file for this episode
       const mediaFile = _in_mm.mediaFiles?.find(

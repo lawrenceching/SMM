@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
+import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
@@ -632,6 +632,166 @@ describe('updateMediaFileMetadatas', () => {
   })
 })
 
+describe('buildTvShowMediaMetadataByNFO', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
+  })
+
+  const minimalTvShow = (inner: string) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+${inner}
+</tvshow>`
+
+  it('returns undefined for malformed XML', () => {
+    const invalid = `<?xml version="1.0"?>
+<tvshow>
+  <title>Test</title>
+  <unclosed>
+</tvshow>`
+    expect(buildTvShowMediaMetadataByNFO(invalid)).toBeUndefined()
+    expect(consoleErrorSpy).toHaveBeenCalled()
+  })
+
+  it('returns undefined when tvshow root is missing', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Only Episode</title>
+</episodedetails>`
+    expect(buildTvShowMediaMetadataByNFO(xml)).toBeUndefined()
+  })
+
+  it('returns undefined when no TMDB or TVDB id can be resolved', () => {
+    const xml = minimalTvShow(`  <title>No Ids</title>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toBeUndefined()
+  })
+
+  it('prefers TMDB when both TMDB and TVDB ids exist', () => {
+    const xml = minimalTvShow(`  <title>Komi</title>
+  <uniqueid type="tmdb">123876</uniqueid>
+  <uniqueid default="true" type="tvdb">402412</uniqueid>
+`)
+    const mm = buildTvShowMediaMetadataByNFO(xml)
+    expect(mm).toEqual({
+      id: '123876',
+      name: 'Komi',
+      database: 'TMDB',
+      seasons: [],
+    })
+  })
+
+  it('uses TVDB when only TVDB uniqueid is present', () => {
+    const xml = minimalTvShow(`  <title>TVDB Show</title>
+  <uniqueid default="true" type="tvdb">402412</uniqueid>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toEqual({
+      id: '402412',
+      name: 'TVDB Show',
+      database: 'TVDB',
+      seasons: [],
+    })
+  })
+
+  it('prefers uniqueid tvdb with default=true over non-default tvdb', () => {
+    const xml = minimalTvShow(`  <title>Pick Default</title>
+  <uniqueid type="tvdb">999</uniqueid>
+  <uniqueid default="true" type="tvdb">402412</uniqueid>
+`)
+    const mm = buildTvShowMediaMetadataByNFO(xml)
+    expect(mm?.id).toBe('402412')
+    expect(mm?.database).toBe('TVDB')
+  })
+
+  it('reads TMDB id from tmdbid when uniqueid type tmdb is absent', () => {
+    const xml = minimalTvShow(`  <title>From tmdbid</title>
+  <tmdbid>555</tmdbid>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toMatchObject({
+      id: '555',
+      database: 'TMDB',
+      name: 'From tmdbid',
+    })
+  })
+
+  it('reads TMDB id from episodeguide JSON when no other TMDB source', () => {
+    const xml = minimalTvShow(`  <title>EG TMDB</title>
+  <episodeguide>{"tmdb":"777"}</episodeguide>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toMatchObject({
+      id: '777',
+      database: 'TMDB',
+      name: 'EG TMDB',
+    })
+  })
+
+  it('reads TVDB id from episodeguide when TMDB is absent', () => {
+    const xml = minimalTvShow(`  <title>EG TVDB</title>
+  <episodeguide>{"tvdb":"888","imdb":"tt000"}</episodeguide>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toMatchObject({
+      id: '888',
+      database: 'TVDB',
+      name: 'EG TVDB',
+    })
+  })
+
+  it('uses id element as TMDB fallback when structured ids are zero', () => {
+    const xml = minimalTvShow(`  <title>Raw Id</title>
+  <id>333</id>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toMatchObject({
+      id: '333',
+      database: 'TMDB',
+      name: 'Raw Id',
+    })
+  })
+
+  it('does not use id as TMDB when TVDB is already resolved', () => {
+    const xml = minimalTvShow(`  <title>Mixed</title>
+  <uniqueid default="true" type="tvdb">100</uniqueid>
+  <id>99999</id>
+`)
+    const mm = buildTvShowMediaMetadataByNFO(xml)
+    expect(mm?.database).toBe('TVDB')
+    expect(mm?.id).toBe('100')
+  })
+
+  it('uses empty string for name when title is missing', () => {
+    const xml = minimalTvShow(`  <uniqueid type="tmdb">1</uniqueid>
+`)
+    expect(buildTvShowMediaMetadataByNFO(xml)).toMatchObject({
+      id: '1',
+      name: '',
+      database: 'TMDB',
+      seasons: [],
+    })
+  })
+
+  it('parses real-world TinyMediaManager tvshow.nfo shape', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tvshow>
+  <title>古见同学有交流障碍症</title>
+  <episodeguide>{"tmdb":"123876","tvdb":"402412"}</episodeguide>
+  <id>402412</id>
+  <tmdbid>123876</tmdbid>
+  <uniqueid default="false" type="tmdb">123876</uniqueid>
+  <uniqueid default="true" type="tvdb">402412</uniqueid>
+</tvshow>`
+    expect(buildTvShowMediaMetadataByNFO(xml)).toEqual({
+      id: '123876',
+      name: '古见同学有交流障碍症',
+      database: 'TMDB',
+      seasons: [],
+    })
+  })
+})
+
 describe('buildTmdbEpisodeByNFO', () => {
 
   it('should build TMDBEpisode with minimal fields', () => {
@@ -880,12 +1040,25 @@ describe('buildTmdbEpisodeByNFO', () => {
 })
 
 describe('buildTemporaryRecognitionPlanAsync', () => {
+  const tvShowWithS1E1 = {
+    id: '1',
+    name: 'Show',
+    database: 'TMDB' as const,
+    seasons: [
+      {
+        season: 1,
+        name: '',
+        episodes: [{ season: 1, episode: 1, name: '' }],
+      },
+    ],
+  }
+
   it('returns null when mediaFolderPath is missing', async () => {
     const mm: UIMediaMetadata = {
       status: 'ok',
       mediaFolderPath: undefined,
       files: ['/media/S01E01.mkv'],
-      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+      tvShow: tvShowWithS1E1,
     }
     const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).toBeNull()
@@ -896,7 +1069,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       status: 'ok',
       mediaFolderPath: '/media',
       files: undefined,
-      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
+      tvShow: tvShowWithS1E1,
     }
     const result = await buildTemporaryRecognitionPlanAsync(mm)
     expect(result).toBeNull()
@@ -918,7 +1091,6 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       status: 'ok',
       mediaFolderPath: '/media',
       files: ['/media/other.mkv'],
-      tmdbTvShow: { id: 1, name: 'Show', seasons: [{ id: 1, season_number: 1, episodes: [{ episode_number: 1, season_number: 1 } as any] } as any] } as any,
       tvShow: {
         id: '1',
         name: 'Show',
@@ -938,20 +1110,6 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       status: 'ok',
       mediaFolderPath,
       files: ['/media/show/S01E01.mkv', '/media/show/S01E02.mkv'],
-      tmdbTvShow: {
-        id: 1,
-        name: 'Show',
-        seasons: [
-          {
-            id: 1,
-            season_number: 1,
-            episodes: [
-              { episode_number: 1, season_number: 1 } as any,
-              { episode_number: 2, season_number: 1 } as any,
-            ],
-          } as any,
-        ],
-      } as any,
       tvShow: {
         id: '1',
         name: 'Show',
@@ -979,7 +1137,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
 
 
 describe('tryToRecognizeTvShowFolderByNFO', () => {
-  it('should handle parseEpisodeNfo error and return mediaMetadata with valid tvshowDetails', async () => {
+  it('should handle parseEpisodeNfo error and return mediaMetadata with valid tvShow', async () => {
     const tvshowNfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <tvshow>
   <title>Test Show</title>
@@ -1021,14 +1179,12 @@ describe('tryToRecognizeTvShowFolderByNFO', () => {
     const result = await tryToRecognizeTvShowFolderByNFO(mediaMetadata)
 
     expect(result).toBeDefined()
-    expect(result?.tmdbTvShow).toBeDefined()
-    expect(result?.tmdbTvShow?.id).toBe(99999)
-    expect(result?.tmdbTvShow?.name).toBe('Test Show')
-    expect(result?.tmdbTvShow?.original_name).toBe('Original Test Show')
-    expect(result?.tmdbTvShow?.overview).toBe('This is a test show description')
-    expect(result?.tmdbTvShow?.first_air_date).toBe('2024-01-01')
-    expect(result?.tmdbTvShow?.status).toBe('Continuing')
-    expect(result?.tmdbTvShow?.genre_ids).toEqual([])
+    expect(result?.tvShow).toEqual({
+      id: '99999',
+      name: 'Test Show',
+      database: 'TMDB',
+      seasons: [],
+    })
   })
 })
 

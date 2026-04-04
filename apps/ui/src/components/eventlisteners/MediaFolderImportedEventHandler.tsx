@@ -155,9 +155,7 @@ export function MediaFolderImportedEventHandler() {
                 }
 
                 const isMetadataIncomplete =
-                    !initializedMetadata.tmdbTvShow &&
                     !initializedMetadata.tvShow &&
-                    !initializedMetadata.tmdbMovie &&
                     !initializedMetadata.movie;
 
                 if (isMetadataIncomplete) {

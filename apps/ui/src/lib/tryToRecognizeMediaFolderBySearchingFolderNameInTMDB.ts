@@ -1,7 +1,8 @@
-import type { TMDBMovie, TMDBTVShow } from "@core/types";
+import type { MovieMediaMetadata, TMDBMovie, TMDBTVShow, TMDBTVShowDetails } from "@core/types";
 import { searchTmdb } from "@/api/tmdb";
 import { basename } from "./path";
 import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes";
+import { tvShowMediaMetadataFromTmdbDetails } from "./tvShowMediaMetadataFromTmdbDetails";
 
 export async function tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(
     folderPath: string,
@@ -38,10 +39,11 @@ export async function tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(
         for(const item of tvShowSearchResults) {
             console.log(`[tryToRecognizeMediaFolderByFolderName] TV result: ${item.name} ${item.id}`)
             if(folderName === item.name) {
+                const tvShow = tvShowMediaMetadataFromTmdbDetails(item as TMDBTVShowDetails);
                 return {
                     success: true,
                     type: 'tv',
-                    tmdbTvShow: item,
+                    tmdbTvShow: tvShow,
                 }
             }
         }
@@ -54,10 +56,11 @@ export async function tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(
         for(const item of movieSearchResults) {
             console.log(`[tryToRecognizeMediaFolderByFolderName] Movie result: ${item.title} ${item.id}`)
             if(folderName === item.title) {
+                const movie = movieMediaMetadataFromTmdbMovie(item);
                 return {
                     success: true,
                     type: 'movie',
-                    tmdbMovie: item,
+                    tmdbMovie: movie,
                 }
             }
         }
@@ -71,3 +74,11 @@ export async function tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(
         return { success: false };
     }
 }
+function movieMediaMetadataFromTmdbMovie(item: TMDBMovie): MovieMediaMetadata {
+    return {
+        id: String(item.id),
+        name: item.title,
+        database: "TMDB",
+    }
+}
+

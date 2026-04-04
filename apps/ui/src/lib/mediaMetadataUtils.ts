@@ -58,8 +58,8 @@ export function findUpdatedMediaMetadata(old: MediaMetadata[], newItems: MediaMe
     const fieldsToCompare: (keyof MediaMetadata)[] = [
       'mediaName',
       'officalMediaName',
-      'tmdbTvShow',
-      'tmdbMovie',
+      'tvShow',
+      'movie',
       'mediaFiles',
       'seasons',
       'poster',

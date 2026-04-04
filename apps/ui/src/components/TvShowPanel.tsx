@@ -41,6 +41,7 @@ import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 import Debug from 'debug'
+import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils"
 const debug = Debug('TvShowPanel')
 
 interface ToolbarOption {
@@ -139,46 +140,57 @@ function TvShowPanel() {
       }
 
     } else {
-
         updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
           ...mediaMetadata,
           status: 'updating',
         }, { traceId })
 
         try {
-          const response = await getTvShowById(result.id, searchLanguage)
 
-          if (response.error) {
-            console.error("Failed to get TV show details:", response.error)
+          const tvShow = await getTvShowByIdFromTMDB(result.id, searchLanguage)
+
+          // TODO: udpate status to loading and failed
+          if (tvShow) {
             updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
               ...mediaMetadata,
+              tvShow: tvShow,
               status: 'ok',
             }, { traceId })
-            return
           }
 
-          if (!response.data) {
-            console.error("No TV show data returned")
-            updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-              ...mediaMetadata,
-              status: 'ok',
-            }, { traceId })
-            return
-          }
+          // const response = await getTvShowById(result.id, searchLanguage)
+          
+          // if (response.error) {
+          //   console.error("Failed to get TV show details:", response.error)
+          //   updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
+          //     ...mediaMetadata,
+          //     status: 'ok',
+          //   }, { traceId })
+          //   return
+          // }
 
-          console.log('[TvShowPanel] handleSelectResult SUCCESS', {
-            timestamp: new Date().toISOString(),
-            response,
-            stackTrace: new Error().stack
-          })
+          // if (!response.data) {
+          //   console.error("No TV show data returned")
+          //   updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
+          //     ...mediaMetadata,
+          //     status: 'ok',
+          //   }, { traceId })
+          //   return
+          // }
 
-          updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
-            ...mediaMetadata,
-            tmdbTvShow: response.data,
-            tvShow: tvShowMediaMetadataFromTmdbDetails(response.data),
-            type: 'tvshow-folder',
-            status: 'ok',
-          }, { traceId })
+          // console.log('[TvShowPanel] handleSelectResult SUCCESS', {
+          //   timestamp: new Date().toISOString(),
+          //   response,
+          //   stackTrace: new Error().stack
+          // })
+
+          // updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
+          //   ...mediaMetadata,
+          //   tmdbTvShow: response.data,
+          //   tvShow: tvShowMediaMetadataFromTmdbDetails(response.data),
+          //   type: 'tvshow-folder',
+          //   status: 'ok',
+          // }, { traceId })
         } catch (error) {
           console.error("Failed to update media metadata:", error)
           updateMediaMetadata(mediaMetadata!.mediaFolderPath!, {
@@ -589,8 +601,8 @@ function TvShowPanel() {
 
     console.log(`[TvShowPanel] openRuleBasedRecognizePrompt() CALLED`)
     openRuleBasedRecognizePrompt({
-      tvShowTitle: mediaMetadata.tmdbTvShow?.name ?? '',
-      tvShowTmdbId: mediaMetadata.tmdbTvShow?.id ?? 0,
+      tvShowTitle: mediaMetadata.tvShow?.name ?? '',
+      tvShowTmdbId: parseInt(mediaMetadata.tvShow?.id ?? '0'),
       planId: newPlan.id,
       onConfirm: () => {
         console.log(`[TvShowPanel] RuleBasedRecognizePrompt.onConfirm() CALLED`)

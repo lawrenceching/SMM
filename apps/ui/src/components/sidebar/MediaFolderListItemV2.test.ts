@@ -88,14 +88,15 @@ describe('doRenameFolder', () => {
     expect(deps.refreshMediaMetadata).toHaveBeenCalledWith(newFolderPath)
   })
 
-  it('updates tmdbTvShow.name when metadata has tmdbTvShow', async () => {
+  it('updates tvShow.name when metadata has tvShow', async () => {
     const metadata: UIMediaMetadata = {
       ...minimalMetadata(path),
-      tmdbTvShow: {
-        id: 123,
+      tvShow: {
+        id: '123',
         name: 'Old Show Name',
-        first_air_date: '2020-01-01',
-      } as UIMediaMetadata['tmdbTvShow'],
+        database: 'TMDB',
+        seasons: [],
+      },
     }
 
     await doRenameFolder(path, newName, metadata, deps)
@@ -104,24 +105,26 @@ describe('doRenameFolder', () => {
       newFolderPath,
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
-        tmdbTvShow: expect.objectContaining({
-          id: 123,
+        tvShow: expect.objectContaining({
+          id: '123',
           name: newName,
-          first_air_date: '2020-01-01',
+          database: 'TMDB',
+          seasons: [],
         }),
       }),
       expect.any(Object)
     )
   })
 
-  it('updates tmdbMovie.title when metadata has tmdbMovie', async () => {
+  it('updates movie.name when metadata has movie', async () => {
     const metadata: UIMediaMetadata = {
       ...minimalMetadata(path),
-      tmdbMovie: {
-        id: 456,
-        title: 'Old Movie Title',
-        release_date: '2021-06-15',
-      } as UIMediaMetadata['tmdbMovie'],
+      type: 'movie-folder',
+      movie: {
+        id: '456',
+        name: 'Old Movie Title',
+        database: 'TMDB',
+      },
     }
 
     await doRenameFolder(path, newName, metadata, deps)
@@ -130,17 +133,17 @@ describe('doRenameFolder', () => {
       newFolderPath,
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
-        tmdbMovie: expect.objectContaining({
-          id: 456,
-          title: newName,
-          release_date: '2021-06-15',
+        movie: expect.objectContaining({
+          id: '456',
+          name: newName,
+          database: 'TMDB',
         }),
       }),
       expect.any(Object)
     )
   })
 
-  it('updates mediaName when no tmdbTvShow or tmdbMovie', async () => {
+  it('updates mediaName when no tvShow or movie', async () => {
     const metadata = minimalMetadata(path)
 
     await doRenameFolder(path, newName, metadata, deps)

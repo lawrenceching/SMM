@@ -24,7 +24,7 @@ export function useTvShowFileNameGeneration({
       return null;
     }
 
-    const tvShow = mediaMetadata.tmdbTvShow
+    const tvShow = mediaMetadata.tvShow
     if(!tvShow) {
       return null;
     }
@@ -38,7 +38,7 @@ export function useTvShowFileNameGeneration({
       for(const episode of season.episodes) {
         // Find the media file for this episode
         const mediaFile = mediaMetadata.mediaFiles?.find(
-          file => file.seasonNumber === season.season_number && file.episodeNumber === episode.episode_number
+          file => file.seasonNumber === season.season && file.episodeNumber === episode.episode
         );
         
         if(!mediaFile) continue;
@@ -46,13 +46,15 @@ export function useTvShowFileNameGeneration({
         const response = await newFileName({
           ruleName: selectedNamingRule,
           type: "tv",
-          seasonNumber: season.season_number,
-          episodeNumber: episode.episode_number,
+          seasonNumber: season.season,
+          episodeNumber: episode.episode,
           episodeName: episode.name || "",
           tvshowName: tvShow.name || "",
           file: mediaFile.absolutePath,
           tmdbId: tvShow.id?.toString() || "",
-          releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
+          // TODO: add releaseYear
+          // releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
+          releaseYear: "",
         });
         
         if (response.data) {
@@ -64,7 +66,7 @@ export function useTvShowFileNameGeneration({
             to: absolutePath
           });
 
-          console.log(`[TvShowPanel] generated new file name for episode ${season.season_number}x${episode.episode_number}: ${relativePath}`)
+          console.log(`[TvShowPanel] generated new file name for episode ${season.season}x${episode.episode}: ${relativePath}`)
 
         }
       }

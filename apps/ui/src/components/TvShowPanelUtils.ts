@@ -1,4 +1,4 @@
-import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TMDBSeason } from "@core/types";
+import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
@@ -29,7 +29,6 @@ import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
-import { tvShowMediaMetadataFromTmdbDetails } from "@/lib/tvShowMediaMetadataFromTmdbDetails";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -247,21 +246,6 @@ export function rebuildRenamePlanWithSelectedEpisodes(
 
 }
 
-
-
-function createInitialTMDBSeason(seasonNumber: number): TMDBSeason {
-    return {
-        id: seasonNumber,
-        name: '',
-        overview: '',
-        poster_path: null,
-        season_number: seasonNumber,
-        air_date: '',
-        episode_count: 0,
-        episodes: [],
-    }
-}
-
 /**
  * Try to regcognize media folder by NFO. 
  * @param mediaFolderPath 
@@ -296,8 +280,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
         return undefined
     }
     
-    const tvshowDetails = buildTmdbTVShowDetailsByNFO(resp.data)
-    mm.tmdbTvShow = tvshowDetails
+    mm.tvShow = buildTvShowMediaMetadataByNFO(resp.data)
 
     const episodeNfoFiles = mm.files.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
     if(episodeNfoFiles.length === 0) {
@@ -340,13 +323,18 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
             continue
         }
 
-        if(mm.tmdbTvShow !== undefined) {
+        // TODO: remove tmdbTvShow
+        if(mm.tvShow !== undefined) {
             const { season } = episodeNfo
             
-            let tmdbSeason = mm.tmdbTvShow.seasons.find(_season => _season.season_number === season)
+            let tmdbSeason = mm.tvShow.seasons.find(_season => _season.season === season)
             if(tmdbSeason === undefined) {
-                tmdbSeason = createInitialTMDBSeason(season!)
-                mm.tmdbTvShow.seasons.push(tmdbSeason)
+              tmdbSeason = {
+                season: season!,
+                name: '',
+                episodes: [],
+              }
+              mm.tvShow.seasons.push(tmdbSeason)
             }
 
             if(tmdbSeason.episodes === undefined) {
@@ -358,7 +346,11 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
                 console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: unable to build tmdbEpisode from NFO file: ${episodeNfoFile}`)
                 continue
             }
-            tmdbSeason.episodes.push(tmdbEpisode)
+            tmdbSeason.episodes.push({
+              season: tmdbEpisode.season_number!,
+              episode: tmdbEpisode.episode_number!,
+              name: tmdbEpisode.name ?? '',
+            })
 
         } else {
             console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tmdbTvShow is undefined, cannot build tmdbEpisode`)
@@ -372,12 +364,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, sign
         mm.mediaFiles = updateMediaFileMetadatas(mm.mediaFiles, mediaFileAbsPath!, episodeNfo.season!, episodeNfo.episode!)
     }
 
-    if (mm.tmdbTvShow !== undefined) {
-        mm.tvShow = tvShowMediaMetadataFromTmdbDetails(mm.tmdbTvShow)
-    }
-
     return mm;
-
 }
 
 /**
@@ -549,6 +536,128 @@ export function buildTmdbEpisodeByNFO(episodeNfoXml: string): TMDBEpisode | unde
     return tmdbEpisode
 }
 
+
+function parseTvShowNfoDocument(tvshowNfoXml: string): Document | undefined {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(tvshowNfoXml, "text/xml")
+    const parseError = doc.querySelector("parsererror")
+    if (parseError) {
+        console.error(`[buildTvShowMediaMetadataByNFO] Failed to parse XML: ${parseError.textContent}`)
+        return undefined
+    }
+    return doc
+}
+
+/**
+ * Reads show id and database from tvshow.nfo (Kodi / TinyMediaManager style).
+ * Prefers TMDB when a TMDB id is present; otherwise uses TVDB from uniqueids or episodeguide JSON.
+ */
+function extractTvShowIdentityFromElement(
+    tvshow: Element,
+): { id: string; name: string; database: "TMDB" | "TVDB" } | undefined {
+    const getTextContent = (selector: string): string | undefined => {
+        const element = tvshow.querySelector(selector)
+        return element?.textContent?.trim() || undefined
+    }
+
+    let tmdbId = 0
+    const tmdbUniqueId = tvshow.querySelector('uniqueid[type="tmdb"]')
+    if (tmdbUniqueId) {
+        const idText = tmdbUniqueId.textContent?.trim()
+        if (idText) {
+            const parsedId = parseInt(idText, 10)
+            if (!isNaN(parsedId)) tmdbId = parsedId
+        }
+    }
+
+    if (tmdbId === 0) {
+        const tmdbidText = getTextContent("tmdbid")
+        if (tmdbidText) {
+            const parsedId = parseInt(tmdbidText, 10)
+            if (!isNaN(parsedId)) tmdbId = parsedId
+        }
+    }
+
+    const egText = getTextContent("episodeguide")
+    if (tmdbId === 0 && egText) {
+        try {
+            const j = JSON.parse(egText) as { tmdb?: string }
+            if (j.tmdb) {
+                const parsedId = parseInt(j.tmdb, 10)
+                if (!isNaN(parsedId)) tmdbId = parsedId
+            }
+        } catch {
+            /* ignore invalid episodeguide JSON */
+        }
+    }
+
+    let tvdbId = 0
+    const tvdbNodes = [...tvshow.querySelectorAll('uniqueid[type="tvdb"]')]
+    const defaultTvdb = tvdbNodes.filter((n) => n.getAttribute("default") === "true")
+    const nodesToScan = defaultTvdb.length > 0 ? defaultTvdb : tvdbNodes
+    for (const node of nodesToScan) {
+        const t = node.textContent?.trim()
+        if (t) {
+            const parsedId = parseInt(t, 10)
+            if (!isNaN(parsedId)) {
+                tvdbId = parsedId
+                break
+            }
+        }
+    }
+
+    if (tvdbId === 0 && egText) {
+        try {
+            const j = JSON.parse(egText) as { tvdb?: string }
+            if (j.tvdb) {
+                const parsedId = parseInt(j.tvdb, 10)
+                if (!isNaN(parsedId)) tvdbId = parsedId
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    const rawIdText = getTextContent("id")
+    if (tmdbId === 0 && tvdbId === 0 && rawIdText) {
+        const parsedId = parseInt(rawIdText, 10)
+        if (!isNaN(parsedId)) tmdbId = parsedId
+    }
+
+    const name = getTextContent("title") || ""
+
+    if (tmdbId > 0) {
+        return { id: String(tmdbId), name, database: "TMDB" }
+    }
+    if (tvdbId > 0) {
+        return { id: String(tvdbId), name, database: "TVDB" }
+    }
+    return undefined
+}
+
+/** 
+ * Builds {@link TvShowMediaMetadata} from a tvshow.nfo file (empty seasons; episodes come from elsewhere). 
+ */
+export function buildTvShowMediaMetadataByNFO(tvshowNfoXml: string): TvShowMediaMetadata | undefined {
+    const doc = parseTvShowNfoDocument(tvshowNfoXml)
+    if (!doc) return undefined
+    const tvshow = doc.querySelector("tvshow")
+    if (!tvshow) return undefined
+    const identity = extractTvShowIdentityFromElement(tvshow)
+    if (identity === undefined) return undefined
+    return {
+        id: identity.id,
+        name: identity.name,
+        database: identity.database,
+        seasons: [],
+    }
+}
+
+/**
+ * @deprecated, use buildTvShowMediaMetadataByNFO instead
+ * @param tvshowNfoXml 
+ * @returns 
+ */
 export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDetails | undefined {
     const parser = new DOMParser()
     const doc = parser.parseFromString(tvshowNfoXml, 'text/xml')
@@ -890,7 +999,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
   
   if (plan) {
     if (plan.tmp) {
-      if (mediaMetadata.tmdbTvShow !== undefined) {
+      if (mediaMetadata.tvShow !== undefined) {
         console.error(`code should NOT reach this line, it's deprecated`)
         // openRuleBasedRecognizePrompt({
         //   tvShowTitle: mediaMetadata.tmdbTvShow.name,
@@ -1004,13 +1113,13 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
   }
 
   ;(async () => {
-    if (mediaMetadata.type === undefined || (mediaMetadata.tmdbTvShow === undefined && mediaMetadata.tvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
+    if (mediaMetadata.type === undefined || (mediaMetadata.tvShow === undefined && mediaMetadata.tvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
       const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata);
       if (recognized !== undefined) {
-        if (recognized.tmdbTvShow !== undefined) {
+        if (recognized.tvShow !== undefined) {
           openRuleBasedRecognizePrompt({
-            tvShowTitle: recognized.tmdbTvShow.name,
-            tvShowTmdbId: recognized.tmdbTvShow.id,
+            tvShowTitle: recognized.tvShow.name,
+            tvShowTmdbId: parseInt(recognized.tvShow.id),
             onConfirm: () => {
               updateMediaMetadata(mediaMetadata.mediaFolderPath!, (prev: UIMediaMetadata) => {
                 return {

@@ -35,7 +35,7 @@ export default function AppNavigation() {
   const folders: MediaFolderListItemV2Props[] = useMemo(() => {
     return mediaMetadatas.map((metadata) => {
       return {
-        mediaName: metadata.tmdbTvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
+        mediaName: metadata.tvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? '未识别媒体名称'),
         path: metadata.mediaFolderPath,
         mediaType: metadata.type === "tvshow-folder" ? "tvshow" : metadata.type === "movie-folder" ? "movie" : "tvshow-folder",
       } as MediaFolderListItemV2Props
@@ -177,7 +177,7 @@ export default function AppNavigation() {
       >
         {/* 内容页导航栏 */}
         <NavBar 
-          title={selectedMediaMetadata?.tmdbTvShow?.name ?? selectedMediaMetadata?.tmdbMovie?.title ?? "详情"}
+          title={selectedMediaMetadata?.tvShow?.name ?? selectedMediaMetadata?.movie?.name ?? "详情"}
           onBack={handleBack}
         >
           <ViewSwitcher 

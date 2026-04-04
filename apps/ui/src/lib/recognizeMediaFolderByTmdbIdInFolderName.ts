@@ -1,11 +1,11 @@
-import { getMovieById, getTvShowById } from "@/api/tmdb";
 import { basename } from "./path";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
-import type { PreferMediaLanguage, TMDBMovie, TMDBTVShowDetails } from "@core/types";
+import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
+import { getMovieByIdFromTMDB, getTvShowByIdFromTMDB } from "./TmdbUtils";
 
 export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: string, language: PreferMediaLanguage, signal?: AbortSignal): Promise<{
-    tmdbTvShow?: TMDBTVShowDetails;
-    tmdbMovie?: TMDBMovie;
+    tvShow?: TvShowMediaMetadata;
+    movie?: MovieMediaMetadata;
 }> {
     const folderName = basename(folderPath);
     if(folderName === undefined) {
@@ -23,34 +23,24 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
         return { }
     }
 
-    const resp = await getTvShowById(tmdbIdNumber, language, signal)
-    if(resp.error) {
-        console.error('[preprocessMediaFolder] failed to get TV show by ID:', resp.error)
-    } else {
-        if(resp.data === undefined) {
-            console.error('[preprocessMediaFolder] failed to get TV show by ID:', resp)
-        } else {
-            console.log(`[tryToRecognizeMediaFolderByTmdbIdInFolderName] successfully recognized TV show by TMDB ID in folder name: ${resp.data?.name} ${resp.data?.id}`)
-            return {
-                tmdbTvShow: resp.data,
-            }
-        }
+    const tvShow = await getTvShowByIdFromTMDB(tmdbIdNumber, language, signal)
+    if(tvShow) {
+        return {
+            tvShow: tvShow,
+        };
     }
     
     // Try to get movie by TMDB ID
-    const movieResp = await getMovieById(tmdbIdNumber, language, signal);
-    if (movieResp.error) {
-        console.error('[tryToRecognizeMediaFolderByTmdbIdInFolderName] failed to get movie by ID:', movieResp.error);
-        return {};
+    const movie = await getMovieByIdFromTMDB(tmdbIdNumber, language, signal);
+    
+    if(movie) {
+        return {
+            movie: movie,
+        };
     }
-    if (movieResp.data === undefined) {
-        console.error('[tryToRecognizeMediaFolderByTmdbIdInFolderName] failed to get movie by ID:', movieResp);
-        return {};
-    }
-    console.log(`[tryToRecognizeMediaFolderByTmdbIdInFolderName] successfully recognized movie by TMDB ID in folder name: ${movieResp.data?.title} ${movieResp.data?.id}`);
+
     return {
-        tmdbMovie: movieResp.data,
-    };
-
-
+        tvShow: undefined,
+        movie: undefined,
+    }
 }

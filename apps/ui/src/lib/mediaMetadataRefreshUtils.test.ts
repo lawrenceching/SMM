@@ -158,28 +158,19 @@ describe('mergeRefreshedMetadata', () => {
   it('should merge complex nested objects correctly', () => {
     const response = createMockMediaMetadata({
       mediaFolderPath: '/media/show1',
-      tmdbTvShow: {
-        id: 1,
+      tvShow: {
+        id: '1',
         name: 'Show 1',
-        original_name: 'Show 1',
-        overview: 'New overview',
-        poster_path: '/poster.jpg',
-        backdrop_path: '/backdrop.jpg',
-        first_air_date: '2024-01-01',
-        vote_average: 8.5,
-        vote_count: 100,
-        popularity: 10,
-        genre_ids: [1, 2],
-        origin_country: ['US'],
-        number_of_seasons: 2,
-        number_of_episodes: 20,
-        seasons: [],
-        status: 'ended',
-        type: 'scripted',
-        in_production: false,
-        last_air_date: '2024-12-31',
-        networks: [],
-        production_companies: [],
+        database: 'TMDB',
+        seasons: [
+          {
+            season: 1,
+            name: 'Season 1',
+            episodes: [
+              { season: 1, episode: 1, name: 'Pilot' },
+            ],
+          },
+        ],
       },
     })
     const currentMetadata = createMockUIMediaMetadata({
@@ -189,7 +180,9 @@ describe('mergeRefreshedMetadata', () => {
 
     const result = mergeRefreshedMetadata(response, currentMetadata)
 
-    expect(result.tmdbTvShow?.overview).toBe('New overview')
+    expect(result.tvShow?.name).toBe('Show 1')
+    expect(result.tvShow?.seasons).toHaveLength(1)
+    expect(result.tvShow?.seasons?.[0]?.episodes).toHaveLength(1)
     expect(result.status).toBe('loading')
   })
 

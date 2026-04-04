@@ -5,7 +5,7 @@ import {
   toUIMediaMetadata,
   mergeUIMetadata,
 } from './uiDomainMapper'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata, TvShowMediaMetadata } from '@core/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
@@ -61,7 +61,12 @@ describe('UiDomainMapper', () => {
       const uiMetadata = createMockUIMediaMetadata({
         status: 'loading',
         mediaName: 'Show 1',
-        tmdbTvShow: { id: 123, name: 'Show 1' } as any,
+        tvShow: {
+          id: '123',
+          name: 'Show 1',
+          database: 'TMDB',
+          seasons: [],
+        } satisfies TvShowMediaMetadata,
       })
 
       const result = extractPersistableMediaMetadata(uiMetadata)
@@ -72,7 +77,12 @@ describe('UiDomainMapper', () => {
         mediaName: 'Show 1',
         files: ['/media/show1/episode1.mp4'],
         mediaFiles: [],
-        tmdbTvShow: { id: 123, name: 'Show 1' },
+        tvShow: {
+          id: '123',
+          name: 'Show 1',
+          database: 'TMDB',
+          seasons: [],
+        },
       })
       expect(result).not.toHaveProperty('status')
     })

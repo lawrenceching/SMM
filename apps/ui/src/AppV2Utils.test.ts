@@ -5,7 +5,7 @@ import { recognizeTvShowMediaFiles } from './lib/recognizeMediaFiles'
 import { recognizeEpisodesAsync } from './lib/recognizeEpisodes'
 import { getTvShowById } from './api/tmdb'
 import type { UIMediaMetadata } from './types/UIMediaMetadata'
-import type { TMDBTVShowDetails } from '@core/types'
+import type { TMDBTVShowDetails, TvShowMediaMetadata } from '@core/types'
 
 vi.mock('./lib/recognizeMediaFolder')
 vi.mock('./lib/recognizeMediaFiles')
@@ -243,39 +243,41 @@ describe('doPreprocessMediaFolder', () => {
     vi.restoreAllMocks()
   })
 
-  describe('when tmdbTvShow has undefined seasons', () => {
+  describe('when tvShow has undefined seasons', () => {
     it('should call getTvShowById to fetch full season data', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
         mediaFolderPath: '/path/to/TV Show',
-        tmdbTvShow: {
-          id: 12345,
-          name: 'Test TV Show',
-          original_name: 'Test TV Show',
-          overview: 'Test overview',
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: '2020-01-01',
-          vote_average: 8.5,
-          vote_count: 100,
-          popularity: 50,
-          genre_ids: [1, 2],
-          origin_country: ['US'],
-          number_of_seasons: 2,
-          number_of_episodes: 20,
-          status: 'Ended',
-          type: 'Scripted',
-          in_production: false,
-          last_air_date: '2021-01-01',
-          networks: [],
-          production_companies: [],
+        tvShow: {
+          id: '12345',
+          name: 'TV Show',
+          database: 'TMDB',
           // seasons is undefined
-        } as unknown as TMDBTVShowDetails,
+        } as unknown as TvShowMediaMetadata,
       }
 
       const fullTvShowData: TMDBTVShowDetails = {
-        ...inputMetadata.tmdbTvShow!,
+        id: 12345,
+        name: 'TV Show',
+        original_name: 'TV Show',
+        overview: '',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2020-01-01',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 0,
+        genre_ids: [],
+        origin_country: [],
+        number_of_seasons: 1,
+        number_of_episodes: 10,
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2020-12-01',
+        networks: [],
+        production_companies: [],
         seasons: [
           {
             id: 1,
@@ -304,50 +306,52 @@ describe('doPreprocessMediaFolder', () => {
 
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
-      expect(mockGetTvShowById).toHaveBeenCalledWith(12345, 'zh-CN')
+      expect(mockGetTvShowById).toHaveBeenCalledWith(12345, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
         mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
-      expect(result.tmdbTvShow.seasons).toHaveLength(1)
+      expect(result.tvShow?.seasons).toHaveLength(1)
     })
   })
 
-  describe('when tmdbTvShow has empty seasons array', () => {
+  describe('when tvShow has empty seasons array', () => {
     it('should call getTvShowById to fetch full season data', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
         mediaFolderPath: '/path/to/TV Show',
-        tmdbTvShow: {
-          id: 67890,
+        tvShow: {
+          id: '67890',
           name: 'Another TV Show',
-          original_name: 'Another TV Show',
-          overview: 'Another overview',
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: '2019-01-01',
-          vote_average: 7.5,
-          vote_count: 50,
-          popularity: 30,
-          genre_ids: [3],
-          origin_country: ['UK'],
-          number_of_seasons: 1,
-          number_of_episodes: 10,
-          status: 'Ended',
-          type: 'Scripted',
-          in_production: false,
-          last_air_date: '2019-12-01',
-          networks: [],
-          production_companies: [],
-          seasons: [], // empty seasons array
-        } as TMDBTVShowDetails,
+          database: 'TMDB',
+          seasons: [],
+        },
       }
 
       const fullTvShowData: TMDBTVShowDetails = {
-        ...inputMetadata.tmdbTvShow!,
+        id: 67890,
+        name: 'Another TV Show',
+        original_name: 'Another TV Show',
+        overview: 'Another overview',
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: '2019-01-01',
+        vote_average: 7.5,
+        vote_count: 50,
+        popularity: 30,
+        genre_ids: [3],
+        origin_country: ['UK'],
+        number_of_seasons: 1,
+        number_of_episodes: 10,
+        status: 'Ended',
+        type: 'Scripted',
+        in_production: false,
+        last_air_date: '2019-12-01',
+        networks: [],
+        production_companies: [],
         seasons: [
           {
             id: 2,
@@ -376,46 +380,29 @@ describe('doPreprocessMediaFolder', () => {
 
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
-      expect(mockGetTvShowById).toHaveBeenCalledWith(67890, 'zh-CN')
+      expect(mockGetTvShowById).toHaveBeenCalledWith(67890, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
         mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
-      expect(result.tmdbTvShow.seasons).toHaveLength(1)
+      expect(result.tvShow?.seasons).toHaveLength(1)
     })
   })
 
   describe('when getTvShowById returns an error', () => {
-    it('should not update tmdbTvShow when resp.error is defined', async () => {
+    it('should not update tvShow when resp.error is defined', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
         mediaFolderPath: '/path/to/TV Show',
-        tmdbTvShow: {
-          id: 22222,
+        tvShow: {
+          id: '22222',
           name: 'Error TV Show',
-          original_name: 'Error TV Show',
-          overview: 'Error overview',
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: '2022-01-01',
-          vote_average: 6.0,
-          vote_count: 10,
-          popularity: 5,
-          genre_ids: [1],
-          origin_country: ['US'],
-          number_of_seasons: 1,
-          number_of_episodes: 10,
-          status: 'Returning',
-          type: 'Scripted',
-          in_production: true,
-          last_air_date: '2022-06-01',
-          networks: [],
-          production_companies: [],
+          database: 'TMDB',
           // seasons is undefined
-        } as unknown as TMDBTVShowDetails,
+        } as unknown as TvShowMediaMetadata,
       }
 
       mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)
@@ -433,47 +420,30 @@ describe('doPreprocessMediaFolder', () => {
 
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
-      expect(mockGetTvShowById).toHaveBeenCalledWith(22222, 'zh-CN')
+      expect(mockGetTvShowById).toHaveBeenCalledWith(22222, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
         mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
-      // tmdbTvShow should remain unchanged (no seasons)
-      expect(result.tmdbTvShow.seasons).toBeUndefined()
+      // tvShow should remain unchanged (no seasons)
+      expect(result.tvShow?.seasons).toBeUndefined()
     })
   })
 
   describe('when getTvShowById returns undefined data', () => {
-    it('should not update tmdbTvShow when resp.data is undefined', async () => {
+    it('should not update tvShow when resp.data is undefined', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
         mediaFolderPath: '/path/to/TV Show',
-        tmdbTvShow: {
-          id: 33333,
+        tvShow: {
+          id: '33333',
           name: 'Undefined Data TV Show',
-          original_name: 'Undefined Data TV Show',
-          overview: 'Undefined overview',
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: '2023-01-01',
-          vote_average: 5.0,
-          vote_count: 5,
-          popularity: 1,
-          genre_ids: [1],
-          origin_country: ['US'],
-          number_of_seasons: 1,
-          number_of_episodes: 10,
-          status: 'Returning',
-          type: 'Scripted',
-          in_production: true,
-          last_air_date: '2023-06-01',
-          networks: [],
-          production_companies: [],
-          seasons: [], // empty seasons array
-        } as TMDBTVShowDetails,
+          database: 'TMDB',
+          seasons: [],
+        },
       }
 
       mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)
@@ -491,57 +461,36 @@ describe('doPreprocessMediaFolder', () => {
 
       await doPreprocessMediaFolder(inputMetadata, { onSuccess })
 
-      expect(mockGetTvShowById).toHaveBeenCalledWith(33333, 'zh-CN')
+      expect(mockGetTvShowById).toHaveBeenCalledWith(33333, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
       expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
         mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
       )
       expect(onSuccess).toHaveBeenCalled()
       const result = onSuccess.mock.calls[0][0]
-      // tmdbTvShow should remain unchanged (empty seasons)
-      expect(result.tmdbTvShow.seasons).toEqual([])
+      // tvShow should remain unchanged (empty seasons)
+      expect(result.tvShow?.seasons).toEqual([])
     })
   })
 
-  describe('when tmdbTvShow already has seasons', () => {
+  describe('when tvShow already has seasons', () => {
     it('should NOT call getTvShowById', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
         mediaFolderPath: '/path/to/TV Show',
-        tmdbTvShow: {
-          id: 11111,
+        tvShow: {
+          id: '11111',
           name: 'Complete TV Show',
-          original_name: 'Complete TV Show',
-          overview: 'Complete overview',
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: '2021-01-01',
-          vote_average: 9.0,
-          vote_count: 200,
-          popularity: 100,
-          genre_ids: [1],
-          origin_country: ['US'],
-          number_of_seasons: 1,
-          number_of_episodes: 10,
-          status: 'Ended',
-          type: 'Scripted',
-          in_production: false,
-          last_air_date: '2021-12-01',
-          networks: [],
-          production_companies: [],
+          database: 'TMDB',
           seasons: [
             {
-              id: 3,
+              season: 1,
               name: 'Season 1',
-              overview: 'Season 1 overview',
-              poster_path: null,
-              season_number: 1,
-              air_date: '2021-01-01',
-              episode_count: 10,
+              episodes: [],
             },
           ],
-        } as TMDBTVShowDetails,
+        },
       }
 
       mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)

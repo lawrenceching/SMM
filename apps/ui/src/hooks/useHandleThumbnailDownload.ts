@@ -6,79 +6,82 @@ import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
 
 async function startToDownloadThumbnails(mediaMetadata: MediaMetadata, getTranslation: () => string) {
+
+    // TODO: support download thumbnails from TVDB and TMDB
+
     // Thumbnails (episode + season posters) are TV show only; for movie, no-op
-    if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
-        if (mediaMetadata?.tmdbMovie) {
-            console.log("⏭️ Thumbnail task skipped for movie (TV show only)")
-            return
-        }
-        console.error("Cannot download thumbnails: Missing TV show data or media folder path")
-        throw new Error("Cannot download thumbnails: Missing TV show data or media folder path")
-    }
+    // if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
+    //     if (mediaMetadata?.tmdbMovie) {
+    //         console.log("⏭️ Thumbnail task skipped for movie (TV show only)")
+    //         return
+    //     }
+    //     console.error("Cannot download thumbnails: Missing TV show data or media folder path")
+    //     throw new Error("Cannot download thumbnails: Missing TV show data or media folder path")
+    // }
 
-    // Check if mediaFiles exists and is not empty
-    if (!mediaMetadata.mediaFiles || mediaMetadata.mediaFiles.length === 0) {
-        console.log("⏭️ No media files found for thumbnail download")
-        return
-    }
+    // // Check if mediaFiles exists and is not empty
+    // if (!mediaMetadata.mediaFiles || mediaMetadata.mediaFiles.length === 0) {
+    //     console.log("⏭️ No media files found for thumbnail download")
+    //     return
+    // }
 
-    try {
-        let processedCount = 0
-        let skippedCount = 0
+    // try {
+    //     let processedCount = 0
+    //     let skippedCount = 0
 
-        // Iterate through each media file and download thumbnails
-        for (const mediaFile of mediaMetadata.mediaFiles) {
-            // Skip files without season/episode numbers
-            if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) {
-                console.log(`⏭️ Skipping thumbnail download for ${mediaFile.absolutePath}: missing season/episode numbers`)
-                skippedCount++
-                continue
-            }
+    //     // Iterate through each media file and download thumbnails
+    //     for (const mediaFile of mediaMetadata.mediaFiles) {
+    //         // Skip files without season/episode numbers
+    //         if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) {
+    //             console.log(`⏭️ Skipping thumbnail download for ${mediaFile.absolutePath}: missing season/episode numbers`)
+    //             skippedCount++
+    //             continue
+    //         }
 
-            // downloadThumbnail handles errors internally (logs and returns early)
-            // It doesn't throw, so we just await it
-            await downloadThumbnail(mediaMetadata, mediaFile)
-            processedCount++
-        }
+    //         // downloadThumbnail handles errors internally (logs and returns early)
+    //         // It doesn't throw, so we just await it
+    //         await downloadThumbnail(mediaMetadata, mediaFile)
+    //         processedCount++
+    //     }
 
-        console.log(`✅ Episode thumbnail download completed: ${processedCount} processed, ${skippedCount} skipped`)
+    //     console.log(`✅ Episode thumbnail download completed: ${processedCount} processed, ${skippedCount} skipped`)
 
-        // Download season posters after episode thumbnails
-        let seasonPosterCount = 0
-        let seasonPosterSkippedCount = 0
+    //     // Download season posters after episode thumbnails
+    //     let seasonPosterCount = 0
+    //     let seasonPosterSkippedCount = 0
 
-        if (mediaMetadata.tmdbTvShow?.seasons) {
-            for (const season of mediaMetadata.tmdbTvShow.seasons) {
-                // downloadSeasonPoster handles errors internally (logs and returns early)
-                // It doesn't throw, so we just await it
-                if (season.poster_path) {
-                    await downloadSeasonPoster(mediaMetadata, season)
-                    seasonPosterCount++
-                } else {
-                    seasonPosterSkippedCount++
-                }
-            }
-        }
+    //     if (mediaMetadata.tmdbTvShow?.seasons) {
+    //         for (const season of mediaMetadata.tmdbTvShow.seasons) {
+    //             // downloadSeasonPoster handles errors internally (logs and returns early)
+    //             // It doesn't throw, so we just await it
+    //             if (season.poster_path) {
+    //                 await downloadSeasonPoster(mediaMetadata, season)
+    //                 seasonPosterCount++
+    //             } else {
+    //                 seasonPosterSkippedCount++
+    //             }
+    //         }
+    //     }
 
-        console.log(`✅ Season poster download completed: ${seasonPosterCount} processed, ${seasonPosterSkippedCount} skipped`)
-        console.log(`✅ Total thumbnail download completed: ${processedCount} episode thumbnails, ${seasonPosterCount} season posters`)
-    } catch (error) {
-        console.error("Failed to download thumbnails:", error)
-        const errorMessage = error instanceof Error ? error.message : "Failed to download thumbnails"
+    //     console.log(`✅ Season poster download completed: ${seasonPosterCount} processed, ${seasonPosterSkippedCount} skipped`)
+    //     console.log(`✅ Total thumbnail download completed: ${processedCount} episode thumbnails, ${seasonPosterCount} season posters`)
+    // } catch (error) {
+    //     console.error("Failed to download thumbnails:", error)
+    //     const errorMessage = error instanceof Error ? error.message : "Failed to download thumbnails"
         
-        // Check if error is "File Already Existed"
-        if (isError(errorMessage, ExistedFileError)) {
-            toast.error(getTranslation(), {
-                description: errorMessage
-            })
-        } else {
-            toast.error("Failed to download thumbnails", {
-                description: errorMessage
-            })
-        }
+    //     // Check if error is "File Already Existed"
+    //     if (isError(errorMessage, ExistedFileError)) {
+    //         toast.error(getTranslation(), {
+    //             description: errorMessage
+    //         })
+    //     } else {
+    //         toast.error("Failed to download thumbnails", {
+    //             description: errorMessage
+    //         })
+    //     }
         
-        throw error // Re-throw to let the task handler mark it as failed
-    }
+    //     throw error // Re-throw to let the task handler mark it as failed
+    // }
 }
 
 export function useHandleThumbnailDownload() {

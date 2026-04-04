@@ -9,105 +9,109 @@ import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
 
+// TODO: generate nfo file using preferMediaLanguage in UserConfig
 async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata, getTranslation: () => string) {
+
+    // TODO: support generate NFO file from TVDB and TMDB
+
     // Generate NFO file from media metadata
-    if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
-        console.error("Cannot generate NFO: Missing TV show data or media folder path")
-        return
-    }
+    // if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
+    //     console.error("Cannot generate NFO: Missing TV show data or media folder path")
+    //     return
+    // }
 
-    try {
-        const tvShow = mediaMetadata.tmdbTvShow
-        const nfo = new Nfo()
+    // try {
+    //     const tvShow = mediaMetadata.tmdbTvShow
+    //     const nfo = new Nfo()
 
-        // Populate NFO with TV show data
-        nfo.id = tvShow.id?.toString()
-        nfo.title = tvShow.name
-        nfo.originalTitle = tvShow.original_name
-        nfo.showTitle = tvShow.name
-        nfo.plot = tvShow.overview
-        nfo.tmdbid = tvShow.id?.toString()
+    //     // Populate NFO with TV show data
+    //     nfo.id = tvShow.id?.toString()
+    //     nfo.title = tvShow.name
+    //     nfo.originalTitle = tvShow.original_name
+    //     nfo.showTitle = tvShow.name
+    //     nfo.plot = tvShow.overview
+    //     nfo.tmdbid = tvShow.id?.toString()
 
-        // Add fanart (backdrop)
-        if (tvShow.backdrop_path) {
-            const fanartUrl = getTMDBImageUrl(tvShow.backdrop_path, "original")
-            if (fanartUrl) {
-                nfo.fanart = fanartUrl
-            }
-        }
+    //     // Add fanart (backdrop)
+    //     if (tvShow.backdrop_path) {
+    //         const fanartUrl = getTMDBImageUrl(tvShow.backdrop_path, "original")
+    //         if (fanartUrl) {
+    //             nfo.fanart = fanartUrl
+    //         }
+    //     }
 
-        // Add thumbs (poster and season posters)
-        const thumbs: Array<{ url: string; aspect: "poster" | "clearlogo" | null; season?: number; type?: string }> = []
+    //     // Add thumbs (poster and season posters)
+    //     const thumbs: Array<{ url: string; aspect: "poster" | "clearlogo" | null; season?: number; type?: string }> = []
         
-        // Add main poster
-        if (tvShow.poster_path) {
-            const posterUrl = getTMDBImageUrl(tvShow.poster_path, "original")
-            if (posterUrl) {
-                thumbs.push({ url: posterUrl, aspect: "poster" })
-            }
-        }
+    //     // Add main poster
+    //     if (tvShow.poster_path) {
+    //         const posterUrl = getTMDBImageUrl(tvShow.poster_path, "original")
+    //         if (posterUrl) {
+    //             thumbs.push({ url: posterUrl, aspect: "poster" })
+    //         }
+    //     }
 
-        // Add season posters
-        if (tvShow.seasons) {
-            tvShow.seasons.forEach(season => {
-                if (season.poster_path) {
-                    const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "original")
-                    if (seasonPosterUrl) {
-                        thumbs.push({ 
-                            url: seasonPosterUrl, 
-                            aspect: "poster", 
-                            season: season.season_number,
-                            type: "season"
-                        })
-                    }
-                }
-            })
-        }
+    //     // Add season posters
+    //     if (tvShow.seasons) {
+    //         tvShow.seasons.forEach(season => {
+    //             if (season.poster_path) {
+    //                 const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "original")
+    //                 if (seasonPosterUrl) {
+    //                     thumbs.push({ 
+    //                         url: seasonPosterUrl, 
+    //                         aspect: "poster", 
+    //                         season: season.season_number,
+    //                         type: "season"
+    //                     })
+    //                 }
+    //             }
+    //         })
+    //     }
 
-        nfo.thumbs = thumbs
+    //     nfo.thumbs = thumbs
 
-        // Generate XML
-        const xml = nfo.toXML()
+    //     // Generate XML
+    //     const xml = nfo.toXML()
 
-        // Write NFO file to media folder
-        const nfoPath = join(mediaMetadata.mediaFolderPath, "tvshow.nfo")
-        await writeFile(Path.toPlatformPath(nfoPath), xml)
-        console.log(`✅ NFO file written to: ${nfoPath}`)
+    //     // Write NFO file to media folder
+    //     const nfoPath = join(mediaMetadata.mediaFolderPath, "tvshow.nfo")
+    //     await writeFile(Path.toPlatformPath(nfoPath), xml)
+    //     console.log(`✅ NFO file written to: ${nfoPath}`)
 
-        // Write episode NFOs next to each video file
-        if (mediaMetadata.mediaFiles?.length) {
-            for (const mediaFile of mediaMetadata.mediaFiles) {
-                if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
-                const season = mediaMetadata.tmdbTvShow!.seasons?.find(s => s.season_number === mediaFile.seasonNumber)
-                const episode = season?.episodes?.find(e => e.episode_number === mediaFile.episodeNumber)
-                if (!episode) continue
-                const videoBasename = basename(mediaFile.absolutePath)
-                if (videoBasename === undefined) continue
-                const videoExt = extname(videoBasename)
-                const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
-                const episodeNfoPath = join(dirname(mediaFile.absolutePath), nameWithoutExt + ".nfo")
-                const episodeXml = buildEpisodeNfoXml(episode, videoBasename)
-                await writeFile(Path.toPlatformPath(episodeNfoPath), episodeXml)
-                console.log(`✅ Episode NFO written to: ${episodeNfoPath}`)
-            }
-        }
-    } catch (error) {
-        console.error("Failed to generate NFO file:", error)
-        const errorMessage = error instanceof Error ? error.message : "Failed to generate NFO file"
+    //     // Write episode NFOs next to each video file
+    //     if (mediaMetadata.mediaFiles?.length) {
+    //         for (const mediaFile of mediaMetadata.mediaFiles) {
+    //             if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
+    //             const season = mediaMetadata.tmdbTvShow!.seasons?.find(s => s.season_number === mediaFile.seasonNumber)
+    //             const episode = season?.episodes?.find(e => e.episode_number === mediaFile.episodeNumber)
+    //             if (!episode) continue
+    //             const videoBasename = basename(mediaFile.absolutePath)
+    //             if (videoBasename === undefined) continue
+    //             const videoExt = extname(videoBasename)
+    //             const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
+    //             const episodeNfoPath = join(dirname(mediaFile.absolutePath), nameWithoutExt + ".nfo")
+    //             const episodeXml = buildEpisodeNfoXml(episode, videoBasename)
+    //             await writeFile(Path.toPlatformPath(episodeNfoPath), episodeXml)
+    //             console.log(`✅ Episode NFO written to: ${episodeNfoPath}`)
+    //         }
+    //     }
+    // } catch (error) {
+    //     console.error("Failed to generate NFO file:", error)
+    //     const errorMessage = error instanceof Error ? error.message : "Failed to generate NFO file"
         
-        // Check if error is "File Already Existed"
-        if (isError(errorMessage, ExistedFileError)) {
-            toast.error(getTranslation(), {
-                description: errorMessage
-            })
-        } else {
-            toast.error("Failed to write NFO file", {
-                description: errorMessage
-            })
-        }
+    //     // Check if error is "File Already Existed"
+    //     if (isError(errorMessage, ExistedFileError)) {
+    //         toast.error(getTranslation(), {
+    //             description: errorMessage
+    //         })
+    //     } else {
+    //         toast.error("Failed to write NFO file", {
+    //             description: errorMessage
+    //         })
+    //     }
         
-        throw error // Re-throw to let the task handler mark it as failed
-    }
+    //     throw error // Re-throw to let the task handler mark it as failed
+    // }
 }
 
 export function useHandleScrapeStart() {

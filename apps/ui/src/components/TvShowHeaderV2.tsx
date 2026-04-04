@@ -36,10 +36,9 @@ export function TvShowHeaderV2({
 }: TvShowHeaderV2Props) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
-    const tvShow = selectedMediaMetadata?.tmdbTvShow
-    const tvdbTvShow = selectedMediaMetadata?.tvShow
-    const tvdbTvShowName = tvdbTvShow?.name ?? ''
-    const movie = selectedMediaMetadata?.tmdbMovie
+    const tvShow = selectedMediaMetadata?.tvShow;
+    const tvdbTvShowName = tvShow?.name ?? ''
+    const movie = selectedMediaMetadata?.movie
     const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
     const initialSearchValue = tvShow?.name ?? tvdbTvShowName
@@ -172,7 +171,7 @@ export function TvShowHeaderV2({
                                 size="sm"
                                 className="hidden @[220px]:inline-flex"
                                 onClick={() => {
-                                    if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
+                                    if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tvShow) return
 
                                     openScrape?.({
                                         mediaMetadata: selectedMediaMetadata
@@ -243,7 +242,7 @@ export function TvShowHeaderV2({
                                         className="@[220px]:hidden"
                                         disabled={actionsDisabled || !selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                         onClick={() => {
-                                            if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbTvShow) return
+                                            if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tvShow) return
                                             openScrape?.({
                                                 mediaMetadata: selectedMediaMetadata
                                             })

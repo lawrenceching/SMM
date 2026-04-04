@@ -26,7 +26,7 @@ import { useHandleThumbnailDownload } from "@/hooks/useHandleThumbnailDownload"
 import { listFiles } from "@/api/listFiles"
 import { Path } from "@core/path"
 import { basename, extname, dirname } from "@/lib/path"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata, TvShowSeasonMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { nextTraceId } from "@/lib/utils"
@@ -264,7 +264,7 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
 
     // Check for season posters
     // Season posters are named "season{number}-poster.{extension}" in season folders
-    if (thumbnailsCompleted && mediaMetadata.tmdbTvShow?.seasons) {
+    if (thumbnailsCompleted && mediaMetadata.tvShow?.seasons) {
       console.log('[checkTaskCompletion] Starting season poster check')
       try {
         // Get all folders in the media folder
@@ -280,76 +280,78 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
           console.log(`[checkTaskCompletion] Found ${folders.length} folders in media folder:`, folders.map((f: string) => basename(f)))
 
           // Check each season that has poster_path
-          const seasonsToCheck = mediaMetadata.tmdbTvShow.seasons.filter(s => s.poster_path)
-          console.log(`[checkTaskCompletion] Checking ${seasonsToCheck.length} seasons with poster_path (out of ${mediaMetadata.tmdbTvShow.seasons.length} total seasons)`)
+          // TODO: add poster_path field to TvShowSeasonMetadata
+          // const seasonsToCheck = mediaMetadata.tvShow.seasons.filter(s => s.poster_path)
+          const seasonsToCheck: TvShowSeasonMetadata[] =  []
+          console.log(`[checkTaskCompletion] Checking ${seasonsToCheck.length} seasons with poster_path (out of ${mediaMetadata.tvShow.seasons.length} total seasons)`)
 
-          for (const season of seasonsToCheck) {
-            console.log(`[checkTaskCompletion] Checking season ${season.season_number} (has poster_path: ${season.poster_path})`)
+          // for (const season of seasonsToCheck) {
+          //   console.log(`[checkTaskCompletion] Checking season ${season.season} (has poster_path: ${season.poster_path})`)
 
-            // Find the season folder
-            const possibleFolderNames: string[] = []
-            if (season.season_number === 0) {
-              possibleFolderNames.push('Specials')
-            } else {
-              possibleFolderNames.push(`Season ${season.season_number}`)
-              possibleFolderNames.push(`Season ${season.season_number.toString().padStart(2, '0')}`)
-            }
+          //   // Find the season folder
+          //   const possibleFolderNames: string[] = []
+          //   if (season.season === 0) {
+          //     possibleFolderNames.push('Specials')
+          //   } else {
+          //     possibleFolderNames.push(`Season ${season.season}`)
+          //     possibleFolderNames.push(`Season ${season.season.toString().padStart(2, '0')}`)
+          //   }
 
-            console.log(`[checkTaskCompletion] Looking for season folder with names:`, possibleFolderNames)
+          //   console.log(`[checkTaskCompletion] Looking for season folder with names:`, possibleFolderNames)
 
-            const seasonFolder = folders.find((folder: string) => {
-              const folderBasename = basename(folder)
-              return folderBasename !== undefined && possibleFolderNames.includes(folderBasename)
-            })
+          //   const seasonFolder = folders.find((folder: string) => {
+          //     const folderBasename = basename(folder)
+          //     return folderBasename !== undefined && possibleFolderNames.includes(folderBasename)
+          //   })
 
-            if (!seasonFolder) {
-              // If season folder doesn't exist, we can't check for season poster
-              // This is acceptable - the season poster won't be downloaded if folder doesn't exist
-              console.log(`[checkTaskCompletion] Season folder not found for season ${season.season_number}, skipping (poster won't be downloaded if folder doesn't exist)`)
-              continue
-            }
+          //   if (!seasonFolder) {
+          //     // If season folder doesn't exist, we can't check for season poster
+          //     // This is acceptable - the season poster won't be downloaded if folder doesn't exist
+          //     console.log(`[checkTaskCompletion] Season folder not found for season ${season.season}, skipping (poster won't be downloaded if folder doesn't exist)`)
+          //     continue
+          //   }
 
-            console.log(`[checkTaskCompletion] Found season folder for season ${season.season_number}: ${seasonFolder}`)
+          //   console.log(`[checkTaskCompletion] Found season folder for season ${season.season}: ${seasonFolder}`)
 
-            // Get files in the season folder
-            const seasonFolderFilesResponse = await listFiles({
-              path: Path.toPlatformPath(seasonFolder),
-              onlyFiles: true,
-            })
+          //   // Get files in the season folder
+          //   const seasonFolderFilesResponse = await listFiles({
+          //     path: Path.toPlatformPath(seasonFolder),
+          //     onlyFiles: true,
+          //   })
 
-            if (!seasonFolderFilesResponse.data?.items) {
-              // If we can't get files, skip this season
-              console.log(`[checkTaskCompletion] Could not get files from season folder ${seasonFolder}, skipping`)
-              continue
-            }
+          //   if (!seasonFolderFilesResponse.data?.items) {
+          //     // If we can't get files, skip this season
+          //     console.log(`[checkTaskCompletion] Could not get files from season folder ${seasonFolder}, skipping`)
+          //     continue
+          //   }
 
-            const seasonFolderFiles = seasonFolderFilesResponse.data.items.map(p => Path.posix(p.path))
-            console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map((f: string) => basename(f)))
+          //   const seasonFolderFiles = seasonFolderFilesResponse.data.items.map(p => Path.posix(p.path))
+          //   console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map((f: string) => basename(f)))
 
-            // Check if season{number}-poster.{extension} exists in the season folder
-            const seasonNumberPadded = season.season_number.toString().padStart(2, '0')
-            const seasonPosterFileNamePrefix = `season${seasonNumberPadded}-poster.`
-            console.log(`[checkTaskCompletion] Looking for season poster with prefix: ${seasonPosterFileNamePrefix}`)
+          //   // Check if season{number}-poster.{extension} exists in the season folder
+          //   const seasonNumberPadded = season.season.toString().padStart(2, '0')
+          //   const seasonPosterFileNamePrefix = `season${seasonNumberPadded}-poster.`
+          //   console.log(`[checkTaskCompletion] Looking for season poster with prefix: ${seasonPosterFileNamePrefix}`)
 
-            const hasSeasonPoster = seasonFolderFiles.some((file: string) => {
-              const fileName = basename(file)
-              if (!fileName) return false
-              const matches = fileName.startsWith(seasonPosterFileNamePrefix) &&
-                imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-              if (matches) {
-                console.log(`[checkTaskCompletion] Found season poster: ${fileName}`)
-              }
-              return matches
-            })
+          //   const hasSeasonPoster = seasonFolderFiles.some((file: string) => {
+          //     const fileName = basename(file)
+          //     if (!fileName) return false
+          //     const matches = fileName.startsWith(seasonPosterFileNamePrefix) &&
+          //       imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
+          //     if (matches) {
+          //       console.log(`[checkTaskCompletion] Found season poster: ${fileName}`)
+          //     }
+          //     return matches
+          //   })
 
-            if (!hasSeasonPoster) {
-              console.log(`[checkTaskCompletion] Season poster NOT found for season ${season.season_number} (expected: ${seasonPosterFileNamePrefix}*), marking thumbnails as incomplete`)
-              thumbnailsCompleted = false
-              break
-            } else {
-              console.log(`[checkTaskCompletion] Season poster found for season ${season.season_number}`)
-            }
-          }
+          //   if (!hasSeasonPoster) {
+          //     console.log(`[checkTaskCompletion] Season poster NOT found for season ${season.season} (expected: ${seasonPosterFileNamePrefix}*), marking thumbnails as incomplete`)
+          //     thumbnailsCompleted = false
+          //     break
+          //   } else {
+          //     console.log(`[checkTaskCompletion] Season poster found for season ${season.season}`)
+          //   }
+          // }
         }
       } catch (error) {
         // If there's an error checking season posters, log it but don't fail the check
@@ -360,8 +362,8 @@ async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
     } else {
       if (!thumbnailsCompleted) {
         console.log('[checkTaskCompletion] Skipping season poster check because episode thumbnails are not complete')
-      } else if (!mediaMetadata.tmdbTvShow?.seasons) {
-        console.log('[checkTaskCompletion] Skipping season poster check because no seasons found in tmdbTvShow')
+      } else if (!mediaMetadata.tvShow?.seasons) {
+        console.log('[checkTaskCompletion] Skipping season poster check because no seasons found in tvShow')
       }
     }
 

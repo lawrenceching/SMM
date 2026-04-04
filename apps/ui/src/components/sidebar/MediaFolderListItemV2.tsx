@@ -57,22 +57,15 @@ export async function doRenameFolder(
       ...currentMetadata,
       mediaFolderPath: newFolderPath,
     }
-
-    if (updatedMetadata.tmdbTvShow) {
-      updatedMetadata.tmdbTvShow = {
-        ...updatedMetadata.tmdbTvShow,
-        name: newName,
-      }
-    }
     if (updatedMetadata.tvShow) {
       updatedMetadata.tvShow = {
         ...updatedMetadata.tvShow,
         name: newName,
       }
-    } else if (updatedMetadata.tmdbMovie) {
-      updatedMetadata.tmdbMovie = {
-        ...updatedMetadata.tmdbMovie,
-        title: newName,
+    } else if (updatedMetadata.movie) {
+      updatedMetadata.movie = {
+        ...updatedMetadata.movie,
+        name: newName,
       }
     } else {
       updatedMetadata.mediaName = newName
@@ -201,11 +194,12 @@ export function MediaFolderListItemV2({
     }
 
     const suggestions: string[] = []
-    if (currentMetadata.tmdbTvShow) {
-      const tvShow = currentMetadata.tmdbTvShow
-      const year = tvShow.first_air_date ? tvShow.first_air_date.split('-')[0] : ''
-      const suggestion = `${tvShow.name}${year ? ` (${year})` : ''} {tmdbid=${tvShow.id}}`
-      suggestions.push(suggestion)
+    if (currentMetadata.tvShow) {
+      // TODO: add firstAirData field in TvShowMediaMetadata
+      // const tvShow = currentMetadata.tvShow;
+      // const year = tvShow.first_air_date ? tvShow.first_air_date.split('-')[0] : ''
+      // const suggestion = `${tvShow.name}${year ? ` (${year})` : ''} {tmdbid=${tvShow.id}}`
+      // suggestions.push(suggestion)
     }
 
     const traceId = `MediaFolderListItemV2-${nextTraceId()}`

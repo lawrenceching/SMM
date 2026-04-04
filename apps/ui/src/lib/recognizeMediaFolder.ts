@@ -2,18 +2,17 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { tryToRecognizeMediaFolderBySearchingFolderNameInTMDB } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTMDB";
 import { tryToRecognizeMediaFolderByNFO } from "./recognizeMediaFolderByNFO";
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
-import { getTvShowById } from "@/api/tmdb";
 import { tryToRecognizeMediaFolderByTvdbIdInFolderName } from "./recognizeMediaFolderByTvdbIdInFolderName";
 import type { PreferMediaLanguage } from "@core/types";
-import { tvShowMediaMetadataFromTmdbDetails } from "./tvShowMediaMetadataFromTmdbDetails";
 import { tryToRecognizeMediaFolderBySearchingFolderNameInTVDB } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTVDB";
+import { getTvShowByIdFromTMDB } from "./TmdbUtils";
 
 
 function fillTypeInMediaMetadata(_in_out_mm: UIMediaMetadata) {
     const mm = _in_out_mm;
-    if(mm.tmdbTvShow !== undefined || mm.tvShow !== undefined) {
+    if(mm.tvShow !== undefined) {
         mm.type = 'tvshow-folder';
-    } else if(mm.tmdbMovie !== undefined || mm.movie !== undefined) {
+    } else if(mm.movie !== undefined) {
         mm.type = 'movie-folder';
     }
 }
@@ -30,18 +29,16 @@ export async function recognizeMediaFolder(_in_mm: UIMediaMetadata, preferLangua
     try {
         const ret = await tryToRecognizeMediaFolderByNFO(mm, signal)
         if(ret !== undefined) {
-            console.log(`[recognizeMediaFolder] successfully recognized media folder by NFO: ${ret.tmdbTvShow?.name} ${ret.tmdbTvShow?.id}`)
+            console.log(`[recognizeMediaFolder] successfully recognized media folder by NFO: ${ret.tvShow?.name} ${ret.tvShow?.id}`)
             mm.mediaFiles = ret.mediaFiles;
-            mm.tmdbTvShow = ret.tmdbTvShow;
-            mm.tvShow = ret.tvShow ?? (ret.tmdbTvShow !== undefined ? tvShowMediaMetadataFromTmdbDetails(ret.tmdbTvShow) : undefined);
-            mm.tmdbMovie = ret.tmdbMovie;
+            mm.tvShow = ret.tvShow;
         }
     } catch (error) {
         console.error(`[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`, error)
     }
 
     const isRecognized = (mm: UIMediaMetadata) => {
-        return mm.tmdbTvShow !== undefined || mm.tmdbMovie !== undefined || mm.tvShow !== undefined || mm.movie !== undefined;
+        return mm.tvShow !== undefined || mm.movie !== undefined;
     }
 
     const language = preferLanguage ?? 'en-US';
@@ -49,18 +46,16 @@ export async function recognizeMediaFolder(_in_mm: UIMediaMetadata, preferLangua
     if(!isRecognized(mm) && folderPath.includes('tmdbid=')) {
         try {
             const ret = await tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath, language, signal)
-            if(ret.tmdbTvShow !== undefined) {
-                console.log(`[recognizeMediaFolder] successfully recognized TV show by TMDB ID in folder name: ${ret.tmdbTvShow.name} ${ret.tmdbTvShow.id}`)
+            if(ret.tvShow !== undefined) {
+                console.log(`[recognizeMediaFolder] successfully recognized TV show by TMDB ID in folder name: ${ret.tvShow.name} ${ret.tvShow.id}`)
                 
             }
-            if(ret.tmdbMovie !== undefined) {
-                console.log(`[recognizeMediaFolder] successfully recognized movie by TMDB ID in folder name: ${ret.tmdbMovie.title} ${ret.tmdbMovie.id}`)
+            if(ret.movie !== undefined) {
+                console.log(`[recognizeMediaFolder] successfully recognized movie by TMDB ID in folder name: ${ret.movie.name} ${parseInt(ret.movie.id)}`)
                 
             }
-            mm.tmdbTvShow = ret.tmdbTvShow;
-            mm.tvShow =
-                ret.tmdbTvShow !== undefined ? tvShowMediaMetadataFromTmdbDetails(ret.tmdbTvShow) : undefined;
-            mm.tmdbMovie = ret.tmdbMovie;
+            mm.tvShow = ret.tvShow;
+            mm.movie = ret.movie;
         } catch (error) {
             console.error(`[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByTmdbIdInFolderName:`, error)
         }
@@ -89,19 +84,12 @@ export async function recognizeMediaFolder(_in_mm: UIMediaMetadata, preferLangua
             const ret = await tryToRecognizeMediaFolderBySearchingFolderNameInTMDB(folderPath, language)
             if(ret.tmdbTvShow !== undefined) {
                 console.log(`[recognizeMediaFolder] trying to get TV show by ID: ${ret.tmdbTvShow.id}`)
-                const resp = await getTvShowById(ret.tmdbTvShow.id, 'zh-CN')
-                if(resp.error) {
-                    console.error(`[recognizeMediaFolder] Error in getTvShowById:`, resp.error)
-                } else if(resp.data === undefined) {
-                    console.error(`[recognizeMediaFolder] Error in getTvShowById:`, resp)
-                } else {
-                    console.log(`[recognizeMediaFolder] successfully recognized TV show by folder name: ${ret.tmdbTvShow.name} ${ret.tmdbTvShow.id}`)
-                    mm.tmdbTvShow = resp.data;
-                    mm.tvShow = tvShowMediaMetadataFromTmdbDetails(resp.data);
-                }
+                // TODO: use preferMediaLanguage in UserConfig
+                const tvShow = await getTvShowByIdFromTMDB(parseInt(ret.tmdbTvShow.id), 'zh-CN')
+                mm.tvShow = tvShow;
             } else if(ret.tmdbMovie !== undefined) {
-                console.log(`[recognizeMediaFolder] successfully recognized movie by folder name: ${ret.tmdbMovie.title} ${ret.tmdbMovie.id}`)
-                mm.tmdbMovie = ret.tmdbMovie;
+                console.log(`[recognizeMediaFolder] successfully recognized movie by folder name: ${ret.tmdbMovie.name} ${parseInt(ret.tmdbMovie.id)}`)
+                mm.movie = ret.tmdbMovie;
             }
         } catch (error) {
             console.error(`[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByFolderName:`, error)

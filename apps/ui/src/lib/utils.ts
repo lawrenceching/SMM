@@ -145,12 +145,12 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
     return { seasons: [], isEditing: false };
   }
 
-  if(!mediaMetadata.tmdbTvShow) {
+  if(!mediaMetadata.tvShow) {
     return { seasons: [], isEditing: false };
   }
 
   const mediaFolderPath = mediaMetadata.mediaFolderPath;
-  const tmdbTvShow = mediaMetadata.tmdbTvShow;
+  const tvShow = mediaMetadata.tvShow;
   
   const props: TvShowEpisodesProps = {
     seasons: [],
@@ -158,16 +158,20 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
   }
 
   
-  tmdbTvShow?.seasons.forEach((season) => {
+  tvShow?.seasons.forEach((season) => {
     const episodes = season.episodes?.map((episode) => {
 
-      const videoFilePath = mediaMetadata.mediaFiles?.find(file => file.seasonNumber === episode.season_number && file.episodeNumber === episode.episode_number)
+      const videoFilePath = mediaMetadata.mediaFiles?.find(file => file.seasonNumber === episode.season && file.episodeNumber === episode.episode)
 
+      
       const episodeProps: Episode = {
         name: episode.name,
-        seasonNumber: episode.season_number,
-        episodeNumber: episode.episode_number,
-        thumbnail: episode.still_path ? getTMDBImageUrl(episode.still_path, 'w300') ?? undefined : undefined,
+        seasonNumber: episode.season,
+        episodeNumber: episode.episode,
+        // TODO: add still_path field in TvShowEpisodeMetadata,
+        //  and need to figure out how to store thumbnail URL that support both TVDB and TMDB
+        // thumbnail: episode.still_path ? getTMDBImageUrl(episode.still_path, 'w300') ?? undefined : undefined,
+        thumbnail: undefined,
         associatedFiles: [],
       };
 
@@ -187,7 +191,7 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
     });
     props.seasons.push({
       name: season.name,
-      seasonNumber: season.season_number,
+      seasonNumber: season.season,
       episodes: episodes ?? [],
     });
   });
@@ -293,11 +297,13 @@ export async function _downloadThumbnail(mediaMetadata: MediaMetadata, mediaFile
 
   const seasonNumber = mediaFileMetadata.seasonNumber;
   const episodeNumber = mediaFileMetadata.episodeNumber;
-  const episode = mediaMetadata.tmdbTvShow?.seasons.find(season => season.season_number === seasonNumber)?.episodes?.find(episode => episode.episode_number === episodeNumber);
+  const episode = mediaMetadata.tvShow?.seasons.find(season => season.season === seasonNumber)?.episodes?.find(episode => episode.episode === episodeNumber);
   if(!episode) {
     return;
   }
-  const thumbnailUrl = episode.still_path ? getTMDBImageUrl(episode.still_path, 'w780') ?? undefined : undefined;
+  // TODO: add still_path field in TvShowEpisodeMetadata
+  // const thumbnailUrl = episode.still_path ? getTMDBImageUrl(episode.still_path, 'w780') ?? undefined : undefined;
+  const thumbnailUrl: string | undefined = undefined;
   if(!thumbnailUrl) {
     console.error(`[downloadThumbnail] Failed to get thumbnail URL for episode ${seasonNumber} ${episodeNumber}`);
     return;

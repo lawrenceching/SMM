@@ -317,14 +317,14 @@ export const NameVariable: RenameRuleVariable = {
       if (episodeUnified?.name) {
         return episodeUnified.name
       }
-      const season = mediaMetadata.tmdbTvShow?.seasons?.find(s => s.season_number === mediaFileMetadata.seasonNumber)
-      const episode = season?.episodes?.find(e => e.episode_number === mediaFileMetadata.episodeNumber)
+      const season = mediaMetadata.tvShow?.seasons?.find(s => s.season === mediaFileMetadata.seasonNumber)
+      const episode = season?.episodes?.find(e => e.episode === mediaFileMetadata.episodeNumber)
       if (episode?.name) {
         return episode.name
       }
     }
     // Fallback to movie title if it's a movie
-    return mediaMetadata.tmdbMovie?.title || '';
+    return mediaMetadata.movie?.name || '';
   }
 }
 
@@ -334,7 +334,7 @@ export const TvShowNameVariable: RenameRuleVariable = {
   description: 'The name of TV show',
   example: 'The Long TV Show, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    return mediaMetadata.tvShow?.name || mediaMetadata.tmdbTvShow?.name || '';
+    return mediaMetadata.tvShow?.name ?? '';
   }
 }
 
@@ -344,7 +344,9 @@ export const ReleaseYearVariable: RenameRuleVariable = {
   description: 'The name of TV show',
   example: 'The Long TV Show, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    return mediaMetadata.tmdbTvShow?.first_air_date.split('-')[0] || mediaMetadata.tmdbMovie?.release_date.split('-')[0] || '';
+    // TODO: add firstAirDate field in TvShowMediaMetadata
+    return '';
+    // return mediaMetadata.tmdbTvShow?.first_air_date.split('-')[0] || mediaMetadata.tmdbMovie?.release_date.split('-')[0] || '';
   }
 }
 
@@ -577,7 +579,7 @@ export interface MediaMetadata {
   /**
    * @deprecated use tvShow instead
    */
-  tmdbTvShow?: TMDBTVShowDetails,
+  // tmdbTvShow?: TMDBTVShowDetails,
   /**
    * @deprecated use movie instead
    */

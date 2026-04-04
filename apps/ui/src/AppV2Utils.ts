@@ -2,9 +2,10 @@ import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@core/path";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
-import { getTvShowById } from "./api/tmdb";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
-import type { PreferMediaLanguage, TMDBTVShowDetails, TvShowEpisodeMetadata, TvShowMediaMetadata, TvShowSeasonMetadata } from "@core/types";
+import type { PreferMediaLanguage } from "@core/types";
+import { fetchTvdbAndBuildTvShowMediaMetadata } from "./lib/TvdbUtils";
+import { getTvShowByIdFromTMDB } from "./lib/TmdbUtils";
 
 /**
  * For a folder name like:
@@ -20,43 +21,42 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
 }
 
 /**
- * This is a tmp folder only used before tmdbTvShow and tmdbMovie are removed from MediaMetadata
+ * This is a tmp folder only used before tvShow and tmdbMovie are removed from MediaMetadata
  * @param _in_out_mm 
  */
-function fillTvShowAndMovieByTmdbTvShowOrMovie(_in_out_mm: UIMediaMetadata) {
-  if (_in_out_mm.tvShow === undefined && _in_out_mm.tmdbTvShow !== undefined) {
-    const details: TMDBTVShowDetails = _in_out_mm.tmdbTvShow;
-    const seasons: TvShowSeasonMetadata[] = (details.seasons ?? []).map((season) => {
-      const episodes: TvShowEpisodeMetadata[] = (season.episodes ?? []).map((ep) => ({
-        season: ep.season_number,
-        episode: ep.episode_number,
-        name: ep.name ?? "",
-      }));
-      return {
-        season: season.season_number,
-        name: season.name ?? "",
-        episodes,
-      };
-    });
-    const tvShow: TvShowMediaMetadata = {
-      id: String(details.id),
-      name: details.name,
-      database: "TMDB",
-      seasons,
-    };
-    _in_out_mm.tvShow = tvShow;
-  }
+// function fillTvShowAndMovieBytvShowOrMovie(_in_out_mm: UIMediaMetadata) {
+//   if (_in_out_mm.tvShow === undefined && _in_out_mm.tvShow !== undefined) {
+//     const details: TvShowMediaMetadata = _in_out_mm.tvShow;
+//     const seasons: TvShowSeasonMetadata[] = (details.seasons ?? []).map((season) => {
+//       const episodes: TvShowEpisodeMetadata[] = (season.episodes ?? []).map((ep) => ({
+//         season: ep.season_number,
+//         episode: ep.episode_number,
+//         name: ep.name ?? "",
+//       }));
+//       return {
+//         season: season.season_number,
+//         name: season.name ?? "",
+//         episodes,
+//       };
+//     });
+//     const tvShow: TvShowMediaMetadata = {
+//       id: String(details.id),
+//       name: details.name,
+//       database: "TMDB",
+//       seasons,
+//     };
+//     _in_out_mm.tvShow = tvShow;
+//   }
 
-  if (_in_out_mm.movie === undefined && _in_out_mm.tmdbMovie !== undefined) {
-    const m = _in_out_mm.tmdbMovie;
-    _in_out_mm.movie = {
-      id: String(m.id),
-      name: m.title,
-      database: "TMDB",
-    };
-  }
-}
-
+//   if (_in_out_mm.movie === undefined && _in_out_mm.tmdbMovie !== undefined) {
+//     const m = _in_out_mm.tmdbMovie;
+//     _in_out_mm.movie = {
+//       id: String(m.id),
+//       name: m.title,
+//       database: "TMDB",
+//     };
+//   }
+// }
 
 export async function doPreprocessMediaFolder(
   _in_mm: UIMediaMetadata,
@@ -71,21 +71,43 @@ export async function doPreprocessMediaFolder(
 
   if(mm?.type === 'tvshow-folder') {
 
-    if(mm.tmdbTvShow !== undefined && (mm.tmdbTvShow.seasons === undefined || mm.tmdbTvShow.seasons.length === 0)) {
-      console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tmdbTvShow.id}`)
-      const tmdbId = mm.tmdbTvShow.id;
-      const resp = await getTvShowById(tmdbId, 'zh-CN');
-      if(resp.error) {
-          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp.error)
-      } else if(resp.data === undefined) {
-          console.error(`[${traceId}][doPreprocessMediaFolder] Error in getTvShowById:`, resp)
+    if(mm.tvShow !== undefined && (mm.tvShow.seasons === undefined || mm.tvShow.seasons.length === 0)) {
+      
+      try {
+
+        
+      if(mm.tvShow.database === "TMDB") {
+        console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tvShow.id}`)
+        const tvShow = await getTvShowByIdFromTMDB(parseInt(mm.tvShow.id), options?.preferLanguage ?? 'en-US');
+        if(tvShow) {
+          mm.tvShow = tvShow;
+        }
+      } else if(mm.tvShow.database === "TVDB") {
+        const tvShow = await fetchTvdbAndBuildTvShowMediaMetadata(
+          parseInt(mm.tvShow.id), 
+          options?.preferLanguage ?? 'en-US', {
+            onSeasonsAPIError: (error: Error) => {
+              console.error(`[${traceId}] failed to get TV show from TVDB by ID: ${mm.tvShow!.id}`, error)
+            },
+            onSeriesAPIError: (error: Error) => {
+              console.error(`[${traceId}] failed to get TV show from TVDB by ID: ${mm.tvShow!.id}`, error)
+            },
+        });
+        if(tvShow) {
+          mm.tvShow = tvShow;
+        }
       } else {
-          console.log(`[${traceId}][doPreprocessMediaFolder] successfully recognized TV show by folder name: ${mm.tmdbTvShow.name} ${mm.tmdbTvShow.id}`)
-          mm.tmdbTvShow = resp.data;
+        console.warn(`[${traceId}] TV show has no seasons, but database is not TMDB or TVDB, skip`)
       }
+
+      } catch (error) {
+        console.error(`[${traceId}] failed to get TV show from TMDB or TVDB by ID: ${mm.tvShow!.id}`, error)
+      }
+
+
     }
 
-    fillTvShowAndMovieByTmdbTvShowOrMovie(mm);
+    // fillTvShowAndMovieBytvShowOrMovie(mm);
 
     console.log(`[${traceId}] recognizing media files by rules`)
     // TODO: recognize media files by nfo
@@ -100,15 +122,15 @@ export async function doPreprocessMediaFolder(
 
     console.log(`[${traceId}] successful recognized media folder, update media metadata`, {
       folder: folderPathInPlatformFormat,
-      tmdbId: mm.tmdbTvShow?.id,
-      tvShowName: mm.tmdbTvShow?.name || mm.tvShow?.name,
+      tmdbId: mm.tvShow?.id,
+      tvShowName: mm.tvShow?.name || mm.tvShow?.name,
       mediaFiles: mm.mediaFiles,
     })
 
     options?.onSuccess?.(mm)
   } else if(mm?.type === 'movie-folder') {
 
-    fillTvShowAndMovieByTmdbTvShowOrMovie(mm)
+    // fillTvShowAndMovieBytvShowOrMovie(mm)
 
     console.log(`[${traceId}] recognizing media files by rules`)
     const recognizedMediaFiles = recognizeMovieMediaFiles(mm)

@@ -82,7 +82,7 @@ export async function initializeSingleMediaFolder(
     throw error
   }
 
-  const isMetadataIncomplete = !initializedMetadata.tmdbTvShow && !initializedMetadata.tmdbMovie
+  const isMetadataIncomplete = !initializedMetadata.tvShow && !initializedMetadata.movie
 
   if (isMetadataIncomplete) {
     await saveMediaMetadata(initializedMetadata, { traceId })
