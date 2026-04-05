@@ -117,7 +117,7 @@ describe("RenameDialog", () => {
       expect(screen.getByTestId("rename-dialog-input")).toHaveValue("My Show Folder")
     })
 
-    it("shows TV suggestions from store metadata when tvShow has airDate", () => {
+    it("shows TV suggestions with tmdbid when tvShow.database is TMDB and airDate is set", () => {
       store.mediaMetadatas = [
         {
           mediaFolderPath: folderPath,
@@ -137,6 +137,29 @@ describe("RenameDialog", () => {
       expect(screen.getByTestId("rename-dialog-suggestions")).toBeInTheDocument()
       expect(screen.getByTestId("rename-dialog-suggestion-0")).toHaveTextContent(
         /Showname \(2020\) \{tmdbid=99\}/
+      )
+    })
+
+    it("shows TV suggestions with tvdbid when tvShow.database is TVDB and airDate is set", () => {
+      store.mediaMetadatas = [
+        {
+          mediaFolderPath: folderPath,
+          mediaName: "Display",
+          status: "ok",
+          type: "tvshow-folder",
+          tvShow: {
+            id: "414124",
+            name: "Showname",
+            database: "TVDB",
+            airDate: "2020-01-01",
+            seasons: [],
+          },
+        } as UIMediaMetadata,
+      ]
+      renderDialog({ mediaFolderPath: folderPath })
+      expect(screen.getByTestId("rename-dialog-suggestions")).toBeInTheDocument()
+      expect(screen.getByTestId("rename-dialog-suggestion-0")).toHaveTextContent(
+        /Showname \(2020\) \{tvdbid=414124\}/
       )
     })
 

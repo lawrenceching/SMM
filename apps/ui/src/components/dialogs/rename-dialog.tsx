@@ -24,7 +24,8 @@ function buildTvShowFolderRenameSuggestions(metadata: UIMediaMetadata): string[]
   if (tvShow && tvShow.airDate !== undefined) {
     try {
       const year = tvShow.airDate.split("-")[0]
-      const suggestion = `${tvShow.name}${year ? ` (${year})` : ""} {tmdbid=${tvShow.id}}`
+      const idKey = tvShow.database === "TVDB" ? "tvdbid" : "tmdbid"
+      const suggestion = `${tvShow.name}${year ? ` (${year})` : ""} {${idKey}=${tvShow.id}}`
       suggestions.push(suggestion)
     } catch (error) {
       console.warn(`[RenameDialog] Failed to get year from air date: ${tvShow.airDate}`, error)
