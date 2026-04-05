@@ -2,7 +2,7 @@ import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from '../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe } from '../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, folder1 } from '../actions/import-folders'
+import { createAndImportFolder, folder1, folder2, folder5, type TestFolder } from '../actions/import-folders'
 import { setup } from '../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
@@ -11,6 +11,7 @@ import Sidebar from 'test/componentobjects/Sidebar'
 import RenameDialog from 'test/componentobjects/RenameDialog'
 import path from 'path'
 import { Path } from '@smm/core'
+import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
 describe('Rename Media Folder', () => {
 
@@ -143,5 +144,139 @@ S01E12 - - - -`)
         })
 
     })
+
+    it('Rename Movie folder', async function() {
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        const folder = await createAndImportFolder(folder5, 'e2eTest:RnameMovieFolder')
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await Sidebar.waitForFolder(folder5.translations?.title?.['en-US']!, 5000)
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        browser.pause(4000)
+        expect(await MoviePanelCO.table.getText()).toBe(`Type File Poster Sub NFO
+Video
+The Dark Knight [1080P].mkv`)
+
+        await Sidebar.rightClickFolder(folder5.translations?.title?.['en-US']!);
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await Sidebar.waitForContextMenu();
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await Sidebar.clickContextMenuRename();
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await RenameDialog.waitForDisplayed()
+
+        expect(await RenameDialog.input.getValue()).toBe(folder.folderName)
+        
+        await RenameDialog.setInputValue(`${folder.folderName} - Renamed`)
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await RenameDialog.clickConfirm()
+
+        await RenameDialog.waitForClosed()
+
+        expect(await MoviePanelCO.table.getText()).toBe(`Type File Poster Sub NFO
+Video
+The Dark Knight [1080P].mkv`)
+
+        const newFolderPath = folder.path!.replace(folder.folderName, `${folder.folderName} - Renamed`)
+        await expectMediaMetadataToBe(newFolderPath, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(newFolderPath))
+            const expectedMediaFiles = [
+                {
+                    absolutePath: Path.posix(path.join(newFolderPath, 'The Dark Knight [1080P].mkv')),
+                },
+            ]
+            expect(mm.mediaFiles).toEqual(expectedMediaFiles)
+            return true;
+        })
+    })
+
+    /**
+     * TODO: createAndImportFolder method unable to import music folder. Need to fix.
+     */
+    it.skip('Rename Musc Folder', async function() {
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        const folder = await createAndImportFolder({
+            folderName: 'music',
+            files: ['song1.mp3', 'song2.mp3'],
+            type: 'music',
+        } satisfies TestFolder, 'e2eTest:RnameMusicFolder')
+
+        await Sidebar.waitForFolder(folder.folderName, 5000)
+
+        if(env.slowdown) {
+            await delay(10 * 1000)
+        }
+
+        await Sidebar.rightClickFolder(folder5.translations?.title?.['en-US']!);
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await Sidebar.waitForContextMenu();
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await Sidebar.clickContextMenuRename();
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await RenameDialog.waitForDisplayed()
+
+        expect(await RenameDialog.input.getValue()).toBe(folder.folderName)
+        
+        const newFolderName = `${folder.folderName} - Renamed`
+        await RenameDialog.setInputValue(newFolderName)
+
+        if(env.slowdown) {
+            await delay(1 * 1000)
+        }
+
+        await RenameDialog.clickConfirm()
+
+        await RenameDialog.waitForClosed()
+
+        await Sidebar.waitForFolder(newFolderName, 5000)
+
+        await expectMediaMetadataToBe(folder.path!.replace(folder.folderName, newFolderName), (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(folder.path!.replace(folder.folderName, newFolderName)))
+            return true;
+        })
+    })
+
 
 })

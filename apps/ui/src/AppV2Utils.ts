@@ -26,8 +26,19 @@ export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
   mediaMetadatas: UIMediaMetadata[]
 ): MediaFolderListItemV2Props[] {
   return mediaMetadatas.map((metadata) => {
+
+    const getMediaName = () => {
+      if(metadata.tvShow) {
+        return metadata.tvShow.name;
+      } else if(metadata.movie) {
+        return metadata.movie.name;
+      } else {
+        return basename(metadata.mediaFolderPath!) ?? "未识别媒体名称";
+      }
+    }
+
     return {
-      mediaName: metadata.tvShow?.name ?? (basename(metadata.mediaFolderPath!) ?? "未识别媒体名称"),
+      mediaName: getMediaName(),
       path: metadata.mediaFolderPath,
       mediaType:
         metadata.type === "tvshow-folder"

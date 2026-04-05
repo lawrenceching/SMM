@@ -238,18 +238,33 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
     expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas([])).toEqual([])
   })
 
-  it('maps tvshow-folder using tvShow.name and mediaType tvshow', () => {
+  it('maps tvshow, movie, and music folders with correct mediaName and mediaType', () => {
     const metadatas: UIMediaMetadata[] = [
       {
         status: 'ok',
         type: 'tvshow-folder',
         mediaFolderPath: '/media/shows/BCS',
         tvShow: {
-          id: '1',
+          id: '60059',
           name: 'Better Call Saul',
           database: 'TMDB',
           seasons: [],
         },
+      },
+      {
+        status: 'ok',
+        type: 'movie-folder',
+        mediaFolderPath: '/media/movies/Inception.2010.1080p',
+        movie: {
+          id: '27205',
+          name: 'Inception',
+          database: 'TMDB',
+        },
+      },
+      {
+        status: 'ok',
+        type: 'music-folder',
+        mediaFolderPath: '/media/library/Artist Name/Album Title',
       },
     ]
     expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
@@ -259,10 +274,22 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
         mediaType: 'tvshow',
         status: 'ok',
       },
+      {
+        mediaName: 'Inception',
+        path: '/media/movies/Inception.2010.1080p',
+        mediaType: 'movie',
+        status: 'ok',
+      },
+      {
+        mediaName: 'Album Title',
+        path: '/media/library/Artist Name/Album Title',
+        mediaType: 'tvshow-folder',
+        status: 'ok',
+      },
     ])
   })
 
-  it('falls back to folder basename when tvShow name is missing', () => {
+  it('tvshow-folder falls back to folder basename when tvShow is missing', () => {
     const metadatas: UIMediaMetadata[] = [
       {
         status: 'idle',
@@ -280,7 +307,30 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
     ])
   })
 
-  it('maps movie-folder to mediaType movie and uses basename for display when no tvShow', () => {
+  it('movie-folder uses movie.name when movie metadata is present', () => {
+    const metadatas: UIMediaMetadata[] = [
+      {
+        status: 'loading',
+        type: 'movie-folder',
+        mediaFolderPath: '/media/movies/Blade Runner 2049 (2017)',
+        movie: {
+          id: '335984',
+          name: 'Blade Runner 2049',
+          database: 'TMDB',
+        },
+      },
+    ]
+    expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)).toEqual([
+      {
+        mediaName: 'Blade Runner 2049',
+        path: '/media/movies/Blade Runner 2049 (2017)',
+        mediaType: 'movie',
+        status: 'loading',
+      },
+    ])
+  })
+
+  it('movie-folder falls back to basename when neither tvShow nor movie is present', () => {
     const metadatas: UIMediaMetadata[] = [
       {
         status: 'loading',
@@ -298,7 +348,7 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
     ])
   })
 
-  it('uses tvShow.name for movie-folder when tvShow is present', () => {
+  it('movie-folder prefers tvShow.name over movie.name when both are present', () => {
     const metadatas: UIMediaMetadata[] = [
       {
         status: 'ok',
@@ -310,6 +360,11 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
           database: 'TMDB',
           seasons: [],
         },
+        movie: {
+          id: '100',
+          name: 'Title From Movie',
+          database: 'TMDB',
+        },
       },
     ]
     expect(buildMediaFolderListItemV2PropsByUIMediaMetadatas(metadatas)[0].mediaName).toBe(
@@ -317,7 +372,7 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
     )
   })
 
-  it('maps music-folder to mediaType tvshow-folder and basename for mediaName', () => {
+  it('music-folder uses folder basename for mediaName and mediaType tvshow-folder', () => {
     const metadatas: UIMediaMetadata[] = [
       {
         status: 'ok',
@@ -345,11 +400,17 @@ describe('buildMediaFolderListItemV2PropsByUIMediaMetadatas', () => {
     const b: UIMediaMetadata = {
       status: 'ok',
       type: 'movie-folder',
-      mediaFolderPath: '/b',
+      mediaFolderPath: '/movies/B',
+      movie: { id: '2', name: 'Movie B', database: 'TMDB' },
     }
-    const result = buildMediaFolderListItemV2PropsByUIMediaMetadatas([a, b])
-    expect(result.map((r) => r.path)).toEqual(['/a', '/b'])
-    expect(result.map((r) => r.mediaName)).toEqual(['A', 'b'])
+    const c: UIMediaMetadata = {
+      status: 'ok',
+      type: 'music-folder',
+      mediaFolderPath: '/music/C',
+    }
+    const result = buildMediaFolderListItemV2PropsByUIMediaMetadatas([a, b, c])
+    expect(result.map((r) => r.path)).toEqual(['/a', '/movies/B', '/music/C'])
+    expect(result.map((r) => r.mediaName)).toEqual(['A', 'Movie B', 'C'])
   })
 })
 

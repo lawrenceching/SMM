@@ -77,6 +77,12 @@ export const folder4: TestFolder = {
 export const folder5: TestFolder = {
   folderName: "The Dark Knight {tvdbid=116}",
   mediaName: "蝙蝠侠：黑暗骑士",
+  translations: {
+    title: {
+      'en-US': 'The Dark Knight',
+      'zh-CN': '蝙蝠侠：黑暗骑士'
+    }
+  },
   files: [
     "The Dark Knight [1080P].mkv",
   ],
