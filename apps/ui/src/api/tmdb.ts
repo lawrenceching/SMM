@@ -1,13 +1,13 @@
 import type {
   TmdbSearchRequestBody,
   TmdbSearchResponseBody,
-  TmdbMovieResponseBody,
+  TmdbMovieDetails,
   TmdbSeriesDetails,
   TmdbSeasonDetailsRequestBody,
   TmdbSeasonDetails,
 } from '@core/types';
 
-export type { TmdbSeasonDetailsRequestBody, TmdbTvSeasonDetails, TmdbSeriesDetails, TmdbSeasonDetails } from '@core/types';
+export type { TmdbSeasonDetailsRequestBody, TmdbTvSeasonDetails, TmdbSeriesDetails, TmdbSeasonDetails, TmdbMovieDetails } from '@core/types';
 
 /**
  * Search TMDB for movies or TV shows
@@ -80,7 +80,7 @@ export async function getMovieById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
   signal?: AbortSignal
-): Promise<TmdbMovieResponseBody> {
+): Promise<TmdbMovieDetails> {
   const queryParams = new URLSearchParams();
   if (language) {
     queryParams.append('language', language);
@@ -100,7 +100,7 @@ export async function getMovieById(
     throw new Error(`Failed to get movie: ${resp.statusText}`);
   }
 
-  const data: TmdbMovieResponseBody = await resp.json();
+  const data: TmdbMovieDetails = await resp.json();
   return data;
 }
 

@@ -1,4 +1,4 @@
-import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody, TmdbSeasonDetails, TmdbTvSeasonDetails, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails, TMDBSeason } from "@core/types";
+import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieDetails, TmdbTvShowResponseBody, TmdbSeasonDetails, TmdbTvSeasonDetails, UserConfig, TMDBMovie, TMDBTVShow, TMDBTVShowDetails, TMDBSeason } from "@core/types";
 import { getUserDataDir } from '@/utils/config';
 import path from "path";
 import type { Hono } from 'hono';
@@ -302,28 +302,20 @@ export async function getMovie(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
   baseURL?: string
-): Promise<TmdbMovieResponseBody> {
+): Promise<TmdbMovieDetails> {
   console.log(`[Tmdb.getMovie] id: ${id}, language: ${language}, baseURL: ${baseURL}`);
   
   if (!id || id <= 0) {
-    return {
-      data: undefined,
-      error: 'Invalid movie ID'
-    };
+    throw new Error('Invalid movie ID');
   }
 
   const result = await makeTmdbRequest(`/3/movie/${id}`, language, baseURL);
   
   if (result.error) {
-    return {
-      data: undefined,
-      error: result.error
-    };
+    throw new Error(result.error);
   }
 
-  return {
-    data: result.data as TMDBMovie
-  };
+  return result.data as TmdbMovieDetails;
 }
 
 /**
