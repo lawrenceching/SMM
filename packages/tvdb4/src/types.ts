@@ -147,6 +147,17 @@ export interface TVDBv4LanguageRecord {
   shortCode?: string;
 }
 
+export interface TVDBv4ArtworkTypeRecord {
+  height: number;
+  id: number;
+  imageFormat: string;
+  name: string;
+  recordType: string;
+  slug: string;
+  thumbHeight: number;
+  thumbWidth: number;
+  width: number;
+}
 /**
  * See example responses in:
  * docs\tvdb\example\search_api_movie_resp_example.jsonl

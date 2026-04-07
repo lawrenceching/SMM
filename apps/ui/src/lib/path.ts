@@ -91,3 +91,38 @@ export function extname(path: string) {
     }
     return "." + words.pop()
 }
+
+/**
+
+ * @param filepath Absolute file path
+ */
+export function parse(filepath: string): {
+    name: string;
+    ext: string;
+    dir: string;
+} {
+    const name = basename(filepath)!
+    const ext = extname(filepath)
+    const base = name + ext
+    const dir = dirname(filepath)
+    return {
+        name,
+        ext,
+        dir,
+    }
+}
+
+
+/**
+ * Generate file path by new extension
+ * For example
+ * * Input: "/S01E01.mkv"
+ * * Output: "/S01E01.png"
+ * @param sourceFilePath absolute file path
+ * @param targetExt target extension
+ * @returns absolute file path with new extension
+ */
+export function newFilePathWithExt(sourceFilePath: string, targetExt: string) {
+    const src = parse(sourceFilePath);
+    return join(src.dir, src.name.replace(src.ext, '') + targetExt)
+}

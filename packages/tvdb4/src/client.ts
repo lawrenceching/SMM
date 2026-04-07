@@ -18,6 +18,7 @@ import type {
   TVDBv4FetchResponse,
   TVDBv4ErrorBody,
   TVDBv4SeriesExtendedResponse,
+  TVDBv4ArtworkTypeRecord,
 } from "./types";
 import type { Logger } from "./logger";
 import { noopLogger } from "./logger";
@@ -363,6 +364,14 @@ export class TVDBv4 {
 
   getSeriesTranslationByLangCode(id: number, langCode: string): Promise<TVDBv4Envelope<Record<string, string>>> {
     return this.seriesTranslationByLangCode(id, langCode);
+  }
+
+  async arkworkTypes() {
+    return this.request<TVDBv4ArtworkTypeRecord[]>("/artwork/types", { method: "GET" });
+  }
+
+  getArtworkTypes() {
+    return this.arkworkTypes();
   }
 
   // Convenience type exports (helps app code avoid importing from ./types)
