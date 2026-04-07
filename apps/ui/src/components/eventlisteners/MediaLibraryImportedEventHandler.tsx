@@ -20,7 +20,7 @@ const debug = Debug("MediaLibraryImportedEventHandler")
 const mediaLibraryImportMutex = new Mutex()
 
 export function MediaLibraryImportedEventHandler() {
-  const { addMediaFolderInUserConfig } = useConfig()
+  const { addMediaFolderInUserConfig, userConfig } = useConfig()
   const { mediaMetadatas } = useMediaMetadataStoreState()
   const { addMediaMetadatas, getMediaMetadata } = useMediaMetadataStoreActions()
   const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions()
@@ -95,6 +95,8 @@ export function MediaLibraryImportedEventHandler() {
         try {
           await initializeSingleMediaFolder(path, type, traceId, deps, {
             onError: (message) => toast.error(message),
+            preferMediaLanguage: userConfig?.preferMediaLanguage,
+            primaryDatabase: userConfig?.primaryDatabase,
           })
         } catch {
           // Error already reported via onError; continue with next folder

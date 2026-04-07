@@ -2,7 +2,7 @@ import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, type TestFolder, folder4 } from '../../actions/import-folders'
+import { createAndImportFolder, type TestFolder, folder4, folder1 } from '../../actions/import-folders'
 import { setup } from '../../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
@@ -20,6 +20,32 @@ describe('TVDB TV Show Media Folder Initialization', () => {
             openBrowserPage: true,
             resetUserConfig: true,
         })
+
+        await Menu.openConfigDialog()
+        if(env.slowdown) {
+            await browser.pause(1000)
+        }
+
+        await ConfigDialog.waitForDisplayed()
+        if(env.slowdown) {
+            await browser.pause(1000)
+        }
+
+        await ConfigDialog.setPrimaryDatabase('TVDB')
+        console.log(`set primary database to TVDB in ConfigDialog`)
+        if(env.slowdown) {
+            await browser.pause(1000)
+        }
+
+        await ConfigDialog.setPreferMediaLanguage('zh-CN')
+        console.log(`set prefer media language to zh-CN in ConfigDialog`)
+        if(env.slowdown) {
+            await browser.pause(1000)
+        }
+
+        await ConfigDialog.clickSave()
+        await ConfigDialog.pressEscape()
+        await browser.pause(1000)
     })
 
     afterEach(async () => {
@@ -37,20 +63,6 @@ describe('TVDB TV Show Media Folder Initialization', () => {
         if(env.slowdown) {
             this.timeout(60 * 1000)
         }
-
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        expect(await ConfigDialog.isDisplayed()).toBe(true)
-
-        if (env.slowdown) {
-            await delay(1000)
-        }
-
-        await ConfigDialog.setPreferMediaLanguage('zh-CN')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(1000)
-        
         
         const folder = await createAndImportFolder(folder4, 'TVDB TV Show Media Folder Initialization:import media folder with tvdbid in folder name');
 
@@ -109,13 +121,56 @@ S04E01 - - - -`)
         await expectMediaMetadataToBe(folder.path!, (obj) => {
             const mm = obj as MediaMetadata;
             expect(mm.tvShow).toBeDefined()
-            expect(mm.tmdbTvShow).toBeUndefined()
             expect(mm.tvShow?.id).toBe('421069')
             expect(mm.tvShow?.name).toBe('【我推的孩子】')
             expect(mm.tvShow?.database).toBe('TVDB')
             return true;
         })
 
+    })
+
+    it('import media folder by searching folder name in TVDB', async function() {
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        const folder = await createAndImportFolder({
+            ...folder1,
+            folderName: '天使降临到我身边',
+        }, 'TVDB TV Show Media Folder Initialization:import media folder by searching folder name in TVDB');
+
+        await delay(10 * 1000)
+
+        expect(await TvShowPanelCO.immersiveInput.getValue()).toBe('天使降临到了我身边！')
+
+        const state = await TvShowPanelCO.toString()
+
+        expect(state).toContain(`Season 0
+S00E01 - - - -
+S00E02 - - - -
+Season 1
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
+
+        await expectMediaMetadataToBe(folder.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.tvShow).toBeDefined()
+            expect(mm.tvShow?.id).toBe('355969')
+            expect(mm.tvShow?.name).toBe('天使降临到了我身边！')
+            expect(mm.tvShow?.database).toBe('TVDB')
+            return true;
+        })
+        
     })
 
 })

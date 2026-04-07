@@ -249,3 +249,52 @@ export async function expectMediaMetadataToBe(
         throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(obj)}`)
     }
 }
+
+/**
+ * Write a media metadata JSON file into the app's metadata cache directory.
+ *
+ * The output path matches {@link expectMediaMetadataToBe}: `getMetadataDir()` plus
+ * a filename derived from the folder path (POSIX, invalid path chars replaced with `_`) + `.json`.
+ *
+ * @param mediaMetadata Must include `mediaFolderPath` (POSIX or platform path; normalized like in expect).
+ */
+export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<void> {
+    const folderPath = mediaMetadata.mediaFolderPath
+    if (folderPath === undefined || folderPath === '') {
+        throw new Error('writeMediaMetadata: mediaMetadata.mediaFolderPath is required')
+    }
+
+    const metadataDir = await getMetadataDir()
+    if (!fs.existsSync(metadataDir)) {
+        fs.mkdirSync(metadataDir, { recursive: true })
+    }
+
+    const mediaFolderPosix = Path.posix(folderPath)
+    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const metadataFilePath = path.join(metadataDir, `${safeFileName}.json`)
+
+    fs.writeFileSync(metadataFilePath, JSON.stringify(mediaMetadata, null, 4), 'utf-8')
+    console.log(`Wrote media metadata to ${metadataFilePath}`)
+}
+
+export type UserConfigUpdater = (
+    userConfig: UserConfig
+) => UserConfig | Promise<UserConfig>
+
+/**
+ * Read smm.json, apply {@link updateFn}, and write the result back.
+ * {@link updateFn} may be synchronous or return a Promise.
+ */
+export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<void> {
+    const userConfigPath = await getUserConfigPath()
+    if (!fs.existsSync(userConfigPath)) {
+        throw new Error(`updateUserConfig: user config not found at ${userConfigPath}`)
+    }
+
+    const raw = fs.readFileSync(userConfigPath, 'utf-8')
+    const current = JSON.parse(raw) as UserConfig
+    const next = await Promise.resolve(updateFn(current))
+
+    fs.writeFileSync(userConfigPath, JSON.stringify(next, null, 2), 'utf-8')
+    console.log(`Updated user config at: ${userConfigPath}`)
+}

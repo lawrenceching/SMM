@@ -162,6 +162,7 @@ export function TvShowHeaderV2({
                                 onClick={() => {
                                     onRenameClick?.()
                                 }}
+                                data-testid="rename-button"
                             >
                                 <FileEdit className="size-4 mr-2" />
                                 {t('tvShow.rename', { ns: 'components' })}
@@ -170,6 +171,7 @@ export function TvShowHeaderV2({
                                 variant="outline"
                                 size="sm"
                                 className="hidden @[220px]:inline-flex"
+                                data-testid="scrape-button"
                                 onClick={() => {
                                     if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tvShow) return
 

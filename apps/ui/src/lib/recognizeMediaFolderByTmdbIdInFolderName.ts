@@ -3,7 +3,9 @@ import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
 import { getMovieByIdFromTMDB, getTvShowByIdFromTMDB } from "./TmdbUtils";
 
-export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: string, language: PreferMediaLanguage, signal?: AbortSignal): Promise<{
+export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(
+    getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>,
+    folderPath: string, language: PreferMediaLanguage, signal?: AbortSignal): Promise<{
     tvShow?: TvShowMediaMetadata;
     movie?: MovieMediaMetadata;
 }> {
@@ -23,7 +25,7 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
         return { }
     }
 
-    const tvShow = await getTvShowByIdFromTMDB(tmdbIdNumber, language, signal)
+    const tvShow = await getTvShowByIdFromTmdbFn(tmdbIdNumber, language)
     if(tvShow) {
         return {
             tvShow: tvShow,
@@ -31,6 +33,7 @@ export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(folderPath: 
     }
     
     // Try to get movie by TMDB ID
+    // TODO: use mutation instead
     const movie = await getMovieByIdFromTMDB(tmdbIdNumber, language, signal);
     
     if(movie) {

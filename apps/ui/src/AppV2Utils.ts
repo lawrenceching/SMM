@@ -5,9 +5,7 @@ import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolde
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
-import type { PreferMediaLanguage } from "@core/types";
-import { fetchTvdbAndBuildTvShowMediaMetadata } from "./lib/TvdbUtils";
-import { getTvShowByIdFromTMDB } from "./lib/TmdbUtils";
+import type { PreferMediaLanguage, PrimaryDatabase, TvShowMediaMetadata } from "@core/types";
 
 /**
  * For a folder name like:
@@ -89,16 +87,42 @@ export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
 //   }
 // }
 
+/**
+ * @param _in_mm 
+ * @param options 
+ */
 export async function doPreprocessMediaFolder(
   _in_mm: UIMediaMetadata,
-  options?: { traceId?: string, preferLanguage?: PreferMediaLanguage, onSuccess?: (mm: UIMediaMetadata) => void, onError?: (error: Error) => void }
+  options: { 
+    traceId?: string, 
+    preferLanguage?: PreferMediaLanguage,
+    /** Preferred metadata DB for id-in-name and folder-name fallbacks. Undefined: try TMDB, then TVDB. */
+    primaryDatabase?: PrimaryDatabase,
+    onSuccess?: (mm: UIMediaMetadata) => void, 
+    onError?: (error: Error) => void,
+    getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>
+    getTvShowByIdFromTvdbFn: (
+      seriesId: number,
+      language?: PreferMediaLanguage
+    ) => Promise<TvShowMediaMetadata>
+  }
 ) {
 
-  const traceId = options?.traceId || `doPreprocessMediaFolder`
+  const traceId = options?.traceId || `MediaFolderInitialization`
 
+  console.log(`[${traceId}] doPreprocessMediaFolder CALLED: folder=${_in_mm.mediaFolderPath}, preferLanguage=${options?.preferLanguage}, primaryDatabase=${options?.primaryDatabase}`)
+
+  const getTvShowByIdFromTmdbFn = options?.getTvShowByIdFromTmdbFn;
+  const getTvShowByIdFromTvdbFn = options?.getTvShowByIdFromTvdbFn;
   const folderPathInPlatformFormat = Path.toPlatformPath(_in_mm.mediaFolderPath!)
 
-  const mm = await recognizeMediaFolder(_in_mm, options?.preferLanguage);
+  const mm = await recognizeMediaFolder(
+    _in_mm,
+    getTvShowByIdFromTmdbFn,
+    getTvShowByIdFromTvdbFn,
+    options?.preferLanguage,
+    options?.primaryDatabase,
+  );
 
   if(mm?.type === 'tvshow-folder') {
 
@@ -109,23 +133,22 @@ export async function doPreprocessMediaFolder(
         
       if(mm.tvShow.database === "TMDB") {
         console.log(`[${traceId}] TV show has no seasons, try to get all seasons by TMDB ID: ${mm.tvShow.id}`)
-        const tvShow = await getTvShowByIdFromTMDB(parseInt(mm.tvShow.id), options?.preferLanguage ?? 'en-US');
+        const tvShow = await getTvShowByIdFromTmdbFn(parseInt(mm.tvShow.id), options?.preferLanguage ?? 'en-US');
         if(tvShow) {
           mm.tvShow = tvShow;
         }
       } else if(mm.tvShow.database === "TVDB") {
-        const tvShow = await fetchTvdbAndBuildTvShowMediaMetadata(
-          parseInt(mm.tvShow.id), 
-          options?.preferLanguage ?? 'en-US', {
-            onSeasonsAPIError: (error: Error) => {
-              console.error(`[${traceId}] failed to get TV show from TVDB by ID: ${mm.tvShow!.id}`, error)
-            },
-            onSeriesAPIError: (error: Error) => {
-              console.error(`[${traceId}] failed to get TV show from TVDB by ID: ${mm.tvShow!.id}`, error)
-            },
-        });
-        if(tvShow) {
-          mm.tvShow = tvShow;
+        try {
+          const tvShow = await getTvShowByIdFromTvdbFn(
+            parseInt(mm.tvShow.id, 10),
+            options?.preferLanguage ?? "en-US",
+          )
+          mm.tvShow = tvShow
+        } catch (error) {
+          console.error(
+            `[${traceId}] failed to get TV show from TVDB by ID: ${mm.tvShow!.id}`,
+            error,
+          )
         }
       } else {
         console.warn(`[${traceId}] TV show has no seasons, but database is not TMDB or TVDB, skip`)

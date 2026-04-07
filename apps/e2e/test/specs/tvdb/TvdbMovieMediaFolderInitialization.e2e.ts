@@ -21,6 +21,30 @@ describe('TVDB Movie Media Folder Initialization', () => {
             openBrowserPage: true,
             resetUserConfig: true,
         })
+
+        await Menu.openConfigDialog()
+        await ConfigDialog.waitForDisplayed()
+        expect(await ConfigDialog.isDisplayed()).toBe(true)
+
+        if (env.slowdown) {
+            await delay(1000)
+        }
+
+        await ConfigDialog.setPrimaryDatabase('TVDB')
+        console.log(`set primary database to TVDB in ConfigDialog`)
+        if (env.slowdown) {
+            await delay(1000)
+        }
+
+        await ConfigDialog.setPreferMediaLanguage('zh-CN')
+        console.log(`set prefer media language to zh-CN in ConfigDialog`)
+        if (env.slowdown) {
+            await delay(1000)
+        }
+
+        await ConfigDialog.clickSave()
+        await ConfigDialog.pressEscape()
+        await browser.pause(1000)
     })
 
     afterEach(async () => {
@@ -38,20 +62,7 @@ describe('TVDB Movie Media Folder Initialization', () => {
         if(env.slowdown) {
             this.timeout(60 * 1000)
         }
-
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        expect(await ConfigDialog.isDisplayed()).toBe(true)
-
-        if (env.slowdown) {
-            await delay(1000)
-        }
-
-        await ConfigDialog.setPreferMediaLanguage('zh-CN')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(1000)
-        
+ 
         const folder = await createAndImportFolder(folder5, 'TVDB Movie Media Folder Initialization:import media folder with tvdbid in folder name');
 
         await delay(10 * 1000)
@@ -67,7 +78,38 @@ The Dark Knight [1080P].mkv`)
         await expectMediaMetadataToBe(folder.path!, (obj) => {
             const mm = obj as MediaMetadata;
             expect(mm.movie).toBeDefined()
-            expect(mm.tmdbMovie).toBeUndefined()
+            expect(mm.movie?.id).toBe('116')
+            expect(mm.movie?.name).toBe('蝙蝠侠：黑暗骑士')
+            expect(mm.movie?.database).toBe('TVDB')
+            return true;
+        })
+
+    })
+
+    it('import media folder by searching folder name in TVDB', async function() {
+
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+ 
+        const folder = await createAndImportFolder({
+            ...folder5,
+            folderName: '蝙蝠侠：黑暗骑士',
+        }, 'TVDB Movie Media Folder Initialization:import media folder with tvdbid in folder name');
+
+        await delay(10 * 1000)
+
+        expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：黑暗骑士')
+
+        const text = await MoviePanelCO.table.getText()
+
+        expect(text).toContain(`Type File Poster Sub NFO
+Video
+The Dark Knight [1080P].mkv`)
+
+        await expectMediaMetadataToBe(folder.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.movie).toBeDefined()
             expect(mm.movie?.id).toBe('116')
             expect(mm.movie?.name).toBe('蝙蝠侠：黑暗骑士')
             expect(mm.movie?.database).toBe('TVDB')

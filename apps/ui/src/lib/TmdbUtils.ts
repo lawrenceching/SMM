@@ -30,6 +30,9 @@ export function buildTvShowMediaMetadataFromTmdbSeriesDetails(
   return tvShowMediaMetadataFromTmdbDetails(details);
 }
 
+/**
+ * @deprecated, use useTmdbQueries instead
+ */
 export async function getTvShowByIdFromTMDB(
   id: number,
   language?: PreferMediaLanguage,

@@ -28,7 +28,6 @@ export function useGetTmdbTvShowMutation<
         const tmdbTvShowSeasonDetails: TmdbSeasonDetails = await getTvShowSeasonDetails(variables.id, season.season_number, variables.language)
         seasonDetails.push(tmdbTvShowSeasonDetails)
       }
-
       
       return buildTvShowMediaMetadata(tmdbTvSeriesDetails, seasonDetails)
     },

@@ -2,6 +2,9 @@ import { Path } from "@core/path"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder"
+import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils"
+import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
+import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
 export type FolderType = "tvshow" | "movie" | "music"
 
@@ -23,6 +26,8 @@ export interface InitializeSingleMediaFolderDeps {
 
 export interface InitializeSingleMediaFolderOptions {
   onError?: (message: string) => void
+  preferMediaLanguage?: PreferMediaLanguage
+  primaryDatabase?: PrimaryDatabase
 }
 
 /**
@@ -93,6 +98,23 @@ export async function initializeSingleMediaFolder(
 
       await doPreprocessMediaFolder(initializedMetadata, {
         traceId,
+        preferLanguage: options?.preferMediaLanguage,
+        primaryDatabase: options?.primaryDatabase,
+        getTvShowByIdFromTmdbFn: getTvShowByIdFromTMDB,
+        getTvShowByIdFromTvdbFn: async (
+          seriesId: number,
+          language?: PreferMediaLanguage,
+        ) => {
+          const m = await fetchTvdbAndBuildTvShowMediaMetadata(
+            seriesId,
+            language ?? "en-US",
+            {},
+          )
+          if (m === undefined) {
+            throw new Error(`Failed to fetch TVDB series ${seriesId}`)
+          }
+          return m
+        },
         onSuccess: (processedMetadata) => {
           void updateMediaMetadata(processedMetadata.mediaFolderPath!, { ...processedMetadata, status: "ok" }, { traceId })
         },

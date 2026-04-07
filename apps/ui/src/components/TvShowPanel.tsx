@@ -286,26 +286,26 @@ function TvShowPanel() {
     })
 
     try {
-      const details = await getTvShowById(tmdbId, language)
+      // const details = await getTvShowById(tmdbId, language)
       
-      if (details) {
-        tmdbPromptStore.openPrompt({
-          tmdbId,
-          mediaName: details.name,
-          status: "ready",
-          onConfirm: handleUseTmdbidFromFolderNameConfirm,
-          onCancel: () => {},
-        })
-      } else {
-        tmdbPromptStore.openPrompt({
-          tmdbId,
-          mediaName: undefined,
-          status: "error",
-          onConfirm: handleUseTmdbidFromFolderNameConfirm,
-          onCancel: () => {},
-        })
-        toast.error(t('toolbar.queryTmdbFailed'))
-      }
+      // if (details) {
+      //   tmdbPromptStore.openPrompt({
+      //     tmdbId,
+      //     mediaName: details.name,
+      //     status: "ready",
+      //     onConfirm: handleUseTmdbidFromFolderNameConfirm,
+      //     onCancel: () => {},
+      //   })
+      // } else {
+      //   tmdbPromptStore.openPrompt({
+      //     tmdbId,
+      //     mediaName: undefined,
+      //     status: "error",
+      //     onConfirm: handleUseTmdbidFromFolderNameConfirm,
+      //     onCancel: () => {},
+      //   })
+      //   toast.error(t('toolbar.queryTmdbFailed'))
+      // }
     } catch (error) {
       console.error('Failed to get TV show by ID:', error)
       tmdbPromptStore.openPrompt({
@@ -320,10 +320,19 @@ function TvShowPanel() {
   }, [getTvShowById, handleUseTmdbidFromFolderNameConfirm, t])
 
   useEffect(() => {
-    const detection = startToRecognizeByTmdbIdInFolderName(mediaMetadata, userConfig)
-    if (detection) {
-      handleTmdbIdDetected(detection.tmdbId, detection.language)
+
+    if(mediaMetadata?.status !== 'ok') {
+      return
     }
+
+    if(mediaMetadata?.tvShow !== undefined) {
+      return
+    }
+
+    // const detection = startToRecognizeByTmdbIdInFolderName(mediaMetadata, userConfig)
+    // if (detection) {
+    //   handleTmdbIdDetected(detection.tmdbId, detection.language)
+    // }
   }, [mediaMetadata, userConfig, handleTmdbIdDetected])
 
   const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {

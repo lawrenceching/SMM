@@ -9,7 +9,8 @@ import { recognizeTvShowMediaFiles } from './lib/recognizeMediaFiles'
 import { recognizeEpisodesAsync } from './lib/recognizeEpisodes'
 import { getTvShowById } from './api/tmdb'
 import type { UIMediaMetadata } from './types/UIMediaMetadata'
-import type { TMDBTVShowDetails, TvShowMediaMetadata } from '@core/types'
+import type { PreferMediaLanguage, TMDBTVShowDetails, TvShowMediaMetadata } from '@core/types'
+import { tvShowMediaMetadataFromTmdbDetails } from './lib/tvShowMediaMetadataFromTmdbDetails'
 
 vi.mock('./lib/recognizeMediaFolder')
 vi.mock('./lib/recognizeMediaFiles')
@@ -420,6 +421,14 @@ describe('doPreprocessMediaFolder', () => {
   const mockRecognizeEpisodesAsync = vi.mocked(recognizeEpisodesAsync)
   const mockGetTvShowById = vi.mocked(getTvShowById)
 
+  const getTvShowByIdFromTmdbFn = async (id: number, language?: PreferMediaLanguage) => {
+    const details = await mockGetTvShowById(id, language ?? 'en-US', undefined)
+    return tvShowMediaMetadataFromTmdbDetails(details as TMDBTVShowDetails)
+  }
+  const getTvShowByIdFromTvdbFn = vi
+    .fn()
+    .mockRejectedValue(new Error('TVDB not exercised in this test'))
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -487,7 +496,11 @@ describe('doPreprocessMediaFolder', () => {
 
       const onSuccess = vi.fn()
 
-      await doPreprocessMediaFolder(inputMetadata, { onSuccess })
+      await doPreprocessMediaFolder(inputMetadata, {
+        onSuccess,
+        getTvShowByIdFromTmdbFn,
+        getTvShowByIdFromTvdbFn,
+      })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(12345, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
@@ -559,7 +572,11 @@ describe('doPreprocessMediaFolder', () => {
 
       const onSuccess = vi.fn()
 
-      await doPreprocessMediaFolder(inputMetadata, { onSuccess })
+      await doPreprocessMediaFolder(inputMetadata, {
+        onSuccess,
+        getTvShowByIdFromTmdbFn,
+        getTvShowByIdFromTvdbFn,
+      })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(67890, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
@@ -597,7 +614,11 @@ describe('doPreprocessMediaFolder', () => {
 
       const onSuccess = vi.fn()
 
-      await doPreprocessMediaFolder(inputMetadata, { onSuccess })
+      await doPreprocessMediaFolder(inputMetadata, {
+        onSuccess,
+        getTvShowByIdFromTmdbFn,
+        getTvShowByIdFromTvdbFn,
+      })
 
       expect(mockGetTvShowById).toHaveBeenCalledWith(22222, 'en-US', undefined)
       // Verify getTvShowById was called before recognizeEpisodesAsync
@@ -641,7 +662,11 @@ describe('doPreprocessMediaFolder', () => {
 
       const onSuccess = vi.fn()
 
-      await doPreprocessMediaFolder(inputMetadata, { onSuccess })
+      await doPreprocessMediaFolder(inputMetadata, {
+        onSuccess,
+        getTvShowByIdFromTmdbFn,
+        getTvShowByIdFromTvdbFn,
+      })
 
       expect(mockGetTvShowById).not.toHaveBeenCalled()
       expect(onSuccess).toHaveBeenCalled()

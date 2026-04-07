@@ -30,8 +30,6 @@ import type { MediaMetadata, TvShowSeasonMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { nextTraceId } from "@/lib/utils"
-import { useQueries, useQuery } from "@tanstack/react-query"
-import { getTvShowById } from "@/api/tmdb"
 
 interface Task {
   id: string;
@@ -75,12 +73,15 @@ function TaskItem({ task }: { task: Task }) {
   }
 
   return (
-    <TableRow>
+    <TableRow data-testid={`scrape-dialog-task-row-${task.id}`}>
       <TableCell className="py-2 px-2">
         <span className="text-sm">{task.name}</span>
       </TableCell>
       <TableCell className="py-2 px-2">
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          data-testid={`scrape-dialog-task-status-${task.id}`}
+        >
           {getStatusIcon()}
           <span className="text-xs text-muted-foreground">
             {getStatusText()}
@@ -554,6 +555,7 @@ export function ScrapeDialog({
       <DialogContent
         showCloseButton={canClose}
         className="max-w-2xl"
+        data-testid="scrape-dialog"
       >
         <DialogHeader>
           <DialogTitle>{defaultTitle}</DialogTitle>
@@ -565,7 +567,7 @@ export function ScrapeDialog({
               {t('scrape.noTasks')}
             </div>
           ) : (
-            <Table>
+            <Table data-testid="scrape-dialog-table">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="py-2 px-2">
@@ -586,10 +588,18 @@ export function ScrapeDialog({
         </ScrollArea>
         {showButtons && (
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={handleClose}>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              data-testid="scrape-dialog-cancel"
+            >
               {t('cancel', { ns: 'common' })}
             </Button>
-            <Button onClick={handleStart} disabled={allTasksDone}>
+            <Button
+              onClick={handleStart}
+              disabled={allTasksDone}
+              data-testid="scrape-dialog-start"
+            >
               {allTasksDone ? (t as any)('scrape.done') : t('scrape.start')}
             </Button>
           </div>

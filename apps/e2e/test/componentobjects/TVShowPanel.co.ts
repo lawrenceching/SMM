@@ -682,6 +682,10 @@ class TVShowPanel {
     get searchbox() {
         return new MediaDatabaseSearchboxCO()
     }
+
+    get scrapeButton() {
+        return $('[data-testid="scrape-button"]')
+    }
     
 }
 

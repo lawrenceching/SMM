@@ -183,3 +183,18 @@ pnpm ci               # 构建 + 测试 + 类型检查
 - 前端使用 `i18next` + `react-i18next`
 - 后端使用 `i18next` + `i18next-fs-backend`
 - 支持语言: English, 简体中文, 繁体中文(香港), 繁体中文(台湾)
+
+
+## 端到端测试
+
+`apps/e2e` 是端到端测试目录
+其使用 webdriver.io 运行基于浏览器的端到端测试
+
+### 代码结构
+本项目主要代码在 `apps/e2e/test` 目录下
+* actions - 可复用的测试动作
+* componentobjects - 用于操作 SMM 界面的组件
+* pageobject - 用于操作网页
+* lib - 可复用的辅助函数
+* specs - 端到端测试用例
+

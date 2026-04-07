@@ -1,4 +1,4 @@
-import type { MediaFileMetadata, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
+import type { MediaFileMetadata, PreferMediaLanguage, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
@@ -28,6 +28,8 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
+import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils";
+import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 
@@ -1037,6 +1039,8 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
 
 export interface OnMediaFolderSelectedParams {
   mediaMetadata: UIMediaMetadata
+  /** Mirrors user config; undefined means try TMDB then TVDB in recognizeMediaFolder. */
+  primaryDatabase?: PrimaryDatabase
   openRuleBasedRecognizePrompt: (options: {
     tvShowTitle: string
     tvShowTmdbId: number
@@ -1089,6 +1093,7 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
 export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): boolean {
   const {
     mediaMetadata,
+    primaryDatabase,
     openRuleBasedRecognizePrompt,
     updateMediaMetadata,
   } = params
@@ -1114,7 +1119,23 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
 
   ;(async () => {
     if (mediaMetadata.type === undefined || (mediaMetadata.tvShow === undefined && mediaMetadata.tvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
-      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(mediaMetadata);
+      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(
+        mediaMetadata,
+        getTvShowByIdFromTMDB,
+        async (seriesId: number, language?: PreferMediaLanguage) => {
+          const m = await fetchTvdbAndBuildTvShowMediaMetadata(
+            seriesId,
+            language ?? "en-US",
+            {},
+          )
+          if (m === undefined) {
+            throw new Error(`Failed to fetch TVDB series ${seriesId}`)
+          }
+          return m
+        },
+        undefined,
+        primaryDatabase,
+      );
       if (recognized !== undefined) {
         if (recognized.tvShow !== undefined) {
           openRuleBasedRecognizePrompt({

@@ -13,6 +13,9 @@ import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 import { Mutex } from "es-toolkit";
 import { toast } from "sonner";
+import type { PreferMediaLanguage } from "@core/types";
+import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation";
+import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation";
 
 const mutex = new Mutex();
 
@@ -24,6 +27,8 @@ export function MediaFolderImportedEventHandler() {
     const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions();
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: Event) => void) | null>(null);
+    const { mutateAsync: getTvShowByIdFromTmdb } = useGetTmdbTvShowMutation()
+    const { mutateAsync: getTvShowByIdFromTvdb } = useGetTvdbTvShowMutation()
 
     const doInitializeMediaFolder = async (event: Event) => {
         const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail
@@ -169,15 +174,18 @@ export function MediaFolderImportedEventHandler() {
                         return
                     }
 
+
                     try {
                         updateMediaMetadata(initializedMetadata.mediaFolderPath!, {
                             ...initializedMetadata,
                             status: 'initializing',
                         }, { traceId })
 
+                        // TODO: convert to a hook
                         await doPreprocessMediaFolder(initializedMetadata, {
                             traceId,
-                            preferLanguage: latestUserConfig.current.preferMediaLanguage,
+                            preferLanguage: latestUserConfig.current?.preferMediaLanguage,
+                            primaryDatabase: latestUserConfig.current?.primaryDatabase,
                             onSuccess: (processedMetadata) => {
                                 updateMediaMetadata(processedMetadata.mediaFolderPath!, {
                                     ...processedMetadata,
@@ -197,6 +205,15 @@ export function MediaFolderImportedEventHandler() {
                                     `预处理媒体目录失败: ${folderName}. ${error instanceof Error ? error.message : String(error)}`,
                                     false
                                 )
+                            },
+                            getTvShowByIdFromTmdbFn: async (id: number, language?: PreferMediaLanguage) => {
+                                return await getTvShowByIdFromTmdb({ id, language })
+                            },
+                            getTvShowByIdFromTvdbFn: async (
+                                seriesId: number,
+                                language?: PreferMediaLanguage,
+                            ) => {
+                                return await getTvShowByIdFromTvdb({ seriesId, language })
                             },
                         })
                     } catch (error) {

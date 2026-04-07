@@ -19,7 +19,7 @@ export function startToRecognizeByTmdbIdInFolderName(
     return null
   }
 
-  if (mediaMetadata.tmdbTvShow !== undefined || mediaMetadata.tvShow !== undefined) {
+  if (mediaMetadata.tvShow !== undefined) {
     return null
   }
 

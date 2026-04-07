@@ -1,15 +1,14 @@
 import { basename } from "./path"
-import type { RecognizeMediaFolderResult } from "./recognizeMediaFolderTypes"
 import { getTvdbSearchResultName, tvdbTranslationCodesForMediaLanguage } from "./tvdbSearchDisplay"
 import { buildTvdbSearchResults } from "./tvdbSearchNormalize"
 import {
     extractMovieId,
     extractSeriesId,
     fetchTvdbAndBuildMovieMediaMetadata,
-    fetchTvdbAndBuildTvShowMediaMetadata,
     getTVDBv4Client,
     mapToTvdbLangCode,
 } from "./TvdbUtils"
+import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
 
 function resolveTvdbSeriesNumericId(item: Record<string, unknown>): number | undefined {
     const oid = item.objectID ?? item.objectId
@@ -57,13 +56,27 @@ function resolveTvdbMovieNumericId(item: Record<string, unknown>): number | unde
     return undefined
 }
 
-export async function tryToRecognizeMediaFolderBySearchingFolderNameInTVDB(
+export type TryRecognizeTvShowFolderBySearchingFolderNameInTVDBResult =
+    | { success: false }
+    | { success: true; tvdbTvShow: TvShowMediaMetadata }
+
+export type TryRecognizeMovieFolderBySearchingFolderNameInTVDBResult =
+    | { success: false }
+    | { success: true; tvdbMovie: MovieMediaMetadata }
+
+export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB(
     folderPath: string,
-    language: "zh-CN" | "en-US" | "ja-JP" = "en-US",
-): Promise<RecognizeMediaFolderResult> {
+    getTvShowByIdFromTvdbFn: (
+        seriesId: number,
+        language?: PreferMediaLanguage
+    ) => Promise<TvShowMediaMetadata>,
+    language: PreferMediaLanguage = "en-US",
+): Promise<TryRecognizeTvShowFolderBySearchingFolderNameInTVDBResult> {
     const folderName = basename(folderPath)
     if (folderName === undefined) {
-        console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] folder name is undefined")
+        console.error(
+            "[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] folder name is undefined",
+        )
         return { success: false }
     }
 
@@ -77,67 +90,106 @@ export async function tryToRecognizeMediaFolderBySearchingFolderNameInTVDB(
         const tvdbLang = mapToTvdbLangCode(language)
         const codes = tvdbTranslationCodesForMediaLanguage(language)
 
-        const [seriesResp, movieResp] = await Promise.all([
-            tvdb.search({ query, type: "series", language: tvdbLang }),
-            tvdb.search({ query, type: "movie", language: tvdbLang }),
-        ])
+        const seriesResp = await tvdb.search({ query, type: "series", language: tvdbLang })
 
-        if (seriesResp.status !== "success" || movieResp.status !== "success") {
-            console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] TVDB search error:", {
+        if (seriesResp.status !== "success") {
+            console.error("[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] TVDB search error:", {
                 seriesStatus: seriesResp.status,
                 seriesMessage: seriesResp.message,
+            })
+            return { success: false }
+        }
+
+        const seriesItems = buildTvdbSearchResults(seriesResp.data)
+
+        for (const item of seriesItems) {
+            const displayName = getTvdbSearchResultName(item, codes, "tv")
+            console.log(`[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] series result: ${displayName}`)
+            const id = resolveTvdbSeriesNumericId(item)
+            if (id === undefined) {
+                console.warn(
+                    "[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] could not resolve series id",
+                    item,
+                )
+                continue
+            }
+            try {
+                console.log(
+                    `[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] recognized TV show in TVDB: ${id} ${displayName}`,
+                )
+                const tvdbTvShow = await getTvShowByIdFromTvdbFn(id, language)
+                return { success: true, tvdbTvShow }
+            } catch (e) {
+                console.error("[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB]", e)
+            }
+        }
+
+        return { success: false }
+    } catch (error) {
+        console.error("[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] Exception:", error)
+        return { success: false }
+    }
+}
+
+export async function tryToRecognizeMovieFolderBySearchingFolderNameInTVDB(
+    folderPath: string,
+    language: PreferMediaLanguage = "en-US",
+): Promise<TryRecognizeMovieFolderBySearchingFolderNameInTVDBResult> {
+    const folderName = basename(folderPath)
+    if (folderName === undefined) {
+        console.error(
+            "[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] folder name is undefined",
+        )
+        return { success: false }
+    }
+
+    const query = folderName.trim()
+    if (!query) {
+        return { success: false }
+    }
+
+    try {
+        const tvdb = getTVDBv4Client()
+        const tvdbLang = mapToTvdbLangCode(language)
+        const codes = tvdbTranslationCodesForMediaLanguage(language)
+
+        const movieResp = await tvdb.search({ query, type: "movie", language: tvdbLang })
+
+        if (movieResp.status !== "success") {
+            console.error("[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] TVDB search error:", {
                 movieStatus: movieResp.status,
                 movieMessage: movieResp.message,
             })
             return { success: false }
         }
 
-        const seriesItems = buildTvdbSearchResults(seriesResp.data)
         const movieItems = buildTvdbSearchResults(movieResp.data)
-
-        for (const item of seriesItems) {
-            const displayName = getTvdbSearchResultName(item, codes, "tv")
-            console.log(`[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] series result: ${displayName}`)
-            if (folderName === displayName) {
-                const id = resolveTvdbSeriesNumericId(item)
-                if (id === undefined) {
-                    console.warn("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] could not resolve series id", item)
-                    continue
-                }
-                const tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(id, language, {
-                    onSeasonsAPIError: (e) =>
-                        console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB]", e),
-                    onSeriesAPIError: (e) =>
-                        console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB]", e),
-                })
-                if (tvdbTvShow !== undefined) {
-                    return { success: true, type: "tv", tvdbTvShow }
-                }
-            }
-        }
 
         for (const item of movieItems) {
             const displayName = getTvdbSearchResultName(item, codes, "movie")
-            console.log(`[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] movie result: ${displayName}`)
+            console.log(`[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] movie result: ${displayName}`)
             if (folderName === displayName) {
                 const id = resolveTvdbMovieNumericId(item)
                 if (id === undefined) {
-                    console.warn("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] could not resolve movie id", item)
+                    console.warn(
+                        "[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] could not resolve movie id",
+                        item,
+                    )
                     continue
                 }
                 const tvdbMovie = await fetchTvdbAndBuildMovieMediaMetadata(id, language, {
                     onMovieAPIError: (e) =>
-                        console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB]", e),
+                        console.error("[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB]", e),
                 })
                 if (tvdbMovie !== undefined) {
-                    return { success: true, type: "movie", tvdbMovie }
+                    return { success: true, tvdbMovie }
                 }
             }
         }
 
         return { success: false }
     } catch (error) {
-        console.error("[tryToRecognizeMediaFolderBySearchingFolderNameInTVDB] Exception:", error)
+        console.error("[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] Exception:", error)
         return { success: false }
     }
 }

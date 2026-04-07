@@ -1,6 +1,6 @@
 import { basename } from "./path";
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
-import { fetchTvdbAndBuildMovieMediaMetadata, fetchTvdbAndBuildTvShowMediaMetadata } from "./TvdbUtils";
+import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils";
 
 export function getTvdbIdFromFolderName(folderName: string): string | null {
     // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
@@ -11,7 +11,11 @@ export function getTvdbIdFromFolderName(folderName: string): string | null {
 export async function tryToRecognizeMediaFolderByTvdbIdInFolderName(
     folderPath: string, 
     type: 'tvshow' | 'movie',
-    preferLanguage: PreferMediaLanguage, 
+    preferLanguage: PreferMediaLanguage,
+    getTvShowByIdFromTvdbFn: (
+        seriesId: number,
+        language?: PreferMediaLanguage
+    ) => Promise<TvShowMediaMetadata>,
     _signal?: AbortSignal): Promise<{
     tvdbTvShow?: TvShowMediaMetadata;
     tvdbMovie?: MovieMediaMetadata;
@@ -38,14 +42,7 @@ export async function tryToRecognizeMediaFolderByTvdbIdInFolderName(
 
     if(type === 'tvshow') {
         try {
-            tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(tvdbIdNumber, preferLanguage, {
-                onSeasonsAPIError: (error: Error) => {
-                    console.error('[preprocessMediaFolder] failed to get TV show by ID:', error)
-                },
-                onSeriesAPIError: (error: Error) => {
-                    console.error('[preprocessMediaFolder] failed to get TV show by ID:', error)
-                },
-            })
+            tvdbTvShow = await getTvShowByIdFromTvdbFn(tvdbIdNumber, preferLanguage)
         } catch (error) {
             console.error('[preprocessMediaFolder] failed to get TV show by ID:', error)
         }
