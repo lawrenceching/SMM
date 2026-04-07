@@ -483,9 +483,7 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeEpisodesAsync.mockResolvedValue([
         { season: 1, episode: 1, file: '/path/to/video.mkv' },
       ])
-      mockGetTvShowById.mockResolvedValue({
-        data: fullTvShowData,
-      })
+      mockGetTvShowById.mockResolvedValue(fullTvShowData)
 
       const onSuccess = vi.fn()
 
@@ -557,9 +555,7 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeEpisodesAsync.mockResolvedValue([
         { season: 1, episode: 1, file: '/path/to/video.mkv' },
       ])
-      mockGetTvShowById.mockResolvedValue({
-        data: fullTvShowData,
-      })
+      mockGetTvShowById.mockResolvedValue(fullTvShowData)
 
       const onSuccess = vi.fn()
 
@@ -576,8 +572,8 @@ describe('doPreprocessMediaFolder', () => {
     })
   })
 
-  describe('when getTvShowById returns an error', () => {
-    it('should not update tvShow when resp.error is defined', async () => {
+  describe('when getTvShowById throws an error', () => {
+    it('should not update tvShow when getTvShowById throws', async () => {
       const inputMetadata: UIMediaMetadata = {
         status: 'idle',
         type: 'tvshow-folder',
@@ -597,9 +593,7 @@ describe('doPreprocessMediaFolder', () => {
       mockRecognizeEpisodesAsync.mockResolvedValue([
         { season: 1, episode: 1, file: '/path/to/video.mkv' },
       ])
-      mockGetTvShowById.mockResolvedValue({
-        error: 'API rate limit exceeded',
-      })
+      mockGetTvShowById.mockRejectedValue(new Error('API rate limit exceeded'))
 
       const onSuccess = vi.fn()
 
@@ -614,47 +608,6 @@ describe('doPreprocessMediaFolder', () => {
       const result = onSuccess.mock.calls[0][0]
       // tvShow should remain unchanged (no seasons)
       expect(result.tvShow?.seasons).toBeUndefined()
-    })
-  })
-
-  describe('when getTvShowById returns undefined data', () => {
-    it('should not update tvShow when resp.data is undefined', async () => {
-      const inputMetadata: UIMediaMetadata = {
-        status: 'idle',
-        type: 'tvshow-folder',
-        mediaFolderPath: '/path/to/TV Show',
-        tvShow: {
-          id: '33333',
-          name: 'Undefined Data TV Show',
-          database: 'TMDB',
-          seasons: [],
-        },
-      }
-
-      mockRecognizeMediaFolder.mockResolvedValue(inputMetadata)
-      mockRecognizeTvShowMediaFiles.mockReturnValue([
-        { videoFilePath: '/path/to/video.mkv', season: 1, episode: 1 },
-      ])
-      mockRecognizeEpisodesAsync.mockResolvedValue([
-        { season: 1, episode: 1, file: '/path/to/video.mkv' },
-      ])
-      mockGetTvShowById.mockResolvedValue({
-        // data is undefined, no error
-      })
-
-      const onSuccess = vi.fn()
-
-      await doPreprocessMediaFolder(inputMetadata, { onSuccess })
-
-      expect(mockGetTvShowById).toHaveBeenCalledWith(33333, 'en-US', undefined)
-      // Verify getTvShowById was called before recognizeEpisodesAsync
-      expect(mockGetTvShowById.mock.invocationCallOrder[0]).toBeLessThan(
-        mockRecognizeEpisodesAsync.mock.invocationCallOrder[0]
-      )
-      expect(onSuccess).toHaveBeenCalled()
-      const result = onSuccess.mock.calls[0][0]
-      // tvShow should remain unchanged (empty seasons)
-      expect(result.tvShow?.seasons).toEqual([])
     })
   })
 

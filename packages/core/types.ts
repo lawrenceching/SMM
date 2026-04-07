@@ -710,6 +710,69 @@ export interface TMDBEpisode {
   runtime: number
 }
 
+/**
+ * Crew member on an episode in GET /3/tv/{series_id}/season/{season_number}
+ * https://developer.themoviedb.org/reference/tv-season-details
+ */
+export interface TmdbTvSeasonDetailsCrewMember {
+  department: string
+  job: string
+  credit_id: string
+  adult: boolean
+  gender: number
+  id: number
+  known_for_department: string
+  name: string
+  original_name: string
+  popularity: number
+  profile_path: string | null
+}
+
+/**
+ * Guest star on an episode in TV season details
+ */
+export interface TmdbTvSeasonDetailsGuestStar {
+  character: string
+  credit_id: string
+  order: number
+  adult: boolean
+  gender: number
+  id: number
+  known_for_department: string
+  name: string
+  original_name: string
+  popularity: number
+  profile_path: string | null
+}
+
+/**
+ * Episode row returned on TV season details (extends our base episode with API-only fields)
+ */
+export interface TmdbTvSeasonEpisodeDetails extends TMDBEpisode {
+  episode_type?: string
+  production_code?: string
+  show_id?: number
+  crew?: TmdbTvSeasonDetailsCrewMember[]
+  guest_stars?: TmdbTvSeasonDetailsGuestStar[]
+}
+
+export interface TmdbTvSeasonDetailsNetwork {
+  id: number
+  name: string
+  logo_path: string | null
+  origin_country: string
+}
+
+/**
+ * Response shape for GET /3/tv/{series_id}/season/{season_number}
+ */
+export type TmdbTvSeasonDetails = Omit<TMDBSeason, 'episodes'> & {
+  _id?: string
+  vote_average?: number
+  networks?: TmdbTvSeasonDetailsNetwork[]
+  episodes?: TmdbTvSeasonEpisodeDetails[]
+}
+
 
 export interface ReadMediaMetadataRequestBody {
   /**
@@ -775,9 +838,25 @@ export interface TmdbMovieResponseBody {
   error?: string
 }
 
+export type TmdbSeriesDetails = TMDBTVShowDetails
+
+export type TmdbSeasonDetails = TmdbTvSeasonDetails
+
 export interface TmdbTvShowResponseBody {
   data?: TMDBTVShowDetails
   error?: string
+}
+
+/**
+ * Logical request for TV season details (path + query sent via CLI proxy to TMDB).
+ * TMDB: GET https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}
+ */
+export interface TmdbSeasonDetailsRequestBody {
+  seriesId: number
+  seasonNumber: number
+  language?: 'zh-CN' | 'en-US' | 'ja-JP'
+  baseURL?: string
+  appendToResponse?: string
 }
 
 export interface OpenAIGenerateObjectRequestBody {

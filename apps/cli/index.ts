@@ -1,3 +1,8 @@
+import 'dotenv/config';
+import {
+  applyTmdbTlsDevBypassToProcessIfEnabled,
+  trustAllTmdbCertEnabled,
+} from '@/utils/tmdbTls';
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
@@ -5,6 +10,8 @@ import { executeHelloTask } from 'tasks/HelloTask';
 import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
+
+applyTmdbTlsDevBypassToProcessIfEnabled();
 
 interface CommandLineArguments {
   staticDir?: string;
@@ -63,6 +70,11 @@ await mkdir(logDir, { recursive: true });
 
 // Log startup information
 logger.info('=== Application Startup ===');
+if (trustAllTmdbCertEnabled()) {
+  logger.warn(
+    'TRUST_ALL_TMDB_CERT is set: TLS verification is disabled for this process (dev only; NODE_TLS_REJECT_UNAUTHORIZED=0)'
+  );
+}
 logger.info(`User data directory: ${userDataDir}`);
 logger.info(`App data directory: ${appDataDir}`);
 logger.info(`Log directory: ${logDir}`);

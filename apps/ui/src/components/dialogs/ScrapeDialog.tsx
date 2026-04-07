@@ -30,6 +30,8 @@ import type { MediaMetadata, TvShowSeasonMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { nextTraceId } from "@/lib/utils"
+import { useQueries, useQuery } from "@tanstack/react-query"
+import { getTvShowById } from "@/api/tmdb"
 
 interface Task {
   id: string;
@@ -396,7 +398,6 @@ export function ScrapeDialog({
   const handleFanartDownload = useHandleFanartDownload()
   const handleThumbnailDownload = useHandleThumbnailDownload()
   const { refreshMediaMetadata } = useMediaMetadataActions()
-
   const [tasks, setTasks] = useState<Task[]>([])
 
   // Initialize tasks when dialog opens or mediaMetadata changes

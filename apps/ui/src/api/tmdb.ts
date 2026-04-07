@@ -1,4 +1,13 @@
-import type { TmdbSearchRequestBody, TmdbSearchResponseBody, TmdbMovieResponseBody, TmdbTvShowResponseBody } from '@core/types';
+import type {
+  TmdbSearchRequestBody,
+  TmdbSearchResponseBody,
+  TmdbMovieResponseBody,
+  TmdbSeriesDetails,
+  TmdbSeasonDetailsRequestBody,
+  TmdbSeasonDetails,
+} from '@core/types';
+
+export type { TmdbSeasonDetailsRequestBody, TmdbTvSeasonDetails, TmdbSeriesDetails, TmdbSeasonDetails } from '@core/types';
 
 /**
  * Search TMDB for movies or TV shows
@@ -9,19 +18,20 @@ export async function searchTmdb(
   language: 'zh-CN' | 'en-US' | 'ja-JP',
   baseURL?: string
 ): Promise<TmdbSearchResponseBody> {
-  const req: TmdbSearchRequestBody = {
-    keyword,
-    type,
-    language,
-    baseURL,
-  };
+  const queryParams = new URLSearchParams();
+  queryParams.append('query', keyword);
+  queryParams.append('language', language);
+  if (baseURL) {
+    queryParams.append('baseURL', baseURL);
+  }
 
-  const resp = await fetch('/api/tmdb/search', {
-    method: 'POST',
+  const url = `/tmdb/3/search/${type}?${queryParams.toString()}`;
+
+  const resp = await fetch(url, {
+    method: 'GET',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(req),
   });
 
   if (!resp.ok) {
@@ -39,13 +49,13 @@ export async function getTvShowById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
   signal?: AbortSignal
-): Promise<TmdbTvShowResponseBody> {
+): Promise<TmdbSeriesDetails> {
   const queryParams = new URLSearchParams();
   if (language) {
     queryParams.append('language', language);
   }
   const queryString = queryParams.toString();
-  const url = `/api/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/3/tv/${id}${queryString ? `?${queryString}` : ''}`;
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -59,7 +69,7 @@ export async function getTvShowById(
     throw new Error(`Failed to get TV show: ${resp.statusText}`);
   }
 
-  const data: TmdbTvShowResponseBody = await resp.json();
+  const data: TmdbSeriesDetails = await resp.json();
   return data;
 }
 
@@ -76,7 +86,7 @@ export async function getMovieById(
     queryParams.append('language', language);
   }
   const queryString = queryParams.toString();
-  const url = `/api/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/3/movie/${id}${queryString ? `?${queryString}` : ''}`;
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -113,4 +123,55 @@ export function getTMDBImageUrl(
 
   const baseUrl = 'https://image.tmdb.org/t/p';
   return `${baseUrl}/${size}${trimmedPath}`;
+}
+
+/**
+ * Get TV season details by series id and season number (TMDB GET /3/tv/{series_id}/season/{season_number}).
+ * @see https://developer.themoviedb.org/reference/tv-season-details
+ */
+export async function getSeason(
+  seriesId: number,
+  seasonNumber: number,
+  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  options?: {
+    baseURL?: string;
+    appendToResponse?: string;
+    signal?: AbortSignal;
+  }
+): Promise<TmdbSeasonDetails> {
+  const req: TmdbSeasonDetailsRequestBody = {
+    seriesId,
+    seasonNumber,
+    language,
+    baseURL: options?.baseURL,
+    appendToResponse: options?.appendToResponse,
+  };
+
+  const queryParams = new URLSearchParams();
+  if (req.language) {
+    queryParams.append('language', req.language);
+  }
+  if (req.baseURL) {
+    queryParams.append('baseURL', req.baseURL);
+  }
+  if (req.appendToResponse) {
+    queryParams.append('appendToResponse', req.appendToResponse);
+  }
+  const queryString = queryParams.toString();
+  const url = `/tmdb/3/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
+
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal: options?.signal,
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Failed to get TV season: ${resp.statusText}`);
+  }
+
+  const data: TmdbSeasonDetails = await resp.json();
+  return data;
 }

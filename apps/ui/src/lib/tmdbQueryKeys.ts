@@ -6,3 +6,11 @@ export function tmdbTvShowByIdQueryKey(
 ) {
   return ["tmdb", "tv", id, language] as const
 }
+
+export function tmdbTvShowSeasonQueryKey(
+  seriesId: number,
+  seasonNumber: number,
+  language?: PreferMediaLanguage
+) {
+  return ["tmdb", "tv", seriesId, "season", seasonNumber, language] as const
+}

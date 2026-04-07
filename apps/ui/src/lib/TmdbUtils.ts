@@ -4,7 +4,7 @@ import type {
   MovieMediaMetadata,
   PreferMediaLanguage,
   TMDBMovie,
-  TmdbTvShowResponseBody,
+  TmdbSeriesDetails,
   TvShowMediaMetadata,
 } from "@core/types";
 
@@ -17,17 +17,17 @@ function movieMediaMetadataFromTmdbMovie(movie: TMDBMovie): MovieMediaMetadata {
   };
 }
 
-export function tvShowMediaMetadataFromTmdbTvShowResponse(
-  resp: TmdbTvShowResponseBody,
+/**
+ * @deprecated
+ * @param details 
+ * @param id 
+ * @returns 
+ */
+export function buildTvShowMediaMetadataFromTmdbSeriesDetails(
+  details: TmdbSeriesDetails,
   id: number
 ): TvShowMediaMetadata {
-  if (resp.error) {
-    throw new Error(resp.error);
-  }
-  if (resp.data === undefined) {
-    throw new Error(`TMDB returned no TV show data for id ${id}`);
-  }
-  return tvShowMediaMetadataFromTmdbDetails(resp.data);
+  return tvShowMediaMetadataFromTmdbDetails(details);
 }
 
 export async function getTvShowByIdFromTMDB(
@@ -35,8 +35,8 @@ export async function getTvShowByIdFromTMDB(
   language?: PreferMediaLanguage,
   signal?: AbortSignal
 ): Promise<TvShowMediaMetadata> {
-  const resp = await getTvShowById(id, language, signal);
-  return tvShowMediaMetadataFromTmdbTvShowResponse(resp, id);
+  const details = await getTvShowById(id, language, signal);
+  return buildTvShowMediaMetadataFromTmdbSeriesDetails(details, id);
 }
 
 export async function getMovieByIdFromTMDB(

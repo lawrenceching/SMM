@@ -135,6 +135,8 @@ function getRelativePath(absolutePath: string, mediaFolderPath: string | undefin
 }
 
 /**
+ * No one is using this method anymore
+ * @deprecated
  * Build TvShowEpisodesProps from MediaMetadata
  */
 export function buildTvShowEpisodesPropsFromMediaMetadata(
@@ -168,6 +170,7 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
         name: episode.name,
         seasonNumber: episode.season,
         episodeNumber: episode.episode,
+        // hold this TODO, this method was deprecated.
         // TODO: add still_path field in TvShowEpisodeMetadata,
         //  and need to figure out how to store thumbnail URL that support both TVDB and TMDB
         // thumbnail: episode.still_path ? getTMDBImageUrl(episode.still_path, 'w300') ?? undefined : undefined,

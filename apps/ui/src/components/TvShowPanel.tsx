@@ -286,12 +286,12 @@ function TvShowPanel() {
     })
 
     try {
-      const response = await getTvShowById(tmdbId, language)
+      const details = await getTvShowById(tmdbId, language)
       
-      if (response.data && !response.error) {
+      if (details) {
         tmdbPromptStore.openPrompt({
           tmdbId,
-          mediaName: response.data.name,
+          mediaName: details.name,
           status: "ready",
           onConfirm: handleUseTmdbidFromFolderNameConfirm,
           onCancel: () => {},

@@ -21,6 +21,11 @@ export default defineConfig({
         // Screenshot API can take long (ffmpeg); avoid proxy closing the connection (node-http-proxy default can be ~2min)
         // proxyTimeout: 300_000, // 5 minutes
       },
+      // CLI TMDB L7 reverse proxy (see apps/cli/src/route/TmdbProxy.ts)
+      '/tmdb': {
+        target: 'http://localhost:30000',
+        changeOrigin: true,
+      },
       // Socket.IO endpoint (HTTP long-polling and WebSocket upgrade)
       '/socket.io': {
         target: 'http://localhost:30000',
