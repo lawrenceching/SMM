@@ -1,0 +1,109 @@
+{
+    "adult": false,
+    "backdrop_path": "/hlsdjfAgSpY4wAATOsYQXhUG9HJ.jpg",
+    "created_by": [],
+    "episode_run_time": [
+        24
+    ],
+    "first_air_date": "2019-01-08",
+    "genres": [
+        {
+            "id": 16,
+            "name": "Animation"
+        },
+        {
+            "id": 35,
+            "name": "Comedy"
+        }
+    ],
+    "homepage": "http://watatentv.com/",
+    "id": 84666,
+    "in_production": false,
+    "languages": [
+        "ja"
+    ],
+    "last_air_date": "2019-03-26",
+    "last_episode_to_air": {
+        "id": 1663947,
+        "name": "Angel's Gaze",
+        "overview": "Finally, it's here! The day of the Culture Festival! Miyako, who avoids crowds in daily life, goes to the school in full battle gear(?!) in order to see everyone in their hour of triumph. After meeting up with everyone and having some fun, they head to the gym where the play will be held. After getting ready, Hana-chan and the others wait in the wings. The curtain is about to rise!",
+        "vote_average": 0,
+        "vote_count": 0,
+        "air_date": "2019-03-26",
+        "episode_number": 12,
+        "episode_type": "finale",
+        "production_code": "",
+        "runtime": 24,
+        "season_number": 1,
+        "show_id": 84666,
+        "still_path": "/3EegiPU1uWzfUrj1DStAIi33ZQn.jpg"
+    },
+    "name": "WATATEN!: an Angel Flew Down to Me",
+    "next_episode_to_air": null,
+    "networks": [
+        {
+            "id": 173,
+            "logo_path": "/fERjndErEpveJmQZccJbJDi93rj.png",
+            "name": "AT-X",
+            "origin_country": "JP"
+        }
+    ],
+    "number_of_episodes": 12,
+    "number_of_seasons": 1,
+    "origin_country": [
+        "JP"
+    ],
+    "original_language": "ja",
+    "original_name": "私に天使が舞い降りた！",
+    "overview": "Miyako is a shy college student who is also an otaku. One day she happens to meet some angelic grade school kids! When Miyako sees her little sister's new friend Hana-chan, Miyako's heart won't stop racing! Miyako tries to get along with them but struggles... A sketch comedy all about trying to get along with the super cute girl is about to begin!",
+    "popularity": 9.4359,
+    "poster_path": "/jVIpVXjBTIQXxqBKVme3Ol2ct2I.jpg",
+    "production_companies": [
+        {
+            "id": 41996,
+            "logo_path": "/4Rw2mRqA8JOf8qec6pVF57U65me.png",
+            "name": "Doga Kobo",
+            "origin_country": "JP"
+        }
+    ],
+    "production_countries": [
+        {
+            "iso_3166_1": "JP",
+            "name": "Japan"
+        }
+    ],
+    "seasons": [
+        {
+            "air_date": "2019-05-24",
+            "episode_count": 1,
+            "id": 124681,
+            "name": "Specials",
+            "overview": "",
+            "poster_path": "/vE3VQiYsPTsFa43kxwq7a1ZeUhh.jpg",
+            "season_number": 0,
+            "vote_average": 0
+        },
+        {
+            "air_date": "2019-01-08",
+            "episode_count": 12,
+            "id": 113771,
+            "name": "Season 1",
+            "overview": "",
+            "poster_path": "/a5S4roDeOFcvecJMjEbhrsAWs3I.jpg",
+            "season_number": 1,
+            "vote_average": 0
+        }
+    ],
+    "spoken_languages": [
+        {
+            "english_name": "Japanese",
+            "iso_639_1": "ja",
+            "name": "日本語"
+        }
+    ],
+    "status": "Ended",
+    "tagline": "",
+    "type": "Scripted",
+    "vote_average": 8.2,
+    "vote_count": 109
+}

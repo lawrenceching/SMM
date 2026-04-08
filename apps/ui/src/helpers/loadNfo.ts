@@ -1,5 +1,5 @@
 import { readFile } from "@/api/readFile"
-import Nfo from "@/lib/nfo"
+import NFO from "@/lib/nfo"
 import type { MediaMetadata, TMDBTVShowDetails } from "@core/types"
 
 /**
@@ -36,7 +36,7 @@ function extractTmdbImagePath(urlOrPath: string | undefined | null): string | nu
     }
 }
 
-export function nfoToTmdbTVShowDetails(nfo: Nfo): TMDBTVShowDetails {
+export function nfoToTmdbTVShowDetails(nfo: NFO): TMDBTVShowDetails {
     // Parse TMDB ID
     const id = nfo.tmdbid ? parseInt(nfo.tmdbid, 10) : 0
     if (isNaN(id)) {
@@ -109,7 +109,7 @@ export async function loadNfo(mediaMetadata: MediaMetadata): Promise<TMDBTVShowD
         return undefined
     }
 
-    const nfo = await Nfo.fromXml(resp.data)
+    const nfo = await NFO.fromXml(resp.data)
 
     return nfoToTmdbTVShowDetails(nfo)
 }

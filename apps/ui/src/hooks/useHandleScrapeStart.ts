@@ -1,171 +1,258 @@
 import { useCallback } from "react"
-import type { MediaMetadata } from "@core/types"
-import { Nfo, buildEpisodeNfoXml } from "@/lib/nfo"
+import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, TvShowMediaMetadata } from "@core/types"
+import { NFO, buildEpisodeNfoXml, convertTvShowEpisodeNfoToXml, convertTvShowNfoToXml, type EpisodeNfo, type TvShowNFO } from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import { join, dirname, basename, extname } from "@/lib/path"
+import { join, dirname, basename, extname, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
 import { toast } from "sonner"
 import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
+import { useTmdbQueries } from "./useTmdbQueries"
+import { useTvdbQueries } from "./useTvdbQueries"
+import { useConfig } from "@/providers/config-provider"
+import { useSeasonSectionState } from "@/components/hooks/useSeasonSectionState"
+import Debug from 'debug'
+import { isNotNil } from "es-toolkit"
 
-// TODO: generate nfo file using preferMediaLanguage in UserConfig
-async function startToGenerateTvShowNfo(mediaMetadata: MediaMetadata, getTranslation: () => string) {
+const debug = Debug('scrape')
 
-    // TODO: support generate NFO file from TVDB and TMDB
+export function buildTvShowNfo(tmdbTvSeriesDetails: TmdbSeriesDetails, tmdbTvShowSeasons: TmdbSeasonDetails[]): TvShowNFO {
+    const thumbs: TvShowNFO["thumbs"] = []
+    const namedSeasons: TvShowNFO["namedSeasons"] = []
 
-    // Generate NFO file from media metadata
-    // if (!mediaMetadata?.tmdbTvShow || !mediaMetadata?.mediaFolderPath) {
-    //     console.error("Cannot generate NFO: Missing TV show data or media folder path")
-    //     return
-    // }
+    const poster = getTMDBImageUrl(tmdbTvSeriesDetails.poster_path, "original")
+    if (poster) {
+        thumbs.push({
+            url: poster,
+            aspect: "poster",
+        })
+    }
 
-    // try {
-    //     const tvShow = mediaMetadata.tmdbTvShow
-    //     const nfo = new Nfo()
+    const clearLogo = getTMDBImageUrl((tmdbTvSeriesDetails as any).logo_path, "original")
+    if (clearLogo) {
+        thumbs.push({
+            url: clearLogo,
+            aspect: "clearlogo",
+        })
+    }
 
-    //     // Populate NFO with TV show data
-    //     nfo.id = tvShow.id?.toString()
-    //     nfo.title = tvShow.name
-    //     nfo.originalTitle = tvShow.original_name
-    //     nfo.showTitle = tvShow.name
-    //     nfo.plot = tvShow.overview
-    //     nfo.tmdbid = tvShow.id?.toString()
+    for (const season of tmdbTvShowSeasons ?? []) {
+        namedSeasons.push({
+            number: season.season_number,
+            name: season.name,
+        })
+        const seasonPoster = getTMDBImageUrl(season.poster_path, "original")
+        if (seasonPoster) {
+            thumbs.push({
+                url: seasonPoster,
+                aspect: "poster",
+                season: season.season_number,
+                type: "season",
+            })
+        }
+    }
 
-    //     // Add fanart (backdrop)
-    //     if (tvShow.backdrop_path) {
-    //         const fanartUrl = getTMDBImageUrl(tvShow.backdrop_path, "original")
-    //         if (fanartUrl) {
-    //             nfo.fanart = fanartUrl
-    //         }
-    //     }
+    const fanart = getTMDBImageUrl(tmdbTvSeriesDetails.backdrop_path, "original")
+    const runtime =
+        (tmdbTvShowSeasons ?? [])
+            .flatMap((s) => s.episodes ?? [])
+            .find((ep) => typeof ep.runtime === "number" && ep.runtime > 0)?.runtime
 
-    //     // Add thumbs (poster and season posters)
-    //     const thumbs: Array<{ url: string; aspect: "poster" | "clearlogo" | null; season?: number; type?: string }> = []
-        
-    //     // Add main poster
-    //     if (tvShow.poster_path) {
-    //         const posterUrl = getTMDBImageUrl(tvShow.poster_path, "original")
-    //         if (posterUrl) {
-    //             thumbs.push({ url: posterUrl, aspect: "poster" })
-    //         }
-    //     }
+    return {
+        title: tmdbTvSeriesDetails.name,
+        originalTitle: tmdbTvSeriesDetails.original_name,
+        showTitle: tmdbTvSeriesDetails.name,
+        year: parseInt(tmdbTvSeriesDetails.first_air_date?.slice(0, 4) ?? "", 10) || undefined,
+        top250: 0,
+        ratings: [
+            {
+                default: true,
+                max: 10,
+                name: "themoviedb",
+                value: tmdbTvSeriesDetails.vote_average,
+                votes: tmdbTvSeriesDetails.vote_count,
+            },
+        ],
+        userRating: 0,
+        outline: tmdbTvSeriesDetails.overview,
+        plot: tmdbTvSeriesDetails.overview,
+        tagline: undefined,
+        runtime,
+        thumbs: thumbs.length > 0 ? thumbs : undefined,
+        namedSeasons: namedSeasons.length > 0 ? namedSeasons : undefined,
+        fanartThumbs: fanart ? [fanart] : undefined,
+        episodeguide: JSON.stringify({ tmdb: String(tmdbTvSeriesDetails.id) }),
+        id: String(tmdbTvSeriesDetails.id),
+        tmdbid: String(tmdbTvSeriesDetails.id),
+        uniqueIds: [
+            {
+                default: true,
+                type: "tmdb",
+                value: String(tmdbTvSeriesDetails.id),
+            },
+        ],
+        premiered: tmdbTvSeriesDetails.first_air_date,
+        status: tmdbTvSeriesDetails.status,
+        watched: false,
+        genres: (tmdbTvSeriesDetails as any).genres?.map((g: { name: string }) => g.name).filter(Boolean),
+        studios: (tmdbTvSeriesDetails.production_companies ?? []).map((c) => c.name).filter(Boolean),
+        countries: (tmdbTvSeriesDetails as any).production_countries?.map((c: { name: string }) => c.name).filter(Boolean),
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
+}
 
-    //     // Add season posters
-    //     if (tvShow.seasons) {
-    //         tvShow.seasons.forEach(season => {
-    //             if (season.poster_path) {
-    //                 const seasonPosterUrl = getTMDBImageUrl(season.poster_path, "original")
-    //                 if (seasonPosterUrl) {
-    //                     thumbs.push({ 
-    //                         url: seasonPosterUrl, 
-    //                         aspect: "poster", 
-    //                         season: season.season_number,
-    //                         type: "season"
-    //                     })
-    //                 }
-    //             }
-    //         })
-    //     }
+type TmdbEpisodeDetails = NonNullable<TmdbSeasonDetails["episodes"]>[number]
 
-    //     nfo.thumbs = thumbs
+export function buildTvShowEpisodeNfo(
+    tmdbTvSeriesDetails: TmdbSeriesDetails,
+    tmdbSeason: TmdbSeasonDetails,
+    tmdbEpisode: TmdbEpisodeDetails,
+): EpisodeNfo {
+    const thumb = getTMDBImageUrl(tmdbEpisode.still_path, "original") ?? undefined
+    const studios =
+        (tmdbTvSeriesDetails.production_companies ?? [])
+            .map((company) => company.name)
+            .filter(Boolean)
 
-    //     // Generate XML
-    //     const xml = nfo.toXML()
+    const directors = (tmdbEpisode.crew ?? [])
+        .filter((crew) => crew.job === "Director")
+        .map((crew) => ({
+            tmdbid: String(crew.id),
+            name: crew.name,
+        }))
 
-    //     // Write NFO file to media folder
-    //     const nfoPath = join(mediaMetadata.mediaFolderPath, "tvshow.nfo")
-    //     await writeFile(Path.toPlatformPath(nfoPath), xml)
-    //     console.log(`✅ NFO file written to: ${nfoPath}`)
+    const credits = (tmdbEpisode.crew ?? [])
+        .filter((crew) => crew.department === "Writing")
+        .map((crew) => ({
+            tmdbid: String(crew.id),
+            name: crew.name,
+        }))
 
-    //     // Write episode NFOs next to each video file
-    //     if (mediaMetadata.mediaFiles?.length) {
-    //         for (const mediaFile of mediaMetadata.mediaFiles) {
-    //             if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
-    //             const season = mediaMetadata.tmdbTvShow!.seasons?.find(s => s.season_number === mediaFile.seasonNumber)
-    //             const episode = season?.episodes?.find(e => e.episode_number === mediaFile.episodeNumber)
-    //             if (!episode) continue
-    //             const videoBasename = basename(mediaFile.absolutePath)
-    //             if (videoBasename === undefined) continue
-    //             const videoExt = extname(videoBasename)
-    //             const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
-    //             const episodeNfoPath = join(dirname(mediaFile.absolutePath), nameWithoutExt + ".nfo")
-    //             const episodeXml = buildEpisodeNfoXml(episode, videoBasename)
-    //             await writeFile(Path.toPlatformPath(episodeNfoPath), episodeXml)
-    //             console.log(`✅ Episode NFO written to: ${episodeNfoPath}`)
-    //         }
-    //     }
-    // } catch (error) {
-    //     console.error("Failed to generate NFO file:", error)
-    //     const errorMessage = error instanceof Error ? error.message : "Failed to generate NFO file"
-        
-    //     // Check if error is "File Already Existed"
-    //     if (isError(errorMessage, ExistedFileError)) {
-    //         toast.error(getTranslation(), {
-    //             description: errorMessage
-    //         })
-    //     } else {
-    //         toast.error("Failed to write NFO file", {
-    //             description: errorMessage
-    //         })
-    //     }
-        
-    //     throw error // Re-throw to let the task handler mark it as failed
-    // }
+    const actors = (tmdbEpisode.guest_stars ?? [])
+        .map((guest) => ({
+            name: guest.name,
+            role: guest.character,
+            thumb: getTMDBImageUrl(guest.profile_path, "original") ?? undefined,
+            profile: `https://www.themoviedb.org/person/${guest.id}`,
+            type: "GuestStar",
+            tmdbid: String(guest.id),
+        }))
+
+    return {
+        id: String(tmdbEpisode.id),
+        title: tmdbEpisode.name,
+        originalTitle: tmdbEpisode.name,
+        showTitle: tmdbTvSeriesDetails.name,
+        season: tmdbSeason.season_number,
+        episode: tmdbEpisode.episode_number,
+        uniqueIds: [
+            {
+                default: true,
+                type: "tmdb",
+                value: String(tmdbEpisode.id),
+            },
+        ],
+        ratings:
+            tmdbEpisode.vote_average > 0 || tmdbEpisode.vote_count > 0
+                ? [
+                    {
+                        default: false,
+                        max: 10,
+                        name: "themoviedb",
+                        value: tmdbEpisode.vote_average,
+                        votes: tmdbEpisode.vote_count,
+                    },
+                ]
+                : undefined,
+        userRating: 0,
+        plot: tmdbEpisode.overview,
+        runtime: tmdbEpisode.runtime > 0 ? tmdbEpisode.runtime : undefined,
+        thumb,
+        premiered: tmdbEpisode.air_date,
+        aired: tmdbEpisode.air_date,
+        watched: false,
+        playcount: 0,
+        studios: studios.length > 0 ? studios : undefined,
+        credits: credits.length > 0 ? credits : undefined,
+        directors: directors.length > 0 ? directors : undefined,
+        actors: actors.length > 0 ? actors : undefined,
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
 }
 
 export function useHandleScrapeStart() {
     const { t } = useTranslation('dialogs')
+
+    const { getTvShowById, getTvShowSeasonDetails } = useTmdbQueries();
+    const { getSeriesExtended } = useTvdbQueries();
+    const { userConfig } = useConfig()
+
     const handleScrapeStart = useCallback(async (mediaMetadata: MediaMetadata) => {
         const fileAlreadyExistsMessage = t('errors.fileAlreadyExists' as any)
         try {
-            await startToGenerateTvShowNfo(mediaMetadata, () => fileAlreadyExistsMessage)
-            
-            // Call done callback to mark all tasks as completed
 
-            // temporarily disable below function to avoid scraping issues
+            if(mediaMetadata.type === 'tvshow-folder') {
 
-            // if (!mediaFolderPath) {
-            //     console.error("No media folder path available")
-            //     return
-            // }
+                if(mediaMetadata.tvShow?.database === 'TMDB') {
+                    const tmdbSeriesId = parseInt(mediaMetadata.tvShow.id);
 
-            // // Update all tasks to running
-            // updateTasks(initialTasks.map(task => ({
-            //     ...task,
-            //     status: "running" as const
-            // })))
+                    debug(`collecting TV series and seasons data from TMDB`)
+                    const tmdbTvSeriesDetails: TmdbSeriesDetails = await getTvShowById(tmdbSeriesId, userConfig.preferMediaLanguage)
+                    const tmdbTvShowSeasons: TmdbSeasonDetails[] = await Promise.all(tmdbTvSeriesDetails
+                        .seasons.map(season => season.season_number)
+                        .map(seasonNumber => getTvShowSeasonDetails(tmdbSeriesId, seasonNumber, userConfig.preferMediaLanguage)))
+                    debug(`collected TV series and seasons data from TMDB`)
 
-            // try {
-            //     // Call the scrape API
-            //     const response = await scrapeApi(mediaFolderPath)
-            
-            //     if (response.error) {
-            //         // All tasks failed
-            //         updateTasks(initialTasks.map(task => ({
-            //             ...task,
-            //             status: "failed" as const
-            //         })))
-            //         console.error("Scrape failed:", response.error)
-            //     } else {
-            //         // All tasks completed successfully
-            //         updateTasks(initialTasks.map(task => ({
-            //             ...task,
-            //             status: "completed" as const
-            //         })))
-            //         console.log("Scrape completed successfully")
+                    const tvShowNfo: TvShowNFO = buildTvShowNfo(tmdbTvSeriesDetails, tmdbTvShowSeasons)
+                    debug(`built XML for tvshow.nfo`)
+                    const tvShwoNfoXml = convertTvShowNfoToXml(tvShowNfo)
+                    const tvShowNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "tvshow.nfo")
+                    debug(`writing tvshow.nfo to ${tvShowNfoPath}`)
+                    await writeFile(tvShowNfoPath, tvShwoNfoXml)
+                    debug(`wrote tvshow.nfo to ${tvShowNfoPath}`)
+
+
+                    await Promise.all(mediaMetadata.mediaFiles?.map(async (mediaFile) => {
+                        const { seasonNumber, episodeNumber, absolutePath } = mediaFile
+                        const tmdbSeason = tmdbTvShowSeasons.find(i => i.season_number === seasonNumber);
+                        const tmdbEpisode = tmdbSeason?.episodes?.find(i => i.episode_number === episodeNumber);
+
+                        if(tmdbSeason === undefined || tmdbEpisode === undefined) {
+                            debug(`skipping episode ${seasonNumber}x${episodeNumber} because it is not found in TMDB: ${tmdbSeason} ${tmdbEpisode}`)
+                            return undefined;
+                        }
+
+                        const episodeNfo: EpisodeNfo = buildTvShowEpisodeNfo(tmdbTvSeriesDetails, tmdbSeason, tmdbEpisode)
+                        debug(`build episodeNfo for episode ${seasonNumber}x${episodeNumber}`)
+                        const episodeNfoXml = convertTvShowEpisodeNfoToXml(episodeNfo)
+                        const episodeNfoPath = newFilePathWithExt(absolutePath, ".nfo")
+                        debug(`writing episode ${seasonNumber}x${episodeNumber} nfo to ${episodeNfoPath}`)
+                        await writeFile(Path.toPlatformPath(episodeNfoPath), episodeNfoXml)
+                        debug(`wrote episode ${seasonNumber}x${episodeNumber} nfo to ${episodeNfoPath}`)
+                        return;
+                    })
+                    .filter(isNotNil) ?? [])
+                    debug(`all episode nfo files written`)
+
+                    
+                } else if(mediaMetadata.tvShow?.database === 'TVDB') {
+                    const tvShow = await getSeriesExtended(parseInt(mediaMetadata.tvShow.id))
+                    // TODO: translate tvShow in TVDB
+                    
+                } else {
+                    console.error("Scrape start skipped: unsupported database " + mediaMetadata.tvShow?.database)
+                    return;
+                }
+
                 
-            //         // Refresh media metadata after successful scrape
-            //         refreshMediaMetadata(mediaFolderPath)
-            //     }
-            // } catch (error) {
-            //     // All tasks failed
-            //     updateTasks(initialTasks.map(task => ({
-            //         ...task,
-            //         status: "failed" as const
-            //     })))
-            //     console.error("Scrape error:", error)
-            // }
+            } else if(mediaMetadata.type === 'movie-folder') {
+                // await startToGenerateMovieNfo(mediaMetadata, () => fileAlreadyExistsMessage)
+            } else {
+                console.error("Scrape start skipped: unsupported folder type " + mediaMetadata.type)
+                return;
+            }
+            
         } catch (error) {
             console.error("Scrape start error:", error)
             throw error // Re-throw so the task handler can mark the task as failed

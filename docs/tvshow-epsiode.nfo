@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--created on 2026-01-11 16:30:49 by tinyMediaManager 5.1.5 for KODI-->
+<episodedetails>
+  <title>交流01「我想说话」</title>
+  <originaltitle>「喋りたいんです。」</originaltitle>
+  <showtitle>古见同学有交流障碍症</showtitle>
+  <season>1</season>
+  <episode>1</episode>
+  <id>8415207</id>
+  <uniqueid default="false" type="tmdb">2891844</uniqueid>
+  <uniqueid default="true" type="imdb">tt15100742</uniqueid>
+  <uniqueid default="false" type="tvdb">8415207</uniqueid>
+  <ratings>
+    <rating default="false" max="10" name="themoviedb">
+      <value>7.8</value>
+      <votes>13</votes>
+    </rating>
+  </ratings>
+  <userrating>0</userrating>
+  <plot>在入读高中的第一天，只野不想引起任何人的注意。他开始认识了班里一个恬静的女孩古见。</plot>
+  <runtime>24</runtime>
+  <thumb>https://image.tmdb.org/t/p/original/nzdU9etUmtykZDyoPKW7xxneOjO.jpg</thumb>
+  <mpaa/>
+  <premiered>2021-10-07</premiered>
+  <aired>2021-10-07</aired>
+  <watched>false</watched>
+  <playcount>0</playcount>
+  <studio>TV Tokyo</studio>
+  <studio>OLM</studio>
+  <studio>Shogakukan-Shueisha Productions</studio>
+  <credits tmdbid="3061350">オダトモヒト</credits>
+  <credits tmdbid="1149042">三重野瞳</credits>
+  <director tmdbid="3086899">川越一生</director>
+  <actor>
+    <name>古贺葵</name>
+    <role>Shoko Komi (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/uVpwheVV4aPROyY1toYv3v5HSPD.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2251986</profile>
+    <tmdbid>2251986</tmdbid>
+  </actor>
+  <actor>
+    <name>梶原岳人</name>
+    <role>Hitohito Tadano (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/kUer38jXf7vTD2TGGxJMZVYL5Te.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1919881</profile>
+    <tmdbid>1919881</tmdbid>
+  </actor>
+  <actor>
+    <name>村川梨衣</name>
+    <role>Najimi Osana (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/pawIx7uhV1a2fAHjvTnrCP0KcHX.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1324665</profile>
+    <tmdbid>1324665</tmdbid>
+  </actor>
+  <actor>
+    <name>日高里菜</name>
+    <role>Ren Yamai (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/7JupZGvqcq4dRxiTKpPxzg8NUS4.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1116334</profile>
+    <tmdbid>1116334</tmdbid>
+  </actor>
+  <actor>
+    <name>大久保瑠美</name>
+    <role>Omoharu Nakanaka (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/cf4cnFMllu1yO3X0gCGGDdl8GXW.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1256913</profile>
+    <tmdbid>1256913</tmdbid>
+  </actor>
+  <actor>
+    <name>藤井幸代</name>
+    <role>Himiko Agari (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/tLG4K1iix3QNHFexf98mrZ25jT6.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1287794</profile>
+    <tmdbid>1287794</tmdbid>
+  </actor>
+  <actor>
+    <name>前岛亚美</name>
+    <role>Makeru Yadano (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/sbjkoMgu6SevuoRTogXHcEJ61Qo.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2493237</profile>
+    <tmdbid>2493237</tmdbid>
+  </actor>
+  <actor>
+    <name>日高范子</name>
+    <role>Narrator (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/43OuwsjqGf7JxpFpUvB75OdDDXQ.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/55662</profile>
+    <tmdbid>55662</tmdbid>
+  </actor>
+  <actor>
+    <name>小针彩希</name>
+    <role>Female Student (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/fh1lk4kq1cGJXeCk8rEEmjiOT0A.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2963666</profile>
+    <type>GuestStar</type>
+    <tmdbid>2963666</tmdbid>
+  </actor>
+  <actor>
+    <name>有隅融</name>
+    <role>Male Student (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/l5HranSrC0OyKDEJFP1gsogHN36.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2934416</profile>
+    <type>GuestStar</type>
+    <tmdbid>2934416</tmdbid>
+  </actor>
+  <actor>
+    <name>内山茉莉</name>
+    <role>Eiko Ushiroda (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/mgyJl1FFjtb8Ba1cyLwOBxTXzOd.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/2955668</profile>
+    <type>GuestStar</type>
+    <tmdbid>2955668</tmdbid>
+  </actor>
+  <actor>
+    <name>小野贤章</name>
+    <role>Mono Shinobino (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/wUYJ3HIeygHfh4rAqupE4RPoG3W.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1065297</profile>
+    <type>GuestStar</type>
+    <tmdbid>1065297</tmdbid>
+  </actor>
+  <actor>
+    <name>生天目仁美</name>
+    <role>Homeroom Teacher (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/jidfw5qDgZjC4TPY3YunJQxlEmr.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1241562</profile>
+    <type>GuestStar</type>
+    <tmdbid>1241562</tmdbid>
+  </actor>
+  <actor>
+    <name>桑田直树</name>
+    <role>Male Student (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/6l8CnzcBvXSCljIyyEEyqFBQVCx.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/3077616</profile>
+    <type>GuestStar</type>
+    <tmdbid>3077616</tmdbid>
+  </actor>
+  <actor>
+    <name>长谷德人</name>
+    <role>Male Student (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/i3f20088m49mRJsfC4VCn8wvQZ8.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/3271042</profile>
+    <type>GuestStar</type>
+    <tmdbid>3271042</tmdbid>
+  </actor>
+  <actor>
+    <name>布莱德库特·莎拉·惠美</name>
+    <role>Akako Onigashima (voice)</role>
+    <thumb>https://image.tmdb.org/t/p/h632/aylO6RuIXR8eFrErnYMCPxjjQtt.jpg</thumb>
+    <profile>https://www.themoviedb.org/person/1498133</profile>
+    <type>GuestStar</type>
+    <tmdbid>1498133</tmdbid>
+  </actor>
+  <dateadded>2026-01-11 16:30:19</dateadded>
+  <fileinfo>
+    <streamdetails>
+      <video>
+        <codec/>
+        <aspect>0.0</aspect>
+        <width>0</width>
+        <height>0</height>
+        <durationinseconds>0</durationinseconds>
+      </video>
+    </streamdetails>
+  </fileinfo>
+  <epbookmark/>
+  <code/>
+  <!--tinyMediaManager meta data-->
+  <source>UNKNOWN</source>
+  <edition>NONE</edition>
+  <original_filename>古见同学有交流障碍症 - S01E01.mkv</original_filename>
+  <user_note/>
+  <episode_groups>
+    <group episode="1" id="AIRED" name="" season="1"/>
+    <group episode="1" id="DVD" name="Seasonal order" season="1"/>
+  </episode_groups>
+</episodedetails>

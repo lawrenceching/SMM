@@ -1,0 +1,116 @@
+{
+    "_id": "5ce7bb410e0a262184c9ae67",
+    "air_date": "2019-05-24",
+    "episodes": [
+        {
+            "air_date": "2019-05-24",
+            "episode_number": 1,
+            "episode_type": "standard",
+            "id": 1797080,
+            "name": "You Never Let Us Down / Always Growing Closer / Let's Change You Into This! / I'm Your Big Sister",
+            "overview": "The girls go camping at the lake for their vacation, bringing a reluctant Miyako with them. Koko recalls her friendship with Miyako, through rose-tinted goggles, of course. During Halloween, Miyako anticipates what costume Hana will be wearing, only to end up having to cosplay herself for Koko and Yuu. Miyako recalls when Hinata was born, quickly bonding as sisters.",
+            "production_code": "",
+            "runtime": 23,
+            "season_number": 0,
+            "show_id": 84666,
+            "still_path": "/mgoa22sPi2dqfyjhZKEOfOd0qfK.jpg",
+            "vote_average": 0.0,
+            "vote_count": 0,
+            "crew": [
+                {
+                    "job": "Series Director",
+                    "department": "Directing",
+                    "credit_id": "6037bb82d132d6003fa42fc4",
+                    "adult": false,
+                    "gender": 2,
+                    "id": 934830,
+                    "known_for_department": "Directing",
+                    "name": "Daisuke Hiramaki",
+                    "original_name": "平牧大輔",
+                    "popularity": 0.5576,
+                    "profile_path": "/q04P2HlipgGo7XKD8qNoSCpK514.jpg"
+                },
+                {
+                    "job": "Animation Director",
+                    "department": "Visual Effects",
+                    "credit_id": "62546d1327d9cc00507a7bdd",
+                    "adult": false,
+                    "gender": 2,
+                    "id": 2797822,
+                    "known_for_department": "Visual Effects",
+                    "name": "Shohei Usami",
+                    "original_name": "宇佐美翔平",
+                    "popularity": 0.4094,
+                    "profile_path": null
+                },
+                {
+                    "job": "Director",
+                    "department": "Directing",
+                    "credit_id": "625c309613af5f158f69013c",
+                    "adult": false,
+                    "gender": 2,
+                    "id": 1780652,
+                    "known_for_department": "Directing",
+                    "name": "Ryouki Kamitsubo",
+                    "original_name": "上坪亮樹",
+                    "popularity": 0.4888,
+                    "profile_path": null
+                },
+                {
+                    "job": "Storyboard Artist",
+                    "department": "Art",
+                    "credit_id": "625c30a0f10a1a15eca9f537",
+                    "adult": false,
+                    "gender": 2,
+                    "id": 1579858,
+                    "known_for_department": "Art",
+                    "name": "Michio Fukuda",
+                    "original_name": "福田道生",
+                    "popularity": 0.5798,
+                    "profile_path": null
+                },
+                {
+                    "job": "Writer",
+                    "department": "Writing",
+                    "credit_id": "625c30a89661fc0066bf1a88",
+                    "adult": false,
+                    "gender": 1,
+                    "id": 1201163,
+                    "known_for_department": "Writing",
+                    "name": "Yuka Yamada",
+                    "original_name": "山田由香",
+                    "popularity": 0.8681,
+                    "profile_path": null
+                },
+                {
+                    "job": "Director",
+                    "department": "Directing",
+                    "credit_id": "625c30afd266a20067b35c23",
+                    "adult": false,
+                    "gender": 2,
+                    "id": 934830,
+                    "known_for_department": "Directing",
+                    "name": "Daisuke Hiramaki",
+                    "original_name": "平牧大輔",
+                    "popularity": 0.5576,
+                    "profile_path": "/q04P2HlipgGo7XKD8qNoSCpK514.jpg"
+                }
+            ],
+            "guest_stars": []
+        }
+    ],
+    "name": "Specials",
+    "networks": [
+        {
+            "id": 173,
+            "logo_path": "/fERjndErEpveJmQZccJbJDi93rj.png",
+            "name": "AT-X",
+            "origin_country": "JP"
+        }
+    ],
+    "overview": "",
+    "id": 124681,
+    "poster_path": "/vE3VQiYsPTsFa43kxwq7a1ZeUhh.jpg",
+    "season_number": 0,
+    "vote_average": 0.0
+}
