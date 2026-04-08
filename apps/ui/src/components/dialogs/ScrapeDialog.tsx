@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/table"
 import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
-import { useHandleScrapeStart } from "@/hooks/useHandleScrapeStart"
-import { useHandleThumbnailDownload } from "@/hooks/useHandleThumbnailDownload"
+import { useScrapeNfoMutation } from "@/hooks/useScrapeNfoMutation"
 import { useScrapePosterMutation } from "@/hooks/useScrapePosterMutation"
 import { useScrapeFanartMutation } from "@/hooks/useScrapeFanartMutation"
+import { useScrapeThumbnailMutation } from "@/hooks/useScrapeThumbnailMutation"
 import { listFiles } from "@/api/listFiles"
 import { Path } from "@core/path"
 import { basename, extname, dirname } from "@/lib/path"
@@ -395,10 +395,10 @@ export function ScrapeDialog({
   const { t } = useTranslation(['dialogs', 'common'])
   const defaultTitle = t('scrape.defaultTitle')
   const defaultDescription = t('scrape.defaultDescription')
-  const handleScrapeNfoStart = useHandleScrapeStart()
+  const { mutateAsync: scrapeNfo } = useScrapeNfoMutation()
   const { mutateAsync: scrapePoster } = useScrapePosterMutation()
   const { mutateAsync: scrapeFanart } = useScrapeFanartMutation()
-  const handleThumbnailDownload = useHandleThumbnailDownload()
+  const { mutateAsync: scrapeThumbnail } = useScrapeThumbnailMutation()
   const { refreshMediaMetadata } = useMediaMetadataActions()
   const { userConfig } = useConfig()
   const [tasks, setTasks] = useState<Task[]>([])
@@ -447,7 +447,7 @@ export function ScrapeDialog({
               console.error('[ScrapeDialog] mediaMetadata is undefined')
               throw new Error('mediaMetadata is undefined')
             }
-            await handleThumbnailDownload(mediaMetadata)
+            await scrapeThumbnail({ mediaMetadata })
           }
         },
         {
@@ -459,7 +459,7 @@ export function ScrapeDialog({
               console.error('[ScrapeDialog] mediaMetadata is undefined')
               throw new Error('mediaMetadata is undefined')
             }
-            await handleScrapeNfoStart(mediaMetadata)
+            await scrapeNfo({ mediaMetadata })
           }
         },
       ]
@@ -485,7 +485,7 @@ export function ScrapeDialog({
         console.error('[ScrapeDialog] Error initializing tasks:', error)
       })
     }
-  }, [isOpen, mediaMetadata, t, handleScrapeNfoStart, scrapePoster, scrapeFanart, handleThumbnailDownload, userConfig.preferMediaLanguage])
+  }, [isOpen, mediaMetadata, t, scrapeNfo, scrapePoster, scrapeFanart, scrapeThumbnail, userConfig.preferMediaLanguage])
 
   const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
   const canClose = allTasksDone
