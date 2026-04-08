@@ -67,6 +67,7 @@ describe("TvShowNFO parse/convert", () => {
     expect(nfo).toBeDefined()
     expect(nfo?.title).toBe("古见同学有交流障碍症")
     expect(nfo?.tmdbid).toBe("123876")
+    expect(nfo?.tvdbid).toBe("402412")
     expect(nfo?.imdbid).toBe("tt14626352")
     expect(nfo?.ratings?.[0]).toMatchObject({ name: "themoviedb", value: 8.3, votes: 545 })
   })
@@ -78,5 +79,17 @@ describe("TvShowNFO parse/convert", () => {
     const convertedXml = convertTvShowNfoToXml(baseline!)
     const reparsed = await parseTvShowNFO(convertedXml)
     expect(reparsed).toEqual(baseline)
+  })
+
+  it("converts and parses explicit tvdbid field", async () => {
+    const xml = convertTvShowNfoToXml({
+      title: "TVDB Show",
+      id: "402412",
+      tvdbid: "402412",
+      uniqueIds: [{ type: "tvdb", value: "402412", default: true }],
+    })
+    expect(xml).toContain("<tvdbid>402412</tvdbid>")
+    const reparsed = await parseTvShowNFO(xml)
+    expect(reparsed?.tvdbid).toBe("402412")
   })
 })

@@ -14,6 +14,7 @@ import { useConfig } from "@/providers/config-provider"
 import { useSeasonSectionState } from "@/components/hooks/useSeasonSectionState"
 import Debug from 'debug'
 import { isNotNil } from "es-toolkit"
+import type { TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
 
 const debug = Debug('scrape')
 
@@ -181,11 +182,135 @@ export function buildTvShowEpisodeNfo(
     }
 }
 
+type TvdbSeriesDetails = TVDBv4SeriesExtendedResponse
+type TvdbSeasonDetails = TVDBv4SeriesSeasonsExtendedResponse
+type TvdbEpisodeDetails = TVDBv4SeriesSeasonsExtendedResponse["episodes"][number]
+
+export function buildTvShowNfoByTVDB(
+    tvdbSeries: TvdbSeriesDetails,
+    tvdbSeasons: TvdbSeasonDetails[],
+): TvShowNFO {
+    const getSeasonNumber = (season: TvdbSeasonDetails): number | undefined =>
+        season.episodes?.find((ep) => Number.isFinite(ep.seasonNumber))?.seasonNumber
+
+    const thumbs: TvShowNFO["thumbs"] = []
+    const namedSeasons: TvShowNFO["namedSeasons"] = (tvdbSeasons ?? []).map((season) => ({
+        number: getSeasonNumber(season),
+        name: "",
+    }))
+
+    if (tvdbSeries.image) {
+        thumbs.push({
+            url: tvdbSeries.image,
+            aspect: "poster",
+        })
+    }
+    for (const season of tvdbSeasons ?? []) {
+        const seasonNumber = getSeasonNumber(season)
+        if (season.image) {
+            thumbs.push({
+                url: season.image,
+                aspect: "poster",
+                season: seasonNumber,
+                type: "season",
+            })
+        }
+    }
+
+    const fanartThumb = (tvdbSeries.artworks ?? [])
+        .filter((art) => typeof art.image === "string" && art.image.length > 0)
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]?.image
+
+    return {
+        id: String(tvdbSeries.id),
+        title: tvdbSeries.name,
+        originalTitle: tvdbSeries.name,
+        showTitle: tvdbSeries.name,
+        year: parseInt(tvdbSeries.year ?? "", 10) || undefined,
+        top250: 0,
+        ratings:
+            tvdbSeries.score > 0
+                ? [
+                    {
+                        default: true,
+                        max: 10,
+                        name: "tvdb",
+                        value: tvdbSeries.score,
+                    },
+                ]
+                : undefined,
+        userRating: 0,
+        outline: tvdbSeries.overview,
+        plot: tvdbSeries.overview,
+        runtime: tvdbSeries.averageRuntime > 0 ? tvdbSeries.averageRuntime : undefined,
+        thumbs: thumbs.length > 0 ? thumbs : undefined,
+        namedSeasons: namedSeasons.length > 0 ? namedSeasons : undefined,
+        fanartThumbs: fanartThumb ? [fanartThumb] : undefined,
+        episodeguide: JSON.stringify({ tvdb: String(tvdbSeries.id) }),
+        tvdbid: String(tvdbSeries.id),
+        uniqueIds: [
+            {
+                default: true,
+                type: "tvdb",
+                value: String(tvdbSeries.id),
+            },
+        ],
+        premiered: tvdbSeries.firstAired,
+        status: tvdbSeries.status?.name,
+        watched: false,
+        playcount: 0,
+        countries: tvdbSeries.originalCountry ? [tvdbSeries.originalCountry] : undefined,
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
+}
+
+export function buildTvShowEpisodeNfoByTVDB(
+    tvdbSeries: TvdbSeriesDetails,
+    tvdbSeason: TvdbSeasonDetails,
+    tvdbEpisode: TvdbEpisodeDetails,
+): EpisodeNfo {
+    return {
+        id: String(tvdbEpisode.id),
+        title: tvdbEpisode.name,
+        originalTitle: tvdbEpisode.name,
+        showTitle: tvdbSeries.name,
+        season: tvdbEpisode.seasonNumber,
+        episode: tvdbEpisode.number,
+        uniqueIds: [
+            {
+                default: true,
+                type: "tvdb",
+                value: String(tvdbEpisode.id),
+            },
+        ],
+        ratings:
+            tvdbSeries.score > 0
+                ? [
+                    {
+                        default: false,
+                        max: 10,
+                        name: "tvdb",
+                        value: tvdbSeries.score,
+                    },
+                ]
+                : undefined,
+        userRating: 0,
+        plot: tvdbEpisode.overview,
+        runtime: tvdbEpisode.runtime > 0 ? tvdbEpisode.runtime : undefined,
+        thumb: tvdbEpisode.image || undefined,
+        premiered: tvdbEpisode.aired,
+        aired: tvdbEpisode.aired,
+        watched: false,
+        playcount: 0,
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
+}
+
 export function useHandleScrapeStart() {
     const { t } = useTranslation('dialogs')
 
     const { getTvShowById, getTvShowSeasonDetails } = useTmdbQueries();
-    const { getSeriesExtended } = useTvdbQueries();
+    const { getSeriesExtended, getSeasonExtended } = useTvdbQueries();
     const { userConfig } = useConfig()
 
     const handleScrapeStart = useCallback(async (mediaMetadata: MediaMetadata) => {
@@ -237,9 +362,46 @@ export function useHandleScrapeStart() {
 
                     
                 } else if(mediaMetadata.tvShow?.database === 'TVDB') {
-                    const tvShow = await getSeriesExtended(parseInt(mediaMetadata.tvShow.id))
-                    // TODO: translate tvShow in TVDB
-                    
+                    const tvdbSeriesId = parseInt(mediaMetadata.tvShow.id)
+                    debug(`collecting TV series and seasons data from TVDB`)
+                    const tvdbSeries = await getSeriesExtended(tvdbSeriesId)
+                    if (!tvdbSeries) {
+                        throw new Error(`Failed to fetch TVDB series: ${tvdbSeriesId}`)
+                    }
+                    const tvdbSeasons = (await Promise.all(
+                        (tvdbSeries.seasons ?? []).map((s) => getSeasonExtended(s.id)),
+                    )).filter(isNotNil)
+                    debug(`collected TV series and seasons data from TVDB`)
+
+                    const tvShowNfo: TvShowNFO = buildTvShowNfoByTVDB(tvdbSeries, tvdbSeasons)
+                    const tvShowNfoXml = convertTvShowNfoToXml(tvShowNfo)
+                    const tvShowNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "tvshow.nfo")
+                    debug(`writing tvshow.nfo to ${tvShowNfoPath}`)
+                    await writeFile(tvShowNfoPath, tvShowNfoXml)
+                    debug(`wrote tvshow.nfo to ${tvShowNfoPath}`)
+
+                    await Promise.all(mediaMetadata.mediaFiles?.map(async (mediaFile) => {
+                        const { seasonNumber, episodeNumber, absolutePath } = mediaFile
+                        const tvdbSeason = tvdbSeasons.find((s) =>
+                            (s.episodes ?? []).some((e) => e.seasonNumber === Number(seasonNumber)),
+                        )
+                        const tvdbEpisode = tvdbSeason?.episodes?.find((e) => e.number === Number(episodeNumber))
+
+                        if(!tvdbSeason || !tvdbEpisode) {
+                            debug(`skipping TVDB episode ${seasonNumber}x${episodeNumber}: not found`)
+                            return undefined
+                        }
+
+                        const episodeNfo: EpisodeNfo = buildTvShowEpisodeNfoByTVDB(tvdbSeries, tvdbSeason, tvdbEpisode)
+                        const episodeNfoXml = convertTvShowEpisodeNfoToXml(episodeNfo)
+                        const episodeNfoPath = newFilePathWithExt(absolutePath, ".nfo")
+                        debug(`writing TVDB episode ${seasonNumber}x${episodeNumber} nfo to ${episodeNfoPath}`)
+                        await writeFile(Path.toPlatformPath(episodeNfoPath), episodeNfoXml)
+                        debug(`wrote TVDB episode ${seasonNumber}x${episodeNumber} nfo to ${episodeNfoPath}`)
+                        return
+                    })
+                    .filter(isNotNil) ?? [])
+                    debug(`all TVDB episode nfo files written`)
                 } else {
                     console.error("Scrape start skipped: unsupported database " + mediaMetadata.tvShow?.database)
                     return;

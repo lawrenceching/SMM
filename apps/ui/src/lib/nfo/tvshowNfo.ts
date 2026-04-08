@@ -57,6 +57,7 @@ export interface TvShowNFO {
   id?: string
   imdbid?: string
   tmdbid?: string
+  tvdbid?: string
   uniqueIds?: TvShowNFOUniqueId[]
   premiered?: string
   status?: string
@@ -122,6 +123,7 @@ export class NFO {
   thumbs?: NfoThumb[]
   fanart?: string
   tmdbid?: string
+  tvdbid?: string
 
   toXML() {
     const doc = document.implementation.createDocument(null, "tvshow", null)
@@ -138,6 +140,7 @@ export class NFO {
     if (this.plot) addElement("plot", this.plot)
     if (this.fanart) addElement("fanart", this.fanart)
     if (this.tmdbid) addElement("tmdbid", this.tmdbid)
+    if (this.tvdbid) addElement("tvdbid", this.tvdbid)
     if (this.thumbs?.length) {
       this.thumbs.forEach((thumb) => {
         if (!thumb.url) return
@@ -173,6 +176,7 @@ export class NFO {
     nfo.plot = getTextContent("plot")
     nfo.fanart = getTextContent("fanart")
     nfo.tmdbid = getTextContent("tmdbid")
+    nfo.tvdbid = getTextContent("tvdbid")
     const thumbElements = tvshow.querySelectorAll("thumb")
     if (thumbElements.length > 0) {
       nfo.thumbs = Array.from(thumbElements)
@@ -225,6 +229,7 @@ export async function parseTvShowNfo(xml: string): Promise<TvShowNFO | undefined
   tvShowNfo.id = getTextContent("id")
   tvShowNfo.imdbid = getTextContent("imdbid")
   tvShowNfo.tmdbid = getTextContent("tmdbid")
+  tvShowNfo.tvdbid = getTextContent("tvdbid")
   tvShowNfo.premiered = getTextContent("premiered")
   tvShowNfo.status = getTextContent("status")
   tvShowNfo.watched = parseBooleanField(getTextContent("watched"))
@@ -380,6 +385,7 @@ export function convertTvShowNfoToXml(nfo: TvShowNFO): string {
   addOptionalText("id", nfo.id)
   addOptionalText("imdbid", nfo.imdbid)
   addOptionalText("tmdbid", nfo.tmdbid)
+  addOptionalText("tvdbid", nfo.tvdbid)
   nfo.uniqueIds?.forEach((uniqueId) => {
     const uniqueIdEl = doc.createElement("uniqueid")
     if (uniqueId.default !== undefined) uniqueIdEl.setAttribute("default", String(uniqueId.default))

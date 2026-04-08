@@ -34,7 +34,7 @@ describe('Scrape Thumbnail', () => {
     })
   })
 
-  it.only('scrape thumbnail from TMDB for TV Show', async function () {
+  it('scrape thumbnail from TMDB for TV Show', async function () {
 
     if (env.slowdown) {
       this.timeout(60 * 1000)
@@ -164,7 +164,7 @@ Completed`);
 
   });
 
-  it('scrape thumbnail from TVDB for TV Show', async function () {
+  it.only('scrape thumbnail from TVDB for TV Show', async function () {
 
     if (env.slowdown) {
       this.timeout(60 * 1000)
@@ -279,6 +279,18 @@ Completed`);
     const nonEpisodeThumbnailPath = join(folder.path!, 'S01E02.jpg')
     expect(fs.existsSync(nonEpisodeThumbnailPath)).toBe(false)
 
+    // assert the tvshow.nfo file is present
+    const tvshowNfoPath = join(folder.path!, 'tvshow.nfo')
+    expect(fs.existsSync(tvshowNfoPath)).toBe(true)
+
+    // assert the S01E01 episode nfo file are present
+    const s01e01EpisodeNfoPath = join(folder.path!, 'S01E01.nfo')
+    expect(fs.existsSync(s01e01EpisodeNfoPath)).toBe(true)
+    expect(fs.statSync(s01e01EpisodeNfoPath).size).toBeGreaterThan(0)
+
+    // assert the S01E01 episode nfo file is not present
+    const s01e02EpisodeNfoPath = join(folder.path!, 'S01E02.nfo')
+    expect(fs.existsSync(s01e02EpisodeNfoPath)).toBe(false)
   });
 
 
