@@ -27,6 +27,10 @@ export function tvdbSeriesExtendedQueryKey(seriesId: number) {
   return ["tvdb", "series", seriesId, "extended"] as const
 }
 
+export function tvdbMovieExtendedQueryKey(movieId: number) {
+  return ["tvdb", "movie", movieId, "extended"] as const
+}
+
 export function tvdbSeasonExtendedQueryKey(seasonId: number) {
   return ["tvdb", "season", seasonId, "extended"] as const
 }

@@ -1,10 +1,10 @@
 import * as fs from 'node:fs'
 import { expect } from '@wdio/globals'
 import { Path } from "@smm/core";
-import { TvShowNameVariable, type MediaMetadata, type UserConfig } from "@smm/core/types";
+import { type MediaMetadata, type UserConfig } from "@smm/core/types";
 import { join } from "path";
 import { createFolderInTestFolder, folder1, folder2, folder5 } from "test/actions/import-folders";
-import { cleanup, setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
+import { setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
 import Page from '../pageobjects/page'
 import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
@@ -48,9 +48,12 @@ async function clickFolderByAnyName(names: string[]): Promise<void> {
   throw new Error(`Cannot find sidebar folder by names: ${deduped.join(', ')}. Existing folders: ${existing.join(', ')}`)
 }
 
-function hasImageWithPrefix(folderPath: string, prefix: string): boolean {
+function getImagePathWithPrefix(folderPath: string, prefix: string): string | undefined {
   const files = fs.readdirSync(folderPath)
-  return files.some((file) => file.startsWith(`${prefix}.`) && IMAGE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)))
+  const fileName = files.find(
+    (file) => file.startsWith(`${prefix}.`) && IMAGE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)),
+  )
+  return fileName ? join(folderPath, fileName) : undefined
 }
 
 
@@ -203,6 +206,12 @@ Completed`);
     const thumbnailPath = join(folder.path!, 'S01E01.jpg')
     expect(fs.existsSync(thumbnailPath)).toBe(true)
     expect(fs.statSync(thumbnailPath).size).toBeGreaterThan(0)
+    const posterPath = getImagePathWithPrefix(folder.path!, 'poster')
+    const fanartPath = getImagePathWithPrefix(folder.path!, 'fanart')
+    expect(posterPath).toBeDefined()
+    expect(fanartPath).toBeDefined()
+    expect(fs.statSync(posterPath!).size).toBeGreaterThan(0)
+    expect(fs.statSync(fanartPath!).size).toBeGreaterThan(0)
 
     const nonEpisodeThumbnailPath = join(folder.path!, 'S01E02.jpg')
     expect(fs.existsSync(nonEpisodeThumbnailPath)).toBe(false)
@@ -328,6 +337,12 @@ Completed`);
     const thumbnailPath = join(folder.path!, 'S01E01.jpg')
     expect(fs.existsSync(thumbnailPath)).toBe(true)
     expect(fs.statSync(thumbnailPath).size).toBeGreaterThan(0)
+    const posterPath = getImagePathWithPrefix(folder.path!, 'poster')
+    const fanartPath = getImagePathWithPrefix(folder.path!, 'fanart')
+    expect(posterPath).toBeDefined()
+    expect(fanartPath).toBeDefined()
+    expect(fs.statSync(posterPath!).size).toBeGreaterThan(0)
+    expect(fs.statSync(fanartPath!).size).toBeGreaterThan(0)
 
     const nonEpisodeThumbnailPath = join(folder.path!, 'S01E02.jpg')
     expect(fs.existsSync(nonEpisodeThumbnailPath)).toBe(false)
@@ -419,8 +434,12 @@ Completed`);
 
     await ScrapeDialogCO.cancelButton.click()
 
-    // expect(hasImageWithPrefix(folder.path!, 'poster')).toBe(true)
-    // expect(hasImageWithPrefix(folder.path!, 'fanart')).toBe(true)
+    const posterPath = getImagePathWithPrefix(folder.path!, 'poster')
+    const fanartPath = getImagePathWithPrefix(folder.path!, 'fanart')
+    expect(posterPath).toBeDefined()
+    expect(fanartPath).toBeDefined()
+    expect(fs.statSync(posterPath!).size).toBeGreaterThan(0)
+    expect(fs.statSync(fanartPath!).size).toBeGreaterThan(0)
 
     const movieNfoPath = join(folder.path!, 'movie.nfo')
     expect(fs.existsSync(movieNfoPath)).toBe(true)
@@ -486,8 +505,12 @@ Completed`);
 
     await ScrapeDialogCO.cancelButton.click()
 
-    // expect(hasImageWithPrefix(folder.path!, 'poster')).toBe(true)
-    // expect(hasImageWithPrefix(folder.path!, 'fanart')).toBe(true)
+    const posterPath = getImagePathWithPrefix(folder.path!, 'poster')
+    const fanartPath = getImagePathWithPrefix(folder.path!, 'fanart')
+    expect(posterPath).toBeDefined()
+    expect(fanartPath).toBeDefined()
+    expect(fs.statSync(posterPath!).size).toBeGreaterThan(0)
+    expect(fs.statSync(fanartPath!).size).toBeGreaterThan(0)
 
     const movieNfoPath = join(folder.path!, 'movie.nfo')
     expect(fs.existsSync(movieNfoPath)).toBe(true)

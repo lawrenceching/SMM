@@ -3,6 +3,7 @@ import { useCallback } from "react"
 import { fetchTvdbAndBuildMovieMediaMetadata, fetchTvdbAndBuildTvShowMediaMetadata, getTVDBv4Client } from "@/lib/TvdbUtils"
 import {
   tvdbArtworkTypesQueryKey,
+  tvdbMovieExtendedQueryKey,
   tvdbMovieMediaMetadataQueryKey,
   tvdbSearchQueryKey,
   tvdbSeriesExtendedQueryKey,
@@ -13,6 +14,7 @@ import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } fro
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 import type {
   TVDBv4ArtworkTypeRecord,
+  TVDBv4MovieBaseRecord,
   TVDBv4SearchResult,
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
@@ -20,6 +22,7 @@ import type {
 
 const TVDB_ARTWORK_TYPES_STALE_MS = 24 * 60 * 60 * 1000
 const TVDB_SERIES_EXTENDED_STALE_MS = 5 * 60 * 1000
+const TVDB_MOVIE_EXTENDED_STALE_MS = 5 * 60 * 1000
 const TVDB_SEASON_EXTENDED_STALE_MS = 5 * 60 * 1000
 const TVDB_TV_SHOW_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
 const TVDB_MOVIE_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
@@ -68,6 +71,21 @@ export function useTvdbQueries() {
           return resp.status === "success" ? resp.data : undefined
         },
         staleTime: TVDB_SEASON_EXTENDED_STALE_MS,
+      })
+    },
+    [queryClient]
+  )
+
+  const getMovieExtended = useCallback(
+    (movieId: number): Promise<TVDBv4MovieBaseRecord | undefined> => {
+      const tvdb = getTVDBv4Client()
+      return queryClient.fetchQuery({
+        queryKey: tvdbMovieExtendedQueryKey(movieId),
+        queryFn: async () => {
+          const resp = await tvdb.getMovieExtended(movieId)
+          return resp.status === "success" ? resp.data : undefined
+        },
+        staleTime: TVDB_MOVIE_EXTENDED_STALE_MS,
       })
     },
     [queryClient]
@@ -134,6 +152,7 @@ export function useTvdbQueries() {
   return {
     getArtworkTypes,
     getSeriesExtended,
+    getMovieExtended,
     getSeasonExtended,
     search,
     getTvShowMediaMetadata,
