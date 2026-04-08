@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
-import { getTvShowById as fetchTvShowByIdHttp, getSeason as fetchTvShowSeasonHttp } from "@/api/tmdb"
-import { tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
-import type { PreferMediaLanguage, TmdbSeriesDetails, TmdbSeasonDetails } from "@core/types"
+import { getMovieById as fetchMovieByIdHttp, getTvShowById as fetchTvShowByIdHttp, getSeason as fetchTvShowSeasonHttp } from "@/api/tmdb"
+import { tmdbMovieByIdQueryKey, tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
+import type { PreferMediaLanguage, TmdbMovieDetails, TmdbSeriesDetails, TmdbSeasonDetails } from "@core/types"
 
 const TMDB_TV_SHOW_BY_ID_STALE_MS = 5 * 60 * 1000
 const TMDB_TV_SHOW_SEASON_STALE_MS = 5 * 60 * 1000
+const TMDB_MOVIE_BY_ID_STALE_MS = 5 * 60 * 1000
 
 export function useTmdbQueries() {
   const queryClient = useQueryClient()
@@ -39,5 +40,15 @@ export function useTmdbQueries() {
     [queryClient]
   )
 
-  return { getTvShowById, getTvShowSeasonDetails }
+  const getMovieById = useCallback(
+    (id: number, language?: PreferMediaLanguage): Promise<TmdbMovieDetails> =>
+      queryClient.fetchQuery({
+        queryKey: tmdbMovieByIdQueryKey(id, language),
+        queryFn: () => fetchMovieByIdHttp(id, language),
+        staleTime: TMDB_MOVIE_BY_ID_STALE_MS,
+      }),
+    [queryClient]
+  )
+
+  return { getTvShowById, getTvShowSeasonDetails, getMovieById }
 }

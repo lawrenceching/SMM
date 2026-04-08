@@ -88,7 +88,13 @@ export function MovieHeaderV2({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbMovie) return
+                                    const scrapeBlocked =
+                                        actionsDisabled ||
+                                        !selectedMediaMetadata?.mediaFiles ||
+                                        selectedMediaMetadata.mediaFiles.length === 0
+                                    if (scrapeBlocked) {
+                                        return
+                                    }
 
                                     openScrape?.({
                                         mediaMetadata: selectedMediaMetadata

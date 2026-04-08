@@ -37,3 +37,10 @@ export function tvdbTvShowMediaMetadataQueryKey(
 ) {
   return ["tvdb", "tvShowMediaMetadata", seriesId, language] as const
 }
+
+export function tvdbMovieMediaMetadataQueryKey(
+  movieId: number,
+  language: PreferMediaLanguage
+) {
+  return ["tvdb", "movieMediaMetadata", movieId, language] as const
+}

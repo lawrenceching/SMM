@@ -14,3 +14,7 @@ export function tmdbTvShowSeasonQueryKey(
 ) {
   return ["tmdb", "tv", seriesId, "season", seasonNumber, language] as const
 }
+
+export function tmdbMovieByIdQueryKey(id: number, language?: PreferMediaLanguage) {
+  return ["tmdb", "movie", id, language] as const
+}

@@ -1,14 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
-import { fetchTvdbAndBuildTvShowMediaMetadata, getTVDBv4Client } from "@/lib/TvdbUtils"
+import { fetchTvdbAndBuildMovieMediaMetadata, fetchTvdbAndBuildTvShowMediaMetadata, getTVDBv4Client } from "@/lib/TvdbUtils"
 import {
   tvdbArtworkTypesQueryKey,
+  tvdbMovieMediaMetadataQueryKey,
   tvdbSearchQueryKey,
   tvdbSeriesExtendedQueryKey,
   tvdbSeasonExtendedQueryKey,
   tvdbTvShowMediaMetadataQueryKey,
 } from "@/lib/tvdbQueryKeys"
-import type { PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
+import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 import type {
   TVDBv4ArtworkTypeRecord,
@@ -21,6 +22,7 @@ const TVDB_ARTWORK_TYPES_STALE_MS = 24 * 60 * 60 * 1000
 const TVDB_SERIES_EXTENDED_STALE_MS = 5 * 60 * 1000
 const TVDB_SEASON_EXTENDED_STALE_MS = 5 * 60 * 1000
 const TVDB_TV_SHOW_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
+const TVDB_MOVIE_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
 const TVDB_SEARCH_STALE_MS = 2 * 60 * 1000
 
 export function useTvdbQueries() {
@@ -111,11 +113,30 @@ export function useTvdbQueries() {
     [queryClient]
   )
 
+  const getMovieMediaMetadata = useCallback(
+    (movieId: number, language?: PreferMediaLanguage): Promise<MovieMediaMetadata> => {
+      const lang = language ?? "en-US"
+      return queryClient.fetchQuery({
+        queryKey: tvdbMovieMediaMetadataQueryKey(movieId, lang),
+        queryFn: async () => {
+          const metadata = await fetchTvdbAndBuildMovieMediaMetadata(movieId, lang, {})
+          if (metadata === undefined) {
+            throw new Error(`Failed to fetch TVDB movie ${movieId}`)
+          }
+          return metadata
+        },
+        staleTime: TVDB_MOVIE_MEDIA_METADATA_STALE_MS,
+      })
+    },
+    [queryClient]
+  )
+
   return {
     getArtworkTypes,
     getSeriesExtended,
     getSeasonExtended,
     search,
     getTvShowMediaMetadata,
+    getMovieMediaMetadata,
   }
 }

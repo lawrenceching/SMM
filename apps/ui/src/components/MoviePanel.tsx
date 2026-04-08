@@ -21,6 +21,8 @@ import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { mapToTvdbLangCode } from "@/lib/TvdbUtils"
 import Debug from 'debug'
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
+import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation"
+import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation"
 const debug = Debug('MoviePanel')
 
 export interface MovieFileModel {
@@ -35,6 +37,8 @@ interface ToolbarOption {
 function MoviePanel() {
   const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadataStoreState()
   const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
+  const { mutate: getTvdbMovie } = useGetTvdbMovieMutation()
+  const { mutate: getTmdbMovie } = useGetTmdbMovieMutation()
   const { scrapeDialog } = useDialogs()
   const [openScrape] = scrapeDialog
 
@@ -200,56 +204,97 @@ function MoviePanel() {
 
     if(database === 'TVDB') {
 
-      const tvdbResult: TVDBv4SearchResult = result as TVDBv4SearchResult
-
-      const tvdbLangCode = mapToTvdbLangCode(searchLanguage)
-      const translatedName = tvdbResult.translations[tvdbLangCode]
-
-      const tvdbMovie: MovieMediaMetadata = {
-        id: tvdbResult.tvdb_id,
-        name: translatedName || tvdbResult.name,
-        database: 'TVDB',
-      }
-
       updateMediaMetadata(
-        rawMediaMetadata!.mediaFolderPath!,
-        (prev) => {
-          return {
-            ...prev,
-            tmdbMovie: undefined,
-            movie: tvdbMovie,
-            status: 'ok',
-          }
+        mediaFolderPath,
+        (prev) => ({
+          ...prev,
+          status: "updating",
+        }),
+        { traceId },
+      )
+
+      getTvdbMovie(
+        {
+          movieId: parseInt(String(result.tvdb_id), 10),
+          language: searchLanguage,
         },
-        { traceId }
+        {
+          onSuccess: (movie) => {
+            updateMediaMetadata(
+              mediaFolderPath,
+              (prev) => ({
+                ...prev,
+                movie,
+                status: "ok",
+              }),
+              { traceId },
+            )
+          },
+          onError: (error) => {
+            console.error("Failed to get TVDB movie:", error)
+            toast.error(`Unable to fetch data from TVDB: ${error.message}`)
+            updateMediaMetadata(
+              mediaFolderPath,
+              (prev) => ({
+                ...prev,
+                status: "ok",
+              }),
+              { traceId },
+            )
+          },
+        },
       )
 
     } else if(database === 'TMDB') {
-      
-      const movie = result as TMDBMovie
 
-      try {
-        updateMediaMetadata(mediaFolderPath, {
-          ...rawMediaMetadata,
-          tmdbMovie: movie,
-          movie: undefined,
-          type: 'movie-folder',
-          status: 'ok',
-        }, { traceId })
-      } catch (error) {
-        console.error("Failed to update media metadata:", error)
-        updateMediaMetadata(mediaFolderPath, {
-          ...rawMediaMetadata,
-          status: 'ok',
-        }, { traceId })
-      }
+      updateMediaMetadata(
+        mediaFolderPath,
+        (prev) => ({
+          ...prev,
+          status: "updating",
+        }),
+        { traceId },
+      )
+      
+      getTmdbMovie(
+        {
+          id: parseInt(String(result.id), 10),
+          language: searchLanguage,
+        },
+        {
+          onSuccess: (movie) => {
+            updateMediaMetadata(
+              mediaFolderPath,
+              (prev) => ({
+                ...prev,
+                movie,
+                status: "ok",
+              }),
+              { traceId },
+            )
+          },
+          onError: (error) => {
+            console.error("Failed to get TMDB movie:", error)
+            toast.error(`Unable to fetch data from TMDB: ${error.message}`)
+            updateMediaMetadata(
+              mediaFolderPath,
+              (prev) => ({
+                ...prev,
+                status: "ok",
+              }),
+              { traceId },
+            )
+          },
+        },
+      )
+
     } else {
       toast.error("Invalid database")
       return
     }
 
     
-  }, [updateMediaMetadata, rawMediaMetadata])
+  }, [updateMediaMetadata, rawMediaMetadata, getTvdbMovie, getTmdbMovie])
 
   // Handle confirm button click - rename all files
   const handleRuleBasedRenameConfirm = useCallback(async () => {

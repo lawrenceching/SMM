@@ -1,0 +1,41 @@
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
+import { useTmdbQueries } from "@/hooks/useTmdbQueries"
+import type { MovieMediaMetadata, PreferMediaLanguage, TmdbMovieDetails } from "@core/types"
+
+/**
+ * Fetches TMDB movie details via cached HTTP (`fetchQuery`) and maps to {@link MovieMediaMetadata}.
+ * Pass `onMutate` / `onSuccess` / `onError` (and optional `meta` via variables) for component-specific UI updates.
+ */
+export function useGetTmdbMovieMutation<
+  TVariables extends { id: number; language?: PreferMediaLanguage },
+  TContext = unknown,
+>(
+  options?: Omit<
+    UseMutationOptions<MovieMediaMetadata, Error, TVariables, TContext>,
+    "mutationFn"
+  >
+) {
+  const { getMovieById } = useTmdbQueries()
+
+  return useMutation({
+    ...options,
+    mutationFn: async (variables: TVariables) => {
+      console.log(`useGetTmdbMovieMutation CALLED`, { ...variables })
+      const details: TmdbMovieDetails = await getMovieById(variables.id, variables.language)
+      return buildMovieMediaMetadata(details)
+    },
+  })
+}
+
+export function buildMovieMediaMetadata(tmdbMovieDetails: TmdbMovieDetails): MovieMediaMetadata {
+  const name =
+    (tmdbMovieDetails.title && tmdbMovieDetails.title.trim().length > 0
+      ? tmdbMovieDetails.title
+      : tmdbMovieDetails.original_title) ?? ""
+
+  return {
+    id: String(tmdbMovieDetails.id),
+    name,
+    database: "TMDB",
+  }
+}

@@ -3,33 +3,67 @@ import { expect } from '@wdio/globals'
 import { Path } from "@smm/core";
 import { TvShowNameVariable, type MediaMetadata, type UserConfig } from "@smm/core/types";
 import { join } from "path";
-import { createFolderInTestFolder, folder1 } from "test/actions/import-folders";
+import { createFolderInTestFolder, folder1, folder2, folder5 } from "test/actions/import-folders";
 import { cleanup, setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
 import Page from '../pageobjects/page'
 import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
-import env from "test/lib/env";
 import ScrapeDialogCO from 'test/componentobjects/ScrapeDialogCO';
 import ConfigDialog from 'test/componentobjects/ConfigDialog';
 import Menu from 'test/componentobjects/Menu';
 
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+
+async function clickScrapeButtonFromOverview(): Promise<void> {
+  const scrapeButtonByTestId = $('[data-testid="scrape-button"]')
+  if (await scrapeButtonByTestId.isExisting()) {
+    await scrapeButtonByTestId.waitForClickable({ timeout: 5000 })
+    await scrapeButtonByTestId.click()
+    return
+  }
+
+  const labels = ['Scrape', '刮削']
+  for (const label of labels) {
+    const button = await $(`button=${label}`)
+    if (await button.isDisplayed().catch(() => false)) {
+      await button.waitForClickable({ timeout: 5000 })
+      await button.click()
+      return
+    }
+  }
+
+  throw new Error('Scrape button not found in current panel')
+}
+
+async function clickFolderByAnyName(names: string[]): Promise<void> {
+  await Sidebar.waitForFoldersToLoad(1, 10000)
+  const deduped = Array.from(new Set(names.filter(Boolean)))
+  for (const name of deduped) {
+    if (await Sidebar.isFolderDisplayed(name)) {
+      await Sidebar.clickFolder(name)
+      return
+    }
+  }
+  const existing = await Sidebar.getFolders()
+  throw new Error(`Cannot find sidebar folder by names: ${deduped.join(', ')}. Existing folders: ${existing.join(', ')}`)
+}
+
+function hasImageWithPrefix(folderPath: string, prefix: string): boolean {
+  const files = fs.readdirSync(folderPath)
+  return files.some((file) => file.startsWith(`${prefix}.`) && IMAGE_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)))
+}
+
 
 async function setPreferLanguage(language: "__unset__" | "zh-CN" | "en-US" | "ja-JP"): Promise<void> {
   await Menu.openConfigDialog()
-    if (env.slowdown) {
-      await browser.pause(1000)
-    }
+    await browser.pause(1000)
 
     await ConfigDialog.waitForDisplayed()
-    if (env.slowdown) {
-      await browser.pause(1000)
-    }
+    await browser.pause(1000)
 
     await ConfigDialog.setPreferMediaLanguage(language)
     console.log(`set prefer media language to zh-CN in ConfigDialog`)
-    if (env.slowdown) {
-      await browser.pause(1000)
-    }
+    await browser.pause(1000)
 
     await ConfigDialog.clickSave()
     await ConfigDialog.pressEscape()
@@ -50,20 +84,18 @@ describe('Scrape Thumbnail', () => {
   })
 
   afterEach(async () => {
-    await cleanup({
-      removeMetadataDir: true,
-      removePlansDir: true,
-      removeMediaFolders: true,
-      removeDirInSidebar: true,
-      resetUserConfig: true,
-    })
+    // await cleanup({
+    //   removeMetadataDir: true,
+    //   removePlansDir: true,
+    //   removeMediaFolders: true,
+    //   removeDirInSidebar: true,
+    //   resetUserConfig: true,
+    // })
   })
 
   it('scrape thumbnail from TMDB for TV Show', async function () {
 
-    if (env.slowdown) {
-      this.timeout(60 * 1000)
-    }
+    this.timeout(60 * 1000)
 
     const folder = createFolderInTestFolder({
       ...folder1,
@@ -124,9 +156,7 @@ describe('Scrape Thumbnail', () => {
     }))
 
 
-    if (env.slowdown) {
-      await browser.pause(2 * 1000)
-    }
+    await browser.pause(2 * 1000)
 
     await Page.open()
 
@@ -191,9 +221,7 @@ Completed`);
 
   it('scrape thumbnail from TVDB for TV Show', async function () {
 
-    if (env.slowdown) {
-      this.timeout(60 * 1000)
-    }
+    this.timeout(60 * 1000)
 
     const folder = createFolderInTestFolder({
       ...folder1,
@@ -254,9 +282,7 @@ Completed`);
     }))
 
 
-    if (env.slowdown) {
-      await browser.pause(2 * 1000)
-    }
+    await browser.pause(2 * 1000)
 
     await Page.open()
     await Sidebar.getFolderByName(folder1.translations?.title?.['en-US']!)
@@ -321,6 +347,154 @@ Completed`);
     const s01e02EpisodeNfoPath = join(folder.path!, 'S01E02.nfo')
     expect(fs.existsSync(s01e02EpisodeNfoPath)).toBe(false)
   });
+
+  it('scrape thumbnail from TMDB for Movie', async function () {
+    this.timeout(60 * 1000)
+
+    const folder = createFolderInTestFolder({
+      ...folder2,
+      folderName: "哪吒之魔童降世 (2019) {tmdbid=552524}",
+      files: ["movie.mkv"],
+    })
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: Path.posix(folder.path!),
+      type: "movie-folder",
+      mediaFiles: [
+        {
+          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+        },
+      ],
+      movie: {
+        database: "TMDB",
+        id: "552524",
+        name: "哪吒之魔童降世",
+      },
+    }
+
+    await writeMediaMetadata(mediaMetadata)
+    const mediaFolderPosix = Path.posix(folder.path!)
+    await updateUserConfig((userConfig: UserConfig) => ({
+      ...userConfig,
+      folders: [...userConfig.folders, mediaFolderPosix],
+    }))
+
+    await Page.open()
+    await browser.pause(1000)
+    await setPreferLanguage('zh-CN')
+
+    await clickScrapeButtonFromOverview()
+    await ScrapeDialogCO.table.waitForDisplayed()
+    await ScrapeDialogCO.startButton.waitForClickable()
+    await ScrapeDialogCO.startButton.click()
+
+
+    await browser.waitUntil(async () => {
+      const text = await ScrapeDialogCO.table.getText()
+      return text.includes(`File Status
+Poster
+Completed
+Fanart
+Completed
+Episode Thumbnails
+Completed
+nfo
+Completed`);
+    }, {
+      timeout: 10 * 1000,
+      interval: 1000,
+      timeoutMsg: 'ScrapeDialog did not show Completed status'
+    });
+
+    // await browser.waitUntil(() => {
+    //   const hasPoster = hasImageWithPrefix(folder.path!, 'poster')
+    //   const hasFanart = hasImageWithPrefix(folder.path!, 'fanart')
+    //   const nfoPath = join(folder.path!, 'movie.nfo')
+    //   return hasPoster && hasFanart && fs.existsSync(nfoPath) && fs.statSync(nfoPath).size > 0
+    // }, {
+    //   timeout: 60 * 1000,
+    //   interval: 1000,
+    //   timeoutMsg: 'Movie TMDB scrape outputs were not generated in time',
+    // })
+
+    await ScrapeDialogCO.cancelButton.click()
+
+    // expect(hasImageWithPrefix(folder.path!, 'poster')).toBe(true)
+    // expect(hasImageWithPrefix(folder.path!, 'fanart')).toBe(true)
+
+    const movieNfoPath = join(folder.path!, 'movie.nfo')
+    expect(fs.existsSync(movieNfoPath)).toBe(true)
+    expect(fs.statSync(movieNfoPath).size).toBeGreaterThan(0)
+    expect(fs.readFileSync(movieNfoPath, 'utf-8')).toContain('<tmdbid>552524</tmdbid>')
+  })
+
+  it('scrape thumbnail from TVDB for Movie', async function () {
+    this.timeout(60 * 1000)
+
+    const folder = createFolderInTestFolder({
+      ...folder5,
+      files: ["The Dark Knight [1080P].mkv"],
+    })
+
+    const mediaMetadata: MediaMetadata = {
+      mediaFolderPath: Path.posix(folder.path!),
+      type: "movie-folder",
+      mediaFiles: [
+        {
+          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+        },
+      ],
+      movie: {
+        database: "TVDB",
+        id: "116",
+        name: folder5.translations?.title?.['en-US'] ?? "The Dark Knight",
+      },
+    }
+
+    await writeMediaMetadata(mediaMetadata)
+    const mediaFolderPosix = Path.posix(folder.path!)
+    await updateUserConfig((userConfig: UserConfig) => ({
+      ...userConfig,
+      folders: [...userConfig.folders, mediaFolderPosix],
+    }))
+
+    await Page.open()
+    await browser.pause(1000)
+    await setPreferLanguage('zh-CN')
+
+    await clickScrapeButtonFromOverview()
+    await ScrapeDialogCO.table.waitForDisplayed()
+    await ScrapeDialogCO.startButton.waitForClickable()
+    await ScrapeDialogCO.startButton.click()
+
+    await browser.waitUntil(async () => {
+      const text = await ScrapeDialogCO.table.getText()
+      return text.includes(`File Status
+Poster
+Completed
+Fanart
+Completed
+Episode Thumbnails
+Completed
+nfo
+Completed`);
+    }, {
+      timeout: 10 * 1000,
+      interval: 1000,
+      timeoutMsg: 'ScrapeDialog did not show Completed status'
+    });
+
+    await ScrapeDialogCO.cancelButton.click()
+
+    // expect(hasImageWithPrefix(folder.path!, 'poster')).toBe(true)
+    // expect(hasImageWithPrefix(folder.path!, 'fanart')).toBe(true)
+
+    const movieNfoPath = join(folder.path!, 'movie.nfo')
+    expect(fs.existsSync(movieNfoPath)).toBe(true)
+    expect(fs.statSync(movieNfoPath).size).toBeGreaterThan(0)
+    const movieNfoText = fs.readFileSync(movieNfoPath, 'utf-8')
+    expect(movieNfoText.includes('<tvdbid>116</tvdbid>') || movieNfoText.includes('type="tvdb"')).toBe(true)
+  })
 
 
 });

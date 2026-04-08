@@ -1,8 +1,15 @@
 import { useCallback } from "react"
-import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
-import { convertTvShowEpisodeNfoToXml, convertTvShowNfoToXml, type EpisodeNfo, type TvShowNFO } from "@/lib/nfo"
+import type { MediaMetadata, TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import {
+    convertMovieNfoToXml,
+    convertTvShowEpisodeNfoToXml,
+    convertTvShowNfoToXml,
+    type EpisodeNfo,
+    type MovieNFO,
+    type TvShowNFO,
+} from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
-import { getTMDBImageUrl } from "@/api/tmdb"
+import { getMovieById, getTMDBImageUrl } from "@/api/tmdb"
 import { join, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
 import { useTranslation } from "@/lib/i18n"
@@ -11,7 +18,11 @@ import { useTvdbQueries } from "./useTvdbQueries"
 import { useConfig } from "@/providers/config-provider"
 import Debug from 'debug'
 import { isNotNil } from "es-toolkit"
-import type { TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
+import type {
+    TVDBv4MovieBaseRecord,
+    TVDBv4SeriesExtendedResponse,
+    TVDBv4SeriesSeasonsExtendedResponse,
+} from "@smm/tvdb4/types"
 import { getTVDBv4Client, mapToTvdbLangCode } from "@/lib/TvdbUtils"
 
 const debug = Debug('scrape')
@@ -101,6 +112,79 @@ export function buildTvShowNfo(tmdbTvSeriesDetails: TmdbSeriesDetails, tmdbTvSho
     }
 }
 
+export function buildMovieNfo(tmdbMovieDetails: TmdbMovieDetails): MovieNFO {
+    const thumbs: MovieNFO["thumbs"] = []
+    const poster = getTMDBImageUrl(tmdbMovieDetails.poster_path, "original")
+    if (poster) {
+        thumbs.push({
+            url: poster,
+            aspect: "poster",
+        })
+    }
+    const fanart = getTMDBImageUrl(tmdbMovieDetails.backdrop_path, "original")
+    const imdbId = tmdbMovieDetails.imdb_id ?? undefined
+    const uniqueIds: MovieNFO["uniqueIds"] = [
+        {
+            default: true,
+            type: "tmdb",
+            value: String(tmdbMovieDetails.id),
+        },
+    ]
+    if (imdbId) {
+        uniqueIds.push({
+            default: false,
+            type: "imdb",
+            value: imdbId,
+        })
+    }
+    return {
+        title: tmdbMovieDetails.title,
+        originalTitle: tmdbMovieDetails.original_title,
+        sortTitle: tmdbMovieDetails.title,
+        year: parseInt(tmdbMovieDetails.release_date?.slice(0, 4) ?? "", 10) || undefined,
+        ratings: [
+            {
+                default: true,
+                max: 10,
+                name: "themoviedb",
+                value: tmdbMovieDetails.vote_average,
+                votes: tmdbMovieDetails.vote_count,
+            },
+        ],
+        userRating: 0,
+        top250: 0,
+        set: tmdbMovieDetails.belongs_to_collection?.name
+            ? {
+                name: tmdbMovieDetails.belongs_to_collection.name,
+                overview: tmdbMovieDetails.belongs_to_collection.name,
+            }
+            : undefined,
+        plot: tmdbMovieDetails.overview,
+        outline: tmdbMovieDetails.overview,
+        tagline: tmdbMovieDetails.tagline ?? undefined,
+        runtime: tmdbMovieDetails.runtime ?? undefined,
+        thumbs: thumbs.length > 0 ? thumbs : undefined,
+        fanartThumbs: fanart ? [fanart] : undefined,
+        id: imdbId ?? String(tmdbMovieDetails.id),
+        imdbid: imdbId,
+        tmdbid: String(tmdbMovieDetails.id),
+        uniqueIds,
+        countries: (tmdbMovieDetails.production_countries ?? []).map((c) => c.name).filter(Boolean),
+        status: tmdbMovieDetails.status || undefined,
+        premiered: tmdbMovieDetails.release_date || undefined,
+        watched: false,
+        playcount: 0,
+        genres: (tmdbMovieDetails.genres ?? []).map((g) => g.name).filter(Boolean),
+        studios: (tmdbMovieDetails.production_companies ?? []).map((c) => c.name).filter(Boolean),
+        languages:
+            (tmdbMovieDetails.spoken_languages ?? [])
+                .map((l) => l.name || l.english_name)
+                .filter(Boolean)
+                .join(" / ") || undefined,
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
+}
+
 type TmdbEpisodeDetails = NonNullable<TmdbSeasonDetails["episodes"]>[number]
 
 export function buildTvShowEpisodeNfo(
@@ -183,6 +267,22 @@ export function buildTvShowEpisodeNfo(
 type TvdbSeriesDetails = TVDBv4SeriesExtendedResponse
 type TvdbSeasonDetails = TVDBv4SeriesSeasonsExtendedResponse
 type TvdbEpisodeDetails = TVDBv4SeriesSeasonsExtendedResponse["episodes"][number]
+type TvdbMovieDetails = TVDBv4MovieBaseRecord
+
+function tvdbGetString(data: Record<string, unknown>, key: string): string | undefined {
+    const value = data[key]
+    return typeof value === "string" && value.trim().length > 0 ? value : undefined
+}
+
+function tvdbGetNumber(data: Record<string, unknown>, key: string): number | undefined {
+    const value = data[key]
+    if (typeof value === "number" && Number.isFinite(value)) return value
+    if (typeof value === "string") {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : undefined
+    }
+    return undefined
+}
 
 export function buildTvShowNfoByTVDB(
     tvdbSeries: TvdbSeriesDetails,
@@ -311,6 +411,71 @@ export function buildTvShowEpisodeNfoByTVDB(
         thumb: tvdbEpisode.image || undefined,
         premiered: tvdbEpisode.aired,
         aired: tvdbEpisode.aired,
+        watched: false,
+        playcount: 0,
+        dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
+    }
+}
+
+export function buildMovieNfoByTVDB(
+    tvdbMovie: TvdbMovieDetails,
+    resolvedMovieText?: { title?: string; overview?: string },
+): MovieNFO {
+    const data = tvdbMovie as Record<string, unknown>
+    const title = resolvedMovieText?.title || tvdbGetString(data, "name")
+    const overview = resolvedMovieText?.overview || tvdbGetString(data, "overview")
+    const image = tvdbGetString(data, "image")
+    const score = tvdbGetNumber(data, "score")
+    const yearText = tvdbGetString(data, "year")
+    const year = yearText ? parseInt(yearText, 10) || undefined : undefined
+    const releaseDate = tvdbGetString(data, "releaseDate") ?? tvdbGetString(data, "first_release")
+    const runtime = tvdbGetNumber(data, "runtime")
+    const statusText =
+        typeof data.status === "object" && data.status !== null
+            ? tvdbGetString(data.status as Record<string, unknown>, "name")
+            : undefined
+
+    return {
+        title,
+        originalTitle: title,
+        year,
+        ratings:
+            score && score > 0
+                ? [
+                    {
+                        default: true,
+                        max: 10,
+                        name: "tvdb",
+                        value: score,
+                    },
+                ]
+                : undefined,
+        userRating: 0,
+        top250: 0,
+        plot: overview,
+        outline: overview,
+        runtime: runtime && runtime > 0 ? runtime : undefined,
+        thumbs: image
+            ? [
+                {
+                    url: image,
+                    aspect: "poster",
+                },
+            ]
+            : undefined,
+        id: String(tvdbMovie.id ?? ""),
+        tvdbid: String(tvdbMovie.id ?? ""),
+        uniqueIds: tvdbMovie.id
+            ? [
+                {
+                    default: true,
+                    type: "tvdb",
+                    value: String(tvdbMovie.id),
+                },
+            ]
+            : undefined,
+        status: statusText,
+        premiered: releaseDate,
         watched: false,
         playcount: 0,
         dateadded: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -463,7 +628,56 @@ export function useHandleScrapeStart() {
 
                 
             } else if(mediaMetadata.type === 'movie-folder') {
-                // await startToGenerateMovieNfo(mediaMetadata, () => fileAlreadyExistsMessage)
+                if(mediaMetadata.movie?.database === 'TMDB') {
+                    console.log(`start to scrape movie nfo from TMDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+                    const tmdbMovieId = parseInt(mediaMetadata.movie.id)
+                    const tmdbMovieDetails: TmdbMovieDetails = await getMovieById(tmdbMovieId, userConfig.preferMediaLanguage)
+                    const movieNfo: MovieNFO = buildMovieNfo(tmdbMovieDetails)
+                    const movieNfoXml = convertMovieNfoToXml(movieNfo)
+                    const movieNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "movie.nfo")
+                    debug(`writing movie.nfo to ${movieNfoPath}`)
+                    await writeFile(movieNfoPath, movieNfoXml)
+                    debug(`wrote movie.nfo to ${movieNfoPath}`)
+                } else if(mediaMetadata.movie?.database === 'TVDB') {
+                    console.log(`start to scrape movie nfo from TVDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+                    const tvdbMovieId = parseInt(mediaMetadata.movie.id)
+                    const preferLang = userConfig.preferMediaLanguage ?? "en-US"
+                    const tvdbLangCode = mapToTvdbLangCode(preferLang)
+                    const tvdb = getTVDBv4Client()
+                    const tvdbMovieResp = await tvdb.movieExtendedById(tvdbMovieId)
+                    if (tvdbMovieResp.status !== "success") {
+                        throw new Error(`Failed to fetch TVDB movie: ${tvdbMovieId}`)
+                    }
+                    let resolvedMovieText: { title?: string; overview?: string } | undefined
+                    try {
+                        const movieTranslationResp = await tvdb.movieTranslationByLangCode(tvdbMovieId, tvdbLangCode)
+                        if (movieTranslationResp.status === "success") {
+                            resolvedMovieText = {
+                                title:
+                                    typeof movieTranslationResp.data.name === "string" &&
+                                    movieTranslationResp.data.name.trim().length > 0
+                                        ? movieTranslationResp.data.name
+                                        : undefined,
+                                overview:
+                                    typeof movieTranslationResp.data.overview === "string" &&
+                                    movieTranslationResp.data.overview.trim().length > 0
+                                        ? movieTranslationResp.data.overview
+                                        : undefined,
+                            }
+                        }
+                    } catch (e) {
+                        debug(`TVDB movie translation failed for ${tvdbMovieId}: ${e}`)
+                    }
+                    const movieNfo: MovieNFO = buildMovieNfoByTVDB(tvdbMovieResp.data, resolvedMovieText)
+                    const movieNfoXml = convertMovieNfoToXml(movieNfo)
+                    const movieNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "movie.nfo")
+                    debug(`writing movie.nfo to ${movieNfoPath}`)
+                    await writeFile(movieNfoPath, movieNfoXml)
+                    debug(`wrote movie.nfo to ${movieNfoPath}`)
+                } else {
+                    console.error("Scrape start skipped: unsupported movie database " + mediaMetadata.movie?.database)
+                    return;
+                }
             } else {
                 console.error("Scrape start skipped: unsupported folder type " + mediaMetadata.type)
                 return;

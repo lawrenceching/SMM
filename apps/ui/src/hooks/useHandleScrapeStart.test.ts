@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
-import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
-import type { TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
-import { buildTvShowEpisodeNfo, buildTvShowEpisodeNfoByTVDB, buildTvShowNfo, buildTvShowNfoByTVDB } from "./useHandleScrapeStart"
+import type { TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import type { TVDBv4MovieBaseRecord, TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
+import {
+    buildMovieNfo,
+    buildMovieNfoByTVDB,
+    buildTvShowEpisodeNfo,
+    buildTvShowEpisodeNfoByTVDB,
+    buildTvShowNfo,
+    buildTvShowNfoByTVDB,
+} from "./useHandleScrapeStart"
 
 function resolveFixturePath(relativeFromRepoRoot: string): string {
     const candidates = [
@@ -346,6 +353,98 @@ describe("TVDB nfo builders", () => {
         const fallback = buildTvShowEpisodeNfoByTVDB(series, season, episode, {})
         expect(fallback.title).toBe("Default Episode Name")
         expect(fallback.plot).toBe("Default Episode Overview")
+    })
+})
+
+describe("movie nfo builders", () => {
+    it("buildMovieNfo builds movie.nfo payload from TMDB movie details", () => {
+        const movie: TmdbMovieDetails = {
+            id: 1519168,
+            title: "The Jester 2",
+            original_title: "The Jester 2",
+            overview: "A Halloween thriller",
+            poster_path: "/poster.jpg",
+            backdrop_path: "/backdrop.jpg",
+            release_date: "2025-09-15",
+            vote_average: 6.3,
+            vote_count: 45,
+            popularity: 10,
+            genre_ids: [],
+            adult: false,
+            video: false,
+            belongs_to_collection: {
+                id: 1526352,
+                name: "The Jester Collection",
+                poster_path: null,
+                backdrop_path: null,
+            },
+            budget: 0,
+            genres: [{ id: 27, name: "Horror" }],
+            homepage: null,
+            imdb_id: "tt37334010",
+            original_language: "en",
+            production_companies: [{ id: 1, name: "Traverse Terror", logo_path: null, origin_country: "US" }],
+            production_countries: [{ iso_3166_1: "US", name: "United States of America" }],
+            revenue: 0,
+            runtime: 87,
+            spoken_languages: [{ english_name: "English", iso_639_1: "en", name: "English" }],
+            status: "Released",
+            tagline: "The trick is bloody",
+        }
+
+        const nfo = buildMovieNfo(movie)
+
+        expect(nfo.title).toBe(movie.title)
+        expect(nfo.originalTitle).toBe(movie.original_title)
+        expect(nfo.tmdbid).toBe(String(movie.id))
+        expect(nfo.year).toBe(parseInt(movie.release_date.slice(0, 4), 10))
+        expect(nfo.plot).toBe(movie.overview)
+        expect(nfo.outline).toBe(movie.overview)
+        expect(nfo.runtime).toBe(movie.runtime ?? undefined)
+        expect(nfo.watched).toBe(false)
+        expect(nfo.playcount).toBe(0)
+        expect(nfo.ratings?.[0]).toMatchObject({
+            default: true,
+            max: 10,
+            name: "themoviedb",
+            value: movie.vote_average,
+            votes: movie.vote_count,
+        })
+        expect(nfo.uniqueIds?.find((i) => i.type === "tmdb")?.value).toBe(String(movie.id))
+        if (movie.imdb_id) {
+            expect(nfo.id).toBe(movie.imdb_id)
+            expect(nfo.imdbid).toBe(movie.imdb_id)
+            expect(nfo.uniqueIds?.find((i) => i.type === "imdb")?.value).toBe(movie.imdb_id)
+        }
+    })
+
+    it("buildMovieNfoByTVDB uses translated text and tvdb unique id", () => {
+        const movie: TVDBv4MovieBaseRecord = {
+            id: 998877,
+            name: "Default TVDB Movie",
+            overview: "Default TVDB Overview",
+            image: "https://example.com/movie.jpg",
+            score: 7.6,
+            year: "2025",
+            runtime: 97,
+            releaseDate: "2025-09-15",
+            status: { name: "Released" },
+        }
+
+        const nfo = buildMovieNfoByTVDB(movie, {
+            title: "Translated Movie Name",
+            overview: "Translated Movie Overview",
+        })
+
+        expect(nfo.title).toBe("Translated Movie Name")
+        expect(nfo.originalTitle).toBe("Translated Movie Name")
+        expect(nfo.plot).toBe("Translated Movie Overview")
+        expect(nfo.outline).toBe("Translated Movie Overview")
+        expect(nfo.tvdbid).toBe("998877")
+        expect(nfo.uniqueIds?.[0]).toMatchObject({ type: "tvdb", value: "998877", default: true })
+        expect(nfo.thumbs?.[0]?.url).toBe("https://example.com/movie.jpg")
+        expect(nfo.runtime).toBe(97)
+        expect(nfo.premiered).toBe("2025-09-15")
     })
 })
 
