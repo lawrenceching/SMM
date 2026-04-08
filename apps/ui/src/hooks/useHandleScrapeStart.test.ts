@@ -219,6 +219,42 @@ describe("TVDB nfo builders", () => {
         expect(nfo.episodeguide).toBe(JSON.stringify({ tvdb: "402412" }))
     })
 
+    it("buildTvShowNfoByTVDB uses translated series text when provided", () => {
+        const series = {
+            id: 402412,
+            name: "Default Name",
+            image: "",
+            nameTranslations: [],
+            overviewTranslations: [],
+            aliases: [],
+            firstAired: "2021-10-07",
+            lastAired: "",
+            nextAired: "",
+            score: 0,
+            status: { id: 1, name: "Ended", recordType: "series", keepUpdated: false },
+            originalCountry: "JPN",
+            originalLanguage: "jpn",
+            defaultSeasonType: 1,
+            isOrderRandomized: false,
+            lastUpdated: "",
+            averageRuntime: 24,
+            overview: "Default Overview",
+            year: "2021",
+            artworks: [],
+            seasons: [],
+        } as TVDBv4SeriesExtendedResponse
+
+        const nfo = buildTvShowNfoByTVDB(series, [], {
+            title: "Translated Name",
+            overview: "Translated Overview",
+        })
+        expect(nfo.title).toBe("Translated Name")
+        expect(nfo.showTitle).toBe("Translated Name")
+        expect(nfo.originalTitle).toBe("Translated Name")
+        expect(nfo.plot).toBe("Translated Overview")
+        expect(nfo.outline).toBe("Translated Overview")
+    })
+
     it("buildTvShowEpisodeNfoByTVDB builds episode nfo", () => {
         const series = {
             id: 402412,
@@ -261,6 +297,55 @@ describe("TVDB nfo builders", () => {
         expect(nfo.uniqueIds?.[0]).toMatchObject({ type: "tvdb", value: "8415207", default: true })
         expect(nfo.thumb).toBe("https://example.com/ep.jpg")
         expect(nfo.runtime).toBe(24)
+    })
+
+    it("buildTvShowEpisodeNfoByTVDB uses translated episode text with fallback", () => {
+        const series = {
+            id: 402412,
+            name: "Series Name",
+            score: 0,
+        } as TVDBv4SeriesExtendedResponse
+        const season = {
+            id: 1,
+            seriesId: 402412,
+            type: { id: 1, name: "Official", type: "official", alternateName: null },
+            image: "",
+            imageType: 0,
+            lastUpdated: "",
+            year: "2021",
+            episodes: [],
+        } as TVDBv4SeriesSeasonsExtendedResponse
+        const episode = {
+            id: 8415207,
+            seriesId: 402412,
+            name: "Default Episode Name",
+            aired: "2021-10-07",
+            runtime: 24,
+            nameTranslations: [],
+            overview: "Default Episode Overview",
+            overviewTranslations: [],
+            image: "",
+            imageType: 0,
+            lastUpdated: "",
+            number: 1,
+            absoluteNumber: 1,
+            seasonNumber: 1,
+            finaleType: null,
+            year: "2021",
+        }
+
+        const translatedData: Record<string, string> = {
+            name: "Translated Episode Name",
+            overview: "Translated Episode Overview",
+        }
+        const translated = buildTvShowEpisodeNfoByTVDB(series, season, episode, translatedData)
+        expect(translated.title).toBe("Translated Episode Name")
+        expect(translated.originalTitle).toBe("Translated Episode Name")
+        expect(translated.plot).toBe("Translated Episode Overview")
+
+        const fallback = buildTvShowEpisodeNfoByTVDB(series, season, episode, {})
+        expect(fallback.title).toBe("Default Episode Name")
+        expect(fallback.plot).toBe("Default Episode Overview")
     })
 })
 

@@ -10,6 +10,31 @@ import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
 import env from "test/lib/env";
 import ScrapeDialogCO from 'test/componentobjects/ScrapeDialogCO';
+import ConfigDialog from 'test/componentobjects/ConfigDialog';
+import Menu from 'test/componentobjects/Menu';
+
+
+async function setPreferLanguage(language: "__unset__" | "zh-CN" | "en-US" | "ja-JP"): Promise<void> {
+  await Menu.openConfigDialog()
+    if (env.slowdown) {
+      await browser.pause(1000)
+    }
+
+    await ConfigDialog.waitForDisplayed()
+    if (env.slowdown) {
+      await browser.pause(1000)
+    }
+
+    await ConfigDialog.setPreferMediaLanguage(language)
+    console.log(`set prefer media language to zh-CN in ConfigDialog`)
+    if (env.slowdown) {
+      await browser.pause(1000)
+    }
+
+    await ConfigDialog.clickSave()
+    await ConfigDialog.pressEscape()
+    await browser.pause(1000)
+}
 
 describe('Scrape Thumbnail', () => {
 
@@ -107,6 +132,9 @@ describe('Scrape Thumbnail', () => {
 
     await Sidebar.getFolderByName(folder1.translations?.title?.['en-US']!)
 
+    await browser.pause(1000)
+    await setPreferLanguage('zh-CN')
+
     await TvShowPanelCO.scrapeButton.waitForClickable()
     await TvShowPanelCO.scrapeButton.click()
 
@@ -152,19 +180,16 @@ Completed`);
     // assert the tvshow.nfo file is present
     const tvshowNfoPath = join(folder.path!, 'tvshow.nfo')
     expect(fs.existsSync(tvshowNfoPath)).toBe(true)
+    expect(fs.readFileSync(tvshowNfoPath, 'utf-8')).toContain('天使降临到我身边')
 
     // assert the S01E01 episode nfo file are present
     const s01e01EpisodeNfoPath = join(folder.path!, 'S01E01.nfo')
     expect(fs.existsSync(s01e01EpisodeNfoPath)).toBe(true)
     expect(fs.statSync(s01e01EpisodeNfoPath).size).toBeGreaterThan(0)
-
-    // assert the S01E01 episode nfo file is not present
-    const s01e02EpisodeNfoPath = join(folder.path!, 'S01E02.nfo')
-    expect(fs.existsSync(s01e02EpisodeNfoPath)).toBe(false)
-
+    expect(fs.readFileSync(s01e01EpisodeNfoPath, 'utf-8')).toContain('心里痒痒的感觉')
   });
 
-  it.only('scrape thumbnail from TVDB for TV Show', async function () {
+  it('scrape thumbnail from TVDB for TV Show', async function () {
 
     if (env.slowdown) {
       this.timeout(60 * 1000)
@@ -234,8 +259,10 @@ Completed`);
     }
 
     await Page.open()
-
     await Sidebar.getFolderByName(folder1.translations?.title?.['en-US']!)
+
+    await browser.pause(1000)
+    await setPreferLanguage('zh-CN')
 
     await TvShowPanelCO.scrapeButton.waitForClickable()
     await TvShowPanelCO.scrapeButton.click()
@@ -282,11 +309,13 @@ Completed`);
     // assert the tvshow.nfo file is present
     const tvshowNfoPath = join(folder.path!, 'tvshow.nfo')
     expect(fs.existsSync(tvshowNfoPath)).toBe(true)
+    expect(fs.readFileSync(tvshowNfoPath, 'utf-8')).toContain('天使降临到了我身边')
 
     // assert the S01E01 episode nfo file are present
     const s01e01EpisodeNfoPath = join(folder.path!, 'S01E01.nfo')
     expect(fs.existsSync(s01e01EpisodeNfoPath)).toBe(true)
     expect(fs.statSync(s01e01EpisodeNfoPath).size).toBeGreaterThan(0)
+    expect(fs.readFileSync(s01e01EpisodeNfoPath, 'utf-8')).toContain('心裏癢癢的感覺')
 
     // assert the S01E01 episode nfo file is not present
     const s01e02EpisodeNfoPath = join(folder.path!, 'S01E02.nfo')

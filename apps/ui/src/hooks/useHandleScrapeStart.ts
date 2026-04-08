@@ -1,20 +1,18 @@
 import { useCallback } from "react"
-import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, TvShowMediaMetadata } from "@core/types"
-import { NFO, buildEpisodeNfoXml, convertTvShowEpisodeNfoToXml, convertTvShowNfoToXml, type EpisodeNfo, type TvShowNFO } from "@/lib/nfo"
+import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import { convertTvShowEpisodeNfoToXml, convertTvShowNfoToXml, type EpisodeNfo, type TvShowNFO } from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import { join, dirname, basename, extname, newFilePathWithExt } from "@/lib/path"
+import { join, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
-import { toast } from "sonner"
-import { isError, ExistedFileError } from "@core/errors"
 import { useTranslation } from "@/lib/i18n"
 import { useTmdbQueries } from "./useTmdbQueries"
 import { useTvdbQueries } from "./useTvdbQueries"
 import { useConfig } from "@/providers/config-provider"
-import { useSeasonSectionState } from "@/components/hooks/useSeasonSectionState"
 import Debug from 'debug'
 import { isNotNil } from "es-toolkit"
 import type { TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
+import { getTVDBv4Client, mapToTvdbLangCode } from "@/lib/TvdbUtils"
 
 const debug = Debug('scrape')
 
@@ -189,6 +187,7 @@ type TvdbEpisodeDetails = TVDBv4SeriesSeasonsExtendedResponse["episodes"][number
 export function buildTvShowNfoByTVDB(
     tvdbSeries: TvdbSeriesDetails,
     tvdbSeasons: TvdbSeasonDetails[],
+    resolvedSeriesText?: { title?: string; overview?: string },
 ): TvShowNFO {
     const getSeasonNumber = (season: TvdbSeasonDetails): number | undefined =>
         season.episodes?.find((ep) => Number.isFinite(ep.seasonNumber))?.seasonNumber
@@ -223,9 +222,9 @@ export function buildTvShowNfoByTVDB(
 
     return {
         id: String(tvdbSeries.id),
-        title: tvdbSeries.name,
-        originalTitle: tvdbSeries.name,
-        showTitle: tvdbSeries.name,
+        title: resolvedSeriesText?.title || tvdbSeries.name,
+        originalTitle: resolvedSeriesText?.title || tvdbSeries.name,
+        showTitle: resolvedSeriesText?.title || tvdbSeries.name,
         year: parseInt(tvdbSeries.year ?? "", 10) || undefined,
         top250: 0,
         ratings:
@@ -240,8 +239,8 @@ export function buildTvShowNfoByTVDB(
                 ]
                 : undefined,
         userRating: 0,
-        outline: tvdbSeries.overview,
-        plot: tvdbSeries.overview,
+        outline: resolvedSeriesText?.overview || tvdbSeries.overview,
+        plot: resolvedSeriesText?.overview || tvdbSeries.overview,
         runtime: tvdbSeries.averageRuntime > 0 ? tvdbSeries.averageRuntime : undefined,
         thumbs: thumbs.length > 0 ? thumbs : undefined,
         namedSeasons: namedSeasons.length > 0 ? namedSeasons : undefined,
@@ -268,11 +267,23 @@ export function buildTvShowEpisodeNfoByTVDB(
     tvdbSeries: TvdbSeriesDetails,
     tvdbSeason: TvdbSeasonDetails,
     tvdbEpisode: TvdbEpisodeDetails,
+    episodeTranslationData?: Record<string, string>,
 ): EpisodeNfo {
+    const translatedTitle =
+        typeof episodeTranslationData?.name === "string" &&
+        episodeTranslationData.name.trim().length > 0
+            ? episodeTranslationData.name
+            : tvdbEpisode.name
+    const translatedOverview =
+        typeof episodeTranslationData?.overview === "string" &&
+        episodeTranslationData.overview.trim().length > 0
+            ? episodeTranslationData.overview
+            : tvdbEpisode.overview
+
     return {
         id: String(tvdbEpisode.id),
-        title: tvdbEpisode.name,
-        originalTitle: tvdbEpisode.name,
+        title: translatedTitle,
+        originalTitle: translatedTitle,
         showTitle: tvdbSeries.name,
         season: tvdbEpisode.seasonNumber,
         episode: tvdbEpisode.number,
@@ -295,7 +306,7 @@ export function buildTvShowEpisodeNfoByTVDB(
                 ]
                 : undefined,
         userRating: 0,
-        plot: tvdbEpisode.overview,
+        plot: translatedOverview,
         runtime: tvdbEpisode.runtime > 0 ? tvdbEpisode.runtime : undefined,
         thumb: tvdbEpisode.image || undefined,
         premiered: tvdbEpisode.aired,
@@ -320,6 +331,9 @@ export function useHandleScrapeStart() {
             if(mediaMetadata.type === 'tvshow-folder') {
 
                 if(mediaMetadata.tvShow?.database === 'TMDB') {
+
+                    console.log(`start to scrape TV show nfo files from TMDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+
                     const tmdbSeriesId = parseInt(mediaMetadata.tvShow.id);
 
                     debug(`collecting TV series and seasons data from TMDB`)
@@ -362,7 +376,13 @@ export function useHandleScrapeStart() {
 
                     
                 } else if(mediaMetadata.tvShow?.database === 'TVDB') {
+
+                    console.log(`start to scrape TV show nfo files from TVDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+
                     const tvdbSeriesId = parseInt(mediaMetadata.tvShow.id)
+                    const preferLang = userConfig.preferMediaLanguage ?? "en-US"
+                    const tvdbLangCode = mapToTvdbLangCode(preferLang)
+                    const tvdb = getTVDBv4Client()
                     debug(`collecting TV series and seasons data from TVDB`)
                     const tvdbSeries = await getSeriesExtended(tvdbSeriesId)
                     if (!tvdbSeries) {
@@ -373,7 +393,23 @@ export function useHandleScrapeStart() {
                     )).filter(isNotNil)
                     debug(`collected TV series and seasons data from TVDB`)
 
-                    const tvShowNfo: TvShowNFO = buildTvShowNfoByTVDB(tvdbSeries, tvdbSeasons)
+                    const seriesTranslation = await tvdb.seriesTranslationByLangCode(tvdbSeriesId, tvdbLangCode)
+                    const resolvedSeriesText = {
+                        title:
+                            seriesTranslation.status === "success" &&
+                            typeof seriesTranslation.data.name === "string" &&
+                            seriesTranslation.data.name.trim().length > 0
+                                ? seriesTranslation.data.name
+                                : tvdbSeries.name,
+                        overview:
+                            seriesTranslation.status === "success" &&
+                            typeof seriesTranslation.data.overview === "string" &&
+                            seriesTranslation.data.overview.trim().length > 0
+                                ? seriesTranslation.data.overview
+                                : tvdbSeries.overview,
+                    }
+
+                    const tvShowNfo: TvShowNFO = buildTvShowNfoByTVDB(tvdbSeries, tvdbSeasons, resolvedSeriesText)
                     const tvShowNfoXml = convertTvShowNfoToXml(tvShowNfo)
                     const tvShowNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "tvshow.nfo")
                     debug(`writing tvshow.nfo to ${tvShowNfoPath}`)
@@ -392,7 +428,25 @@ export function useHandleScrapeStart() {
                             return undefined
                         }
 
-                        const episodeNfo: EpisodeNfo = buildTvShowEpisodeNfoByTVDB(tvdbSeries, tvdbSeason, tvdbEpisode)
+                        let episodeTranslationData: Record<string, string> | undefined
+                        try {
+                            const episodeTranslationResponse = await tvdb.episodeTranslationByLangCode(tvdbEpisode.id, tvdbLangCode)
+                            if (episodeTranslationResponse.status === "success") {
+                                episodeTranslationData = episodeTranslationResponse.data
+                                debug(`collected episode translation data for ${tvdbEpisode.id}: ${JSON.stringify(episodeTranslationData)}`)
+                            } else {
+                                debug(`failed to collect translation data for S${seasonNumber}E${episodeNumber}: ${episodeTranslationResponse.message}`)
+                            }
+                        } catch (e) {
+                            debug(`TVDB episode translation failed for ${tvdbEpisode.id}: ${e}`)
+                        }
+
+                        const episodeNfo: EpisodeNfo = buildTvShowEpisodeNfoByTVDB(
+                            tvdbSeries,
+                            tvdbSeason,
+                            tvdbEpisode,
+                            episodeTranslationData,
+                        )
                         const episodeNfoXml = convertTvShowEpisodeNfoToXml(episodeNfo)
                         const episodeNfoPath = newFilePathWithExt(absolutePath, ".nfo")
                         debug(`writing TVDB episode ${seasonNumber}x${episodeNumber} nfo to ${episodeNfoPath}`)
@@ -419,7 +473,7 @@ export function useHandleScrapeStart() {
             console.error("Scrape start error:", error)
             throw error // Re-throw so the task handler can mark the task as failed
         }
-    }, [t])
+    }, [t, userConfig.preferMediaLanguage])
 
     return handleScrapeStart
 }
