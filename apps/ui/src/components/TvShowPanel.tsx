@@ -114,10 +114,6 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  useEffect(() => {
-    console.log("[TvShowPanel] selected media folder changed: ", mediaMetadata)
-  }, [mediaMetadata])
-
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
   const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
   const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
@@ -374,7 +370,6 @@ function TvShowPanel() {
 
     if (mediaMetadata?.mediaFolderPath) {
       fetchPlans().then((plans) => {
-        console.log(`[fetchPlans] fetched ${plans.length} plans`, plans)
         setPlans(plans)
       })
     }
@@ -655,7 +650,6 @@ function TvShowPanel() {
   const latestTableData = useLatest(tableData)
 
   const plan = useMemo(() => {
-    console.log(`[TvShowPanel] detected plans change: `, structuredClone(plans))
     if(plans.length > 0) {
       
       const plansForThisFolder = plans
@@ -715,7 +709,6 @@ function TvShowPanel() {
       })
     };
 
-    console.log(`[TvShowPanel] setTableData: ${JSON.stringify(ret)}`)
     setTableData(ret);
     
   }, [mediaMetadata, plan, t])

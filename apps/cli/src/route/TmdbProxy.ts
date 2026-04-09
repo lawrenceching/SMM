@@ -1,53 +1,27 @@
 import type { Context, Hono } from 'hono';
 import { proxy } from 'hono/proxy';
-import { logger, logHttpReqOut, logHttpRespIn } from '../../lib/logger';
-import { tmdbOutboundFetch } from '@/utils/tmdbOutboundFetch';
+import { logger, logHttpReqIn, logHttpReqOut } from '../../lib/logger';
 
 // const TMDB_UPSTREAM_ORIGIN = 'https://api.themoviedb.org';
-const TMDB_UPSTREAM_ORIGIN = 'https://tmdb-mcp-server.imlc.me/api/tmdb';
+const TMDB_UPSTREAM_BASE_URL = 'https://tmdb-mcp-server.imlc.me/api/tmdb';
 
-function upstreamPathFromIncomingUrl(url: URL): string {
-  const pathname = url.pathname;
-  if (pathname === '/tmdb' || pathname === '/tmdb/') {
-    return '/';
-  }
-  if (pathname.startsWith('/tmdb/')) {
-    const rest = pathname.slice('/tmdb'.length);
-    return rest === '' ? '/' : rest;
-  }
-  return pathname;
+export function getUpstreamPath(c: Context): string {
+  const url = new URL(c.req.url);
+  const pathnameWithoutPrefix = url.pathname.replace(/^\/tmdb(?=\/|$)/, '') || '/';
+  return `${pathnameWithoutPrefix}${url.search}`;
 }
 
-async function forwardTmdbProxy(c: Context) {
-  try {
-    const url = new URL(c.req.url);
-    const path = upstreamPathFromIncomingUrl(url);
-    const target = `${TMDB_UPSTREAM_ORIGIN}${path}${url.search}`;
-    logHttpReqOut(target, c.req.method);
-    const response = await proxy(target, {
-      raw: c.req.raw,
-      customFetch: (request) => tmdbOutboundFetch(request),
-    });
-    if (logger.isLevelEnabled('debug')) {
-      const text = await response.clone().text();
-      let body: unknown = text;
-      try {
-        body = JSON.parse(text) as unknown;
-      } catch {
-        /* keep raw text */
-      }
-      logHttpRespIn(target, response.status, body);
-    } else {
-      logHttpRespIn(target, response.status);
-    }
-    return response;
-  } catch (err) {
-    logger.error({ err }, 'TmdbProxy: upstream fetch failed');
-    return c.json({ error: 'Bad gateway' }, 502);
-  }
-}
 
 export function handleTmdbProxy(app: Hono) {
-  app.all('/tmdb', forwardTmdbProxy);
-  app.all('/tmdb/*', forwardTmdbProxy);
+  // TODO: support TMDB offical host
+  app.all('/tmdb/*', (c) => {
+    const upstreamPath = getUpstreamPath(c);
+    const url = `${TMDB_UPSTREAM_BASE_URL}${upstreamPath}`
+    return proxy(url, {
+      ...c.req,
+      headers: {
+        // TODO: pass the User-Agent header to identify SMM version
+      },
+    })
+  });
 }

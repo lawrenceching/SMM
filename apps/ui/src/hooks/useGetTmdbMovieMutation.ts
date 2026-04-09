@@ -36,6 +36,7 @@ export function buildMovieMediaMetadata(tmdbMovieDetails: TmdbMovieDetails): Mov
   return {
     id: String(tmdbMovieDetails.id),
     name,
+    airDate: tmdbMovieDetails.release_date,
     database: "TMDB",
   }
 }

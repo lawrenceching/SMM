@@ -1,3 +1,4 @@
+import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4"
 import { basename } from "./path"
 import { getTvdbSearchResultName, tvdbTranslationCodesForMediaLanguage } from "./tvdbSearchDisplay"
 import { buildTvdbSearchResults } from "./tvdbSearchNormalize"
@@ -5,7 +6,6 @@ import {
     extractMovieId,
     extractSeriesId,
     fetchTvdbAndBuildMovieMediaMetadata,
-    getTVDBv4Client,
     mapToTvdbLangCode,
 } from "./TvdbUtils"
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
@@ -70,6 +70,7 @@ export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB(
         seriesId: number,
         language?: PreferMediaLanguage
     ) => Promise<TvShowMediaMetadata>,
+    searchInTvdbFn: (params: TVDBv4SearchParams) => Promise<TVDBv4SearchResult[] | undefined>,
     language: PreferMediaLanguage = "en-US",
 ): Promise<TryRecognizeTvShowFolderBySearchingFolderNameInTVDBResult> {
     const folderName = basename(folderPath)
@@ -86,21 +87,19 @@ export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB(
     }
 
     try {
-        const tvdb = getTVDBv4Client()
         const tvdbLang = mapToTvdbLangCode(language)
         const codes = tvdbTranslationCodesForMediaLanguage(language)
 
-        const seriesResp = await tvdb.search({ query, type: "series", language: tvdbLang })
+        const seriesRaw = await searchInTvdbFn({ query, type: "series", language: tvdbLang })
 
-        if (seriesResp.status !== "success") {
-            console.error("[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] TVDB search error:", {
-                seriesStatus: seriesResp.status,
-                seriesMessage: seriesResp.message,
+        if (!seriesRaw?.length) {
+            console.error("[tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB] TVDB search returned no results", {
+                hadResponse: seriesRaw !== undefined,
             })
             return { success: false }
         }
 
-        const seriesItems = buildTvdbSearchResults(seriesResp.data)
+        const seriesItems = buildTvdbSearchResults(seriesRaw)
 
         for (const item of seriesItems) {
             const displayName = getTvdbSearchResultName(item, codes, "tv")
@@ -133,6 +132,7 @@ export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB(
 
 export async function tryToRecognizeMovieFolderBySearchingFolderNameInTVDB(
     folderPath: string,
+    searchInTvdbFn: (params: TVDBv4SearchParams) => Promise<TVDBv4SearchResult[] | undefined>,
     language: PreferMediaLanguage = "en-US",
 ): Promise<TryRecognizeMovieFolderBySearchingFolderNameInTVDBResult> {
     const folderName = basename(folderPath)
@@ -149,21 +149,19 @@ export async function tryToRecognizeMovieFolderBySearchingFolderNameInTVDB(
     }
 
     try {
-        const tvdb = getTVDBv4Client()
         const tvdbLang = mapToTvdbLangCode(language)
         const codes = tvdbTranslationCodesForMediaLanguage(language)
 
-        const movieResp = await tvdb.search({ query, type: "movie", language: tvdbLang })
+        const movieRaw = await searchInTvdbFn({ query, type: "movie", language: tvdbLang })
 
-        if (movieResp.status !== "success") {
-            console.error("[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] TVDB search error:", {
-                movieStatus: movieResp.status,
-                movieMessage: movieResp.message,
+        if (!movieRaw?.length) {
+            console.error("[tryToRecognizeMovieFolderBySearchingFolderNameInTVDB] TVDB search returned no results", {
+                hadResponse: movieRaw !== undefined,
             })
             return { success: false }
         }
 
-        const movieItems = buildTvdbSearchResults(movieResp.data)
+        const movieItems = buildTvdbSearchResults(movieRaw)
 
         for (const item of movieItems) {
             const displayName = getTvdbSearchResultName(item, codes, "movie")

@@ -8,14 +8,28 @@ import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
 import { createMediaMetadata } from "@core/mediaMetadata";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import { doPreprocessMediaFolder } from "@/AppV2Utils"
 import { UI_MediaFolderImportedEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 import { Mutex } from "es-toolkit";
 import { toast } from "sonner";
-import type { PreferMediaLanguage } from "@core/types";
-import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation";
-import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation";
+import {
+    runRecognitionSteps,
+    searchOrderForPrimaryDb,
+    type RecognitionStep,
+} from "@/lib/mediaFolderRecognitionPipeline";
+import { useRecognizeTvShowByNfoMutation } from "@/hooks/initialization/useRecognizeTvShowByNfoMutation";
+import { useRecognizeTvShowBySearchingFolderNameInTvdb } from "@/hooks/initialization/useRecognizeTvShowBySearchingFolderNameInTvdb";
+import { useRecognizeTvShowBySearchingFolderNameInTmdb } from "@/hooks/initialization/useRecognizeTvShowBySearchingFolderNameInTmdb";
+import { useRecognizeTvShowByTmdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeTvShowByTmdbIdInFolderNameMutation";
+import { useRecognizeTvShowByTvdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeTvShowByTvdbIdInFolderNameMutation";
+
+import { useRecognizeMovieByNfoMutation } from "@/hooks/initialization/useRecognizeMovieByNfoMutation";
+import { useRecognizeMovieBySearchingFolderNameInTvdb } from "@/hooks/initialization/useRecognizeMovieBySearchingFolderNameInTvdb";
+import { useRecognizeMovieBySearchingFolderNameInTmdb } from "@/hooks/initialization/useRecognizeMovieBySearchingFolderNameInTmdb";
+import { useRecognizeMovieByTmdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTmdbIdInFolderNameMutation";
+import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation";
+import { recognizeEpisodes, recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import type { MediaFileMetadata } from "@core/types";
 
 const mutex = new Mutex();
 
@@ -27,8 +41,17 @@ export function MediaFolderImportedEventHandler() {
     const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions();
     const backgroundJobs = useBackgroundJobsStore()
     const eventListener = useRef<((event: Event) => void) | null>(null);
-    const { mutateAsync: getTvShowByIdFromTmdb } = useGetTmdbTvShowMutation()
-    const { mutateAsync: getTvShowByIdFromTvdb } = useGetTvdbTvShowMutation()
+    const { mutateAsync: recognizeTvShowByNfo } = useRecognizeTvShowByNfoMutation()
+    const { mutateAsync: recognizeTvShowByTmdbIdInFolderName } = useRecognizeTvShowByTmdbIdInFolderNameMutation()
+    const { mutateAsync: recognizeTvShowByTvdbIdInFolderName } = useRecognizeTvShowByTvdbIdInFolderNameMutation()
+    const { mutateAsync: recognizeTvShowBySearchTvShowFolderNameInTmdb } = useRecognizeTvShowBySearchingFolderNameInTmdb()
+    const { mutateAsync: recognizeTvShowBySearchTvShowFolderNameInTvdb } = useRecognizeTvShowBySearchingFolderNameInTvdb()
+
+    const { mutateAsync: recognizeMovieByNfo } = useRecognizeMovieByNfoMutation()
+    const { mutateAsync: recognizeMovieByTmdbIdInFolderName } = useRecognizeMovieByTmdbIdInFolderNameMutation()
+    const { mutateAsync: recognizeMovieByTvdbIdInFolderName } = useRecognizeMovieByTvdbIdInFolderNameMutation()
+    const { mutateAsync: recognizeMovieBySearchFolderNameInTmdb } = useRecognizeMovieBySearchingFolderNameInTmdb()
+    const { mutateAsync: recognizeMovieBySearchFolderNameInTvdb } = useRecognizeMovieBySearchingFolderNameInTvdb()
 
     const doInitializeMediaFolder = async (event: Event) => {
         const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail
@@ -181,41 +204,155 @@ export function MediaFolderImportedEventHandler() {
                             status: 'initializing',
                         }, { traceId })
 
-                        // TODO: convert to a hook
-                        await doPreprocessMediaFolder(initializedMetadata, {
-                            traceId,
-                            preferLanguage: latestUserConfig.current?.preferMediaLanguage,
-                            primaryDatabase: latestUserConfig.current?.primaryDatabase,
-                            onSuccess: (processedMetadata) => {
-                                updateMediaMetadata(processedMetadata.mediaFolderPath!, {
-                                    ...processedMetadata,
-                                    status: 'ok',
-                                }, { traceId })
+                        if (initializedMetadata.type === 'tvshow-folder') {
+                            const recognitionLanguage =
+                                latestUserConfig.current.preferMediaLanguage ?? "en-US"
+                            const searchOrder = searchOrderForPrimaryDb(latestUserConfig.current.primaryDatabase)
+                            const tvSteps: RecognitionStep<Awaited<ReturnType<typeof recognizeTvShowByNfo>>>[] = [
+                                {
+                                    logLabel: 'tvshow.nfo',
+                                    tryRecognize: () =>
+                                        recognizeTvShowByNfo({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                {
+                                    logLabel: 'tmdbid in folder name',
+                                    tryRecognize: () =>
+                                        recognizeTvShowByTmdbIdInFolderName({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                {
+                                    logLabel: 'tvdbid in folder name',
+                                    tryRecognize: () =>
+                                        recognizeTvShowByTvdbIdInFolderName({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                ...searchOrder.map((db) => ({
+                                    logLabel:
+                                        db === 'TMDB'
+                                            ? 'searching folder name in TMDB'
+                                            : 'searching folder name in TVDB',
+                                    tryRecognize: () =>
+                                        db === 'TMDB'
+                                            ? recognizeTvShowBySearchTvShowFolderNameInTmdb({
+                                                  mediaMetadata: initializedMetadata,
+                                                  language: recognitionLanguage,
+                                              })
+                                            : recognizeTvShowBySearchTvShowFolderNameInTvdb({
+                                                  mediaMetadata: initializedMetadata,
+                                                  language: recognitionLanguage,
+                                              }),
+                                })),
+                            ]
+                            const recognized = await runRecognitionSteps(
+                                traceId,
+                                initializedMetadata,
+                                tvSteps,
+                                (tvShow) => ({ ...initializedMetadata, tvShow, status: 'ok' }),
+                                updateMediaMetadata
+                            )
+                            if (recognized) {
+
+                                console.log(`media folder was recognized, try to recognize episodes`)
+
+                                const latestMM: UIMediaMetadata | undefined = getMediaMetadata(initializedMetadata.mediaFolderPath!)
+
+                                if(latestMM === undefined) {
+                                    console.warn(`[${traceId}] unable to find UIMediaMetadata after recognizing media folder`)
+                                    setJobStatus('failed')
+                                    return
+                                }
+
+                                const mmWithRecognizedEpisodes = await recognizeEpisodes(latestMM)
+                                if(mmWithRecognizedEpisodes) {
+                                    const mediaFiles: MediaFileMetadata[] = mmWithRecognizedEpisodes.map((i) => ({
+                                        absolutePath: i.file,
+                                        seasonNumber: i.season,
+                                        episodeNumber: i.episode,
+                                    }))
+                                    updateMediaMetadata(
+                                        initializedMetadata.mediaFolderPath!, 
+                                        (prev) => {
+                                            return {
+                                                ...prev,
+                                                mediaFiles: mediaFiles,
+                                                status: 'ok',
+                                            }
+                                        }, { traceId })
+                                } else {
+                                    console.warn(`[${traceId}] unable to recognize episodes after recognizing media folder`)
+                                }
                                 setJobStatus('succeeded')
-                            },
-                            onError: (error) => {
-                                console.error(`[${traceId}] Failed to preprocess media folder:`, error)
-                                updateMediaMetadata(initializedMetadata.mediaFolderPath!, (mm: UIMediaMetadata) => ({
-                                    ...mm,
-                                    status: 'ok',
-                                }), { traceId })
-                                setJobStatus('failed')
-                                const folderName = new Path(folderPathInPlatformFormat).name()
-                                showErrorAndRollback(
-                                    `预处理媒体目录失败: ${folderName}. ${error instanceof Error ? error.message : String(error)}`,
-                                    false
-                                )
-                            },
-                            getTvShowByIdFromTmdbFn: async (id: number, language?: PreferMediaLanguage) => {
-                                return await getTvShowByIdFromTmdb({ id, language })
-                            },
-                            getTvShowByIdFromTvdbFn: async (
-                                seriesId: number,
-                                language?: PreferMediaLanguage,
-                            ) => {
-                                return await getTvShowByIdFromTvdb({ seriesId, language })
-                            },
-                        })
+                                return
+                            }
+                        } else if (initializedMetadata.type === 'movie-folder') {
+                            const recognitionLanguage =
+                                latestUserConfig.current.preferMediaLanguage ?? "en-US"
+                            const searchOrder = searchOrderForPrimaryDb(latestUserConfig.current.primaryDatabase)
+                            const movieSteps: RecognitionStep<Awaited<ReturnType<typeof recognizeMovieByNfo>>>[] = [
+                                {
+                                    logLabel: 'movie.nfo',
+                                    tryRecognize: () =>
+                                        recognizeMovieByNfo({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                {
+                                    logLabel: 'tmdbid in folder name',
+                                    tryRecognize: () =>
+                                        recognizeMovieByTmdbIdInFolderName({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                {
+                                    logLabel: 'tvdbid in folder name',
+                                    tryRecognize: () =>
+                                        recognizeMovieByTvdbIdInFolderName({
+                                            mediaMetadata: initializedMetadata,
+                                            language: recognitionLanguage,
+                                        }),
+                                },
+                                ...searchOrder.map((db) => ({
+                                    logLabel:
+                                        db === 'TMDB'
+                                            ? 'searching folder name in TMDB'
+                                            : 'searching folder name in TVDB',
+                                    tryRecognize: () =>
+                                        db === 'TMDB'
+                                            ? recognizeMovieBySearchFolderNameInTmdb({
+                                                  mediaMetadata: initializedMetadata,
+                                                  language: recognitionLanguage,
+                                              })
+                                            : recognizeMovieBySearchFolderNameInTvdb({
+                                                  mediaMetadata: initializedMetadata,
+                                                  language: recognitionLanguage,
+                                              }),
+                                })),
+                            ]
+                            const recognized = await runRecognitionSteps(
+                                traceId,
+                                initializedMetadata,
+                                movieSteps,
+                                (movie) => ({ ...initializedMetadata, movie, status: 'ok' }),
+                                updateMediaMetadata
+                            )
+                            if (recognized) {
+                                return
+                            }
+                        } else {
+                            console.log(`[${traceId}] folder of type ${initializedMetadata.type} does not need to be initialized`)
+                        }
+
+                        
+
                     } catch (error) {
                         console.error(`[${traceId}] Failed to preprocess media folder:`, error)
                         setJobStatus('failed')
@@ -252,7 +389,7 @@ export function MediaFolderImportedEventHandler() {
             }
         }
 
-        const TIMEOUT_MS = 10000
+        const TIMEOUT_MS = 60000
         const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
                 console.log(`[${traceId}] Operation approaching timeout (${TIMEOUT_MS}ms)`)

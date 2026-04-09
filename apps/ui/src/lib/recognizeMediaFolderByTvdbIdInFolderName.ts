@@ -1,6 +1,9 @@
 import { basename } from "./path";
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
 import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils";
+import Debug from "debug";
+
+const debug = Debug("recognizeMediaFolderByTvdbIdInFolderName");
 
 export function getTvdbIdFromFolderName(folderName: string): string | null {
     // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
@@ -20,6 +23,7 @@ export async function tryToRecognizeMediaFolderByTvdbIdInFolderName(
     tvdbTvShow?: TvShowMediaMetadata;
     tvdbMovie?: MovieMediaMetadata;
 }> {
+    debug(`tryToRecognizeMediaFolderByTvdbIdInFolderName called: folderPath=${folderPath}, type=${type}, preferLanguage=${preferLanguage}`)
     const folderName = basename(folderPath);
     if(folderName === undefined) {
         console.error('[preprocessMediaFolder] folder name is undefined')
@@ -30,6 +34,8 @@ export async function tryToRecognizeMediaFolderByTvdbIdInFolderName(
         console.error('[preprocessMediaFolder] TMDB ID is null')
         return { }
     }
+    debug(`Extract tvdbId from folder name: ${tvdbId}`)
+
     const tvdbIdNumber = parseInt(tvdbId, 10);
     if(isNaN(tvdbIdNumber) || tvdbIdNumber <= 0) {
         console.error('[preprocessMediaFolder] TMDB ID is not a valid number')

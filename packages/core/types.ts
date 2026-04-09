@@ -502,6 +502,10 @@ export interface MovieMediaMetadata {
    */
   id: string,
   name: string,
+  /**
+   * yyyy-MM-dd format
+   */
+  airDate?: string,
   database: "TMDB" | "TVDB",
 }
 

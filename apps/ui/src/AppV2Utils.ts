@@ -5,7 +5,8 @@ import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolde
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
-import type { PreferMediaLanguage, PrimaryDatabase, TvShowMediaMetadata } from "@core/types";
+import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4";
 
 /**
  * For a folder name like:
@@ -100,11 +101,13 @@ export async function doPreprocessMediaFolder(
     primaryDatabase?: PrimaryDatabase,
     onSuccess?: (mm: UIMediaMetadata) => void, 
     onError?: (error: Error) => void,
-    getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>
+    getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>,
     getTvShowByIdFromTvdbFn: (
       seriesId: number,
       language?: PreferMediaLanguage
-    ) => Promise<TvShowMediaMetadata>
+    ) => Promise<TvShowMediaMetadata>,
+    searchInTmdbFn?: (query: string, type: "tv" | "movie") => Promise<TmdbSearchResponseBody>,
+    searchInTvdbFn?: (params: TVDBv4SearchParams) => Promise<TVDBv4SearchResult[] | undefined>,
   }
 ) {
 
@@ -114,12 +117,16 @@ export async function doPreprocessMediaFolder(
 
   const getTvShowByIdFromTmdbFn = options?.getTvShowByIdFromTmdbFn;
   const getTvShowByIdFromTvdbFn = options?.getTvShowByIdFromTvdbFn;
+  const searchInTmdbFn = options?.searchInTmdbFn;
+  const searchInTvdbFn = options?.searchInTvdbFn;
   const folderPathInPlatformFormat = Path.toPlatformPath(_in_mm.mediaFolderPath!)
 
   const mm = await recognizeMediaFolder(
     _in_mm,
     getTvShowByIdFromTmdbFn,
     getTvShowByIdFromTvdbFn,
+    searchInTmdbFn,
+    searchInTvdbFn,
     options?.preferLanguage,
     options?.primaryDatabase,
   );

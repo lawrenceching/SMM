@@ -13,6 +13,7 @@ function movieMediaMetadataFromTmdbMovie(movie: TmdbMovieDetails): MovieMediaMet
   return {
     id: String(movie.id),
     name,
+    airDate: movie.release_date,
     database: "TMDB",
   };
 }

@@ -1134,6 +1134,8 @@ export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): bool
           return m
         },
         undefined,
+        undefined,
+        undefined,
         primaryDatabase,
       );
       if (recognized !== undefined) {

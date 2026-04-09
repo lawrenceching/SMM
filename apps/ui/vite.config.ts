@@ -26,6 +26,10 @@ export default defineConfig({
         target: 'http://localhost:30000',
         changeOrigin: true,
       },
+      '/tvdb': {
+        target: 'http://localhost:30000',
+        changeOrigin: true,
+      },
       // Socket.IO endpoint (HTTP long-polling and WebSocket upgrade)
       '/socket.io': {
         target: 'http://localhost:30000',

@@ -13,6 +13,7 @@ import {
   tvdbTranslationCodesForMediaLanguage,
 } from "@/lib/tvdbSearchDisplay"
 import { buildTvdbSearchResults, type TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
+import { useTvdbQueries } from "@/hooks/useTvdbQueries"
 
 /** TMDB API language for search and get-by-id. */
 export type TmdbSearchLanguage = "zh-CN" | "en-US" | "ja-JP"
@@ -94,6 +95,8 @@ export function MediaDatabaseSearchbox({
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
 
+  const { search: searchTvdb } = useTvdbQueries()
+
   useEffect(() => {
     const db = userConfig?.primaryDatabase
     if (db === "TMDB" || db === "TVDB") setSearchDatabase(db)
@@ -129,31 +132,18 @@ export function MediaDatabaseSearchbox({
     try {
       if (searchDatabase === "TVDB") {
 
-        const tvdb = new TVDBv4({
-          baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/tvdb`,
-          // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
-          // 导致 `TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation`。
-          // 绑定到 `window` 后可避免该问题。
-          fetchImpl: window.fetch.bind(window),
-        })
-
-        const resp: TVDBv4Envelope<TVDBv4SearchResult[]> = await tvdb.search({
+        const result: TVDBv4SearchResult[] | undefined = await searchTvdb({
           query: searchQuery.trim(),
           type: mediaType === "tv" ? "series" : "movie",
         })
 
-        if(resp.status === 'success') {
-
-          if(resp.data.length === 0) {
-            setSearchError(t("errors:searchNoResults"))
-            return
-          }
-
-          const items = buildTvdbSearchResults(resp.data);
-          setTvdbSearchResultsRaw(items)
-        } else {
-          setSearchError(`TVDB Search Failure: ${resp.message}`)
+        if(result === undefined || result.length === 0) {
+          setSearchError(t("errors:searchNoResults"))
+          return
         }
+
+        const items = buildTvdbSearchResults(result);
+        setTvdbSearchResultsRaw(items)
 
         return
       }

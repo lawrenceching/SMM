@@ -66,19 +66,24 @@ function encodePathSegment(segment: string | number): string {
 }
 
 async function safeParseJson(resp: TVDBv4FetchResponse): Promise<unknown> {
+  let text: string;
   try {
-    return await resp.json();
-  } catch(e) {
+    text = await resp.text();
+  } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.log(`tvdb4: safeParseJson failed: ${message}`);
-    
-    const text = await resp.text();
-    // Try to parse JSON from text, but keep raw text if parsing fails.
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text;
-    }
+    throw e;
+  }
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return text;
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.log(`tvdb4: safeParseJson failed: ${message}`);
+    return text;
   }
 }
 

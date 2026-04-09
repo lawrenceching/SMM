@@ -146,7 +146,7 @@ function createHeaders(resp: Response) {
   return headers;
 }
 
-const TVDB_PROXY_HOST = 'https://tmdb-mcp-server.imlc.me/api/tvdb';
+const TVDB_PROXY_HOST = 'https://tmdb-mcp-server.imlc.me/api/tvdb/v4';
 
 async function forwardToTvdb(c: Context, _host: string, apiKey?: string) {
   
@@ -157,7 +157,7 @@ async function forwardToTvdb(c: Context, _host: string, apiKey?: string) {
   const useTvdbProxy = _host === TVDB_PROXY_HOST;
   const host = _host.endsWith('/v4') ? _host : `${_host}/v4`;
   const incomingUrl = new URL(c.req.url);
-  const tvdbApiPath = incomingUrl.pathname.replace('/api/tvdb', '');
+  const tvdbApiPath = incomingUrl.pathname.replace('/tvdb', '');
   const upstreamUrl = `${host}${tvdbApiPath}${incomingUrl.search}`;
 
   let token: string | null = null;
@@ -226,7 +226,8 @@ async function forwardToTvdb(c: Context, _host: string, apiKey?: string) {
 }
 
 export function handleTvdb(app: Hono) {
-  app.all("/api/tvdb/*", async (c) => {
+  app.all("/tvdb/*", async (c) => {
+    console.log(`>>> handleTvdb: ${c.req.url}`);
     const userConfig = await getUserConfig();    
 
     if(userConfig !== null) {

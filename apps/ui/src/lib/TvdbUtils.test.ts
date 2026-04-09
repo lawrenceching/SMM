@@ -1,3 +1,68 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils"
+
+const mockMovieTranslationByLangCode = vi.fn()
+const mockMovieExtendedById = vi.fn()
+
+vi.mock("@smm/tvdb4", () => {
+  class MockTVDBv4 {
+    movieTranslationByLangCode = mockMovieTranslationByLangCode
+    movieExtendedById = mockMovieExtendedById
+  }
+  return { TVDBv4: MockTVDBv4 }
+})
+
+describe("fetchTvdbAndBuildMovieMediaMetadata", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("maps TVDB movie and uses first_release.first as airDate", async () => {
+    mockMovieTranslationByLangCode.mockResolvedValue({
+      status: "success",
+      data: { name: "TVDB Movie Name" },
+    })
+    mockMovieExtendedById.mockResolvedValue({
+      status: "success",
+      data: {
+        name: "Default Name",
+        first_release: { first: "2021-10-22" },
+      },
+    })
+
+    const ret = await fetchTvdbAndBuildMovieMediaMetadata(15778, "en-US", {})
+
+    expect(ret).toEqual({
+      id: "15778",
+      name: "TVDB Movie Name",
+      airDate: "2021-10-22",
+      database: "TVDB",
+    })
+  })
+
+  it("falls back to release_date when first_release.first is missing", async () => {
+    mockMovieTranslationByLangCode.mockResolvedValue({
+      status: "success",
+      data: { name: "" },
+    })
+    mockMovieExtendedById.mockResolvedValue({
+      status: "success",
+      data: {
+        name: "Fallback Name",
+        release_date: "2020-05-01",
+      },
+    })
+
+    const ret = await fetchTvdbAndBuildMovieMediaMetadata(15778, "en-US", {})
+
+    expect(ret).toEqual({
+      id: "15778",
+      name: "Fallback Name",
+      airDate: "2020-05-01",
+      database: "TVDB",
+    })
+  })
+})
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { readFileSync } from "fs"
 import { dirname, join } from "path"

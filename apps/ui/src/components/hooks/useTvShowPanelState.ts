@@ -35,12 +35,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
     const currentPath = mediaMetadata?.mediaFolderPath
     const prevPath = prevMediaFolderPathRef.current
 
-    console.log("[useTvShowPanelState] path effect", {
-      prevPath: prevPath ?? "(undefined)",
-      currentPath: currentPath ?? "(undefined)",
-      pathChanged: prevPath !== undefined && currentPath !== prevPath,
-    })
-
     if (prevPath !== undefined && currentPath !== prevPath) {
       console.log("[useTvShowPanelState] path changed -> close prompts, reset processed path")
       closeAllPrompts()

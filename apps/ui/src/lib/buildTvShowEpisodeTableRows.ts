@@ -28,8 +28,6 @@ function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string
  */
 function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
 
-  console.log(`buildFolderFileRows CALLED: ${JSON.stringify(files)}`)
-
   const rows: TvShowFolderFileRow[] = []
   for (const id of FOLDER_FILE_IDS) {
     const path = matchFolderFile(files, id)
@@ -76,7 +74,6 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     debug(`use tmdbTvShow to build episode table rows`)
     const rowsFromTmdbTvShow = _buildTvShowEpisodeTableRowsFromTmdb(mm)
     rows.push(...rowsFromTmdbTvShow)
-    console.log(`buildTvShowEpisodeTableRows with tmdbTvShow RETURNED: ${JSON.stringify(rows)}`)
     return rows;
   }
 

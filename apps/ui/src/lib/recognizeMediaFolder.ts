@@ -6,11 +6,13 @@ import {
 import { tryToRecognizeMediaFolderByNFO } from "./recognizeMediaFolderByNFO";
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
 import { tryToRecognizeMediaFolderByTvdbIdInFolderName } from "./recognizeMediaFolderByTvdbIdInFolderName";
-import type { PreferMediaLanguage, PrimaryDatabase, TvShowMediaMetadata } from "@core/types";
+import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import { getTVDBv4Client } from "./TvdbUtils";
 import {
     tryToRecognizeMovieFolderBySearchingFolderNameInTVDB,
     tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB,
 } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTVDB";
+import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4";
 
 function fillTypeInMediaMetadata(_in_out_mm: UIMediaMetadata) {
     const mm = _in_out_mm;
@@ -28,6 +30,8 @@ export async function recognizeMediaFolder(
         seriesId: number,
         language?: PreferMediaLanguage
     ) => Promise<TvShowMediaMetadata>,
+    _searchInTmdbFn?: (query: string, type: "tv" | "movie") => Promise<TmdbSearchResponseBody>,
+    searchInTvdbFn?: (params: TVDBv4SearchParams) => Promise<TVDBv4SearchResult[] | undefined>,
     preferLanguage?: PreferMediaLanguage,
     primaryDatabase?: PrimaryDatabase,
     signal?: AbortSignal,
@@ -41,17 +45,6 @@ export async function recognizeMediaFolder(
     const folderPath = mm.mediaFolderPath!;
     console.log(`[recognizeMediaFolder] recognize media folder: ${folderPath}`)
     
-    //1. try to recognize media folder by NFO
-    try {
-        const ret = await tryToRecognizeMediaFolderByNFO(mm, signal)
-        if(ret !== undefined) {
-            console.log(`[recognizeMediaFolder] successfully recognized media folder by NFO: ${ret.tvShow?.name} ${ret.tvShow?.id}`)
-            mm.mediaFiles = ret.mediaFiles;
-            mm.tvShow = ret.tvShow;
-        }
-    } catch (error) {
-        console.error(`[recognizeMediaFolder] Error in tryToRecognizeMediaFolderByNFO:`, error)
-    }
 
     const isRecognized = (m: UIMediaMetadata) => {
         return m.tvShow !== undefined || m.movie !== undefined;
@@ -68,6 +61,14 @@ export async function recognizeMediaFolder(
     check(`recognize by nfo`);
 
     const language = preferLanguage ?? 'en-US';
+
+    const resolveSearchInTvdb =
+        searchInTvdbFn ??
+        (async (params: TVDBv4SearchParams) => {
+            const tvdb = getTVDBv4Client()
+            const resp = await tvdb.search(params)
+            return resp.status === "success" ? resp.data : undefined
+        })
 
     const runTmdbIdInFolderNamePhase = async () => {
         if (!isRecognized(mm) && folderPath.includes('tmdbid=')) {
@@ -135,6 +136,7 @@ export async function recognizeMediaFolder(
                     const ret = await tryToRecognizeTvShowFolderBySearchingFolderNameInTVDB(
                         folderPath,
                         getTvShowByIdFromTvdbFn,
+                        resolveSearchInTvdb,
                         language,
                     )
                     if (ret.success) {
@@ -146,6 +148,7 @@ export async function recognizeMediaFolder(
                 } else if (_in_mm.type === 'movie-folder') {
                     const ret = await tryToRecognizeMovieFolderBySearchingFolderNameInTVDB(
                         folderPath,
+                        resolveSearchInTvdb,
                         language,
                     )
                     if (ret.success) {

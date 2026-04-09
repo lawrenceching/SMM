@@ -292,6 +292,12 @@ export async function checkFileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/**
+ * @deprecated will be removed 
+ * @param mediaMetadata 
+ * @param mediaFileMetadata 
+ * @returns 
+ */
 export async function downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
   return await limit(() => _downloadThumbnail(mediaMetadata, mediaFileMetadata));
 }

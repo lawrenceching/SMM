@@ -213,7 +213,7 @@ export class Server {
     handleFfmpegWriteTags(this.app);
     handleFfmpegDiscover(this.app);
     handleFfmpegVersion(this.app);
-    handleTmdb(this.app);
+    // handleTmdb(this.app);
     handleTmdbProxy(this.app);
     handleTvdb(this.app);
     handleLog(this.app);

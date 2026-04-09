@@ -8,6 +8,9 @@ import type {
 import { searchTmdb } from "@/api/tmdb";
 import { basename } from "./path";
 import { tvShowMediaMetadataFromTmdbDetails } from "./tvShowMediaMetadataFromTmdbDetails";
+import Debug from "debug";
+
+const debug = Debug("tryToRecognizeMediaFolderBySearchingFolderNameInTMDB");
 
 export type TryRecognizeTvShowFolderBySearchingFolderNameInTMDBResult =
     | { success: false }
@@ -28,6 +31,8 @@ export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTMDB(
     }
 
     try {
+
+        debug(`searching TV show from TMDB: ${folderName}`)
         const tvResponse = await searchTmdb(folderName, "tv", language);
 
         if (tvResponse.error) {
@@ -40,15 +45,15 @@ export async function tryToRecognizeTvShowFolderBySearchingFolderNameInTMDB(
 
         const tvShowSearchResults = tvResponse.results as TMDBTVShow[];
 
-        for (const item of tvShowSearchResults) {
-            console.log(`[tryToRecognizeTvShowFolderBySearchingFolderNameInTMDB] TV result: ${item.name} ${item.id}`);
-            if (folderName === item.name) {
-                const tvShow = tvShowMediaMetadataFromTmdbDetails(item as TMDBTVShowDetails);
-                return {
-                    success: true,
-                    tmdbTvShow: tvShow,
-                };
-            }
+        debug(`got results: ${tvShowSearchResults.slice(0, 3).map(i => i.name).join(', ')}${tvShowSearchResults.length > 3 ? ', ...': ''}`)
+
+        // select the first item as recognized result
+        if(tvShowSearchResults.length > 0) {
+            const tvShow = tvShowMediaMetadataFromTmdbDetails(tvShowSearchResults[0] as TMDBTVShowDetails);
+            return {
+                success: true,
+                tmdbTvShow: tvShow,
+            };
         }
 
         return { success: false };
@@ -105,6 +110,7 @@ function movieMediaMetadataFromTmdbMovie(item: TMDBMovie): MovieMediaMetadata {
     return {
         id: String(item.id),
         name: item.title,
+        airDate: item.release_date,
         database: "TMDB",
     };
 }

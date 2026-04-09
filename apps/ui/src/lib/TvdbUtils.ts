@@ -25,7 +25,7 @@ export function extractMovieId(objectId: string): number {
 
 export function getTVDBv4Client() {
     return new TVDBv4({
-        baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/tvdb`,
+        baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/tvdb`,
         // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
         // 导致 `TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation`。
         // 绑定到 `window` 后可避免该问题。
@@ -187,6 +187,20 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
     const defaultName = typeof data.name === 'string' ? data.name : ''
     if (!m.name.trim()) {
         m.name = defaultName
+    }
+    const firstRelease = data.first_release as Record<string, unknown> | undefined
+    const airDateCandidates: Array<unknown> = [
+        firstRelease?.first,
+        data.release_date,
+        data.firstAired,
+        data.first_air_time,
+        data.year,
+    ]
+    for (const candidate of airDateCandidates) {
+        if (typeof candidate === "string" && candidate.trim().length > 0) {
+            m.airDate = candidate
+            break
+        }
     }
 
     console.log('built MovieMediaMetadata', m)

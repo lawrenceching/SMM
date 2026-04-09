@@ -3,9 +3,9 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import Menu from '../componentobjects/Menu'
-import Sidebar from '../componentobjects/Sidebar'
-import { createBeforeHook } from '../lib/testbed'
+import Menu from '../../componentobjects/Menu'
+import Sidebar from '../../componentobjects/Sidebar'
+import { createBeforeHook } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 
 const __filename = fileURLToPath(import.meta.url)

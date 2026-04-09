@@ -40,6 +40,7 @@ describe("buildMovieMediaMetadata", () => {
     expect(buildMovieMediaMetadata(details)).toEqual({
       id: "999",
       name: "Localized Title",
+      airDate: "2024-06-01",
       database: "TMDB",
     })
   })
@@ -49,6 +50,7 @@ describe("buildMovieMediaMetadata", () => {
     expect(buildMovieMediaMetadata(details)).toMatchObject({
       id: "999",
       name: "Only Original",
+      airDate: "2024-06-01",
       database: "TMDB",
     })
   })

@@ -67,6 +67,41 @@ vi.mock("@/AppV2Utils", () => ({
   doPreprocessMediaFolder: vi.fn(),
 }))
 
+const { recognizeMutateAsync } = vi.hoisted(() => ({
+  recognizeMutateAsync: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock("@/hooks/initialization/useRecognizeTvShowByNfoMutation", () => ({
+  useRecognizeTvShowByNfoMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeTvShowBySearchingFolderNameInTvdb", () => ({
+  useRecognizeTvShowBySearchingFolderNameInTvdb: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeTvShowBySearchingFolderNameInTmdb", () => ({
+  useRecognizeTvShowBySearchingFolderNameInTmdb: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeTvShowByTmdbIdInFolderNameMutation", () => ({
+  useRecognizeTvShowByTmdbIdInFolderNameMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeTvShowByTvdbIdInFolderNameMutation", () => ({
+  useRecognizeTvShowByTvdbIdInFolderNameMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeMovieByNfoMutation", () => ({
+  useRecognizeMovieByNfoMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeMovieBySearchingFolderNameInTvdb", () => ({
+  useRecognizeMovieBySearchingFolderNameInTvdb: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeMovieBySearchingFolderNameInTmdb", () => ({
+  useRecognizeMovieBySearchingFolderNameInTmdb: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeMovieByTmdbIdInFolderNameMutation", () => ({
+  useRecognizeMovieByTmdbIdInFolderNameMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+vi.mock("@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation", () => ({
+  useRecognizeMovieByTvdbIdInFolderNameMutation: () => ({ mutateAsync: recognizeMutateAsync }),
+}))
+
 vi.mock("sonner", () => ({
   toast: {
     error: vi.fn(),
@@ -141,6 +176,7 @@ describe("MediaFolderImportedEventHandler", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    recognizeMutateAsync.mockResolvedValue(undefined)
 
     mockSetSelectedMediaMetadata = vi.fn()
     mockRemoveMediaMetadata = vi.fn()
@@ -157,6 +193,10 @@ describe("MediaFolderImportedEventHandler", () => {
 
     mockUseConfig.mockReturnValue({
       addMediaFolderInUserConfig: vi.fn(),
+      userConfig: {
+        preferMediaLanguage: "en-US",
+        primaryDatabase: "TMDB",
+      },
     } as any)
 
     mockUseMediaMetadataStoreActions.mockReturnValue({

@@ -52,9 +52,7 @@ export function useTvShowFileNameGeneration({
           tvshowName: tvShow.name || "",
           file: mediaFile.absolutePath,
           tmdbId: tvShow.id?.toString() || "",
-          // TODO: add releaseYear
-          // releaseYear: tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear().toString() : "",
-          releaseYear: "",
+          releaseYear: tvShow.airDate ?? '',
         });
         
         if (response.data) {
