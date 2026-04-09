@@ -14,7 +14,7 @@ import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import fs from 'fs'
 import { Path } from '@smm/core'
 
-describe('Media Folder Initialization - TV Show - TMDB', () => {
+describe('Media Folder Initialization - TV Show - TVDB', () => {
 
     beforeEach(async () => {
         await setup({
@@ -63,7 +63,7 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
         })
     })
 
-    it('Searching Folder Name', async function () {
+    it.only('Searching Folder Name', async function () {
         if (env.slowdown) {
             this.timeout(60 * 1000)
         }

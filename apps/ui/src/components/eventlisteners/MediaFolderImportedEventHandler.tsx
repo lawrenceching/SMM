@@ -28,7 +28,7 @@ import { useRecognizeMovieBySearchingFolderNameInTvdb } from "@/hooks/initializa
 import { useRecognizeMovieBySearchingFolderNameInTmdb } from "@/hooks/initialization/useRecognizeMovieBySearchingFolderNameInTmdb";
 import { useRecognizeMovieByTmdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTmdbIdInFolderNameMutation";
 import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation";
-import { recognizeEpisodes, recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import { recognizeEpisodes } from "@/lib/recognizeEpisodes";
 import type { MediaFileMetadata } from "@core/types";
 
 const mutex = new Mutex();

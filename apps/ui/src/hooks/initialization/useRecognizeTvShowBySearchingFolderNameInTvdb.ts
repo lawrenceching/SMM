@@ -26,12 +26,15 @@ export function useRecognizeTvShowBySearchingFolderNameInTvdb() {
             const folderName = basename(m.mediaFolderPath!)!
             
             const ret: TVDBv4SearchResult[] | undefined = await searchTvdb({ query: folderName, type: "series", language })
+            
             if(ret === undefined || ret.length === 0) {
                 console.log(`[useRecognizeBySearchTvShowFolderNameInTvdb] no results found for folder name: ${folderName}`)
                 return undefined;
             }
 
-            const tvdbId = ret[0].id
+            console.log(`[useRecognizeBySearchTvShowFolderNameInTvdb] searchTvdb results: ${ret.map(i => i.name).join(", ")}`)
+
+            const tvdbId = ret[0].tvdb_id
             return getTvShowByIdFromTvdb({ seriesId: parseInt(tvdbId, 10), language })
         },
     })
