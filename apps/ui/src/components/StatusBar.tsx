@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
 import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
+import { DatabaseConnectionIndicator } from "./DatabaseConnectionIndicator"
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 
@@ -45,6 +46,7 @@ export function StatusBar({
             </div>
             <div className="flex-1" data-testid="status-bar-message">{message}</div>
             <div className="flex items-center gap-2">
+                <DatabaseConnectionIndicator />
                 <McpIndicator />
                 <div data-testid="background-jobs-indicator">
                     <BackgroundJobsIndicator />

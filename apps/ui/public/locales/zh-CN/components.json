@@ -173,6 +173,16 @@
       "protocolValue": "流式HTTP",
       "disabledMessage": "在设置 → 常规中启用MCP以在独立端口上暴露服务器。",
       "documentation": "文档"
+    },
+    "database": {
+      "title": "数据库连接",
+      "subtitle": "TMDB 和 TVDB 状态",
+      "tmdb": "TMDB",
+      "tvdb": "TVDB",
+      "connected": "已连接",
+      "disconnected": "连接失败",
+      "checking": "检测中...",
+      "warningAriaLabel": "数据库连接警告"
     }
   },
   "mediaPlayer": {

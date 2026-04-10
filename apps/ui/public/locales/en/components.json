@@ -173,6 +173,16 @@
       "protocolValue": "Streamable HTTP",
       "disabledMessage": "Enable MCP in Settings → General to expose server on its own port.",
       "documentation": "Documentation"
+    },
+    "database": {
+      "title": "Database Connection",
+      "subtitle": "TMDB & TVDB Status",
+      "tmdb": "TMDB",
+      "tvdb": "TVDB",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "checking": "Checking...",
+      "warningAriaLabel": "Database connection warning"
     }
   },
   "mediaPlayer": {

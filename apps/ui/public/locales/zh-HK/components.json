@@ -172,6 +172,16 @@
       "protocolValue": "串流HTTP",
       "disabledMessage": "在設定 → 常規中啟用MCP以在獨立連接埠上公開伺服器。",
       "documentation": "文件"
+    },
+    "database": {
+      "title": "資料庫連線",
+      "subtitle": "TMDB 與 TVDB 狀態",
+      "tmdb": "TMDB",
+      "tvdb": "TVDB",
+      "connected": "已連線",
+      "disconnected": "連線失敗",
+      "checking": "檢測中...",
+      "warningAriaLabel": "資料庫連線警告"
     }
   },
   "mediaPlayer": {
