@@ -25,7 +25,7 @@ export async function searchTmdb(
     queryParams.append('baseURL', baseURL);
   }
 
-  const url = `/tmdb/3/search/${type}?${queryParams.toString()}`;
+  const url = `/tmdb/search/${type}?${queryParams.toString()}`;
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -55,7 +55,7 @@ export async function getTvShowById(
     queryParams.append('language', language);
   }
   const queryString = queryParams.toString();
-  const url = `/tmdb/3/tv/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -86,7 +86,7 @@ export async function getMovieById(
     queryParams.append('language', language);
   }
   const queryString = queryParams.toString();
-  const url = `/tmdb/3/movie/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -158,7 +158,7 @@ export async function getSeason(
     queryParams.append('appendToResponse', req.appendToResponse);
   }
   const queryString = queryParams.toString();
-  const url = `/tmdb/3/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
 
   const resp = await fetch(url, {
     method: 'GET',
