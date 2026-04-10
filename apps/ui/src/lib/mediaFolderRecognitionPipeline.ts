@@ -1,11 +1,4 @@
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import type { PrimaryDatabase } from '@core/types'
-
-export type UpdateMediaMetadataInPipeline = (
-    path: string,
-    metadata: UIMediaMetadata,
-    options: { traceId: string }
-) => void | Promise<void>
 
 export interface RecognitionStep<T> {
     logLabel: string
@@ -19,22 +12,18 @@ export function searchOrderForPrimaryDb(
     return primaryDatabase === 'TVDB' ? ['TVDB', 'TMDB'] : ['TMDB', 'TVDB']
 }
 
+/** Runs steps in order; returns the first defined result, or undefined if all miss. */
 export async function runRecognitionSteps<T>(
     traceId: string,
-    base: UIMediaMetadata,
-    steps: RecognitionStep<T>[],
-    applySuccess: (result: T) => UIMediaMetadata,
-    updateMediaMetadata: UpdateMediaMetadataInPipeline
-): Promise<boolean> {
-    const path = base.mediaFolderPath!
+    steps: RecognitionStep<T>[]
+): Promise<T | undefined> {
     for (const step of steps) {
         const result = await step.tryRecognize()
         if (result !== undefined) {
             console.log(`[${traceId}] HIT: ${step.logLabel}`)
-            await Promise.resolve(updateMediaMetadata(path, applySuccess(result), { traceId }))
-            return true
+            return result
         }
         console.log(`[${traceId}] MISS: ${step.logLabel}`)
     }
-    return false
+    return undefined
 }

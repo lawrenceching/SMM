@@ -63,7 +63,7 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
         })
     })
 
-    it.only('Searching Folder Name', async function () {
+    it('Searching Folder Name', async function () {
         if (env.slowdown) {
             this.timeout(60 * 1000)
         }

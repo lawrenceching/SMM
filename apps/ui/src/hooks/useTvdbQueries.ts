@@ -115,7 +115,6 @@ export function useTvdbQueries() {
       return queryClient.fetchQuery({
         queryKey: tvdbTvShowMediaMetadataQueryKey(seriesId, lang),
         queryFn: async () => {
-          debugger;
           const metadata = await fetchTvdbAndBuildTvShowMediaMetadata(
             seriesId,
             lang,

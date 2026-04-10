@@ -103,7 +103,6 @@ export function parse(filepath: string): {
 } {
     const name = basename(filepath)!
     const ext = extname(filepath)
-    const base = name + ext
     const dir = dirname(filepath)
     return {
         name,

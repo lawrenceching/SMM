@@ -22,6 +22,7 @@ export interface OnMediaLibraryImportedEventData {
     libraryPathInPlatformFormat: string;
     type: "tvshow" | "movie" | "music";
     traceId?: string;
+    test?: boolean
 }
 
 export const UI_FixedDelayBackgroundJobEvent = 'ui.fixedDelayBackgroundJob'

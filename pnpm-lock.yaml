@@ -368,6 +368,9 @@ importers:
       path-browserify-esm:
         specifier: ^1.0.6
         version: 1.0.6
+      pino:
+        specifier: ^10.3.1
+        version: 10.3.1
       react:
         specifier: ^19.2.0
         version: 19.2.4

@@ -1,5 +1,5 @@
-import { useRef } from "react"
-import { useMount, useUnmount } from "react-use"
+import { useCallback, useRef } from "react"
+import { useLatest, useMount, useUnmount } from "react-use"
 import { listFiles } from "@/api/listFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useConfig } from "@/providers/config-provider"
@@ -11,104 +11,103 @@ import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import { basename } from "@/lib/path"
 import { sortPathsBySidebarDisplayOrder } from "@/stores/sidebarStore"
-import { UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } from "@/types/eventTypes"
+import { UI_MediaFolderImportedEvent, UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } from "@/types/eventTypes"
 import { initializeSingleMediaFolder } from "@/lib/initializeSingleMediaFolder"
-import { Mutex } from "es-toolkit"
+import { isEqual, isNotNil, Mutex } from "es-toolkit"
 import { toast } from "sonner"
 import Debug from "debug"
+import { useInitializeImportedMediaFolder } from "@/hooks/initialization/useInitializeImportedMediaFolder"
 const debug = Debug("MediaLibraryImportedEventHandler")
-const mediaLibraryImportMutex = new Mutex()
+
+/**
+ * folders - the absolute folder paths in platform format
+ */
+export function _dedupFolders(newFolders: string[], mediaMetadatas: UIMediaMetadata[]): string[] {
+  const importedFolders: string[] = mediaMetadatas
+    .map((metadata) => metadata.mediaFolderPath)
+    .filter((path) => path && Path.toPlatformPath(path))
+    .filter(isNotNil)
+
+  const importedPosix = new Set(importedFolders.map((p) => Path.posix(p)))
+  return newFolders.filter((folder) => !importedPosix.has(Path.posix(folder)))
+}
+
+export async function _listFolders(path: string): Promise<string[]> {
+  const listFilesResponse = await listFiles({
+    path,
+    onlyFolders: true,
+    includeHiddenFiles: false,
+  })
+  return listFilesResponse.data?.items.map((item) => item.path) ?? []
+}
 
 export function MediaLibraryImportedEventHandler() {
-  const { addMediaFolderInUserConfig, userConfig } = useConfig()
-  const { mediaMetadatas } = useMediaMetadataStoreState()
-  const { addMediaMetadatas, getMediaMetadata } = useMediaMetadataStoreActions()
-  const { saveMediaMetadata, updateMediaMetadata, initializeMediaMetadata } = useMediaMetadataActions()
-  const backgroundJobs = useBackgroundJobsStore()
-  const eventListener = useRef<((event: Event) => void) | null>(null)
 
-  const processMediaLibraryImportedEvent = async (event: Event) => {
+  const eventListener = useRef<((event: Event) => void) | null>(null)
+  const { mediaMetadatas } = useMediaMetadataStoreState()
+  const latestMediaMetadatas = useLatest(mediaMetadatas)
+  const { initializeMediaMetadata } = useMediaMetadataActions();
+  const { initializeImportedMediaFolder } = useInitializeImportedMediaFolder();
+  const backgroundJobs = useBackgroundJobsStore()
+
+  const doImportMediaLibrary = async (event: Event) => {
+
     const data = (event as CustomEvent<OnMediaLibraryImportedEventData>).detail
     const { libraryPathInPlatformFormat, type } = data
+    console.log(`start to initialize media library: ${JSON.stringify(data)}`)
     debug(`start to process ${UI_MediaLibraryImportedEvent} event`, data)
     const traceIdBase = data.traceId || `MediaLibraryImportedEventHandler:${nextTraceId()}`
 
     const jobId = backgroundJobs.addJob("Importing Media Library")
+    let progress = 0;
     backgroundJobs.updateJob(jobId, { status: "running", progress: 0 })
     debug(`add background job in running status`)
 
     try {
-      const listFilesResponse = await listFiles({
-        path: libraryPathInPlatformFormat,
-        onlyFolders: true,
-        includeHiddenFiles: false,
-      })
 
-      if (listFilesResponse.error || !listFilesResponse.data) {
-        console.error(`[${traceIdBase}] Failed to list folders in media library: ${listFilesResponse.error}`)
-        backgroundJobs.updateJob(jobId, { status: "failed" })
-        return
+      const foldersInLibrary = await _listFolders(libraryPathInPlatformFormat)
+      debug(`listed ${foldersInLibrary.length} folders in library`)
+      const foldersToImport = _dedupFolders(foldersInLibrary, latestMediaMetadatas.current)
+      debug(`deduped ${foldersToImport.length} folders, ${foldersToImport.length} folders need to import`)
+
+      const updateProgress = () => {
+        const delta = ~~(100 / foldersToImport.length)
+        progress += delta
+        backgroundJobs.updateJob(jobId, { progress: progress })
       }
 
-      debug(`listed ${listFilesResponse.data?.items.length} folders`)
 
-      const subfolderPaths = Array.from(
-        new Set(
-          listFilesResponse.data.items
-            .filter((item) => item.isDirectory && item.path)
-            .map((item) => item.path!)
-        )
-      )
-
-      const existingPaths = new Set(mediaMetadatas.map((metadata) => metadata.mediaFolderPath).filter(Boolean))
-      let pathsToImport = subfolderPaths.filter((path) => !existingPaths.has(Path.posix(path)))
+      for(const folder of foldersToImport) {
+        // initializeMediaMetadata will add all folder to MediaMetadata store
+        await initializeMediaMetadata(folder, type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder")
+      }
 
       // Use Sidebar store sort order so initialization runs top-to-bottom as shown in Sidebar
-      pathsToImport = sortPathsBySidebarDisplayOrder(pathsToImport, (path) => basename(path) ?? "")
+      let foldersInSidebarOrder = sortPathsBySidebarDisplayOrder(foldersToImport, (path) => basename(path) ?? "")
 
-      if (pathsToImport.length === 0) {
-        backgroundJobs.updateJob(jobId, { status: "succeeded", progress: 100 })
-        return
+      /**
+       * Double check foldersInSidebarOrder contains all element in foldersToImport
+       * In case sortPathsBySidebarDisplayOrder was implemented wrongly
+       * And return array with missing folders
+       */
+      const foldersToInitialize = isEqual(foldersToImport, foldersInSidebarOrder) ? foldersInSidebarOrder : foldersToImport
+
+      for (const folder of foldersToInitialize) {
+        debug(`start to initialize folder ${folder}`)
+        await initializeImportedMediaFolder(new CustomEvent(UI_MediaFolderImportedEvent, {
+          detail: {
+            type: type,
+            folderPathInPlatformFormat: folder,
+            skipOptimisticUpdate: true,
+            traceId: traceIdBase,
+          },
+        }))
+        debug(`initialized folder ${folder}`)
+        updateProgress()
       }
 
-      const mediaType = type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder"
-      const placeholders: UIMediaMetadata[] = pathsToImport.map((path) => ({
-        ...createMediaMetadata(path, mediaType),
-        status: "initializing",
-      }))
+      backgroundJobs.updateJob(jobId, { status: "succeeded", progress: 100 })
 
-      addMediaMetadatas(placeholders)
-      debug(`added ${placeholders.length} placeholder UIMediaMetadatas`)
-
-      const deps = {
-        addMediaFolderInUserConfig,
-        getMediaMetadata,
-        saveMediaMetadata,
-        updateMediaMetadata,
-        initializeMediaMetadata,
-      }
-
-      let completed = 0
-      for (const path of pathsToImport) {
-        debug(`start to import ${path}`)
-        const traceId = `${traceIdBase}:${nextTraceId()}`
-        try {
-          await initializeSingleMediaFolder(path, type, traceId, deps, {
-            onError: (message) => toast.error(message),
-            preferMediaLanguage: userConfig?.preferMediaLanguage,
-            primaryDatabase: userConfig?.primaryDatabase,
-          })
-        } catch {
-          // Error already reported via onError; continue with next folder
-        }
-        completed += 1
-        backgroundJobs.updateJob(jobId, {
-          progress: (completed / pathsToImport.length) * 100,
-          status: completed === pathsToImport.length ? "succeeded" : "running",
-        })
-        debug(`succeeded to import ${path}`)
-      }
-      debug(`completed to import ${pathsToImport.length} folders`)
     } catch (error) {
       console.error(`[${traceIdBase}] Import media library failed:`, error)
       backgroundJobs.updateJob(jobId, { status: "failed" })
@@ -119,16 +118,9 @@ export function MediaLibraryImportedEventHandler() {
   useMount(() => {
     eventListener.current = (event) => {
       debug(`received ${UI_MediaLibraryImportedEvent} event`)
-      ;(async () => {
-        try {
-          await mediaLibraryImportMutex.acquire()
-          await processMediaLibraryImportedEvent(event)
-        } catch (error) {
-          console.error("Failed to process media library import event:", error)
-        } finally {
-          mediaLibraryImportMutex.release()
-        }
-      })()
+        ; (async () => {
+          doImportMediaLibrary(event)
+        })()
     }
 
     document.addEventListener(UI_MediaLibraryImportedEvent, eventListener.current)

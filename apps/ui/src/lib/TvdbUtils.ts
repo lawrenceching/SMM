@@ -119,7 +119,6 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
                             name: episodeName,
                         });
                     } else {
-                        debugger;
                         console.warn(`Failed to find season ${episode.seasonNumber} in TVDB series ${seriesId}`)
                         m.seasons.push({
                             season: episode.seasonNumber,

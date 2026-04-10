@@ -22,6 +22,10 @@ import { UserConfigUpdatedEventListener } from './components/eventlisteners/User
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { logger } from './lib/log'
+logger.info(`SMM UI launched`)
+
+
 // Hook to detect mobile screen
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {

@@ -1,5 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { isNil } from "es-toolkit";
+import pino from 'pino'
 
 export function minimize(mm: UIMediaMetadata): any {
     return {
@@ -18,3 +19,17 @@ export function minimize(mm: UIMediaMetadata): any {
         status: mm.status,
     }
 }
+
+
+
+const logger = pino({
+  browser: {
+    asObject: true,
+    serialize: true,
+  },
+  timestamp: () => {
+    return new Date().toLocaleTimeString()
+  }
+})
+
+export { logger }

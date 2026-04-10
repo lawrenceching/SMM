@@ -12,6 +12,12 @@ interface InitializeMusicFolderOptions {
     traceId: string;
 }
 
+/**
+ * @deprecated
+ * @param folderInPlatformPath 
+ * @param opts 
+ * @returns 
+ */
 export async function initializeMusicFolder(folderInPlatformPath: string, opts: InitializeMusicFolderOptions) {
     const { addMediaFolderInUserConfig, getMediaMetadata, addMediaMetadata, updateMediaMetadata, traceId } = opts;
 
