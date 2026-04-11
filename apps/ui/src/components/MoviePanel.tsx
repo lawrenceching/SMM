@@ -1,4 +1,7 @@
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
+import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { newFileName } from "@/api/newFileName"
@@ -35,7 +38,74 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
-  const { selectedMediaMetadata: rawMediaMetadata } = useMediaMetadataStoreState()
+  const { folders, selectedFolder } = useUIMediaFolderStoreState()
+  const { mediaMetadatas } = useMediaMetadataStoreState()
+  const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
+
+  const uiFolderRow = useMemo(
+    () =>
+      selectedFolder
+        ? folders.find(
+            (f) =>
+              normalizeMediaFolderPathForQuery(f.path) ===
+              normalizeMediaFolderPathForQuery(selectedFolder),
+          )
+        : undefined,
+    [folders, selectedFolder],
+  )
+
+  const storeMetadataForPath = useMemo(
+    () =>
+      selectedFolder
+        ? mediaMetadatas.find(
+            (m) =>
+              m.mediaFolderPath &&
+              normalizeMediaFolderPathForQuery(m.mediaFolderPath) ===
+                normalizeMediaFolderPathForQuery(selectedFolder),
+          )
+        : undefined,
+    [mediaMetadatas, selectedFolder],
+  )
+
+  const rawMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
+    if (!selectedFolder?.trim()) return undefined
+
+    const domain = storeMetadataForPath ?? mediaMetadataQuery.data
+
+    const status: UIMediaMetadata["status"] = (() => {
+      if (storeMetadataForPath?.status) return storeMetadataForPath.status
+      if (mediaMetadataQuery.isError) return "error_loading_metadata"
+      if (domain) return "ok"
+      if (uiFolderRow?.status) return uiFolderRow.status
+      if (mediaMetadataQuery.isPending || mediaMetadataQuery.isFetching) return "initializing"
+      return "loading"
+    })()
+
+    if (!domain) {
+      const normalizedPath = normalizeMediaFolderPathForQuery(selectedFolder)
+      return {
+        mediaFolderPath: normalizedPath,
+        type: "movie-folder",
+        status,
+        ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
+      } as UIMediaMetadata
+    }
+
+    return {
+      ...domain,
+      status,
+      ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
+    }
+  }, [
+    selectedFolder,
+    storeMetadataForPath,
+    mediaMetadataQuery.data,
+    mediaMetadataQuery.isError,
+    mediaMetadataQuery.isPending,
+    mediaMetadataQuery.isFetching,
+    uiFolderRow?.status,
+  ])
+
   const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
   const { mutate: getTvdbMovie } = useGetTvdbMovieMutation()
   const { mutate: getTmdbMovie } = useGetTmdbMovieMutation()

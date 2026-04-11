@@ -1,4 +1,7 @@
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
+import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow, PreferMediaLanguage } from "@core/types"
@@ -51,7 +54,74 @@ interface ToolbarOption {
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
   const { plans, setPlans, setPlanById, getPlanById } = usePlansStore()
-  const { selectedMediaMetadata: mediaMetadata } = useMediaMetadataStoreState()
+  const { folders, selectedFolder } = useUIMediaFolderStoreState()
+  const { mediaMetadatas } = useMediaMetadataStoreState()
+  const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
+
+  const uiFolderRow = useMemo(
+    () =>
+      selectedFolder
+        ? folders.find(
+            (f) =>
+              normalizeMediaFolderPathForQuery(f.path) ===
+              normalizeMediaFolderPathForQuery(selectedFolder),
+          )
+        : undefined,
+    [folders, selectedFolder],
+  )
+
+  const storeMetadataForPath = useMemo(
+    () =>
+      selectedFolder
+        ? mediaMetadatas.find(
+            (m) =>
+              m.mediaFolderPath &&
+              normalizeMediaFolderPathForQuery(m.mediaFolderPath) ===
+                normalizeMediaFolderPathForQuery(selectedFolder),
+          )
+        : undefined,
+    [mediaMetadatas, selectedFolder],
+  )
+
+  const mediaMetadata = useMemo((): UIMediaMetadata | undefined => {
+    if (!selectedFolder?.trim()) return undefined
+
+    const domain = storeMetadataForPath ?? mediaMetadataQuery.data
+
+    const status: UIMediaMetadata["status"] = (() => {
+      if (storeMetadataForPath?.status) return storeMetadataForPath.status
+      if (mediaMetadataQuery.isError) return "error_loading_metadata"
+      if (domain) return "ok"
+      if (uiFolderRow?.status) return uiFolderRow.status
+      if (mediaMetadataQuery.isPending || mediaMetadataQuery.isFetching) return "initializing"
+      return "loading"
+    })()
+
+    if (!domain) {
+      const normalizedPath = normalizeMediaFolderPathForQuery(selectedFolder)
+      return {
+        mediaFolderPath: normalizedPath,
+        type: "tvshow-folder",
+        status,
+        ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
+      } as UIMediaMetadata
+    }
+
+    return {
+      ...domain,
+      status,
+      ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
+    }
+  }, [
+    selectedFolder,
+    storeMetadataForPath,
+    mediaMetadataQuery.data,
+    mediaMetadataQuery.isError,
+    mediaMetadataQuery.isPending,
+    mediaMetadataQuery.isFetching,
+    uiFolderRow?.status,
+  ])
+
   const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
   const { updateMediaMetadata } = useMediaMetadataActions()
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
