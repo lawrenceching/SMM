@@ -27,6 +27,8 @@ import { useRecognizeMovieBySearchingFolderNameInTmdb } from "@/hooks/initializa
 import { useRecognizeMovieByTmdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTmdbIdInFolderNameMutation";
 import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation";
 import { recognizeEpisodes as recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import { extname } from "@/lib/path";
+import { videoFileExtensions } from "@core/utils";
 import type { MediaFileMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
 import { delay, withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
@@ -122,7 +124,7 @@ export function useInitializeImportedMediaFolder() {
     }, [])
 
     /** Maps async episode recognition to domain `mediaFiles` (may be empty). Caller updates UI / persistence. */
-    const recognizeEpisodes = useCallback(
+    const recognizeTvShowEpisodes = useCallback(
         async (mm: UIMediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
             const recognized = await recognizeEpisodesAsync(mm);
             if (recognized.length === 0) {
@@ -135,6 +137,30 @@ export function useInitializeImportedMediaFolder() {
                 seasonNumber: i.season,
                 episodeNumber: i.episode,
             }));
+        },
+        []
+    );
+
+    /** First video file in `mm.files` (by `videoFileExtensions`), or empty. Movie entries only set `absolutePath`. */
+    const recognizeMovieEpisode = useCallback(
+        async (mm: UIMediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
+            const files = mm.files;
+            if (!files || files.length === 0) {
+                logger.warn(
+                    `[${traceId}] unable to recognize movie episode after recognizing media folder`
+                );
+                return [];
+            }
+            const firstVideo = files.find((path) =>
+                videoFileExtensions.includes(extname(path).toLowerCase())
+            );
+            if (firstVideo === undefined) {
+                logger.warn(
+                    `[${traceId}] unable to recognize movie episode after recognizing media folder`
+                );
+                return [];
+            }
+            return [{ absolutePath: firstVideo }];
         },
         []
     );
@@ -216,7 +242,6 @@ export function useInitializeImportedMediaFolder() {
             return {
                 ...prev,
                 movie,
-                status: "ok",
             };
         }, { traceId });
     }, [])
@@ -276,7 +301,7 @@ export function useInitializeImportedMediaFolder() {
                 await onTvShowRecognized(folder, tvShow, traceId);
 
                 // stage 2: recognize episodes, to link local video files for each episode
-                const mediaFiles = await recognizeEpisodes({ ...mm, tvShow }, traceId);
+                const mediaFiles = await recognizeTvShowEpisodes({ ...mm, tvShow }, traceId);
                 logger.info({
                     traceId,
                     folder,
@@ -298,6 +323,13 @@ export function useInitializeImportedMediaFolder() {
                     movie,
                 }, `successfully recognized movie for folder: ${folder}`);
                 await onMovieRecognized(folder, movie, traceId);
+
+                const mediaFiles = await recognizeMovieEpisode({ ...mm, movie }, traceId);
+                logger.info({
+                    traceId,
+                    folder,
+                }, `successfully recognized movie episode file for folder: ${folder}`);
+                await onEpisodeRecognized(folder, mediaFiles, traceId);
             } else {
                 logger.info({
                     traceId,

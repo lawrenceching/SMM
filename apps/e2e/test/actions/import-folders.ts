@@ -51,7 +51,6 @@ export const folder2: TestFolder = {
     mediaName: "咒术回战 涩谷事变×死灭回游 剧场版",
     files: [
         "movie.mkv",
-        "movie.nfo",
     ],
     type: "movie"
 }

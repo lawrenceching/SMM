@@ -375,6 +375,44 @@ describe("useInitializeImportedMediaFolder", () => {
         assertSuccessfulMovieInitializationPipeline();
     });
 
+    it("initialize movie folder with movie episode file", async () => {
+        h.getMediaMetadata.mockReturnValue(undefined);
+        h.runRecognitionSteps.mockResolvedValue(mockMovie);
+        const videoPath = `${posixPath}/Film.mkv`;
+        baseMm = {
+            ...createMediaMetadata(folderPath, "movie-folder"),
+            status: "idle",
+            files: [`${posixPath}/poster.jpg`, videoPath],
+        };
+        h.initializeMediaMetadata.mockResolvedValue(baseMm);
+
+        const { result } = renderHook(() => useInitializeImportedMediaFolder());
+
+        const detail: OnMediaFolderImportedEventData = {
+            type: "movie",
+            folderPathInPlatformFormat: folderPath,
+            traceId: "evt-trace",
+        };
+        const event = new CustomEvent("ui.mediaFolderImported", { detail }) as Event;
+
+        await act(async () => {
+            await result.current.initializeImportedMediaFolder(event);
+        });
+
+        assertSuccessfulMovieInitializationPipeline();
+
+        const episodeCall = h.updateMediaMetadata.mock.calls.filter(
+            (call) => typeof call[1] === "function"
+        )[1];
+        expect(episodeCall).toBeDefined();
+        const afterEp = (episodeCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)({
+            ...baseMm,
+            movie: mockMovie,
+            status: "ok",
+        });
+        expect(afterEp.mediaFiles).toEqual([{ absolutePath: videoPath }]);
+    });
+
     function assertSuccessfulMusicInitializationPipeline() {
         expect(h.addMediaFolderInUserConfig).toHaveBeenCalledWith("evt-trace", folderPath);
 

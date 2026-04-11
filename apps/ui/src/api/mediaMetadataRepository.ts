@@ -88,7 +88,7 @@ export class MediaMetadataRepository {
       type,
       files,
       mediaFiles: [],
-      status: 'initializing',
+      status: 'idle',
     };
 
     return initialMetadata;

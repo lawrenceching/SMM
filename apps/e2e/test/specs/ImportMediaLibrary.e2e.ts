@@ -2,7 +2,7 @@ import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from '../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe } from '../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, type TestFolder, folder4, folder5, createFolderInTestFolder, folder1 } from '../actions/import-folders'
+import { createAndImportFolder, type TestFolder, folder4, folder5, createFolderInTestFolder, folder1, folder2 } from '../actions/import-folders'
 import { setup } from '../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
@@ -141,5 +141,83 @@ describe('Import Media Library', () => {
 
     })
 
+    it.only('Import Movie Library', async function() {
+        if(env.slowdown) {
+            this.timeout(60 * 1000)
+        }
+
+        const folders: TestFolder[] = []
+
+        const unknownFolder = createFolderInTestFolder({
+            ...folder2,
+            folderName: "UnknownFolder",
+        })
+        folders.push(unknownFolder)
+
+        const folderRecognizedBySearchingFolderName = createFolderInTestFolder(folder2)
+        folders.push(folderRecognizedBySearchingFolderName)
+
+        const folderRecognizedByTmdbIdInFolderName = createFolderInTestFolder({
+            ...folder2,
+            folderName: "{tmdbid=1539104}",
+        })
+        folders.push(folderRecognizedByTmdbIdInFolderName)
+
+        
+        const folderRecognizedByNfo = createFolderInTestFolder({
+            ...folder2,
+            folderName: "FolderContainsTvShowNfo",
+        })
+        const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+  <title>咒术回战 涩谷事变×死灭回游 剧场版</title>
+  <id>1539104</id>
+  <tmdbid>1539104</tmdbid>
+</movie>`
+        fs.writeFileSync(path.join(folderRecognizedByNfo.path!, 'movie.nfo'), nfoXml)
+        folders.push(folderRecognizedByNfo)
+
+        const mediaFolder = dirname(folders[0]?.path!)!
+        
+        await importMediaLibrary({
+            libraryPathInPlatformFormat: mediaFolder,
+            type: "movie",
+            traceId: "e2e:Import Media Library:Import Movie Library",
+        })
+
+        await delay(30 * 1000)
+
+        await expectMediaMetadataToBe(unknownFolder.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(unknownFolder.path!))
+            expect(mm.type).toBe("movie-folder")
+            expect(mm.movie).toBeUndefined()
+            return true;
+        })
+
+        await expectMediaMetadataToBe(folderRecognizedBySearchingFolderName.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedBySearchingFolderName.path!))
+            expect(mm.type).toBe("movie-folder")
+            expect(mm.movie?.database).toBe("TMDB")
+            return true;
+        })
+
+        await expectMediaMetadataToBe(folderRecognizedByTmdbIdInFolderName.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByTmdbIdInFolderName.path!))
+            expect(mm.type).toBe("movie-folder")
+            expect(mm.movie?.database).toBe("TMDB")
+            return true;
+        })
+
+        await expectMediaMetadataToBe(folderRecognizedByNfo.path!, (obj) => {
+            const mm = obj as MediaMetadata;
+            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByNfo.path!))
+            expect(mm.type).toBe("movie-folder")
+            expect(mm.movie?.database).toBe("TMDB")
+            return true;
+        })
+    })
 
 })
