@@ -9,7 +9,7 @@
  */
 import { createContext, useContext, type ReactNode, useEffect, useCallback } from "react"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import { useConfig } from "./config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { Path } from "@core/path"
 
 // New architecture imports

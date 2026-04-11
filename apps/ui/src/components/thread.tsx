@@ -29,7 +29,7 @@ import { useMemo, type FC } from "react";
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
-import { useConfig } from "@/providers/config-provider";
+import { useConfig } from "@/hooks/userConfig";
 import type { AI, AIConfig } from "@core/types";
 import { useDialogs } from "@/providers/dialog-provider";
 

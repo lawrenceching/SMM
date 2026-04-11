@@ -1,4 +1,4 @@
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket"
 import { type ConnectionStatus } from "../ConnectionStatusIndicator"
 

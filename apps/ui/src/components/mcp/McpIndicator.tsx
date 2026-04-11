@@ -1,5 +1,5 @@
 import { Plug, Globe, FileText, ExternalLink } from "lucide-react"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"

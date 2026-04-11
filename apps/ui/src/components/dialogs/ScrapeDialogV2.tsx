@@ -30,7 +30,7 @@ import type { MediaMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { nextTraceId } from "@/lib/utils"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 
 type TaskId = "poster" | "fanart" | "thumbnails" | "nfo"
 type TaskStatus = "pending" | "running" | "completed" | "failed"

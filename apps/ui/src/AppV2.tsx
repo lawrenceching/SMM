@@ -19,7 +19,7 @@ import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 import { nextTraceId } from "@/lib/utils"
-import { useConfig } from "./providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { isNotNil } from "es-toolkit"
 import {
   UI_MediaFolderImportedEvent,

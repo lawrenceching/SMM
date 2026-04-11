@@ -1,7 +1,7 @@
 import { useLatest } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useMediaMetadataStore, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
-import { useConfig } from "@/providers/config-provider";
+import { useConfig } from "@/hooks/userConfig";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
 import { getTMDBImageUrl, searchTmdb } from "@/api/tmdb"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_APP_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
 import type { TMDBTVShow, TMDBMovie, PrimaryDatabase, PreferMediaLanguage } from "@core/types"

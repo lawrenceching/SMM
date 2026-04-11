@@ -31,7 +31,7 @@ vi.mock("@core/path", () => ({
   Path: MockPath,
 }))
 
-vi.mock("@/providers/config-provider", () => ({
+vi.mock("@/hooks/userConfig", () => ({
   useConfig: vi.fn(),
 }))
 
@@ -154,7 +154,7 @@ vi.mock("react-use", () => ({
   },
 }))
 
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"

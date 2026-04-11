@@ -1,7 +1,7 @@
 import { USER_CONFIG_FOLDER_RENAMED_EVENT } from "@core/event-types"
 import { useRef } from "react";
 import { useLatest, useMount, useUnmount } from "react-use"
-import { useConfig } from "@/providers/config-provider";
+import { useConfig } from "@/hooks/userConfig";
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { Path } from "@core/path";

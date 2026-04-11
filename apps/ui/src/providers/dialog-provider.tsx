@@ -23,7 +23,7 @@ import {
   type OpenEditMediaFileOptions,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 
 const SCRAPE_DIALOG_V2_FALLBACK = true
 

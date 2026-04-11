@@ -21,7 +21,7 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
   }
 })
 
-vi.mock('@/providers/config-provider', () => ({
+vi.mock('@/hooks/userConfig', () => ({
   useConfig: vi.fn(() => ({
     userConfig: {
       applicationLanguage: 'en',

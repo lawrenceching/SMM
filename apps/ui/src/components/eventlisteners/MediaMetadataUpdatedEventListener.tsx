@@ -2,11 +2,11 @@ import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
-import { useConfig } from "@/providers/config-provider";
+import { useConfig } from "@/hooks/userConfig";
 
 export function MediaMetadataUpdatedEventListener() {
     const { refreshMediaMetadata } = useMediaMetadataActions();
-    const { reload: reloadUserConfig } = useConfig();
+    const { refreshUserConfig } = useConfig();
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {
@@ -21,7 +21,7 @@ export function MediaMetadataUpdatedEventListener() {
                 }
             } else {
                 console.warn(`[MediaMetadataUpdatedEventListener] mediaMetadataUpdated event missing folderPath in data:`, event.detail);
-                reloadUserConfig();
+                void refreshUserConfig();
             }
         };
 

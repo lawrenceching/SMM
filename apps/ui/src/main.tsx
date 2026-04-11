@@ -5,7 +5,7 @@ import './lib/i18n' // Initialize i18n
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
-import { ConfigProvider } from './providers/config-provider'
+import { AppLanguageSync } from './hooks/userConfig'
 import { MediaMetadataStoreProvider, useMediaMetadataStoreState } from './providers/mediaMetadataStoreProvider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
@@ -21,7 +21,8 @@ import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlist
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './lib/queryClient'
 import { logger } from './lib/log'
 logger.info(`SMM UI launched`)
 
@@ -214,22 +215,19 @@ function AppSwitcher() {
   )
 }
 
-const queryClient = new QueryClient()
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <ConfigProvider>
-          <MediaMetadataStoreProvider>
-            <DialogProvider>
-              <BackgroundJobsProvider>
-                <AppInitializer />
-                <AppSwitcher />
-              </BackgroundJobsProvider>
-            </DialogProvider>
-          </MediaMetadataStoreProvider>
-        </ConfigProvider>
+        <MediaMetadataStoreProvider>
+          <DialogProvider>
+            <BackgroundJobsProvider>
+              <AppLanguageSync />
+              <AppInitializer />
+              <AppSwitcher />
+            </BackgroundJobsProvider>
+          </DialogProvider>
+        </MediaMetadataStoreProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

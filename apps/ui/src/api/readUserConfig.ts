@@ -54,11 +54,14 @@ export const defaultUserConfig: UserConfig = {
   mcpPort: 30001,
 };
 
+export async function readUserConfigFromUserDataDir(userDataDir: string): Promise<UserConfig> {
+  const filePath = join(userDataDir, "smm.json")
+  const resp = await readFile(filePath)
+  const config = resp.data ? (JSON.parse(resp.data) as UserConfig) : defaultUserConfig
+  return config
+}
+
 export async function readUserConfig(helloResponse?: HelloResponseBody): Promise<UserConfig> {
-  const data = helloResponse || await hello();
-  const userDataDir = data.userDataDir;
-  const filePath = join(userDataDir, 'smm.json');
-  const resp = await readFile(filePath);
-  const config = resp.data ? JSON.parse(resp.data) as UserConfig : defaultUserConfig;
-  return config;
+  const data = helloResponse || (await hello())
+  return readUserConfigFromUserDataDir(data.userDataDir)
 }

@@ -86,7 +86,7 @@ vi.mock("@/stores/backgroundJobsStore", () => ({
     }),
 }));
 
-vi.mock("@/providers/config-provider", () => ({
+vi.mock("@/hooks/userConfig", () => ({
     useConfig: () => ({
         userConfig: {
             preferMediaLanguage: "en-US",

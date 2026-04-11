@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { useConfig } from '@/providers/config-provider'
+import { useConfig } from '@/hooks/userConfig'
 import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 
 const mockImmersiveSearchboxValue = { current: '' }
@@ -39,6 +39,12 @@ vi.mock('@/api/tvdb', () => ({
   searchTvdb: vi.fn(),
 }))
 
+vi.mock('@/hooks/useTvdbQueries', () => ({
+  useTvdbQueries: () => ({
+    search: vi.fn(),
+  }),
+}))
+
 vi.mock('@/lib/i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/i18n')>()
   return {
@@ -49,7 +55,7 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
   }
 })
 
-vi.mock('@/providers/config-provider', () => ({
+vi.mock('@/hooks/userConfig', () => ({
   useConfig: vi.fn(() => ({
     userConfig: {
       applicationLanguage: 'en',

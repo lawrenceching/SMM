@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
 import { searchTmdb, getTMDBImageUrl } from '@/api/tmdb';
-import { useConfig } from '@/providers/config-provider';
+import { useConfig } from '@/hooks/userConfig';
 import type { TMDBMovie, TMDBTVShow } from '@core/types';
 import { SearchBox } from './SearchBox';
 

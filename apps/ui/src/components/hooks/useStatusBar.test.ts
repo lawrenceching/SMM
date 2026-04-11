@@ -4,7 +4,7 @@ import { useStatusBar, mapWebSocketStatusToConnectionStatus } from './useStatusB
 import type { WebSocketStatus } from '@/hooks/useWebSocket'
 import type { ConnectionStatus } from '../ConnectionStatusIndicator'
 
-vi.mock('@/providers/config-provider', () => ({
+vi.mock('@/hooks/userConfig', () => ({
   useConfig: vi.fn(),
 }))
 
@@ -12,7 +12,7 @@ vi.mock('@/hooks/useWebSocket', () => ({
   useWebSocket: vi.fn(),
 }))
 
-import { useConfig } from '@/providers/config-provider'
+import { useConfig } from '@/hooks/userConfig'
 import { useWebSocket } from '@/hooks/useWebSocket'
 
 const mockUseConfig = useConfig as ReturnType<typeof vi.fn>

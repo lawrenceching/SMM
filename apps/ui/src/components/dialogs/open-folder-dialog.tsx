@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import type { OpenFolderDialogProps, FolderType } from "./types"
 

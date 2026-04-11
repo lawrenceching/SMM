@@ -1,6 +1,6 @@
 import { useMount } from "react-use"
 import localStorages from "./lib/localStorages";
-import { useConfig } from "./providers/config-provider";
+import { useConfig } from "@/hooks/userConfig";
 import type { UserConfig } from "@core/types";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { useMediaMetadataActions } from "./actions/mediaMetadataActions";

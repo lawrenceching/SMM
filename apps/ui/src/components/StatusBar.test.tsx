@@ -28,6 +28,12 @@ vi.mock("./mcp/McpIndicator", () => ({
     McpIndicator: () => <div data-testid="mcp-indicator" />,
 }))
 
+vi.mock("./DatabaseConnectionIndicator", () => ({
+    DatabaseConnectionIndicator: () => (
+        <div data-testid="database-connection-indicator" />
+    ),
+}))
+
 vi.mock("@/components/ui/separator", () => ({
     Separator: () => <hr data-testid="separator" />,
 }))

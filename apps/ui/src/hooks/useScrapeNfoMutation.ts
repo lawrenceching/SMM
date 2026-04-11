@@ -14,7 +14,7 @@ import { join, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
 import { useTmdbQueries } from "./useTmdbQueries"
 import { useTvdbQueries } from "./useTvdbQueries"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import Debug from "debug"
 import { isNotNil } from "es-toolkit"
 import type {

@@ -6,7 +6,7 @@ import { ImmersiveMovieSearchbox } from "./ImmersiveMovieSearchbox"
 import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb } from "@/api/tmdb"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { Button } from "./ui/button"

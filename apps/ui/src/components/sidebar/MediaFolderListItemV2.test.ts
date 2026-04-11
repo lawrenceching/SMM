@@ -5,12 +5,12 @@ import { MediaFolderListItemV2 } from './MediaFolderListItemV2'
 import { useDialogs } from '@/providers/dialog-provider'
 import { useMediaMetadataStoreState } from '@/stores/mediaMetadataStore'
 import { useMediaMetadataActions } from '@/actions/mediaMetadataActions'
-import { useConfig } from '@/providers/config-provider'
+import { useConfig } from '@/hooks/userConfig'
 
 vi.mock('@/providers/dialog-provider')
 vi.mock('@/stores/mediaMetadataStore')
 vi.mock('@/actions/mediaMetadataActions')
-vi.mock('@/providers/config-provider')
+vi.mock('@/hooks/userConfig')
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => key,

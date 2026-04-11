@@ -5,7 +5,7 @@ import { Path } from "@core/path"
 import type { UserConfig } from "@core/types"
 import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
-import { useConfig } from "@/providers/config-provider"
+import { useConfig } from "@/hooks/userConfig"
 import { useDialogs } from "@/providers/dialog-provider"
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import {

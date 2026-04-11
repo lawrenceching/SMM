@@ -16,7 +16,7 @@ vi.mock('@/api/writeMediaMetadata', () => ({
   writeMediaMetadata: vi.fn(),
 }))
 
-vi.mock('@/providers/config-provider', () => ({
+vi.mock('@/hooks/userConfig', () => ({
   useConfig: vi.fn(),
 }))
 
@@ -29,7 +29,7 @@ vi.mock('@/lib/localStorages', () => ({
 import { readMediaMetadataV2 } from '@/api/readMediaMetadataV2'
 import { deleteMediaMetadata } from '@/api/deleteMediaMetadata'
 import { writeMediaMetadata } from '@/api/writeMediaMetadata'
-import { useConfig } from '@/providers/config-provider'
+import { useConfig } from '@/hooks/userConfig'
 import { useMediaMetadataStore } from '@/stores/mediaMetadataStore'
 
 const mockReadMediaMetadataV2 = readMediaMetadataV2 as ReturnType<typeof vi.fn>
