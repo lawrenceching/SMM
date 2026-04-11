@@ -1,80 +1,101 @@
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
+import { useQueries } from "@tanstack/react-query"
 import { SearchForm } from "@/components/search-form"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
-import { MediaFolderListItemV2, type MediaFolderListItemV2Props } from "../sidebar/MediaFolderListItemV2"
+import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
+import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
+import { basename } from "@/lib/path"
+import {
+  useUIMediaFolderStoreState,
+  useUIMediaFolderStoreActions,
+  useUIMediaFolderSelection,
+} from "@/stores/uiMediaFolderStore"
+import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
+import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "@/lib/sidebarRowUtils"
 
 export type { SortOrder, FilterType }
 
-export interface SidebarFolderClickModifiers {
-  ctrlKey: boolean
-  metaKey: boolean
-}
-
 export interface SidebarProps {
-  sortOrder: SortOrder
-  onSortOrderChange: (order: SortOrder) => void
-  filterType: FilterType
-  onFilterTypeChange: (type: FilterType) => void
-  searchQuery: string
-  onSearchQueryChange: (query: string) => void
-  filteredAndSortedFolders: MediaFolderListItemV2Props[]
-  selectedFolderPaths: Set<string>
-  primaryFolderPath: string | undefined
-  onFolderClick: (path: string, modifiers: SidebarFolderClickModifiers) => void
-  onSelectAll: () => void
-  onDeleteSelected: (paths: string[]) => void
+  onDeleteSelected?: (paths: string[]) => void
 }
 
-export function Sidebar({
-  sortOrder,
-  onSortOrderChange,
-  filterType,
-  onFilterTypeChange,
-  searchQuery,
-  onSearchQueryChange,
-  filteredAndSortedFolders,
-  selectedFolderPaths,
-  primaryFolderPath,
-  onFolderClick,
-  onSelectAll,
-  onDeleteSelected,
-}: SidebarProps) {
+export function Sidebar({ onDeleteSelected }: SidebarProps) {
+  const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
+  const { folders } = useUIMediaFolderStoreState()
+  const { applyFolderClick, selectAllFolderPaths } = useUIMediaFolderStoreActions()
+  const { selectedFolder, selectedFolderPathsSet } = useUIMediaFolderSelection()
+
+  const folderPaths = useMemo(() => folders.map((f) => f.path), [folders])
+
+  const metadataQueries = useQueries({
+    queries: folderPaths.map((path) => ({
+      ...mediaMetadataReadQueryOptions(path),
+      staleTime: 5 * 60 * 1000,
+    })),
+  })
+
+  const rowsWithMeta = useMemo(() => {
+    return folders.map((folder, i) =>
+      buildMediaFolderListItemPropsFromFolderAndMetadata(folder, metadataQueries[i]?.data),
+    )
+  }, [folders, metadataQueries])
+
+  const filteredAndSortedFolders = useMemo(() => {
+    let result = [...rowsWithMeta]
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter((folder) => {
+        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
+        const pathMatch = folder.path.toLowerCase().includes(query)
+        const folderName = basename(folder.path) || ""
+        const folderNameMatch = folderName.toLowerCase().includes(query)
+        return mediaNameMatch || pathMatch || folderNameMatch
+      })
+    }
+
+    if (filterType !== "all") {
+      result = result.filter((folder) => folder.mediaType === filterType)
+    }
+
+    result.sort((a, b) => compareByDisplayName(a.mediaName, b.mediaName, sortOrder))
+
+    return result
+  }, [rowsWithMeta, sortOrder, filterType, searchQuery])
+
   const handleListKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "a") {
         e.preventDefault()
-        onSelectAll()
+        selectAllFolderPaths(filteredAndSortedFolders.map((f) => f.path))
       }
-      if (e.key === "Delete" && selectedFolderPaths.size > 0) {
+      if (e.key === "Delete" && selectedFolderPathsSet.size > 0 && onDeleteSelected) {
         e.preventDefault()
-        onDeleteSelected(Array.from(selectedFolderPaths))
+        onDeleteSelected(Array.from(selectedFolderPathsSet))
       }
     },
-    [onSelectAll, onDeleteSelected, selectedFolderPaths.size]
+    [onDeleteSelected, selectAllFolderPaths, filteredAndSortedFolders, selectedFolderPathsSet],
   )
 
   return (
     <div className="flex flex-col h-full w-full" data-testid="sidebar-container">
-      {/* 工具栏：排序和筛选按钮 */}
       <div className="py-2 px-3 border-b border-border bg-background" data-testid="sidebar-toolbar">
         <MediaFolderToolbar
           sortOrder={sortOrder}
-          onSortOrderChange={onSortOrderChange}
+          onSortOrderChange={setSortOrder}
           filterType={filterType}
-          onFilterTypeChange={onFilterTypeChange}
+          onFilterTypeChange={setFilterType}
         />
       </div>
 
-      {/* 搜索框 */}
       <div className="py-2 px-3 border-b border-border bg-background" data-testid="sidebar-search">
         <SearchForm
           value={searchQuery}
-          onValueChange={onSearchQueryChange}
+          onValueChange={setSearchQuery}
           placeholder="搜索媒体文件夹..."
         />
       </div>
 
-      {/* 列表：keydown only when focus is here (Ctrl+A / Cmd+A) */}
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden"
         tabIndex={0}
@@ -91,15 +112,12 @@ export function Sidebar({
               <div key={folder.path} className="border-b border-border" data-testid={`sidebar-folder-item-${index}`}>
                 <MediaFolderListItemV2
                   {...folder}
-                  isSelected={selectedFolderPaths.has(folder.path)}
-                  isPrimary={primaryFolderPath === folder.path}
-                  selectedFolderPaths={selectedFolderPaths}
+                  isSelected={selectedFolderPathsSet.has(folder.path)}
+                  isPrimary={selectedFolder === folder.path}
+                  selectedFolderPaths={selectedFolderPathsSet}
                   onDeleteSelected={onDeleteSelected}
                   onClick={(e) =>
-                    onFolderClick(folder.path, {
-                      ctrlKey: e.ctrlKey,
-                      metaKey: e.metaKey,
-                    })
+                    applyFolderClick(folder.path, e.ctrlKey || e.metaKey)
                   }
                 />
               </div>
@@ -110,4 +128,3 @@ export function Sidebar({
     </div>
   )
 }
-

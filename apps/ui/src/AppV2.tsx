@@ -3,9 +3,8 @@ import { Sidebar } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
-import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
+import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"
-import { basename } from "@/lib/path"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
@@ -28,9 +27,6 @@ import {
   type OnMediaLibraryImportedEventData,
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
-import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
-import { buildMediaFolderListItemV2PropsByUIMediaMetadatas } from "./AppV2Utils"
-
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
 function AppV2Content() {
@@ -43,11 +39,7 @@ function AppV2Content() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const resizeRef = useRef<HTMLDivElement>(null)
 
-  // Sidebar state (Zustand store so MediaLibraryImportedEventHandler can use same sort order for init)
-  const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
-  // Multi-select: set of selected folder paths and the primary (drives content panel)
-  const [selectedFolderPaths, setSelectedFolderPaths] = useState<Set<string>>(new Set())
-  const [primaryFolderPath, setPrimaryFolderPath] = useState<string | undefined>(undefined)
+  const { folders: uiFolders, selectedFolder } = useUIMediaFolderStoreState()
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
@@ -58,16 +50,13 @@ function AppV2Content() {
   const [openFilePicker] = filePickerDialog
 
   // Media metadata
-  const { mediaMetadatas, selectedMediaMetadata } = useMediaMetadataStoreState()
+  const { selectedMediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath, getMediaMetadata, removeMediaMetadatas, addMediaMetadatas } = useMediaMetadataStoreActions()
 
-  // Status bar message
   const statusBarMessage = useMemo(() => {
-    if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
-      return ''
-    }
-    return `${Path.toPlatformPath(selectedMediaMetadata.mediaFolderPath)}`
-  }, [selectedMediaMetadata])
+    if (!selectedFolder) return ""
+    return `${Path.toPlatformPath(selectedFolder)}`
+  }, [selectedFolder])
 
   // Check if running in Electron environment
   const isElectron = useCallback(() => {
@@ -87,22 +76,21 @@ function AppV2Content() {
     return hasWindow && hasElectron
   }, [])
 
-  // Initialize selection from provider once (e.g. after load or restore)
+  /** Bridge: folder store selection drives legacy media metadata store (panels still use it). */
   useEffect(() => {
-
-    if(selectedMediaMetadata === undefined || selectedMediaMetadata.mediaFolderPath === undefined) {
-      setPrimaryFolderPath(undefined)
-      setSelectedFolderPaths(new Set())
-      return;
+    if (selectedFolder) {
+      setSelectedByMediaFolderPath(selectedFolder)
     }
+  }, [selectedFolder, setSelectedByMediaFolderPath])
 
-    const path = selectedMediaMetadata.mediaFolderPath
-    setPrimaryFolderPath(path)
-    setSelectedFolderPaths(prev => {
-      // if prev.size > 1, means UI is in multi-select mode, so we keep the existing selected folder paths
-      return prev.size > 1 ? prev : new Set([path]);
-    })
-      
+  /** When metadata loads with a selection but folder store is still empty, align store (e.g. restored index). */
+  useEffect(() => {
+    const path = selectedMediaMetadata?.mediaFolderPath
+    if (!path) return
+    const { selectedFolder: sf } = useUIMediaFolderStore.getState()
+    if (!sf) {
+      useUIMediaFolderStore.getState().applyFolderClick(path, false)
+    }
   }, [selectedMediaMetadata?.mediaFolderPath])
 
   // Open native file dialog in Electron
@@ -289,68 +277,6 @@ function AppV2Content() {
     }
   }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
 
-  // Convert mediaMetadatas to folders
-  const folders: MediaFolderListItemV2Props[] = useMemo(() => {
-    return buildMediaFolderListItemV2PropsByUIMediaMetadatas(mediaMetadatas)
-  }, [mediaMetadatas])
-
-  // Filter and sort folders
-  const filteredAndSortedFolders = useMemo(() => {
-    let result = [...folders]
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      result = result.filter((folder) => {
-        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
-        const pathMatch = folder.path.toLowerCase().includes(query)
-        const folderName = basename(folder.path) || ""
-        const folderNameMatch = folderName.toLowerCase().includes(query)
-        return mediaNameMatch || pathMatch || folderNameMatch
-      })
-    }
-
-    // Filter by type
-    if (filterType !== "all") {
-      result = result.filter((folder) => folder.mediaType === filterType)
-    }
-
-    // Sort using shared comparator (same as sidebarStore; keeps init order in sync with display)
-    result.sort((a, b) => compareByDisplayName(a.mediaName, b.mediaName, sortOrder))
-
-    return result
-  }, [folders, sortOrder, filterType, searchQuery])
-
-  const onFolderClick = useCallback(
-    (path: string, modifiers: { ctrlKey: boolean; metaKey: boolean }) => {
-      const multi = modifiers.ctrlKey || modifiers.metaKey
-      if (multi) {
-        setSelectedFolderPaths((prev) => {
-          const next = new Set(prev)
-          if (next.has(path)) next.delete(path)
-          else next.add(path)
-          return next
-        })
-        setPrimaryFolderPath(path)
-        setSelectedByMediaFolderPath(path)
-      } else {
-        setSelectedFolderPaths(new Set([path]))
-        setPrimaryFolderPath(path)
-        setSelectedByMediaFolderPath(path)
-      }
-    },
-    [setSelectedByMediaFolderPath]
-  )
-
-  const onSelectAll = useCallback(() => {
-    setSelectedFolderPaths(
-      new Set(filteredAndSortedFolders.map((f) => f.path))
-    )
-    if (filteredAndSortedFolders.length > 0) {
-      setPrimaryFolderPath(filteredAndSortedFolders[0].path)
-    }
-  }, [filteredAndSortedFolders])
-
   const onDeleteSelected = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return
@@ -363,24 +289,36 @@ function AppV2Content() {
         .map((p) => getMediaMetadata(p))
         .filter((m): m is NonNullable<typeof m> => m != null)
       const previousFolders = userConfig.folders
+      const prevUiSelection = {
+        selectedFolder: useUIMediaFolderStore.getState().selectedFolder,
+        selectedFolders: [...useUIMediaFolderStore.getState().selectedFolders],
+      }
 
       // 1. Optimistic: remove all selected from UI state at once
       removeMediaMetadatas(paths)
       const newFolders = userConfig.folders
         .filter((f) => isNotNil(f))
         .filter((folder) => !deletedSet.has(Path.posix(folder)))
+      const newFolderPosix = newFolders.map((f) => Path.posix(f))
       setAndSaveUserConfig(traceId, { ...userConfig, folders: newFolders })
-      setSelectedFolderPaths((prev) => {
-        const next = new Set(prev)
-        paths.forEach((p) => next.delete(p))
-        return next
-      })
-      if (primaryFolderPath && deletedSet.has(primaryFolderPath)) {
-        const remaining = new Set(userConfig.folders)
-        paths.forEach((p) => remaining.delete(p))
-        const firstRemaining = remaining.size > 0 ? [...remaining][0] : undefined
-        setPrimaryFolderPath(firstRemaining)
+
+      const posixDeleted = paths.map((p) => Path.posix(p))
+      const delSet = new Set(posixDeleted)
+      const st = useUIMediaFolderStore.getState()
+      const nextSelectedFolders = st.selectedFolders.filter((p) => !delSet.has(p))
+      let nextPrimary = st.selectedFolder
+      if (delSet.has(nextPrimary)) {
+        nextPrimary = newFolderPosix[0] ?? ""
       }
+      useUIMediaFolderStore.setState({
+        selectedFolders:
+          nextSelectedFolders.length > 0
+            ? nextSelectedFolders
+            : nextPrimary
+              ? [nextPrimary]
+              : [],
+        selectedFolder: nextPrimary,
+      })
 
       // 2. Async delete; rollback on failure
       try {
@@ -389,6 +327,10 @@ function AppV2Content() {
         console.error("[onDeleteSelected] Failed to delete some media metadata:", error)
         addMediaMetadatas(removedMetadata)
         setAndSaveUserConfig(traceId, { ...userConfig, folders: previousFolders })
+        useUIMediaFolderStore.setState({
+          selectedFolder: prevUiSelection.selectedFolder,
+          selectedFolders: prevUiSelection.selectedFolders,
+        })
         toast.error(
           error instanceof Error ? error.message : "Failed to delete selected folders. Changes reverted."
         )
@@ -400,7 +342,6 @@ function AppV2Content() {
       getMediaMetadata,
       removeMediaMetadatas,
       addMediaMetadatas,
-      primaryFolderPath,
     ]
   )
 
@@ -504,7 +445,7 @@ function AppV2Content() {
             onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            viewSwitcherDisabled={folders.length === 0 || !selectedMediaMetadata}
+            viewSwitcherDisabled={uiFolders.length === 0 || !selectedMediaMetadata}
           />
         </div>
 
@@ -514,20 +455,7 @@ function AppV2Content() {
           className="relative min-w-0 overflow-hidden border-r border-border bg-muted/30"
           style={{ gridArea: "sidebar" }}
         >
-          <Sidebar
-            sortOrder={sortOrder}
-            onSortOrderChange={setSortOrder}
-            filterType={filterType}
-            onFilterTypeChange={setFilterType}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            filteredAndSortedFolders={filteredAndSortedFolders}
-            selectedFolderPaths={selectedFolderPaths}
-            primaryFolderPath={primaryFolderPath}
-            onFolderClick={onFolderClick}
-            onSelectAll={onSelectAll}
-            onDeleteSelected={onDeleteSelected}
-          />
+          <Sidebar onDeleteSelected={onDeleteSelected} />
 
           {/* 拖拽调整大小的手柄 */}
           <div
@@ -545,12 +473,12 @@ function AppV2Content() {
           className="flex flex-col overflow-hidden bg-background"
           style={{ gridArea: "content" }}
         >
-          {folders.length === 0 && (
+          {uiFolders.length === 0 && (
             <div style={{ padding: "20px", overflow: "auto" }}>
               <Welcome />
             </div>
           )}
-          {folders.length > 0 && selectedMediaMetadata && (
+          {uiFolders.length > 0 && selectedMediaMetadata && (
             <>
               {viewMode === "metadata" && (
                 <>

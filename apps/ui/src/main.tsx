@@ -6,6 +6,7 @@ import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { AppLanguageSync } from './hooks/userConfig'
+import { UIMediaFolderStoreInitializer } from './components/initialization/UIMediaFolderStoreInitializer'
 import { MediaMetadataStoreProvider, useMediaMetadataStoreState } from './providers/mediaMetadataStoreProvider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
@@ -223,6 +224,7 @@ createRoot(document.getElementById('root')!).render(
           <DialogProvider>
             <BackgroundJobsProvider>
               <AppLanguageSync />
+              <UIMediaFolderStoreInitializer />
               <AppInitializer />
               <AppSwitcher />
             </BackgroundJobsProvider>

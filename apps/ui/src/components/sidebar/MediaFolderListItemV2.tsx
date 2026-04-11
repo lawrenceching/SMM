@@ -19,7 +19,7 @@ import { useTranslation } from "@/lib/i18n"
 
 export interface MediaFolderListItemV2Props {
   mediaName: string,
-  mediaType: "tvshow" | "movie",
+  mediaType: "tvshow" | "movie" | "music",
   /**
    * Absolute path of the media folder, in POSIX format
    */
