@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { handleAiRecognizeConfirm, type UpdateMediaMetadataFn, type SetPlanByIdFn } from './handleAiRecognizeConfirm'
+import { handleAiRecognizeConfirm, type SetPlanByIdFn } from './handleAiRecognizeConfirm'
+import type { PersistUIMediaMetadataFn } from '@/types/persistUIMediaMetadata'
 import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { updatePlan } from '@/api/updatePlan'
@@ -41,20 +42,26 @@ describe('handleAiRecognizeConfirm', () => {
     mediaFiles: [],
   } as UIMediaMetadata
 
-  let updateMediaMetadata: ReturnType<typeof vi.fn>
+  let persist: ReturnType<typeof vi.fn>
   let setPlanById: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     vi.mocked(updatePlan).mockResolvedValue({})
     vi.mocked(applyRecognizeMediaFilePlan).mockResolvedValue(undefined)
-    updateMediaMetadata = vi.fn()
+    persist = vi.fn().mockResolvedValue(undefined)
     setPlanById = vi.fn()
   })
 
   it('calls updatePlan with plan id and "completed" on happy path', async () => {
-    await handleAiRecognizeConfirm(plan, mediaMetadata, updateMediaMetadata as UpdateMediaMetadataFn, setPlanById as SetPlanByIdFn)
+    await handleAiRecognizeConfirm(plan, mediaMetadata, persist as PersistUIMediaMetadataFn, setPlanById as SetPlanByIdFn)
 
     expect(updatePlan).toHaveBeenCalledTimes(1)
     expect(updatePlan).toHaveBeenCalledWith(plan.id, 'completed')
+    expect(applyRecognizeMediaFilePlan).toHaveBeenCalledWith(
+      plan,
+      mediaMetadata,
+      persist,
+      expect.objectContaining({ traceId: expect.stringMatching(/^handleAiRecognizeConfirm-/) })
+    )
   })
 })

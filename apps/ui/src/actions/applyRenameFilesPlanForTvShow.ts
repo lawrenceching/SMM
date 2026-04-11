@@ -1,10 +1,9 @@
-import { basename, extname, join } from "@/lib/path";
-import { findAssociatedFiles } from "@/lib/utils";
+import { Path } from "@core/path";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
-import { ext, Path } from "@core/path";
 import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types";
-import { subtitleFileExtensions } from "@core/utils";
 import Debug from "debug";
+import { buildTvShowRenameListForPlan } from "@/lib/buildTvShowRenameListForPlan";
+
 const debug = Debug("applyRenameFilesPlanForTvShow");
 
 export async function applyRenameFilesPlanForTvShow(
@@ -17,52 +16,13 @@ export async function applyRenameFilesPlanForTvShow(
     deps: {
         renameFilesApi: (params: RenameFilesRequestBody) => Promise<RenameFilesResponseBody>,
     }
-) {
+): Promise<{ renameList: Array<{ from: string; to: string }> }> {
 
-    const { mediaFolderPath, localFiles, plan, traceId } = options;
+    const { mediaFolderPath, plan, traceId } = options;
     const logPrefix = traceId ? `[${traceId}] ` : ''
     debug(`${logPrefix}applyRenameFilesPlanForTvShow CALLED`);
 
-    const renameList: Array<{ from: string; to: string }> = [];
-    renameList.push(...plan.files);
-    
-    for (const file of plan.files) {
-        const { from, to } = file;
-        
-        const newFileRelativePath = to.replace(mediaFolderPath, '');
-        const newFileRelativePathWithExt = newFileRelativePath.replace(extname(newFileRelativePath), '');
-        
-        const associatedFiles = 
-            findAssociatedFiles(mediaFolderPath, localFiles, from)
-            .map(file => { return file.path })
-            .map(relativePath => join(mediaFolderPath, relativePath));
-
-        const renameListForAssoFiles: Array<{ from: string; to: string }> = [];
-        for (const associatedFile of associatedFiles) {
-            
-            let _ext = extname(associatedFile);
-            const from = associatedFile;
-
-            // TODO: handle subtitle files with language code
-            if(subtitleFileExtensions.includes(_ext)) {
-                const filename = basename(associatedFile);
-                if(filename === undefined) {
-                    throw new Error(`basename of ${associatedFile} is undefined`)
-                }
-                const parts = filename.split('.');
-                if (parts.length > 2) {
-                    _ext = ext(filename, 2);
-                }
-            }
-
-            const to = join(mediaFolderPath, newFileRelativePathWithExt + _ext);
-
-            renameListForAssoFiles.push({ from, to });
-        }
-
-        debug(`${logPrefix}rename list for associated files: ${JSON.stringify(renameListForAssoFiles)}`);
-        renameList.push(...renameListForAssoFiles);
-    }
+    const renameList = buildTvShowRenameListForPlan(options);
 
     const filesParam = renameList.map(({ from, to }) => { return { from: Path.toPlatformPath(from), to: Path.toPlatformPath(to) } });
     const req: RenameFilesRequestBody = {
@@ -82,4 +42,5 @@ export async function applyRenameFilesPlanForTvShow(
 
     debug(`${logPrefix}applyRenameFilesPlanForTvShow SUCCESS`);
 
+    return { renameList };
 }

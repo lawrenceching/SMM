@@ -1,6 +1,7 @@
 import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
@@ -37,6 +38,7 @@ import { useLatest } from "react-use"
 import { fetchPlans, savePlan } from "@/actions/planActions"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
+import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
@@ -122,8 +124,23 @@ function TvShowPanel() {
     uiFolderRow?.status,
   ])
 
-  const { setSelectedByMediaFolderPath } = useMediaMetadataStoreActions()
+  const { setSelectedByMediaFolderPath, addMediaMetadata } = useMediaMetadataStoreActions()
   const { updateMediaMetadata } = useMediaMetadataActions()
+  const updateMediaMetadataMutation = useUpdateMediaMetadataMutation()
+
+  /** Write UIMediaMetadata via TanStack Query + Zustand (recognize + rename plans). */
+  const persistUiMediaMetadata = useCallback(
+    async (path: string, metadata: UIMediaMetadata, options?: { traceId?: string }) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(path)
+      await updateMediaMetadataMutation.mutateAsync({
+        pathPosix,
+        metadata,
+        traceId: options?.traceId,
+      })
+      addMediaMetadata(metadata)
+    },
+    [updateMediaMetadataMutation, addMediaMetadata]
+  )
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
@@ -403,8 +420,8 @@ function TvShowPanel() {
 
   const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
     if (!mediaMetadata) return
-    await handleAiRecognizeConfirm(plan, mediaMetadata, updateMediaMetadata, setPlanById)
-  }, [mediaMetadata, updateMediaMetadata, setPlanById])
+    await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, setPlanById)
+  }, [mediaMetadata, persistUiMediaMetadata, setPlanById])
 
   const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
     console.log('[TvShowPanel] User clicked the confirm button in RuleBasedRecognizePrompt', structuredClone(plan))
@@ -425,7 +442,7 @@ function TvShowPanel() {
 
       const actualPlan = rebuildPlanWithSelectedEpisodes(plan as RecognizeMediaFilePlan, selectedEpisodes)
       const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
-      await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, updateMediaMetadata, { traceId })
+      await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, persistUiMediaMetadata, { traceId })
       setPlanById(plan.id, { status: 'completed' })
       
       toast.success(t('toolbar.recognizeEpisodesSuccess'))
@@ -433,7 +450,7 @@ function TvShowPanel() {
       console.error('[TvShowPanel] Error applying rule-based recognition:', error)
       toast.error("Failed to apply recognition")
     }
-  }, [mediaMetadata, updateMediaMetadata, t])
+  }, [mediaMetadata, persistUiMediaMetadata, t])
 
   // When panel shows a media folder, fetch pending plans so we can open the right prompt (rename or recognize)
   useEffect(() => {
@@ -459,16 +476,17 @@ function TvShowPanel() {
 
       const actualPlan = rebuildRenamePlanWithSelectedEpisodes(plan as RenameFilesPlan, selectedEpisodePaths)
       await setPlanById(planId, { status: 'loading' })
-      // applyRenameFilesPlanForTvShow calls renameFiles API under the hood
-      // and renameFiles API triggers mediaMetadataUpdated socket.io event which will cause app to refresh media metadata
-      // Therefore, we don't need to update mediaMetadata here
-      await applyRenameFilesPlanForTvShow({ 
+      const renameTraceId = `RuleBasedRenameConfirm-${planId}`
+      const { renameList } = await applyRenameFilesPlanForTvShow({
         mediaFolderPath: mediaMetadata!.mediaFolderPath!,
         localFiles: mediaMetadata!.files!,
-        plan: actualPlan as UIRenameFilesPlan, 
-        traceId: `RuleBasedRenameConfirm-${planId}` }, 
-        { renameFilesApi: renameFiles }
-      )
+        plan: actualPlan as UIRenameFilesPlan,
+        traceId: renameTraceId,
+      }, { renameFilesApi: renameFiles })
+      const updatedMetadata = applyRenamePairsToUIMediaMetadata(mediaMetadata!, renameList)
+      await persistUiMediaMetadata(mediaMetadata!.mediaFolderPath!, updatedMetadata, {
+        traceId: renameTraceId,
+      })
       if (!plan.tmp) {
         savePlan(plan as UIPlan, {
           onSuccess: (savedPlan) => {
@@ -485,7 +503,7 @@ function TvShowPanel() {
       console.error("[TvShowPanel] No temporary rename plan found")
       toast.error("Failed to find rename plan")
     }
-  }, [mediaMetadata, getPlanById, setPlanById])
+  }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata])
 
   /**
    * Open AI based rename file prompt
@@ -848,7 +866,6 @@ function TvShowPanel() {
           setPlanById(planId, { status })
           return Promise.resolve()
         },
-        updateMediaMetadata,
         t,
         toast,
       })

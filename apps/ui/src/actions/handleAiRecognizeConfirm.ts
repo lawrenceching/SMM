@@ -1,16 +1,11 @@
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIPlan } from "@/stores/plansStore"
+import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import { updatePlan } from "@/api/updatePlan"
 import { applyRecognizeMediaFilePlan } from "@/components/TvShowPanelUtils"
-
-export type UpdateMediaMetadataFn = (
-  path: string,
-  metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-  options?: { traceId?: string }
-) => void
 
 export type SetPlanByIdFn = (id: string, planProps: { status: UIPlan["status"] }) => void
 
@@ -21,7 +16,7 @@ export type SetPlanByIdFn = (id: string, planProps: { status: UIPlan["status"] }
 export async function handleAiRecognizeConfirm(
   plan: RecognizeMediaFilePlan,
   mediaMetadata: UIMediaMetadata,
-  updateMediaMetadata: UpdateMediaMetadataFn,
+  persist: PersistUIMediaMetadataFn,
   setPlanById: SetPlanByIdFn
 ): Promise<void> {
   const traceId = `handleAiRecognizeConfirm-${nextTraceId()}`
@@ -48,16 +43,7 @@ export async function handleAiRecognizeConfirm(
 
   try {
     setPlanById(plan.id, { status: "completed" })
-    await applyRecognizeMediaFilePlan(
-      plan,
-      mediaMetadata,
-      updateMediaMetadata as (
-        path: string,
-        metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-        options?: { traceId?: string }
-      ) => void | Promise<void>,
-      { traceId }
-    )
+    await applyRecognizeMediaFilePlan(plan, mediaMetadata, persist, { traceId })
     console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
     toast.success(`Applied recognition for ${plan.files.length} file(s)`)
     await updatePlan(plan.id, "completed")

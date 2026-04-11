@@ -32,6 +32,7 @@ import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils";
 import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
+import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
     switch(tag) {
@@ -186,14 +187,13 @@ export function updateMediaFileMetadatas(
 }
 
 /**
- * Apply a RecognizeMediaFilePlan to media metadata and persist via updateMediaMetadata.
+ * Apply a RecognizeMediaFilePlan to media metadata and persist via `persist`.
  * Caller is responsible for validation and must pass a traceId so the event origin is visible (e.g. TvShowPanel-handleAiRecognizeConfirm-...).
- * Returns a Promise so the caller can await; this ensures the UI store is updated before the prompt closes and seasons are re-derived.
  */
-export function applyRecognizeMediaFilePlan(
+export async function applyRecognizeMediaFilePlan(
     plan: RecognizeMediaFilePlan,
     mediaMetadata: UIMediaMetadata,
-    updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>,
+    persist: PersistUIMediaMetadataFn,
     options: { traceId: string }
 ): Promise<void> {
     let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
@@ -210,9 +210,7 @@ export function applyRecognizeMediaFilePlan(
         mediaFiles: updatedMediaFiles,
     };
     console.log(`[applyRecognizeMediaFilePlan] updatedMetadata:`, structuredClone(updatedMetadata))
-    // TODO: didn't update media metadata to disk
-    const result = updateMediaMetadata(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId });
-    return Promise.resolve(result);
+    await persist(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId })
 }
 
 export function rebuildPlanWithSelectedEpisodes(
@@ -963,7 +961,6 @@ export interface HandlePendingPlansParams {
   handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
   handleRuleBasedRecognizeConfirmCallback?: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
-  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
   t: ReturnType<typeof import('react-i18next').useTranslation>['t']
   toast: typeof toast
 }

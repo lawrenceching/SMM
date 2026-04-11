@@ -141,7 +141,7 @@ describe('Import Media Library', () => {
 
     })
 
-    it.only('Import Movie Library', async function() {
+    it('Import Movie Library', async function() {
         if(env.slowdown) {
             this.timeout(60 * 1000)
         }
