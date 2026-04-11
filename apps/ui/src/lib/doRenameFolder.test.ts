@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { doRenameFolder, type DoRenameFolderDeps } from './doRenameFolder'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import { normalizeMediaFolderPathForQuery } from '@/lib/mediaMetadataQueryKeys'
 
 describe('doRenameFolder', () => {
   const path = '/media/tvshows/Old Name'
@@ -16,8 +17,9 @@ describe('doRenameFolder', () => {
     deps = {
       renameFolderApi: vi.fn().mockResolvedValue(undefined),
       deleteMediaMetadata: vi.fn(),
-      updateMediaMetadata: vi.fn(),
-      refreshMediaMetadata: vi.fn().mockResolvedValue(undefined),
+      writePersistedMetadata: vi.fn().mockResolvedValue(undefined),
+      removeQueryDataForPath: vi.fn(),
+      addMediaMetadataToStore: vi.fn(),
     }
   })
 
@@ -42,29 +44,43 @@ describe('doRenameFolder', () => {
     expect(deps.deleteMediaMetadata).toHaveBeenCalledWith(path, { traceId: expect.any(String) })
   })
 
-  it('calls updateMediaMetadata with new path and updated metadata', async () => {
+  it('calls removeQueryDataForPath with old path when path changed', async () => {
     const metadata = minimalMetadata(path)
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    expect(deps.updateMediaMetadata).toHaveBeenCalledTimes(1)
-    expect(deps.updateMediaMetadata).toHaveBeenCalledWith(
-      newFolderPath,
+    expect(deps.removeQueryDataForPath).toHaveBeenCalledTimes(1)
+    expect(deps.removeQueryDataForPath).toHaveBeenCalledWith(path)
+  })
+
+  it('calls writePersistedMetadata with normalized new path and updated metadata', async () => {
+    const metadata = minimalMetadata(path)
+
+    await doRenameFolder(path, newName, metadata, deps)
+
+    expect(deps.writePersistedMetadata).toHaveBeenCalledTimes(1)
+    expect(deps.writePersistedMetadata).toHaveBeenCalledWith(
+      normalizeMediaFolderPathForQuery(newFolderPath),
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
         mediaName: newName,
       }),
-      expect.objectContaining({ traceId: expect.any(String) })
+      expect.any(String)
     )
   })
 
-  it('calls refreshMediaMetadata with new folder path', async () => {
+  it('calls addMediaMetadataToStore with updated metadata', async () => {
     const metadata = minimalMetadata(path)
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    expect(deps.refreshMediaMetadata).toHaveBeenCalledTimes(1)
-    expect(deps.refreshMediaMetadata).toHaveBeenCalledWith(newFolderPath)
+    expect(deps.addMediaMetadataToStore).toHaveBeenCalledTimes(1)
+    expect(deps.addMediaMetadataToStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaFolderPath: newFolderPath,
+        mediaName: newName,
+      })
+    )
   })
 
   it('updates tvShow.name when metadata has tvShow', async () => {
@@ -80,8 +96,8 @@ describe('doRenameFolder', () => {
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    expect(deps.updateMediaMetadata).toHaveBeenCalledWith(
-      newFolderPath,
+    expect(deps.writePersistedMetadata).toHaveBeenCalledWith(
+      normalizeMediaFolderPathForQuery(newFolderPath),
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
         tvShow: expect.objectContaining({
@@ -91,7 +107,7 @@ describe('doRenameFolder', () => {
           seasons: [],
         }),
       }),
-      expect.any(Object)
+      expect.any(String)
     )
   })
 
@@ -108,8 +124,8 @@ describe('doRenameFolder', () => {
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    expect(deps.updateMediaMetadata).toHaveBeenCalledWith(
-      newFolderPath,
+    expect(deps.writePersistedMetadata).toHaveBeenCalledWith(
+      normalizeMediaFolderPathForQuery(newFolderPath),
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
         movie: expect.objectContaining({
@@ -118,7 +134,7 @@ describe('doRenameFolder', () => {
           database: 'TMDB',
         }),
       }),
-      expect.any(Object)
+      expect.any(String)
     )
   })
 
@@ -127,23 +143,23 @@ describe('doRenameFolder', () => {
 
     await doRenameFolder(path, newName, metadata, deps)
 
-    const call = vi.mocked(deps.updateMediaMetadata).mock.calls[0]
+    const call = vi.mocked(deps.writePersistedMetadata).mock.calls[0]
     expect(call[1]).toMatchObject({
       mediaFolderPath: newFolderPath,
       mediaName: newName,
     })
   })
 
-  it('uses provided traceId in updateMediaMetadata options', async () => {
+  it('uses provided traceId in writePersistedMetadata', async () => {
     const metadata = minimalMetadata(path)
     const traceId = 'custom-trace-123'
 
     await doRenameFolder(path, newName, metadata, deps, traceId)
 
-    expect(deps.updateMediaMetadata).toHaveBeenCalledWith(
-      newFolderPath,
+    expect(deps.writePersistedMetadata).toHaveBeenCalledWith(
+      normalizeMediaFolderPathForQuery(newFolderPath),
       expect.any(Object),
-      { traceId }
+      traceId
     )
   })
 
@@ -158,16 +174,20 @@ describe('doRenameFolder', () => {
 
     expect(console.error).toHaveBeenCalledWith('Failed to rename folder:', apiError)
     expect(deps.deleteMediaMetadata).not.toHaveBeenCalled()
-    expect(deps.updateMediaMetadata).not.toHaveBeenCalled()
-    expect(deps.refreshMediaMetadata).not.toHaveBeenCalled()
+    expect(deps.removeQueryDataForPath).not.toHaveBeenCalled()
+    expect(deps.writePersistedMetadata).not.toHaveBeenCalled()
+    expect(deps.addMediaMetadataToStore).not.toHaveBeenCalled()
   })
 
-  it('does not call deleteMediaMetadata when path equals newFolderPath', async () => {
+  it('does not call deleteMediaMetadata or removeQueryDataForPath when path equals newFolderPath', async () => {
     const metadata = minimalMetadata(path)
     const samePath = '/media/tvshows/Old Name'
     await doRenameFolder(samePath, 'Old Name', metadata, deps)
 
     expect(deps.deleteMediaMetadata).not.toHaveBeenCalled()
+    expect(deps.removeQueryDataForPath).not.toHaveBeenCalled()
+    expect(deps.writePersistedMetadata).toHaveBeenCalled()
+    expect(deps.addMediaMetadataToStore).toHaveBeenCalled()
   })
 })
 

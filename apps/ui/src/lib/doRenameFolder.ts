@@ -2,17 +2,22 @@ import { dirname, join } from "@/lib/path"
 import { nextTraceId } from "@/lib/utils"
 import type { RenameFolderParams } from "@/api/renameFolder"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 
 /** Dependencies for doRenameFolder; all passed as params to keep it decoupled from the component. */
 export interface DoRenameFolderDeps {
   renameFolderApi: (params: RenameFolderParams) => Promise<unknown>
   deleteMediaMetadata: (path: string, options?: { traceId?: string }) => Promise<void>
-  updateMediaMetadata: (
-    path: string,
-    metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-    options?: { traceId?: string }
-  ) => void | Promise<void>
-  refreshMediaMetadata: (path: string) => void | Promise<void>
+  /** Persist metadata and update TanStack Query cache (e.g. useUpdateMediaMetadataMutation). */
+  writePersistedMetadata: (
+    pathPosix: string,
+    metadata: UIMediaMetadata,
+    traceId?: string
+  ) => Promise<void>
+  /** Remove cached read for a folder path after rename (old path). */
+  removeQueryDataForPath: (folderPath: string) => void
+  /** Update Zustand list without a second disk write (after writePersistedMetadata). */
+  addMediaMetadataToStore: (metadata: UIMediaMetadata) => void
 }
 
 /**
@@ -55,10 +60,12 @@ export async function doRenameFolder(
 
     if (path !== newFolderPath) {
       await deps.deleteMediaMetadata(path, { traceId: id })
+      deps.removeQueryDataForPath(path)
     }
 
-    await deps.updateMediaMetadata(newFolderPath, updatedMetadata, { traceId: id })
-    await deps.refreshMediaMetadata(newFolderPath)
+    const newPathPosix = normalizeMediaFolderPathForQuery(newFolderPath)
+    await deps.writePersistedMetadata(newPathPosix, updatedMetadata, id)
+    deps.addMediaMetadataToStore(updatedMetadata)
 
     console.log("Folder renamed successfully:", path, "->", newFolderPath)
   } catch (error) {

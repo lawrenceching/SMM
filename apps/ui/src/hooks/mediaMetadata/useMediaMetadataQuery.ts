@@ -1,13 +1,16 @@
-import { useQuery } from "@tanstack/react-query"
+import { skipToken, useQuery } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
-import { mediaMetadataReadQueryOptions, normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
+
+/** Query key when no folder path — `queryFn: skipToken` skips fetch; must not call `mediaMetadataReadQueryOptions("")`. */
+const noFolderMediaMetadataQueryKey = ["mediaMetadata", null] as const
 
 export function useMediaMetadataQuery(path: string | undefined) {
-  const normalized = path ? normalizeMediaFolderPathForQuery(path) : ""
-  const { queryKey, queryFn } = mediaMetadataReadQueryOptions(path ?? "")
+  const trimmed = path?.trim() ?? ""
+  const opts = trimmed ? mediaMetadataReadQueryOptions(trimmed) : null
+
   return useQuery<MediaMetadata>({
-    queryKey,
-    queryFn,
-    enabled: Boolean(path && normalized),
+    queryKey: opts?.queryKey ?? noFolderMediaMetadataQueryKey,
+    queryFn: opts ? opts.queryFn : skipToken,
   })
 }

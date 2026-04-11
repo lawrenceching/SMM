@@ -13,12 +13,12 @@ import { Label } from "@/components/ui/label"
 import type { RenameDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { basename } from "@/lib/path"
-import { useMediaMetadataStore } from "@/stores/mediaMetadataStore"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useRenameMediaFolderMutation } from "@/hooks/useRenameMediaFolderMutation"
 import { Loader2 } from "lucide-react"
 
-function buildTvShowFolderRenameSuggestions(metadata: UIMediaMetadata): string[] {
+function buildTvShowFolderRenameSuggestions(metadata: MediaMetadata): string[] {
   const suggestions: string[] = []
   const tvShow = metadata.tvShow
   if (tvShow && tvShow.airDate !== undefined) {
@@ -29,6 +29,22 @@ function buildTvShowFolderRenameSuggestions(metadata: UIMediaMetadata): string[]
       suggestions.push(suggestion)
     } catch (error) {
       console.warn(`[RenameDialog] Failed to get year from air date: ${tvShow.airDate}`, error)
+    }
+  }
+  return suggestions
+}
+
+function buildMovieFolderRenameSuggestions(metadata: MediaMetadata): string[] {
+  const suggestions: string[] = []
+  const movie = metadata.movie
+  if (movie && movie.airDate !== undefined) {
+    try {
+      const year = movie.airDate.split("-")[0]
+      const idKey = movie.database === "TVDB" ? "tvdbid" : "tmdbid"
+      const suggestion = `${movie.name}${year ? ` (${year})` : ""} {${idKey}=${movie.id}}`
+      suggestions.push(suggestion)
+    } catch (error) {
+      console.warn(`[RenameDialog] Failed to get year from air date: ${movie.airDate}`, error)
     }
   }
   return suggestions
@@ -51,11 +67,7 @@ export function RenameDialog({
   const { mutateAsync: renameMediaFolderAsync, reset: resetRenameFolderMutation, isPending: isRenameFolderPending } =
     useRenameMediaFolderMutation()
 
-  const folderMetadata = useMediaMetadataStore((state) =>
-    mediaFolderPath
-      ? state.mediaMetadatas.find((m) => m.mediaFolderPath === mediaFolderPath)
-      : undefined
-  )
+  const metadataQuery = useMediaMetadataQuery(mediaFolderPath || undefined)
 
   /** Folder rename: initial text is the on-disk folder name (basename), not tvShow/movie display titles. */
   const effectiveInitialValue = useMemo(() => {
@@ -67,10 +79,15 @@ export function RenameDialog({
 
   const effectiveSuggestions = useMemo(() => {
     if (mediaFolderPath) {
-      return folderMetadata ? buildTvShowFolderRenameSuggestions(folderMetadata) : []
+      const data = metadataQuery.data
+      if (!data) return []
+      return [
+        ...buildTvShowFolderRenameSuggestions(data),
+        ...buildMovieFolderRenameSuggestions(data),
+      ]
     }
     return suggestions
-  }, [mediaFolderPath, folderMetadata, suggestions])
+  }, [mediaFolderPath, metadataQuery.data, suggestions])
 
   const [newName, setNewName] = useState(effectiveInitialValue)
 

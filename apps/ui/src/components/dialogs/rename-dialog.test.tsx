@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { RenameDialog } from "./rename-dialog"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 
 const mutation = vi.hoisted(() => ({
   isPending: false,
@@ -20,13 +20,17 @@ vi.mock("@/hooks/useRenameMediaFolderMutation", () => ({
   }),
 }))
 
-const store = vi.hoisted(() => ({
-  mediaMetadatas: [] as UIMediaMetadata[],
+const queryData = vi.hoisted(() => ({
+  data: undefined as MediaMetadata | undefined,
 }))
 
-vi.mock("@/stores/mediaMetadataStore", () => ({
-  useMediaMetadataStore: (selector: (s: { mediaMetadatas: UIMediaMetadata[] }) => unknown) =>
-    selector({ mediaMetadatas: store.mediaMetadatas }),
+vi.mock("@/hooks/mediaMetadata", () => ({
+  useMediaMetadataQuery: () => ({
+    data: queryData.data,
+    isPending: false,
+    isFetching: false,
+    isError: false,
+  }),
 }))
 
 vi.mock("@/lib/i18n", () => ({
@@ -56,7 +60,7 @@ describe("RenameDialog", () => {
     vi.clearAllMocks()
     mutation.isPending = false
     mutation.mutateAsync.mockResolvedValue(undefined)
-    store.mediaMetadatas = []
+    queryData.data = undefined
   })
 
   function renderDialog(override: Partial<ComponentProps<typeof RenameDialog>> = {}) {
@@ -118,21 +122,17 @@ describe("RenameDialog", () => {
     })
 
     it("shows TV suggestions with tmdbid when tvShow.database is TMDB and airDate is set", () => {
-      store.mediaMetadatas = [
-        {
-          mediaFolderPath: folderPath,
-          mediaName: "Display",
-          status: "ok",
-          type: "tvshow-folder",
-          tvShow: {
-            id: "99",
-            name: "Showname",
-            database: "TMDB",
-            airDate: "2020-01-01",
-            seasons: [],
-          },
-        } as UIMediaMetadata,
-      ]
+      queryData.data = {
+        mediaFolderPath: folderPath,
+        type: "tvshow-folder",
+        tvShow: {
+          id: "99",
+          name: "Showname",
+          database: "TMDB",
+          airDate: "2020-01-01",
+          seasons: [],
+        },
+      } as MediaMetadata
       renderDialog({ mediaFolderPath: folderPath })
       expect(screen.getByTestId("rename-dialog-suggestions")).toBeInTheDocument()
       expect(screen.getByTestId("rename-dialog-suggestion-0")).toHaveTextContent(
@@ -141,25 +141,39 @@ describe("RenameDialog", () => {
     })
 
     it("shows TV suggestions with tvdbid when tvShow.database is TVDB and airDate is set", () => {
-      store.mediaMetadatas = [
-        {
-          mediaFolderPath: folderPath,
-          mediaName: "Display",
-          status: "ok",
-          type: "tvshow-folder",
-          tvShow: {
-            id: "414124",
-            name: "Showname",
-            database: "TVDB",
-            airDate: "2020-01-01",
-            seasons: [],
-          },
-        } as UIMediaMetadata,
-      ]
+      queryData.data = {
+        mediaFolderPath: folderPath,
+        type: "tvshow-folder",
+        tvShow: {
+          id: "414124",
+          name: "Showname",
+          database: "TVDB",
+          airDate: "2020-01-01",
+          seasons: [],
+        },
+      } as MediaMetadata
       renderDialog({ mediaFolderPath: folderPath })
       expect(screen.getByTestId("rename-dialog-suggestions")).toBeInTheDocument()
       expect(screen.getByTestId("rename-dialog-suggestion-0")).toHaveTextContent(
         /Showname \(2020\) \{tvdbid=414124\}/
+      )
+    })
+
+    it("shows movie suggestions with tmdbid when movie.database is TMDB and airDate is set", () => {
+      queryData.data = {
+        mediaFolderPath: "/media/library/My Movie Folder",
+        type: "movie-folder",
+        movie: {
+          id: "555",
+          name: "Moviename",
+          database: "TMDB",
+          airDate: "2019-06-01",
+        },
+      } as MediaMetadata
+      renderDialog({ mediaFolderPath: "/media/library/My Movie Folder" })
+      expect(screen.getByTestId("rename-dialog-suggestions")).toBeInTheDocument()
+      expect(screen.getByTestId("rename-dialog-suggestion-0")).toHaveTextContent(
+        /Moviename \(2019\) \{tmdbid=555\}/
       )
     })
 
@@ -191,21 +205,17 @@ describe("RenameDialog", () => {
 
     it("disables input, cancel, confirm, and suggestions while mutation is pending", () => {
       mutation.isPending = true
-      store.mediaMetadatas = [
-        {
-          mediaFolderPath: folderPath,
-          mediaName: "m",
-          status: "ok",
-          type: "tvshow-folder",
-          tvShow: {
-            id: "1",
-            name: "S",
-            database: "TMDB",
-            airDate: "2020-01-01",
-            seasons: [],
-          },
-        } as UIMediaMetadata,
-      ]
+      queryData.data = {
+        mediaFolderPath: folderPath,
+        type: "tvshow-folder",
+        tvShow: {
+          id: "1",
+          name: "S",
+          database: "TMDB",
+          airDate: "2020-01-01",
+          seasons: [],
+        },
+      } as MediaMetadata
       renderDialog({ mediaFolderPath: folderPath })
 
       expect(screen.getByTestId("rename-dialog-input")).toBeDisabled()

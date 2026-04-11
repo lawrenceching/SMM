@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
+import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { renameFolder } from "@/api/renameFolder"
@@ -6,6 +6,8 @@ import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { doRenameFolder } from "@/lib/doRenameFolder"
 import { nextTraceId } from "@/lib/utils"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
+import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 
 export interface RenameMediaFolderVariables {
   mediaFolderPath: string
@@ -23,8 +25,10 @@ export function useRenameMediaFolderMutation(
   >
 ) {
   const { t } = useTranslation(["components"])
-  const { getMediaMetadata } = useMediaMetadataStoreActions()
-  const { deleteMediaMetadata, updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
+  const queryClient = useQueryClient()
+  const updatePersistedMutation = useUpdateMediaMetadataMutation()
+  const { getMediaMetadata, addMediaMetadata } = useMediaMetadataStoreActions()
+  const { deleteMediaMetadata } = useMediaMetadataActions()
   const { onError: userOnError, ...restOptions } = options ?? {}
 
   return useMutation({
@@ -42,8 +46,20 @@ export function useRenameMediaFolderMutation(
         {
           renameFolderApi: renameFolder,
           deleteMediaMetadata,
-          updateMediaMetadata,
-          refreshMediaMetadata,
+          writePersistedMetadata: async (pathPosix, metadata, tid) => {
+            await updatePersistedMutation.mutateAsync({
+              pathPosix,
+              metadata,
+              traceId: tid,
+            })
+          },
+          removeQueryDataForPath: (folderPath) => {
+            const k = normalizeMediaFolderPathForQuery(folderPath)
+            queryClient.removeQueries({ queryKey: mediaMetadataQueryKey(k) })
+          },
+          addMediaMetadataToStore: (metadata) => {
+            addMediaMetadata(metadata)
+          },
         },
         traceId
       )

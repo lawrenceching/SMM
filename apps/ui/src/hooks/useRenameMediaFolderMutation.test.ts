@@ -16,6 +16,11 @@ vi.mock("@/lib/doRenameFolder", () => ({
 }))
 vi.mock("@/stores/mediaMetadataStore")
 vi.mock("@/actions/mediaMetadataActions")
+vi.mock("@/hooks/mediaMetadata/useUpdateMediaMetadataMutation", () => ({
+  useUpdateMediaMetadataMutation: () => ({
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 describe("useRenameMediaFolderMutation", () => {
   const path = "/media/show"
@@ -24,11 +29,10 @@ describe("useRenameMediaFolderMutation", () => {
   beforeEach(() => {
     vi.mocked(useMediaMetadataStoreActions).mockReturnValue({
       getMediaMetadata: vi.fn(() => metadata),
+      addMediaMetadata: vi.fn(),
     } as unknown as ReturnType<typeof useMediaMetadataStoreActions>)
     vi.mocked(useMediaMetadataActions).mockReturnValue({
       deleteMediaMetadata: vi.fn(),
-      updateMediaMetadata: vi.fn(),
-      refreshMediaMetadata: vi.fn(),
     } as unknown as ReturnType<typeof useMediaMetadataActions>)
     vi.mocked(doRenameFolder).mockClear()
   })
