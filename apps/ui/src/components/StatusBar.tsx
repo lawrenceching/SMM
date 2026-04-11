@@ -1,4 +1,7 @@
+import { useMemo } from "react"
+import { Path } from "@core/path"
 import { cn } from "@/lib/utils"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
 import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
@@ -10,6 +13,7 @@ export { mapWebSocketStatusToConnectionStatus }
 
 interface StatusBarProps {
     className?: string
+    /** When set (including `""`), overrides the path from `UIMediaFolderStore` `selectedFolder`. */
     message?: string
     /** Override connection status (e.g. for tests); when set, useWebSocket is not used for status. */
     connectionStatus?: ConnectionStatus
@@ -23,6 +27,13 @@ export function StatusBar({
     connectionStatus: connectionStatusOverride,
     version: versionOverride,
 }: StatusBarProps) {
+    const { selectedFolder } = useUIMediaFolderStoreState()
+    const folderPathMessage = useMemo(
+        () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
+        [selectedFolder],
+    )
+    const displayMessage = message !== undefined ? message : folderPathMessage
+
     const { connectionStatus, version } = useStatusBar({
         connectionStatusOverride,
         versionOverride,
@@ -44,7 +55,7 @@ export function StatusBar({
                     <ConnectionStatusIndicator status={connectionStatus} />
                 </div>
             </div>
-            <div className="flex-1" data-testid="status-bar-message">{message}</div>
+            <div className="flex-1" data-testid="status-bar-message">{displayMessage}</div>
             <div className="flex items-center gap-2">
                 <DatabaseConnectionIndicator />
                 <McpIndicator />

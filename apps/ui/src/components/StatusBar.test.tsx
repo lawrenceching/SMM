@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
+import { Path } from "@core/path"
 import {
     StatusBar,
     mapWebSocketStatusToConnectionStatus,
 } from "./StatusBar"
+
+vi.mock("@/stores/uiMediaFolderStore", () => ({
+    useUIMediaFolderStoreState: vi.fn(),
+}))
 
 vi.mock("./hooks/useStatusBar", () => ({
     useStatusBar: vi.fn(),
@@ -39,8 +44,12 @@ vi.mock("@/components/ui/separator", () => ({
 }))
 
 import { useStatusBar } from "./hooks/useStatusBar"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 
 const mockUseStatusBar = useStatusBar as ReturnType<typeof vi.fn>
+const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
+    typeof vi.fn
+>
 
 describe("mapWebSocketStatusToConnectionStatus", () => {
     it("maps connected to connected", () => {
@@ -63,6 +72,11 @@ describe("mapWebSocketStatusToConnectionStatus", () => {
 describe("StatusBar", () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [],
+            selectedFolder: "",
+            selectedFolders: [],
+        })
         mockUseStatusBar.mockReturnValue({
             connectionStatus: 'disconnected',
             version: '0.0.0-mock',
@@ -154,5 +168,19 @@ describe("StatusBar", () => {
         render(<StatusBar message="Custom message" />)
 
         expect(screen.getByTestId("status-bar-message")).toHaveTextContent("Custom message")
+    })
+
+    it("shows selectedFolder from store as platform path when message is not passed", () => {
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [],
+            selectedFolder: "/media/library",
+            selectedFolders: [],
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
+            Path.toPlatformPath("/media/library"),
+        )
     })
 })

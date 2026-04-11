@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Sidebar } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
@@ -52,11 +52,6 @@ function AppV2Content() {
   // Media metadata
   const { selectedMediaMetadata } = useMediaMetadataStoreState()
   const { setSelectedByMediaFolderPath, getMediaMetadata, removeMediaMetadatas, addMediaMetadatas } = useMediaMetadataStoreActions()
-
-  const statusBarMessage = useMemo(() => {
-    if (!selectedFolder) return ""
-    return `${Path.toPlatformPath(selectedFolder)}`
-  }, [selectedFolder])
 
   // Check if running in Electron environment
   const isElectron = useCallback(() => {
@@ -519,7 +514,7 @@ function AppV2Content() {
             gridArea: "statusbar",
           }}
         >
-          <StatusBar message={statusBarMessage} />
+          <StatusBar />
         </div>
       </div>
 
