@@ -3,7 +3,6 @@ import {
     tryToRecognizeMovieFolderBySearchingFolderNameInTMDB,
     tryToRecognizeTvShowFolderBySearchingFolderNameInTMDB,
 } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTMDB";
-import { tryToRecognizeMediaFolderByNFO } from "./recognizeMediaFolderByNFO";
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
 import { tryToRecognizeMediaFolderByTvdbIdInFolderName } from "./recognizeMediaFolderByTvdbIdInFolderName";
 import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";

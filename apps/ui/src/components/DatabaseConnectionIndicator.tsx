@@ -21,6 +21,20 @@ function StatusDot({ status }: { status: DatabaseConnectionStatus }) {
   )
 }
 
+function databaseConnectionStatusText(
+  status: DatabaseConnectionStatus,
+  t: ReturnType<typeof useTranslation<"components">>["t"],
+) {
+  switch (status) {
+    case "connected":
+      return t("statusBar.database.connected")
+    case "disconnected":
+      return t("statusBar.database.disconnected")
+    case "checking":
+      return t("statusBar.database.checking")
+  }
+}
+
 export function DatabaseConnectionIndicator() {
   const { tmdbStatus, tvdbStatus, hasWarning } = useDatabaseConnectionStatus()
   const { t } = useTranslation("components")
@@ -69,18 +83,14 @@ export function DatabaseConnectionIndicator() {
             <StatusDot status={tmdbStatus} />
             <span className="font-medium">{t("statusBar.database.tmdb")}</span>
             <span className="text-muted-foreground ml-auto">
-              {t(
-                `statusBar.database.${tmdbStatus}`
-              )}
+              {databaseConnectionStatusText(tmdbStatus, t)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <StatusDot status={tvdbStatus} />
             <span className="font-medium">{t("statusBar.database.tvdb")}</span>
             <span className="text-muted-foreground ml-auto">
-              {t(
-                `statusBar.database.${tvdbStatus}`
-              )}
+              {databaseConnectionStatusText(tvdbStatus, t)}
             </span>
           </div>
         </div>

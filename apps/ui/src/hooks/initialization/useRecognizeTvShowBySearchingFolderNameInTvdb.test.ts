@@ -57,10 +57,10 @@ describe("useRecognizeTvShowBySearchingFolderNameInTvdb", () => {
     vi.clearAllMocks()
     vi.mocked(useTvdbQueries).mockReturnValue({
       search: mockSearchTvdb,
-    } as ReturnType<typeof useTvdbQueries>)
+    } as unknown as ReturnType<typeof useTvdbQueries>)
     vi.mocked(useGetTvdbTvShowMutation).mockReturnValue({
       mutateAsync: mockGetTvShowByIdFromTvdb,
-    } as ReturnType<typeof useGetTvdbTvShowMutation>)
+    } as unknown as ReturnType<typeof useGetTvdbTvShowMutation>)
     mockGetTvShowByIdFromTvdb.mockResolvedValue(tvShowMetadata)
   })
 

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest"
 import { buildTvShowMediaMetadata } from "./useGetTmdbTvShowMutation"
-import type { TmdbSeriesDetails, TmdbSeasonDetails, TvShowSeasonMetadata, TvShowEpisodeMetadata } from "@core/types"
+import type {
+  TmdbSeriesDetails,
+  TmdbSeasonDetails,
+  TmdbTvSeasonEpisodeDetails,
+} from "@core/types"
 
 function createMockSeriesDetails(overrides: Partial<TmdbSeriesDetails> = {}): TmdbSeriesDetails {
   return {
@@ -31,7 +35,7 @@ function createMockSeriesDetails(overrides: Partial<TmdbSeriesDetails> = {}): Tm
 
 function createMockSeasonDetails(
   seasonNumber: number,
-  episodes: Partial<TmdbSeasonDetails>[] = [],
+  episodes: Partial<TmdbTvSeasonEpisodeDetails>[] = [],
 ): TmdbSeasonDetails {
   return {
     id: 100 + seasonNumber,

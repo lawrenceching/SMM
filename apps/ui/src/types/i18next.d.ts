@@ -197,6 +197,16 @@ interface ComponentsResources {
       disabledMessage: string
       documentation: string
     }
+    database: {
+      title: string
+      subtitle: string
+      tmdb: string
+      tvdb: string
+      connected: string
+      disconnected: string
+      checking: string
+      warningAriaLabel: string
+    }
   }
   mediaPlayer: {
     trackContextMenu: {
@@ -321,6 +331,7 @@ interface DialogsResources {
     }
     tasks: {
       poster: string
+      fanart: string
       thumbnails: string
       nfo: string
     }
@@ -332,6 +343,7 @@ interface DialogsResources {
     }
     noTasks: string
     start: string
+    done: string
   }
   editMediaFile: {
     title: string
@@ -426,6 +438,12 @@ interface SettingsResources {
     primaryDatabaseDescription: string
     primaryDatabaseTmdb: string
     primaryDatabaseTvdb: string
+    preferMediaLanguage: string
+    preferMediaLanguageDescription: string
+    preferMediaLanguageUnset: string
+    preferMediaLanguageZhCn: string
+    preferMediaLanguageEnUs: string
+    preferMediaLanguageJaJp: string
     tvdbHost: string
     tvdbHostPlaceholder: string
     tvdbApiKey: string

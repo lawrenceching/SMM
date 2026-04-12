@@ -15,7 +15,7 @@ export function useSetUserConfigInCache() {
         console.error("[useSetUserConfigInCache] User data directory not found")
         return
       }
-      queryClient.setQueryData(userConfigQueryKey(dir), (prev) => {
+      queryClient.setQueryData<UserConfig>(userConfigQueryKey(dir), (prev) => {
         const base = prev ?? defaultUserConfig
         return typeof config === "function" ? config(base) : config
       })

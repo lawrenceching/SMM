@@ -1,5 +1,4 @@
 import type {
-  TmdbSearchRequestBody,
   TmdbSearchResponseBody,
   TmdbMovieDetails,
   TmdbSeriesDetails,

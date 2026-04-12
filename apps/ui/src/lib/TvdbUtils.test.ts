@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils"
+import { readFileSync } from "fs"
+import { dirname, join } from "path"
+import { fileURLToPath } from "url"
 
 const mockMovieTranslationByLangCode = vi.fn()
 const mockMovieExtendedById = vi.fn()
@@ -63,10 +66,8 @@ describe("fetchTvdbAndBuildMovieMediaMetadata", () => {
     })
   })
 })
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { readFileSync } from "fs"
-import { dirname, join } from "path"
-import { fileURLToPath } from "url"
+
+
 
 const {
   mockSeriesTranslationByLangCode,

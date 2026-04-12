@@ -1,7 +1,7 @@
 import { basename } from "./path";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
-import { getMovieByIdFromTMDB, getTvShowByIdFromTMDB } from "./TmdbUtils";
+import { getMovieByIdFromTMDB } from "./TmdbUtils";
 
 export async function tryToRecognizeMediaFolderByTmdbIdInFolderName(
     getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>,

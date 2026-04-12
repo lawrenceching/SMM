@@ -5,7 +5,7 @@ import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_APP_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
 import type { TMDBTVShow, TMDBMovie, PrimaryDatabase, PreferMediaLanguage } from "@core/types"
-import { TVDBv4, type TVDBv4Envelope, type TVDBv4SearchResult } from "@smm/tvdb4"
+import { type TVDBv4SearchResult } from "@smm/tvdb4"
 import {
   getTvdbSearchResultAlternateName,
   getTvdbSearchResultName,

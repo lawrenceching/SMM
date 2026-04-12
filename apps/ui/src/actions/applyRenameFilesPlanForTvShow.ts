@@ -18,7 +18,7 @@ export async function applyRenameFilesPlanForTvShow(
     }
 ): Promise<{ renameList: Array<{ from: string; to: string }> }> {
 
-    const { mediaFolderPath, plan, traceId } = options;
+    const { mediaFolderPath, traceId } = options;
     const logPrefix = traceId ? `[${traceId}] ` : ''
     debug(`${logPrefix}applyRenameFilesPlanForTvShow CALLED`);
 

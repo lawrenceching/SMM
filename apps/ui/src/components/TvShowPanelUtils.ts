@@ -1,5 +1,5 @@
-import type { MediaFileMetadata, PreferMediaLanguage, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
-import { type UIMediaMetadata, extractUIMediaMetadataProps } from "@/types/UIMediaMetadata";
+import type { MediaFileMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
+import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
@@ -27,9 +27,6 @@ import type { UpdatePlanStatus } from "@/api/updatePlan";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
-import { recognizeMediaFolder } from "@/lib/recognizeMediaFolder";
-import { getTvShowByIdFromTMDB } from "@/lib/TmdbUtils";
-import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
@@ -1084,77 +1081,4 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
       console.error(`[${traceId}] Failed to unlink episode:`, error)
       toast.error(t('tvShowEpisodeTable.unlinkFailed'))
     })
-}
-
-/** @returns true if media folder was processed successfully */
-export function onMediaFolderSelected(params: OnMediaFolderSelectedParams): boolean {
-  const {
-    mediaMetadata,
-    primaryDatabase,
-    openRuleBasedRecognizePrompt,
-    updateMediaMetadata,
-  } = params
-
-  console.log("[onMediaFolderSelected] called", {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    status: mediaMetadata.status,
-    type: mediaMetadata.type,
-  })
-
-  if (mediaMetadata.mediaFolderPath === undefined) {
-    console.error('[TvShowPanelUtils] onMediaFolderSelected: media folder path is undefined')
-    return false
-  }
-
-  if (mediaMetadata.status !== 'ok') {
-    console.log('[TvShowPanelUtils] skip processing because status is not ok', {
-      mediaFolderPath: mediaMetadata.mediaFolderPath,
-      status: mediaMetadata.status,
-    })
-    return false
-  }
-
-  ;(async () => {
-    if (mediaMetadata.type === undefined || (mediaMetadata.tvShow === undefined && mediaMetadata.tvShow === undefined && mediaMetadata.tmdbMovie === undefined)) {
-      const recognized: UIMediaMetadata | undefined = await recognizeMediaFolder(
-        mediaMetadata,
-        getTvShowByIdFromTMDB,
-        async (seriesId: number, language?: PreferMediaLanguage) => {
-          const m = await fetchTvdbAndBuildTvShowMediaMetadata(
-            seriesId,
-            language ?? "en-US",
-            {},
-          )
-          if (m === undefined) {
-            throw new Error(`Failed to fetch TVDB series ${seriesId}`)
-          }
-          return m
-        },
-        undefined,
-        undefined,
-        undefined,
-        primaryDatabase,
-      );
-      if (recognized !== undefined) {
-        if (recognized.tvShow !== undefined) {
-          openRuleBasedRecognizePrompt({
-            tvShowTitle: recognized.tvShow.name,
-            tvShowTmdbId: parseInt(recognized.tvShow.id),
-            onConfirm: () => {
-              updateMediaMetadata(mediaMetadata.mediaFolderPath!, (prev: UIMediaMetadata) => {
-                return {
-                  ...prev,
-                  ...recognized,
-                  ...extractUIMediaMetadataProps(prev),
-                }
-              })
-            },
-            onCancel: () => {},
-          })
-        }
-      }
-    }
-  })()
-
-  return true
 }

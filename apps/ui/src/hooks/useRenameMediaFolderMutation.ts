@@ -64,8 +64,8 @@ export function useRenameMediaFolderMutation(
         traceId
       )
     },
-    onError: (error, variables, context) => {
-      userOnError?.(error, variables, context)
+    onError: (error, variables, context, mutation) => {
+      userOnError?.(error, variables, context, mutation)
       const message = error instanceof Error ? error.message : "Unknown error"
       toast.error(t("mediaFolder.renameError", { ns: "components", error: message }))
     },

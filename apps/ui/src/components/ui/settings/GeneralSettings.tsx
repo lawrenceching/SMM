@@ -24,11 +24,18 @@ const PRIMARY_DATABASE_OPTIONS: {
 ]
 
 const PREFER_MEDIA_LANGUAGE_UNSET = "__unset__"
-const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{ value: PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET; labelKey: string }> = [
-  { value: PREFER_MEDIA_LANGUAGE_UNSET, labelKey: 'general.preferMediaLanguageUnset' },
-  { value: 'zh-CN', labelKey: 'general.preferMediaLanguageZhCn' },
-  { value: 'en-US', labelKey: 'general.preferMediaLanguageEnUs' },
-  { value: 'ja-JP', labelKey: 'general.preferMediaLanguageJaJp' },
+const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{
+  value: PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET
+  labelKey:
+    | "general.preferMediaLanguageUnset"
+    | "general.preferMediaLanguageZhCn"
+    | "general.preferMediaLanguageEnUs"
+    | "general.preferMediaLanguageJaJp"
+}> = [
+  { value: PREFER_MEDIA_LANGUAGE_UNSET, labelKey: "general.preferMediaLanguageUnset" },
+  { value: "zh-CN", labelKey: "general.preferMediaLanguageZhCn" },
+  { value: "en-US", labelKey: "general.preferMediaLanguageEnUs" },
+  { value: "ja-JP", labelKey: "general.preferMediaLanguageJaJp" },
 ]
 
 export function GeneralSettings() {

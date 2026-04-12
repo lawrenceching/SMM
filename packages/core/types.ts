@@ -344,9 +344,7 @@ export const ReleaseYearVariable: RenameRuleVariable = {
   description: 'The name of TV show',
   example: 'The Long TV Show, The Long Season, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    // TODO: add firstAirDate field in TvShowMediaMetadata
-    return '';
-    // return mediaMetadata.tmdbTvShow?.first_air_date.split('-')[0] || mediaMetadata.tmdbMovie?.release_date.split('-')[0] || '';
+    return mediaMetadata.tvShow?.airDate?.split('-')[0] || mediaMetadata.movie?.airDate?.split('-')[0] || '';
   }
 }
 
@@ -1112,3 +1110,4 @@ export interface DeleteFileResponseBody {
   error?: string
 }
 
+export type FolderType = "tvshow" | "movie" | "music"

@@ -1,14 +1,12 @@
 import { useLatest } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
-import { useMediaMetadataStore, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
+import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
 import { useConfig } from "@/hooks/userConfig";
 import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
-import { createMediaMetadata } from "@core/mediaMetadata";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { OnMediaFolderImportedEventData } from "@/types/eventTypes";
-import { initializeMusicFolder } from "@/lib/initializeMusicFolder";
 import { toast } from "sonner";
 import {
     runRecognitionSteps,
@@ -33,7 +31,7 @@ import type { MediaFileMetadata, MovieMediaMetadata, TvShowMediaMetadata } from 
 import { delay, withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
 import { useCallback, useRef } from "react";
-import type { FolderType } from "@/lib/initializeSingleMediaFolder";
+import type { FolderType } from "@core/types";
 
 export function useInitializeImportedMediaFolder() {
     const { addMediaFolderInUserConfig, userConfig } = useConfig();

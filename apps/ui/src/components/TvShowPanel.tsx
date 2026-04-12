@@ -29,7 +29,6 @@ import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
-import { startToRecognizeByTmdbIdInFolderName } from "./hooks/startToRecognizeByTmdbIdInFolderName"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
@@ -359,7 +358,7 @@ function TvShowPanel() {
 
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
 
-  const handleTmdbIdDetected = useCallback(async (tmdbId: number, language: 'zh-CN' | 'en-US' | 'ja-JP') => {
+  const handleTmdbIdDetected = useCallback(async (tmdbId: number) => {
     tmdbPromptStore.openPrompt({
       tmdbId,
       mediaName: undefined,

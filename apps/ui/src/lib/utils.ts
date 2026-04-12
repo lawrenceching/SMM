@@ -38,8 +38,6 @@ import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
 import { downloadImageApi } from "@/api/downloadImage"
 import { isError, ExistedFileError } from "@core/errors"
-import pLimit from 'p-limit';
-const limit = pLimit(1);
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -292,65 +290,65 @@ export async function checkFileExists(filePath: string): Promise<boolean> {
   }
 }
 
-/**
- * @deprecated will be removed 
- * @param mediaMetadata 
- * @param mediaFileMetadata 
- * @returns 
- */
-export async function downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
-  return await limit(() => _downloadThumbnail(mediaMetadata, mediaFileMetadata));
-}
+// /**
+//  * @deprecated will be removed 
+//  * @param mediaMetadata 
+//  * @param mediaFileMetadata 
+//  * @returns 
+//  */
+// export async function downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
+//   return await limit(() => _downloadThumbnail(mediaMetadata, mediaFileMetadata));
+// }
 
-export async function _downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
+// export async function _downloadThumbnail(mediaMetadata: MediaMetadata, mediaFileMetadata: MediaFileMetadata) {
 
-  const seasonNumber = mediaFileMetadata.seasonNumber;
-  const episodeNumber = mediaFileMetadata.episodeNumber;
-  const episode = mediaMetadata.tvShow?.seasons.find(season => season.season === seasonNumber)?.episodes?.find(episode => episode.episode === episodeNumber);
-  if(!episode) {
-    return;
-  }
-  // TODO: add still_path field in TvShowEpisodeMetadata
-  // const thumbnailUrl = episode.still_path ? getTMDBImageUrl(episode.still_path, 'w780') ?? undefined : undefined;
-  const thumbnailUrl: string | undefined = undefined;
-  if(!thumbnailUrl) {
-    console.error(`[downloadThumbnail] Failed to get thumbnail URL for episode ${seasonNumber} ${episodeNumber}`);
-    return;
-  }
-  console.log(`[downloadThumbnail] Downloading thumbnail for media file: `, mediaFileMetadata.absolutePath);
-  console.log(`[downloadThumbnail] Downloading thumbnail for episode ${seasonNumber} ${episodeNumber} from ${thumbnailUrl}`);
+//   const seasonNumber = mediaFileMetadata.seasonNumber;
+//   const episodeNumber = mediaFileMetadata.episodeNumber;
+//   const episode = mediaMetadata.tvShow?.seasons.find(season => season.season === seasonNumber)?.episodes?.find(episode => episode.episode === episodeNumber);
+//   if(!episode) {
+//     return;
+//   }
+//   // TODO: add still_path field in TvShowEpisodeMetadata
+//   // const thumbnailUrl = episode.still_path ? getTMDBImageUrl(episode.still_path, 'w780') ?? undefined : undefined;
+//   const thumbnailUrl: string | undefined = undefined;
+//   if(!thumbnailUrl) {
+//     console.error(`[downloadThumbnail] Failed to get thumbnail URL for episode ${seasonNumber} ${episodeNumber}`);
+//     return;
+//   }
+//   console.log(`[downloadThumbnail] Downloading thumbnail for media file: `, mediaFileMetadata.absolutePath);
+//   console.log(`[downloadThumbnail] Downloading thumbnail for episode ${seasonNumber} ${episodeNumber} from ${thumbnailUrl}`);
 
-  const videoFileName = basename(mediaFileMetadata.absolutePath)!;
-  const videoFileNameExt = extname(videoFileName);
-  const videoFileNameWithoutExt = videoFileName.replace(videoFileNameExt, '');
+//   const videoFileName = basename(mediaFileMetadata.absolutePath)!;
+//   const videoFileNameExt = extname(videoFileName);
+//   const videoFileNameWithoutExt = videoFileName.replace(videoFileNameExt, '');
 
-  const thumbnailExt = thumbnailUrl?.split('.').pop();
-  if(!thumbnailExt) {
-    console.error(`[downloadThumbnail] Failed to get thumbnail extension from ${thumbnailUrl}`);
-    return;
-  }
+//   const thumbnailExt = thumbnailUrl?.split('.').pop();
+//   if(!thumbnailExt) {
+//     console.error(`[downloadThumbnail] Failed to get thumbnail extension from ${thumbnailUrl}`);
+//     return;
+//   }
 
-  const thumbnailFileName = `${videoFileNameWithoutExt}.${thumbnailExt}`;
-  const thumbnailFilePath = mediaFileMetadata.absolutePath.replace(videoFileName, thumbnailFileName);
-  console.log(`[downloadThumbnail] Checking if thumbnail exists: ${thumbnailFilePath}`);
+//   const thumbnailFileName = `${videoFileNameWithoutExt}.${thumbnailExt}`;
+//   const thumbnailFilePath = mediaFileMetadata.absolutePath.replace(videoFileName, thumbnailFileName);
+//   console.log(`[downloadThumbnail] Checking if thumbnail exists: ${thumbnailFilePath}`);
 
-  const fileExists = await checkFileExists(thumbnailFilePath);
-  if (fileExists) {
-    console.log(`[downloadThumbnail] Thumbnail already exists, skipping download: ${thumbnailFilePath}`);
-    return;
-  }
+//   const fileExists = await checkFileExists(thumbnailFilePath);
+//   if (fileExists) {
+//     console.log(`[downloadThumbnail] Thumbnail already exists, skipping download: ${thumbnailFilePath}`);
+//     return;
+//   }
 
-  console.log(`[downloadThumbnail] Downloading thumbnail to ${thumbnailFilePath}`);
-  const resp = await downloadImageApi(thumbnailUrl, thumbnailFilePath);
-  if(resp.error) {
-    if(isError(resp.error, ExistedFileError)) {
-      console.log(`[downloadThumbnail] Thumbnail already exists: ${thumbnailFilePath}`);
-    } else {
-      console.error(`[downloadThumbnail] Failed to download thumbnail: ${resp.error}`);
-    }
-    return;
-  }
-}
+//   console.log(`[downloadThumbnail] Downloading thumbnail to ${thumbnailFilePath}`);
+//   const resp = await downloadImageApi(thumbnailUrl, thumbnailFilePath);
+//   if(resp.error) {
+//     if(isError(resp.error, ExistedFileError)) {
+//       console.log(`[downloadThumbnail] Thumbnail already exists: ${thumbnailFilePath}`);
+//     } else {
+//       console.error(`[downloadThumbnail] Failed to download thumbnail: ${resp.error}`);
+//     }
+//     return;
+//   }
+// }
 
 /**
  * Find the season folder path for a given season number

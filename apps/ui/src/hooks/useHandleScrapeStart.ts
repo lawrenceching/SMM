@@ -347,7 +347,7 @@ export function buildTvShowNfoByTVDB(
 
 export function buildTvShowEpisodeNfoByTVDB(
     tvdbSeries: TvdbSeriesDetails,
-    tvdbSeason: TvdbSeasonDetails,
+    _tvdbSeason: TvdbSeasonDetails,
     tvdbEpisode: TvdbEpisodeDetails,
     episodeTranslationData?: Record<string, string>,
 ): EpisodeNfo {
