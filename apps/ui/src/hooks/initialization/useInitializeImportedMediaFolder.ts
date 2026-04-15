@@ -380,6 +380,10 @@ export function useInitializeImportedMediaFolder() {
             toast.error('初始化目录超时');
             backgroundJobs.updateJob(jobId.current, { status: "aborted" });
         } else {
+            const unknownErrorStack = error instanceof Error
+                ? (error.stack || error.message)
+                : String(error);
+            console.error(`Unknown error during media folder initialization:\n${unknownErrorStack}`);
             toast.error(`因未知原因, 目录初始化失败:\n${error instanceof Error ? error.message : String(error)}`);
             backgroundJobs.updateJob(jobId.current, { status: "failed" });
         }

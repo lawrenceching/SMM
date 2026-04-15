@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { HelloResponseBody, UserConfig } from "@core/types"
+import { hello } from "@/api/hello"
 import { writeFile } from "@/api/writeFile"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { join } from "@/lib/path"
@@ -10,7 +11,13 @@ export function useAddMediaFolderMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ traceId, folder }: { traceId: string; folder: string }) => {
-      const helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
+      let helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
+      if (!helloData?.userDataDir) {
+        helloData = await queryClient.fetchQuery({
+          queryKey: helloQueryKey,
+          queryFn: () => hello(),
+        })
+      }
       const dir = helloData?.userDataDir
       if (!dir) {
         throw new Error("User data directory not found")

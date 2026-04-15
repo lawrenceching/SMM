@@ -6,6 +6,68 @@ const HTML_REPORT_DIR = './reports/html-reports';
 
 let reportAggregator: ReportAggregator | undefined;
 
+type BrowserLogEntry = {
+    type?: string;
+    text?: string;
+    args?: unknown[];
+};
+
+const stringifyUnknown = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (value instanceof Error) return value.stack ?? value.message;
+
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+};
+
+const formatLogArg = (arg: unknown): string => {
+    if (!arg || typeof arg !== 'object') {
+        return stringifyUnknown(arg);
+    }
+
+    const value = arg as Record<string, unknown>;
+    const stack = value.stack;
+    if (typeof stack === 'string' && stack.length > 0) {
+        return stack;
+    }
+
+    const description = value.description;
+    if (typeof description === 'string' && description.length > 0) {
+        return description;
+    }
+
+    const preview = value.preview;
+    if (preview && typeof preview === 'object') {
+        const previewProperties = (preview as Record<string, unknown>).properties;
+        if (Array.isArray(previewProperties)) {
+            const stackProperty = previewProperties.find((p) => {
+                if (!p || typeof p !== 'object') return false;
+                return (p as Record<string, unknown>).name === 'stack';
+            }) as Record<string, unknown> | undefined;
+
+            const stackValue = stackProperty?.value;
+            if (typeof stackValue === 'string' && stackValue.length > 0) {
+                return stackValue;
+            }
+        }
+    }
+
+    return stringifyUnknown(arg);
+};
+
+const formatBrowserLogEntry = (entry: BrowserLogEntry): string => {
+    const baseText = typeof entry.text === 'string' ? entry.text : '';
+    const argsText = Array.isArray(entry.args)
+        ? entry.args.map((arg) => formatLogArg(arg)).filter(Boolean).join('\n')
+        : '';
+
+    if (baseText && argsText) return `${baseText}\n${argsText}`;
+    return baseText || argsText || '';
+};
+
 const chromeOptionsForDockerEnv: string[] = [
     '--disable-dev-shm-usage',
     '--disable-software-rasterizer',
@@ -280,7 +342,7 @@ export const config: WebdriverIO.Config = {
         // WebdriverIO v9 需要使用 BiDi 协议的 log.entryAdded 事件
         browser.on('log.entryAdded', (logEntry) => {
             const logType = logEntry.type || 'info';
-            const logText = logEntry.text || '';
+            const logText = formatBrowserLogEntry(logEntry as BrowserLogEntry);
             const timestamp = new Date().toISOString();
 
             switch (logType) {
