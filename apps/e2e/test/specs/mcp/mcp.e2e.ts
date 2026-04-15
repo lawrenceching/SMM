@@ -1,7 +1,7 @@
 import { expect } from '@wdio/globals'
 import { browser } from '@wdio/globals'
-import StatusBar from '../componentobjects/StatusBar'
-import { createBeforeHook } from '../lib/testbed'
+import StatusBar from '../../componentobjects/StatusBar'
+import { createBeforeHook } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 
 describe('MCP Server', () => {

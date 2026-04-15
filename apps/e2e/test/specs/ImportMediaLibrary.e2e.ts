@@ -52,13 +52,13 @@ describe('Import Media Library', () => {
     })
 
     afterEach(async () => {
-        // await cleanup({
-        //     removeMetadataDir: true,
-        //     removePlansDir: true,
-        //     removeMediaFolders: true,
-        //     removeDirInSidebar: true,
-        //     resetUserConfig: true,
-        // })
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
     })
 
     it('Import TV Show Library', async function() {

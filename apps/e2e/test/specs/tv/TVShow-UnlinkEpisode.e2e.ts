@@ -2,8 +2,8 @@ import { expect, browser } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import Menu from '../componentobjects/Menu'
-import { createBeforeHook } from '../lib/testbed'
+import Menu from '../../componentobjects/Menu'
+import { createBeforeHook } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')

@@ -216,6 +216,10 @@ class TVShowPanel {
         return $('[data-testid="recognize-button"]')
     }
 
+    get renameButton() {
+        return $('[data-testid="rename-button"]')
+    }
+
     // private async getConfirmButton() {
     //     for (const label of CONFIRM_LABELS) {
     //         const btn = await $('button=' + label)
@@ -460,11 +464,13 @@ class TVShowPanel {
             const table = await this.episodeTable
             if (await table.isExisting()) {
                 const rows = await table.$$('tr')
+                const rowCount = await rows.length
 
                 for (const row of rows) {
                     const cells = await row.$$('td')
+                    const cellsCount = await cells.length
 
-                    if (cells.length === 0) continue
+                    if (cellsCount === 0) continue
 
                     const firstCellText = await cells[0].getText()
                     
@@ -482,7 +488,7 @@ class TVShowPanel {
 
                         let cellIndex = 1
 
-                        if (cells.length > cellIndex) {
+                        if (cellsCount > cellIndex) {
                             const nextCell = await cells[cellIndex].$('input[type="checkbox"]')
                             const hasCheckbox = await nextCell.isExisting().catch(() => false)
                             if (hasCheckbox) {
@@ -491,19 +497,19 @@ class TVShowPanel {
                             }
                         }
 
-                        if (cells.length > cellIndex) {
+                        if (cellsCount > cellIndex) {
                             tableRow.videoFile = await cells[cellIndex].getText()
                             cellIndex++
                         }
-                        if (cells.length > cellIndex) {
+                        if (cellsCount > cellIndex) {
                             tableRow.thumbnail = await this.checkCellHasValue(cells[cellIndex])
                             cellIndex++
                         }
-                        if (cells.length > cellIndex) {
+                        if (cellsCount > cellIndex) {
                             tableRow.subtitle = await this.checkCellHasValue(cells[cellIndex])
                             cellIndex++
                         }
-                        if (cells.length > cellIndex) {
+                        if (cellsCount > cellIndex) {
                             tableRow.nfo = await this.checkCellHasValue(cells[cellIndex])
                         }
 

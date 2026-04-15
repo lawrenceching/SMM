@@ -1,0 +1,107 @@
+{
+    "mediaFolderPath": "/C/Users/xxxx/Downloads/media/天使降临到我身边！ (2019) {tmdbid=84666}",
+    "type": "tvshow-folder",
+    "files": [],
+    "mediaFiles": [
+        {
+            "absolutePath": "S01E01.mkv",
+            "seasonNumber": 1,
+            "episodeNumber": 1
+        },
+        {
+            "absolutePath": "S01E02.mkv",
+            "seasonNumber": 1,
+            "episodeNumber": 2
+        },
+        {
+            "absolutePath": "S01E03.mkv",
+            "seasonNumber": 1,
+            "episodeNumber": 3
+        }
+    ],
+    "tvShow": {
+        "id": "84666",
+        "name": "WATATEN!: an Angel Flew Down to Me",
+        "database": "TMDB",
+        "airDate": "2019-01-08",
+        "seasons": [
+            {
+                "season": 0,
+                "name": "Specials",
+                "episodes": [
+                    {
+                        "season": 0,
+                        "episode": 1,
+                        "name": "You Never Let Us Down / Always Growing Closer / Let's Change You Into This! / I'm Your Big Sister"
+                    }
+                ]
+            },
+            {
+                "season": 1,
+                "name": "Season 1",
+                "episodes": [
+                    {
+                        "season": 1,
+                        "episode": 1,
+                        "name": "A Funny, Squirmy Feeling"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 2,
+                        "name": "Incontestably Cute"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 3,
+                        "name": "Imprinting"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 4,
+                        "name": "Can We Talk for a Moment?"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 5,
+                        "name": "Don't Worry! Leave It to Me!"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 6,
+                        "name": "Mya-nee Doesn't Have Any Friends"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 7,
+                        "name": "I Don't Understand What Mya-nee Is Saying"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 8,
+                        "name": "Sometimes Ignorance Is Bliss"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 9,
+                        "name": "Please Stay Until I Fall Asleep"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 10,
+                        "name": "I Said Too Much Again"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 11,
+                        "name": "In Short, It's Your Fault, Onee-san"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 12,
+                        "name": "Angel's Gaze"
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -2,11 +2,11 @@ import { expect, browser } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import Menu from '../componentobjects/Menu'
-import RenameDialog from '../componentobjects/RenameDialog'
-import { createBeforeHook } from '../lib/testbed'
+import Menu from '../../componentobjects/Menu'
+import RenameDialog from '../../componentobjects/RenameDialog'
+import { createBeforeHook } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import env from '../lib/env'
+import env from '../../lib/env'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')

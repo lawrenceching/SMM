@@ -2,9 +2,9 @@ import { expect, browser } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import TVShowPanel from '../componentobjects/TVShowPanel.co'
-import { createAndImportFolder } from '../actions/import-folders'
-import { createBeforeHook, expectMediaMetadataToBe } from '../lib/testbed'
+import TVShowPanel from '../../componentobjects/TVShowPanel.co'
+import { createAndImportFolder } from '../../actions/import-folders'
+import { createBeforeHook, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 
 // Declared for browser.execute callbacks

@@ -4,7 +4,7 @@ import { Path } from "@smm/core";
 import { type MediaMetadata, type UserConfig } from "@smm/core/types";
 import { join } from "path";
 import { createFolderInTestFolder, folder1, folder2, folder5 } from "test/actions/import-folders";
-import { setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
+import { cleanup, setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
 import Page from '../pageobjects/page'
 import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
@@ -87,13 +87,13 @@ describe('Scrape Thumbnail', () => {
   })
 
   afterEach(async () => {
-    // await cleanup({
-    //   removeMetadataDir: true,
-    //   removePlansDir: true,
-    //   removeMediaFolders: true,
-    //   removeDirInSidebar: true,
-    //   resetUserConfig: true,
-    // })
+    await cleanup({
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      removeDirInSidebar: true,
+      resetUserConfig: true,
+    })
   })
 
   it('scrape thumbnail from TMDB for TV Show', async function () {

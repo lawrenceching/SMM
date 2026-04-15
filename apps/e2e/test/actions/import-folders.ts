@@ -52,6 +52,12 @@ export const folder2: TestFolder = {
     files: [
         "movie.mkv",
     ],
+    translations: {
+      title: {
+        'en-US': 'JUJUTSU KAISEN: Execution',
+        'zh-CN': '咒术回战 涩谷事变×死灭回游 剧场版'
+      }
+    },
     type: "movie"
 }
 
@@ -101,10 +107,6 @@ export function createFolderInTestFolder(folder: TestFolder) {
 
   folder.path = testMediaFolder
   return folder
-}
-
-export function createMediaMetadata(folder: TestFolder) {
-  
 }
 
 export async function createAndImportFolder(folder: TestFolder, traceId: string) {

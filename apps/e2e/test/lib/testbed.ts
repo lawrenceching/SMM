@@ -288,3 +288,62 @@ export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<voi
     fs.writeFileSync(userConfigPath, JSON.stringify(next, null, 2), 'utf-8')
     console.log(`Updated user config at: ${userConfigPath}`)
 }
+
+export async function importFolderWithMediaMetadata(
+    folder: TestFolder,
+    mediaMetadataTemplateFileName: string,
+    updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata
+): Promise<void> {
+    const folderPath = folder.path
+    if (folderPath === undefined || folderPath === '') {
+        throw new Error('importFolderWithMediaMetadata: folder.path is required')
+    }
+
+    await updateUserConfig((userConfig) => {
+        return {
+            ...userConfig,
+            folders: [folderPath],
+        }
+    })
+
+    const mediaMetadataTemplatePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'test',
+        'templates',
+        'mediaMetadatas',
+        mediaMetadataTemplateFileName
+    )
+
+    if (!fs.existsSync(mediaMetadataTemplatePath)) {
+        throw new Error(`importFolderWithMediaMetadata: template not found at ${mediaMetadataTemplatePath}`)
+    }
+
+    console.log('Read media metadata template from:', mediaMetadataTemplatePath)
+    const template = fs.readFileSync(mediaMetadataTemplatePath, 'utf-8')
+    const mediaMetadata = JSON.parse(template) as MediaMetadata
+
+    mediaMetadata.mediaFolderPath = Path.posix(folderPath)
+    mediaMetadata.mediaFiles = mediaMetadata.mediaFiles?.map(file => {
+        return {
+            ...file,
+            /**
+             * Assume the absolutePath in template is the relative path to the media folder.
+             * Need to complete it with folder path
+             */
+            absolutePath: Path.posix(path.join(folder.path!, file.absolutePath))
+        }
+    })
+
+    const updatedMediaMetadata = updateMediaMetadata !== undefined
+        ? updateMediaMetadata(mediaMetadata)
+        : mediaMetadata
+
+    await writeMediaMetadata({
+        ...updatedMediaMetadata,
+        mediaFolderPath: Path.posix(folderPath),
+    })
+}
