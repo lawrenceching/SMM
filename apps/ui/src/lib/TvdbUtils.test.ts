@@ -1,19 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils"
 import { readFileSync } from "fs"
 import { dirname, join } from "path"
 import { fileURLToPath } from "url"
 
-const mockMovieTranslationByLangCode = vi.fn()
-const mockMovieExtendedById = vi.fn()
-
-vi.mock("@smm/tvdb4", () => {
+const {
+  mockMovieTranslationByLangCode,
+  mockMovieExtendedById,
+  mockSeriesTranslationByLangCode,
+  mockSeriesExtendedById,
+  mockSeasonExtendedById,
+  MockTVDBv4,
+} = vi.hoisted(() => {
+  const movieTranslationByLangCode = vi.fn()
+  const movieExtendedById = vi.fn()
+  const seriesTranslationByLangCode = vi.fn()
+  const seriesExtendedById = vi.fn()
+  const seasonExtendedById = vi.fn()
+  const episodeTranslationByLangCode = vi.fn().mockResolvedValue({
+    status: "failure" as const,
+    message: "not used in this test file",
+  })
   class MockTVDBv4 {
-    movieTranslationByLangCode = mockMovieTranslationByLangCode
-    movieExtendedById = mockMovieExtendedById
+    movieTranslationByLangCode = movieTranslationByLangCode
+    movieExtendedById = movieExtendedById
+    seriesTranslationByLangCode = seriesTranslationByLangCode
+    seriesExtendedById = seriesExtendedById
+    seasonExtendedById = seasonExtendedById
+    episodeTranslationByLangCode = episodeTranslationByLangCode
   }
-  return { TVDBv4: MockTVDBv4 }
+
+  return {
+    mockMovieTranslationByLangCode: movieTranslationByLangCode,
+    mockMovieExtendedById: movieExtendedById,
+    mockSeriesTranslationByLangCode: seriesTranslationByLangCode,
+    mockSeriesExtendedById: seriesExtendedById,
+    mockSeasonExtendedById: seasonExtendedById,
+    MockTVDBv4,
+  }
 })
+
+vi.mock("@smm/tvdb4", () => ({
+  TVDBv4: MockTVDBv4,
+}))
+
+import {
+  fetchTvdbAndBuildMovieMediaMetadata,
+  fetchTvdbAndBuildTvShowMediaMetadata,
+} from "./TvdbUtils"
 
 describe("fetchTvdbAndBuildMovieMediaMetadata", () => {
   beforeEach(() => {
@@ -66,37 +99,6 @@ describe("fetchTvdbAndBuildMovieMediaMetadata", () => {
     })
   })
 })
-
-
-
-const {
-  mockSeriesTranslationByLangCode,
-  mockSeriesExtendedById,
-  mockSeasonExtendedById,
-  MockTVDBv4,
-} = vi.hoisted(() => {
-  const seriesTranslationByLangCode = vi.fn()
-  const seriesExtendedById = vi.fn()
-  const seasonExtendedById = vi.fn()
-  class MockTVDBv4 {
-    seriesTranslationByLangCode = seriesTranslationByLangCode
-    seriesExtendedById = seriesExtendedById
-    seasonExtendedById = seasonExtendedById
-  }
-
-  return {
-    mockSeriesTranslationByLangCode: seriesTranslationByLangCode,
-    mockSeriesExtendedById: seriesExtendedById,
-    mockSeasonExtendedById: seasonExtendedById,
-    MockTVDBv4,
-  }
-})
-
-vi.mock("@smm/tvdb4", () => ({
-  TVDBv4: MockTVDBv4,
-}))
-
-import { fetchTvdbAndBuildTvShowMediaMetadata } from "./TvdbUtils"
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -156,6 +158,7 @@ describe("fetchTvdbAndBuildTvShowMediaMetadata", () => {
       id: "421069",
       name: "【我推的孩子】",
       database: "TVDB",
+      airDate: "2023-04-12",
       seasons: [
         {
           season: 0,

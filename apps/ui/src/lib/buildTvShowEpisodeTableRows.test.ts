@@ -46,6 +46,23 @@ function renamePlan(files: { from: string; to: string }[]): UIRenameFilesPlan {
   }
 }
 
+/** Matches `TvShowMediaMetadata` shape used by `buildTvShowEpisodeTableRows` (`mm.tvShow`). */
+function tvShowForPlanTests() {
+  return {
+    id: '1',
+    name: 'Test Show',
+    database: 'TMDB' as const,
+    airDate: '2024-01-01',
+    seasons: [
+      {
+        season: 1,
+        name: 'Season 1',
+        episodes: [{ season: 1, episode: 1, name: 'Episode 1' }],
+      },
+    ],
+  }
+}
+
 describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -447,53 +464,7 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
   it('returns base rows unchanged when recognize plan is loading', () => {
     const mm = {
       status: 'ok',
-      tmdbTvShow: {
-        id: 1,
-        name: 'Test Show',
-        original_name: 'Test Show',
-        overview: '',
-        poster_path: null,
-        backdrop_path: null,
-        first_air_date: '2024-01-01',
-        vote_average: 0,
-        vote_count: 0,
-        popularity: 0,
-        genre_ids: [],
-        origin_country: [],
-        number_of_seasons: 1,
-        number_of_episodes: 1,
-        seasons: [
-          {
-            id: 100,
-            name: 'Season 1',
-            overview: '',
-            poster_path: null,
-            season_number: 1,
-            air_date: '2024-01-01',
-            episode_count: 1,
-            episodes: [
-              {
-                id: 1001,
-                name: 'Episode 1',
-                overview: '',
-                still_path: null,
-                air_date: '2024-01-01',
-                episode_number: 1,
-                season_number: 1,
-                vote_average: 0,
-                vote_count: 0,
-                runtime: 24,
-              },
-            ],
-          },
-        ],
-        status: 'Ended',
-        type: 'Scripted',
-        in_production: false,
-        last_air_date: '2024-01-01',
-        networks: [],
-        production_companies: [],
-      },
+      tvShow: tvShowForPlanTests(),
     } as UIMediaMetadata
     const plan = {
       ...recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }]),
@@ -510,53 +481,7 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
   it('fills episode row from recognize plan when recognize plan is completed', () => {
     const mm = {
       status: 'ok',
-      tmdbTvShow: {
-        id: 1,
-        name: 'Test Show',
-        original_name: 'Test Show',
-        overview: '',
-        poster_path: null,
-        backdrop_path: null,
-        first_air_date: '2024-01-01',
-        vote_average: 0,
-        vote_count: 0,
-        popularity: 0,
-        genre_ids: [],
-        origin_country: [],
-        number_of_seasons: 1,
-        number_of_episodes: 1,
-        seasons: [
-          {
-            id: 100,
-            name: 'Season 1',
-            overview: '',
-            poster_path: null,
-            season_number: 1,
-            air_date: '2024-01-01',
-            episode_count: 1,
-            episodes: [
-              {
-                id: 1001,
-                name: 'Episode 1',
-                overview: '',
-                still_path: null,
-                air_date: '2024-01-01',
-                episode_number: 1,
-                season_number: 1,
-                vote_average: 0,
-                vote_count: 0,
-                runtime: 24,
-              },
-            ],
-          },
-        ],
-        status: 'Ended',
-        type: 'Scripted',
-        in_production: false,
-        last_air_date: '2024-01-01',
-        networks: [],
-        production_companies: [],
-      },
+      tvShow: tvShowForPlanTests(),
     } as UIMediaMetadata
     const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
 
@@ -580,53 +505,7 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
           episodeNumber: 1,
         },
       ],
-      tmdbTvShow: {
-        id: 1,
-        name: 'Test Show',
-        original_name: 'Test Show',
-        overview: '',
-        poster_path: null,
-        backdrop_path: null,
-        first_air_date: '2024-01-01',
-        vote_average: 0,
-        vote_count: 0,
-        popularity: 0,
-        genre_ids: [],
-        origin_country: [],
-        number_of_seasons: 1,
-        number_of_episodes: 1,
-        seasons: [
-          {
-            id: 100,
-            name: 'Season 1',
-            overview: '',
-            poster_path: null,
-            season_number: 1,
-            air_date: '2024-01-01',
-            episode_count: 1,
-            episodes: [
-              {
-                id: 1001,
-                name: 'Episode 1',
-                overview: '',
-                still_path: null,
-                air_date: '2024-01-01',
-                episode_number: 1,
-                season_number: 1,
-                vote_average: 0,
-                vote_count: 0,
-                runtime: 24,
-              },
-            ],
-          },
-        ],
-        status: 'Ended',
-        type: 'Scripted',
-        in_production: false,
-        last_air_date: '2024-01-01',
-        networks: [],
-        production_companies: [],
-      },
+      tvShow: tvShowForPlanTests(),
     } as UIMediaMetadata
     const plan = renamePlan([
       { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },

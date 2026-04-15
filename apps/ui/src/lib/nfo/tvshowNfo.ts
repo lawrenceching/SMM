@@ -286,6 +286,10 @@ export async function parseTvShowNfo(xml: string): Promise<TvShowNFO | undefined
       type: el.getAttribute("type") || undefined,
       value: el.textContent?.trim() || undefined,
     }))
+    if (!tvShowNfo.tvdbid) {
+      const tvdbUnique = tvShowNfo.uniqueIds.find((u) => u.type?.toLowerCase() === "tvdb")
+      if (tvdbUnique?.value) tvShowNfo.tvdbid = tvdbUnique.value
+    }
   }
   const actors = tvshow.querySelectorAll("actor")
   if (actors.length > 0) {

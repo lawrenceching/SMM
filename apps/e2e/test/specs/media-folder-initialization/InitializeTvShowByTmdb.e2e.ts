@@ -76,7 +76,7 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolder(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
 
@@ -201,7 +201,7 @@ S01E12 - - - -`)
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolder(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
 
@@ -336,7 +336,7 @@ S01E12 - - - -`)
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolder(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
 

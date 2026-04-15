@@ -26,14 +26,15 @@ import Image from "@/components/Image"
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { generateFfmpegScreenshots } from "@/api/ffmpeg"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { renameFiles } from "@/api/renameFiles"
 import { openFile } from "@/api/openFile"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { computeAssociatedFileRenames } from "./episode-file"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
 
 export interface TvShowEpisodeDividerRow {
   id: string
@@ -383,10 +384,11 @@ export function TvShowEpisodeTable({
   }, [])
 
   const { t } = useTranslation(['components', 'dialogs'])
-  const { selectedMediaMetadata } = useMediaMetadataStoreState()
-  const { refreshMediaMetadata } = useMediaMetadataActions()
-  const { renameDialog } = useDialogs()
-  const [openRename] = renameDialog
+  const { selectedFolder } = useUIMediaFolderStoreState()
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const { mutate: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const { renameFileDialog } = useDialogs()
+  const [openRename] = renameFileDialog
 
   const columnLabels = getColumnLabels(t as (key: string, options?: Record<string, unknown>) => string)
 
@@ -839,7 +841,7 @@ export function TvShowEpisodeTable({
                                 ...assocRenames,
                               ],
                             })
-                            refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
+                            fetchMediaMetadata({ path: selectedMediaMetadata.mediaFolderPath })
                             toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
                           } catch (error) {
                             const errorMessage = error instanceof Error ? error.message : t('episodeFile.renameFailed', { ns: 'components' })

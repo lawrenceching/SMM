@@ -3,8 +3,6 @@ import { Path } from "@core/path";
 import type {
   MediaMetadata,
   MovieMediaMetadata,
-  TMDBMovie,
-  TMDBTVShowDetails,
   TvShowMediaMetadata,
 } from "@core/types";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
@@ -70,27 +68,6 @@ function parseTvdbIdString(id: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function mapTmdbTvShowDetailsToResponse(
-  tmdbTvShow: TMDBTVShowDetails
-): GetMediaMetadataResponseTvShowData {
-  return {
-    source: "TMDB",
-    id: tmdbTvShow.id,
-    name: tmdbTvShow.name,
-    seasons:
-      tmdbTvShow.seasons?.map((season) => ({
-        seasonNumber: season.season_number,
-        seasonName: season.name,
-        episodes:
-          season.episodes?.map((episode) => ({
-            seasonNumber: episode.season_number,
-            episodeNumber: episode.episode_number,
-            episodeName: episode.name,
-          })) ?? [],
-      })) ?? [],
-  };
-}
-
 function mapTvdbTvShowToResponse(
   tv: TvShowMediaMetadata
 ): GetMediaMetadataResponseTvShowData {
@@ -109,17 +86,6 @@ function mapTvdbTvShowToResponse(
             episodeName: ep.name,
           })) ?? [],
       })) ?? [],
-  };
-}
-
-function mapTmdbMovieToResponse(m: TMDBMovie): GetMediaMetadataResponseTmdbMovieData {
-  return {
-    tmdbId: m.id,
-    title: m.title,
-    originalTitle: m.original_title,
-    overview: m.overview,
-    releaseDate: m.release_date,
-    posterPath: m.poster_path,
   };
 }
 
@@ -144,22 +110,30 @@ export function fillMediaMetadataResponseData(
   };
 
   if (data.type === "tvshow-folder") {
-    if (metadata.tvdbTvShow) {
-      data.tvShow = mapTvdbTvShowToResponse(metadata.tvdbTvShow);
-    } else if (metadata.tmdbTvShow) {
-      data.tvShow = mapTmdbTvShowDetailsToResponse(metadata.tmdbTvShow);
+    if (metadata.tvShow) {
+      data.tvShow = mapTvdbTvShowToResponse(metadata.tvShow);
     } else {
       data.tvShow = MSG_UNRECOGNIZED_MEDIA;
     }
   } else if (data.type === "movie-folder") {
-    if (metadata.tmdbMovie) {
-      data.tmdbMovie = mapTmdbMovieToResponse(metadata.tmdbMovie);
+    if (metadata.movie) {
+      if (metadata.movie.database === "TMDB") {
+        const tmdbId = parseTvdbIdString(metadata.movie.id);
+        data.tmdbMovie = {
+          tmdbId,
+          title: metadata.movie.name,
+          originalTitle: metadata.movie.name,
+          overview: "",
+          releaseDate: metadata.movie.airDate ?? "",
+          posterPath: null,
+        };
+        data.tvdbMovie = MSG_UNRECOGNIZED_MEDIA;
+      } else {
+        data.tvdbMovie = mapTvdbMovieToResponse(metadata.movie);
+        data.tmdbMovie = MSG_UNRECOGNIZED_MEDIA;
+      }
     } else {
       data.tmdbMovie = MSG_UNRECOGNIZED_MEDIA;
-    }
-    if (metadata.tvdbMovie) {
-      data.tvdbMovie = mapTvdbMovieToResponse(metadata.tvdbMovie);
-    } else {
       data.tvdbMovie = MSG_UNRECOGNIZED_MEDIA;
     }
   }

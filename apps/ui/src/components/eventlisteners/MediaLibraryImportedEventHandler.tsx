@@ -1,10 +1,7 @@
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useLatest, useMount, useUnmount } from "react-use"
 import { listFiles } from "@/api/listFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import { basename } from "@/lib/path"
@@ -13,14 +10,17 @@ import { UI_MediaFolderImportedEvent, UI_MediaLibraryImportedEvent, type OnMedia
 import { isEqual, isNotNil } from "es-toolkit"
 import Debug from "debug"
 import { useInitializeImportedMediaFolder } from "@/hooks/initialization/useInitializeImportedMediaFolder"
+import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useConfig, useSaveUserConfigMutation } from "@/hooks/userConfig"
+import type { UIMediaFolder } from "@/types/UIMediaFolder"
+import { logger } from "@/lib/log"
 const debug = Debug("MediaLibraryImportedEventHandler")
 
 /**
  * folders - the absolute folder paths in platform format
  */
-export function _dedupFolders(newFolders: string[], mediaMetadatas: UIMediaMetadata[]): string[] {
-  const importedFolders: string[] = mediaMetadatas
-    .map((metadata) => metadata.mediaFolderPath)
+export function _dedupFolders(newFolders: string[], existingFolderPaths: string[]): string[] {
+  const importedFolders: string[] = existingFolderPaths
     .filter((path) => path && Path.toPlatformPath(path))
     .filter(isNotNil)
 
@@ -40,11 +40,18 @@ export async function _listFolders(path: string): Promise<string[]> {
 export function MediaLibraryImportedEventHandler() {
 
   const eventListener = useRef<((event: Event) => void) | null>(null)
-  const { mediaMetadatas } = useMediaMetadataStoreState()
-  const latestMediaMetadatas = useLatest(mediaMetadatas)
-  const { initializeMediaMetadata } = useMediaMetadataActions();
+  const { folders } = useUIMediaFolderStoreState()
+  const setFolders = useUIMediaFolderStore((s) => s.setFolders)
+  const latestFolders = useLatest(folders)
   const { initializeImportedMediaFolder } = useInitializeImportedMediaFolder();
+  const { mutateAsync: saveUserConfig } = useSaveUserConfigMutation()
+  const { userConfig } = useConfig()
+  const latestUserConfig = useLatest(userConfig)
   const backgroundJobs = useBackgroundJobsStore()
+
+  useEffect(() => {
+    console.log("folders", structuredClone(folders))
+  }, [folders])
 
   const doImportMediaLibrary = async (event: Event) => {
 
@@ -63,7 +70,10 @@ export function MediaLibraryImportedEventHandler() {
 
       const foldersInLibrary = await _listFolders(libraryPathInPlatformFormat)
       debug(`listed ${foldersInLibrary.length} folders in library`)
-      const foldersToImport = _dedupFolders(foldersInLibrary, latestMediaMetadatas.current)
+      const foldersToImport = _dedupFolders(
+        foldersInLibrary,
+        latestFolders.current.map((folder) => folder.path),
+      )
       debug(`deduped ${foldersToImport.length} folders, ${foldersToImport.length} folders need to import`)
 
       const updateProgress = () => {
@@ -72,11 +82,17 @@ export function MediaLibraryImportedEventHandler() {
         backgroundJobs.updateJob(jobId, { progress: progress })
       }
 
+      const uiMediaFolders = foldersToImport.map((folder) => ({
+        path: folder,
+        status: "pending_for_initialization",
+      } as UIMediaFolder))
 
-      for(const folder of foldersToImport) {
-        // initializeMediaMetadata will add all folder to MediaMetadata store
-        await initializeMediaMetadata(folder, type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder")
-      }
+      setFolders(uiMediaFolders)
+
+      await saveUserConfig({ traceId: traceIdBase, config: {
+        ...latestUserConfig.current,
+        folders: [...latestUserConfig.current.folders, ...foldersToImport],
+      } })
 
       // Use Sidebar store sort order so initialization runs top-to-bottom as shown in Sidebar
       let foldersInSidebarOrder = sortPathsBySidebarDisplayOrder(foldersToImport, (path) => basename(path) ?? "")
@@ -89,7 +105,7 @@ export function MediaLibraryImportedEventHandler() {
       const foldersToInitialize = isEqual(foldersToImport, foldersInSidebarOrder) ? foldersInSidebarOrder : foldersToImport
 
       for (const folder of foldersToInitialize) {
-        debug(`start to initialize folder ${folder}`)
+        logger.info(`start to initialize folder ${folder}`)
         await initializeImportedMediaFolder(new CustomEvent(UI_MediaFolderImportedEvent, {
           detail: {
             type: type,
@@ -98,7 +114,7 @@ export function MediaLibraryImportedEventHandler() {
             traceId: traceIdBase,
           },
         }))
-        debug(`initialized folder ${folder}`)
+        logger.info(`initialized folder ${folder}`)
         updateProgress()
       }
 

@@ -39,7 +39,7 @@ describe('AI Assistant - GetEpisodes Tool', async () => {
       traceId: 'e2eTest:GetEpisodesTool:Import TV Folder',
     })
 
-    await Sidebar.waitForFolder(tvFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(tvFolder.mediaName!, 60000)
 
     let finalResponse = await getEpisodesTool({ mediaFolderPath: tvFolder.path! })
     await browser.waitUntil(async () => {

@@ -39,7 +39,7 @@ describe('AI Assistant - ListFiles Tool', async () => {
       traceId: 'e2eTest:ListFilesTool:Import TV Folder',
     })
 
-    await Sidebar.waitForFolder(importedFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(importedFolder.mediaName!, 60000)
 
     const response = await listFilesTool({
       folderPath: importedFolder.path!,

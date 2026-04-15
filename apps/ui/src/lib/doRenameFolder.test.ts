@@ -63,7 +63,6 @@ describe('doRenameFolder', () => {
       normalizeMediaFolderPathForQuery(newFolderPath),
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
-        mediaName: newName,
       }),
       expect.any(String)
     )
@@ -78,7 +77,6 @@ describe('doRenameFolder', () => {
     expect(deps.addMediaMetadataToStore).toHaveBeenCalledWith(
       expect.objectContaining({
         mediaFolderPath: newFolderPath,
-        mediaName: newName,
       })
     )
   })
@@ -138,7 +136,7 @@ describe('doRenameFolder', () => {
     )
   })
 
-  it('updates mediaName when no tvShow or movie', async () => {
+  it('does not add legacy mediaName when no tvShow or movie', async () => {
     const metadata = minimalMetadata(path)
 
     await doRenameFolder(path, newName, metadata, deps)
@@ -146,8 +144,8 @@ describe('doRenameFolder', () => {
     const call = vi.mocked(deps.writePersistedMetadata).mock.calls[0]
     expect(call[1]).toMatchObject({
       mediaFolderPath: newFolderPath,
-      mediaName: newName,
     })
+    expect(call[1]).not.toHaveProperty('mediaName')
   })
 
   it('uses provided traceId in writePersistedMetadata', async () => {
@@ -194,7 +192,6 @@ describe('doRenameFolder', () => {
 function minimalMetadata(mediaFolderPath: string): UIMediaMetadata {
   return {
     mediaFolderPath,
-    mediaName: 'Old Name',
     status: 'ok',
     type: 'tvshow-folder',
   } as UIMediaMetadata

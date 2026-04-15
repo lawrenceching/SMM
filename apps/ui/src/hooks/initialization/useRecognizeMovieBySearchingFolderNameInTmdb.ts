@@ -1,6 +1,5 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { useMutation } from "@tanstack/react-query";
-import type { MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
 import { basename } from "@/lib/path";
 import { useTmdbQueries } from "../useTmdbQueries";
 import { useGetTmdbMovieMutation } from "../useGetTmdbMovieMutation";
@@ -12,7 +11,7 @@ export function useRecognizeMovieBySearchingFolderNameInTmdb() {
 
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: UIMediaMetadata
+            mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
         }): Promise<MovieMediaMetadata | undefined> => {
             

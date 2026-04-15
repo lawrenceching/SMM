@@ -1,18 +1,27 @@
 import { describe, it, expect } from 'vitest'
 import { mergeRefreshedMetadata } from './mediaMetadataRefreshUtils'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata, TvShowMediaMetadata } from '@core/types'
+
+const defaultTvShow = (name: string): TvShowMediaMetadata => ({
+  id: '1',
+  name,
+  database: 'TMDB',
+  seasons: [],
+})
 
 const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
   mediaFolderPath: '/media/show1',
   type: 'tvshow-folder',
+  tvShow: defaultTvShow('Show 1'),
   ...overrides,
-} as MediaMetadata)
+})
 
 const createMockUIMediaMetadata = (overrides?: Partial<UIMediaMetadata>): UIMediaMetadata => ({
   mediaFolderPath: '/media/show1',
   type: 'tvshow-folder',
   status: 'ok',
+  tvShow: defaultTvShow('Show 1'),
   ...overrides,
 } as UIMediaMetadata)
 
@@ -20,21 +29,20 @@ describe('mergeRefreshedMetadata', () => {
   it('should return response with idle status when no current metadata exists', () => {
     const response = createMockMediaMetadata({
       mediaFolderPath: '/media/new-show',
-      mediaName: 'New Show',
+      tvShow: defaultTvShow('New Show'),
     })
     const currentMetadata = undefined
 
     const result = mergeRefreshedMetadata(response, currentMetadata)
 
     expect(result.mediaFolderPath).toBe('/media/new-show')
-    expect(result.mediaName).toBe('New Show')
+    expect(result.tvShow?.name).toBe('New Show')
     expect(result.status).toBe('idle')
   })
 
   it('should preserve status from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -43,14 +51,13 @@ describe('mergeRefreshedMetadata', () => {
 
     const result = mergeRefreshedMetadata(response, currentMetadata)
 
-    expect(result.mediaName).toBe('Updated Name')
+    expect(result.tvShow?.name).toBe('Updated Name')
     expect(result.status).toBe('loading')
   })
 
   it('should preserve all UIMediaMetadataProps from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -64,8 +71,7 @@ describe('mergeRefreshedMetadata', () => {
 
   it('should preserve ok status from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -79,8 +85,7 @@ describe('mergeRefreshedMetadata', () => {
 
   it('should preserve error status from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -94,8 +99,7 @@ describe('mergeRefreshedMetadata', () => {
 
   it('should preserve initializing status from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -109,8 +113,7 @@ describe('mergeRefreshedMetadata', () => {
 
   it('should preserve folder_not_found status from current metadata', () => {
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
+      tvShow: defaultTvShow('Updated Name'),
     })
     const currentMetadata = createMockUIMediaMetadata({
       mediaFolderPath: '/media/show1',
@@ -123,23 +126,24 @@ describe('mergeRefreshedMetadata', () => {
   })
 
   it('should update media metadata fields from response while preserving UI props', () => {
+    const updatedShow: TvShowMediaMetadata = {
+      id: '12345',
+      name: 'Updated Name',
+      database: 'TMDB',
+      seasons: [],
+    }
     const response = createMockMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Updated Name',
-      officalMediaName: 'Official Name',
-      tmdbTVShowId: 12345,
+      tvShow: updatedShow,
     })
     const currentMetadata = createMockUIMediaMetadata({
-      mediaFolderPath: '/media/show1',
-      mediaName: 'Old Name',
+      tvShow: defaultTvShow('Old Name'),
       status: 'loading',
     })
 
     const result = mergeRefreshedMetadata(response, currentMetadata)
 
-    expect(result.mediaName).toBe('Updated Name')
-    expect(result.officalMediaName).toBe('Official Name')
-    expect(result.tmdbTVShowId).toBe(12345)
+    expect(result.tvShow?.name).toBe('Updated Name')
+    expect(result.tvShow?.id).toBe('12345')
     expect(result.status).toBe('loading')
   })
 

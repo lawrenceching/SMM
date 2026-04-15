@@ -40,7 +40,7 @@ describe('AI Assistant - GetMediaMetadata Tool', async () => {
       traceId: 'e2eTest:GetMediaMetadata:Import TV Folder',
     })
 
-    await Sidebar.waitForFolder(folder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(folder.mediaName!, 60000)
 
     const response = await getMediaMetadata({
       mediaFolderPath: folder.path!,

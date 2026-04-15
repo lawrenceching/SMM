@@ -1,9 +1,8 @@
-import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
-import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow, PreferMediaLanguage } from "@core/types"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
@@ -56,8 +55,12 @@ function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
   const { plans, setPlans, setPlanById, getPlanById } = usePlansStore()
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
-  const { mediaMetadatas } = useMediaMetadataStoreState()
-  const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
+  const {
+    data: queriedMediaMetadata,
+    isError: isMediaMetadataError,
+    isPending: isMediaMetadataPending,
+    fetchStatus: mediaMetadataFetchStatus,
+  } = useMediaMetadataQuery(selectedFolder || undefined)
 
   const uiFolderRow = useMemo(
     () =>
@@ -71,30 +74,16 @@ function TvShowPanel() {
     [folders, selectedFolder],
   )
 
-  const storeMetadataForPath = useMemo(
-    () =>
-      selectedFolder
-        ? mediaMetadatas.find(
-            (m) =>
-              m.mediaFolderPath &&
-              normalizeMediaFolderPathForQuery(m.mediaFolderPath) ===
-                normalizeMediaFolderPathForQuery(selectedFolder),
-          )
-        : undefined,
-    [mediaMetadatas, selectedFolder],
-  )
-
   const mediaMetadata = useMemo((): UIMediaMetadata | undefined => {
     if (!selectedFolder?.trim()) return undefined
 
-    const domain = storeMetadataForPath ?? mediaMetadataQuery.data
+    const domain = queriedMediaMetadata
 
     const status: UIMediaMetadata["status"] = (() => {
-      if (storeMetadataForPath?.status) return storeMetadataForPath.status
-      if (mediaMetadataQuery.isError) return "error_loading_metadata"
+      if (isMediaMetadataError) return "error_loading_metadata"
       if (domain) return "ok"
       if (uiFolderRow?.status) return uiFolderRow.status
-      if (mediaMetadataQuery.isPending || mediaMetadataQuery.isFetching) return "initializing"
+      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
       return "loading"
     })()
 
@@ -104,28 +93,48 @@ function TvShowPanel() {
         mediaFolderPath: normalizedPath,
         type: "tvshow-folder",
         status,
-        ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
       } as UIMediaMetadata
     }
 
     return {
       ...domain,
       status,
-      ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
     }
   }, [
     selectedFolder,
-    storeMetadataForPath,
-    mediaMetadataQuery.data,
-    mediaMetadataQuery.isError,
-    mediaMetadataQuery.isPending,
-    mediaMetadataQuery.isFetching,
+    queriedMediaMetadata,
+    isMediaMetadataError,
+    isMediaMetadataPending,
+    mediaMetadataFetchStatus,
     uiFolderRow?.status,
   ])
 
-  const { setSelectedByMediaFolderPath, addMediaMetadata } = useMediaMetadataStoreActions()
-  const { updateMediaMetadata } = useMediaMetadataActions()
+  const setSelectedByMediaFolderPath = useCallback((path: string) => {
+    useUIMediaFolderStore.getState().applyFolderClick(path, false)
+  }, [])
+  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const updateMediaMetadataMutation = useUpdateMediaMetadataMutation()
+  const updateMediaMetadata = useCallback(
+    async (
+      path: string,
+      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+      options?: { traceId?: string },
+    ) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(path)
+      if (!pathPosix) return
+      const current = (await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })) as UIMediaMetadata
+      const next =
+        typeof updaterOrMetadata === "function"
+          ? updaterOrMetadata(current)
+          : updaterOrMetadata
+      await updateMediaMetadataMutation.mutateAsync({
+        pathPosix,
+        metadata: next,
+        traceId: options?.traceId,
+      })
+    },
+    [fetchMediaMetadata, updateMediaMetadataMutation],
+  )
 
   /** Write UIMediaMetadata via TanStack Query + Zustand (recognize + rename plans). */
   const persistUiMediaMetadata = useCallback(
@@ -136,9 +145,8 @@ function TvShowPanel() {
         metadata,
         traceId: options?.traceId,
       })
-      addMediaMetadata(metadata)
     },
-    [updateMediaMetadataMutation, addMediaMetadata]
+    [updateMediaMetadataMutation]
   )
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog

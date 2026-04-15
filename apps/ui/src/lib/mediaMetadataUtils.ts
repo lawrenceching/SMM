@@ -56,13 +56,11 @@ export function findUpdatedMediaMetadata(old: MediaMetadata[], newItems: MediaMe
 
     // Compare relevant metadata fields
     const fieldsToCompare: (keyof MediaMetadata)[] = [
-      'mediaName',
-      'officalMediaName',
+      'mediaFolderPath',
+      'files',
       'tvShow',
       'movie',
       'mediaFiles',
-      'seasons',
-      'poster',
       'type',
     ];
 

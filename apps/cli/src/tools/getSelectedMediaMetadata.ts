@@ -34,11 +34,24 @@ export const createGetSelectedMediaMetadataTool = (clientId: string, abortSignal
     
     console.log(`[tool][getSelectedMediaMetadata] media metadata: ${result.data.mediaFolderPath}`);
     const mm = result.data as MediaMetadata;
+    const tmdbId =
+      mm.type === "tvshow-folder" && mm.tvShow?.database === "TMDB"
+        ? Number.parseInt(mm.tvShow.id, 10) || 0
+        : mm.type === "movie-folder" && mm.movie?.database === "TMDB"
+          ? Number.parseInt(mm.movie.id, 10) || 0
+          : 0;
+    const name = mm.tvShow?.name ?? mm.movie?.name ?? "";
+    const toolType =
+      mm.type === "tvshow-folder"
+        ? ("tvshow" as const)
+        : mm.type === "movie-folder"
+          ? ("movie" as const)
+          : ("music" as const);
     return {
       mediaFolderPath: mm.mediaFolderPath,
-      type: mm.type,
-      tmdbId: mm.tmdbTvShow?.id,
-      name: mm.tmdbTvShow?.name,
+      type: toolType,
+      tmdbId,
+      name,
     };
   },
 });

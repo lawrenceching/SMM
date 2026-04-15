@@ -76,17 +76,22 @@ export interface MediaSearchDialogProps {
   onSelect?: (tmdbId: number) => void
 }
 
-export interface RenameDialogProps {
+export interface RenameFileDialogProps {
   isOpen: boolean
   onClose: () => void
-  /** Not invoked when `mediaFolderPath` is set; folder rename uses `useRenameMediaFolderMutation` inside RenameDialog. */
   onConfirm: (newName: string) => void | Promise<void>
   initialValue?: string
   title?: string
   description?: string
   suggestions?: string[]
-  /** When set, initial name and TV suggestions are derived from store metadata (see RenameDialog). */
-  mediaFolderPath?: string
+}
+
+export interface RenameFolderDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  mediaFolderPath: string
+  title?: string
+  description?: string
 }
 
 export interface OpenFolderDialogProps {

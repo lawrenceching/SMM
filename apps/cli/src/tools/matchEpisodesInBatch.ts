@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
 import { Path } from '@core/path';
-import type { MediaFileMetadata, MediaMetadata } from '@core/types';
+import type { MediaFileMetadata, MediaMetadata, TvShowMediaMetadata } from '@core/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { mkdir } from 'fs/promises';
 import { acknowledge, broadcast } from '../utils/socketIO';
@@ -108,10 +108,10 @@ export function validateFolderPathMatch(folderPath: string, mediaMetadata: Media
  * Validates that TMDB TV show data exists in metadata
  */
 export function validateTmdbTvShowExists(mediaMetadata: MediaMetadata): ValidationResult {
-  if (!mediaMetadata.tmdbTvShow) {
+  if (!mediaMetadata.tvShow) {
     return {
       isValid: false,
-      error: `Error Reason: TMDB TV show data is not available for this media folder`
+      error: `Error Reason: TV show data is not available for this media folder`
     };
   }
 
@@ -150,15 +150,15 @@ export function validateFileExists(filePath: string, filesystemFiles: string[]):
  */
 export function validateSeasonExists(
   seasonNumber: number,
-  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>,
+  tvShow: TvShowMediaMetadata,
   filePath: string
 ): ValidationResult {
-  const season = tmdbTvShow.seasons?.find(s => s.season_number === seasonNumber);
+  const season = tvShow.seasons?.find(s => s.season === seasonNumber);
   
   if (!season) {
     return {
       isValid: false,
-      error: `Season ${seasonNumber} does not exist in TMDB TV show for file "${Path.posix(filePath)}"`
+      error: `Season ${seasonNumber} does not exist in TV show metadata for file "${Path.posix(filePath)}"`
     };
   }
 
@@ -171,19 +171,19 @@ export function validateSeasonExists(
 export function validateEpisodeExists(
   seasonNumber: number,
   episodeNumber: number,
-  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>,
+  tvShow: TvShowMediaMetadata,
   filePath: string
 ): ValidationResult {
-  const season = tmdbTvShow.seasons?.find(s => s.season_number === seasonNumber);
+  const season = tvShow.seasons?.find(s => s.season === seasonNumber);
   
   if (!season) {
     return {
       isValid: false,
-      error: `Season ${seasonNumber} does not exist in TMDB TV show for file "${Path.posix(filePath)}"`
+      error: `Season ${seasonNumber} does not exist in TV show metadata for file "${Path.posix(filePath)}"`
     };
   }
 
-  const episode = season.episodes?.find(e => e.episode_number === episodeNumber);
+  const episode = season.episodes?.find(e => e.episode === episodeNumber);
   
   if (!episode) {
     return {
@@ -201,7 +201,7 @@ export function validateEpisodeExists(
 export function validateFile(
   file: MatchFile,
   filesystemFiles: string[],
-  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>
+  tvShow: TvShowMediaMetadata
 ): FileValidationResult {
   const pathInPosix = Path.posix(file.path);
 
@@ -217,25 +217,25 @@ export function validateFile(
   }
 
   // Validate season exists
-  const seasonResult = validateSeasonExists(file.season, tmdbTvShow, file.path);
+  const seasonResult = validateSeasonExists(file.season, tvShow, file.path);
   if (!seasonResult.isValid) {
     logger.warn({
       path: pathInPosix,
       season: file.season,
-      availableSeasons: tmdbTvShow.seasons?.map(s => s.season_number) ?? []
-    }, '[tool][matchEpisodesInBatch] Season not found in TMDB');
+      availableSeasons: tvShow.seasons?.map(s => s.season) ?? []
+    }, '[tool][matchEpisodesInBatch] Season not found in TV show metadata');
     return { isValid: false, error: seasonResult.error };
   }
 
   // Validate episode exists
-  const episodeResult = validateEpisodeExists(file.season, file.episode, tmdbTvShow, file.path);
+  const episodeResult = validateEpisodeExists(file.season, file.episode, tvShow, file.path);
   if (!episodeResult.isValid) {
-    const season = tmdbTvShow.seasons?.find(s => s.season_number === file.season);
+    const season = tvShow.seasons?.find(s => s.season === file.season);
     logger.warn({
       path: pathInPosix,
       season: file.season,
       episode: file.episode,
-      availableEpisodes: season?.episodes?.map(e => e.episode_number) ?? []
+      availableEpisodes: season?.episodes?.map(e => e.episode) ?? []
     }, '[tool][matchEpisodesInBatch] Episode not found in season');
     return { isValid: false, error: episodeResult.error };
   }
@@ -255,7 +255,7 @@ export function validateFile(
 export function validateAllFiles(
   files: MatchFile[],
   filesystemFiles: string[],
-  tmdbTvShow: NonNullable<MediaMetadata['tmdbTvShow']>
+  tvShow: TvShowMediaMetadata
 ): { validatedFiles: MatchFile[]; validationErrors: string[] } {
   const validationErrors: string[] = [];
   const validatedFiles: MatchFile[] = [];
@@ -270,7 +270,7 @@ export function validateAllFiles(
       episode: file.episode
     }, '[tool][matchEpisodesInBatch] Validating file');
 
-    const result = validateFile(file, filesystemFiles, tmdbTvShow);
+    const result = validateFile(file, filesystemFiles, tvShow);
     
     if (!result.isValid) {
       validationErrors.push(result.error!);
@@ -343,7 +343,7 @@ interface ToolResponse {
     if (!tmdbTvShowResult.isValid) {
       return { error: tmdbTvShowResult.error };
     }
-    const tmdbTvShow = mediaMetadata.tmdbTvShow!;
+    const tvShow = mediaMetadata.tvShow!;
 
     // 5. List files from filesystem
     const folderPathObj = new Path(folderPathInPosix);
@@ -369,7 +369,7 @@ interface ToolResponse {
       filesystemFilesCount: filesystemFiles.length
     }, '[tool][matchEpisodesInBatch] Starting validation');
 
-    const { validatedFiles, validationErrors } = validateAllFiles(files, filesystemFiles, tmdbTvShow);
+    const { validatedFiles, validationErrors } = validateAllFiles(files, filesystemFiles, tvShow);
 
     logger.info({
       totalFiles: files.length,

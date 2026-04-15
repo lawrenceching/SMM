@@ -14,6 +14,7 @@ export interface UseConfigResult {
   userConfig: UserConfig
   setUserConfig: (config: UserConfig | ((prevConfig: UserConfig) => UserConfig)) => void
   isLoading: boolean
+  isUserConfigLoaded: boolean
   error: Error | null
   setAndSaveUserConfig: (traceId: string, config: UserConfig) => Promise<void>
   reload: (callback?: ReloadCallback) => void
@@ -72,6 +73,7 @@ export function useConfig(): UseConfigResult {
 
   const isLoading =
     reloadLoading || (Boolean(userDataDir) && userConfigQuery.isPending)
+  const isUserConfigLoaded = Boolean(userDataDir) && userConfigQuery.isSuccess
 
   const error =
     reloadError ??
@@ -85,6 +87,7 @@ export function useConfig(): UseConfigResult {
     userConfig,
     setUserConfig,
     isLoading,
+    isUserConfigLoaded,
     error,
     setAndSaveUserConfig,
     reload,

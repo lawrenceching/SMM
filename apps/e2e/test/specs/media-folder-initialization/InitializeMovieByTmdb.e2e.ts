@@ -54,7 +54,7 @@ describe('Media Folder Initialization', () => {
         await delay(5 * 1000)
 
         console.log(`Waiting for folder "${folderName}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolder(folderName, 60000)
+        const isDisplayed = await Sidebar.waitForFolderName(folderName, 60000)
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${folderName}" is now displayed in sidebar`)
 
@@ -97,7 +97,7 @@ describe('Media Folder Initialization', () => {
             await delay(10 * 1000)
         }
 
-        await Sidebar.waitForFolder(folderNameWithTmdbId, stepTimeoutMs)
+        await Sidebar.waitForFolderName(folderNameWithTmdbId, stepTimeoutMs)
 
         console.log(`Folder "${folderNameWithTmdbId}" is now displayed in sidebar`)
         // Wait for immersive-input to show TMDB title
@@ -154,7 +154,7 @@ describe('Media Folder Initialization', () => {
         }
 
         console.log(`Waiting for folder "${expectedMovieTitle}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolder(expectedMovieTitle, 60000)
+        const isDisplayed = await Sidebar.waitForFolderName(expectedMovieTitle, 60000)
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${expectedMovieTitle}" is now displayed in sidebar`)
 

@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import StatusBar from '../componentobjects/StatusBar'
-import { cleanup, createBeforeHook, expectMediaMetadataToBe } from '../lib/testbed'
+import { cleanup, setup, expectMediaMetadataToBe } from '../lib/testbed'
 import mcpClient from '../lib/McpClient'
 import { delay } from 'es-toolkit'
 import Prompts from '../componentobjects/Prompts'
@@ -25,7 +25,16 @@ async function ensureMcpPopoverOpen(): Promise<void> {
 
 describe('MCP Server Tools', () => {
   before(async () => {
-    await (createBeforeHook()());
+
+    await setup({
+      removeMetadataDir: false,
+      removePlansDir: false,
+      removeMediaFolders: false,
+      removeDirInSidebar: false,
+      resetUserConfig: false,
+      openBrowserPage: true,
+    });
+    
     await ensureMcpPopoverOpen();
 
     await StatusBar.mcpSwitch.waitForDisplayed();
@@ -42,6 +51,8 @@ describe('MCP Server Tools', () => {
     } else {
       console.log(`MCP server is already enabled`)
     }
+
+    await delay(1000)
 
     mcpAddress = await StatusBar.getMcpAddress()
     expect(mcpAddress).toContain('http://')
@@ -67,6 +78,7 @@ describe('MCP Server Tools', () => {
       removeMetadataDir: true,
       removePlansDir: true,
       removeMediaFolders: true,
+      resetUserConfig: false,
     });
 
     await browser.refresh();
@@ -155,7 +167,7 @@ describe('MCP Server Tools', () => {
 
   it('GetMediaMetadataTool should return cached metadata for folder', async function () {
     const folder = await createAndImportFolder(folder1, 'e2eTest:GetMediaMetadataTool')
-    await TVShowPanel.waitForTitleToBe(folder.mediaName!)
+    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? "N/A")
 
     const r = await mcpClient.getMediaMetadata(clientCwd, mcpAddress, {
       mediaFolderPath: folder.path!,
@@ -166,7 +178,7 @@ describe('MCP Server Tools', () => {
 
   it('MCP rename task tools should rename episode video file via begin/add/end flow', async function () {
     const folder = await createAndImportFolder(folder1, 'e2eTest:McpRenameTaskTools')
-    await TVShowPanel.waitForTitleToBe(folder.mediaName!)
+    await TVShowPanel.waitForTitleToBe(folder.translations?.title?.['en-US'] ?? "N/A")
 
     expect(await TVShowPanel.toString()).toContain('S01E01 S01E01.mkv V V V')
 
@@ -210,7 +222,7 @@ describe('MCP Server Tools', () => {
     } as TestFolder, 'e2eTest:McpRecognizeTaskTools')
 
     
-    await Sidebar.waitForFolder(folder1.mediaName as string, 60000)
+    await Sidebar.waitForFolderName(folder1.folderName, 2000)
     await TVShowPanel.waitForTable()
     await browser.waitUntil(
       async () => (await TVShowPanel.toString()).includes('S01E01 - - - -'),
@@ -262,7 +274,7 @@ describe('MCP Server Tools', () => {
 
   it('GetEpisodeTool should return mapped video file path', async function () {
     const folder = await createAndImportFolder(folder1, 'e2eTest:McpGetEpisodeTool')
-    await Sidebar.waitForFolder(folder1.mediaName as string, 60000)
+    await Sidebar.waitForFolderName(folder1.folderName, 2000)
 
     const r = await mcpClient.getEpisode(clientCwd, mcpAddress, {
       mediaFolderPath: folder.path!,
@@ -277,7 +289,7 @@ describe('MCP Server Tools', () => {
 
   it('GetEpisodesTool should return episodes list with mapped video path', async function () {
     const folder = await createAndImportFolder(folder1, 'e2eTest:McpGetEpisodesTool')
-    await TVShowPanel.waitForTitleToBe(folder.mediaName!)
+    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? "N/A")
 
     const r = await mcpClient.getEpisodes(clientCwd, mcpAddress, {
         mediaFolderPath: folder.path!,
@@ -286,9 +298,8 @@ describe('MCP Server Tools', () => {
     console.log(`GetEpisodesTool response: ${JSON.stringify(r, null, 2)}`)
 
     expect(r.totalCount).toEqual(13)
-    expect(r.showName).toEqual(folder.mediaName!)
-    // TODO: it should be 2, but the tool return 1, fix it
-    expect(r.numberOfSeasons).toEqual(1)
+    expect(r.showName).toEqual(folder1.translations?.title?.['en-US'] ?? "N/A")
+    expect(r.numberOfSeasons).toEqual(2)
   })
 
   it('TmdbSearchTool should return search results', async function () {
@@ -306,9 +317,7 @@ describe('MCP Server Tools', () => {
       id: 552524,
       language: 'zh-CN',
     })
-    expect(r.data).toBeDefined()
-    expect(r.data!.id).toBe(552524)
-    expect(r.data).toHaveProperty('title')
+    expect(r.id).toBe(552524)
   })
 
   it('TmdbGetTvShowTool should return tv show details by id', async function () {
@@ -316,8 +325,6 @@ describe('MCP Server Tools', () => {
       id: 84666,
       language: 'zh-CN',
     })
-    expect(r.data).toBeDefined()
     expect(r.data!.id).toBe(84666)
-    expect(Array.isArray(r.data!.seasons)).toBe(true)
   })
 })

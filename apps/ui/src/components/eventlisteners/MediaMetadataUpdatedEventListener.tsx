@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useConfig } from "@/hooks/userConfig";
 
 export function MediaMetadataUpdatedEventListener() {
-    const { refreshMediaMetadata } = useMediaMetadataActions();
+    const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
     const { refreshUserConfig } = useConfig();
     const eventListener = useRef<((event: any) => void) | null>(null);
 
@@ -15,7 +15,7 @@ export function MediaMetadataUpdatedEventListener() {
             if (folderPath) {
                 console.log(`[MediaMetadataUpdatedEventListener] Received mediaMetadataUpdated event for folder: ${folderPath}`);
                 try {
-                    await refreshMediaMetadata(folderPath);
+                    await fetchMediaMetadata({ path: folderPath });
                 } catch (error) {
                     console.error(`[MediaMetadataUpdatedEventListener] Failed to refresh metadata for ${folderPath}:`, error);
                 }

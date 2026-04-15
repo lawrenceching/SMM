@@ -1,5 +1,10 @@
 import os from 'os';
 import path from 'path';
+import { ReportAggregator } from 'wdio-html-nice-reporter';
+
+const HTML_REPORT_DIR = './reports/html-reports';
+
+let reportAggregator: ReportAggregator | undefined;
 
 const chromeOptionsForDockerEnv: string[] = [
     '--disable-dev-shm-usage',
@@ -172,9 +177,23 @@ export const config: WebdriverIO.Config = {
     // specFileRetriesDeferred: false,
     //
     // Test reporter for stdout.
-    // The only one supported by default is 'dot'
     // see also: https://webdriver.io/docs/dot-reporter
-    reporters: ['spec'],
+    // HTML report: https://webdriver.io/docs/wdio-html-nice-reporter/
+    reporters: [
+        'spec',
+        [
+            'html-nice',
+            {
+                outputDir: HTML_REPORT_DIR,
+                filename: 'report.html',
+                reportTitle: 'SMM E2E',
+                linkScreenshots: true,
+                showInBrowser: false,
+                collapseTests: false,
+                useOnAfterCommandForScreenshot: false,
+            },
+        ],
+    ],
 
     // Options to be passed to Mocha.
     // See the full list at http://mochajs.org/
@@ -196,8 +215,23 @@ export const config: WebdriverIO.Config = {
      * @param {object} config wdio configuration object
      * @param {Array.<Object>} capabilities list of capabilities details
      */
-    // onPrepare: function (config, capabilities) {
-    // },
+    onPrepare(_config, capabilities) {
+        const caps = Array.isArray(capabilities) ? capabilities[0] : capabilities;
+        const browserName =
+            caps && typeof caps === 'object' && 'browserName' in caps && caps.browserName
+                ? String(caps.browserName)
+                : 'chrome';
+        // Master HTML report: aggregates JSON emitted by the html-nice reporter (see package samples).
+        reportAggregator = new ReportAggregator({
+            outputDir: HTML_REPORT_DIR,
+            filename: 'master-report.html',
+            reportTitle: 'SMM E2E (master)',
+            browserName,
+            collapseTests: true,
+            showInBrowser: false,
+        });
+        reportAggregator.clean();
+    },
     /**
      * Gets executed before a worker process is spawned and can be used to initialize specific service
      * for that worker as well as modify runtime environments in an async fashion.
@@ -356,8 +390,11 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<Object>} capabilities list of capabilities details
      * @param {<Object>} results object containing test results
      */
-    // onComplete: function(exitCode, config, capabilities, results) {
-    // },
+    async onComplete() {
+        if (reportAggregator) {
+            await reportAggregator.createReport();
+        }
+    },
     /**
     * Gets executed when a refresh happens.
     * @param {string} oldSessionId session ID of the old session

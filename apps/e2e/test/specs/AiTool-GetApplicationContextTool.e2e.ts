@@ -48,8 +48,8 @@ describe('AI Assistant - GetApplicationContext Tool', async () => {
       traceId: 'e2eTest:GetApplicationContext:Import Movie Folder',
     })
 
-    await Sidebar.waitForFolder(tvFolder.mediaName!, 60000)
-    await Sidebar.waitForFolder(movieFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(tvFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(movieFolder.mediaName!, 60000)
 
     const response = await getApplicationContext()
 

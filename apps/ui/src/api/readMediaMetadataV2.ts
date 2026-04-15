@@ -17,10 +17,7 @@ function blankMediaMetadata(path: string): MediaMetadata {
         mediaFolderPath: path,
         files: [],
         mediaFiles: [],
-        poster: undefined,
-        tmdbTVShowId: undefined,
-        seasons: undefined,
-    } as MediaMetadata;
+    };
 }
 
 export async function readMediaMetadataV2(pathPosix: string, { traceId }: { traceId?: string } = {}): Promise<MediaMetadata> {

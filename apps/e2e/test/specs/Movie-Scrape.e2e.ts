@@ -114,7 +114,7 @@ describe('Movie - Scrape', () => {
     })
     await delay(3 * 1000)
 
-    await Sidebar.waitForFolder(SIDEBAR_FOLDER_DISPLAY_NAME, 30000)
+    await Sidebar.waitForFolderName(SIDEBAR_FOLDER_DISPLAY_NAME, 30000)
     await Sidebar.clickFolder(SIDEBAR_FOLDER_DISPLAY_NAME)
     await delay(1000)
 

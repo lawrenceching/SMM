@@ -28,7 +28,7 @@ import { Path } from "@core/path"
 import { basename, dirname, extname } from "@/lib/path"
 import type { MediaMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 
@@ -242,7 +242,7 @@ export function ScrapeDialogV2({ isOpen, onClose, mediaMetadata }: ScrapeDialogP
   const { mutateAsync: scrapeThumbnail } = useScrapeThumbnailMutation()
   const { mutateAsync: scrapeNfo } = useScrapeNfoMutation()
   const { userConfig } = useConfig()
-  const { refreshMediaMetadata } = useMediaMetadataActions()
+  const { mutateAsync: refreshMediaMetadata } = useFetchMediaMetadataMutation()
   const [state, dispatch] = useReducer(taskReducer, { tasks: [], isRunning: false })
 
   const executeTask = useCallback(
@@ -330,7 +330,7 @@ export function ScrapeDialogV2({ isOpen, onClose, mediaMetadata }: ScrapeDialogP
         }
       }
       if (mediaMetadata.mediaFolderPath) {
-        await refreshMediaMetadata(mediaMetadata.mediaFolderPath, { traceId })
+        await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
       }
     } catch (error) {
       console.error("[ScrapeDialogV2] run failed:", error)

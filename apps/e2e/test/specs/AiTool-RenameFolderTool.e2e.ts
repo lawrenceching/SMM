@@ -40,7 +40,7 @@ describe('AI Assistant - RenameFolder Tool', async () => {
       traceId: 'e2eTest:RenameFolderTool:Import Source Folder',
     })
 
-    await Sidebar.waitForFolder(sourceFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(sourceFolder.mediaName!, 60000)
 
     await TVShowPanel.searchbox.input.waitForDisplayed()
     await browser.waitUntil(async () => {

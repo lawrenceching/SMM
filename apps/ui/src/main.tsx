@@ -7,7 +7,6 @@ import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { AppLanguageSync } from './hooks/userConfig'
 import { UIMediaFolderStoreInitializer } from './components/initialization/UIMediaFolderStoreInitializer'
-import { MediaMetadataStoreProvider, useMediaMetadataStoreState } from './providers/mediaMetadataStoreProvider'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
@@ -25,6 +24,8 @@ import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJ
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
 import { logger } from './lib/log'
+import { useUIMediaFolderStoreState } from './stores/uiMediaFolderStore'
+import { useMediaMetadataQuery } from './hooks/mediaMetadata'
 logger.info(`SMM UI launched`)
 
 
@@ -77,7 +78,8 @@ function useIsMobile() {
 
 // WebSocketHandlers component - shared across all app views
 function WebSocketHandlers() {
-  const { selectedMediaMetadata } = useMediaMetadataStoreState();
+  const { selectedFolder } = useUIMediaFolderStoreState()
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
   const { confirmationDialog } = useDialogs();
   const [openConfirmation, closeConfirmation] = confirmationDialog;
 
@@ -220,7 +222,6 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <MediaMetadataStoreProvider>
           <DialogProvider>
             <BackgroundJobsProvider>
               <AppLanguageSync />
@@ -229,7 +230,6 @@ createRoot(document.getElementById('root')!).render(
               <AppSwitcher />
             </BackgroundJobsProvider>
           </DialogProvider>
-        </MediaMetadataStoreProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

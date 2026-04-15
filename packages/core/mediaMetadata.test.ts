@@ -72,43 +72,40 @@ describe('createMediaMetadata', () => {
   describe('additional properties', () => {
     it('should merge additional properties', () => {
       const result = createMediaMetadata('/media/movies', 'movie-folder', {
-        tmdbTVShowId: 12345,
-        mediaName: 'Test Movie',
+        movie: {
+          id: '12345',
+          name: 'Test Movie',
+          database: 'TMDB',
+        },
       });
 
       expect(result).toEqual({
         mediaFolderPath: '/media/movies',
         type: 'movie-folder',
-        tmdbTVShowId: 12345,
-        mediaName: 'Test Movie',
+        movie: {
+          id: '12345',
+          name: 'Test Movie',
+          database: 'TMDB',
+        },
       });
     });
 
     it('should merge complex nested properties', () => {
-      const tmdbTvShow = {
-        id: 12345,
+      const tvShow = {
+        id: '12345',
         name: 'Test Show',
-        overview: 'A test show',
-        poster_path: '/poster.jpg',
-        backdrop_path: null,
-        first_air_date: '2024-01-01',
-        vote_average: 8.5,
-        vote_count: 100,
-        popularity: 50.5,
-        genre_ids: [1, 2],
-        origin_country: ['US'],
+        database: 'TMDB' as const,
+        seasons: [],
       };
 
       const result = createMediaMetadata('/media/tvshows/Test Show', 'tvshow-folder', {
-        tmdbTVShowId: 12345,
-        tmdbTvShow: tmdbTvShow as any,
+        tvShow,
       });
 
       expect(result).toEqual({
         mediaFolderPath: '/media/tvshows/Test Show',
         type: 'tvshow-folder',
-        tmdbTVShowId: 12345,
-        tmdbTvShow,
+        tvShow,
       });
     });
 
@@ -152,27 +149,18 @@ describe('createMediaMetadata', () => {
       expect(result.mediaFiles).toEqual(mediaFiles);
     });
 
-    it('should merge tmdbMovie property', () => {
-      const tmdbMovie = {
-        id: 12345,
-        title: 'Test Movie',
-        original_title: 'Test Movie',
-        overview: 'A test movie',
-        poster_path: '/poster.jpg',
-        backdrop_path: null,
-        release_date: '2024-01-01',
-        vote_average: 8.5,
-        vote_count: 100,
-        popularity: 50.5,
-        genre_ids: [1, 2],
-        adult: false,
-        video: false,
+    it('should merge movie property', () => {
+      const movie = {
+        id: '12345',
+        name: 'Test Movie',
+        database: 'TMDB' as const,
+        airDate: '2024-01-01',
       };
       const result = createMediaMetadata('/media/movies/Test Movie', 'movie-folder', {
-        tmdbMovie,
+        movie,
       });
 
-      expect(result.tmdbMovie).toEqual(tmdbMovie);
+      expect(result.movie).toEqual(movie);
     });
   });
 
@@ -245,14 +233,14 @@ describe('createMediaMetadata', () => {
 
     it('should create independent objects when props differ', () => {
       const result1 = createMediaMetadata('/media/music', 'music-folder', {
-        mediaName: 'Album 1',
+        files: ['/a/1.mp3'],
       });
       const result2 = createMediaMetadata('/media/music', 'music-folder', {
-        mediaName: 'Album 2',
+        files: ['/a/2.mp3'],
       });
 
-      expect(result1.mediaName).toBe('Album 1');
-      expect(result2.mediaName).toBe('Album 2');
+      expect(result1.files).toEqual(['/a/1.mp3']);
+      expect(result2.files).toEqual(['/a/2.mp3']);
     });
   });
 });

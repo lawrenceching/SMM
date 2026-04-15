@@ -59,7 +59,7 @@ describe('TvShowHeaderV2', () => {
       expect(moreButton).not.toBeDisabled()
     })
 
-    it('enables the more menu button when tmdbTvShow.id is available', () => {
+    it('enables the more menu button when tvShow has TMDB id', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -68,8 +68,8 @@ describe('TvShowHeaderV2', () => {
               status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
-              tmdbTvShow: { id: 123, name: 'Test Show' },
-            } as unknown as UIMediaMetadata
+              tvShow: { id: '123', name: 'Test Show', database: 'TMDB', seasons: [] },
+            } as UIMediaMetadata
           }
         />
       )
@@ -77,7 +77,7 @@ describe('TvShowHeaderV2', () => {
       expect(moreButton).not.toBeDisabled()
     })
 
-    it('enables the more menu button when tmdbMovie.id is available (and no tmdbTvShow)', () => {
+    it('enables the more menu button when tvShow.id is available', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -86,8 +86,8 @@ describe('TvShowHeaderV2', () => {
               status: 'ok',
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
-              tmdbMovie: { id: 456, title: 'Test Movie' },
-            } as unknown as UIMediaMetadata
+              tvShow: { id: '456', name: 'Test Show', database: 'TMDB', seasons: [] },
+            } as UIMediaMetadata
           }
         />
       )
@@ -97,7 +97,7 @@ describe('TvShowHeaderV2', () => {
   })
 
   describe('TVDB TV Show Metadata', () => {
-    it('passes tvShow.name as value when tmdbTvShow is undefined', () => {
+    it('passes tvShow.name as value for TVDB metadata', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -106,9 +106,8 @@ describe('TvShowHeaderV2', () => {
               status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
-              tmdbTvShow: undefined,
               tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
-            } as unknown as UIMediaMetadata
+            } as UIMediaMetadata
           }
         />
       )

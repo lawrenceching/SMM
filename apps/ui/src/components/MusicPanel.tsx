@@ -1,8 +1,8 @@
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
@@ -95,8 +95,12 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
 
 export function MusicPanel() {
   const { folders, selectedFolder } = useUIMediaFolderStoreState();
-  const { mediaMetadatas } = useMediaMetadataStoreState();
-  const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined);
+  const {
+    data: queriedMediaMetadata,
+    isError: isMediaMetadataError,
+    isPending: isMediaMetadataPending,
+    fetchStatus: mediaMetadataFetchStatus,
+  } = useMediaMetadataQuery(selectedFolder || undefined);
 
   const uiFolderRow = useMemo(
     () =>
@@ -110,30 +114,16 @@ export function MusicPanel() {
     [folders, selectedFolder],
   );
 
-  const storeMetadataForPath = useMemo(
-    () =>
-      selectedFolder
-        ? mediaMetadatas.find(
-            (m) =>
-              m.mediaFolderPath &&
-              normalizeMediaFolderPathForQuery(m.mediaFolderPath) ===
-                normalizeMediaFolderPathForQuery(selectedFolder),
-          )
-        : undefined,
-    [mediaMetadatas, selectedFolder],
-  );
-
   const selectedMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
     if (!selectedFolder?.trim()) return undefined;
 
-    const domain = storeMetadataForPath ?? mediaMetadataQuery.data;
+    const domain = queriedMediaMetadata;
 
     const status: UIMediaMetadata["status"] = (() => {
-      if (storeMetadataForPath?.status) return storeMetadataForPath.status;
-      if (mediaMetadataQuery.isError) return "error_loading_metadata";
+      if (isMediaMetadataError) return "error_loading_metadata";
       if (domain) return "ok";
       if (uiFolderRow?.status) return uiFolderRow.status;
-      if (mediaMetadataQuery.isPending || mediaMetadataQuery.isFetching) return "initializing";
+      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing";
       return "loading";
     })();
 
@@ -143,26 +133,40 @@ export function MusicPanel() {
         mediaFolderPath: normalizedPath,
         type: "music-folder",
         status,
-        ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
       } as UIMediaMetadata;
     }
 
     return {
       ...domain,
       status,
-      ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
     };
   }, [
     selectedFolder,
-    storeMetadataForPath,
-    mediaMetadataQuery.data,
-    mediaMetadataQuery.isError,
-    mediaMetadataQuery.isPending,
-    mediaMetadataQuery.isFetching,
+    queriedMediaMetadata,
+    isMediaMetadataError,
+    isMediaMetadataPending,
+    mediaMetadataFetchStatus,
     uiFolderRow?.status,
   ]);
 
-  const { refreshMediaMetadata, updateMediaMetadata } = useMediaMetadataActions();
+  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
+  const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation();
+  const updateMediaMetadata = useCallback(
+    async (
+      path: string,
+      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+    ) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(path);
+      if (!pathPosix) return;
+      const current = (await fetchMediaMetadata({ path: pathPosix })) as UIMediaMetadata;
+      const next =
+        typeof updaterOrMetadata === "function"
+          ? updaterOrMetadata(current)
+          : updaterOrMetadata;
+      await saveMediaMetadata({ pathPosix, metadata: next });
+    },
+    [fetchMediaMetadata, saveMediaMetadata],
+  );
   const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog, editMediaFileDialog } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
@@ -521,7 +525,7 @@ export function MusicPanel() {
         console.log(`[MusicPanel] Refreshing media metadata for ${mediaFolderPath}`);
         // in useEffect of selectedMediaMetadata, the permanent track will replace the tmp track
         // so we only need to refresh the media metadata here.
-        refreshMediaMetadata(mediaFolderPath);
+        void fetchMediaMetadata({ path: mediaFolderPath });
       }
     };
 
@@ -531,7 +535,7 @@ export function MusicPanel() {
       handleVideoDataExtracted,
       handleDownloadComplete
     );
-  }, [openDownloadVideo, selectedMediaMetadata]);
+  }, [fetchMediaMetadata, openDownloadVideo, selectedMediaMetadata]);
 
   // Handle track click for playback indication
   const handleTrackClick = useCallback((trackId: number) => {

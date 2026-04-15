@@ -5,6 +5,7 @@ import type { ScrapeRequestBody, ScrapeResponseBody } from "@core/types";
 import scrape from "@/utils/scrape";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
 import { logHttpReqIn, logHttpRespOut } from "../../lib/logger";
+import { getMovie, getTvShow } from "@/route/Tmdb";
 
 export async function handleScrapeRequest(app: Hono) {
     app.post('/api/scrape', async (c) => {
@@ -56,11 +57,35 @@ export async function handleScrapeRequest(app: Hono) {
         const mediaLocalFolderPath = new Path(mediaFolderPath);
 
         try {
-            // Scrape based on media type
-            if (metadata.tmdbMediaType === 'tv' && metadata.tmdbTvShow) {
-                await scrape.everythingForTvShow(mediaLocalFolderPath, metadata.tmdbTvShow);
-            } else if (metadata.tmdbMediaType === 'movie' && metadata.tmdbMovie) {
-                await scrape.everythingForMovie(mediaLocalFolderPath, metadata.tmdbMovie);
+            if (metadata.type === 'tvshow-folder' && metadata.tvShow?.database === 'TMDB') {
+                const id = Number.parseInt(metadata.tvShow.id, 10);
+                if (!Number.isFinite(id) || id <= 0) {
+                    const resp: ScrapeResponseBody = {
+                        error: `Invalid Media Type: TV show metadata has no valid TMDB id`
+                    };
+                    logHttpRespOut(c, resp, 200);
+                    return c.json(resp, 200);
+                }
+                const tvRes = await getTvShow(id);
+                if (!tvRes.data || tvRes.error) {
+                    const resp: ScrapeResponseBody = {
+                        error: `TMDB TV show fetch failed: ${tvRes.error ?? 'no data'}`
+                    };
+                    logHttpRespOut(c, resp, 200);
+                    return c.json(resp, 200);
+                }
+                await scrape.everythingForTvShow(mediaLocalFolderPath, tvRes.data);
+            } else if (metadata.type === 'movie-folder' && metadata.movie?.database === 'TMDB') {
+                const id = Number.parseInt(metadata.movie.id, 10);
+                if (!Number.isFinite(id) || id <= 0) {
+                    const resp: ScrapeResponseBody = {
+                        error: `Invalid Media Type: Movie metadata has no valid TMDB id`
+                    };
+                    logHttpRespOut(c, resp, 200);
+                    return c.json(resp, 200);
+                }
+                const movieDetails = await getMovie(id);
+                await scrape.everythingForMovie(mediaLocalFolderPath, movieDetails);
             } else {
                 const resp: ScrapeResponseBody = {
                     error: `Invalid Media Type: Media metadata does not contain valid TMDB TV show or movie data`

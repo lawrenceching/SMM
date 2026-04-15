@@ -1,16 +1,18 @@
 import { AssistantModal } from "@/components/assistant-modal";
 import { AssistantRuntimeProvider, useAssistantApi } from "@assistant-ui/react";
 import { AssistantChatTransport, useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useEffect } from "react";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { prompts } from "./prompts";
 import { GetFilesInMediaFolderTool } from "./tools";
-
+import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 
 function ModelContext() {
     const api = useAssistantApi();
-    const { selectedMediaMetadata } = useMediaMetadataStoreState();
+    const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder);
+    const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+
     useEffect(() => {
         console.log(`re-register model context for media folder: ${selectedMediaMetadata?.mediaFolderPath}`);
 

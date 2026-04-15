@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
+import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import { nextTraceId } from "@/lib/utils"
-import { extractUIMediaMetadataProps } from "@/types/UIMediaMetadata"
+import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
 
 export interface LocalFilePanelProps {
@@ -12,8 +13,11 @@ export interface LocalFilePanelProps {
 }
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
-  const { selectedMediaMetadata } = useMediaMetadataStoreState();
-  const { updateMediaMetadata } = useMediaMetadataActions();
+  const mediaMetadataQuery = useMediaMetadataQuery(mediaFolderPath);
+  const selectedMediaMetadata: UIMediaMetadata | undefined = mediaMetadataQuery.data
+    ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
+    : undefined
+  const { mutateAsync: updateMediaMetadata } = useUpdateMediaMetadataMutation();
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
@@ -67,13 +71,19 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
 
 
     const traceId = `LocalFilePanel-handleConfirm-${nextTraceId()}`
-    updateMediaMetadata(selectedMediaMetadata.mediaFolderPath!, (prev) => {
-      return {
-        ...prev,
+    const pathPosix = normalizeMediaFolderPathForQuery(selectedMediaMetadata.mediaFolderPath)
+    if (!pathPosix) {
+      return
+    }
+    void updateMediaMetadata({
+      pathPosix,
+      metadata: {
+        ...selectedMediaMetadata,
         type: metadataType,
-        ...extractUIMediaMetadataProps(prev),
-      }
-    }, { traceId })
+        ...extractUIMediaMetadataProps(selectedMediaMetadata),
+      },
+      traceId,
+    })
     console.log(`[LocalFilePanel] Updated media type to: ${metadataType}`)
   }
 

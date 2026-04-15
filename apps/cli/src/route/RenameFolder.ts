@@ -46,8 +46,10 @@ export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: s
     }
 
     const { from, to } = validationResult.data;
+    const fromAsPosix = Path.posix(from);
+    const toAsPosix = Path.posix(to);
 
-    const mediaMetadata = await findMediaMetadata(from);
+    const mediaMetadata = await findMediaMetadata(fromAsPosix);
     if(!mediaMetadata) {
       logger.error({
         from,
@@ -58,23 +60,23 @@ export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: s
       };
     }
 
-    const mm = await renameMediaFolderInMediaMetadata(mediaMetadata, from, to);
+    const mm = await renameMediaFolderInMediaMetadata(mediaMetadata, fromAsPosix, toAsPosix);
     logger.info({
       mm,
     }, '[handleRenameFolder] Renamed media folder in media metadata');
     await writeMediaMetadata(mm);
-    deleteMediaMetadataFile(from);
+    await deleteMediaMetadataFile(Path.posix(from));
     logger.info({
       file: from,
     }, '[handleRenameFolder] Deleted source file');
 
-    const newUserConfig = renameFolderInUserConfig(userConfig, from, to);
+    const newUserConfig = renameFolderInUserConfig(userConfig, fromAsPosix, toAsPosix);
     logger.info({
       userConfig: newUserConfig,
     }, '[handleRenameFolder] Renamed folder in user config');
     await writeUserConfig(newUserConfig);
     
-    await rename(Path.toPlatformPath(from), Path.toPlatformPath(to));
+    await rename(from, to);
 
     broadcast({
       clientId: clientId,

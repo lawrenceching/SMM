@@ -270,7 +270,7 @@ class Scrape {
         }
 
         if(mm.mediaFiles === undefined) {
-            log.info(`No media files found or detected in media ${mm.mediaName} ${mm.mediaFolderPath}`)
+            log.info(`No media files found or detected in media ${mm.tvShow?.name ?? mm.movie?.name ?? ""} ${mm.mediaFolderPath}`)
             return;
         }
 

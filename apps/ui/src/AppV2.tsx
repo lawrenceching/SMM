@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Sidebar } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
 import type { ViewMode } from "@/components/v2/ViewSwitcher"
-import { useMediaMetadataStoreState, useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore"
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
@@ -20,6 +20,12 @@ import { LocalFilePanel } from "./components/LocalFilePanel"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 import { isNotNil } from "es-toolkit"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import {
+  mediaMetadataQueryKey,
+  normalizeMediaFolderPathForQuery,
+  useMediaMetadataQuery,
+} from "@/hooks/mediaMetadata"
 import {
   UI_MediaFolderImportedEvent,
   UI_MediaLibraryImportedEvent,
@@ -48,10 +54,10 @@ function AppV2Content() {
   const { openFolderDialog, filePickerDialog } = useDialogs()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
+  const queryClient = useQueryClient()
 
   // Media metadata
-  const { selectedMediaMetadata } = useMediaMetadataStoreState()
-  const { setSelectedByMediaFolderPath, getMediaMetadata, removeMediaMetadatas, addMediaMetadatas } = useMediaMetadataStoreActions()
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
 
   // Check if running in Electron environment
   const isElectron = useCallback(() => {
@@ -70,13 +76,6 @@ function AppV2Content() {
     
     return hasWindow && hasElectron
   }, [])
-
-  /** Bridge: folder store selection drives legacy media metadata store (panels still use it). */
-  useEffect(() => {
-    if (selectedFolder) {
-      setSelectedByMediaFolderPath(selectedFolder)
-    }
-  }, [selectedFolder, setSelectedByMediaFolderPath])
 
   /** When metadata loads with a selection but folder store is still empty, align store (e.g. restored index). */
   useEffect(() => {
@@ -277,35 +276,47 @@ function AppV2Content() {
       if (paths.length === 0) return
 
       const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
-      const deletedSet = new Set(paths)
+      const deletedPosix = new Set(paths.map((p) => Path.posix(p)))
+      const deletedNative = new Set(paths)
+
+      const getMediaMetadata = (path: string): UIMediaMetadata | undefined => {
+        const normalized = normalizeMediaFolderPathForQuery(path)
+        if (!normalized) return undefined
+        return queryClient.getQueryData<UIMediaMetadata>(mediaMetadataQueryKey(normalized))
+      }
 
       // Snapshot for rollback
-      const removedMetadata = paths
+      const removedMetadataByPath = paths
         .map((p) => getMediaMetadata(p))
-        .filter((m): m is NonNullable<typeof m> => m != null)
+      const removedMetadata = removedMetadataByPath.filter((m): m is NonNullable<typeof m> => m != null)
       const previousFolders = userConfig.folders
+      const previousUiFolders = [...useUIMediaFolderStore.getState().folders]
       const prevUiSelection = {
         selectedFolder: useUIMediaFolderStore.getState().selectedFolder,
         selectedFolders: [...useUIMediaFolderStore.getState().selectedFolders],
       }
 
       // 1. Optimistic: remove all selected from UI state at once
-      removeMediaMetadatas(paths)
+      paths.forEach((path) => {
+        const normalized = normalizeMediaFolderPathForQuery(path)
+        if (normalized) {
+          queryClient.removeQueries({ queryKey: mediaMetadataQueryKey(normalized), exact: true })
+        }
+      })
       const newFolders = userConfig.folders
         .filter((f) => isNotNil(f))
-        .filter((folder) => !deletedSet.has(Path.posix(folder)))
-      const newFolderPosix = newFolders.map((f) => Path.posix(f))
+        .filter((folder) => !deletedPosix.has(Path.posix(folder)))
       setAndSaveUserConfig(traceId, { ...userConfig, folders: newFolders })
 
-      const posixDeleted = paths.map((p) => Path.posix(p))
-      const delSet = new Set(posixDeleted)
       const st = useUIMediaFolderStore.getState()
-      const nextSelectedFolders = st.selectedFolders.filter((p) => !delSet.has(p))
+      const nextUiFolders = st.folders.filter((folder) => !deletedPosix.has(Path.posix(folder.path)))
+      const nextSelectedFolders = st.selectedFolders.filter((p) => !deletedNative.has(p))
       let nextPrimary = st.selectedFolder
-      if (delSet.has(nextPrimary)) {
-        nextPrimary = newFolderPosix[0] ?? ""
+      if (deletedNative.has(nextPrimary)) {
+        nextPrimary = newFolders[0] ? Path.toPlatformPath(newFolders[0]) : ""
       }
       useUIMediaFolderStore.setState({
+        folders: nextUiFolders,
         selectedFolders:
           nextSelectedFolders.length > 0
             ? nextSelectedFolders
@@ -320,9 +331,15 @@ function AppV2Content() {
         await Promise.all(paths.map((path) => mediaMetadataRepository.delete(path, { traceId })))
       } catch (error) {
         console.error("[onDeleteSelected] Failed to delete some media metadata:", error)
-        addMediaMetadatas(removedMetadata)
+        removedMetadata.forEach((metadata) => {
+          const folder = normalizeMediaFolderPathForQuery(metadata.mediaFolderPath || "")
+          if (folder) {
+            queryClient.setQueryData(mediaMetadataQueryKey(folder), metadata)
+          }
+        })
         setAndSaveUserConfig(traceId, { ...userConfig, folders: previousFolders })
         useUIMediaFolderStore.setState({
+          folders: previousUiFolders,
           selectedFolder: prevUiSelection.selectedFolder,
           selectedFolders: prevUiSelection.selectedFolders,
         })
@@ -334,9 +351,7 @@ function AppV2Content() {
     [
       userConfig,
       setAndSaveUserConfig,
-      getMediaMetadata,
-      removeMediaMetadatas,
-      addMediaMetadatas,
+      queryClient,
     ]
   )
 

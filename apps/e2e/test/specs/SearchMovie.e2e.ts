@@ -52,7 +52,7 @@ describe('Search Movie', () => {
         await delay(5 * 1000)
 
         console.log(`Waiting for folder "${randomFolderName}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolder(randomFolderName, 60000)
+        const isDisplayed = await Sidebar.waitForFolderName(randomFolderName, 60000)
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${randomFolderName}" is now displayed in sidebar`)
 

@@ -54,8 +54,6 @@ export async function doRenameFolder(
         ...updatedMetadata.movie,
         name: newName,
       }
-    } else {
-      updatedMetadata.mediaName = newName
     }
 
     if (path !== newFolderPath) {

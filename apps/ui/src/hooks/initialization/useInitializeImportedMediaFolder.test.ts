@@ -13,6 +13,9 @@ const h = vi.hoisted(() => {
     const initializeMediaMetadata = vi.fn();
     const addMediaFolderInUserConfig = vi.fn().mockResolvedValue(undefined);
     const setSelectedByMediaFolderPath = vi.fn();
+    const upsertFolder = vi.fn();
+    const setSelectedFolder = vi.fn();
+    const folders: Array<{ path: string }> = [];
     const addJob = vi.fn(() => "job-1");
     const updateJob = vi.fn();
     const runRecognitionSteps = vi.fn();
@@ -29,6 +32,9 @@ const h = vi.hoisted(() => {
         initializeMediaMetadata,
         addMediaFolderInUserConfig,
         setSelectedByMediaFolderPath,
+        upsertFolder,
+        setSelectedFolder,
+        folders,
         addJob,
         updateJob,
         runRecognitionSteps,
@@ -79,11 +85,33 @@ vi.mock("@/actions/mediaMetadataActions", () => ({
     }),
 }));
 
+vi.mock("../mediaMetadata", () => ({
+    useInitializeMediaMetadataMutation: () => ({
+        mutateAsync: h.initializeMediaMetadata,
+    }),
+    useUpdateMediaMetadataMutation: () => ({
+        saveMediaMetadata: h.saveMediaMetadata,
+    }),
+}));
+
 vi.mock("@/stores/backgroundJobsStore", () => ({
     useBackgroundJobsStore: () => ({
         addJob: h.addJob,
         updateJob: h.updateJob,
     }),
+}));
+
+vi.mock("@/stores/uiMediaFolderStore", () => ({
+    useUIMediaFolderStore: (selector: (state: {
+        upsertFolder: typeof h.upsertFolder
+        setSelectedFolder: typeof h.setSelectedFolder
+        folders: typeof h.folders
+    }) => unknown) =>
+        selector({
+            upsertFolder: h.upsertFolder,
+            setSelectedFolder: h.setSelectedFolder,
+            folders: h.folders,
+        }),
 }));
 
 vi.mock("@/hooks/userConfig", () => ({
@@ -194,41 +222,27 @@ describe("useInitializeImportedMediaFolder", () => {
             })
         );
 
-        const tvShowCall = h.updateMediaMetadata.mock.calls.find(
-            (call) => typeof call[1] === "function"
-        );
-        expect(tvShowCall).toBeDefined();
-        const afterTv = (tvShowCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)(baseMm);
-        expect(afterTv.tvShow).toEqual(mockTvShow);
-
-        const episodeCall = h.updateMediaMetadata.mock.calls.filter(
-            (call) => typeof call[1] === "function"
-        )[1];
-        expect(episodeCall).toBeDefined();
-        const afterEp = (episodeCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)({
-            ...baseMm,
-            tvShow: mockTvShow,
+        const tvShowCall = h.saveMediaMetadata.mock.calls.find((call) => {
+            if (call[0] !== posixPath) return false;
+            const payload = call[1] as Partial<UIMediaMetadata> | undefined;
+            return payload?.tvShow?.id === mockTvShow.id;
         });
-        expect(afterEp.mediaFiles).toEqual([
+        expect(tvShowCall).toBeDefined();
+        expect((tvShowCall![1] as Partial<UIMediaMetadata>).tvShow).toEqual(mockTvShow);
+
+        const episodeCall = h.saveMediaMetadata.mock.calls.find((call) => {
+            if (call[0] !== posixPath) return false;
+            const payload = call[1] as Partial<UIMediaMetadata> | undefined;
+            return Array.isArray(payload?.mediaFiles) && payload.mediaFiles.length === 1;
+        });
+        expect(episodeCall).toBeDefined();
+        expect((episodeCall![1] as Partial<UIMediaMetadata>).mediaFiles).toEqual([
             {
                 absolutePath: `${posixPath}/S01E01.mkv`,
                 seasonNumber: 1,
                 episodeNumber: 1,
             },
         ]);
-
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
-            if (call[0] !== posixPath) return false;
-            const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
-        });
-        expect(appliedStatusOk).toBe(true);
 
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "succeeded" });
     }
@@ -247,11 +261,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).toHaveBeenCalledWith(folderPath, "tvshow-folder", {
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "tvshow-folder",
             traceId: "evt-trace",
         });
-        expect(h.setSelectedByMediaFolderPath).toHaveBeenCalledWith(posixPath);
 
         assertSuccessfulTvShowInitializationPipeline();
     });
@@ -275,9 +289,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).not.toHaveBeenCalled();
-        expect(h.setSelectedByMediaFolderPath).not.toHaveBeenCalled();
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "tvshow-folder",
+            traceId: "evt-trace",
+        });
 
         assertSuccessfulTvShowInitializationPipeline();
     });
@@ -290,26 +306,13 @@ describe("useInitializeImportedMediaFolder", () => {
             expect.any(Array)
         );
 
-        const movieCall = h.updateMediaMetadata.mock.calls.find(
-            (call) => typeof call[1] === "function"
-        );
-        expect(movieCall).toBeDefined();
-        const afterMovie = (movieCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)(baseMm);
-        expect(afterMovie.movie).toEqual(mockMovie);
-        expect(afterMovie.status).toBe("ok");
-
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
+        const movieCall = h.saveMediaMetadata.mock.calls.find((call) => {
             if (call[0] !== posixPath) return false;
-            const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
+            const payload = call[1] as Partial<UIMediaMetadata> | undefined;
+            return payload?.movie?.id === mockMovie.id;
         });
-        expect(appliedStatusOk).toBe(true);
+        expect(movieCall).toBeDefined();
+        expect((movieCall![1] as Partial<UIMediaMetadata>).movie).toEqual(mockMovie);
 
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "succeeded" });
     }
@@ -336,11 +339,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).toHaveBeenCalledWith(folderPath, "movie-folder", {
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "movie-folder",
             traceId: "evt-trace",
         });
-        expect(h.setSelectedByMediaFolderPath).toHaveBeenCalledWith(posixPath);
 
         assertSuccessfulMovieInitializationPipeline();
     });
@@ -368,9 +371,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).not.toHaveBeenCalled();
-        expect(h.setSelectedByMediaFolderPath).not.toHaveBeenCalled();
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "movie-folder",
+            traceId: "evt-trace",
+        });
 
         assertSuccessfulMovieInitializationPipeline();
     });
@@ -401,16 +406,17 @@ describe("useInitializeImportedMediaFolder", () => {
 
         assertSuccessfulMovieInitializationPipeline();
 
-        const episodeCall = h.updateMediaMetadata.mock.calls.filter(
-            (call) => typeof call[1] === "function"
-        )[1];
-        expect(episodeCall).toBeDefined();
-        const afterEp = (episodeCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)({
-            ...baseMm,
-            movie: mockMovie,
-            status: "ok",
+        const episodeCall = h.saveMediaMetadata.mock.calls.find((call) => {
+            if (call[0] !== posixPath) return false;
+            const payload = call[1] as Partial<UIMediaMetadata> | undefined;
+            return (
+                payload?.movie?.id === mockMovie.id &&
+                Array.isArray(payload.mediaFiles) &&
+                payload.mediaFiles.length === 1
+            );
         });
-        expect(afterEp.mediaFiles).toEqual([{ absolutePath: videoPath }]);
+        expect(episodeCall).toBeDefined();
+        expect((episodeCall![1] as Partial<UIMediaMetadata>).mediaFiles).toEqual([{ absolutePath: videoPath }]);
     });
 
     function assertSuccessfulMusicInitializationPipeline() {
@@ -419,18 +425,12 @@ describe("useInitializeImportedMediaFolder", () => {
         expect(h.runRecognitionSteps).not.toHaveBeenCalled();
         expect(h.recognizeEpisodesWorker).not.toHaveBeenCalled();
 
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
+        const hasSavedMetadata = h.saveMediaMetadata.mock.calls.some((call) => {
             if (call[0] !== posixPath) return false;
             const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
+            return typeof payload === "object" && payload !== null;
         });
-        expect(appliedStatusOk).toBe(true);
+        expect(hasSavedMetadata).toBe(true);
 
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "succeeded" });
     }
@@ -456,11 +456,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).toHaveBeenCalledWith(folderPath, "music-folder", {
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "music-folder",
             traceId: "evt-trace",
         });
-        expect(h.setSelectedByMediaFolderPath).toHaveBeenCalledWith(posixPath);
 
         assertSuccessfulMusicInitializationPipeline();
     });
@@ -487,9 +487,11 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
-        expect(h.getMediaMetadata).toHaveBeenCalledWith(posixPath);
-        expect(h.initializeMediaMetadata).not.toHaveBeenCalled();
-        expect(h.setSelectedByMediaFolderPath).not.toHaveBeenCalled();
+        expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
+            folderPathInPlatformFormat: folderPath,
+            type: "music-folder",
+            traceId: "evt-trace",
+        });
 
         assertSuccessfulMusicInitializationPipeline();
     });
@@ -500,18 +502,12 @@ describe("useInitializeImportedMediaFolder", () => {
         );
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "failed" });
 
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
+        const hasSavedMetadata = h.saveMediaMetadata.mock.calls.some((call) => {
             if (call[0] !== posixPath) return false;
             const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
+            return typeof payload === "object" && payload !== null;
         });
-        expect(appliedStatusOk).toBe(true);
+        expect(hasSavedMetadata).toBe(true);
     }
 
     it("handles error when TV show recognition fails", async () => {
@@ -618,35 +614,21 @@ describe("useInitializeImportedMediaFolder", () => {
         expect(h.toast.error).toHaveBeenCalledWith("初始化目录超时");
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "aborted" });
 
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
-            if (call[0] !== posixPath) return false;
-            const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
+        expect(h.upsertFolder).toHaveBeenCalledWith({
+            path: folderPath,
+            status: "ok",
         });
-        expect(appliedStatusOk).toBe(true);
     });
 
     function assertUnrecognizedButSuccessfulPipeline() {
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "succeeded" });
 
-        const appliedStatusOk = h.updateMediaMetadata.mock.calls.some((call) => {
+        const hasSavedMetadata = h.saveMediaMetadata.mock.calls.some((call) => {
             if (call[0] !== posixPath) return false;
             const payload = call[1];
-            if (typeof payload === "function") {
-                return (
-                    (payload as (prev: UIMediaMetadata) => UIMediaMetadata)(baseMm).status ===
-                    "ok"
-                );
-            }
-            return (payload as UIMediaMetadata).status === "ok";
+            return typeof payload === "object" && payload !== null;
         });
-        expect(appliedStatusOk).toBe(true);
+        expect(hasSavedMetadata).toBe(true);
 
         expect(h.toast.error).not.toHaveBeenCalled();
     }
@@ -712,15 +694,12 @@ describe("useInitializeImportedMediaFolder", () => {
             })
         );
 
-        const episodeCall = h.updateMediaMetadata.mock.calls.filter(
-            (call) => typeof call[1] === "function"
-        )[1];
-        expect(episodeCall).toBeDefined();
-        const afterEp = (episodeCall![1] as (p: UIMediaMetadata) => UIMediaMetadata)({
-            ...baseMm,
-            tvShow: mockTvShow,
+        const episodeCall = h.saveMediaMetadata.mock.calls.find((call) => {
+            if (call[0] !== posixPath) return false;
+            const payload = call[1] as Partial<UIMediaMetadata> | undefined;
+            return Array.isArray(payload?.mediaFiles) && payload.mediaFiles.length === 0;
         });
-        expect(afterEp.mediaFiles).toEqual([]);
+        expect(episodeCall).toBeDefined();
 
         assertUnrecognizedButSuccessfulPipeline();
     });

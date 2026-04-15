@@ -200,7 +200,7 @@ S04E01 - - - -`)
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolder('天使降临到了我身边！', 60000);
+        await Sidebar.waitForFolderName('天使降临到了我身边！', 60000);
 
         await TVShowPanel.waitForTitleToBe('天使降临到了我身边！')
 

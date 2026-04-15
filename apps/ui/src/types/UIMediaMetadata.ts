@@ -17,6 +17,9 @@ export interface UIMediaMetadataProps {
      | 'updating',
 }
 
+/**
+ * @deprecated
+ */
 export type UIMediaMetadata = MediaMetadata & UIMediaMetadataProps;
 
 /**

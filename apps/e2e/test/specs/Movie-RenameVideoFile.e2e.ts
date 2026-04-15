@@ -101,7 +101,7 @@ describe('Movie - Rename Video File', () => {
     await delay(3 * 1000)
 
     // Wait for folder to appear in sidebar and select it (display name is movie title when tmdbid in path)
-    const folderDisplayed = await Sidebar.waitForFolder(SIDEBAR_FOLDER_DISPLAY_NAME, 30000)
+    const folderDisplayed = await Sidebar.waitForFolderName(SIDEBAR_FOLDER_DISPLAY_NAME, 30000)
     expect(folderDisplayed).toBe(true)
     await Sidebar.clickFolder(SIDEBAR_FOLDER_DISPLAY_NAME)
     await delay(1000)

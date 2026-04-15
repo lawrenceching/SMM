@@ -43,9 +43,6 @@ describe('readMediaMetadataV2', () => {
       mediaFolderPath: pathPosix,
       files: [],
       mediaFiles: [],
-      poster: undefined,
-      tmdbTVShowId: undefined,
-      seasons: undefined,
     }
 
     const mockFiles = [
@@ -142,9 +139,6 @@ describe('readMediaMetadataV2', () => {
     // Files should be set from listFiles, not from readFile
     expect(result.files?.length).toBe(1)
     expect(result.mediaFiles).toEqual([])
-    expect(result.poster).toBeUndefined()
-    expect(result.tmdbTVShowId).toBeUndefined()
-    expect(result.seasons).toBeUndefined()
   })
 
   it('should return blank media metadata when listFiles API call fails', async () => {
@@ -180,9 +174,6 @@ describe('readMediaMetadataV2', () => {
     // Files should be empty array when listFiles fails
     expect(result.files?.length).toBe(0)
     expect(result.mediaFiles).toEqual([])
-    expect(result.poster).toBeUndefined()
-    expect(result.tmdbTVShowId).toBeUndefined()
-    expect(result.seasons).toBeUndefined()
   })
 
   it('should log unexpected response body error when readFile returns non-FileNotFoundError', async () => {
@@ -238,9 +229,6 @@ describe('readMediaMetadataV2', () => {
     expect(Array.isArray(result.files)).toBe(true)
     expect(result.files?.length).toBe(1)
     expect(result.mediaFiles).toEqual([])
-    expect(result.poster).toBeUndefined()
-    expect(result.tmdbTVShowId).toBeUndefined()
-    expect(result.seasons).toBeUndefined()
   })
 
   it('should log unexpected response body error when readFile returns no data', async () => {
@@ -290,9 +278,6 @@ describe('readMediaMetadataV2', () => {
     expect(Array.isArray(result.files)).toBe(true)
     expect(result.files?.length).toBe(1)
     expect(result.mediaFiles).toEqual([])
-    expect(result.poster).toBeUndefined()
-    expect(result.tmdbTVShowId).toBeUndefined()
-    expect(result.seasons).toBeUndefined()
   })
 
   it('should log unexpected response body error when readFile returns empty string data', async () => {
@@ -343,8 +328,5 @@ describe('readMediaMetadataV2', () => {
     expect(Array.isArray(result.files)).toBe(true)
     expect(result.files?.length).toBe(1)
     expect(result.mediaFiles).toEqual([])
-    expect(result.poster).toBeUndefined()
-    expect(result.tmdbTVShowId).toBeUndefined()
-    expect(result.seasons).toBeUndefined()
   })
 })

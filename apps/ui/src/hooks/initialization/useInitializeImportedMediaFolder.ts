@@ -1,11 +1,8 @@
 import { useLatest } from "react-use";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
-import { useMediaMetadataStoreActions } from "@/stores/mediaMetadataStore";
 import { useConfig } from "@/hooks/userConfig";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { toast } from "sonner";
 import {
@@ -27,18 +24,26 @@ import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initializ
 import { recognizeEpisodes as recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import { extname } from "@/lib/path";
 import { videoFileExtensions } from "@core/utils";
-import type { MediaFileMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
-import { delay, withTimeout } from "es-toolkit";
+import type { MediaFileMetadata, MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
+import { withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
 import { useCallback, useRef } from "react";
 import type { FolderType } from "@core/types";
+import { useInitializeMediaMetadataMutation, useUpdateMediaMetadataMutation } from "../mediaMetadata";
+import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 
 export function useInitializeImportedMediaFolder() {
+
+    const upsertFolder = useUIMediaFolderStore(state => state.upsertFolder)
+    const setSelectedFolder = useUIMediaFolderStore(state => state.setSelectedFolder)
+    const folders = useUIMediaFolderStore(state => state.folders)
+    const latestFolders = useLatest(folders);
     const { addMediaFolderInUserConfig, userConfig } = useConfig();
     const latestUserConfig = useLatest(userConfig);
-    const { getMediaMetadata, setSelectedByMediaFolderPath } =
-        useMediaMetadataStoreActions();
-    const { updateMediaMetadata, initializeMediaMetadata,saveMediaMetadata } = useMediaMetadataActions();
+
+    const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
+    const { mutateAsync: initializeMediaMetadata } = useInitializeMediaMetadataMutation()
+    
     const backgroundJobs = useBackgroundJobsStore();
     const { mutateAsync: recognizeTvShowByNfo } = useRecognizeTvShowByNfoMutation();
     const { mutateAsync: recognizeTvShowByTmdbIdInFolderName } =
@@ -61,15 +66,32 @@ export function useInitializeImportedMediaFolder() {
         useRecognizeMovieBySearchingFolderNameInTvdb();
 
     const jobId = useRef<string | null>(null);
-    const traceId = useRef<string>(`${nextTraceId()}`);
 
     const onStart = useCallback((folder: string) => {
         const _jobId = backgroundJobs.addJob(`初始化 ${new Path(folder).name()}`);
         backgroundJobs.updateJob(_jobId, { status: "running", progress: 50 });
         jobId.current = _jobId;
+        upsertFolder({
+            path: folder,
+            status: "initializing",
+        })
+        logger.info(`move status to initializing for folder: ${folder}`)
+
+        /**
+         * In Import Media Library code path, all media metadata are already put into the store by MediaLibraryImportedEventHandler
+         */
+        if(!latestFolders.current.find(f => f.path === folder)) {
+            // if folder is not found in the store, it means it's in importing media folder code path
+            // select the folder in UI
+            setSelectedFolder(folder)
+        } else {
+            // Import Media Library
+            // do nothing
+        }
+        
     }, [])
 
-    const recognizeTvShow = useCallback(async (mm: UIMediaMetadata, traceId: string) => {
+    const recognizeTvShow = useCallback(async (mm: MediaMetadata, traceId: string) => {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
         const searchOrder = searchOrderForPrimaryDb(
@@ -123,7 +145,7 @@ export function useInitializeImportedMediaFolder() {
 
     /** Maps async episode recognition to domain `mediaFiles` (may be empty). Caller updates UI / persistence. */
     const recognizeTvShowEpisodes = useCallback(
-        async (mm: UIMediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
+        async (mm: MediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
             const recognized = await recognizeEpisodesAsync(mm);
             if (recognized.length === 0) {
                 logger.warn(
@@ -141,7 +163,7 @@ export function useInitializeImportedMediaFolder() {
 
     /** First video file in `mm.files` (by `videoFileExtensions`), or empty. Movie entries only set `absolutePath`. */
     const recognizeMovieEpisode = useCallback(
-        async (mm: UIMediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
+        async (mm: MediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
             const files = mm.files;
             if (!files || files.length === 0) {
                 logger.warn(
@@ -163,7 +185,7 @@ export function useInitializeImportedMediaFolder() {
         []
     );
 
-    const recognizeMovie = useCallback(async (mm: UIMediaMetadata, traceId: string) => {
+    const recognizeMovie = useCallback(async (mm: MediaMetadata, traceId: string) => {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
         const searchOrder = searchOrderForPrimaryDb(
@@ -217,75 +239,57 @@ export function useInitializeImportedMediaFolder() {
         return runRecognitionSteps(traceId, movieSteps);
     }, [])
 
-    const onTvShowRecognized = useCallback(async (folder: string, tvShow: TvShowMediaMetadata, traceId: string) => {
-        await updateMediaMetadata(Path.posix(folder), (prev) => {
-            return {
-                ...prev,
-                tvShow: tvShow,
-            };
+    const onTvShowRecognized = useCallback(async (
+        folder: string,
+        mm: MediaMetadata,
+        tvShow: TvShowMediaMetadata,
+        traceId: string
+    ) => {
+        await saveMediaMetadata(Path.posix(folder), {
+            ...mm,
+            tvShow,
         }, { traceId });
     }, [])
 
-    const onEpisodeRecognized = useCallback(async (folder: string, mediaFiles: MediaFileMetadata[], traceId: string) => {
-        await updateMediaMetadata(Path.posix(folder), (prev) => {
-            return {
-                ...prev,
-                mediaFiles,
-            };
+    const onEpisodeRecognized = useCallback(async (
+        folder: string,
+        mm: MediaMetadata,
+        mediaFiles: MediaFileMetadata[],
+        traceId: string
+    ) => {
+        await saveMediaMetadata(Path.posix(folder), {
+            ...mm,
+            mediaFiles,
         }, { traceId });
     }, [])
 
-    const onMovieRecognized = useCallback(async (folder: string, movie: MovieMediaMetadata, traceId: string) => {
-        await updateMediaMetadata(Path.posix(folder), (prev) => {
-            return {
-                ...prev,
-                movie,
-            };
+    const onMovieRecognized = useCallback(async (
+        folder: string,
+        mm: MediaMetadata,
+        movie: MovieMediaMetadata,
+        traceId: string
+    ) => {
+        await saveMediaMetadata(Path.posix(folder), {
+            ...mm,
+            movie,
         }, { traceId });
     }, [])
 
-    const doInitialization = useCallback(async (folder: string, type: FolderType, traceId: string) => {
-        
-        /**
-         * In Import Meida Folder code path, the media metadata is not in the store, so we need to initialize it
-         * In Import Media Library code path, all media metadata are already put into the store by MediaLibraryImportedEventHandler
-         * And then MediaLibraryImportedEventHandler will emit events to trigger initialization for each media folder
-         */
-        let mm: UIMediaMetadata | undefined = getMediaMetadata(Path.posix(folder));
-
-        if(mm === undefined) {
-            mm = await initializeMediaMetadata(folder, type === 'tvshow' ? 'tvshow-folder' : (type === 'movie' ? 'movie-folder' : 'music-folder'), { traceId });
-            setSelectedByMediaFolderPath(mm.mediaFolderPath!);
-        }
-
+    const doInitialization = useCallback(async (
+        folder: string, 
+        type: FolderType,
+        traceId: string) => {
         await addMediaFolderInUserConfig(traceId, folder);
 
-        updateMediaMetadata(
-            mm.mediaFolderPath!,
-            {
-                ...mm,
-                status: "initializing",
-            },
-            { traceId }
-        );
+        const mm: MediaMetadata = await initializeMediaMetadata({
+            folderPathInPlatformFormat: Path.posix(folder),
+            type: type === "tvshow" ? "tvshow-folder" : (type === "movie" ? "movie-folder" : "music-folder"),
+            traceId,
+        })
 
-        if(mm.test) {
-            logger.info(
-                `[${traceId}] test flag was set for folder: ${mm.mediaFolderPath}, delay 1 second and then return as succeeded`
-            );
-            await delay(10000)
-            updateMediaMetadata(
-                Path.posix(folder),
-                {
-                    ...mm,
-                    status: "ok",
-                },
-                { traceId }
-            );
-            return mm;
-        }
+        await saveMediaMetadata(Path.posix(folder), mm, { traceId });
 
-        if (mm.type === "tvshow-folder") {
+        if (type === "tvshow") {
 
             // stage 1: recognize folder, to know which TV Show it is
             const tvShow: TvShowMediaMetadata | undefined = await recognizeTvShow(mm, traceId);
@@ -296,7 +300,7 @@ export function useInitializeImportedMediaFolder() {
                     folder,
                     tvShow,
                 }, `successfully recognized tvshow for folder: ${folder}`);
-                await onTvShowRecognized(folder, tvShow, traceId);
+                await onTvShowRecognized(folder, mm, tvShow, traceId);
 
                 // stage 2: recognize episodes, to link local video files for each episode
                 const mediaFiles = await recognizeTvShowEpisodes({ ...mm, tvShow }, traceId);
@@ -304,7 +308,7 @@ export function useInitializeImportedMediaFolder() {
                     traceId,
                     folder,
                 }, `successfully recognized episodes for folder: ${folder}`);
-                await onEpisodeRecognized(folder, mediaFiles, traceId);
+                await onEpisodeRecognized(folder, { ...mm, tvShow }, mediaFiles, traceId);
             } else {
                 logger.info({
                     traceId,
@@ -312,7 +316,7 @@ export function useInitializeImportedMediaFolder() {
                 }, `unable to recognize tvshow for folder: ${folder}`);
             }
 
-        } else if (mm.type === "movie-folder") {
+        } else if (type === "movie") {
             const movie: MovieMediaMetadata | undefined = await recognizeMovie(mm, traceId);
             if (movie !== undefined) {
                 logger.info({
@@ -320,14 +324,14 @@ export function useInitializeImportedMediaFolder() {
                     folder,
                     movie,
                 }, `successfully recognized movie for folder: ${folder}`);
-                await onMovieRecognized(folder, movie, traceId);
+                await onMovieRecognized(folder, mm, movie, traceId);
 
                 const mediaFiles = await recognizeMovieEpisode({ ...mm, movie }, traceId);
                 logger.info({
                     traceId,
                     folder,
                 }, `successfully recognized movie episode file for folder: ${folder}`);
-                await onEpisodeRecognized(folder, mediaFiles, traceId);
+                await onEpisodeRecognized(folder, { ...mm, movie }, mediaFiles, traceId);
             } else {
                 logger.info({
                     traceId,
@@ -352,20 +356,11 @@ export function useInitializeImportedMediaFolder() {
             return;
         }
 
-        // Initialization is optional process, and app don't care about the result
-        // User continue to operate even if initialization failed
-        
-        await updateMediaMetadata(Path.posix(folder), (prev) => {
-            return {
-                ...prev,
-                status: "ok",
-            };
-        }, { traceId: traceId.current });
-        const mm = getMediaMetadata(Path.posix(folder));
-        if(mm) {
-            saveMediaMetadata(mm, { traceId: traceId.current });
-        }
-        
+        upsertFolder({
+            path: folder,
+            status: "ok",
+        })
+
     }, [])
 
     const onSucceeded = useCallback((_folder: string) => {

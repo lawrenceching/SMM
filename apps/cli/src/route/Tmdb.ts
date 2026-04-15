@@ -174,7 +174,7 @@ export async function search({ keyword, type, baseURL, language }: TmdbSearchReq
     const searchType = type === 'movie' ? 'movie' : 'tv';
     const tmdbLanguage = mapLanguageToTmdb(language);
     const encodedKeyword = encodeURIComponent(keyword);
-    const url = `${config.host}/3/search/${searchType}?query=${encodedKeyword}&language=${tmdbLanguage}`;
+    const url = `${config.host}/search/${searchType}?query=${encodedKeyword}&language=${tmdbLanguage}`;
 
     // Execute the HTTP request
     const requestResult = await executeTmdbRequest(url, config.apiKey, config.host, config.httpProxy);
@@ -309,7 +309,7 @@ export async function getMovie(
     throw new Error('Invalid movie ID');
   }
 
-  const result = await makeTmdbRequest(`/3/movie/${id}`, language, baseURL);
+  const result = await makeTmdbRequest(`/movie/${id}`, language, baseURL);
   
   if (result.error) {
     throw new Error(result.error);
@@ -336,7 +336,7 @@ export async function getTvShow(
   }
 
   // First, get basic TV show info to determine which seasons exist
-  const basicResult = await makeTmdbRequest(`/3/tv/${id}`, language, baseURL);
+  const basicResult = await makeTmdbRequest(`/tv/${id}`, language, baseURL);
   
   if (basicResult.error) {
     return {
@@ -373,7 +373,7 @@ export async function getTvShow(
   const appendToResponse = seasonNumbers.join(',');
   
   // Now make a request with append_to_response to get all seasons with episodes
-  const result = await makeTmdbRequest(`/3/tv/${id}`, language, baseURL, appendToResponse);
+  const result = await makeTmdbRequest(`/tv/${id}`, language, baseURL, appendToResponse);
   
   if (result.error) {
     return {
@@ -431,7 +431,7 @@ export async function getSeason(
   }
 
   const result = await makeTmdbRequest(
-    `/3/tv/${seriesId}/season/${seasonNumber}`,
+    `/tv/${seriesId}/season/${seasonNumber}`,
     language,
     baseURL,
     appendToResponse

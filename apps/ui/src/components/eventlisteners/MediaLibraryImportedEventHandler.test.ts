@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { ListFilesResponseBody } from "@core/types"
-import { createMediaMetadata } from "@core/mediaMetadata"
 import { Path } from "@core/path"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 const { listFilesMock } = vi.hoisted(() => ({
   listFilesMock: vi.fn(),
@@ -13,16 +11,6 @@ vi.mock("@/api/listFiles", () => ({
 }))
 
 import { _dedupFolders, _listFolders } from "./MediaLibraryImportedEventHandler"
-
-function mockUIMetadata(
-  folderPathInPlatformFormat: string,
-  type: "music-folder" | "tvshow-folder" | "movie-folder" = "tvshow-folder",
-): UIMediaMetadata {
-  return {
-    ...createMediaMetadata(folderPathInPlatformFormat, type),
-    status: "idle",
-  }
-}
 
 describe("_listFolders", () => {
   beforeEach(() => {
@@ -82,30 +70,22 @@ describe("_dedupFolders", () => {
   })
 
   it("returns empty when every new folder is already imported", () => {
-    const a = mockUIMetadata("/media/show-a")
-    const b = mockUIMetadata("/media/show-b")
-    expect(_dedupFolders(["/media/show-a", "/media/show-b"], [a, b])).toEqual([])
+    expect(_dedupFolders(["/media/show-a", "/media/show-b"], ["/media/show-a", "/media/show-b"])).toEqual([])
   })
 
   it("keeps only folders that are not already imported", () => {
-    const existing = mockUIMetadata("/media/show-a")
-    expect(_dedupFolders(["/media/show-a", "/media/show-b"], [existing])).toEqual(["/media/show-b"])
+    expect(_dedupFolders(["/media/show-a", "/media/show-b"], ["/media/show-a"])).toEqual(["/media/show-b"])
   })
 
-  it("matches paths after normalizing with Path.posix so platform paths dedupe against stored metadata", () => {
+  it("matches paths after normalizing with Path.posix so platform paths dedupe against existing folder paths", () => {
     const winPath = "D:\\library\\TV\\MyShow"
-    const existing = mockUIMetadata(winPath)
     const incoming = [winPath, "D:\\library\\TV\\OtherShow"]
-    const result = _dedupFolders(incoming, [existing])
+    const result = _dedupFolders(incoming, [winPath])
     expect(result).toEqual(["D:\\library\\TV\\OtherShow"])
     expect(Path.posix(result[0]!)).toBe(Path.posix("D:\\library\\TV\\OtherShow"))
   })
 
-  it("ignores metadata entries without a usable mediaFolderPath", () => {
-    const metadatas: UIMediaMetadata[] = [
-      { type: "tvshow-folder", status: "idle" } as UIMediaMetadata,
-      { ...mockUIMetadata("/media/keep"), mediaFolderPath: "", status: "idle" },
-    ]
-    expect(_dedupFolders(["/media/keep", "/media/new"], metadatas)).toEqual(["/media/keep", "/media/new"])
+  it("ignores entries without a usable folder path", () => {
+    expect(_dedupFolders(["/media/keep", "/media/new"], [""])).toEqual(["/media/keep", "/media/new"])
   })
 })

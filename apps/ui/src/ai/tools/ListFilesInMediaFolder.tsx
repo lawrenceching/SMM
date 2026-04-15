@@ -1,8 +1,10 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react";
 import { z } from 'zod';
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
 import { useEffect } from "react";
 import type { MediaMetadata } from "@core/types";
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/hooks/mediaMetadata";
 
 interface ToolResponse {
     message: string;
@@ -39,12 +41,18 @@ const _GetFilesInMediaFolderTool = makeAssistantTool({
 });
 
 export function GetFilesInMediaFolderTool() {
-
-    const { mediaMetadatas: mediaMetadatasFromProvider } = useMediaMetadataStoreState();
+    const { folders } = useUIMediaFolderStoreState();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
-        mediaMetadatas = mediaMetadatasFromProvider;
-    }, [mediaMetadatasFromProvider]);
+        mediaMetadatas = folders
+            .map((folder) => {
+                const pathPosix = normalizeMediaFolderPathForQuery(folder.path);
+                if (!pathPosix) return undefined;
+                return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(pathPosix));
+            })
+            .filter((metadata): metadata is MediaMetadata => metadata !== undefined);
+    }, [folders, queryClient]);
     
     return <>
     <_GetFilesInMediaFolderTool />

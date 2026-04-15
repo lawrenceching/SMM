@@ -228,22 +228,12 @@ export async function expectMediaMetadataToBe(
         const m: MediaMetadata = metadataJson as MediaMetadata;
         const obj = {
             ...m,
-            tmdbTvShow: m.tmdbTvShow !== undefined ? {
-                id: m.tmdbTvShow?.id,
-                name: m.tmdbTvShow?.name,
-            } : undefined,
-            tmdbMovie: m.tmdbMovie !== undefined ? {
-                id: m.tmdbMovie?.id,
-                name: m.tmdbMovie?.title,
-            } : undefined,
-            tvdbTvShow: m.tvShow !== undefined ? {
-                id: m.tvShow?.id,
-                name: m.tvShow?.name,
-            } : undefined,
-            tvdbMovie: m.movie !== undefined ? {
-                id: m.movie?.id,
-                name: m.movie?.name,
-            } : undefined,
+            tvShow: m.tvShow !== undefined
+                ? { id: m.tvShow.id, name: m.tvShow.name, database: m.tvShow.database }
+                : undefined,
+            movie: m.movie !== undefined
+                ? { id: m.movie.id, name: m.movie.name, database: m.movie.database }
+                : undefined,
         }
 
         throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(obj)}`)

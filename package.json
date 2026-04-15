@@ -2,8 +2,8 @@
   "name": "simple-media-manager",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "dev": "npm-run-all2 --parallel dev:ui dev:cli",

@@ -5,13 +5,21 @@ import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/component
 import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
 import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
 import { basename } from "@/lib/path"
+import { Path } from "@core/path"
 import {
   useUIMediaFolderStoreState,
   useUIMediaFolderStoreActions,
   useUIMediaFolderSelection,
 } from "@/stores/uiMediaFolderStore"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
 import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
 import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "@/lib/sidebarRowUtils"
+import { useDialogs } from "@/providers/dialog-provider"
+import { useConfig } from "@/hooks/userConfig"
+import { openInFileManagerApi } from "@/api/openInFileManager"
+import { nextTraceId } from "@/lib/utils"
+import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
+import { useTranslation } from "@/lib/i18n"
 
 export type { SortOrder, FilterType }
 
@@ -20,10 +28,16 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ onDeleteSelected }: SidebarProps) {
+  const { t } = useTranslation(["components"])
   const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
   const { folders } = useUIMediaFolderStoreState()
-  const { applyFolderClick, selectAllFolderPaths } = useUIMediaFolderStoreActions()
+  const { applyFolderClick, selectAllFolderPaths, removeFolder } = useUIMediaFolderStoreActions()
   const { selectedFolder, selectedFolderPathsSet } = useUIMediaFolderSelection()
+  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { renameFolderDialog } = useDialogs()
+  const [openRenameForMediaFolder] = renameFolderDialog
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const primarySelectedPath = selectedMediaMetadata?.mediaFolderPath ?? selectedFolder
 
   const folderPaths = useMemo(() => folders.map((f) => f.path), [folders])
 
@@ -77,6 +91,59 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
     [onDeleteSelected, selectAllFolderPaths, filteredAndSortedFolders, selectedFolderPathsSet],
   )
 
+  const handleOpenInExplorer = useCallback(async (path: string) => {
+    try {
+      const result = await openInFileManagerApi(path)
+      if (result.error) {
+        console.error("[OpenInFileManager] Error:", result.error)
+      }
+    } catch (error) {
+      console.error("[OpenInFileManager] Failed to open folder:", error)
+    }
+  }, [])
+
+  const handleRename = useCallback(
+    (path: string) => {
+      openRenameForMediaFolder(path, {
+        title: t("mediaFolder.renameTitle"),
+        description: t("mediaFolder.renameDescription"),
+      })
+    },
+    [openRenameForMediaFolder, t],
+  )
+
+  const handleDeletePaths = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return
+      if (onDeleteSelected) {
+        await onDeleteSelected(paths)
+        return
+      }
+
+      const traceId = `Sidebar-onDeleteSelected-${nextTraceId()}`
+      const deletedSet = new Set(paths.map((p) => Path.posix(p)))
+
+      await Promise.all(paths.map((path) => mediaMetadataRepository.delete(path, { traceId })))
+
+      setAndSaveUserConfig(traceId, {
+        ...userConfig,
+        folders: userConfig.folders.filter((folder) => !deletedSet.has(Path.posix(folder))),
+      })
+      paths.forEach((path) => removeFolder(path))
+    },
+    [onDeleteSelected, setAndSaveUserConfig, userConfig, removeFolder],
+  )
+
+  const handleDeleteItem = useCallback(
+    (path: string) => {
+      const shouldDeleteSelection =
+        selectedFolderPathsSet.size > 0 && selectedFolderPathsSet.has(path)
+      const paths = shouldDeleteSelection ? Array.from(selectedFolderPathsSet) : [path]
+      void handleDeletePaths(paths)
+    },
+    [handleDeletePaths, selectedFolderPathsSet],
+  )
+
   return (
     <div className="flex flex-col h-full w-full" data-testid="sidebar-container">
       <div className="py-2 px-3 border-b border-border bg-background" data-testid="sidebar-toolbar">
@@ -113,9 +180,10 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
                 <MediaFolderListItemV2
                   {...folder}
                   isSelected={selectedFolderPathsSet.has(folder.path)}
-                  isPrimary={selectedFolder === folder.path}
-                  selectedFolderPaths={selectedFolderPathsSet}
-                  onDeleteSelected={onDeleteSelected}
+                  isPrimary={primarySelectedPath === folder.path}
+                  onRename={() => handleRename(folder.path)}
+                  onOpenInExplorer={() => void handleOpenInExplorer(folder.path)}
+                  onDelete={() => handleDeleteItem(folder.path)}
                   onClick={(e) =>
                     applyFolderClick(folder.path, e.ctrlKey || e.metaKey)
                   }

@@ -1,13 +1,6 @@
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { basename } from "@/lib/path"
-import { cn, nextTraceId } from "@/lib/utils"
-import { Path } from "@core/path"
-import type { UserConfig } from "@core/types"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
-import { useConfig } from "@/hooks/userConfig"
-import { useDialogs } from "@/providers/dialog-provider"
-import { openInFileManagerApi } from "@/api/openInFileManager"
+import { cn } from "@/lib/utils"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -36,14 +29,9 @@ export interface MediaFolderListItemV2Props {
    * When true, item is the primary selection (e.g. stronger highlight)
    */
   isPrimary?: boolean
-  /**
-   * When provided with onDeleteSelected, context menu Delete removes all selected folders
-   */
-  selectedFolderPaths?: Set<string>
-  /**
-   * When provided, context menu Delete calls this with paths to delete (e.g. all selected)
-   */
-  onDeleteSelected?: (paths: string[]) => void
+  onRename?: () => void
+  onOpenInExplorer?: () => void
+  onDelete?: () => void
   /**
    * Status of the media metadata initialization
    */
@@ -54,75 +42,19 @@ export function MediaFolderListItemV2({
   mediaName,
   path,
   onClick,
-  isSelected: isSelectedProp,
+  isSelected = false,
   isPrimary = false,
-  selectedFolderPaths: selectedFolderPathsProp,
-  onDeleteSelected,
+  onRename,
+  onOpenInExplorer,
+  onDelete,
   status,
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
-
-  const { selectedMediaMetadata } = useMediaMetadataStoreState()
-  const { deleteMediaMetadata } = useMediaMetadataActions()
-  const { userConfig, setAndSaveUserConfig } = useConfig()
-  const { renameDialog } = useDialogs()
-  const [, , openRenameForMediaFolder] = renameDialog
-  const selectedFromProvider = useMemo(
-    () => selectedMediaMetadata?.mediaFolderPath === path,
-    [selectedMediaMetadata, path]
-  )
-  const selected =
-    isSelectedProp !== undefined ? isSelectedProp : selectedFromProvider
+  const selected = isSelected
 
   const folderName = useMemo(() => {
     return basename(path)
   }, [path])
-
-  const handleDeleteButtonClick = useCallback(async () => {
-    const traceId = `MediaFolderListItemV2-${nextTraceId()}`;
-    console.log(`[${traceId}] MediaFolderListItemV2: Removing folder ${path}`)
-
-    try {
-      await deleteMediaMetadata(path, { traceId });
-    } catch (error) {
-      console.error(`[${traceId}] Failed to delete media metadata:`, error);
-    }
-
-    const newUserConfig: UserConfig = {
-      ...userConfig,
-      folders: userConfig.folders.filter((folder) => Path.posix(folder) !== path),
-    }
-
-    setAndSaveUserConfig(traceId, newUserConfig)
-  }, [path, userConfig, setAndSaveUserConfig, deleteMediaMetadata])
-
-  const handleDeleteClick = useCallback(() => {
-    if (onDeleteSelected && selectedFolderPathsProp && selectedFolderPathsProp.size > 0) {
-      onDeleteSelected(Array.from(selectedFolderPathsProp))
-    } else {
-      handleDeleteButtonClick()
-    }
-  }, [onDeleteSelected, selectedFolderPathsProp, handleDeleteButtonClick])
-
-  const handleOpenInExplorerButtonClick = useCallback(async () => {
-    try {
-      const result = await openInFileManagerApi(path);
-      if (result.error) {
-        console.error('[OpenInFileManager] Error:', result.error);
-        // You might want to show a toast notification here
-      }
-    } catch (error) {
-      console.error('[OpenInFileManager] Failed to open folder:', error);
-      // You might want to show a toast notification here
-    }
-  }, [path])
-
-  const handleRenameButtonClick = useCallback(() => {
-    openRenameForMediaFolder(path, {
-      title: t('mediaFolder.renameTitle'),
-      description: t('mediaFolder.renameDescription'),
-    })
-  }, [path, openRenameForMediaFolder, t])
 
   return (
     <ContextMenu>
@@ -145,14 +77,16 @@ export function MediaFolderListItemV2({
                 "text-sm font-medium truncate",
                 selected ? "text-sidebar-foreground font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
               )}
-              data-testid="sidebar-folder-name"
+              data-testid="sidebar-folder-title"
             >
               {mediaName}
             </h5>
             <p className={cn(
               "text-xs truncate mt-0.5",
               selected ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60"
-            )}>
+            )}
+              data-testid="sidebar-folder-name"
+            >
               {folderName}
             </p>
           </div>
@@ -163,9 +97,9 @@ export function MediaFolderListItemV2({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent data-testid="folder-context-menu">
-        <ContextMenuItem onClick={handleRenameButtonClick} data-testid="context-menu-rename">{t('mediaFolder.rename')}</ContextMenuItem>
-        <ContextMenuItem onClick={handleOpenInExplorerButtonClick} data-testid="context-menu-open-in-explorer">{t('mediaFolder.openInExplorer')}</ContextMenuItem>
-        <ContextMenuItem onClick={handleDeleteClick} data-testid="context-menu-delete">
+        <ContextMenuItem onClick={onRename} data-testid="context-menu-rename">{t('mediaFolder.rename')}</ContextMenuItem>
+        <ContextMenuItem onClick={onOpenInExplorer} data-testid="context-menu-open-in-explorer">{t('mediaFolder.openInExplorer')}</ContextMenuItem>
+        <ContextMenuItem onClick={onDelete} data-testid="context-menu-delete">
           <div className="flex items-center gap-4">
             <span>{t('mediaFolder.delete')}</span>
             <span className="text-xs text-muted-foreground">{t('mediaFolder.deleteWarning')}</span>

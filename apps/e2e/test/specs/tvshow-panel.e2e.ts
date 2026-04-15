@@ -19,7 +19,7 @@ describe('TvShowPanel', () => {
     it('should display TvShowPanel elements when folder is selected', async function() {
         // Wait for the folder to appear in the sidebar
         console.log(`Waiting for folder "${FOLDER_NAME}" to appear in sidebar...`)
-        const isFolderDisplayed = await Sidebar.waitForFolder(FOLDER_NAME, 60000)
+        const isFolderDisplayed = await Sidebar.waitForFolderName(FOLDER_NAME, 60000)
         expect(isFolderDisplayed).toBe(true)
         console.log(`Folder "${FOLDER_NAME}" is now displayed in sidebar`)
 

@@ -57,14 +57,13 @@ export async function handleGetEpisodes(
     return createErrorResponse("TV show not found. Please ensure the media folder is opened in SMM.");
   }
 
-  const tmdbShow = metadata.tmdbTvShow;
-  const tvdbShow = metadata.tvdbTvShow;
+  const tvShow = metadata.tvShow;
 
-  if (!tmdbShow && !tvdbShow) {
+  if (!tvShow) {
     logger.warn({
       traceId,
       mediaFolderPath: posixPath,
-      reason: "not a TV show - no tmdbTvShow or tvdbTvShow data",
+      reason: "not a TV show - no tvShow data",
       file: "tools/getEpisodes.ts"
     }, "[MCP] get-episodes tool failed: not a TV show folder")
     return createErrorResponse(
@@ -75,7 +74,7 @@ export async function handleGetEpisodes(
   logger.info({
     traceId,
     mediaFolderPath: posixPath,
-    seasonCount: tmdbShow?.seasons?.length ?? tvdbShow?.seasons?.length ?? 0,
+    seasonCount: tvShow.seasons?.length ?? 0,
     mediaFileCount: metadata.mediaFiles?.length || 0,
     file: "tools/getEpisodes.ts"
   }, "[MCP] get-episodes tool: found media metadata, building episode list")
@@ -104,36 +103,18 @@ export async function handleGetEpisodes(
     videoFilePath?: string;
   }> = [];
 
-  if (tmdbShow) {
-    for (const season of tmdbShow.seasons || []) {
-      if (season.episodes && Array.isArray(season.episodes)) {
-        for (const tmdbEpisode of season.episodes) {
-          const key = `${season.season_number}:${tmdbEpisode.episode_number}`;
-          const videoFilePath = episodeToVideoMap.get(key);
-          const platformPath = videoFilePath ? Path.toPlatformPath(videoFilePath) : undefined;
+  for (const season of tvShow.seasons || []) {
+    if (season.episodes && Array.isArray(season.episodes)) {
+      for (const ep of season.episodes) {
+        const key = `${season.season}:${ep.episode}`;
+        const videoFilePath = episodeToVideoMap.get(key);
+        const platformPath = videoFilePath ? Path.toPlatformPath(videoFilePath) : undefined;
 
-          episodes.push({
-            season: season.season_number,
-            episode: tmdbEpisode.episode_number,
-            videoFilePath: platformPath,
-          });
-        }
-      }
-    }
-  } else if (tvdbShow) {
-    for (const season of tvdbShow.seasons || []) {
-      if (season.episodes && Array.isArray(season.episodes)) {
-        for (const tvdbEpisode of season.episodes) {
-          const key = `${season.season}:${tvdbEpisode.episode}`;
-          const videoFilePath = episodeToVideoMap.get(key);
-          const platformPath = videoFilePath ? Path.toPlatformPath(videoFilePath) : undefined;
-
-          episodes.push({
-            season: season.season,
-            episode: tvdbEpisode.episode,
-            videoFilePath: platformPath,
-          });
-        }
+        episodes.push({
+          season: season.season,
+          episode: ep.episode,
+          videoFilePath: platformPath,
+        });
       }
     }
   }
@@ -145,9 +126,8 @@ export async function handleGetEpisodes(
     file: "tools/getEpisodes.ts"
   }, `[MCP] get-episodes tool: found ${episodes.length} episodes (${episodes.filter(e => e.videoFilePath).length} with video files)`)
 
-  const showName = tmdbShow?.name ?? tvdbShow?.name ?? "";
-  const numberOfSeasons =
-    tmdbShow?.number_of_seasons ?? (tvdbShow?.seasons?.length ?? 0);
+  const showName = tvShow.name ?? "";
+  const numberOfSeasons = tvShow.seasons?.length ?? 0;
 
   return createSuccessResponse({
     episodes,

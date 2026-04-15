@@ -3,13 +3,14 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "@/providers/dialog-provider"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { relative, join, basename, dirname, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import type { FileProps } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
 
 interface EpisodeFileProps {
     file: FileProps
@@ -104,9 +105,10 @@ export function EpisodeFile({
     onFileSelectButtonClick,
 }: EpisodeFileProps) {
     const { t } = useTranslation(['components', 'dialogs'])
-    const { selectedMediaMetadata } = useMediaMetadataStoreState();
-    const { refreshMediaMetadata } = useMediaMetadataActions();
-    const { renameDialog } = useDialogs()
+    const { selectedFolder } = useUIMediaFolderStoreState()
+    const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+    const { mutate: fetchMediaMetadata } = useFetchMediaMetadataMutation();
+    const { renameFileDialog } = useDialogs()
 
     const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
     const relativePath = getRelativePath(mediaFolderPath, file.path)
@@ -194,7 +196,7 @@ export function EpisodeFile({
                                 relativePath = file.path
                             }
 
-                            const [openRename] = renameDialog
+                            const [openRename] = renameFileDialog
                             openRename(
                                 async (newRelativePath: string) => {
                                     if (!selectedMediaMetadata?.mediaFolderPath || !file.path) {
@@ -221,7 +223,7 @@ export function EpisodeFile({
                                         })
 
                                         // Refresh media metadata to reflect the rename
-                                        refreshMediaMetadata(selectedMediaMetadata.mediaFolderPath)
+                                        fetchMediaMetadata({ path: selectedMediaMetadata.mediaFolderPath })
 
                                         console.log("File renamed successfully:", file.path, "->", newAbsolutePath)
                                         if (assocRenames.length > 0) {

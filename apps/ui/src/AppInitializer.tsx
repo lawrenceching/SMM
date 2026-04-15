@@ -1,10 +1,6 @@
 import { useMount } from "react-use"
-import localStorages from "./lib/localStorages";
 import { useConfig } from "@/hooks/userConfig";
-import type { UserConfig } from "@core/types";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
-import { useMediaMetadataActions } from "./actions/mediaMetadataActions";
-import { useMediaMetadataStoreActions } from "./stores/mediaMetadataStore";
 import { useRef } from "react";
 import Debug from "debug"
 const debug = Debug("AppInitializer")
@@ -30,8 +26,6 @@ export async function buildMediaMetadata(
  * 
  */
 export function AppInitializer() {
-    const { setMediaMetadatas, setSelectedIndex } = useMediaMetadataStoreActions();
-    const { initializeMediaMetadata } = useMediaMetadataActions();
     const { reload } = useConfig();
     const initialized = useRef(false);
 
@@ -47,20 +41,8 @@ export function AppInitializer() {
 
         debug(`start to initialize app`)
         reload({
-            onSuccess: async (userConfig: UserConfig) => {
-
-                const now = Date.now()
-                const initializedMetadata = await buildMediaMetadata(userConfig.folders, initializeMediaMetadata)
-
-                // Set all initialized metadata in store
-                setMediaMetadatas(initializedMetadata)
-
-                const elapsed = Date.now() - now
-                console.log(`[AppInitializer] took ${elapsed}ms to load all media metadatas`)
-
-                const selectedFolderIndex = localStorages.selectedFolderIndex ?? 0;
-                console.log(`[AppInitializer] initialize app with selected folder index: ${selectedFolderIndex}`)
-                setSelectedIndex(selectedFolderIndex)
+            onSuccess: async () => {
+                // TODO: recover UI state
                 debug(`completed to initialize app`)
             }
         })

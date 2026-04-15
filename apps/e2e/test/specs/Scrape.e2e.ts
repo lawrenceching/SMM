@@ -44,7 +44,7 @@ async function clickFolderByAnyName(names: string[]): Promise<void> {
       return
     }
   }
-  const existing = await Sidebar.getFolders()
+  const existing = await Sidebar.getFolderNames()
   throw new Error(`Cannot find sidebar folder by names: ${deduped.join(', ')}. Existing folders: ${existing.join(', ')}`)
 }
 

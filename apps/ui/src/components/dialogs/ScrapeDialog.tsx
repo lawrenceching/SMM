@@ -28,7 +28,7 @@ import { Path } from "@core/path"
 import { basename, extname, dirname } from "@/lib/path"
 import type { MediaMetadata, TvShowSeasonMetadata } from "@core/types"
 import { imageFileExtensions } from "@/lib/utils"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 
@@ -399,7 +399,7 @@ export function ScrapeDialog({
   const { mutateAsync: scrapePoster } = useScrapePosterMutation()
   const { mutateAsync: scrapeFanart } = useScrapeFanartMutation()
   const { mutateAsync: scrapeThumbnail } = useScrapeThumbnailMutation()
-  const { refreshMediaMetadata } = useMediaMetadataActions()
+  const { mutateAsync: refreshMediaMetadata } = useFetchMediaMetadataMutation()
   const { userConfig } = useConfig()
   const [tasks, setTasks] = useState<Task[]>([])
 
@@ -543,7 +543,7 @@ export function ScrapeDialog({
       // newly scraped files are reflected in mediaMetadata.files
       if (mediaMetadata.mediaFolderPath) {
         try {
-          await refreshMediaMetadata(mediaMetadata.mediaFolderPath, { traceId })
+          await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
         } catch (error) {
           console.error('[ScrapeDialog] Failed to refresh media metadata after scraping:', error)
         }

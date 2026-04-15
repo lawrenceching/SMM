@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { RenameDialogProps } from "./types"
+import type { RenameFolderDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import { basename } from "@/lib/path"
 import type { MediaMetadata } from "@core/types"
@@ -28,7 +28,7 @@ function buildTvShowFolderRenameSuggestions(metadata: MediaMetadata): string[] {
       const suggestion = `${tvShow.name}${year ? ` (${year})` : ""} {${idKey}=${tvShow.id}}`
       suggestions.push(suggestion)
     } catch (error) {
-      console.warn(`[RenameDialog] Failed to get year from air date: ${tvShow.airDate}`, error)
+      console.warn(`[RenameFolderDialog] Failed to get year from air date: ${tvShow.airDate}`, error)
     }
   }
   return suggestions
@@ -44,22 +44,19 @@ function buildMovieFolderRenameSuggestions(metadata: MediaMetadata): string[] {
       const suggestion = `${movie.name}${year ? ` (${year})` : ""} {${idKey}=${movie.id}}`
       suggestions.push(suggestion)
     } catch (error) {
-      console.warn(`[RenameDialog] Failed to get year from air date: ${movie.airDate}`, error)
+      console.warn(`[RenameFolderDialog] Failed to get year from air date: ${movie.airDate}`, error)
     }
   }
   return suggestions
 }
 
-export function RenameDialog({
+export function RenameFolderDialog({
   isOpen,
   onClose,
-  onConfirm,
-  initialValue = "",
+  mediaFolderPath,
   title,
   description,
-  suggestions = [],
-  mediaFolderPath,
-}: RenameDialogProps) {
+}: RenameFolderDialogProps) {
   const { t } = useTranslation(["dialogs", "common"])
   const defaultTitle = title || t("rename.defaultTitle")
   const defaultDescription = description || t("rename.defaultDescription")
@@ -69,31 +66,21 @@ export function RenameDialog({
 
   const metadataQuery = useMediaMetadataQuery(mediaFolderPath || undefined)
 
-  /** Folder rename: initial text is the on-disk folder name (basename), not tvShow/movie display titles. */
-  const effectiveInitialValue = useMemo(() => {
-    if (mediaFolderPath) {
-      return basename(mediaFolderPath) ?? ""
-    }
-    return initialValue ?? ""
-  }, [mediaFolderPath, initialValue])
+  const effectiveInitialValue = useMemo(() => basename(mediaFolderPath) ?? "", [mediaFolderPath])
 
   const effectiveSuggestions = useMemo(() => {
-    if (mediaFolderPath) {
-      const data = metadataQuery.data
-      if (!data) return []
-      return [
-        ...buildTvShowFolderRenameSuggestions(data),
-        ...buildMovieFolderRenameSuggestions(data),
-      ]
-    }
-    return suggestions
-  }, [mediaFolderPath, metadataQuery.data, suggestions])
+    const data = metadataQuery.data
+    if (!data) return []
+    return [
+      ...buildTvShowFolderRenameSuggestions(data),
+      ...buildMovieFolderRenameSuggestions(data),
+    ]
+  }, [metadataQuery.data])
 
   const [newName, setNewName] = useState(effectiveInitialValue)
 
-  const isMutating = Boolean(mediaFolderPath && isRenameFolderPending)
+  const isMutating = isRenameFolderPending
 
-  // Reset when dialog opens or effective initial value changes
   useEffect(() => {
     if (isOpen) {
       setNewName(effectiveInitialValue)
@@ -110,19 +97,13 @@ export function RenameDialog({
     const trimmed = newName.trim()
     if (!trimmed) return
 
-    if (mediaFolderPath) {
-      try {
-        await renameMediaFolderAsync({ mediaFolderPath, newName: trimmed })
-        onClose()
-      } catch (error) {
-        console.error("[RenameDialog] renameMediaFolderAsync failed:", error)
-      }
-      return
+    try {
+      await renameMediaFolderAsync({ mediaFolderPath, newName: trimmed })
+      onClose()
+    } catch (error) {
+      console.error("[RenameFolderDialog] renameMediaFolderAsync failed:", error)
     }
-
-    void onConfirm(trimmed)
-    onClose()
-  }, [newName, mediaFolderPath, onConfirm, onClose, renameMediaFolderAsync])
+  }, [newName, mediaFolderPath, onClose, renameMediaFolderAsync])
 
   const handleCancel = useCallback(() => {
     if (isMutating) return
@@ -190,7 +171,7 @@ export function RenameDialog({
               data-testid="rename-dialog-input"
             />
           </div>
-          {effectiveSuggestions && effectiveSuggestions.length > 0 && (
+          {effectiveSuggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">{t("rename.suggestions")}</span>
               <div className="flex flex-wrap gap-1.5" data-testid="rename-dialog-suggestions">

@@ -4,7 +4,8 @@ export { ConfigDialog } from "./config-dialog"
 export { FilePickerDialog } from "./file-picker-dialog"
 export { DownloadVideoDialog } from "./download-video-dialog"
 export { MediaSearchDialog } from "./media-search-dialog"
-export { RenameDialog } from "./rename-dialog"
+export { RenameFileDialog } from "./rename-file-dialog"
+export { RenameFolderDialog } from "./rename-folder-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
 export { ScrapeDialogV2 } from "./ScrapeDialogV2"
@@ -24,7 +25,8 @@ export type {
   FilePickerDialogProps,
   DownloadVideoDialogProps,
   MediaSearchDialogProps,
-  RenameDialogProps,
+  RenameFileDialogProps,
+  RenameFolderDialogProps,
   OpenFolderDialogProps,
   ScrapeDialogProps,
   TrackProperties,

@@ -3,13 +3,12 @@ import { create } from "zustand"
 import { useShallow } from "zustand/shallow"
 import { Path } from "@core/path"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 
 interface UIMediaFolderStoreState {
   folders: UIMediaFolder[]
   /** Primary selection (e.g. StatusBar, single-select sidebar). Empty string when none. */
   selectedFolder: string
-  /** Multi-select set (e.g. Ctrl+click); paths in POSIX form for consistency. */
+  /** Multi-select set (e.g. Ctrl+click); paths in platform-native form (same as {@link UIMediaFolder.path}). */
   selectedFolders: string[]
 }
 
@@ -36,20 +35,19 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
 
   upsertFolder: (folder) =>
     set((state) => {
-      const path = normalizeMediaFolderPathForQuery(folder.path)
-      const normalized = { ...folder, path }
+      const path = folder.path
       const i = state.folders.findIndex((f) => f.path === path)
       if (i < 0) {
-        return { folders: [...state.folders, normalized] }
+        return { folders: [...state.folders, { ...folder, path }] }
       }
       const next = [...state.folders]
-      next[i] = normalized
+      next[i] = { ...folder, path }
       return { folders: next }
     }),
 
   updateFolderStatus: (path, status) =>
     set((state) => {
-      const p = normalizeMediaFolderPathForQuery(path)
+      const p = path
       const i = state.folders.findIndex((f) => f.path === p)
       if (i < 0) return state
       const next = [...state.folders]
@@ -59,7 +57,7 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
 
   removeFolder: (path) =>
     set((state) => {
-      const p = normalizeMediaFolderPathForQuery(path)
+      const p = path
       return {
         folders: state.folders.filter((f) => f.path !== p),
         selectedFolder: state.selectedFolder === p ? "" : state.selectedFolder,
@@ -69,19 +67,20 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
 
   setSelectedFolder: (path) =>
     set({
-      selectedFolder: path ? normalizeMediaFolderPathForQuery(path) : "",
+      selectedFolder: path ?? "",
+      selectedFolders: path ? [path] : [],
     }),
 
   setSelectedFolders: (paths) =>
     set({
-      selectedFolders: paths.map((x) => normalizeMediaFolderPathForQuery(x)),
+      selectedFolders: [...paths],
     }),
 
   clearSelection: () => set({ selectedFolder: "", selectedFolders: [] }),
 
   applyFolderClick: (rawPath, multi) =>
     set((state) => {
-      const path = normalizeMediaFolderPathForQuery(rawPath)
+      const path = rawPath
       if (!multi) {
         return { selectedFolder: path, selectedFolders: [path] }
       }
@@ -96,7 +95,7 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
 
   selectAllFolderPaths: (rawPaths) =>
     set(() => {
-      const paths = [...new Set(rawPaths.map((p) => normalizeMediaFolderPathForQuery(p)))]
+      const paths = [...new Set(rawPaths)]
       return {
         selectedFolders: paths,
         selectedFolder: paths[0] ?? "",
@@ -107,7 +106,7 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
 /** Pure helper for later integration: map `UserConfig.folders` to {@link UIMediaFolder} rows. */
 export function uiMediaFoldersFromPaths(paths: string[]): UIMediaFolder[] {
   return paths.map((path) => ({
-    path: Path.posix(path),
+    path: Path.toPlatformPath(path),
     status: "idle",
     test: false,
   }))

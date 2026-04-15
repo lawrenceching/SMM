@@ -1,4 +1,3 @@
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
@@ -8,7 +7,8 @@ import { newFileName } from "@/api/newFileName"
 import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { useDialogs } from "@/providers/dialog-provider"
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { nextTraceId } from "@/lib/utils"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
@@ -36,8 +36,12 @@ interface ToolbarOption {
 
 function MoviePanel() {
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
-  const { mediaMetadatas } = useMediaMetadataStoreState()
-  const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
+  const {
+    data: queriedMediaMetadata,
+    isError: isMediaMetadataError,
+    isPending: isMediaMetadataPending,
+    fetchStatus: mediaMetadataFetchStatus,
+  } = useMediaMetadataQuery(selectedFolder || undefined)
 
   const uiFolderRow = useMemo(
     () =>
@@ -51,30 +55,16 @@ function MoviePanel() {
     [folders, selectedFolder],
   )
 
-  const storeMetadataForPath = useMemo(
-    () =>
-      selectedFolder
-        ? mediaMetadatas.find(
-            (m) =>
-              m.mediaFolderPath &&
-              normalizeMediaFolderPathForQuery(m.mediaFolderPath) ===
-                normalizeMediaFolderPathForQuery(selectedFolder),
-          )
-        : undefined,
-    [mediaMetadatas, selectedFolder],
-  )
-
   const rawMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
     if (!selectedFolder?.trim()) return undefined
 
-    const domain = storeMetadataForPath ?? mediaMetadataQuery.data
+    const domain = queriedMediaMetadata
 
     const status: UIMediaMetadata["status"] = (() => {
-      if (storeMetadataForPath?.status) return storeMetadataForPath.status
-      if (mediaMetadataQuery.isError) return "error_loading_metadata"
+      if (isMediaMetadataError) return "error_loading_metadata"
       if (domain) return "ok"
       if (uiFolderRow?.status) return uiFolderRow.status
-      if (mediaMetadataQuery.isPending || mediaMetadataQuery.isFetching) return "initializing"
+      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
       return "loading"
     })()
 
@@ -84,26 +74,47 @@ function MoviePanel() {
         mediaFolderPath: normalizedPath,
         type: "movie-folder",
         status,
-        ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
       } as UIMediaMetadata
     }
 
     return {
       ...domain,
       status,
-      ...(storeMetadataForPath?.test !== undefined ? { test: storeMetadataForPath.test } : {}),
     }
   }, [
     selectedFolder,
-    storeMetadataForPath,
-    mediaMetadataQuery.data,
-    mediaMetadataQuery.isError,
-    mediaMetadataQuery.isPending,
-    mediaMetadataQuery.isFetching,
+    queriedMediaMetadata,
+    isMediaMetadataError,
+    isMediaMetadataPending,
+    mediaMetadataFetchStatus,
     uiFolderRow?.status,
   ])
 
-  const { updateMediaMetadata, refreshMediaMetadata } = useMediaMetadataActions()
+  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation()
+  const updateMediaMetadata = useCallback(
+    async (
+      path: string,
+      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+      options?: { traceId?: string },
+    ) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(path)
+      if (!pathPosix) return
+      const current = (await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })) as UIMediaMetadata
+      const next =
+        typeof updaterOrMetadata === "function"
+          ? updaterOrMetadata(current)
+          : updaterOrMetadata
+      await saveMediaMetadata({ pathPosix, metadata: next, traceId: options?.traceId })
+    },
+    [fetchMediaMetadata, saveMediaMetadata],
+  )
+  const refreshMediaMetadata = useCallback(
+    async (path: string, options?: { traceId?: string }) => {
+      await fetchMediaMetadata({ path, traceId: options?.traceId })
+    },
+    [fetchMediaMetadata],
+  )
   const { mutate: getTvdbMovie } = useGetTvdbMovieMutation()
   const { mutate: getTmdbMovie } = useGetTmdbMovieMutation()
   const { scrapeDialog } = useDialogs()
@@ -192,7 +203,7 @@ function MoviePanel() {
       return
     }
 
-    const movie = mediaMetadata.tmdbMovie
+    const movie = mediaMetadata.movie
     if(!movie) {
       console.error(`[MoviePanel] generateNewFileNames() movie is undefined, skip generation`)
       return
@@ -206,17 +217,22 @@ function MoviePanel() {
         return
       }
 
+      const releaseYear =
+        movie.airDate && movie.airDate.length >= 4
+          ? movie.airDate.slice(0, 4)
+          : ""
+
       const response = await newFileName({
         ruleName: selectedNamingRule,
         type: "movie",
         seasonNumber: 0,
         episodeNumber: 0,
         episodeName: "",
-        tvshowName: movie.title || "",
+        tvshowName: movie.name || "",
         file: videoFile.path,
         tmdbId: movie.id?.toString() || "",
-        releaseYear: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
-        movieName: movie.title || "",
+        releaseYear,
+        movieName: movie.name || "",
       })
 
       const generatedFileRelativePath = response.data;

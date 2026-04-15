@@ -121,13 +121,24 @@ class Sidebar {
         }
     }
 
-    /**
-     * Get names of all folders currently displayed in the sidebar.
-     * Useful for debugging when waitForFolder fails (e.g. wrong expected name in test).
-     */
     async getDisplayedFolderNames(): Promise<string[]> {
         try {
-            const folderNameElements = await $$('[data-testid="sidebar-folder-items"] h5')
+            const folderNameElements = await $$('p[data-testid="sidebar-folder-name]"')
+            const elementsArray = Array.from(folderNameElements)
+            const names = await Promise.all(elementsArray.map((el) => el.getText()))
+            return names
+        } catch {
+            return []
+        }
+    }
+
+    /**
+     * Get titles of all folders currently displayed in the sidebar.
+     * Useful for debugging when waitForFolder fails (e.g. wrong expected name in test).
+     */
+    async getDisplayedFolderTitles(): Promise<string[]> {
+        try {
+            const folderNameElements = await $$('[data-testid="sidebar-folder-items"] h5[data-testid="sidebar-folder-title"]')
             const elementsArray = Array.from(folderNameElements)
             const names = await Promise.all(elementsArray.map((el) => el.getText()))
             return names
@@ -141,10 +152,36 @@ class Sidebar {
      * @param folderName The name of the folder to wait for
      * @param timeout Timeout in milliseconds (default: 30000)
      */
-    async waitForFolder(folderName: string, timeout: number = 30000): Promise<boolean> {
+    async waitForFolderTitle(title: string, timeout: number = 30000): Promise<boolean> {
         try {
             return await browser.waitUntil(async () => {
-                const folders = await this.getFolders()
+                const folders = await this.getFolderTitles()
+                console.log(`Folders in Sidebar: ${folders.join(', ')}`)
+                return folders.includes(title)
+            }, {
+                timeout,
+                timeoutMsg: `Folder "${title}" was not displayed in sidebar after ${timeout}ms`
+            })
+        } catch (err) {
+            const displayed = await this.getDisplayedFolderTitles()
+            const displayedStr = displayed.length > 0
+                ? ` Displayed folders: [${displayed.map((n) => `"${n}"`).join(', ')}].`
+                : ' Sidebar has no folder items (empty or loading).'
+            throw new Error(
+                `Folder "${title}" was not displayed in sidebar after ${timeout}ms.${displayedStr}`
+            )
+        }
+    }
+
+    /**
+     * Wait for a folder to appear in the sidebar
+     * @param folderName The name of the folder to wait for
+     * @param timeout Timeout in milliseconds (default: 30000)
+     */
+    async waitForFolderName(folderName: string, timeout: number = 30000): Promise<boolean> {
+        try {
+            return await browser.waitUntil(async () => {
+                const folders = await this.getFolderNames()
                 console.log(`Folders in Sidebar: ${folders.join(', ')}`)
                 return folders.includes(folderName)
             }, {
@@ -373,7 +410,7 @@ class Sidebar {
      * Right-click on a folder to open its context menu
      * @param folderName The name of the folder to right-click
      */
-    async rightClickFolder(folderName: string): Promise<void> {
+    async rightClickFolderByFolderName(folderName: string): Promise<void> {
         const folderElement = await this.getFolderByName(folderName)
         await folderElement.waitForExist({ timeout: 5000 })
         await folderElement.click({ button: 'right' })
@@ -430,7 +467,17 @@ class Sidebar {
         await openOption.click()
     }
 
-    async getFolders(): Promise<string[]> {
+    async getFolderTitles(): Promise<string[]> {
+        const folderElements = await $$('[data-testid="sidebar-folder-title"]')
+        const titles: string[] = []
+        for (const element of folderElements) {
+            const title = await element.getText()
+            titles.push(title)
+        }
+        return titles
+    }
+
+    async getFolderNames(): Promise<string[]> {
         const folderElements = await $$('[data-testid="sidebar-folder-name"]')
         const names: string[] = []
         for (const element of folderElements) {
@@ -453,7 +500,7 @@ class Sidebar {
      * Does nothing when there are no folders.
      */
     async deleteAllFolders(): Promise<void> {
-        const folders = await this.getFolders()
+        const folders = await this.getFolderNames()
         for (const folder of folders) {
             await this.deleteFolder(folder)
         }

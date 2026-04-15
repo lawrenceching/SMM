@@ -39,11 +39,16 @@ const mockMergeRefreshedMetadata = mergeRefreshedMetadata as ReturnType<typeof v
 const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
   mediaFolderPath: '/media/show1',
   type: 'tvshow-folder',
-  mediaName: 'Show 1',
+  tvShow: {
+    id: '1',
+    name: 'Show 1',
+    database: 'TMDB',
+    seasons: [],
+  },
   files: ['/media/show1/episode1.mp4'],
   mediaFiles: [],
   ...overrides,
-} as MediaMetadata)
+})
 
 const createMockUIMediaMetadata = (overrides?: Partial<UIMediaMetadata>): UIMediaMetadata => ({
   ...createMockMediaMetadata(overrides),
@@ -112,8 +117,13 @@ describe('MediaMetadataRepository', () => {
   describe('refresh', () => {
     it('should refresh metadata by reading and merging', async () => {
       const currentMetadata = createMockUIMediaMetadata({ status: 'ok' })
-      const refreshedMetadata = createMockMediaMetadata({ mediaName: 'Updated Show' })
-      const mergedMetadata = createMockUIMediaMetadata({ mediaName: 'Updated Show', status: 'ok' })
+      const refreshedMetadata = createMockMediaMetadata({
+        tvShow: { id: '1', name: 'Updated Show', database: 'TMDB', seasons: [] },
+      })
+      const mergedMetadata = createMockUIMediaMetadata({
+        tvShow: { id: '1', name: 'Updated Show', database: 'TMDB', seasons: [] },
+        status: 'ok',
+      })
 
       mockReadMediaMetadataV2.mockResolvedValue(refreshedMetadata)
       mockMergeRefreshedMetadata.mockReturnValue(mergedMetadata)
@@ -146,10 +156,22 @@ describe('MediaMetadataRepository', () => {
         ['/media/show1', createMockUIMediaMetadata()],
         ['/media/show2', createMockUIMediaMetadata()],
       ])
-      const refreshed1 = createMockMediaMetadata({ mediaName: 'Show 1 Updated' })
-      const refreshed2 = createMockMediaMetadata({ mediaName: 'Show 2 Updated' })
-      const merged1 = createMockUIMediaMetadata({ mediaName: 'Show 1 Updated' })
-      const merged2 = createMockUIMediaMetadata({ mediaName: 'Show 2 Updated' })
+      const refreshed1 = createMockMediaMetadata({
+        mediaFolderPath: '/media/show1',
+        tvShow: { id: '1', name: 'Show 1 Updated', database: 'TMDB', seasons: [] },
+      })
+      const refreshed2 = createMockMediaMetadata({
+        mediaFolderPath: '/media/show2',
+        tvShow: { id: '2', name: 'Show 2 Updated', database: 'TMDB', seasons: [] },
+      })
+      const merged1 = createMockUIMediaMetadata({
+        mediaFolderPath: '/media/show1',
+        tvShow: { id: '1', name: 'Show 1 Updated', database: 'TMDB', seasons: [] },
+      })
+      const merged2 = createMockUIMediaMetadata({
+        mediaFolderPath: '/media/show2',
+        tvShow: { id: '2', name: 'Show 2 Updated', database: 'TMDB', seasons: [] },
+      })
 
       mockReadMediaMetadataV2
         .mockResolvedValueOnce(refreshed1)
@@ -185,7 +207,7 @@ describe('MediaMetadataRepository', () => {
       expect(result).toBeDefined()
       expect(result.mediaFolderPath).toBe('/media/show1')
       expect(result.type).toBe('tvshow-folder')
-      expect(result.status).toBe('initializing')
+      expect(result.status).toBe('idle')
       expect(result.files).toEqual(['/media/show1/episode1.mp4', '/media/show1/episode2.mp4'])
     })
   })

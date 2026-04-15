@@ -7,14 +7,18 @@ import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { searchTmdb } from "@/api/tmdb"
 import { useConfig } from "@/hooks/userConfig"
-import { useMediaMetadataStoreState } from "@/stores/mediaMetadataStore";
-import { useMediaMetadataActions } from "@/actions/mediaMetadataActions";
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
+import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import { Button } from "./ui/button"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"
 import { useTranslation } from "@/lib/i18n"
 import type { TFunction } from "i18next"
+import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 interface TMDBMovieOverviewProps {
     movie?: TMDBMovie
@@ -55,8 +59,27 @@ function getTMDBImageUrl(path: string | null, size: "w200" | "w300" | "w500" | "
  */
 export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles, isPreviewingForRename }: TMDBMovieOverviewProps) {
     const { t } = useTranslation('components')
-    const { selectedMediaMetadata } = useMediaMetadataStoreState();
-    const { updateMediaMetadata } = useMediaMetadataActions();
+    const { selectedFolder } = useUIMediaFolderStoreState()
+    const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
+    const selectedMediaMetadata: UIMediaMetadata | undefined = mediaMetadataQuery.data
+        ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
+        : undefined
+    const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+    const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation()
+    const updateMediaMetadata = useCallback(async (
+        path: string,
+        updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+        options?: { traceId?: string },
+    ) => {
+        const pathPosix = normalizeMediaFolderPathForQuery(path)
+        if (!pathPosix) return
+        const current: UIMediaMetadata = {
+            ...(await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })),
+            status: "ok",
+        }
+        const next = typeof updaterOrMetadata === "function" ? updaterOrMetadata(current) : updaterOrMetadata
+        await saveMediaMetadata({ pathPosix, metadata: next, traceId: options?.traceId })
+    }, [fetchMediaMetadata, saveMediaMetadata])
     const { scrapeDialog } = useDialogs()
     const [openScrape] = scrapeDialog
     const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])
@@ -121,7 +144,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     }, [searchQuery, userConfig, t])
 
     const handleSelectResult = useCallback(async (result: TMDBMovie) => {
-        if(selectedMediaMetadata?.tmdbMovie?.id === result.id) {
+        if (Number(selectedMediaMetadata?.movie?.id) === result.id) {
             return
         }
 
@@ -138,8 +161,12 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
             const traceId = `tmdb-movie-overview-handleSelectResult-${nextTraceId()}`
             updateMediaMetadata(selectedMediaMetadata.mediaFolderPath, {
                 ...selectedMediaMetadata,
-                tmdbMovie: result,
-                tmdbMediaType: 'movie',
+                movie: {
+                    id: String(result.id),
+                    name: result.title,
+                    database: 'TMDB',
+                    airDate: result.release_date,
+                },
                 type: 'movie-folder',
             }, { traceId })
 
@@ -148,7 +175,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
             console.error("Failed to update media metadata:", error)
             setIsUpdatingMovie(false)
         }
-    }, [selectedMediaMetadata, updateMediaMetadata, t])
+    }, [selectedMediaMetadata, updateMediaMetadata])
     
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
 
@@ -330,7 +357,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.tmdbMovie) return
+                                        if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.movie) return
                                         openScrape({
                                             mediaMetadata: selectedMediaMetadata
                                         })

@@ -26,26 +26,23 @@ export function MovieHeaderV2({
 }: MovieHeaderV2Props) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
-    const movie = selectedMediaMetadata?.tmdbMovie
-    const tvdbMovie = selectedMediaMetadata?.movie
-    const tvdbMovieTitle =
-        (tvdbMovie as any)?.data?.title ??
-        (tvdbMovie as any)?.data?.name ??
-        (tvdbMovie as any)?.title ??
-        (tvdbMovie as any)?.name
+    const movieMeta = selectedMediaMetadata?.movie
     const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
     const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
-    const initialSearchValue = movie?.title ?? tvdbMovieTitle
+    const initialSearchValue = movieMeta?.name ?? ''
 
-    const hasValidTmdbMovie = (movie != null && movie.id != null) || (selectedMediaMetadata?.movie != null)
-    const actionsDisabled = !hasValidTmdbMovie
+    const hasValidMovieMetadata = movieMeta != null
+    const actionsDisabled = !hasValidMovieMetadata
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled
             ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
             : undefined
 
-    const tmdbId = movie?.id
-    const hasTmdbId = tmdbId != null
+    const tmdbId =
+        movieMeta?.database === 'TMDB'
+            ? Number.parseInt(movieMeta.id, 10)
+            : Number.NaN
+    const hasTmdbId = Number.isFinite(tmdbId)
     const tmdbUrl = hasTmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : undefined
 
     return (

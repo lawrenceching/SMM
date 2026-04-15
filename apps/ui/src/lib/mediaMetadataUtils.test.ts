@@ -183,8 +183,12 @@ describe('createInitialMediaMetadata', () => {
       '/media/tvshows/Test Show/episode1.mkv',
     ]
     const mediaMetadataProps = {
-      mediaName: 'Custom Name',
-      tmdbTVShowId: 12345,
+      tvShow: {
+        id: '12345',
+        name: 'Custom Name',
+        database: 'TMDB' as const,
+        seasons: [],
+      },
     }
 
     vi.mocked(listFiles).mockResolvedValue({
@@ -203,8 +207,8 @@ describe('createInitialMediaMetadata', () => {
 
     const result = await createInitialMediaMetadata(folderPath, type, { mediaMetadataProps })
 
-    expect(result.mediaName).toBe('Custom Name')
-    expect(result.tmdbTVShowId).toBe(12345)
+    expect(result.tvShow?.name).toBe('Custom Name')
+    expect(result.tvShow?.id).toBe('12345')
     expect(result.mediaFolderPath).toBe(folderPath)
     expect(result.type).toBe(type)
   })
@@ -302,13 +306,29 @@ describe('findUpdatedMediaMetadata', () => {
 
   it('should return empty array when all items are identical', () => {
     const oldItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Show 2' },
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Show 2', database: 'TMDB' as const, seasons: [] },
+      },
     ]
 
     const newItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Show 2' },
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Show 2', database: 'TMDB' as const, seasons: [] },
+      },
     ]
 
     const result = findUpdatedMediaMetadata(oldItems, newItems)
@@ -316,40 +336,12 @@ describe('findUpdatedMediaMetadata', () => {
     expect(result).toEqual([])
   })
 
-  it('should detect changed mediaName', () => {
-    const oldItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Old Name' },
-    ]
-
-    const newItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'New Name' },
-    ]
-
-    const result = findUpdatedMediaMetadata(oldItems, newItems)
-
-    expect(result).toEqual(newItems)
-  })
-
-  it('should detect changed officalMediaName', () => {
-    const oldItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, officalMediaName: 'Old Official Name' },
-    ]
-
-    const newItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, officalMediaName: 'New Official Name' },
-    ]
-
-    const result = findUpdatedMediaMetadata(oldItems, newItems)
-
-    expect(result).toEqual(newItems)
-  })
-
-  it('should detect changed tmdbTvShow', () => {
+  it('should detect changed tvShow name', () => {
     const oldItems = [
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        tmdbTvShow: { id: 1, name: 'Show 1', original_name: 'Show 1', overview: '', poster_path: null, backdrop_path: null, first_air_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], origin_country: [], number_of_seasons: 0, number_of_episodes: 0, seasons: [], status: '', type: '', in_production: false, last_air_date: '', networks: [], production_companies: [] },
+        tvShow: { id: '1', name: 'Old Name', database: 'TMDB' as const, seasons: [] },
       },
     ]
 
@@ -357,7 +349,7 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        tmdbTvShow: { id: 1, name: 'Show 1', original_name: 'Show 1', overview: 'New overview', poster_path: null, backdrop_path: null, first_air_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], origin_country: [], number_of_seasons: 0, number_of_episodes: 0, seasons: [], status: '', type: '', in_production: false, last_air_date: '', networks: [], production_companies: [] },
+        tvShow: { id: '1', name: 'New Name', database: 'TMDB' as const, seasons: [] },
       },
     ]
 
@@ -366,12 +358,39 @@ describe('findUpdatedMediaMetadata', () => {
     expect(result).toEqual(newItems)
   })
 
-  it('should detect changed tmdbMovie', () => {
+  it('should detect changed tvShow seasons', () => {
+    const oldItems = [
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+    ]
+
+    const newItems = [
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: {
+          id: '1',
+          name: 'Show 1',
+          database: 'TMDB' as const,
+          seasons: [{ season: 1, name: 'Season 1', episodes: [] }],
+        },
+      },
+    ]
+
+    const result = findUpdatedMediaMetadata(oldItems, newItems)
+
+    expect(result).toEqual(newItems)
+  })
+
+  it('should detect changed movie metadata', () => {
     const oldItems = [
       {
         mediaFolderPath: '/media/movie1',
         type: 'movie-folder' as const,
-        tmdbMovie: { id: 1, title: 'Movie 1', original_title: 'Movie 1', overview: '', poster_path: null, backdrop_path: null, release_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], adult: false, video: false },
+        movie: { id: '1', name: 'Movie 1', database: 'TMDB' as const },
       },
     ]
 
@@ -379,7 +398,7 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/movie1',
         type: 'movie-folder' as const,
-        tmdbMovie: { id: 1, title: 'Movie 1', original_title: 'Movie 1', overview: 'New overview', poster_path: null, backdrop_path: null, release_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], adult: false, video: false },
+        movie: { id: '1', name: 'Movie 1 Updated', database: 'TMDB' as const },
       },
     ]
 
@@ -413,12 +432,12 @@ describe('findUpdatedMediaMetadata', () => {
     expect(result).toEqual(newItems)
   })
 
-  it('should detect changed seasons', () => {
+  it('should detect changed files list', () => {
     const oldItems = [
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        seasons: [],
+        files: ['/media/show1/a.mkv'],
       },
     ]
 
@@ -426,29 +445,7 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        seasons: [{ season: 1, name: 'Season 1', episodes: [] }],
-      },
-    ]
-
-    const result = findUpdatedMediaMetadata(oldItems, newItems)
-
-    expect(result).toEqual(newItems)
-  })
-
-  it('should detect changed poster', () => {
-    const oldItems = [
-      {
-        mediaFolderPath: '/media/show1',
-        type: 'tvshow-folder' as const,
-        poster: 'data:image/jpeg;base64,oldposter',
-      },
-    ]
-
-    const newItems = [
-      {
-        mediaFolderPath: '/media/show1',
-        type: 'tvshow-folder' as const,
-        poster: 'data:image/jpeg;base64,newposter',
+        files: ['/media/show1/b.mkv'],
       },
     ]
 
@@ -524,31 +521,20 @@ describe('findUpdatedMediaMetadata', () => {
 
   it('should return multiple changed items', () => {
     const oldItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Show 2' },
-      { mediaFolderPath: '/media/show3', type: 'tvshow-folder' as const, mediaName: 'Show 3' },
-    ]
-
-    const newItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Changed Show 2' },
-      { mediaFolderPath: '/media/show3', type: 'tvshow-folder' as const, mediaName: 'Changed Show 3' },
-    ]
-
-    const result = findUpdatedMediaMetadata(oldItems, newItems)
-
-    expect(result).toEqual([
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Changed Show 2' },
-      { mediaFolderPath: '/media/show3', type: 'tvshow-folder' as const, mediaName: 'Changed Show 3' },
-    ])
-  })
-
-  it('should detect changes when tmdbTvShow changes from undefined to object', () => {
-    const oldItems = [
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        tmdbTvShow: undefined,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show3',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '3', name: 'Show 3', database: 'TMDB' as const, seasons: [] },
       },
     ]
 
@@ -556,7 +542,49 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/show1',
         type: 'tvshow-folder' as const,
-        tmdbTvShow: { id: 1, name: 'Show 1', original_name: 'Show 1', overview: '', poster_path: null, backdrop_path: null, first_air_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], origin_country: [], number_of_seasons: 0, number_of_episodes: 0, seasons: [], status: '', type: '', in_production: false, last_air_date: '', networks: [], production_companies: [] },
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Changed Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show3',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '3', name: 'Changed Show 3', database: 'TMDB' as const, seasons: [] },
+      },
+    ]
+
+    const result = findUpdatedMediaMetadata(oldItems, newItems)
+
+    expect(result).toEqual([
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Changed Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show3',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '3', name: 'Changed Show 3', database: 'TMDB' as const, seasons: [] },
+      },
+    ])
+  })
+
+  it('should detect changes when tvShow changes from undefined to object', () => {
+    const oldItems = [
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+      },
+    ]
+
+    const newItems = [
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
       },
     ]
 
@@ -565,12 +593,11 @@ describe('findUpdatedMediaMetadata', () => {
     expect(result).toEqual(newItems)
   })
 
-  it('should detect changes when tmdbMovie changes from undefined to object', () => {
+  it('should detect changes when movie changes from undefined to object', () => {
     const oldItems = [
       {
         mediaFolderPath: '/media/movie1',
         type: 'movie-folder' as const,
-        tmdbMovie: undefined,
       },
     ]
 
@@ -578,7 +605,7 @@ describe('findUpdatedMediaMetadata', () => {
       {
         mediaFolderPath: '/media/movie1',
         type: 'movie-folder' as const,
-        tmdbMovie: { id: 1, title: 'Movie 1', original_title: 'Movie 1', overview: '', poster_path: null, backdrop_path: null, release_date: '', vote_average: 0, vote_count: 0, popularity: 0, genre_ids: [], adult: false, video: false },
+        movie: { id: '1', name: 'Movie 1', database: 'TMDB' as const },
       },
     ]
 
@@ -609,52 +636,66 @@ describe('findUpdatedMediaMetadata', () => {
     expect(result).toEqual(newItems)
   })
 
-  it('should not detect changes when only unrelated fields change', () => {
-    const oldItems = [
-      {
-        mediaFolderPath: '/media/show1',
-        type: 'tvshow-folder' as const,
-        mediaName: 'Show 1',
-        files: ['/media/show1/old.mkv'],
-        tmdbTVShowId: 123,
-      },
-    ]
-
-    const newItems = [
-      {
-        mediaFolderPath: '/media/show1',
-        type: 'tvshow-folder' as const,
-        mediaName: 'Show 1',
-        files: ['/media/show1/new.mkv'],
-        tmdbTVShowId: 456,
-      },
-    ]
-
-    const result = findUpdatedMediaMetadata(oldItems, newItems)
-
-    expect(result).toEqual([])
-  })
-
   it('should handle mixed scenarios with some items changed and some unchanged', () => {
     const oldItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Show 2' },
-      { mediaFolderPath: '/media/show3', type: 'tvshow-folder' as const, mediaName: 'Show 3' },
-      { mediaFolderPath: '/media/show4', type: 'tvshow-folder' as const, mediaName: 'Show 4' },
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show3',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '3', name: 'Show 3', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show4',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '4', name: 'Show 4', database: 'TMDB' as const, seasons: [] },
+      },
     ]
 
     const newItems = [
-      { mediaFolderPath: '/media/show1', type: 'tvshow-folder' as const, mediaName: 'Show 1' },
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Changed Show 2' },
-      { mediaFolderPath: '/media/show3', type: 'tvshow-folder' as const, mediaName: 'Show 3' },
-      { mediaFolderPath: '/media/show5', type: 'tvshow-folder' as const, mediaName: 'Show 5' },
+      {
+        mediaFolderPath: '/media/show1',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '1', name: 'Show 1', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Changed Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show3',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '3', name: 'Show 3', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show5',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '5', name: 'Show 5', database: 'TMDB' as const, seasons: [] },
+      },
     ]
 
     const result = findUpdatedMediaMetadata(oldItems, newItems)
 
     expect(result).toEqual([
-      { mediaFolderPath: '/media/show2', type: 'tvshow-folder' as const, mediaName: 'Changed Show 2' },
-      { mediaFolderPath: '/media/show5', type: 'tvshow-folder' as const, mediaName: 'Show 5' },
+      {
+        mediaFolderPath: '/media/show2',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '2', name: 'Changed Show 2', database: 'TMDB' as const, seasons: [] },
+      },
+      {
+        mediaFolderPath: '/media/show5',
+        type: 'tvshow-folder' as const,
+        tvShow: { id: '5', name: 'Show 5', database: 'TMDB' as const, seasons: [] },
+      },
     ])
   })
 })

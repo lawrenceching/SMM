@@ -1,7 +1,23 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MovieHeaderV2 } from './MovieHeaderV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+
+function renderWithQueryClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  })
+}
 
 vi.mock('./TMDBSearchbox', () => ({
   TMDBSearchbox: vi.fn(() => (
@@ -44,7 +60,7 @@ describe('MovieHeaderV2', () => {
 
   describe('"更多" dropdown / "在TMDB中打开"', () => {
     it('disables the more menu button when tmdb id is not available (no tmdbMovie)', () => {
-      render(
+      renderWithQueryClient(
         <MovieHeaderV2
           {...defaultProps}
           selectedMediaMetadata={{
@@ -58,8 +74,8 @@ describe('MovieHeaderV2', () => {
       expect(moreButton).toBeDisabled()
     })
 
-    it('disables the more menu button when tmdbMovie exists but has no id', () => {
-      render(
+    it('disables the more menu button when movie has no usable TMDB id', () => {
+      renderWithQueryClient(
         <MovieHeaderV2
           {...defaultProps}
           selectedMediaMetadata={
@@ -67,8 +83,8 @@ describe('MovieHeaderV2', () => {
               status: 'ok',
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
-              tmdbMovie: { title: 'Movie', id: undefined as unknown as number },
-            } as unknown as UIMediaMetadata
+              movie: { name: 'Movie', id: '', database: 'TMDB' },
+            } as UIMediaMetadata
           }
         />
       )
@@ -76,8 +92,8 @@ describe('MovieHeaderV2', () => {
       expect(moreButton).toBeDisabled()
     })
 
-    it('enables the more menu button when tmdbMovie.id is available', () => {
-      render(
+    it('enables the more menu button when movie has TMDB id', () => {
+      renderWithQueryClient(
         <MovieHeaderV2
           {...defaultProps}
           selectedMediaMetadata={
@@ -85,8 +101,8 @@ describe('MovieHeaderV2', () => {
               status: 'ok',
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
-              tmdbMovie: { id: 789, title: 'Test Movie' },
-            } as unknown as UIMediaMetadata
+              movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
+            } as UIMediaMetadata
           }
         />
       )

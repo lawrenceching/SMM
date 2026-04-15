@@ -12,13 +12,8 @@ const logger = pino()
 export async function newMediaMetadata(folderPath: Path) {
     const metadata: MediaMetadata = {
         mediaFolderPath: folderPath.abs(),
-        mediaName: '',
-        officalMediaName: '',
         files: [],
         mediaFiles: [],
-        poster: undefined,
-        tmdbTVShowId: undefined,
-        seasons: undefined,
     }
 
     const files = await listFiles(folderPath, true)

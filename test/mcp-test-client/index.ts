@@ -2,7 +2,7 @@
 
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 
-const DEFAULT_MCP_URL = "http://localhost:3000/mcp";
+const DEFAULT_MCP_URL = "http://localhost:30001/mcp";
 
 interface Args {
   tool: string | null;
@@ -183,14 +183,28 @@ async function main(): Promise<void> {
     process.exit(0);
   } catch (error) {
     if (error instanceof Error) {
+      if (error.message.includes("Unable to connect")) {
+        console.error(`Error: Unable to connect to MCP server at ${mcpUrl}`);
+        console.error(`Original error: ${error.message}`);
+        console.error(
+          "Tip: Set SMM_MCP_URL to your MCP endpoint, e.g. SMM_MCP_URL=http://localhost:30001/mcp",
+        );
+        process.exit(1);
+      }
       if (error.message.includes("ECONNREFUSED")) {
         console.error(`Error: Cannot connect to MCP server at ${mcpUrl}`);
         console.error("Make sure the SMM MCP server is running.");
+        console.error(
+          "Tip: Set SMM_MCP_URL to your MCP endpoint, e.g. SMM_MCP_URL=http://localhost:30001/mcp",
+        );
         process.exit(1);
       }
       if (error.message.includes("fetch") || error.message.includes("network")) {
         console.error(`Error: Network error connecting to MCP server at ${mcpUrl}`);
         console.error(error.message);
+        console.error(
+          "Tip: Set SMM_MCP_URL to your MCP endpoint, e.g. SMM_MCP_URL=http://localhost:30001/mcp",
+        );
         process.exit(1);
       }
       console.error(`Error: ${error.message}`);

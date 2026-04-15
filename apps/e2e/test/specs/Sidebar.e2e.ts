@@ -322,7 +322,7 @@ describe('Sidebar', () => {
         }
 
         await browser.waitUntil(async () => {
-            const displayedFolders = await Sidebar.getFolders()
+            const displayedFolders = await Sidebar.getFolderNames()
             console.log('Folders displayed in sidebar:' + JSON.stringify(displayedFolders))
             return 3 === displayedFolders.length
         }, { timeout: 60000, interval: 1000 })

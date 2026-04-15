@@ -7,7 +7,7 @@ import os from 'os';
 
 vi.mock('@/utils/config');
 
-const TMDB_HOST = 'https://tmdb-mcp-server.imlc.me';
+const TMDB_HOST = 'https://tmdb-mcp-server.imlc.me/api/tmdb';
 let testDir: string;
 let originalBun: typeof globalThis.Bun;
 
@@ -54,10 +54,8 @@ describe('Tmdb (real fetch)', () => {
   it('getMovie returns movie for id 1084244', async () => {
     const result = await getMovie(1084244);
 
-    expect(result.error).toBeUndefined();
-    expect(result.data).toBeDefined();
-    expect(result.data?.id).toBe(1084244);
-    expect(result.data).toHaveProperty('title');
+    expect(result.id).toBe(1084244);
+    expect(result).toHaveProperty('title');
   }, 10000);
 
   it('search returns results for keyword "古见同学"', async () => {

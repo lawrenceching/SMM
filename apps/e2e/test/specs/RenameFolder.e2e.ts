@@ -24,6 +24,9 @@ describe('Rename Media Folder', () => {
             openBrowserPage: true,
             resetUserConfig: true,
         })
+
+        await browser.refresh();
+        await browser.pause(2000);
     })
 
     afterEach(async () => {
@@ -47,13 +50,13 @@ describe('Rename Media Folder', () => {
             await delay(1 * 1000)
         }
 
-        await Sidebar.waitForFolder(folder1.translations?.title?.['en-US']!, 5000)
+        await Sidebar.waitForFolderTitle(folder1.translations?.title?.['en-US']!, 5000)
 
         if(env.slowdown) {
             await delay(1 * 1000)
         }
 
-        browser.pause(4000)
+        await browser.pause(2000)
         expect(await TvShowPanelCO.toString()).toBe(`Specials
 S00E01 - - - -
 Season 1
@@ -70,7 +73,7 @@ S01E10 - - - -
 S01E11 - - - -
 S01E12 - - - -`)
 
-        await Sidebar.rightClickFolder(folder1.translations?.title?.['en-US']!);
+        await Sidebar.rightClickFolderByFolderName(folder1.folderName);
 
         if(env.slowdown) {
             await delay(1 * 1000)
@@ -101,6 +104,8 @@ S01E12 - - - -`)
         await RenameDialog.clickConfirm()
 
         await RenameDialog.waitForClosed()
+
+        browser.pause(2000)
 
         expect(await TvShowPanelCO.toString()).toBe(`Specials
 S00E01 - - - -
@@ -155,7 +160,7 @@ S01E12 - - - -`)
             await delay(1 * 1000)
         }
 
-        await Sidebar.waitForFolder(folder5.translations?.title?.['en-US']!, 5000)
+        await Sidebar.waitForFolderTitle(folder5.translations?.title?.['en-US']!, 5000)
 
         if(env.slowdown) {
             await delay(1 * 1000)
@@ -166,7 +171,7 @@ S01E12 - - - -`)
 Video
 The Dark Knight [1080P].mkv`)
 
-        await Sidebar.rightClickFolder(folder5.translations?.title?.['en-US']!);
+        await Sidebar.rightClickFolderByFolderName(folder.folderName);
 
         if(env.slowdown) {
             await delay(1 * 1000)
@@ -230,13 +235,13 @@ The Dark Knight [1080P].mkv`)
             type: 'music',
         } satisfies TestFolder, 'e2eTest:RnameMusicFolder')
 
-        await Sidebar.waitForFolder(folder.folderName, 5000)
+        await Sidebar.waitForFolderName(folder.folderName, 5000)
 
         if(env.slowdown) {
             await delay(10 * 1000)
         }
 
-        await Sidebar.rightClickFolder(folder5.translations?.title?.['en-US']!);
+        await Sidebar.rightClickFolderByFolderName(folder.folderName);
 
         if(env.slowdown) {
             await delay(1 * 1000)
@@ -269,7 +274,7 @@ The Dark Knight [1080P].mkv`)
 
         await RenameDialog.waitForClosed()
 
-        await Sidebar.waitForFolder(newFolderName, 5000)
+        await Sidebar.waitForFolderName(newFolderName, 5000)
 
         await expectMediaMetadataToBe(folder.path!.replace(folder.folderName, newFolderName), (obj) => {
             const mm = obj as MediaMetadata;

@@ -8,7 +8,8 @@ import {
   FilePickerDialog,
   DownloadVideoDialog,
   MediaSearchDialog,
-  RenameDialog,
+  RenameFileDialog,
+  RenameFolderDialog,
   OpenFolderDialog,
   ScrapeDialog,
   ScrapeDialogV2,
@@ -78,10 +79,13 @@ interface DialogContextValue {
     openMediaSearch: (onSelect?: (tmdbId: number) => void) => void,
     closeMediaSearch: () => void
   ]
-  renameDialog: [
-    openRename: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
-    closeRename: () => void,
-    openRenameForMediaFolder: (mediaFolderPath: string, options?: { title?: string; description?: string }) => void
+  renameFileDialog: [
+    openRenameFile: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
+    closeRenameFile: () => void
+  ]
+  renameFolderDialog: [
+    openRenameFolder: (mediaFolderPath: string, options?: { title?: string; description?: string }) => void,
+    closeRenameFolder: () => void
   ]
   scrapeDialog: [
     openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => void,
@@ -143,11 +147,15 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
   const [mediaSearchOnSelect, setMediaSearchOnSelect] = useState<((tmdbId: number) => void) | null>(null)
 
-  // Rename dialog state
-  const [isRenameOpen, setIsRenameOpen] = useState(false)
-  const [renameOnConfirm, setRenameOnConfirm] = useState<((newName: string) => void) | null>(null)
-  const [renameOptions, setRenameOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
-  const [renameMediaFolderPath, setRenameMediaFolderPath] = useState<string | null>(null)
+  // Rename file dialog state
+  const [isRenameFileOpen, setIsRenameFileOpen] = useState(false)
+  const [renameFileOnConfirm, setRenameFileOnConfirm] = useState<((newName: string) => void) | null>(null)
+  const [renameFileOptions, setRenameFileOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
+
+  // Rename folder dialog state
+  const [isRenameFolderOpen, setIsRenameFolderOpen] = useState(false)
+  const [renameFolderPath, setRenameFolderPath] = useState<string | null>(null)
+  const [renameFolderOptions, setRenameFolderOptions] = useState<{ title?: string; description?: string }>({})
 
   // Scrape dialog state
   const [isScrapeOpen, setIsScrapeOpen] = useState(false)
@@ -284,38 +292,43 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openRename = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => {
-    setRenameMediaFolderPath(null)
-    setRenameOnConfirm(() => onConfirm)
-    setRenameOptions(options || {})
-    setIsRenameOpen(true)
+  const openRenameFile = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => {
+    setRenameFileOnConfirm(() => onConfirm)
+    setRenameFileOptions(options || {})
+    setIsRenameFileOpen(true)
   }, [])
 
-  const openRenameForMediaFolder = useCallback(
+  const openRenameFolder = useCallback(
     (mediaFolderPath: string, options?: { title?: string; description?: string }) => {
-      setRenameMediaFolderPath(mediaFolderPath)
-      setRenameOnConfirm(null)
-      setRenameOptions(options || {})
-      setIsRenameOpen(true)
+      setRenameFolderPath(mediaFolderPath)
+      setRenameFolderOptions(options || {})
+      setIsRenameFolderOpen(true)
     },
     []
   )
 
-  const closeRename = useCallback(() => {
-    setIsRenameOpen(false)
+  const closeRenameFile = useCallback(() => {
+    setIsRenameFileOpen(false)
     setTimeout(() => {
-      setRenameOnConfirm(null)
-      setRenameOptions({})
-      setRenameMediaFolderPath(null)
+      setRenameFileOnConfirm(null)
+      setRenameFileOptions({})
     }, 200)
   }, [])
 
-  const handleRenameConfirm = useCallback(
+  const closeRenameFolder = useCallback(() => {
+    setIsRenameFolderOpen(false)
+    setTimeout(() => {
+      setRenameFolderPath(null)
+      setRenameFolderOptions({})
+    }, 200)
+  }, [])
+
+  const handleRenameFileConfirm = useCallback(
     (newName: string) => {
-      renameOnConfirm?.(newName)
-      closeRename()
+      renameFileOnConfirm?.(newName)
+      closeRenameFile()
     },
-    [renameOnConfirm, closeRename]
+    [renameFileOnConfirm, closeRenameFile]
   )
 
   const openScrape = useCallback((options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => {
@@ -378,7 +391,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
     filePickerDialog: [openFilePicker, closeFilePicker],
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
-    renameDialog: [openRename, closeRename, openRenameForMediaFolder],
+    renameFileDialog: [openRenameFile, closeRenameFile],
+    renameFolderDialog: [openRenameFolder, closeRenameFolder],
     scrapeDialog: [openScrape, closeScrape],
     filePropertyDialog: [openFileProperty, closeFileProperty],
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
@@ -431,16 +445,24 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onClose={closeMediaSearch}
         onSelect={mediaSearchOnSelect || undefined}
       />
-      <RenameDialog
-        isOpen={isRenameOpen}
-        onClose={closeRename}
-        onConfirm={handleRenameConfirm}
-        initialValue={renameOptions.initialValue}
-        title={renameOptions.title}
-        description={renameOptions.description}
-        suggestions={renameOptions.suggestions}
-        mediaFolderPath={renameMediaFolderPath ?? undefined}
+      <RenameFileDialog
+        isOpen={isRenameFileOpen}
+        onClose={closeRenameFile}
+        onConfirm={handleRenameFileConfirm}
+        initialValue={renameFileOptions.initialValue}
+        title={renameFileOptions.title}
+        description={renameFileOptions.description}
+        suggestions={renameFileOptions.suggestions}
       />
+      {renameFolderPath && (
+        <RenameFolderDialog
+          isOpen={isRenameFolderOpen}
+          onClose={closeRenameFolder}
+          mediaFolderPath={renameFolderPath}
+          title={renameFolderOptions.title}
+          description={renameFolderOptions.description}
+        />
+      )}
       {useScrapeDialogV2 ? (
         <ScrapeDialogV2
           isOpen={isScrapeOpen}

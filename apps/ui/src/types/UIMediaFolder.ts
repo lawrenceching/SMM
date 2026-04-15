@@ -13,8 +13,11 @@ export type UIMediaFolderStatus =
   | "updating"
 
 export interface UIMediaFolder {
+  /**
+   * The path in platform-specific format
+   */
   path: string
   status: UIMediaFolderStatus
   /** Test-only folder; may be handled differently in UI logic. */
-  test: boolean
+  test?: boolean
 }

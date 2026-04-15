@@ -96,17 +96,17 @@ Please **ensure** you call "ask-for-confirmation" to get user confirmation befor
     }
 
     // 4. Check episodeNumber and seasonNumber is valid
-    const tmdbTvShow = mediaMetadata.tmdbTvShow;
-    if (!tmdbTvShow) {
-      return { error: `Error Reason: TMDB TV show data is not available for this media folder` };
+    const tvShow = mediaMetadata.tvShow;
+    if (!tvShow) {
+      return { error: `Error Reason: TV show data is not available for this media folder` };
     }
 
-    const season = tmdbTvShow.seasons?.find(s => s.season_number === seasonNumber);
+    const season = tvShow.seasons?.find(s => s.season === seasonNumber);
     if (!season) {
-      return { error: `Error Reason: season ${seasonNumber} does not exist in TMDB TV show` };
+      return { error: `Error Reason: season ${seasonNumber} does not exist in TV show metadata` };
     }
 
-    const episode = season.episodes?.find(e => e.episode_number === episodeNumber);
+    const episode = season.episodes?.find(e => e.episode === episodeNumber);
     if (!episode) {
       return { error: `Error Reason: episode ${episodeNumber} does not exist in season ${seasonNumber}` };
     }

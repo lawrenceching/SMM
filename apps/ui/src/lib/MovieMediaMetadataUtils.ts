@@ -8,7 +8,7 @@ export function findMediaFilesForMovieMediaMetadata(mediaMetadata: MediaMetadata
         return mediaMetadata
     }
 
-    if(mediaMetadata.tmdbMediaType !== 'movie') {
+    if(mediaMetadata.type !== 'movie-folder') {
         console.log('[findMediaFilesForMovieMediaMetadata] Media metadata is not a movie, skipping post processing', {
             mediaFolderPath: mediaMetadata.mediaFolderPath,
         });

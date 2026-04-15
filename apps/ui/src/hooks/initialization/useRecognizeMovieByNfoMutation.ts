@@ -1,9 +1,8 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { Path } from "@core/path";
 import { readFile } from "@/api/readFile";
 import { parseMovieNfo } from "@/lib/nfo";
 import { useMutation } from "@tanstack/react-query";
-import type { MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation";
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation";
 
@@ -13,7 +12,7 @@ export function useRecognizeMovieByNfoMutation() {
 
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: UIMediaMetadata
+            mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
         }): Promise<MovieMediaMetadata | undefined> => {
             const m = _variables.mediaMetadata;

@@ -288,7 +288,13 @@ export const TmdbIdVariable: RenameRuleVariable = {
   description: 'The TMDB ID of the media',
   example: '123456, 123457, 123458, ...',
   fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
-    return mediaMetadata.tmdbTVShowId?.toString() || '0';
+    if (mediaMetadata.type === 'movie-folder') {
+      return mediaMetadata.movie?.id ?? '0';
+    }
+    if (mediaMetadata.type === 'tvshow-folder') {
+      return mediaMetadata.tvShow?.id ?? '0';
+    }
+    return '0';
   }
 }
 
@@ -524,17 +530,6 @@ export interface TVDBMovie {
 }
 
 export interface MediaMetadata {
-  /**
-   * The offical title or name.
-   * @deprecated use tmdbTvShow.name instead
-   */
-  officalMediaName?: string,
-
-  /**
-   * The name of media, it's not realiable, it may come from folder name, AI guessed name, or user input name
-   * @deprecated use tmdbTvShow.name instead
-   */
-  mediaName?: string,
 
   /**
    * The absolute path of media folder, in POSIX format
@@ -551,23 +546,6 @@ export interface MediaMetadata {
    */
   files?: string[] | null | undefined,
 
-  // TODO: change tmdbTVShowId to tmdbId, need to consider the backward compatibility as user may already have metadata saved with tmdbTVShowId
-  /**
-   * @deprecated use tmdbTvShow.id instead
-   */
-  tmdbTVShowId?: number,
-
-  /**
-   * @deprecated use tmdbTvShow.seasons instead
-   */
-  seasons?: TvShowSeasonMetadata[],
-
-  /**
-   * The BASE64 encoded image data 
-   * @deprecated use tmdbTvShow.poster_path instead
-   */
-  poster?: string,
-
   /**
    * Stores the recognized media files
    * 
@@ -577,21 +555,7 @@ export interface MediaMetadata {
    *   seasonNumber and episodeNumber properties should be ignored no matter what values they are.
    */
   mediaFiles?: MediaFileMetadata[],
-  /**
-   * @deprecated
-   */
-  tmdbMediaType?: TMDBMediaType,
   type?: "music-folder" | "tvshow-folder" | "movie-folder"
-
-  /**
-   * @deprecated use tvShow instead
-   */
-  // tmdbTvShow?: TMDBTVShowDetails,
-  /**
-   * @deprecated use movie instead
-   */
-  tmdbMovie?: TMDBMovie,
-
   tvShow?: TvShowMediaMetadata,
   movie?: MovieMediaMetadata,
 }
@@ -1062,11 +1026,11 @@ export interface RenameFilesInMediaMetadataResponseBody {
 
 export interface FolderRenameRequestBody {
   /**
-   * Absolute path of source folder, in POSIX format
+   * Absolute path of source folder
    */
   from: string;
   /**
-   * Absolute path of destination folder, in POSIX format
+   * Absolute path of destination folder
    */
   to: string;
 }

@@ -1,9 +1,8 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { useGetTmdbTvShowMutation } from "../useGetTmdbTvShowMutation";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import { basename } from "@/lib/path";
 import { useMutation } from "@tanstack/react-query";
-import type { PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
+import type { MediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
 
 export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {
 
@@ -11,7 +10,7 @@ export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {
     
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: UIMediaMetadata
+            mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
         }): Promise<TvShowMediaMetadata | undefined> => {
             const m = _variables.mediaMetadata;

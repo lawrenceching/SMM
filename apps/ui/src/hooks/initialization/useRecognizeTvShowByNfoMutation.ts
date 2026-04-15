@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 import { Path } from "@core/path";
 import { readFile } from "@/api/readFile";
 import { parseTvShowNfo } from "@/lib/nfo";
@@ -15,7 +15,7 @@ export function useRecognizeTvShowByNfoMutation() {
  
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: UIMediaMetadata
+            mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
         }): Promise<TvShowMediaMetadata | undefined> => {
 

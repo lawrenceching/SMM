@@ -58,6 +58,7 @@
 - Shadcn UI (Radix UI)
 - Vite 7
 - Zustand (状态管理)
+- TanStack Query
 - Socket.IO Client
 - AI SDK (@ai-sdk/react, @assistant-ui/react)
 
@@ -184,6 +185,14 @@ pnpm ci               # 构建 + 测试 + 类型检查
 - 后端使用 `i18next` + `i18next-fs-backend`
 - 支持语言: English, 简体中文, 繁体中文(香港), 繁体中文(台湾)
 
+
+## 代码架构
+
+### apps/ui
+
+**apps/ui/src/hooks/userConfig/** 该目录提供了基于 TanStack Query 的读取和写入应用配置的方法, 如 `useConfig.ts`
+**pps/ui/src/stores/uiMediaFolderStore.ts** 基于 Zustand 的全局状态类. 接口 `UIMediaFolder` 用于表示前端的多媒体目录. 该store是前端项目的核心状态, 被Sidebar, Statusbar, TvShowPanel, MoviePanle 和 MoviePanel 等主要组件依赖.
+**apps/ui/src/hooks/mediaMetadata/** 基于 TanStack Query 的 MediaMetadata 读取和写入方法
 
 ## 端到端测试
 
