@@ -5,10 +5,14 @@ import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import Menu from '../../componentobjects/Menu'
 import Sidebar from '../../componentobjects/Sidebar'
-import { createBeforeHook } from '../../lib/testbed'
+import { cleanup, setup } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
+import { openConfigDialog } from 'test/actions/openConfigDialog'
+import ConfigDialog from 'test/componentobjects/ConfigDialog'
+import { env } from 'node:process'
+import { setPrimaryDatabaseAndPreferLanguage } from 'test/actions/setPrimaryDatabaseAndPreferLanguage'
+import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
-const __filename = fileURLToPath(import.meta.url)
 const slowdown = process.env.SLOWDOWN === 'true'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
@@ -16,13 +20,34 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('Media Folder Initialization', () => {
 
-    beforeEach(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
+    beforeEach(async () => {
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            openBrowserPage: true,
+            resetUserConfig: true,
+        })  
+
+        await openConfigDialog(async () => {
+            expect(await ConfigDialog.isDisplayed()).toBe(true)
+            if (env.slowdown) {
+                await delay(1000)
+            }
+
+            await setPrimaryDatabaseAndPreferLanguage('TMDB', 'zh-CN')
+        })
+    })
 
     afterEach(async () => {
-        if (fs.existsSync(tmpMediaRoot)) {
-            fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
-            console.log('Removed tmp media folder:', tmpMediaRoot)
-        }
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
     })
 
     it('Movie - Folder Name', async function() {
@@ -99,19 +124,11 @@ describe('Media Folder Initialization', () => {
 
         await Sidebar.waitForFolderName(folderNameWithTmdbId, stepTimeoutMs)
 
-        console.log(`Folder "${folderNameWithTmdbId}" is now displayed in sidebar`)
-        // Wait for immersive-input to show TMDB title
-        const immersiveInput = await $('[data-testid="immersive-input"]')
-        await immersiveInput.waitForDisplayed({ timeout: 5000, timeoutMsg: `Immersive input did not become visible within 5s` })
-        await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === expectedMovieTitle,
-            {
-                timeout: 5000,
-                timeoutMsg: `Expected immersive-input value to be "${expectedMovieTitle}", but got "${await immersiveInput.getValue()}"`
-            }
-        )
-        expect(await immersiveInput.getValue()).toBe(expectedMovieTitle)
-
+        // TODO: waitForTitleToBe somehow unable to find the title element while the element did exist on HTML.
+        // extra waiting before calling waitForTitleToBe seems to make it more stable, however, not 100% stable.
+        await browser.pause(5000);
+        await MoviePanelCO.waitForTitleToBe(expectedMovieTitle, 20000)
+        
         if (slowdown) {
             await delay(10 * 1000)
         }
@@ -158,13 +175,15 @@ describe('Media Folder Initialization', () => {
         expect(isDisplayed).toBe(true)
         console.log(`Folder "${expectedMovieTitle}" is now displayed in sidebar`)
 
-        const immersiveInput = await $('[data-testid="immersive-input"]')
-        await immersiveInput.waitForDisplayed({ timeout: 15000 })
-        await browser.waitUntil(
-            async () => (await immersiveInput.getValue()) === expectedMovieTitle,
-            { timeout: 10000, timeoutMsg: `ImmersiveMovieSearchbox title did not become "${expectedMovieTitle}"` }
-        )
-        expect(await immersiveInput.getValue()).toBe(expectedMovieTitle)
+        await browser.pause(20000);
+
+        // const immersiveInput = await $('[data-testid="immersive-input"]')
+        // await immersiveInput.waitForDisplayed({ timeout: 15000 })
+        // await browser.waitUntil(
+        //     async () => (await immersiveInput.getValue()) === expectedMovieTitle,
+        //     { timeout: 10000, timeoutMsg: `ImmersiveMovieSearchbox title did not become "${expectedMovieTitle}"` }
+        // )
+        expect(await MoviePanelCO.input.getValue()).toBe(expectedMovieTitle)
 
         if (slowdown) {
             await delay(10 * 1000)

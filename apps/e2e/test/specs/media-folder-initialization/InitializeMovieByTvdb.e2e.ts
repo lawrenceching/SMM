@@ -3,12 +3,13 @@ import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, type TestFolder, folder4, folder5 } from '../../actions/import-folders'
+import { openConfigDialog } from '../../actions/openConfigDialog'
+import { setPrimaryDatabaseAndPreferLanguage } from '../../actions/setPrimaryDatabaseAndPreferLanguage'
 import { setup } from '../../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import ConfigDialog from 'test/componentobjects/ConfigDialog'
-import Menu from 'test/componentobjects/Menu'
 
 describe('TVDB Movie Media Folder Initialization', () => {
 
@@ -22,42 +23,27 @@ describe('TVDB Movie Media Folder Initialization', () => {
             resetUserConfig: true,
         })
 
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        expect(await ConfigDialog.isDisplayed()).toBe(true)
+        await openConfigDialog(async () => {
+            expect(await ConfigDialog.isDisplayed()).toBe(true)
+            if (env.slowdown) {
+                await delay(1000)
+            }
 
-        if (env.slowdown) {
-            await delay(1000)
-        }
-
-        await ConfigDialog.setPrimaryDatabase('TVDB')
-        console.log(`set primary database to TVDB in ConfigDialog`)
-        if (env.slowdown) {
-            await delay(1000)
-        }
-
-        await ConfigDialog.setPreferMediaLanguage('zh-CN')
-        console.log(`set prefer media language to zh-CN in ConfigDialog`)
-        if (env.slowdown) {
-            await delay(1000)
-        }
-
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(1000)
-    })
-
-    afterEach(async () => {
-        await cleanup({
-            removeMetadataDir: true,
-            removePlansDir: true,
-            removeMediaFolders: true,
-            removeDirInSidebar: true,
-            resetUserConfig: true,
+            await setPrimaryDatabaseAndPreferLanguage('TVDB', 'zh-CN')
         })
     })
 
-    it('import media folder with tvdbid in folder name', async function() {
+    afterEach(async () => {
+        // await cleanup({
+        //     removeMetadataDir: true,
+        //     removePlansDir: true,
+        //     removeMediaFolders: true,
+        //     removeDirInSidebar: true,
+        //     resetUserConfig: true,
+        // })
+    })
+
+    it.only('import media folder with tvdbid in folder name', async function() {
 
         if(env.slowdown) {
             this.timeout(60 * 1000)

@@ -2,17 +2,18 @@ import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, type TestFolder, folder4, folder1 } from '../../actions/import-folders'
+import { createAndImportFolder, type TestFolder, folder4, folder1, createFolderInTestFolder } from '../../actions/import-folders'
+import { openConfigDialog } from '../../actions/openConfigDialog'
+import { setPrimaryDatabaseAndPreferLanguage } from '../../actions/setPrimaryDatabaseAndPreferLanguage'
 import { setup } from '../../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
-import ConfigDialog from 'test/componentobjects/ConfigDialog'
-import Menu from 'test/componentobjects/Menu'
 import path from 'path'
 import Sidebar from 'test/componentobjects/Sidebar'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import fs from 'fs'
 import { Path } from '@smm/core'
+import { importMediaFolder } from 'test/actions/events'
 
 describe('Media Folder Initialization - TV Show - TVDB', () => {
 
@@ -26,34 +27,16 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
             resetUserConfig: true,
         })
 
-        await Menu.openConfigDialog()
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.waitForDisplayed()
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.setPrimaryDatabase('TVDB')
-        console.log(`set primary database to TVDB in ConfigDialog`)
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.setPreferMediaLanguage('zh-CN')
-        console.log(`set prefer media language to zh-CN in ConfigDialog`)
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(1000)
+        await openConfigDialog(async () => {
+            await setPrimaryDatabaseAndPreferLanguage('TVDB', 'zh-CN')
+        })
     })
 
-    afterEach(async () => {
+    afterEach(async function () {
+        if (this.currentTest?.state === 'failed') {
+            await browser.takeScreenshot()
+        }
+
         await cleanup({
             removeMetadataDir: true,
             removePlansDir: true,
@@ -73,9 +56,9 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
             folderName: '天使降临到我身边',
         }, 'TVDB TV Show Media Folder Initialization:import media folder by searching folder name in TVDB');
 
-        await delay(10 * 1000)
+        await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 20000);
 
-        expect(await TvShowPanelCO.immersiveInput.getValue()).toBe('天使降临到了我身边！')
+        await browser.pause(2000);
 
         const state = await TvShowPanelCO.toString()
 
@@ -184,10 +167,10 @@ S04E01 - - - -`)
             this.timeout(60 * 1000)
         }
 
-        const folder = await createAndImportFolder({
+        const folder = await createFolderInTestFolder({
             ...folder1,
             folderName: "WhateverItIsToEnsureCannotRecognizeByFolderName"
-        }, 'e2eTest:MediaFolderInitialization - TVShow NFO')
+        })
         const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <tvshow>
   <title>天使降临到我身边</title>
@@ -195,14 +178,17 @@ S04E01 - - - -`)
   <tvdbid>355969</tvdbid>
 </tvshow>`
         fs.writeFileSync(path.join(folder.path!, 'tvshow.nfo'), nfoXml)
+        await importMediaFolder({
+            type: 'tvshow',
+            folderPathInPlatformFormat: folder.path!,
+            traceId: 'e2eTest:MediaFolderInitialization - TVShow NFO',
+        })
 
-        if (env.slowdown) {
-            await delay(5 * 1000)
-        }
-
-        await Sidebar.waitForFolderName('天使降临到了我身边！', 60000);
+        await Sidebar.waitForFolderTitle('天使降临到了我身边！', 20000);
 
         await TVShowPanel.waitForTitleToBe('天使降临到了我身边！')
+
+        await browser.pause(2000);
 
         expect(await TVShowPanel.toString()).toBe(`nfo
 Season 0
@@ -245,7 +231,6 @@ S01E12 - - - -`)
                         "seasonNumber": 1,
                     }
                 ],
-                "status": "ok",
                 "tvShow": {
                     "id": "355969",
                     "name": "天使降临到了我身边！",

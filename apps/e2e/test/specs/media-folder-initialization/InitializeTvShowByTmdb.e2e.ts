@@ -3,14 +3,14 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import Menu from '../../componentobjects/Menu'
 import Sidebar from '../../componentobjects/Sidebar'
 import TVShowPanel, {  } from '../../componentobjects/TVShowPanel.co'
 import { cleanup, expectMediaMetadataToBe, setup } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 import { folder1, createAndImportFolder } from '../../actions/import-folders'
+import { openConfigDialog } from '../../actions/openConfigDialog'
+import { setPrimaryDatabaseAndPreferLanguage } from '../../actions/setPrimaryDatabaseAndPreferLanguage'
 import type { MediaMetadata } from '@smm/core/types'
-import ConfigDialog from 'test/componentobjects/ConfigDialog'
 import { env } from 'node:process'
 
 describe('Media Folder Initialization - TV Show - TMDB', () => {
@@ -25,31 +25,9 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             resetUserConfig: true,
         })
 
-        await Menu.openConfigDialog()
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.waitForDisplayed()
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.setPrimaryDatabase('TMDB')
-        console.log(`set primary database to TVDB in ConfigDialog`)
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.setPreferMediaLanguage('en-US')
-        console.log(`set prefer media language to en-US in ConfigDialog`)
-        if (env.slowdown) {
-            await browser.pause(1000)
-        }
-
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(1000)
+        await openConfigDialog(async () => {
+            await setPrimaryDatabaseAndPreferLanguage('TMDB', 'en-US')
+        })
     })
 
     afterEach(async () => {
@@ -62,7 +40,7 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
         })
     })
 
-    it('Folder Name', async function () {
+    it('TMDB ID in Folder Name', async function () {
         if (env.slowdown) {
             this.timeout(60 * 1000)
         }
@@ -76,7 +54,7 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderTitle(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
 
@@ -201,7 +179,7 @@ S01E12 - - - -`)
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderTitle(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
 
@@ -336,9 +314,11 @@ S01E12 - - - -`)
             await delay(5 * 1000)
         }
 
-        await Sidebar.waitForFolderName(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
+        await Sidebar.waitForFolderTitle(folder1.translations?.title?.['en-US'] ?? 'N/A', 60000);
 
         await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
+
+        await browser.pause(5000);
 
         expect(await TVShowPanel.toString()).toBe(`nfo
 Specials
@@ -459,6 +439,8 @@ S01E12 - - - -`)
             ...folder1,
             folderName: "WhateverItIsToEnsureCannotRecognizeByFolderName"
         }, 'e2eTest:MediaFolderInitialization - TVShow Unknown')
+
+        await browser.pause(5000);
 
         const immersiveInput = await $('[data-testid="immersive-input"]')
         await immersiveInput.waitForDisplayed({ timeout: 5000 })

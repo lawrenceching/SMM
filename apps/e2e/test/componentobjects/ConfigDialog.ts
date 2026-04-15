@@ -316,6 +316,8 @@ class ConfigDialog {
      */
     async setPrimaryDatabase(db: "TMDB" | "TVDB"): Promise<void> {
         const trigger = await this.primaryDatabaseSelectTrigger
+        await trigger.waitForExist({ timeout: 5000 })
+        await trigger.scrollIntoView()
         await trigger.waitForDisplayed({ timeout: 5000 })
         await trigger.waitForClickable({ timeout: 5000 })
         await trigger.click()
@@ -323,6 +325,8 @@ class ConfigDialog {
         await browser.pause(200)
 
         const option = await this.getPrimaryDatabaseOption(db)
+        await option.waitForExist({ timeout: 5000 })
+        await option.scrollIntoView()
         await option.waitForDisplayed({ timeout: 5000 })
         await option.waitForClickable({ timeout: 5000 })
         await option.click()

@@ -27,7 +27,8 @@
     "test": "echo \"No tests yet\"",
     "wdio": "wdio run ./wdio.conf.ts",
     "wdio:run": "wdio run ./wdio.conf.ts --spec ./test/specs/ImportMediaLibrary.e2e.ts",
-    "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts"
+    "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts",
+    "wdio:initialization": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\""
   },
   "dependencies": {
     "@smm/core": "workspace:*",

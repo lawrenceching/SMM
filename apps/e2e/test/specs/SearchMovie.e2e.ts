@@ -5,7 +5,7 @@ import * as os from 'node:os'
 import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
 import TVShowPanel from '../componentobjects/TVShowPanel.co'
-import { createBeforeHook } from '../lib/testbed'
+import { setup, cleanup } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { folder2 } from 'test/actions/import-folders'
 import { setApplicationLanguage } from 'test/actions/setApplicationLanguage'
@@ -15,23 +15,28 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('Search Movie', () => {
 
-    before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
-
     beforeEach(async () => {
-        console.log('Setting language to zh-CN for Chinese search test...')
-        await setApplicationLanguage('zh-CN')
-        console.log('Language set to zh-CN')
+
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            openBrowserPage: true,
+            resetUserConfig: true,
+        })
+
+        
     })
 
     afterEach(async () => {
-        if (fs.existsSync(tmpMediaRoot)) {
-            fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
-            console.log('Removed tmp media folder:', tmpMediaRoot)
-        }
-
-        console.log('Resetting language to en...')
-        await setApplicationLanguage('en')
-        console.log('Language reset to en')
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
     })
 
     it('Search Movie', async function() {
