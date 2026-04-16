@@ -1,64 +1,39 @@
 import { expect, browser } from '@wdio/globals'
-import * as path from 'node:path'
-import * as os from 'node:os'
-import { fileURLToPath } from 'node:url'
-import Menu from '../componentobjects/Menu'
 import Sidebar from '../componentobjects/Sidebar'
 import StatusBar from '../componentobjects/StatusBar'
-import { cleanup, createBeforeHook } from '../lib/testbed'
+import { cleanup, setup } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, type TestFolder } from 'test/actions/import-folders'
 import { env } from 'node:process'
 
-const slowdown = process.env.SLOWDOWN === 'true'
-
-
-let mediaFolderPaths: string[] = []
-
-export async function createTestFolders() {
-    mediaFolderPaths = [];
-    mediaFolderPaths.push(path.join(os.tmpdir(), 'smm-test-media', 'media', '古见同学有交流障碍症'))
-    mediaFolderPaths.push(path.join(os.tmpdir(), 'smm-test-media', 'media', '夺命小丑2_高清'))
-    mediaFolderPaths.push(path.join(os.tmpdir(), 'smm-test-media', 'media', 'music'))
-
-    // Import media folder only when the folder didn't display on Sidebar
-    const folderNames = ['古见同学有交流障碍症', '夺命小丑2_高清', 'music']
-    const folderTypes: Array<'tvshow' | 'movie' | 'music'> = ['tvshow', 'movie', 'music']
-
-    for (let i = 0; i < mediaFolderPaths.length; i++) {
-        const folderName = folderNames[i]!
-        const isDisplayed = await Sidebar.isFolderDisplayed(folderName)
-
-        if (!isDisplayed) {
-            console.log(`Folder "${folderName}" not displayed, importing...`)
-            await Menu.importMediaFolder({
-                type: folderTypes[i]!,
-                folderPathInPlatformFormat: mediaFolderPaths[i]!,
-                traceId: 'e2eTest:Import Media Folder'
-            })
-            browser.pause(1000)
-        } else {
-            console.log(`Folder "${folderName}" already displayed, skipping import`)
-        }
-    }
-
-    // Import media folder will trigger async media folder initialization, wait for it to complete
-    await delay(5 * 1000)
-}
+const slowdown = env.slowdown
 
 describe('Sidebar', () => {
 
     beforeEach(async () => {
-        await createBeforeHook({ setupMediaFolders: false })()        
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            openBrowserPage: true,
+            resetUserConfig: true,
+        })
     })
 
     afterEach(async () => {
-        cleanup()
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
     })
 
 
     it('Sorting - should sort folders alphabetically and reverse alphabetically', async function() {
-        if(slowdown) {
+        if(env.slowdown) {
             this.timeout(60 * 1000)
         }
 
@@ -82,7 +57,7 @@ describe('Sidebar', () => {
 
         for (const folder of folders) {
             await createAndImportFolder(folder, 'e2eTest:Import Media Folder')
-            if(slowdown) {
+            if(env.slowdown) {
                 await delay(1000)
             }
         }
@@ -151,7 +126,7 @@ describe('Sidebar', () => {
     })
 
     it('Search - should filter folders by search query', async function() {
-        if(slowdown) {
+        if(env.slowdown) {
             this.timeout(60 * 1000)
         }
 
@@ -210,7 +185,7 @@ describe('Sidebar', () => {
         let folderNames = await Sidebar.getFolderNamesInOrder()
         console.log('Folders matching "古见":', folderNames)
         expect(folderNames.length).toBe(1)
-        expect(folderNames[0]).toContain('古见同学有交流障碍症')
+        expect(folderNames[0]).toContain('Komi Can\'t Communicate')
 
         if(slowdown) {
             await delay(3 * 1000)

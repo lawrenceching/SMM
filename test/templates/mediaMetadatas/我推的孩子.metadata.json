@@ -1,0 +1,240 @@
+{
+    "mediaFolderPath": "/C/Users/xxx/Downloads/media/我推的孩子 {tvdbid=421069}",
+    "type": "tvshow-folder",
+    "files": [],
+    "mediaFiles": [
+        {
+            "absolutePath": "S01E01.mp4",
+            "seasonNumber": 1,
+            "episodeNumber": 1
+        }
+    ],
+    "tvShow": {
+        "id": "421069",
+        "name": "Oshi no Ko",
+        "database": "TVDB",
+        "seasons": [
+            {
+                "season": 0,
+                "name": "",
+                "episodes": [
+                    {
+                        "season": 0,
+                        "episode": 1,
+                        "name": "Special Retrospective Program: Recommend Oshi no Ko When You Can!"
+                    },
+                    {
+                        "season": 0,
+                        "episode": 2,
+                        "name": "Special Retrospective Program: Recommend Oshi no Ko When You Can! Vol.2"
+                    }
+                ]
+            },
+            {
+                "season": 1,
+                "name": "",
+                "episodes": [
+                    {
+                        "season": 1,
+                        "episode": 1,
+                        "name": "Mother and Children"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 2,
+                        "name": "Third Option"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 3,
+                        "name": "Manga-Based TV Drama"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 4,
+                        "name": "Actors"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 5,
+                        "name": "Reality Dating Show"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 6,
+                        "name": "Egosurfing"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 7,
+                        "name": "Buzz"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 8,
+                        "name": "First Time"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 9,
+                        "name": "B Komachi"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 10,
+                        "name": "Pressure"
+                    },
+                    {
+                        "season": 1,
+                        "episode": 11,
+                        "name": "Idol"
+                    }
+                ]
+            },
+            {
+                "season": 2,
+                "name": "",
+                "episodes": [
+                    {
+                        "season": 2,
+                        "episode": 1,
+                        "name": "Tokyo Blade"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 2,
+                        "name": "Game of Telephone"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 3,
+                        "name": "Rewriting"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 4,
+                        "name": "Emotional Acting"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 5,
+                        "name": "The Curtain Rises"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 6,
+                        "name": "Growth"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 7,
+                        "name": "Sun"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 8,
+                        "name": "Trigger"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 9,
+                        "name": "Dream"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 10,
+                        "name": "Liberation"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 11,
+                        "name": "Freedom"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 12,
+                        "name": "Reunion"
+                    },
+                    {
+                        "season": 2,
+                        "episode": 13,
+                        "name": "Wish"
+                    }
+                ]
+            },
+            {
+                "season": 3,
+                "name": "",
+                "episodes": [
+                    {
+                        "season": 3,
+                        "episode": 1,
+                        "name": "Down Bad"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 2,
+                        "name": "Calculating"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 3,
+                        "name": "Correctness"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 4,
+                        "name": "Blind"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 5,
+                        "name": "Casting"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 6,
+                        "name": "Idols and Relationships"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 7,
+                        "name": "Breakdown"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 8,
+                        "name": "Plan"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 9,
+                        "name": "Greed and Passion"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 10,
+                        "name": "Private Audition"
+                    },
+                    {
+                        "season": 3,
+                        "episode": 11,
+                        "name": "The Beginning"
+                    }
+                ]
+            },
+            {
+                "season": 4,
+                "name": "",
+                "episodes": [
+                    {
+                        "season": 4,
+                        "episode": 1,
+                        "name": "TBA"
+                    }
+                ]
+            }
+        ],
+        "airDate": "2023-04-12"
+    }
+}

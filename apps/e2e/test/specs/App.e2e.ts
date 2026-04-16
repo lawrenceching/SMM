@@ -7,6 +7,7 @@ import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import MusicPanelCO from 'test/componentobjects/MusicPanel.co'
+import StatusBar from 'test/componentobjects/StatusBar'
 
 describe('App', () => {
 
@@ -53,13 +54,16 @@ describe('App', () => {
         await Sidebar.clickFolder(tvshowFolder.folderName)
         await browser.pause(1000); // wait for UI update
         expect(await TvShowPanelCO.immersiveInput.getValue()).toBe(tvshowFolder.translations?.title?.['en-US'] ?? 'N/A')
+        expect(await StatusBar.getMessage()).toBe(tvshowFolder.path)
 
         await Sidebar.clickFolder(movieFolder.folderName)
         await browser.pause(1000); // wait for UI update
         expect(await MoviePanelCO.input.getValue()).toBe(movieFolder.translations?.title?.['en-US'] ?? 'N/A')
+        expect(await StatusBar.getMessage()).toBe(movieFolder.path)
 
         await Sidebar.clickFolder(musicFolder.folderName)
         await browser.pause(1000); // wait for UI update
         expect(await MusicPanelCO.title.getText()).toBe(musicFolder.folderName)
+        expect(await StatusBar.getMessage()).toBe(musicFolder.path)
     })
 })
