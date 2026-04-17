@@ -69,6 +69,7 @@
     "notAvailable": "N/A",
     "more": "More",
     "openInTmdb": "Open in TMDB",
+    "openInTvdb": "Open in TVDB",
     "layoutSimple": "Simple layout",
     "layoutDetail": "Detail layout",
     "layoutPreview": "Preview layout"
@@ -90,6 +91,7 @@
     "notAvailable": "N/A",
     "more": "More",
     "openInTmdb": "Open in TMDB",
+    "openInTvdb": "Open in TVDB",
     "searchNoResults": "No results found",
     "searchFailed": "Failed to search TMDB",
     "noMediaPathError": "No media folder path available"

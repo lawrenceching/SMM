@@ -42,12 +42,16 @@ export function MovieHeaderV2({
             ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
             : undefined
 
-    const tmdbId =
-        movieMeta?.database === 'TMDB'
-            ? Number.parseInt(movieMeta.id, 10)
-            : Number.NaN
-    const hasTmdbId = Number.isFinite(tmdbId)
-    const tmdbUrl = hasTmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : undefined
+    const database = movieMeta?.database
+    const mediaId = movieMeta?.id
+    const mediaName = movieMeta?.name ?? ''
+    const isTmdb = database === 'TMDB'
+    const hasExternalId = !!mediaId
+    const externalUrl = hasExternalId
+        ? isTmdb
+            ? `https://www.themoviedb.org/movie/${mediaId}`
+            : `https://www.thetvdb.com/search?query=${encodeURIComponent(`${mediaId} ${mediaName}`)}`
+        : undefined
 
     return (
         <div className="relative w-full space-y-3">
@@ -112,7 +116,7 @@ export function MovieHeaderV2({
                                         variant="outline"
                                         size="icon"
                                         className="size-9 shrink-0"
-                                        disabled={!hasTmdbId}
+                                        disabled={!hasExternalId}
                                         aria-label={t('movie.more', { ns: 'components', defaultValue: 'More' })}
                                     >
                                         <MoreVertical className="size-4" />
@@ -120,11 +124,13 @@ export function MovieHeaderV2({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem
-                                        disabled={!tmdbUrl}
-                                        onClick={() => tmdbUrl && window.open(tmdbUrl, '_blank', 'noopener,noreferrer')}
+                                        disabled={!externalUrl}
+                                        onClick={() => externalUrl && window.open(externalUrl, '_blank', 'noopener,noreferrer')}
                                     >
                                         <ExternalLink className="size-4" />
-                                        {t('movie.openInTmdb', { ns: 'components', defaultValue: 'Open in TMDB' })}
+                                        {database === 'TVDB'
+                                            ? t('movie.openInTvdb', { ns: 'components', defaultValue: 'Open in TVDB' })
+                                            : t('movie.openInTmdb', { ns: 'components', defaultValue: 'Open in TMDB' })}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

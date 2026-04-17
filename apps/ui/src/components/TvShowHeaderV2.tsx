@@ -59,12 +59,16 @@ export function TvShowHeaderV2({
             ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
             : undefined
 
-    const tmdbId = tvShow?.id ?? movie?.id
-    const hasTmdbId = tmdbId != null
-    const tmdbUrl = hasTmdbId
-        ? tvShow?.id != null
-            ? `https://www.themoviedb.org/tv/${tmdbId}`
-            : `https://www.themoviedb.org/movie/${tmdbId}`
+    const database = tvShow?.database ?? movie?.database
+    const mediaId = tvShow?.id ?? movie?.id
+    const mediaName = tvShow?.name ?? movie?.name ?? ''
+    const hasExternalId = !!mediaId
+    const externalUrl = hasExternalId
+        ? database === 'TVDB'
+            ? `https://www.thetvdb.com/search?query=${encodeURIComponent(`${mediaId} ${mediaName}`)}`
+            : tvShow?.id != null
+                ? `https://www.themoviedb.org/tv/${mediaId}`
+                : `https://www.themoviedb.org/movie/${mediaId}`
         : undefined
 
     return (
@@ -264,11 +268,13 @@ export function TvShowHeaderV2({
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator className="@[520px]:hidden" />
                                     <DropdownMenuItem
-                                        disabled={!tmdbUrl}
-                                        onClick={() => tmdbUrl && window.open(tmdbUrl, '_blank', 'noopener,noreferrer')}
+                                        disabled={!externalUrl}
+                                        onClick={() => externalUrl && window.open(externalUrl, '_blank', 'noopener,noreferrer')}
                                     >
                                         <ExternalLink className="size-4" />
-                                        {t('tvShow.openInTmdb', { ns: 'components', defaultValue: 'Open in TMDB' })}
+                                        {database === 'TVDB'
+                                            ? t('tvShow.openInTvdb', { ns: 'components', defaultValue: 'Open in TVDB' })
+                                            : t('tvShow.openInTmdb', { ns: 'components', defaultValue: 'Open in TMDB' })}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

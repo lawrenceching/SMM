@@ -68,6 +68,7 @@
     "notAvailable": "不可用",
     "more": "更多",
     "openInTmdb": "在TMDB中開啟",
+    "openInTvdb": "在TVDB中開啟",
     "layoutSimple": "簡單佈局",
     "layoutDetail": "詳情佈局",
     "layoutPreview": "預覽模式"
@@ -89,6 +90,7 @@
     "notAvailable": "不可用",
     "more": "更多",
     "openInTmdb": "在TMDB中開啟",
+    "openInTvdb": "在TVDB中開啟",
     "searchNoResults": "未找到結果",
     "searchFailed": "搜尋TMDB失敗",
     "noMediaPathError": "媒體資料夾路徑不可用"

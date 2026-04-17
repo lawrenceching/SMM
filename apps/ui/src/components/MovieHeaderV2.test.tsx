@@ -1,6 +1,6 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MovieHeaderV2 } from './MovieHeaderV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
@@ -27,6 +27,19 @@ vi.mock('./TMDBSearchbox', () => ({
     </div>
   )),
 }))
+
+vi.mock('@/components/ui/dropdown-menu', () => {
+  const React = require('react')
+  return {
+    DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+    DropdownMenuTrigger: ({ children, asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
+    DropdownMenuContent: ({ children }: any) => <div role="menu">{children}</div>,
+    DropdownMenuItem: ({ children, disabled, onClick }: any) => (
+      <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick}>{children}</div>
+    ),
+    DropdownMenuSeparator: () => <hr />,
+  }
+})
 
 vi.mock('@/lib/i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/i18n')>()
@@ -76,7 +89,7 @@ describe('MovieHeaderV2', () => {
       expect(moreButton).toBeDisabled()
     })
 
-    it('disables the more menu button when movie has no usable TMDB id', () => {
+    it('disables the more menu button when movie has no usable id', () => {
       renderWithQueryClient(
         <MovieHeaderV2
           {...defaultProps}
@@ -110,6 +123,132 @@ describe('MovieHeaderV2', () => {
       )
       const moreButton = screen.getByRole('button', { name: 'movie.more' })
       expect(moreButton).not.toBeDisabled()
+    })
+
+    it('enables the more menu button when movie has TVDB id', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              movie: { id: 'tvdb-1', name: 'TVDB Movie', database: 'TVDB' },
+            } as UIMediaMetadata
+          }
+        />
+      )
+      const moreButton = screen.getByRole('button', { name: 'movie.more' })
+      expect(moreButton).not.toBeDisabled()
+    })
+  })
+
+  describe('external link (TMDB / TVDB)', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    afterEach(() => {
+      openSpy.mockClear()
+    })
+
+    it('shows "Open in TMDB" when database is TMDB', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
+            } as UIMediaMetadata
+          }
+        />
+      )
+
+      expect(screen.getByText('movie.openInTmdb')).toBeInTheDocument()
+      expect(screen.queryByText('movie.openInTvdb')).not.toBeInTheDocument()
+    })
+
+    it('shows "Open in TVDB" when database is TVDB', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              movie: { id: 'tvdb-1', name: 'TVDB Movie Name', database: 'TVDB' },
+            } as UIMediaMetadata
+          }
+        />
+      )
+
+      expect(screen.getByText('movie.openInTvdb')).toBeInTheDocument()
+      expect(screen.queryByText('movie.openInTmdb')).not.toBeInTheDocument()
+    })
+
+    it('opens TMDB movie page when clicking the TMDB link', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
+            } as UIMediaMetadata
+          }
+        />
+      )
+
+      fireEvent.click(screen.getByText('movie.openInTmdb'))
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://www.themoviedb.org/movie/789',
+        '_blank',
+        'noopener,noreferrer',
+      )
+    })
+
+    it('opens TVDB search page with id and name when clicking the TVDB link', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={
+            {
+              status: 'ok',
+              mediaFolderPath: '/media/movie',
+              mediaFiles: [],
+              movie: { id: 'tvdb-1', name: 'TVDB Movie Name', database: 'TVDB' },
+            } as UIMediaMetadata
+          }
+        />
+      )
+
+      fireEvent.click(screen.getByText('movie.openInTvdb'))
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://www.thetvdb.com/search?query=tvdb-1%20TVDB%20Movie%20Name',
+        '_blank',
+        'noopener,noreferrer',
+      )
+    })
+
+    it('disables the external link when no movie metadata is present', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={{
+            status: 'ok',
+            mediaFolderPath: '/media/movie',
+            mediaFiles: [],
+          } as UIMediaMetadata}
+        />
+      )
+
+      const menuItem = screen.getByText('movie.openInTmdb')
+      expect(menuItem.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true')
     })
   })
 
