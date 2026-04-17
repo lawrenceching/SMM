@@ -49,10 +49,6 @@ export function MediaLibraryImportedEventHandler() {
   const latestUserConfig = useLatest(userConfig)
   const backgroundJobs = useBackgroundJobsStore()
 
-  useEffect(() => {
-    console.log("folders", structuredClone(folders))
-  }, [folders])
-
   const doImportMediaLibrary = async (event: Event) => {
 
     const data = (event as CustomEvent<OnMediaLibraryImportedEventData>).detail

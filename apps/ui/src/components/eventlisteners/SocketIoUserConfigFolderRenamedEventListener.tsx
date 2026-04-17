@@ -1,6 +1,6 @@
 import { USER_CONFIG_FOLDER_RENAMED_EVENT } from "@core/event-types"
 import { useRef } from "react";
-import { useMount, useUnmount } from "react-use"
+import { useLatest, useMount, useUnmount } from "react-use"
 import { useConfig } from "@/hooks/userConfig";
 import { Path } from "@core/path";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata";
@@ -16,6 +16,8 @@ export function SocketIoUserConfigFolderRenamedEventListener() {
     const { setUserConfig } = useConfig();
     const setFolders = useUIMediaFolderStore((s) => s.setFolders);
     const folders = useUIMediaFolderStore((s) => s.folders);
+    const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder);
+    const latestFolders = useLatest(folders);
     const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
 
     useMount(() => {
@@ -32,7 +34,13 @@ export function SocketIoUserConfigFolderRenamedEventListener() {
               }
             })
 
-            setFolders(folders.map((folder) => folder.path === from ? to : folder))
+            setFolders(
+              latestFolders.current.map((folder) => folder.path === from ? {
+                ...folder,
+                path: to
+              } : folder))
+
+            setSelectedFolder(to)
             fetchMediaMetadata({ path: Path.posix(to), traceId })
         };
 

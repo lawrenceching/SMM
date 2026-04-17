@@ -9,6 +9,7 @@ import { createFolderInTestFolder, folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { renameFolderTool } from 'test/lib/debugRenameFolderTool'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 
@@ -40,17 +41,15 @@ describe('AI Assistant - RenameFolder Tool', async () => {
       traceId: 'e2eTest:RenameFolderTool:Import Source Folder',
     })
 
-    await Sidebar.waitForFolderName(sourceFolder.mediaName!, 60000)
+    await Sidebar.waitForFolderName(sourceFolder.folderName!, 60000)
+    
+    // need to wait for the media metadata file to be created
+    await browser.pause(2000)
 
-    await TVShowPanel.searchbox.input.waitForDisplayed()
-    await browser.waitUntil(async () => {
-      const mediaTitle = await TVShowPanel.searchbox.input.getValue();
-      console.log(`waiting for media title to be "${sourceFolder.mediaName}", got "${mediaTitle}"`)
-      return mediaTitle === sourceFolder.mediaName
-    }, { timeout: 10000 })
+    await MoviePanelCO.input.waitForDisplayed()
+    expect(await MoviePanelCO.input.getValue()).toBe(sourceFolder.translations?.title?.['en-US'] ?? 'N/A')
 
-    // TOOD: need to wait for the media metadata file to be created
-    // await browser.pause(2000)
+    
 
     const targetFolderPath = path.join(path.dirname(sourceFolder.path!), `${sourceFolder.folderName}-renamed`)
     const response = await renameFolderTool({

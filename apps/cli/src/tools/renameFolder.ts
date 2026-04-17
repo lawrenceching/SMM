@@ -1,62 +1,16 @@
-import { stat } from "node:fs/promises";
-import { rename } from "node:fs/promises";
 import { Path } from "@core/path";
-import { metadataCacheFilePath } from "@/route/mediaMetadata/utils";
 import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
-import { acknowledge, broadcast } from "@/utils/socketIO";
-import { renameFolderInMediaMetadata } from "@core/mediaMetadata";
+import { acknowledge } from "@/utils/socketIO";
 import logger from "../../lib/logger";
-import { renameFolderInUserConfig } from "@core/userConfig";
-import { nextTraceId } from "@/utils/traceId";
-import { getUserConfig, writeUserConfig } from "@/utils/config";
-import { deleteMediaMetadataFile, renameMediaMetadataCacheFile } from "@/utils/mediaMetadata";
 import { broadcastUserConfigFolderRenamedEvent } from "@/events/userConfigUpdatedEvent";
 import { getLocalizedToolDescription } from '@/i18n/helpers';
+import { doRenameFolder } from "@/route/RenameFolder";
 
 export interface RenameFolderParams {
   from: string;
   to: string;
-}
-
-
-/**
- * 
- * @param mediaFolderPath - the media folder path in POSIX format
- * @param from 
- * @param to 
- */
-async function renameFolderInMediaMetadataAndSave(
-  {mediaFolderPath, from, to, traceId}: {mediaFolderPath: string, from: string, to: string, traceId: string}) {
-
-  const cachePath = metadataCacheFilePath(mediaFolderPath);
-  const cacheFile = Bun.file(cachePath);
-  if (!await cacheFile.exists()) {
-    return;
-  }
-  const metadata = await cacheFile.json();
-  const newMetadata = renameFolderInMediaMetadata(metadata, from, to);
-  await cacheFile.write(JSON.stringify(newMetadata, null, 2));
-
-  logger.info({
-    mediaFolder: Path.toPlatformPath(mediaFolderPath),
-    from,
-    to,
-    traceId,
-    file: "tools/renameFolder.ts"
-  }, "renamed folder in media metadata")
-}
-
-async function renameFolderInUserConfigAndSave({from, to, traceId}: {from: string, to: string, traceId: string}) {
-  const userConfig = await getUserConfig();
-  const newUserConfig = renameFolderInUserConfig(userConfig, from, to);
-  await writeUserConfig(newUserConfig);
-  logger.info({
-    userConfig: newUserConfig,
-    traceId,
-    file: "tools/renameFolder.ts"
-  }, "renamed folder in user config")
 }
 
 /**
@@ -75,12 +29,10 @@ export async function handleRenameFolder(
   }, "[MCP] rename-folder tool started")
 
   const { from, to } = params;
-  const traceId = nextTraceId();
 
   // Check for abort signal
   if (abortSignal?.aborted) {
     logger.info({
-      traceId,
       file: "tools/renameFolder.ts"
     }, "[MCP] rename-folder tool aborted: abort signal detected")
     return createErrorResponse("Request was aborted");
@@ -89,7 +41,6 @@ export async function handleRenameFolder(
   // Validate 'from' path
   if (!from || typeof from !== "string" || from.trim() === "") {
     logger.warn({
-      traceId,
       from,
       reason: "from path is empty or invalid",
       file: "tools/renameFolder.ts"
@@ -100,7 +51,6 @@ export async function handleRenameFolder(
   // Validate 'to' path
   if (!to || typeof to !== "string" || to.trim() === "") {
     logger.warn({
-      traceId,
       to,
       reason: "to path is empty or invalid",
       file: "tools/renameFolder.ts"
@@ -108,191 +58,25 @@ export async function handleRenameFolder(
     return createSuccessResponse({ renamed: false, from: from || "", to: "", error: "Invalid path: 'to' must be a non-empty string" });
   }
 
-  logger.info({
-    traceId,
-    from,
-    to,
-    fromPlatformPath: Path.toPlatformPath(from),
-    toPlatformPath: Path.toPlatformPath(to),
-    file: "tools/renameFolder.ts"
-  }, "[MCP] rename-folder tool parameters validated, proceeding with checks")
-
   try {
+    const result = await doRenameFolder({ from, to });
+
     const fromPlatformPath = Path.toPlatformPath(from);
     const toPlatformPath = Path.toPlatformPath(to);
 
-    // Check if source folder exists
-    try {
-      const stats = await stat(fromPlatformPath);
-      if (!stats.isDirectory()) {
-        logger.warn({
-          traceId,
-          fromPlatformPath,
-          reason: "source path is not a directory",
-          file: "tools/renameFolder.ts"
-        }, "[MCP] rename-folder tool failed: source path is not a directory")
-        return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: "Source path is not a directory" });
-      }
+    if (result.error) {
       logger.info({
-        traceId,
-        fromPlatformPath,
-        file: "tools/renameFolder.ts"
-      }, "[MCP] rename-folder tool: source folder confirmed")
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        logger.warn({
-          traceId,
-          fromPlatformPath,
-          reason: "source folder not found",
-          errorCode: "ENOENT",
-          file: "tools/renameFolder.ts"
-        }, "[MCP] rename-folder tool failed: source folder not found")
-        return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: "Source folder not found" });
-      }
-      logger.error({
-        traceId,
-        fromPlatformPath,
-        error: error instanceof Error ? error.message : String(error),
-        errorCode: (error as NodeJS.ErrnoException).code,
-        file: "tools/renameFolder.ts"
-      }, "[MCP] rename-folder tool: unexpected error checking source folder")
-      throw error;
-    }
-
-    // Check if destination already exists
-    try {
-      const destStats = await stat(toPlatformPath);
-      if (destStats.isDirectory()) {
-        logger.warn({
-          traceId,
-          toPlatformPath,
-          reason: "destination folder already exists",
-          file: "tools/renameFolder.ts"
-        }, "[MCP] rename-folder tool failed: destination folder already exists")
-        return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: "Destination folder already exists" });
-      }
-      logger.info({
-        traceId,
-        toPlatformPath,
-        reason: "destination exists but is not a directory",
-        file: "tools/renameFolder.ts"
-      }, "[MCP] rename-folder tool: destination path exists (not a directory)")
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        logger.error({
-          traceId,
-          toPlatformPath,
-          error: error instanceof Error ? error.message : String(error),
-          errorCode: (error as NodeJS.ErrnoException).code,
-          file: "tools/renameFolder.ts"
-        }, "[MCP] rename-folder tool: unexpected error checking destination")
-        throw error;
-      }
-      // Destination doesn't exist, which is fine
-      logger.info({
-        traceId,
-        toPlatformPath,
-        file: "tools/renameFolder.ts"
-      }, "[MCP] rename-folder tool: destination folder does not exist, proceeding")
-    }
-
-    const fromPosix = Path.posix(from);
-    const toPosix = Path.posix(to);
-    const metadataCacheFromPath = metadataCacheFilePath(fromPosix);
-    const metadataCacheToPath = metadataCacheFilePath(toPosix);
-    const fromCacheExists = await Bun.file(metadataCacheFromPath).exists();
-    const toCacheExists = await Bun.file(metadataCacheToPath).exists();
-    logger.info(
-      {
-        traceId,
-        fromFolder: fromPlatformPath,
-        toFolder: toPlatformPath,
-        metadataCacheFromPath,
-        metadataCacheToPath,
-        fromCacheExists,
-        toCacheExists,
+        from, to, error: result.error,
         file: "tools/renameFolder.ts",
-      },
-      "[MCP] rename-folder tool: metadata cache files on disk (keys follow metadataCacheFilePath(normalized media folder path))",
-    );
-
-    // TODO: There are implementations for rename function
-    // 1. ui\src\api\renameFile.ts
-    // 2. renameFolderAgentTool in this file
-    // 3. And here
-    // 4. cli\src\utils\mediaMetadataUtils.ts
-    // 5. cli\src\route\RenameFolder.ts
-    // need to find a way to merge them
-
-    // Step 1: Rename folder in media metadata
-    logger.info({
-      traceId,
-      fromFolder: fromPlatformPath,
-      toFolder: toPlatformPath,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: starting renameFolderInMediaMetadataAndSave")
-    await renameFolderInMediaMetadataAndSave({mediaFolderPath: fromPosix, from: fromPosix, to: toPosix, traceId})
-    logger.info({
-      traceId,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: completed renameFolderInMediaMetadataAndSave")
-
-    // Step 2: Rename metadata cache file
-    logger.info({
-      traceId,
-      fromFolder: fromPlatformPath,
-      toFolder: toPlatformPath,
-      metadataCacheFromPath,
-      metadataCacheToPath,
-      fromCacheExists,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: starting renameMediaMetadataCacheFile")
-    await renameMediaMetadataCacheFile(fromPosix, toPosix, { traceId });
-    logger.info({
-      traceId,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: completed renameMediaMetadataCacheFile")
-
-    // Step 3: Rename folder in user config
-    logger.info({
-      traceId,
-      from,
-      to,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: starting renameFolderInUserConfigAndSave")
-    await renameFolderInUserConfigAndSave({from, to, traceId}),
-    logger.info({
-      traceId,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: completed renameFolderInUserConfigAndSave")
-
-    // Step 4: Rename the actual folder on disk
-    logger.info({
-      traceId,
-      from: fromPlatformPath,
-      to: toPlatformPath,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: starting filesystem rename")
-    await rename(fromPlatformPath, toPlatformPath),
-    logger.info({
-      traceId,
-      from: fromPlatformPath,
-      to: toPlatformPath,
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool: completed filesystem rename")
-
-    logger.info({
-      from: from,
-      to: to,
-      traceId,
-      file: "tools/renameFolder.ts"
-    }, "renamed media folder")
+      }, "[MCP] rename-folder tool ended with error from doRenameFolder")
+      return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: result.error });
+    }
 
     broadcastUserConfigFolderRenamedEvent({
       from: fromPlatformPath,
       to: toPlatformPath,
     });
-    
+
     const resp = createSuccessResponse({ renamed: true, from: fromPlatformPath, to: toPlatformPath });
     logger.info({
       params,
@@ -308,8 +92,6 @@ export async function handleRenameFolder(
       error: error instanceof Error ? error.message : String(error),
     }, "[MCP] rename-folder tool ended with error")
     const message = error instanceof Error ? error.message : String(error);
-    // Use createSuccessResponse with error field instead of createErrorResponse
-    // to ensure MCP validation passes with the required from/to fields
     const fromPlatformPath = Path.toPlatformPath(from);
     const toPlatformPath = Path.toPlatformPath(to);
     return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: `Error renaming folder: ${message}` });

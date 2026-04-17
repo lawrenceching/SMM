@@ -50,7 +50,7 @@ describe('AI Assistant - Recognize Tool', async () => {
             traceId: 'e2eTest:Import Media Folder Search TV Show'
         })
 
-        await Sidebar.waitForFolderName(folder.mediaName!, 60000)
+        await Sidebar.waitForFolderName(folder.folderName!, 60000)
         await TVShowPanel.waitForTable()
 
         await browser.waitUntil(async () => {

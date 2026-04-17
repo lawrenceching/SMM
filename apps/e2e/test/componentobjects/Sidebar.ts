@@ -123,7 +123,7 @@ class Sidebar {
 
     async getDisplayedFolderNames(): Promise<string[]> {
         try {
-            const folderNameElements = await $$('p[data-testid="sidebar-folder-name]"')
+            const folderNameElements = await $$('p[data-testid="sidebar-folder-name"]')
             const elementsArray = Array.from(folderNameElements)
             const names = await Promise.all(elementsArray.map((el) => el.getText()))
             return names
