@@ -16,6 +16,29 @@ const writeFileRequestSchema = z.object({
   data: z.string(),
 });
 
+// Per-file lock to prevent concurrent writes to the same file
+const fileLocks = new Map<string, Promise<void>>();
+
+async function acquireFileLock(resolvedPath: string): Promise<() => void> {
+  const previousLock = fileLocks.get(resolvedPath) || Promise.resolve();
+  let releaseLock!: () => void;
+  const newLock = new Promise<void>(r => { releaseLock = r; });
+  fileLocks.set(resolvedPath, newLock);
+
+  try {
+    await previousLock;
+  } catch {
+    // Previous operation failed, still proceed
+  }
+
+  return () => {
+    releaseLock();
+    if (fileLocks.get(resolvedPath) === newLock) {
+      fileLocks.delete(resolvedPath);
+    }
+  };
+}
+
 export async function doWriteFile(body: WriteFileRequestBody, traceId: string = ''): Promise<WriteFileResponseBody> {
   try {
     logger.info({ traceId }, `doWriteFile: Starting file write operation`);
@@ -48,6 +71,9 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       };
     }
 
+    // Acquire per-file lock to prevent concurrent writes to the same file
+    const release = await acquireFileLock(resolvedPath);
+    try {
     // Use the resolved path for file operations
     const validatedPath = resolvedPath;
 
@@ -119,6 +145,9 @@ export async function doWriteFile(body: WriteFileRequestBody, traceId: string = 
       return {
         error: `Invalid mode: ${mode}`,
       };
+    }
+    } finally {
+      release();
     }
   } catch (error) {
     // Ensure error has enumerable properties for proper logging

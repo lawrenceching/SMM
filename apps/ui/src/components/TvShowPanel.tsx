@@ -217,6 +217,7 @@ function TvShowPanel() {
   const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
 
+  // TODO: 重构至使用 mutation 和 query
   const handleSelectResult = useCallback(async (args: SearchResultSelectedArgs) => {
     const { database, result, searchLanguage } = args;
     const traceId = `TvShowSearchResultSelected-${nextTraceId()}`

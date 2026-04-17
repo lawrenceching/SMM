@@ -1,6 +1,12 @@
 import os from 'os';
 import path from 'path';
 import { ReportAggregator } from 'wdio-html-nice-reporter';
+import { browser } from '@wdio/globals';
+import { setup, updateUserConfig } from './test/lib/testbed';
+import {
+    disableMcpFromStatusBarAndClearGlobal,
+    enableMcpFromStatusBarAndStoreAddress,
+} from './test/lib/mcpSpecShared';
 
 const HTML_REPORT_DIR = './reports/html-reports';
 
@@ -67,6 +73,31 @@ const formatBrowserLogEntry = (entry: BrowserLogEntry): string => {
     if (baseText && argsText) return `${baseText}\n${argsText}`;
     return baseText || argsText || '';
 };
+
+function workerSpecsIncludeMcp(specs: string[] | undefined): boolean {
+    if (!specs?.length) return false;
+    return specs.some((specPath) => {
+        const n = specPath.replace(/\\/g, '/');
+        return n.includes('/specs/mcp/') || n.includes('/specs/tvdb/McpServerTools-TVDB');
+    });
+}
+
+async function enableMcpServerForE2eWorker(): Promise<void> {
+    await setup({
+        removeMetadataDir: false,
+        removePlansDir: false,
+        removeMediaFolders: false,
+        removeDirInSidebar: false,
+        resetUserConfig: false,
+        openBrowserPage: true,
+    });
+
+    await enableMcpFromStatusBarAndStoreAddress();
+}
+
+async function disableMcpServerForE2eWorker(): Promise<void> {
+    await disableMcpFromStatusBarAndClearGlobal();
+}
 
 const chromeOptionsForDockerEnv: string[] = [
     '--disable-dev-shm-usage',
@@ -331,42 +362,49 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<String>} specs        List of spec file paths that are to be run
      * @param {object}         browser      instance of created browser/device session
      */
-    before: function (capabilities, specs) {
+    before: async function (_capabilities, specs) {
         const browserLogEnabled = process.env.BROWSER_LOG_ENABLED === 'true';
-        if (!browserLogEnabled) return;
+        if (browserLogEnabled) {
+            // 先订阅 BiDi 协议的 log 事件
+            browser.sessionSubscribe({ events: ['log.entryAdded'] });
 
-        // 先订阅 BiDi 协议的 log 事件
-        browser.sessionSubscribe({ events: ['log.entryAdded'] });
+            // 监听浏览器 console 事件并输出到控制台
+            // WebdriverIO v9 需要使用 BiDi 协议的 log.entryAdded 事件
+            browser.on('log.entryAdded', (logEntry) => {
+                const logType = logEntry.type || 'info';
+                const logText = formatBrowserLogEntry(logEntry as BrowserLogEntry);
+                const timestamp = new Date().toISOString();
 
-        // 监听浏览器 console 事件并输出到控制台
-        // WebdriverIO v9 需要使用 BiDi 协议的 log.entryAdded 事件
-        browser.on('log.entryAdded', (logEntry) => {
-            const logType = logEntry.type || 'info';
-            const logText = formatBrowserLogEntry(logEntry as BrowserLogEntry);
-            const timestamp = new Date().toISOString();
+                switch (logType) {
+                    case 'error':
+                        console.error(`[BROWSER CONSOLE ERROR] ${timestamp} - ${logText}`);
+                        break;
+                    case 'warning':
+                    case 'warn':
+                        console.warn(`[BROWSER CONSOLE WARN] ${timestamp} - ${logText}`);
+                        break;
+                    case 'info':
+                        console.log(`[BROWSER CONSOLE INFO] ${timestamp} - ${logText}`);
+                        break;
+                    default:
+                        console.log(`[BROWSER CONSOLE] ${timestamp} - ${logText}`);
+                }
+            });
 
-            switch (logType) {
-                case 'error':
-                    console.error(`[BROWSER CONSOLE ERROR] ${timestamp} - ${logText}`);
-                    break;
-                case 'warning':
-                case 'warn':
-                    console.warn(`[BROWSER CONSOLE WARN] ${timestamp} - ${logText}`);
-                    break;
-                case 'info':
-                    console.log(`[BROWSER CONSOLE INFO] ${timestamp} - ${logText}`);
-                    break;
-                default:
-                    console.log(`[BROWSER CONSOLE] ${timestamp} - ${logText}`);
-            }
-        });
+            // 监听浏览器页面错误
+            // NOTE: TypeScript event typings may not include `pageerror` for the current WebDriver BiDi adapter.
+            (browser as any).on('pageerror', (error: any) => {
+                const errorMessage = error?.message ?? String(error);
+                console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
+            });
+        }
 
-        // 监听浏览器页面错误
-        // NOTE: TypeScript event typings may not include `pageerror` for the current WebDriver BiDi adapter.
-        (browser as any).on('pageerror', (error: any) => {
-            const errorMessage = error?.message ?? String(error);
-            console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
-        });
+        // if (workerSpecsIncludeMcp(specs)) {
+        //     await updateUserConfig((userConfig) => {
+        //         userConfig.enableMcpServer = true;
+        //         return userConfig;
+        //     });
+        // }
     },
     /**
      * Runs before a WebdriverIO command gets executed.
@@ -437,8 +475,11 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<Object>} capabilities list of capabilities details
      * @param {Array.<String>} specs List of spec file paths that ran
      */
-    // after: function (result, capabilities, specs) {
-    // },
+    after: async function (_result, _capabilities, specs) {
+        // if (workerSpecsIncludeMcp(specs)) {
+        //     await disableMcpServerForE2eWorker();
+        // }
+    },
     /**
      * Gets executed right after terminating the webdriver session.
      * @param {object} config wdio configuration object

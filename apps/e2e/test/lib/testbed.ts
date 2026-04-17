@@ -36,12 +36,32 @@ export interface TestBedBeforeOptions {
     userConfig?: Partial<UserConfig>
 }
 
+export type ResetUserConfigOption = boolean | UserConfigUpdater
+
+async function applyResetUserConfig(option: ResetUserConfigOption): Promise<void> {
+    if (option === false) {
+        return
+    }
+
+    if (option === true) {
+        await resetUserConfig()
+        return
+    }
+
+    const userConfigPath = await getUserConfigPath()
+    await resetUserConfig(userConfigPath)
+    await updateUserConfig(async (userConfig) => {
+        const updated = await Promise.resolve(option(userConfig))
+        return updated ?? userConfig
+    })
+}
+
 export async function setup(options: {
     removeMetadataDir: boolean,
     removePlansDir: boolean,
     removeMediaFolders: boolean,
     removeDirInSidebar: boolean,
-    resetUserConfig: boolean,
+    resetUserConfig: ResetUserConfigOption,
     openBrowserPage: boolean,
 }) {
 
@@ -53,6 +73,8 @@ export async function setup(options: {
         resetUserConfig: options.resetUserConfig,
     })
 
+
+    await applyResetUserConfig(options.resetUserConfig)
 
     if(options.openBrowserPage) {
         const { default: Page } = await import('../pageobjects/page')
@@ -158,7 +180,7 @@ export async function cleanup(options?: {
     removePlansDir: boolean,
     removeMediaFolders: boolean,
     removeDirInSidebar: boolean,
-    resetUserConfig: boolean,
+    resetUserConfig: ResetUserConfigOption,
 }): Promise<void> {
     const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig } = options ?? {
         removeMetadataDir: true,
@@ -175,9 +197,7 @@ export async function cleanup(options?: {
     if (isToRemoveDirInSidebar) {
         await removeDirInSidebar()
     }
-    if(needToResetUserConfig) {
-        await resetUserConfig()
-    }
+    await applyResetUserConfig(needToResetUserConfig ?? false)
 }
 
 export async function removeDirInSidebar(): Promise<void> {
@@ -269,7 +289,7 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
 
 export type UserConfigUpdater = (
     userConfig: UserConfig
-) => UserConfig | Promise<UserConfig>
+) => UserConfig | void | Promise<UserConfig | void>
 
 /**
  * Read smm.json, apply {@link updateFn}, and write the result back.

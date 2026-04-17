@@ -16,7 +16,7 @@ class StatusBar {
     /**
      * Get the MCP toggle button element
      */
-    get mcpToggleButton() {
+    get mcpIndicatorButton() {
         return $('[data-testid="mcp-toggle-button"]')
     }
 
@@ -122,7 +122,7 @@ class StatusBar {
      * Click the MCP toggle button
      */
     async clickMcpToggle(): Promise<void> {
-        await this.mcpToggleButton.click()
+        await this.mcpIndicatorButton.click()
     }
 
     /**
@@ -145,7 +145,7 @@ class StatusBar {
      * Check if MCP toggle button is displayed
      */
     async isMcpToggleDisplayed(): Promise<boolean> {
-        return await this.mcpToggleButton.isDisplayed()
+        return await this.mcpIndicatorButton.isDisplayed()
     }
 
     /**

@@ -1,16 +1,12 @@
 import * as fs from 'node:fs'
 import { expect } from '@wdio/globals'
-import { Path } from "@smm/core";
-import { type MediaMetadata, type UserConfig } from "@smm/core/types";
 import { join } from "path";
 import { createFolderInTestFolder, folder1, folder2, folder5 } from "test/actions/import-folders";
-import { cleanup, setup, updateUserConfig, writeMediaMetadata } from "test/lib/testbed";
+import { cleanup, importFolderWithMediaMetadata, setup, updateUserConfig } from "test/lib/testbed";
 import Page from '../pageobjects/page'
 import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
 import ScrapeDialogCO from 'test/componentobjects/ScrapeDialogCO';
-import ConfigDialog from 'test/componentobjects/ConfigDialog';
-import Menu from 'test/componentobjects/Menu';
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
@@ -56,24 +52,45 @@ function getImagePathWithPrefix(folderPath: string, prefix: string): string | un
   return fileName ? join(folderPath, fileName) : undefined
 }
 
+async function checkTvdbConnection(): Promise<boolean> {
+  const url = 'https://artworks.thetvdb.com/banners/v4/series/421069/backgrounds/6464dac0a7336.jpg'
+  const timeoutMs = 5000
 
-async function setPreferLanguage(language: "__unset__" | "zh-CN" | "en-US" | "ja-JP"): Promise<void> {
-  await Menu.openConfigDialog()
-    await browser.pause(1000)
-
-    await ConfigDialog.waitForDisplayed()
-    await browser.pause(1000)
-
-    await ConfigDialog.setPreferMediaLanguage(language)
-    console.log(`set prefer media language to zh-CN in ConfigDialog`)
-    await browser.pause(1000)
-
-    await ConfigDialog.clickSave()
-    await ConfigDialog.pressEscape()
-    await browser.pause(1000)
+  try {
+    const headController = new AbortController()
+    const headTimeoutId = setTimeout(() => headController.abort(), timeoutMs)
+    await fetch(url, {
+      method: 'HEAD',
+      signal: headController.signal,
+    })
+    clearTimeout(headTimeoutId)
+    return true
+  } catch {
+    try {
+      const getController = new AbortController()
+      const getTimeoutId = setTimeout(() => getController.abort(), timeoutMs)
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: getController.signal,
+      })
+      clearTimeout(getTimeoutId)
+      await response.body?.cancel().catch(() => undefined)
+      // Any HTTP response means TCP connection was established.
+      return true
+    } catch {
+      // Timeout / connection refused / DNS / TLS failures are treated as connection failure.
+      return false
+    }
+  }
 }
 
-describe('Scrape Thumbnail', () => {
+describe('Scrape', () => {
+  before(async function () {
+    const tvdbConnectionOk = await checkTvdbConnection()
+    if (!tvdbConnectionOk) {
+      this.skip()
+    }
+  })
 
   beforeEach(async () => {
     await setup({
@@ -96,9 +113,16 @@ describe('Scrape Thumbnail', () => {
     })
   })
 
-  it('scrape thumbnail from TMDB for TV Show', async function () {
+  it('scrape from TMDB for TV Show', async function () {
 
     this.timeout(60 * 1000)
+
+    await updateUserConfig((userConfig) => {
+      return {
+        ...userConfig,
+        preferMediaLanguage: 'zh-CN',
+      }
+    })
 
     const folder = createFolderInTestFolder({
       ...folder1,
@@ -107,66 +131,25 @@ describe('Scrape Thumbnail', () => {
       ],
     });
 
-    const mediaMetadata: MediaMetadata = {
-      mediaFolderPath: Path.posix(folder.path!),
-      type: folder.type === 'tvshow' ? 'tvshow-folder' : folder.type === 'movie' ? 'movie-folder' : 'music-folder',
-      mediaFiles: [
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+      mediaMetadata.mediaFiles = [
         {
-          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+          absolutePath: join(folder.path!, folder.files[0]!),
           seasonNumber: 1,
           episodeNumber: 1,
         }
-      ],
-      tvShow: {
-        database: 'TMDB',
-        id: '84666',
-        name: 'WATATEN!: an Angel Flew Down to Me',
-        airDate: "2019-01-08",
-        seasons: [
-          {
-            "season": 0,
-            "name": "Specials",
-            "episodes": [
-              {
-                "season": 0,
-                "episode": 1,
-                "name": "You Never Let Us Down / Always Growing Closer / Let's Change You Into This! / I'm Your Big Sister"
-              }
-            ]
-          },
-          {
-            "season": 1,
-            "name": "Season 1",
-            "episodes": [
-              {
-                "season": 1,
-                "episode": 1,
-                "name": "A Funny, Squirmy Feeling"
-              },
-              // don't need the rest of episodes in this test
-            ]
-          }
-        ]
+      ]
+      if (mediaMetadata.tvShow !== undefined) {
+        mediaMetadata.tvShow.database = 'TMDB'
+        mediaMetadata.tvShow.id = '84666'
       }
-    };
-
-    await writeMediaMetadata(mediaMetadata);
-
-    const mediaFolderPosix = Path.posix(folder.path!)
-    await updateUserConfig((userConfig: UserConfig) => ({
-      ...userConfig,
-      folders: [...userConfig.folders, mediaFolderPosix],
-    }))
-
-
-    await browser.pause(2 * 1000)
+      return mediaMetadata
+    })
 
     await Page.open()
+    await browser.pause(1000) // wait for a while for app initialization
 
-    await Sidebar.getFolderByName(folder1.translations?.title?.['en-US']!)
-
-    await browser.pause(1000)
-    await setPreferLanguage('zh-CN')
+    await Sidebar.clickFolder(folder1.folderName)
 
     await TvShowPanelCO.scrapeButton.waitForClickable()
     await TvShowPanelCO.scrapeButton.click()
@@ -186,6 +169,7 @@ Pending`)
 
     await browser.waitUntil(async () => {
       const text = await ScrapeDialogCO.table.getText()
+      
       return text.includes(`File Status
 Poster
 Completed
@@ -228,9 +212,16 @@ Completed`);
     expect(fs.readFileSync(s01e01EpisodeNfoPath, 'utf-8')).toContain('心里痒痒的感觉')
   });
 
-  it('scrape thumbnail from TVDB for TV Show', async function () {
+  it('scrape from TVDB for TV Show', async function () {
 
     this.timeout(60 * 1000)
+
+    await updateUserConfig((userConfig) => {
+      return {
+        ...userConfig,
+        preferMediaLanguage: 'zh-CN',
+      }
+    })
 
     const folder = createFolderInTestFolder({
       ...folder1,
@@ -239,65 +230,30 @@ Completed`);
       ],
     });
 
-    const mediaMetadata: MediaMetadata = {
-      mediaFolderPath: Path.posix(folder.path!),
-      type: folder.type === 'tvshow' ? 'tvshow-folder' : folder.type === 'movie' ? 'movie-folder' : 'music-folder',
-      mediaFiles: [
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+      mediaMetadata.mediaFiles = [
         {
-          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+          absolutePath: join(folder.path!, folder.files[0]!),
           seasonNumber: 1,
           episodeNumber: 1,
         }
-      ],
-      tvShow: {
-        database: 'TVDB',
-        id: '355969',
-        name: 'WATATEN!: an Angel Flew Down to Me',
-        airDate: "2019-01-08",
-        seasons: [
-          {
-            "season": 0,
-            "name": "Specials",
-            "episodes": [
-              {
-                "season": 0,
-                "episode": 1,
-                "name": "You Never Let Us Down / Always Growing Closer / Let's Change You Into This! / I'm Your Big Sister"
-              }
-            ]
-          },
-          {
-            "season": 1,
-            "name": "Season 1",
-            "episodes": [
-              {
-                "season": 1,
-                "episode": 1,
-                "name": "A Funny, Squirmy Feeling"
-              },
-              // don't need the rest of episodes in this test
-            ]
-          }
-        ]
+      ]
+      if (mediaMetadata.tvShow !== undefined) {
+        mediaMetadata.tvShow.database = 'TVDB'
+        mediaMetadata.tvShow.id = '355969'
       }
-    };
+      return mediaMetadata
+    })
 
-    await writeMediaMetadata(mediaMetadata);
-
-    const mediaFolderPosix = Path.posix(folder.path!)
-    await updateUserConfig((userConfig: UserConfig) => ({
-      ...userConfig,
-      folders: [...userConfig.folders, mediaFolderPosix],
-    }))
-
-
-    await browser.pause(2 * 1000)
 
     await Page.open()
-    await Sidebar.getFolderByName(folder1.translations?.title?.['en-US']!)
-
     await browser.pause(1000)
-    await setPreferLanguage('zh-CN')
+    await clickFolderByAnyName([
+      folder.folderName,
+      folder1.folderName,
+      folder1.translations?.title?.['en-US'] ?? '',
+      folder1.translations?.title?.['zh-CN'] ?? '',
+    ])
 
     await TvShowPanelCO.scrapeButton.waitForClickable()
     await TvShowPanelCO.scrapeButton.click()
@@ -363,8 +319,15 @@ Completed`);
     expect(fs.existsSync(s01e02EpisodeNfoPath)).toBe(false)
   });
 
-  it('scrape thumbnail from TMDB for Movie', async function () {
+  it('scrape from TMDB for Movie', async function () {
     this.timeout(60 * 1000)
+
+    await updateUserConfig((userConfig) => {
+      return {
+        ...userConfig,
+        preferMediaLanguage: 'zh-CN',
+      }
+    })
 
     const folder = createFolderInTestFolder({
       ...folder2,
@@ -372,31 +335,30 @@ Completed`);
       files: ["movie.mkv"],
     })
 
-    const mediaMetadata: MediaMetadata = {
-      mediaFolderPath: Path.posix(folder.path!),
-      type: "movie-folder",
-      mediaFiles: [
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+      mediaMetadata.type = 'movie-folder'
+      mediaMetadata.tvShow = undefined
+      mediaMetadata.mediaFiles = [
         {
-          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+          absolutePath: join(folder.path!, folder.files[0]!),
         },
-      ],
-      movie: {
-        database: "TMDB",
-        id: "552524",
-        name: "哪吒之魔童降世",
-      },
-    }
-
-    await writeMediaMetadata(mediaMetadata)
-    const mediaFolderPosix = Path.posix(folder.path!)
-    await updateUserConfig((userConfig: UserConfig) => ({
-      ...userConfig,
-      folders: [...userConfig.folders, mediaFolderPosix],
-    }))
+      ]
+      mediaMetadata.movie = {
+        database: 'TMDB',
+        id: '552524',
+        name: '哪吒之魔童降世',
+      }
+      return mediaMetadata
+    })
 
     await Page.open()
-    await browser.pause(1000)
-    await setPreferLanguage('zh-CN')
+    await browser.pause(1000) // wait for a while for app initialization
+    await clickFolderByAnyName([
+      folder.folderName,
+      folder2.folderName,
+      folder2.translations?.title?.['en-US'] ?? '',
+      folder2.translations?.title?.['zh-CN'] ?? '',
+    ])
 
     await clickScrapeButtonFromOverview()
     await ScrapeDialogCO.table.waitForDisplayed()
@@ -447,39 +409,45 @@ Completed`);
     expect(fs.readFileSync(movieNfoPath, 'utf-8')).toContain('<tmdbid>552524</tmdbid>')
   })
 
-  it('scrape thumbnail from TVDB for Movie', async function () {
+  it('scrape from TVDB for Movie', async function () {
     this.timeout(60 * 1000)
+
+    await updateUserConfig((userConfig) => {
+      return {
+        ...userConfig,
+        preferMediaLanguage: 'zh-CN',
+      }
+    })
 
     const folder = createFolderInTestFolder({
       ...folder5,
       files: ["The Dark Knight [1080P].mkv"],
     })
 
-    const mediaMetadata: MediaMetadata = {
-      mediaFolderPath: Path.posix(folder.path!),
-      type: "movie-folder",
-      mediaFiles: [
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+      mediaMetadata.type = 'movie-folder'
+      mediaMetadata.tvShow = undefined
+      mediaMetadata.mediaFiles = [
         {
-          absolutePath: Path.posix(join(folder.path!, folder.files[0]!)),
+          absolutePath: join(folder.path!, folder.files[0]!),
         },
-      ],
-      movie: {
-        database: "TVDB",
-        id: "116",
-        name: folder5.translations?.title?.['en-US'] ?? "The Dark Knight",
-      },
-    }
-
-    await writeMediaMetadata(mediaMetadata)
-    const mediaFolderPosix = Path.posix(folder.path!)
-    await updateUserConfig((userConfig: UserConfig) => ({
-      ...userConfig,
-      folders: [...userConfig.folders, mediaFolderPosix],
-    }))
+      ]
+      mediaMetadata.movie = {
+        database: 'TVDB',
+        id: '116',
+        name: folder5.translations?.title?.['en-US'] ?? 'The Dark Knight',
+      }
+      return mediaMetadata
+    })
 
     await Page.open()
-    await browser.pause(1000)
-    await setPreferLanguage('zh-CN')
+    await browser.pause(1000) // wait for a while for app initialization
+    await clickFolderByAnyName([
+      folder.folderName,
+      folder5.folderName,
+      folder5.translations?.title?.['en-US'] ?? '',
+      folder5.translations?.title?.['zh-CN'] ?? '',
+    ])
 
     await clickScrapeButtonFromOverview()
     await ScrapeDialogCO.table.waitForDisplayed()
