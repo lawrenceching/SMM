@@ -442,7 +442,12 @@ function MoviePanel() {
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
-          selectedMediaMetadata={mediaMetadata ? { ...mediaMetadata, status: (rawMediaMetadata as UIMediaMetadata | undefined)?.status ?? 'ok' } as UIMediaMetadata : undefined}
+          selectedMediaMetadata={
+            mediaMetadata && rawMediaMetadata
+              ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)
+              : undefined
+          }
+          selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
         />
       </div>

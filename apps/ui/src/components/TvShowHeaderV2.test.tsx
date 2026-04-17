@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { TvShowHeaderV2 } from './TvShowHeaderV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 const mockMediaDatabaseSearchbox = vi.fn((props: any) => (
   <div data-testid="media-database-searchbox" data-value={props.value ?? ''} />
@@ -36,6 +37,7 @@ describe('TvShowHeaderV2', () => {
     onRecognizeButtonClick: vi.fn(),
     onRenameClick: vi.fn(),
     selectedMediaMetadata: undefined as UIMediaMetadata | undefined,
+    selectedMediaFolder: undefined as UIMediaFolder | undefined,
     openScrape: vi.fn(),
   }
 
@@ -53,6 +55,7 @@ describe('TvShowHeaderV2', () => {
             mediaFolderPath: '/media/show',
             mediaFiles: [],
           } as UIMediaMetadata}
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
@@ -71,6 +74,7 @@ describe('TvShowHeaderV2', () => {
               tvShow: { id: '123', name: 'Test Show', database: 'TMDB', seasons: [] },
             } as UIMediaMetadata
           }
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
@@ -89,6 +93,7 @@ describe('TvShowHeaderV2', () => {
               tvShow: { id: '456', name: 'Test Show', database: 'TMDB', seasons: [] },
             } as UIMediaMetadata
           }
+          selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
         />
       )
       const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
@@ -109,12 +114,47 @@ describe('TvShowHeaderV2', () => {
               tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
             } as UIMediaMetadata
           }
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
       )
 
       expect(mockMediaDatabaseSearchbox).toHaveBeenCalled()
       const firstCallProps = mockMediaDatabaseSearchbox.mock.calls[0]?.[0]
       expect(firstCallProps?.value).toBe('TVDB Show Name')
+    })
+  })
+
+  describe('folder status driven loading state', () => {
+    const okMetadata = {
+      status: 'ok',
+      mediaFolderPath: '/media/show',
+      mediaFiles: [],
+      tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
+    } as UIMediaMetadata
+
+    it('shows loading skeleton and hides searchbox when selected folder is loading', () => {
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={{ path: '/media/show', status: 'loading' }}
+        />
+      )
+
+      expect(mockMediaDatabaseSearchbox).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('media-database-searchbox')).not.toBeInTheDocument()
+    })
+
+    it('shows searchbox when selected folder status is ok', () => {
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
+        />
+      )
+
+      expect(screen.getByTestId('media-database-searchbox')).toBeInTheDocument()
     })
   })
 })

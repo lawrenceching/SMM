@@ -953,6 +953,7 @@ function TvShowPanel() {
             })
           }}
           selectedMediaMetadata={mediaMetadata}
+          selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
           episodeTableLayout={episodeTableLayout}
           onEpisodeTableLayoutChange={setEpisodeTableLayout}

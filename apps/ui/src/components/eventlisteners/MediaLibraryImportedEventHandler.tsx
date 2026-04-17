@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useRef } from "react"
 import { useLatest, useMount, useUnmount } from "react-use"
 import { listFiles } from "@/api/listFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"

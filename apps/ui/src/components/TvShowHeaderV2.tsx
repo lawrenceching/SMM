@@ -1,4 +1,5 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,6 +21,7 @@ export interface TvShowHeaderV2Props {
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
+    selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
     episodeTableLayout?: EpisodeTableLayout
     onEpisodeTableLayoutChange?: (layout: EpisodeTableLayout) => void
@@ -30,6 +32,7 @@ export function TvShowHeaderV2({
     onRecognizeButtonClick,
     onRenameClick,
     selectedMediaMetadata,
+    selectedMediaFolder,
     openScrape,
     episodeTableLayout = "simple",
     onEpisodeTableLayoutChange,
@@ -39,8 +42,14 @@ export function TvShowHeaderV2({
     const tvShow = selectedMediaMetadata?.tvShow;
     const tvdbTvShowName = tvShow?.name ?? ''
     const movie = selectedMediaMetadata?.movie
-    const isUpdatingTvShow = selectedMediaMetadata?.status === 'updating'
-    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
+    const folderStatus = selectedMediaFolder?.status
+    const isUpdatingTvShow = selectedMediaFolder === undefined
+       || folderStatus === 'idle'
+       || folderStatus === 'pending_for_initialization'
+       || folderStatus === 'initializing'
+       || folderStatus === 'loading'
+       || folderStatus === 'updating'
+    const isMediaMetadataOk = folderStatus === 'ok'
     const initialSearchValue = tvShow?.name ?? tvdbTvShowName
 
     const hasValidTmdbTvShow = (tvShow != null && tvShow.id != null) || (selectedMediaMetadata?.tvShow != null)

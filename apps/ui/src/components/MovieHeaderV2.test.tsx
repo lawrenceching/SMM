@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MovieHeaderV2 } from './MovieHeaderV2'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
@@ -51,6 +52,7 @@ describe('MovieHeaderV2', () => {
     onSearchResultSelected: vi.fn(),
     onRenameClick: vi.fn(),
     selectedMediaMetadata: undefined as UIMediaMetadata | undefined,
+    selectedMediaFolder: undefined as UIMediaFolder | undefined,
     openScrape: vi.fn(),
   }
 
@@ -108,6 +110,39 @@ describe('MovieHeaderV2', () => {
       )
       const moreButton = screen.getByRole('button', { name: 'movie.more' })
       expect(moreButton).not.toBeDisabled()
+    })
+  })
+
+  describe('folder status driven loading state', () => {
+    const okMetadata = {
+      status: 'ok',
+      mediaFolderPath: '/media/movie',
+      mediaFiles: [],
+      movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
+    } as UIMediaMetadata
+
+    it('shows loading skeleton and hides searchbox when selected folder is updating', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={{ path: '/media/movie', status: 'updating' }}
+        />
+      )
+
+      expect(screen.queryByPlaceholderText('movie.searchPlaceholder')).not.toBeInTheDocument()
+    })
+
+    it('shows searchbox when selected folder status is ok', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
+        />
+      )
+
+      expect(screen.getByPlaceholderText('movie.searchPlaceholder')).toBeInTheDocument()
     })
   })
 })

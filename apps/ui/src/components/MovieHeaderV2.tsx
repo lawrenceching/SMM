@@ -1,4 +1,5 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, MoreVertical, ExternalLink } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,6 +16,7 @@ export interface MovieHeaderV2Props {
     onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRenameClick?: () => void
     selectedMediaMetadata?: UIMediaMetadata
+    selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
 }
 
@@ -22,13 +24,15 @@ export function MovieHeaderV2({
     onSearchResultSelected,
     onRenameClick,
     selectedMediaMetadata,
+    selectedMediaFolder,
     openScrape,
 }: MovieHeaderV2Props) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
+    const folderStatus = selectedMediaFolder?.status
     const movieMeta = selectedMediaMetadata?.movie
-    const isUpdatingMovie = selectedMediaMetadata?.status === 'updating'
-    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
+    const isUpdatingMovie = folderStatus === 'updating'
+    const isMediaMetadataOk = folderStatus === 'ok'
     const initialSearchValue = movieMeta?.name ?? ''
 
     const hasValidMovieMetadata = movieMeta != null

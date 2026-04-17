@@ -55,6 +55,7 @@ function AppV2Content() {
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const queryClient = useQueryClient()
+  const folderStatus = useUIMediaFolderStore((s) => s.folders.find(f => f.path === selectedFolder)?.status)
 
   // Media metadata
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
@@ -511,7 +512,9 @@ function AppV2Content() {
 
                   {selectedMediaMetadata.type !== "tvshow-folder" 
                   && selectedMediaMetadata.type !== "movie-folder"
-                  && selectedMediaMetadata.type !== "music-folder" && (
+                  && selectedMediaMetadata.type !== "music-folder" 
+                  && (folderStatus === "ok" || folderStatus === "error_loading_metadata")
+                  && (
                     <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
                   )}
                 </>
