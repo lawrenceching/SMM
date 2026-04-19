@@ -5,7 +5,9 @@ import { MediaPlayerControlBar } from './MediaPlayerControlBar';
 
 export interface DownloadingTrack {
   url?: string
-  status?: "pending" | "downloading" | "completed" | "failed";
+  status?: "pending" | "downloading" | "completed" | "failed" | "stopped";
+  /** When set, this row is backed by a {@link import('@/types/background-jobs').DownloadVideoBackgroundJob} */
+  jobId?: string
 }
 
 /**

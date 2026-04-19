@@ -1,10 +1,10 @@
 import { Download, Music } from "lucide-react"
 import { Button } from "./ui/button"
 import { useTranslation } from "@/lib/i18n"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 
 export interface MusicHeaderV2Props {
-    selectedMediaMetadata?: UIMediaMetadata
+    selectedMediaMetadata?: MediaMetadata
     onDownloadClick?: () => void
 }
 

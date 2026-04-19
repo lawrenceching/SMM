@@ -215,6 +215,9 @@ interface ComponentsResources {
       properties: string
       editTags: string
       formatConvert: string
+      downloadStart: string
+      downloadStop: string
+      downloadRemove: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -313,6 +316,14 @@ interface DialogsResources {
     agreementDescription: string
     agreementCheckboxLabel: string
     agreementRequiredNotice: string
+    downloadEpisodesLabel: string
+    episodesLoading: string
+    episodesNoneSelected: string
+    episodesNoVideoUrls: string
+    downloadedTo: string
+    episodesDownloadsFinished: string
+    backgroundQueued: string
+    backgroundJobEpisodesName: string
     validation: {
       URL_EMPTY: string
       URL_INVALID: string

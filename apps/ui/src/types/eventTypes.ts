@@ -33,3 +33,10 @@ export interface OnFixedDelayBackgroundJobEventData {
     traceId?: string;
 }
 
+/** Fired when a download-video background job finishes an item; MusicPanel may refresh metadata for `folder`. */
+export const UI_DownloadVideoJobFolderRefreshEvent = 'ui.downloadVideoJobFolderRefresh'
+
+export interface OnDownloadVideoJobFolderRefreshEventData {
+    folder: string
+}
+

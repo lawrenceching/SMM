@@ -1,38 +1,66 @@
 import { create } from 'zustand'
-import type { BackgroundJob } from '@/types/background-jobs'
+import type { BackgroundJob, GenericBackgroundJob } from '@/types/background-jobs'
+
+function newJobId(): string {
+  return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+}
 
 interface BackgroundJobsState {
   jobs: BackgroundJob[]
   isPopoverOpen: boolean
-  addJob: (name: string) => string
+  /**
+   * Append a job: pass a display name for a generic placeholder job, or a full {@link BackgroundJob}.
+   */
+  addJob: (nameOrJob: string | BackgroundJob) => string
   updateJob: (id: string, updates: Partial<BackgroundJob>) => void
+  /** Replace one job by id with the result of `fn` (type-agnostic). */
+  patchJob: (id: string, fn: (job: BackgroundJob) => BackgroundJob) => void
   abortJob: (id: string) => void
   getRunningJobs: () => BackgroundJob[]
+  getJobsByType: (type: string) => BackgroundJob[]
+  removeJob: (id: string) => void
   setPopoverOpen: (open: boolean) => void
 }
 
-export const useBackgroundJobsStore = create<BackgroundJobsState>((set, get) => ({
+export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) => ({
   jobs: [],
   isPopoverOpen: false,
 
-  addJob: (name: string) => {
-    const id = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const newJob: BackgroundJob = {
-      id,
-      name,
-      status: 'pending',
-      progress: 0,
+  addJob: (nameOrJob: string | BackgroundJob) => {
+    if (typeof nameOrJob === 'string') {
+      const id = newJobId()
+      const newJob: GenericBackgroundJob = {
+        id,
+        name: nameOrJob,
+        status: 'pending',
+        progress: 0,
+        type: 'generic',
+        data: {},
+      }
+      set((state) => ({
+        jobs: [...state.jobs, newJob],
+        isPopoverOpen: true,
+      }))
+      return id
     }
+    const job = nameOrJob
     set((state) => ({
-      jobs: [...state.jobs, newJob],
+      jobs: [...state.jobs, job],
       isPopoverOpen: true,
     }))
-    return id
+    return job.id
   },
 
   updateJob: (id, updates) =>
     set((state) => ({
-      jobs: state.jobs.map((job) => (job.id === id ? { ...job, ...updates } : job)),
+      jobs: state.jobs.map((job) =>
+        job.id === id ? ({ ...job, ...updates } as BackgroundJob) : job
+      ),
+    })),
+
+  patchJob: (id, fn) =>
+    set((state) => ({
+      jobs: state.jobs.map((job) => (job.id === id ? fn(job) : job)),
     })),
 
   abortJob: (id) =>
@@ -43,6 +71,13 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>((set, get) => 
     })),
 
   getRunningJobs: () => get().jobs.filter((job) => job.status === 'running'),
+
+  getJobsByType: (type) => get().jobs.filter((j) => j.type === type),
+
+  removeJob: (id) =>
+    set((state) => ({
+      jobs: state.jobs.filter((j) => j.id !== id),
+    })),
 
   setPopoverOpen: (open) => set({ isPopoverOpen: open }),
 }))

@@ -44,6 +44,7 @@ import { handleYtdlpDiscover } from './src/route/ytdlp/Discover';
 import { handleYtdlpVersion } from './src/route/ytdlp/Version';
 import { handleYtdlpDownload } from './src/route/ytdlp/Download';
 import { handleYtdlpExtractData } from './src/route/ytdlp/ExtractData';
+import { handleYtdlpBilibiliEpisodes } from './src/route/ytdlp/BilibiliEpisodes';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
 import { handleFfmpegTags } from './src/route/ffmpeg/Tags';
@@ -207,6 +208,7 @@ export class Server {
     handleYtdlpVersion(this.app);
     handleYtdlpDownload(this.app);
     handleYtdlpExtractData(this.app);
+    handleYtdlpBilibiliEpisodes(this.app);
     handleFfmpegScreenshots(this.app);
     handleFfmpegConvert(this.app);
     handleFfmpegTags(this.app);

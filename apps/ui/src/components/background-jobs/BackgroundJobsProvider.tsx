@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import type { BackgroundJob } from '@/types/background-jobs';
+import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore';
 
 interface BackgroundJobsContextType {
   jobs: BackgroundJob[];
-  addJob: (name: string) => string;
+  addJob: (nameOrJob: string | BackgroundJob) => string;
   updateJob: (id: string, updates: Partial<BackgroundJob>) => void;
   abortJob: (id: string) => void;
   getRunningJobs: () => BackgroundJob[];
@@ -17,43 +18,18 @@ interface BackgroundJobsProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Mirrors {@link useBackgroundJobsStore} into React context for legacy callers.
+ * The canonical state lives in the persisted zustand store.
+ */
 export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps) {
-  const [jobs, setJobs] = useState<BackgroundJob[]>([]);
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-
-  const addJob = useCallback((name: string): string => {
-    const id = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const newJob: BackgroundJob = {
-      id,
-      name,
-      status: 'pending',
-      progress: 0,
-    };
-    setJobs((prev) => [...prev, newJob]);
-    // Automatically open the background jobs popover when a new job is created
-    setIsPopoverOpen(true);
-    return id;
-  }, []);
-
-  const updateJob = useCallback((id: string, updates: Partial<BackgroundJob>) => {
-    setJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, ...updates } : job))
-    );
-  }, []);
-
-  const abortJob = useCallback((id: string) => {
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === id && job.status === 'running'
-           ? { ...job, status: 'aborted' }
-          : job
-      )
-    );
-  }, []);
-
-  const getRunningJobs = useCallback(() => {
-    return jobs.filter((job) => job.status === 'running');
-  }, [jobs]);
+  const jobs = useBackgroundJobsStore((s) => s.jobs);
+  const addJob = useBackgroundJobsStore((s) => s.addJob);
+  const updateJob = useBackgroundJobsStore((s) => s.updateJob);
+  const abortJob = useBackgroundJobsStore((s) => s.abortJob);
+  const getRunningJobs = useBackgroundJobsStore((s) => s.getRunningJobs);
+  const isPopoverOpen = useBackgroundJobsStore((s) => s.isPopoverOpen);
+  const setPopoverOpen = useBackgroundJobsStore((s) => s.setPopoverOpen);
 
   return (
     <BackgroundJobsContext.Provider
@@ -64,7 +40,7 @@ export function BackgroundJobsProvider({ children }: BackgroundJobsProviderProps
         abortJob,
         getRunningJobs,
         isPopoverOpen,
-        setPopoverOpen: setIsPopoverOpen,
+        setPopoverOpen,
       }}
     >
       {children}

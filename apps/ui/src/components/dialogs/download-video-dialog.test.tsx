@@ -1,11 +1,44 @@
+import type { ReactElement } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DownloadVideoDialog } from './download-video-dialog'
+
+const h = vi.hoisted(() => ({
+  saveDownloadVideoJob: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/lib/downloadTaskDb', () => ({
+  saveDownloadVideoJob: h.saveDownloadVideoJob,
+}))
+
+vi.mock('@/hooks/ytdlp/useYtdlpMutations', () => ({
+  useBilibiliEpisodesMetadataMutation: () => ({
+    mutate: vi.fn(),
+    reset: vi.fn(),
+  }),
+  useExtractYtdlpVideoDataMutation: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({ title: 'Mock Title', artist: 'Mock Artist' }),
+    reset: vi.fn(),
+    isPending: false,
+  }),
+}))
+
+function renderWithQueryClient(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+    },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  )
+}
 
 // Mock translation hook
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { ns?: string }) => {
+    t: (key: string, options?: { ns?: string; count?: number }) => {
       if (options?.ns === 'common') {
         const commonTranslations: Record<string, string> = {
           cancel: 'Cancel',
@@ -26,6 +59,10 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.agreementCheckboxLabel':
           'I understand and agree that I will not use this feature to download illegal or unlicensed content.',
         'downloadVideo.agreementRequiredNotice': 'You must agree before downloading.',
+        'downloadVideo.backgroundQueued': 'Added to background.',
+        'downloadVideo.backgroundJobEpisodesName': `Episodes (${options?.count ?? 0} videos)`,
+        'downloadVideo.downloadEpisodesLabel': 'Download episodes',
+        'downloadVideo.episodesLoading': 'Loading episodes…',
       }
       return dialogsTranslations[key] || key
     },
@@ -40,12 +77,6 @@ vi.mock('@core/download-video-validators', () => ({
   }),
 }))
 
-// Mock API and toast side effects – not the focus of these tests
-vi.mock('@/api/ytdlp', () => ({
-  downloadYtdlpVideo: vi.fn().mockResolvedValue({ success: true, path: '/mock/path' }),
-  extractYtdlpVideoData: vi.fn().mockResolvedValue({ title: 'Mock Title', artist: 'Mock Artist' }),
-}))
-
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
@@ -55,13 +86,11 @@ vi.mock('sonner', () => ({
 
 describe('DownloadVideoDialog - user agreement', () => {
   const mockOnClose = vi.fn()
-  const mockOnStart = vi.fn()
   const mockOnOpenFilePicker = vi.fn()
 
   const defaultProps = {
     isOpen: true,
     onClose: mockOnClose,
-    onStart: mockOnStart,
     onOpenFilePicker: mockOnOpenFilePicker,
   }
 
@@ -76,7 +105,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   it('shows agreement block and disables inputs on first open when user has not agreed', () => {
-    render(<DownloadVideoDialog {...defaultProps} />)
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     // Agreement title and description should be visible
     expect(screen.getByText('Legal and licensing notice')).toBeInTheDocument()
@@ -92,7 +121,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   it('enables inputs and start button after user checks agreement, and persists to localStorage', () => {
-    render(<DownloadVideoDialog {...defaultProps} />)
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     const checkbox = screen.getByLabelText(
       'I understand and agree that I will not use this feature to download illegal or unlicensed content.'
@@ -112,7 +141,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   it('skips agreement block and keeps controls enabled when user has previously agreed', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
 
-    render(<DownloadVideoDialog {...defaultProps} />)
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     // Agreement title should not be shown
     expect(screen.queryByText('Legal and licensing notice')).not.toBeInTheDocument()
@@ -124,8 +153,8 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(folderInput.disabled).toBe(false)
   })
 
-  it('does not call onStart if user has not agreed, even when URL and folder look valid', () => {
-    render(<DownloadVideoDialog {...defaultProps} />)
+  it('does not create a background job if user has not agreed, even when URL and folder look valid', () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     const urlInput = screen.getByLabelText('Video URL') as HTMLInputElement
     const startButton = screen.getByText('Start') as HTMLButtonElement
@@ -135,7 +164,34 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.change(urlInput, { target: { value: 'https://example.com/video' } })
     fireEvent.click(startButton)
 
-    expect(mockOnStart).not.toHaveBeenCalled()
+    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+  })
+
+  it('creates a download-video job and starts orchestration when the form is valid', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'download-video',
+          data: expect.objectContaining({
+            folder: 'C:\\downloads',
+            videos: expect.arrayContaining([
+              expect.objectContaining({ url: 'https://example.com/video' }),
+            ]),
+          }),
+        })
+      )
+    })
+    expect(mockOnClose).toHaveBeenCalled()
   })
 })
-

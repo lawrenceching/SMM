@@ -49,15 +49,9 @@ export interface FilePickerDialogProps {
   initialPath?: string
 }
 
-export interface VideoData {
-  title?: string
-  artist?: string
-}
-
 export interface DownloadVideoDialogProps {
   isOpen: boolean
   onClose: () => void
-  onStart: (url: string, downloadFolder: string) => void
   onOpenFilePicker: (
     onSelect: (file: FileItem) => void,
     options?: { selectFolder?: boolean; initialPath?: string }
@@ -66,8 +60,6 @@ export interface DownloadVideoDialogProps {
    * The absolute path in platform-specific format
    */
   destinationFolder?: string
-  onVideoDataExtracted?: (data: VideoData, url: string) => void
-  onDownloadComplete?: (url: string, path: string) => void
 }
 
 export interface MediaSearchDialogProps {

@@ -3,11 +3,12 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
-import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { useEffect, useCallback, useState, useMemo } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
@@ -19,13 +20,15 @@ import {
   type TrackPropertiesEventDetail,
   type TrackFormatConvertEventDetail,
   type TrackEditTagsEventDetail,
-  MUSIC_EVENT_NAMES
+  MUSIC_EVENT_NAMES,
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
+import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
+import { useDownloadManager } from "@/hooks/useDownloadManager";
 
 interface PendingDelete {
   trackPath: string;
@@ -34,52 +37,41 @@ interface PendingDelete {
   fileIndex: number;
 }
 
-/**
- *
- * @param prev The track in current state
- * @param localTracks The track from latest local files
- * @returns
- */
 export function syncTracks(prev: Track[], localTracks: Track[]) {
   let tracks = prev;
 
-  let prevPermanentTracks = tracks.filter((track) => track.status === undefined);
-  // tracks may be deleted from local folder
-  const deletedTracks = prevPermanentTracks.filter((prevTrack) => !localTracks.some((newTrack) => newTrack.path === prevTrack.path));
-  tracks = tracks.filter((track) => track.status !== undefined || !deletedTracks.some((deletedTrack) => deletedTrack.path === track.path));
+  const prevPermanentTracks = tracks.filter((track) => track.status === undefined);
+  const deletedTracks = prevPermanentTracks.filter(
+    (prevTrack) => !localTracks.some((newTrack) => newTrack.path === prevTrack.path),
+  );
+  tracks = tracks.filter(
+    (track) => track.status !== undefined || !deletedTracks.some((dt) => dt.path === track.path),
+  );
 
-  // tracks may be updated in local folder
   tracks = tracks.map((track) => {
-    if(track.status !== undefined) {
-      // temporary track
+    if (track.status !== undefined) {
       return track;
     }
 
-    const updatedTrack = localTracks.find((updatedTrack) => updatedTrack.path === track.path);
-    return !!updatedTrack ? {
-      ...updatedTrack,
-      id: track.id,
-    } : track;
+    const localMatch = localTracks.find((lt) => lt.path === track.path);
+    return localMatch ? { ...localMatch, id: track.id } : track;
   });
 
-  // new tracks may be added to local folder
-  const newTracks = localTracks.filter((newTrack) => !prev.some((prevTrack) => prevTrack.path === newTrack.path));
+  const newTracks = localTracks.filter(
+    (newTrack) => !prev.some((prevTrack) => prevTrack.path === newTrack.path),
+  );
   tracks = [...tracks, ...newTracks];
 
-  // Remove temporary tracks that have successfully downloaded
   tracks = tracks.map((track) => {
-    if(track.status === undefined) {
+    if (track.status === undefined) {
       return track;
     }
 
-    // if status is completed and if the local track is loaded
-    // Replace the temporary track with the loaded track
-    if(track.status === "completed") {
-
-      const localTrack = localTracks.find((localTrack) => localTrack.path === track.path)
-      if(localTrack) {
+    if (track.status === "completed") {
+      const localMatch = localTracks.find((lt) => lt.path === track.path);
+      if (localMatch) {
         return {
-          ...localTrack,
+          ...localMatch,
           id: track.id,
           status: undefined,
           url: undefined,
@@ -114,32 +106,13 @@ export function MusicPanel() {
     [folders, selectedFolder],
   );
 
-  const selectedMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
-    if (!selectedFolder?.trim()) return undefined;
-
-    const domain = queriedMediaMetadata;
-
-    const status: UIMediaMetadata["status"] = (() => {
-      if (isMediaMetadataError) return "error_loading_metadata";
-      if (domain) return "ok";
-      if (uiFolderRow?.status) return uiFolderRow.status;
-      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing";
-      return "loading";
-    })();
-
-    if (!domain) {
-      const normalizedPath = normalizeMediaFolderPathForQuery(selectedFolder);
-      return {
-        mediaFolderPath: normalizedPath,
-        type: "music-folder",
-        status,
-      } as UIMediaMetadata;
-    }
-
-    return {
-      ...domain,
-      status,
-    };
+  const folderStatus = useMemo((): UIMediaFolderStatus => {
+    if (!selectedFolder?.trim()) return "idle";
+    if (isMediaMetadataError) return "error_loading_metadata";
+    if (queriedMediaMetadata) return "ok";
+    if (uiFolderRow?.status) return uiFolderRow.status;
+    if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing";
+    return "loading";
   }, [
     selectedFolder,
     queriedMediaMetadata,
@@ -149,16 +122,18 @@ export function MusicPanel() {
     uiFolderRow?.status,
   ]);
 
+  const mediaMetadata = queriedMediaMetadata;
+
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
   const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation();
   const updateMediaMetadata = useCallback(
     async (
       path: string,
-      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+      updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
     ) => {
       const pathPosix = normalizeMediaFolderPathForQuery(path);
       if (!pathPosix) return;
-      const current = (await fetchMediaMetadata({ path: pathPosix })) as UIMediaMetadata;
+      const current = await fetchMediaMetadata({ path: pathPosix });
       const next =
         typeof updaterOrMetadata === "function"
           ? updaterOrMetadata(current)
@@ -167,36 +142,64 @@ export function MusicPanel() {
     },
     [fetchMediaMetadata, saveMediaMetadata],
   );
-  const { filePropertyDialog, confirmationDialog, downloadVideoDialog, formatConverterDialog, editMediaFileDialog } = useDialogs();
+
+  const {
+    jobRecords,
+    hasRunningDownload,
+    startDownload,
+    stopDownload,
+    removeDownload,
+  } = useDownloadManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    mediaFolderPath: mediaMetadata?.mediaFolderPath,
+    onDownloadSucceeded: useCallback(() => {
+      if (mediaMetadata?.mediaFolderPath) {
+        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
+      }
+    }, [mediaMetadata, fetchMediaMetadata]),
+  });
+
+  const jobTracks = useMemo(
+    () => tracksFromDownloadJobRecords(jobRecords),
+    [jobRecords],
+  );
+
+  const {
+    filePropertyDialog,
+    confirmationDialog,
+    downloadVideoDialog,
+    formatConverterDialog,
+    editMediaFileDialog,
+  } = useDialogs();
   const [openFilePropertyDialog] = filePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
   const [openFormatConverter] = formatConverterDialog;
   const [openEditMediaFile] = editMediaFileDialog;
-  const pendingDeleteRef = useRef<PendingDelete | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-
-    if(!selectedMediaMetadata) {
-      // clean up permanent tracks, and keep the temporary tracks
-      setTracks((prev) => prev.filter((track) => track.path === undefined ));
+    if (!mediaMetadata?.mediaFolderPath) {
+      setTracks(jobTracks.length > 0 ? jobTracks : []);
       return;
     }
 
-    const musicMediaMetadata = newMusicMediaMetadata(selectedMediaMetadata);
+    const musicMediaMetadata = newMusicMediaMetadata(mediaMetadata);
     const newTracks = convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
 
-    setTracks(prev => {
-      return syncTracks(prev, newTracks);
+    setTracks((prev) => {
+      const basePrev = prev.filter((t) => !t.jobId);
+      const synced = syncTracks(basePrev, newTracks);
+      return mergeLibraryTracksWithJobTracks(synced, jobTracks);
     });
+  }, [mediaMetadata, jobTracks]);
 
-  }, [selectedMediaMetadata]);
-
-  // When panel opens, sequentially read artist, title, and duration from each file (ffprobe) and update tracks
   const pathSignature = useMemo(
     () =>
       tracks
@@ -204,21 +207,21 @@ export function MusicPanel() {
         .map((t) => t.path)
         .sort()
         .join("\n"),
-    [tracks]
+    [tracks],
   );
-  const tagFetchAbortedRef = useRef(false);
-  useEffect(() => {
-    if (!selectedMediaMetadata || pathSignature === "") return;
 
-    tagFetchAbortedRef.current = false;
+  useEffect(() => {
+    if (!mediaMetadata || pathSignature === "") return;
+
+    const controller = new AbortController();
     const tracksToFetch = tracks.filter((t) => t.path);
 
     (async () => {
       for (const track of tracksToFetch) {
-        if (tagFetchAbortedRef.current) break;
+        if (controller.signal.aborted) break;
         try {
           const res = await getMediaTags({ path: track.path! });
-          if (tagFetchAbortedRef.current) break;
+          if (controller.signal.aborted) break;
           if (res.error) {
             console.warn("[MusicPanel] Failed to read tags for", track.path, res.error);
             continue;
@@ -238,8 +241,8 @@ export function MusicPanel() {
                     ...(title !== "" && { title }),
                     ...(duration !== undefined && { duration }),
                   }
-                : t
-            )
+                : t,
+            ),
           );
         } catch (err) {
           console.warn("[MusicPanel] Error reading tags for", track.path, err);
@@ -247,14 +250,9 @@ export function MusicPanel() {
       }
     })();
 
-    return () => {
-      tagFetchAbortedRef.current = true;
-    };
-    // Intentionally depend on pathSignature (path list) only; re-running when `tracks` changes would refetch on every row update
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature encodes the set of paths to fetch
-  }, [selectedMediaMetadata, pathSignature]);
+    return () => controller.abort();
+  }, [mediaMetadata, pathSignature]);
 
-  // Build table data from tracks
   const tableData = useMemo<MusicFileRow[]>(() => {
     return tracks.map((track, index) => ({
       id: track.id,
@@ -265,6 +263,7 @@ export function MusicPanel() {
       thumbnail: track.thumbnail,
       path: track.path,
       status: track.status,
+      jobId: track.jobId,
     }));
   }, [tracks]);
 
@@ -278,7 +277,6 @@ export function MusicPanel() {
       }
 
       await openFile(Path.toPlatformPath(trackPath));
-      console.log('[MusicPanel] Successfully opened file:', trackPath);
     } catch (error) {
       console.error('[MusicPanel] Failed to open file:', error);
       toast.error(`Could not open "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -286,7 +284,6 @@ export function MusicPanel() {
   }, []);
 
   const handleDeleteConfirm = useCallback(async () => {
-    const pendingDelete = pendingDeleteRef.current;
     if (!pendingDelete) return;
 
     try {
@@ -295,32 +292,31 @@ export function MusicPanel() {
       const updatedFiles = [...pendingDelete.currentFiles];
       updatedFiles.splice(pendingDelete.fileIndex, 1);
 
-      const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath;
+      const mediaFolderPath = mediaMetadata?.mediaFolderPath;
       if (!mediaFolderPath) {
         toast.error("Media folder path is not available.");
         return;
       }
 
-      updateMediaMetadata(
+      await updateMediaMetadata(
         mediaFolderPath,
-        (current: UIMediaMetadata) => ({
+        (current: MediaMetadata) => ({
           ...current,
           files: updatedFiles,
-        })
+        }),
       );
 
       toast.success(`"${pendingDelete.trackTitle}" has been deleted.`);
-      console.log('[MusicPanel] Successfully deleted track:', pendingDelete.trackTitle);
-      pendingDeleteRef.current = null;
+      setPendingDelete(null);
       closeConfirmation();
     } catch (error) {
       console.error('[MusicPanel] Failed to delete track:', error);
       toast.error(`Could not delete "${pendingDelete.trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [selectedMediaMetadata, updateMediaMetadata, closeConfirmation]);
+  }, [pendingDelete, mediaMetadata, updateMediaMetadata, closeConfirmation]);
 
   const handleDeleteCancel = useCallback(() => {
-    pendingDeleteRef.current = null;
+    setPendingDelete(null);
     closeConfirmation();
   }, [closeConfirmation]);
 
@@ -333,29 +329,29 @@ export function MusicPanel() {
         return;
       }
 
-      if (!selectedMediaMetadata) {
+      if (!mediaMetadata) {
         toast.error("No media folder is currently selected.");
         return;
       }
 
-      const currentFiles = selectedMediaMetadata.files ?? [];
-      const fileIndex = currentFiles.findIndex((file) => file === trackPath);
+      const currentFiles = mediaMetadata.files ?? [];
+      const trackPathPosix = Path.posix(trackPath);
+      const fileIndex = currentFiles.findIndex((file) => file === trackPathPosix);
 
       if (fileIndex === -1) {
         toast.error(`Track "${trackTitle}" is not in the current media folder.`);
         return;
       }
 
-      pendingDeleteRef.current = {
+      setPendingDelete({
         trackPath,
         trackTitle,
         currentFiles,
-        fileIndex
-      };
+        fileIndex,
+      });
 
       openConfirmation({
         title: "Delete Track",
-        description: `Are you sure you want to delete "${trackTitle}"? This action cannot be undone.`,
         showCloseButton: false,
         content: (
           <DeleteTrackDialog
@@ -369,7 +365,7 @@ export function MusicPanel() {
       console.error('[MusicPanel] Failed to handle delete track:', error);
       toast.error(`Could not process delete for "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [selectedMediaMetadata, openConfirmation, handleDeleteConfirm, handleDeleteCancel]);
+  }, [mediaMetadata, openConfirmation, handleDeleteConfirm, handleDeleteCancel]);
 
   const handleTrackProperties = useCallback((event: CustomEvent<TrackPropertiesEventDetail>) => {
     const { trackId, trackTitle } = event.detail;
@@ -383,7 +379,6 @@ export function MusicPanel() {
       }
 
       openFilePropertyDialog(track);
-      console.log('[MusicPanel] Opened properties dialog for track:', trackTitle);
     } catch (error) {
       console.error('[MusicPanel] Failed to open properties dialog:', error);
       toast.error(`Could not open properties for "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -418,170 +413,50 @@ export function MusicPanel() {
   }, [openEditMediaFile]);
 
   const handleDownloadClick = useCallback(() => {
-    // Callback when video data is extracted (may come before or after onStart)
-    const handleVideoDataExtracted = (videoData: { title?: string; artist?: string }, url: string) => {
-      console.log('[MusicPanel] Extracted video data:', videoData, 'for URL:', url);
+    if (!mediaMetadata?.mediaFolderPath) {
+      return;
+    }
+    openDownloadVideo(Path.toPlatformPath(mediaMetadata.mediaFolderPath));
+  }, [openDownloadVideo, mediaMetadata]);
 
-      setTracks(prev => {
-
-        // The VideoDataExtracted event and DownloadStarted event may
-        // arrive out of order, so we need to check if the track already exists
-        if(prev.some((t) => t.url === url)) {
-          // if track already exists, update it
-
-          return prev.map(prev => {
-            if(prev.url === url) {
-              return {
-                ...prev,
-                title: videoData.title || prev.title,
-                artist: videoData.artist || prev.artist,
-              }
-            }
-            return prev;
-          })
-
-        } else {
-
-          // if track does not exist, create it
-          return [...prev, {
-            id: Date.now(),
-            title: videoData.title || url,
-            artist: videoData.artist || 'Unknown',
-            duration: 0,
-            thumbnail: '',
-            addedDate: new Date(),
-            path: '',
-            url,
-            status: "pending",
-          }]
-        }
-
-      })
-
-    };
-
-    // Callback when download starts
-    const handleDownloadStart = (url: string, folder: string) => {
-      console.log(`[MusicPanel] Starting download: ${url} to ${folder}`);
-
-      setTracks(prev => {
-
-        // The VideoDataExtracted event and DownloadStarted event may
-        // arrive out of order, so we need to check if the track already exists
-        if(prev.some((t) => t.url === url)) {
-          // if track already exists, update it
-
-          return prev.map(prev => {
-            if(prev.url === url) {
-              return {
-                ...prev,
-                url: url,
-                status: "downloading",
-              }
-            }
-            return prev;
-          })
-
-        } else {
-
-          // if track does not exist, create it
-          return [...prev, {
-            id: Date.now(),
-            title: url,
-            artist: '',
-            duration: 0,
-            thumbnail: '',
-            addedDate: new Date(),
-            path: '',
-            url,
-            status: "downloading",
-          }]
-        }
-
-      })
-
-    };
-
-    // Callback when download completes
-    const handleDownloadComplete = (url: string, path: string) => {
-      console.log(`[MusicPanel] Download complete: ${url} -> ${path}`);
-
-      setTracks(prev => {
-        return prev.map(prev => {
-          if(prev.url === url) {
-            return {
-              ...prev,
-              path: path,
-              status: "completed",
-            }
-          }
-          return prev;
-        })
-      })
-
-      // Refresh media metadata to include the new file
-      const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath;
-      if (mediaFolderPath) {
-        console.log(`[MusicPanel] Refreshing media metadata for ${mediaFolderPath}`);
-        // in useEffect of selectedMediaMetadata, the permanent track will replace the tmp track
-        // so we only need to refresh the media metadata here.
-        void fetchMediaMetadata({ path: mediaFolderPath });
-      }
-    };
-
-    openDownloadVideo(
-      handleDownloadStart,
-      Path.toPlatformPath(selectedMediaMetadata!.mediaFolderPath!),
-      handleVideoDataExtracted,
-      handleDownloadComplete
-    );
-  }, [fetchMediaMetadata, openDownloadVideo, selectedMediaMetadata]);
-
-  // Handle track click for playback indication
   const handleTrackClick = useCallback((trackId: number) => {
-    const track = tracks.find(t => t.id === trackId)
-    if (!track || track.status === 'downloading') return
+    const track = tracks.find((t) => t.id === trackId);
+    if (!track || track.status === 'downloading') return;
 
     if (currentTrackId === trackId) {
-      setIsPlaying(prev => !prev)
+      setIsPlaying((prev) => !prev);
     } else {
-      setCurrentTrackId(trackId)
-      setIsPlaying(true)
+      setCurrentTrackId(trackId);
+      setIsPlaying(true);
     }
-  }, [tracks, currentTrackId])
+  }, [tracks, currentTrackId]);
 
   useEffect(() => {
-    const unsubscribeOpen = addMusicEventListener<TrackOpenEventDetail>(
-      MUSIC_EVENT_NAMES['track:open'],
-      handleTrackOpen
-    );
-
-    const unsubscribeDelete = addMusicEventListener<TrackDeleteEventDetail>(
-      MUSIC_EVENT_NAMES['track:delete'],
-      handleTrackDelete
-    );
-
-    const unsubscribeProperties = addMusicEventListener<TrackPropertiesEventDetail>(
-      MUSIC_EVENT_NAMES['track:properties'],
-      handleTrackProperties
-    );
-
-    const unsubscribeFormatConvert = addMusicEventListener<TrackFormatConvertEventDetail>(
-      MUSIC_EVENT_NAMES['track:formatConvert'],
-      handleTrackFormatConvert
-    );
-
-    const unsubscribeEditTags = addMusicEventListener<TrackEditTagsEventDetail>(
-      MUSIC_EVENT_NAMES['track:editTags'],
-      handleTrackEditTags
-    );
+    const subscriptions: Array<() => void> = [
+      addMusicEventListener<TrackOpenEventDetail>(
+        MUSIC_EVENT_NAMES['track:open'],
+        handleTrackOpen,
+      ),
+      addMusicEventListener<TrackDeleteEventDetail>(
+        MUSIC_EVENT_NAMES['track:delete'],
+        handleTrackDelete,
+      ),
+      addMusicEventListener<TrackPropertiesEventDetail>(
+        MUSIC_EVENT_NAMES['track:properties'],
+        handleTrackProperties,
+      ),
+      addMusicEventListener<TrackFormatConvertEventDetail>(
+        MUSIC_EVENT_NAMES['track:formatConvert'],
+        handleTrackFormatConvert,
+      ),
+      addMusicEventListener<TrackEditTagsEventDetail>(
+        MUSIC_EVENT_NAMES['track:editTags'],
+        handleTrackEditTags,
+      ),
+    ];
 
     return () => {
-      unsubscribeOpen();
-      unsubscribeDelete();
-      unsubscribeProperties();
-      unsubscribeFormatConvert();
-      unsubscribeEditTags();
+      for (const unsub of subscriptions) unsub();
     };
   }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackEditTags]);
 
@@ -589,21 +464,25 @@ export function MusicPanel() {
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
-          selectedMediaMetadata={selectedMediaMetadata}
+          selectedMediaMetadata={mediaMetadata}
           onDownloadClick={handleDownloadClick}
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        {selectedMediaMetadata?.status === "initializing" ? (
+        {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
         ) : (
           <MusicFileTable
-            key={selectedMediaMetadata?.mediaFolderPath ?? "no-folder"}
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
-            mediaFolderPath={selectedMediaMetadata?.mediaFolderPath}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
             currentTrackId={currentTrackId}
             isPlaying={isPlaying}
             onTrackClick={handleTrackClick}
+            hasRunningDownload={hasRunningDownload}
+            onDownloadStart={startDownload}
+            onDownloadStop={stopDownload}
+            onDownloadRemove={(jobId) => void removeDownload(jobId)}
           />
         )}
       </div>

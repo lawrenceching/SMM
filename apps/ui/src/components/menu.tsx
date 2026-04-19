@@ -240,10 +240,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'download-video',
           onClick: () => {
             logMenuAction("download-video.click")
-            openDownloadVideo((url: string, downloadFolder: string) => {
-              console.log(`Downloading video from ${url} to ${downloadFolder}`)
-              logMenuAction("download-video.start", { url, downloadFolder })
-            })
+            openDownloadVideo()
           }
         },
         {

@@ -1,7 +1,8 @@
-import { getUserConfig } from "./config";
+import { getUserConfig, getTmpDir } from "./config";
 import path from "path";
 import os from "os";
 import fs from "fs";
+import { mkdir, rename, rm, readdir } from "fs/promises";
 import { spawn, execSync } from "child_process";
 import { logger } from "../../lib/logger";
 import { discoverFfmpeg } from "./Ffmpeg";
@@ -191,6 +192,85 @@ export interface YtdlpVideoDataResult {
   error?: string;
 }
 
+export type RunYtdlpPlaylistDumpResult =
+  | { stdout: string }
+  | { error: string };
+
+/**
+ * Runs `yt-dlp -j <url>` and returns raw stdout (NDJSON lines). Parsing is left to the client.
+ */
+export async function runYtdlpPlaylistDump(
+  url: string
+): Promise<RunYtdlpPlaylistDumpResult> {
+  if (!url) {
+    return { error: "url is required" };
+  }
+
+  const ytdlpPath = await discoverYtdlp();
+  if (!ytdlpPath) {
+    return { error: "yt-dlp executable not found" };
+  }
+
+  const spawnArgs = ["-j", url];
+  ytdlpLog.debug(
+    { ytdlpPath, spawnArgs, url },
+    "runYtdlpPlaylistDump: spawning yt-dlp"
+  );
+
+  try {
+    const child = spawn(ytdlpPath, spawnArgs, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stderr = "";
+    child.stderr?.on("data", (data: Buffer) => {
+      const chunk = data.toString();
+      stderr += chunk;
+      process.stderr.write(data);
+    });
+
+    const exitPromise = new Promise<number>((resolve, reject) => {
+      child.once("close", (code) => resolve(code ?? 0));
+      child.once("error", reject);
+    });
+
+    if (!child.stdout) {
+      return { error: "yt-dlp stdout is not available" };
+    }
+
+    const chunks: Buffer[] = [];
+    const stdoutEnd = new Promise<void>((resolve, reject) => {
+      child.stdout!.on("data", (d: string | Buffer) => {
+        chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d, "utf8"));
+      });
+      child.stdout!.once("end", () => resolve());
+      child.stdout!.once("error", reject);
+    });
+
+    const [exitCode] = await Promise.all([exitPromise, stdoutEnd]);
+    const stdout = Buffer.concat(chunks).toString("utf8");
+
+    if (exitCode !== 0) {
+      const tail = stderr.trim().slice(-2000);
+      return {
+        error: `yt-dlp exited with code ${exitCode}${tail ? `: ${tail}` : ""}`,
+      };
+    }
+
+    return { stdout };
+  } catch (error) {
+    ytdlpLog.debug(
+      { err: error instanceof Error ? error.message : error, url },
+      "runYtdlpPlaylistDump: failed"
+    );
+    return {
+      error: `yt-dlp failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
+  }
+}
+
 /**
  * Validates that only allowed arguments are provided
  * @param args - Array of command-line arguments
@@ -209,21 +289,19 @@ function validateArgs(args?: string[]): boolean {
  * @returns Result with success or error
  */
 export async function downloadYtdlpVideo(
-  request: YtdlpDownloadRequestData
+  request: YtdlpDownloadRequestData,
+  signal?: AbortSignal
 ): Promise<YtdlpDownloadResult> {
-  // Validate URL
   if (!request.url) {
     return { error: "url is required" };
   }
 
-  // Validate args
   if (request.args && !validateArgs(request.args)) {
     return {
       error: `Only allowed args are: ${ALLOWED_ARGS.join(", ")}`,
     };
   }
 
-  // Discover yt-dlp
   const ytdlpPath = await discoverYtdlp();
   if (!ytdlpPath) {
     return { error: "yt-dlp executable not found" };
@@ -231,15 +309,19 @@ export async function downloadYtdlpVideo(
 
   const ffmpegPath = await discoverFfmpeg();
 
-  // Build command arguments
+  const finalDir = request.folder || path.join(os.homedir(), "Downloads");
+  const tmpBase = getTmpDir();
+  const tempDir = path.join(tmpBase, `ytdlp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
+  try {
+    await mkdir(tempDir, { recursive: true });
+  } catch {
+    return { error: "failed to create temp directory for download" };
+  }
+
   const cmdArgs = [ytdlpPath];
-
-  // Add output directory (default to ~/Downloads)
-  const outputDir = request.folder || path.join(os.homedir(), "Downloads");
-  const outputTemplate = path.join(outputDir, "%(title)s [%(id)s].%(ext)s");
-  cmdArgs.push("--output", outputTemplate);
-
-  // Add --print to get the final filepath after post-processing
+  const tempOutputTemplate = path.join(tempDir, "%(title)s [%(id)s].%(ext)s");
+  cmdArgs.push("--output", tempOutputTemplate);
   cmdArgs.push("--print", "after_move:filepath");
 
   if (ffmpegPath) {
@@ -262,16 +344,16 @@ export async function downloadYtdlpVideo(
     {
       ytdlpPath,
       ffmpegPath: ffmpegPath ?? null,
-      outputDir,
-      outputTemplate,
+      tempDir,
+      finalDir,
+      tempOutputTemplate,
       extraArgs: request.args ?? [],
       spawnArgs,
       url: request.url,
     },
-    "download: spawning yt-dlp"
+    "download: spawning yt-dlp with temp directory"
   );
 
-  // Execute yt-dlp
   let downloadedPath = "";
   try {
     await new Promise<void>((resolve, reject) => {
@@ -280,18 +362,25 @@ export async function downloadYtdlpVideo(
       });
       let stdout = "";
       let stderr = "";
+
+      const onAbort = () => {
+        ytdlpLog.warn({ ytdlpPath, spawnArgs }, "download: abort signal received, killing yt-dlp");
+        child.kill("SIGTERM");
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+
       child.stdout?.on("data", (data) => {
         stdout += data.toString();
       });
       child.stderr?.on("data", (data) => {
         stderr += data.toString();
-        // Match prior stdio inherit on stderr so operators still see progress/warnings live
         process.stderr.write(data);
       });
       child.on("close", (code) => {
+        signal?.removeEventListener("abort", onAbort);
         if (code === 0) {
           const lines = stdout.trim().split("\n").filter((l) => l.trim());
-          downloadedPath = lines[lines.length - 1]?.trim() || outputDir;
+          downloadedPath = lines[lines.length - 1]?.trim() || "";
           ytdlpLog.debug(
             {
               exitCode: code,
@@ -318,6 +407,7 @@ export async function downloadYtdlpVideo(
         }
       });
       child.on("error", (err) => {
+        signal?.removeEventListener("abort", onAbort);
         ytdlpLog.debug(
           { err, ytdlpPath, spawnArgs },
           "download: failed to spawn yt-dlp"
@@ -325,7 +415,46 @@ export async function downloadYtdlpVideo(
         reject(err);
       });
     });
-    return { success: true, path: downloadedPath };
+
+    const tempFiles = await readdir(tempDir);
+    await mkdir(finalDir, { recursive: true });
+
+    let movedMainFile = "";
+    try {
+      for (const file of tempFiles) {
+        const tempFilePath = path.join(tempDir, file);
+        const finalFilePath = path.join(finalDir, file);
+        await rename(tempFilePath, finalFilePath);
+        if (downloadedPath && path.resolve(tempFilePath) === path.resolve(downloadedPath)) {
+          movedMainFile = finalFilePath;
+        }
+      }
+    } catch (moveError) {
+      ytdlpLog.error(
+        { err: moveError instanceof Error ? moveError.message : moveError, tempDir, finalDir },
+        "download: failed to move files from temp to final directory, keeping temp files"
+      );
+      return {
+        error: `Failed to move downloaded file to destination: ${
+          moveError instanceof Error ? moveError.message : "Unknown error"
+        }`,
+      };
+    }
+
+    if (!movedMainFile && downloadedPath) {
+      movedMainFile = path.join(finalDir, path.basename(downloadedPath));
+    }
+
+    ytdlpLog.debug(
+      { tempFiles, finalDir, movedMainFile },
+      "download: moved files from temp to final directory"
+    );
+
+    try {
+      await rm(tempDir, { recursive: true, force: true });
+    } catch {}
+
+    return { success: true, path: movedMainFile || downloadedPath };
   } catch (error) {
     ytdlpLog.debug(
       {
@@ -333,6 +462,9 @@ export async function downloadYtdlpVideo(
       },
       "download: caught error after spawn"
     );
+    try {
+      await rm(tempDir, { recursive: true, force: true });
+    } catch {}
     return {
       error: `yt-dlp download failed: ${
         error instanceof Error ? error.message : "Unknown error"

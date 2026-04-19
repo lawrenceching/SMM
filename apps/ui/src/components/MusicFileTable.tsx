@@ -16,7 +16,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music, Tag } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
@@ -30,7 +30,8 @@ export interface MusicFileRow {
   duration: number
   thumbnail?: string
   path?: string
-  status?: "pending" | "downloading" | "completed" | "failed"
+  status?: "pending" | "downloading" | "completed" | "failed" | "stopped"
+  jobId?: string
 }
 
 interface MusicFileTableProps {
@@ -43,6 +44,14 @@ interface MusicFileTableProps {
   isPlaying?: boolean
   /** Called when a track is clicked to play */
   onTrackClick?: (trackId: number) => void
+  /** Whether a download job is currently running (disables "Start" menu) */
+  hasRunningDownload?: boolean
+  /** Start a pending/stopped/failed download job */
+  onDownloadStart?: (jobId: string) => void
+  /** Stop a running download job */
+  onDownloadStop?: (jobId: string) => void
+  /** Remove a download job */
+  onDownloadRemove?: (jobId: string) => void
 }
 
 function formatDuration(seconds: number): string {
@@ -90,11 +99,12 @@ export function MusicFileTable({
   currentTrackId,
   isPlaying,
   onTrackClick,
+  hasRunningDownload,
+  onDownloadStart,
+  onDownloadStop,
+  onDownloadRemove,
 }: MusicFileTableProps) {
   const { t } = useTranslation(['components'])
-
-  console.log("[MusicFileTable] render", { dataLength: data.length })
-
   const handleOpen = (track: MusicFileRow) => {
     if (!track.path) return
     emitTrackOpenEvent({
@@ -152,13 +162,12 @@ export function MusicFileTable({
             <TableHead className="h-8 min-w-0 px-2 py-1">{t('musicFileTable.columns.title')}</TableHead>
             <TableHead className="h-8 w-32 px-2 py-1">{t('musicFileTable.columns.artist')}</TableHead>
             <TableHead className="h-8 w-16 px-2 py-1 text-right">{t('musicFileTable.columns.duration')}</TableHead>
-            <TableHead className="h-8 w-8 px-2 py-1"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
                   <Music className="size-8 text-muted-foreground/50" />
                   <p>{t('mediaPlayer.noTracksFound')}</p>
@@ -172,16 +181,26 @@ export function MusicFileTable({
 
               return (
                 <ContextMenu key={row.id}>
-                  <ContextMenuTrigger asChild disabled={isDownloading}>
+                  <ContextMenuTrigger asChild>
                     <TableRow
                       className={`cursor-pointer group ${isActive ? 'bg-muted' : ''}`}
                       onClick={() => !isDownloading && onTrackClick?.(row.id)}
                     >
-                      {/* Index / Play indicator */}
+                      {/* Index / Play / Download status indicator */}
                       <TableCell className="w-10 px-2 py-1.5 text-center">
                         <div className="flex items-center justify-center">
-                          {isDownloading ? (
-                            <Spinner className="size-4 text-blue-500" />
+                          {row.jobId ? (
+                            row.status === 'downloading' ? (
+                              <Spinner className="size-4 text-blue-500" />
+                            ) : row.status === 'completed' ? (
+                              <CheckCircle2 className="size-4 text-green-500" />
+                            ) : row.status === 'failed' ? (
+                              <XCircle className="size-4 text-red-500" />
+                            ) : row.status === 'stopped' ? (
+                              <CircleStop className="size-4 text-orange-500" />
+                            ) : (
+                              <Clock className="size-4 text-muted-foreground" />
+                            )
                           ) : isActive && isPlaying ? (
                             <div className="flex items-center justify-center gap-0.5 h-4">
                               {[0, 1, 2, 3].map((i) => (
@@ -202,7 +221,7 @@ export function MusicFileTable({
                               {row.index + 1}
                             </span>
                           )}
-                          {!isActive && (
+                          {!row.jobId && !isActive && (
                             <Play className="size-4 text-foreground hidden group-hover:block" />
                           )}
                         </div>
@@ -257,18 +276,35 @@ export function MusicFileTable({
                       <TableCell className="w-16 px-2 py-1.5 text-right text-muted-foreground">
                         {isDownloading ? '...' : formatDuration(row.duration)}
                       </TableCell>
-
-                      {/* Status */}
-                      <TableCell className="w-8 px-2 py-1.5">
-                        {row.status === 'downloading' && (
-                          <div className="flex items-center justify-center">
-                            <Spinner className="size-4 text-blue-500" />
-                          </div>
-                        )}
-                      </TableCell>
                     </TableRow>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
+                    {row.jobId && row.status !== 'downloading' && row.status !== 'completed' && (
+                      <ContextMenuItem
+                        disabled={hasRunningDownload}
+                        onClick={() => onDownloadStart?.(row.jobId!)}
+                      >
+                        <CirclePlay className="size-4 mr-2" />
+                        {t('mediaPlayer.trackContextMenu.downloadStart')}
+                      </ContextMenuItem>
+                    )}
+                    {row.jobId && row.status === 'downloading' && (
+                      <ContextMenuItem
+                        onClick={() => onDownloadStop?.(row.jobId!)}
+                      >
+                        <CircleStop className="size-4 mr-2" />
+                        {t('mediaPlayer.trackContextMenu.downloadStop')}
+                      </ContextMenuItem>
+                    )}
+                    {row.jobId && (
+                      <ContextMenuItem
+                        variant="destructive"
+                        onClick={() => onDownloadRemove?.(row.jobId!)}
+                      >
+                        <CircleX className="size-4 mr-2" />
+                        {t('mediaPlayer.trackContextMenu.downloadRemove')}
+                      </ContextMenuItem>
+                    )}
                     <ContextMenuItem
                       disabled={!row.path || isDownloading}
                       onClick={() => handleOpen(row)}

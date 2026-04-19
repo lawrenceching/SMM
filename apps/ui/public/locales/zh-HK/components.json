@@ -192,7 +192,10 @@
       "delete": "刪除",
       "properties": "屬性",
       "editTags": "編輯標籤",
-      "formatConvert": "格式轉換"
+      "formatConvert": "格式轉換",
+      "downloadStart": "開始",
+      "downloadStop": "停止",
+      "downloadRemove": "刪除"
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"

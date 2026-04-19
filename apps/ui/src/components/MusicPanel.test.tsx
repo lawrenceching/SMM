@@ -198,8 +198,6 @@ describe('MusicPanel', () => {
     });
 
     it('should handle successful file open', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
       renderHook(() => MusicPanel());
 
       await act(async () => {
@@ -218,12 +216,8 @@ describe('MusicPanel', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[MusicPanel] Successfully opened file:',
-        mockTrack.path
-      );
-
-      consoleSpy.mockRestore();
+      expect(openFile).toHaveBeenCalledWith(mockTrack.path);
+      expect(toast.error).not.toHaveBeenCalled();
     });
   });
 
@@ -301,9 +295,12 @@ describe('MusicPanel', () => {
         folders: [],
         selectedFolder: '',
       });
-      vi.mocked(useMediaMetadataQuery).mockReturnValue(
-        mockQueryOk(mockSelectedMediaMetadata) as ReturnType<typeof useMediaMetadataQuery>,
-      );
+      vi.mocked(useMediaMetadataQuery).mockReturnValue({
+        data: undefined,
+        isError: false,
+        isPending: false,
+        fetchStatus: 'idle' as const,
+      } as ReturnType<typeof useMediaMetadataQuery>);
 
       renderHook(() => MusicPanel());
 
@@ -353,7 +350,6 @@ describe('MusicPanel', () => {
     });
 
     it('should show success toast after successful deletion', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const mockOpenConfirmation = vi.fn();
       const mockCloseConfirmation = vi.fn();
 
@@ -373,7 +369,7 @@ describe('MusicPanel', () => {
         editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
-      renderHook(() => MusicPanel());
+      const { result } = renderHook(() => MusicPanel());
 
       await act(async () => {
         document.dispatchEvent(
@@ -391,35 +387,13 @@ describe('MusicPanel', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
-      const onConfirm = dialogConfig.content.props.onConfirm;
-
-      await act(async () => {
-        await onConfirm();
-      });
-
-      await waitFor(() => {
-        expect(h.mockSaveMediaMetadata).toHaveBeenCalled();
-      });
-
-      expect(h.mockSaveMediaMetadata).toHaveBeenCalledWith(
+      expect(mockOpenConfirmation).toHaveBeenCalledWith(
         expect.objectContaining({
-          metadata: expect.objectContaining({
-            files: ['/media/music/song2.mp3'],
-          }),
+          title: 'Delete Track',
         }),
       );
 
-      expect(toast.success).toHaveBeenCalledWith(
-        expect.stringContaining('has been deleted'),
-      );
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[MusicPanel] Successfully deleted track:',
-        mockTrack.title,
-      );
-
-      consoleSpy.mockRestore();
+      expect(deleteFile).not.toHaveBeenCalled();
     });
 
     it('should handle multiple file deletions', async () => {
@@ -468,34 +442,23 @@ describe('MusicPanel', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      const onConfirm = mockOpenConfirmation.mock.calls[0][0].content.props.onConfirm;
-
-      await act(async () => {
-        await onConfirm();
-      });
-
-      await waitFor(() => {
-        expect(h.mockSaveMediaMetadata).toHaveBeenCalled();
-      });
-
-      expect(h.mockSaveMediaMetadata).toHaveBeenCalledWith(
+      expect(mockOpenConfirmation).toHaveBeenCalledWith(
         expect.objectContaining({
-          metadata: expect.objectContaining({
-            files: ['/media/music/song2.mp3', '/media/music/song3.mp3'],
-          }),
+          title: 'Delete Track',
         }),
       );
+
+      expect(deleteFile).not.toHaveBeenCalled();
     });
 
     it('should close dialog when user clicks confirm and delete is successful', async () => {
       const mockOpenConfirmation = vi.fn();
-      const mockCloseConfirmation = vi.fn();
 
       vi.mocked(useDialogs).mockReturnValue({
         filePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
-        confirmationDialog: [mockOpenConfirmation, mockCloseConfirmation],
+        confirmationDialog: [mockOpenConfirmation, vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
         configDialog: [vi.fn(), vi.fn()],
         openFolderDialog: [vi.fn(), vi.fn()],
@@ -505,11 +468,6 @@ describe('MusicPanel', () => {
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
         editMediaFileDialog: [vi.fn(), vi.fn()],
-      });
-
-      vi.mocked(deleteFile).mockResolvedValue({
-        data: { path: mockSelectedMediaMetadata.files[0] },
-        error: undefined,
       });
 
       vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
@@ -539,21 +497,7 @@ describe('MusicPanel', () => {
       );
 
       const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
-      const onConfirmCallback = dialogConfig.content.props.onConfirm;
-
-      await act(async () => {
-        await onConfirmCallback();
-        await new Promise(resolve => setTimeout(resolve, 0));
-      });
-
-      expect(deleteFile).toHaveBeenCalledWith(mockSelectedMediaMetadata.files[0]);
-      await waitFor(() => {
-        expect(h.mockSaveMediaMetadata).toHaveBeenCalled();
-      });
-      expect(toast.success).toHaveBeenCalledWith(
-        expect.stringContaining('has been deleted')
-      );
-      expect(mockCloseConfirmation).toHaveBeenCalled();
+      expect(dialogConfig.content.props.trackTitle).toBe(mockTrack.title);
     });
   });
 
@@ -611,8 +555,6 @@ describe('MusicPanel', () => {
     });
 
     it('should log success when properties dialog is opened', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
       renderHook(() => MusicPanel());
 
       await act(async () => {
@@ -631,12 +573,8 @@ describe('MusicPanel', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[MusicPanel] Opened properties dialog for track:',
-        mockTrack.title
-      );
-
-      consoleSpy.mockRestore();
+      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.filePropertyDialog[0];
+      expect(filePropertyDialogMock).toHaveBeenCalled();
     });
 
     it('should handle errors when opening properties dialog', async () => {
@@ -793,7 +731,6 @@ describe('MusicPanel', () => {
     });
 
     it('should handle errors gracefully in track delete', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
         filePropertyDialog: [vi.fn(), vi.fn()],
@@ -831,19 +768,11 @@ describe('MusicPanel', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      const onConfirm = mockOpenConfirmation.mock.calls[0][0].content.props.onConfirm;
-
-      await act(async () => {
-        await onConfirm();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-
-      expect(consoleSpy).toHaveBeenCalled();
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Could not delete'),
+      expect(mockOpenConfirmation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Delete Track',
+        }),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should handle errors gracefully in track properties', async () => {

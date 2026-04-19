@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "./UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 
 export interface MusicFileProps {
     type: "audio" | "video"
@@ -18,6 +18,6 @@ export interface MusicFileProps {
     duration?: number;
 }
 
-export interface MusicMediaMetadata extends UIMediaMetadata {
+export interface MusicMediaMetadata extends MediaMetadata {
     musicFiles: MusicFileProps[];
 }

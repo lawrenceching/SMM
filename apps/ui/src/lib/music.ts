@@ -1,11 +1,11 @@
 import type { MusicFileProps, MusicMediaMetadata } from "@/types/MusicMediaMetadata";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 import type { Track } from "@/components/MediaPlayer";
 import { Path } from "@core/path";
 import { extensions } from "@core/utils";
 import { pathToFileURL } from "@core/url";
 
-export function newMusicMediaMetadata(mm: UIMediaMetadata): MusicMediaMetadata {
+export function newMusicMediaMetadata(mm: MediaMetadata): MusicMediaMetadata {
     return {
         ...mm,
         musicFiles: buildMusicFilePropsArray(mm.files ?? []),

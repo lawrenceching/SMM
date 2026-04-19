@@ -193,7 +193,10 @@
       "delete": "Delete",
       "properties": "Properties",
       "editTags": "Edit tags",
-      "formatConvert": "Format conversion"
+      "formatConvert": "Format conversion",
+      "downloadStart": "Start",
+      "downloadStop": "Stop",
+      "downloadRemove": "Remove"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
