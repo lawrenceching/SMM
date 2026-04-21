@@ -31,6 +31,18 @@ interface EpisodeItem {
   url: string
 }
 
+function isBilibiliUrl(value: string): boolean {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  try {
+    const parsed = new URL(trimmed)
+    const host = parsed.hostname.toLowerCase()
+    return host === "b23.tv" || host.endsWith(".bilibili.com") || host === "bilibili.com"
+  } catch {
+    return false
+  }
+}
+
 function ytdlpVideosToEpisodeItems(videos: YtdlpVideo[]): EpisodeItem[] {
   return videos
     .map((v) => {
@@ -63,12 +75,24 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const [selectedEpisodeUrls, setSelectedEpisodeUrls] = useState<Set<string>>(new Set())
   const [isEnqueueing, setIsEnqueueing] = useState(false)
   const episodesFetchGen = useRef(0)
+  const previousUrlRef = useRef("")
 
   const { mutate: mutateEpisodesMetadata, reset: resetEpisodesMetadata } =
     useBilibiliEpisodesMetadataMutation()
   const extractMutation = useExtractYtdlpVideoDataMutation()
 
   const formBusy = isEnqueueing || (downloadEpisodes && episodesLoading)
+  const canDownloadEpisodes = isBilibiliUrl(url)
+
+  const resetEpisodesState = useCallback(() => {
+    episodesFetchGen.current += 1
+    setDownloadEpisodes(false)
+    setEpisodes([])
+    setSelectedEpisodeUrls(new Set())
+    setEpisodesError(null)
+    setEpisodesLoading(false)
+    resetEpisodesMetadata()
+  }, [resetEpisodesMetadata])
 
   useEffect(() => {
     if (isOpen && destinationFolder) {
@@ -145,6 +169,35 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   }, [t])
 
   const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
+
+  useEffect(() => {
+    const current = url.trim()
+    const previous = previousUrlRef.current
+    if (previous && previous !== current && downloadEpisodes) {
+      resetEpisodesState()
+    }
+    previousUrlRef.current = current
+  }, [url, downloadEpisodes, resetEpisodesState])
+
+  useEffect(() => {
+    if (canDownloadEpisodes) return
+    const hasEpisodesStateToReset =
+      downloadEpisodes ||
+      episodes.length > 0 ||
+      selectedEpisodeUrls.size > 0 ||
+      episodesError !== null ||
+      episodesLoading
+    if (!hasEpisodesStateToReset) return
+    resetEpisodesState()
+  }, [
+    canDownloadEpisodes,
+    downloadEpisodes,
+    episodes.length,
+    selectedEpisodeUrls.size,
+    episodesError,
+    episodesLoading,
+    resetEpisodesState,
+  ])
 
   const handleUrlChange = (value: string) => {
     setUrl(value)
@@ -257,13 +310,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
   const handleDownloadEpisodesChange = (checked: boolean) => {
     if (!checked) {
-      episodesFetchGen.current += 1
-      setEpisodes([])
-      setSelectedEpisodeUrls(new Set())
-      setEpisodesError(null)
-      setEpisodesLoading(false)
-      resetEpisodesMetadata()
-      setDownloadEpisodes(false)
+      resetEpisodesState()
       return
     }
     setDownloadEpisodes(true)
@@ -329,16 +376,18 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               <p className="text-sm text-destructive">{urlError}</p>
             )}
           </div>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-3.5 w-3.5"
-              checked={downloadEpisodes}
-              onChange={(e) => handleDownloadEpisodesChange(e.target.checked)}
-              disabled={formBusy || !hasAgreed}
-            />
-            <span>{t('downloadVideo.downloadEpisodesLabel')}</span>
-          </label>
+          {canDownloadEpisodes && (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5"
+                checked={downloadEpisodes}
+                onChange={(e) => handleDownloadEpisodesChange(e.target.checked)}
+                disabled={formBusy || !hasAgreed}
+              />
+              <span>{t('downloadVideo.downloadEpisodesLabel')}</span>
+            </label>
+          )}
           {downloadEpisodes && hasAgreed && (
             <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
               {episodesLoading && (
