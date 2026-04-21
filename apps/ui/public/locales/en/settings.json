@@ -45,6 +45,8 @@
     "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
     "selectFfmpegExecutable": "Select ffmpeg Executable",
     "selectFfmpegExecutableDescription": "Choose the ffmpeg executable file",
+    "videoCaptionerExecutablePath": "VideoCaptioner Executable Path",
+    "videoCaptionerExecutablePathUnavailable": "Not found",
     "browse": "Browse"
   },
   "ai": {

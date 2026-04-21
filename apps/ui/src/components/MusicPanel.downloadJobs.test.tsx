@@ -8,29 +8,12 @@ import { useDialogs } from '@/providers/dialog-provider'
 import { openFile } from '@/api/openFile'
 import { deleteFile } from '@/api/deleteFile'
 import { getMediaTags } from '@/api/ffmpeg'
+import { discoverVideoCaptioner } from '@/api/videocaptioner'
 import { toast } from 'sonner'
 import { Path } from '@core/path'
 import type { DownloadVideoBackgroundJob } from '@/types/background-jobs'
 
-vi.mock('@/stores/uiMediaFolderStore')
-vi.mock('@/hooks/mediaMetadata')
-vi.mock('@/hooks/mediaMetadata/useFetchMediaMetadataMutation', () => ({
-  useFetchMediaMetadataMutation: () => ({
-    mutateAsync: vi.fn().mockResolvedValue({}),
-  }),
-}))
-vi.mock('@/hooks/mediaMetadata/useUpdateMediaMetadataMutation', () => ({
-  useUpdateMediaMetadataMutation: () => ({
-    mutateAsync: vi.fn().mockResolvedValue(undefined),
-  }),
-}))
-vi.mock('@/providers/dialog-provider')
-vi.mock('@/api/openFile')
-vi.mock('@/api/deleteFile')
-vi.mock('@/api/ffmpeg')
-vi.mock('sonner')
-
-const jobsHolder: { jobs: DownloadVideoBackgroundJob[] } = {
+const h = vi.hoisted(() => ({
   jobs: [
     {
       id: 'dj1',
@@ -50,8 +33,30 @@ const jobsHolder: { jobs: DownloadVideoBackgroundJob[] } = {
         ],
       },
     },
-  ],
-}
+  ] as DownloadVideoBackgroundJob[],
+}))
+
+vi.mock('@/stores/uiMediaFolderStore')
+vi.mock('@/hooks/mediaMetadata')
+vi.mock('@/hooks/mediaMetadata/useFetchMediaMetadataMutation', () => ({
+  useFetchMediaMetadataMutation: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+  }),
+}))
+vi.mock('@/hooks/mediaMetadata/useUpdateMediaMetadataMutation', () => ({
+  useUpdateMediaMetadataMutation: () => ({
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+vi.mock('@/providers/dialog-provider')
+vi.mock('@/api/openFile')
+vi.mock('@/api/deleteFile')
+vi.mock('@/api/ffmpeg')
+vi.mock('@/api/videocaptioner', () => ({
+  discoverVideoCaptioner: vi.fn(),
+  transcribeWithVideoCaptioner: vi.fn(),
+}))
+vi.mock('sonner')
 
 const mockJobRecords = [
   {
@@ -88,13 +93,18 @@ vi.mock('@/hooks/useDownloadManager', () => ({
 }))
 
 vi.mock('@/stores/backgroundJobsStore', () => {
+  const state = {
+    jobs: h.jobs,
+    createTranscribeJob: vi.fn(),
+    markTranscribeJobSucceeded: vi.fn(),
+    markTranscribeJobFailed: vi.fn(),
+  }
   const store = {
-    getState: () => ({ jobs: jobsHolder.jobs }),
+    getState: () => state,
   }
   return {
     useBackgroundJobsStore: Object.assign(
-      (selector: (s: { jobs: typeof jobsHolder.jobs }) => unknown) =>
-        selector({ jobs: jobsHolder.jobs }),
+      (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
       store
     ),
   }
@@ -144,6 +154,7 @@ describe('MusicPanel download-video jobs', () => {
     vi.mocked(openFile).mockResolvedValue({ data: {} as any, error: undefined })
     vi.mocked(deleteFile).mockResolvedValue({ data: { path: '/media/music/song1.mp3' }, error: undefined })
     vi.mocked(getMediaTags).mockResolvedValue({ tags: {}, duration: undefined, error: undefined })
+    vi.mocked(discoverVideoCaptioner).mockResolvedValue({ path: '/usr/bin/videocaptioner' })
     vi.mocked(toast).mockImplementation(() => 'id')
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((p: string) => p)
   })

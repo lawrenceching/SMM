@@ -41,4 +41,21 @@ describe('backgroundJobsStore', () => {
     expect(j.name).toBe('Renamed')
     expect(j.progress).toBe(50)
   })
+
+  it('creates and updates transcribe jobs', () => {
+    const id = useBackgroundJobsStore.getState().createTranscribeJob('Song A', '/media/song-a.mp3')
+    let job = useBackgroundJobsStore.getState().jobs.find((x) => x.id === id)!
+    expect(job.type).toBe('transcribe')
+    expect(job.status).toBe('running')
+
+    useBackgroundJobsStore.getState().markTranscribeJobSucceeded(id)
+    job = useBackgroundJobsStore.getState().jobs.find((x) => x.id === id)!
+    expect(job.status).toBe('succeeded')
+    expect(job.progress).toBe(100)
+
+    const failedId = useBackgroundJobsStore.getState().createTranscribeJob('Song B', '/media/song-b.mp3')
+    useBackgroundJobsStore.getState().markTranscribeJobFailed(failedId)
+    const failed = useBackgroundJobsStore.getState().jobs.find((x) => x.id === failedId)!
+    expect(failed.status).toBe('failed')
+  })
 })

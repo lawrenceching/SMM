@@ -196,7 +196,8 @@
       "formatConvert": "Format conversion",
       "downloadStart": "Start",
       "downloadStop": "Stop",
-      "downloadRemove": "Remove"
+      "downloadRemove": "Remove",
+      "transcribe": "Transcribe"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"

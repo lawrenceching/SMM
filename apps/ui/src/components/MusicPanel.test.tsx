@@ -10,6 +10,7 @@ import { deleteFile } from '@/api/deleteFile';
 import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
 import { getMediaTags } from '@/api/ffmpeg';
+import { discoverVideoCaptioner } from '@/api/videocaptioner';
 
 const h = vi.hoisted(() => ({
   mockFetchMediaMetadata: vi.fn(),
@@ -40,6 +41,10 @@ vi.mock('@/providers/dialog-provider');
 vi.mock('@/api/openFile');
 vi.mock('@/api/deleteFile');
 vi.mock('@/api/ffmpeg');
+vi.mock('@/api/videocaptioner', () => ({
+  discoverVideoCaptioner: vi.fn(),
+  transcribeWithVideoCaptioner: vi.fn(),
+}));
 vi.mock('sonner');
 
 const mockTrack: Track = {
@@ -113,6 +118,9 @@ describe('MusicPanel', () => {
       tags: {},
       duration: undefined,
       error: undefined,
+    });
+    vi.mocked(discoverVideoCaptioner).mockResolvedValue({
+      path: '/usr/bin/videocaptioner',
     });
 
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);

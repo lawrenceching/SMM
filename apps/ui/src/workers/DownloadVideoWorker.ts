@@ -100,7 +100,7 @@ export function handleDownloadVideoSwMessage(data: unknown): void {
       if (st === 'succeeded') {
         const job = useBackgroundJobsStore
           .getState()
-          .jobs.find((x) => x.id === m.jobId && isDownloadVideoJob(x))
+          .jobs.find((x): x is DownloadVideoBackgroundJob => x.id === m.jobId && isDownloadVideoJob(x))
         if (job) {
           dispatchFolderRefresh(job.data.folder)
         }
@@ -139,7 +139,9 @@ export function registerDownloadVideoWorkerMessageHandler(): () => void {
 }
 
 async function orchestrateDownloadVideoJobInPage(jobId: string): Promise<void> {
-  const job = useBackgroundJobsStore.getState().jobs.find((j) => j.id === jobId && isDownloadVideoJob(j))
+  const job = useBackgroundJobsStore
+    .getState()
+    .jobs.find((j): j is DownloadVideoBackgroundJob => j.id === jobId && isDownloadVideoJob(j))
   if (!job) {
     return
   }
@@ -185,7 +187,9 @@ async function orchestrateDownloadVideoJobInPage(jobId: string): Promise<void> {
  * Starts a persisted download-video job: Dedicated Web Worker when available, otherwise in-page.
  */
 export async function startDownloadVideoJob(jobId: string): Promise<void> {
-  const job = useBackgroundJobsStore.getState().jobs.find((j) => j.id === jobId && isDownloadVideoJob(j))
+  const job = useBackgroundJobsStore
+    .getState()
+    .jobs.find((j): j is DownloadVideoBackgroundJob => j.id === jobId && isDownloadVideoJob(j))
   if (!job) {
     return
   }

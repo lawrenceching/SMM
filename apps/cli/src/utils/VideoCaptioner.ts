@@ -1,0 +1,197 @@
+import { getUserConfig } from "./config";
+import path from "path";
+import os from "os";
+import fs from "fs";
+import { spawn } from "child_process";
+import { logger } from "../../lib/logger";
+
+const videoCaptionerLog = logger.child({ module: "videocaptioner" });
+const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
+
+function getSmmDataDir(): string {
+  const platform = os.platform();
+  const homedir = os.homedir();
+
+  switch (platform) {
+    case "win32":
+      return process.env.LOCALAPPDATA
+        ? path.join(process.env.LOCALAPPDATA, "SMM")
+        : path.join(homedir, "AppData", "Local", "SMM");
+    case "darwin":
+      return path.join(homedir, "Library", "Application Support", "SMM");
+    case "linux":
+      return process.env.XDG_DATA_HOME
+        ? path.join(process.env.XDG_DATA_HOME, "SMM")
+        : path.join(homedir, ".local", "share", "SMM");
+    default:
+      return path.join(homedir, ".local", "share", "SMM");
+  }
+}
+
+function getProjectRoot(): string {
+  return path.resolve(__dirname, "../../../../");
+}
+
+function getWindowsDriveRootFromPosixHome(homeDir: string): string | undefined {
+  const match = homeDir.match(/^\/([a-zA-Z])\//);
+  if (!match || !match[1]) return undefined;
+  return `/${match[1].toLowerCase()}`;
+}
+
+export function getPythonScriptsCandidatePaths(exeName: string): string[] {
+  const candidates = new Set<string>();
+  const homeDir = os.homedir();
+  const platform = os.platform();
+
+  if (platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local");
+    // Typical CPython installer path:
+    // C:\Users\<user>\AppData\Local\Programs\Python\Python310\Scripts\videocaptioner.exe
+    candidates.add(path.join(localAppData, "Programs", "Python", "Python310", "Scripts", exeName));
+    candidates.add(path.join(localAppData, "Programs", "Python", "Python311", "Scripts", exeName));
+    candidates.add(path.join(localAppData, "Programs", "Python", "Python312", "Scripts", exeName));
+    candidates.add(path.join(localAppData, "Programs", "Python", "Python313", "Scripts", exeName));
+    // User scripts path for pip --user installs on Windows
+    candidates.add(path.join(localAppData, "Programs", "Python", "Python", "Scripts", exeName));
+    candidates.add(path.join(process.env.APPDATA || path.join(homeDir, "AppData", "Roaming"), "Python", "Scripts", exeName));
+    return [...candidates];
+  }
+
+  // Git Bash / MSYS style Windows path on non-win32 (e.g. /c/Users/...)
+  const posixDriveRoot = getWindowsDriveRootFromPosixHome(homeDir);
+  if (posixDriveRoot) {
+    const base = path.posix.join(posixDriveRoot, "Users", path.posix.basename(homeDir), "AppData", "Local", "Programs", "Python");
+    candidates.add(path.posix.join(base, "Python310", "Scripts", exeName));
+    candidates.add(path.posix.join(base, "Python311", "Scripts", exeName));
+    candidates.add(path.posix.join(base, "Python312", "Scripts", exeName));
+    candidates.add(path.posix.join(base, "Python313", "Scripts", exeName));
+  }
+
+  // Common Unix user-level pip locations
+  candidates.add(path.join(homeDir, ".local", "bin", exeName));
+  candidates.add(path.join(homeDir, "Library", "Python", "3.10", "bin", exeName));
+  candidates.add(path.join(homeDir, "Library", "Python", "3.11", "bin", exeName));
+  candidates.add(path.join(homeDir, "Library", "Python", "3.12", "bin", exeName));
+  return [...candidates];
+}
+
+export async function discoverVideoCaptioner(): Promise<string | undefined> {
+  try {
+    const userConfig = await getUserConfig();
+    const customPath = userConfig.videoCaptionerExecutablePath;
+    if (customPath && fs.existsSync(customPath)) {
+      return customPath;
+    }
+  } catch {
+    // ignore config read failures
+  }
+
+  const exeName = os.platform() === "win32" ? "videocaptioner.exe" : "videocaptioner";
+  const resourcesPath = process.env.SMM_RESOURCES_PATH;
+  if (resourcesPath) {
+    const bundledPath = path.join(resourcesPath, "bin", "videocaptioner", exeName);
+    if (fs.existsSync(bundledPath)) {
+      return bundledPath;
+    }
+  }
+
+  const projectRoot = getProjectRoot();
+  const devBinPath = path.join(projectRoot, "bin", "videocaptioner", exeName);
+  if (fs.existsSync(devBinPath)) {
+    return devBinPath;
+  }
+
+  const installBinPath = path.join(getSmmDataDir(), "bin", "videocaptioner", exeName);
+  if (fs.existsSync(installBinPath)) {
+    return installBinPath;
+  }
+
+  for (const candidate of getPythonScriptsCandidatePaths(exeName)) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+export interface VideoCaptionerTranscribeResult {
+  success?: boolean;
+  error?: string;
+}
+
+export async function transcribeWithVideoCaptioner(
+  mediaPath: string
+): Promise<VideoCaptionerTranscribeResult> {
+  if (!mediaPath) {
+    return { error: "mediaPath is required" };
+  }
+  if (!fs.existsSync(mediaPath)) {
+    return { error: `file not found: ${mediaPath}` };
+  }
+
+  const executablePath = await discoverVideoCaptioner();
+  if (!executablePath) {
+    return { error: "videocaptioner executable not found" };
+  }
+
+  // CLI requires subcommand form: videocaptioner transcribe <mediaPath>
+  const args = ["transcribe", mediaPath, "--asr", "bijian"];
+  const commandForLog = [executablePath, ...args]
+    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+    .join(" ");
+  try {
+    videoCaptionerLog.info(
+      { executablePath, mediaPath, args, command: commandForLog },
+      "running videocaptioner transcribe command"
+    );
+    const child = spawn(executablePath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
+      let settled = false;
+      let stderrOutput = "";
+      const finish = (result: VideoCaptionerTranscribeResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(result);
+      };
+
+      const timeoutId = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // ignore kill failures and surface timeout error
+        }
+        finish({ error: `videocaptioner timed out after ${TRANSCRIBE_TIMEOUT_MS}ms` });
+      }, TRANSCRIBE_TIMEOUT_MS);
+
+      child.once("error", (error) => {
+        finish({
+          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+        });
+      });
+
+      child.once("close", (code) => {
+        if (code === 0) {
+          finish({ success: true });
+          return;
+        }
+        const trimmedStderr = stderrOutput.trim();
+        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
+      });
+
+      child.stderr?.setEncoding("utf8");
+      child.stderr?.on("data", (chunk: string | Buffer) => {
+        stderrOutput += String(chunk);
+      });
+    });
+  } catch (error) {
+    videoCaptionerLog.error({ error, executablePath, mediaPath }, "failed to start videocaptioner");
+    return {
+      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+}

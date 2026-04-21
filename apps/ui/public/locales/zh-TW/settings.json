@@ -34,7 +34,9 @@
     "mcpHost": "MCP 主機",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP 端口",
-    "mcpPortPlaceholder": "30001"
+    "mcpPortPlaceholder": "30001",
+    "videoCaptionerExecutablePath": "VideoCaptioner 可執行檔路徑",
+    "videoCaptionerExecutablePathUnavailable": "未找到"
   },
   "ai": {
     "title": "AI 設定",

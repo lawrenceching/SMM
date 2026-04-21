@@ -51,7 +51,17 @@ export interface DownloadVideoBackgroundJob extends BackgroundJobBase {
   data: DownloadVideoBackgroundJobData;
 }
 
-export type BackgroundJob = GenericBackgroundJob | DownloadVideoBackgroundJob;
+export interface TranscribeBackgroundJobData {
+  mediaPath: string;
+  trackTitle: string;
+}
+
+export interface TranscribeBackgroundJob extends BackgroundJobBase {
+  type: 'transcribe';
+  data: TranscribeBackgroundJobData;
+}
+
+export type BackgroundJob = GenericBackgroundJob | DownloadVideoBackgroundJob | TranscribeBackgroundJob;
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -59,4 +69,8 @@ export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBack
 
 export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgroundJob {
   return job.type === 'generic';
+}
+
+export function isTranscribeBackgroundJob(job: BackgroundJob): job is TranscribeBackgroundJob {
+  return job.type === 'transcribe';
 }

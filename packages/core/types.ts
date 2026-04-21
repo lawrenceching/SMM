@@ -97,6 +97,10 @@ export interface UserConfig {
    * Path to the ffmpeg executable file.
    */
   ffmpegExecutablePath?: string
+  /**
+   * Path to the videocaptioner executable file.
+   */
+  videoCaptionerExecutablePath?: string
 }
 
 /**

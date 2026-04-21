@@ -29,12 +29,43 @@ import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { discoverVideoCaptioner, transcribeWithVideoCaptioner } from "@/api/videocaptioner";
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 
 interface PendingDelete {
   trackPath: string;
   trackTitle: string;
   currentFiles: string[];
   fileIndex: number;
+}
+
+interface TranscribeDeps {
+  createTranscribeJob: (trackTitle: string, mediaPath: string) => string;
+  markTranscribeJobSucceeded: (id: string) => void;
+  markTranscribeJobFailed: (id: string) => void;
+}
+
+export async function transcribeTrackWithFeedback(row: MusicFileRow, deps: TranscribeDeps): Promise<void> {
+  if (!row.path) {
+    toast.error(`Track "${row.title}" does not have an associated file path.`);
+    return;
+  }
+  const mediaPath = Path.toPlatformPath(row.path);
+  toast.success(`Transcribe start: "${row.title}".`);
+  const jobId = deps.createTranscribeJob(row.title, mediaPath);
+  try {
+    const result = await transcribeWithVideoCaptioner({ mediaPath });
+    if (result.error) {
+      deps.markTranscribeJobFailed(jobId);
+      toast.error(`Could not transcribe "${row.title}". ${result.error}`);
+      return;
+    }
+    deps.markTranscribeJobSucceeded(jobId);
+    toast.success(`Transcription completed for "${row.title}".`);
+  } catch (error) {
+    deps.markTranscribeJobFailed(jobId);
+    toast.error(`Could not transcribe "${row.title}". ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
 }
 
 export function syncTracks(prev: Track[], localTracks: Track[]) {
@@ -183,6 +214,21 @@ export function MusicPanel() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTranscribeAvailable, setIsTranscribeAvailable] = useState(false);
+  const { createTranscribeJob, markTranscribeJobSucceeded, markTranscribeJobFailed } =
+    useBackgroundJobsStore();
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const result = await discoverVideoCaptioner();
+      if (!active) return;
+      setIsTranscribeAvailable(Boolean(result.path) && !result.error);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mediaMetadata?.mediaFolderPath) {
@@ -431,6 +477,14 @@ export function MusicPanel() {
     }
   }, [tracks, currentTrackId]);
 
+  const handleTrackTranscribe = useCallback(async (row: MusicFileRow) => {
+    await transcribeTrackWithFeedback(row, {
+      createTranscribeJob,
+      markTranscribeJobSucceeded,
+      markTranscribeJobFailed,
+    });
+  }, [createTranscribeJob, markTranscribeJobSucceeded, markTranscribeJobFailed]);
+
   useEffect(() => {
     const subscriptions: Array<() => void> = [
       addMusicEventListener<TrackOpenEventDetail>(
@@ -483,6 +537,8 @@ export function MusicPanel() {
             onDownloadStart={startDownload}
             onDownloadStop={stopDownload}
             onDownloadRemove={(jobId) => void removeDownload(jobId)}
+            isTranscribeAvailable={isTranscribeAvailable}
+            onTrackTranscribe={(row) => void handleTrackTranscribe(row)}
           />
         )}
       </div>

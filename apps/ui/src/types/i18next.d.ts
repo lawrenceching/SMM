@@ -218,6 +218,7 @@ interface ComponentsResources {
       downloadStart: string
       downloadStop: string
       downloadRemove: string
+      transcribe: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -477,6 +478,8 @@ interface SettingsResources {
     ffmpegExecutablePathPlaceholder: string
     selectFfmpegExecutable: string
     selectFfmpegExecutableDescription: string
+    videoCaptionerExecutablePath: string
+    videoCaptionerExecutablePathUnavailable: string
     browse: string
   }
   ai: {

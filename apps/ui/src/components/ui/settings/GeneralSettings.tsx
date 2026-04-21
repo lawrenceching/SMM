@@ -11,6 +11,7 @@ import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem } from "@/components/dialogs/types"
 import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
 import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
+import { discoverVideoCaptioner } from "@/api/videocaptioner"
 import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
@@ -78,6 +79,7 @@ export function GeneralSettings() {
   const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null)
   const [ffmpegVersion, setFfmpegVersion] = useState<string | null>(null)
+  const [videoCaptionerPath, setVideoCaptionerPath] = useState<string | null>(null)
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -121,6 +123,10 @@ export function GeneralSettings() {
             setFfmpegVersion(ffmpegVersionResult.version)
           }
         }
+
+        // Discover videocaptioner path for read-only display
+        const videoCaptionerResult = await discoverVideoCaptioner()
+        setVideoCaptionerPath(videoCaptionerResult.path ?? null)
       } catch (error) {
         console.error('Error discovering tool paths:', error)
       }
@@ -446,6 +452,15 @@ export function GeneralSettings() {
                 Version: {ffmpegVersion}
               </p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>{t('general.videoCaptionerExecutablePath')}</Label>
+            <p
+              className="text-sm text-muted-foreground break-all rounded-md border p-2"
+              data-testid="setting-videocaptioner-path"
+            >
+              {videoCaptionerPath ?? t('general.videoCaptionerExecutablePathUnavailable')}
+            </p>
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
@@ -52,6 +52,10 @@ interface MusicFileTableProps {
   onDownloadStop?: (jobId: string) => void
   /** Remove a download job */
   onDownloadRemove?: (jobId: string) => void
+  /** Whether videocaptioner is available for transcribing */
+  isTranscribeAvailable?: boolean
+  /** Trigger transcribe for a track path */
+  onTrackTranscribe?: (track: MusicFileRow) => void
 }
 
 function formatDuration(seconds: number): string {
@@ -103,6 +107,8 @@ export function MusicFileTable({
   onDownloadStart,
   onDownloadStop,
   onDownloadRemove,
+  isTranscribeAvailable,
+  onTrackTranscribe,
 }: MusicFileTableProps) {
   const { t } = useTranslation(['components'])
   const handleOpen = (track: MusicFileRow) => {
@@ -332,6 +338,13 @@ export function MusicFileTable({
                     >
                       <FileText className="size-4 mr-2" />
                       {t('mediaPlayer.trackContextMenu.formatConvert')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      disabled={!row.path || isDownloading || !isTranscribeAvailable}
+                      onClick={() => onTrackTranscribe?.(row)}
+                    >
+                      <Captions className="size-4 mr-2" />
+                      {t('mediaPlayer.trackContextMenu.transcribe')}
                     </ContextMenuItem>
                     <ContextMenuItem
                       variant="destructive"
