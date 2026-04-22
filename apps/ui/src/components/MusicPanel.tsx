@@ -215,8 +215,19 @@ export function MusicPanel() {
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranscribeAvailable, setIsTranscribeAvailable] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const { createTranscribeJob, markTranscribeJobSucceeded, markTranscribeJobFailed } =
     useBackgroundJobsStore();
+
+  const handleToggleMultiSelectMode = useCallback(() => {
+    setIsMultiSelectMode((prev) => {
+      if (prev) {
+        setSelectedTrackIds([]);
+      }
+      return !prev;
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -466,6 +477,7 @@ export function MusicPanel() {
   }, [openDownloadVideo, mediaMetadata]);
 
   const handleTrackClick = useCallback((trackId: number) => {
+    if (isMultiSelectMode) return;
     const track = tracks.find((t) => t.id === trackId);
     if (!track || track.status === 'downloading') return;
 
@@ -475,7 +487,7 @@ export function MusicPanel() {
       setCurrentTrackId(trackId);
       setIsPlaying(true);
     }
-  }, [tracks, currentTrackId]);
+  }, [tracks, currentTrackId, isMultiSelectMode]);
 
   const handleTrackTranscribe = useCallback(async (row: MusicFileRow) => {
     await transcribeTrackWithFeedback(row, {
@@ -520,6 +532,8 @@ export function MusicPanel() {
         <MusicHeaderV2
           selectedMediaMetadata={mediaMetadata}
           onDownloadClick={handleDownloadClick}
+          isMultiSelectMode={isMultiSelectMode}
+          onToggleMultiSelectMode={handleToggleMultiSelectMode}
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
@@ -539,6 +553,9 @@ export function MusicPanel() {
             onDownloadRemove={(jobId) => void removeDownload(jobId)}
             isTranscribeAvailable={isTranscribeAvailable}
             onTrackTranscribe={(row) => void handleTrackTranscribe(row)}
+            isMultiSelectMode={isMultiSelectMode}
+            selectedTrackIds={selectedTrackIds}
+            onSelectedTrackIdsChange={setSelectedTrackIds}
           />
         )}
       </div>

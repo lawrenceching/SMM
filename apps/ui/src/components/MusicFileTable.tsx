@@ -56,6 +56,12 @@ interface MusicFileTableProps {
   isTranscribeAvailable?: boolean
   /** Trigger transcribe for a track path */
   onTrackTranscribe?: (track: MusicFileRow) => void
+  /** Whether table is in multi-select mode */
+  isMultiSelectMode?: boolean
+  /** Selected track ids in multi-select mode */
+  selectedTrackIds?: number[]
+  /** Callback when selected track ids change */
+  onSelectedTrackIdsChange?: (ids: number[]) => void
 }
 
 function formatDuration(seconds: number): string {
@@ -109,6 +115,9 @@ export function MusicFileTable({
   onDownloadRemove,
   isTranscribeAvailable,
   onTrackTranscribe,
+  isMultiSelectMode = false,
+  selectedTrackIds = [],
+  onSelectedTrackIdsChange,
 }: MusicFileTableProps) {
   const { t } = useTranslation(['components'])
   const handleOpen = (track: MusicFileRow) => {
@@ -158,11 +167,25 @@ export function MusicFileTable({
     emitTrackEditTagsEvent(toTrack(track))
   }
 
+  const toggleTrackSelection = (trackId: number) => {
+    if (!isMultiSelectMode) return
+    const next = selectedTrackIds.includes(trackId)
+      ? selectedTrackIds.filter((id) => id !== trackId)
+      : [...selectedTrackIds, trackId]
+    onSelectedTrackIdsChange?.(next)
+  }
+
   return (
     <section className="bg-card">
       <Table className="text-xs table-fixed w-full">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
+            {isMultiSelectMode && (
+              <TableHead
+                className="h-8 w-10 px-2 py-1 text-center"
+                data-testid="music-file-table-selection-header"
+              />
+            )}
             <TableHead className="h-8 w-10 px-2 py-1 text-center">{t('musicFileTable.columns.index')}</TableHead>
             <TableHead className="h-8 w-16 px-0 py-1 text-center">{t('musicFileTable.columns.cover')}</TableHead>
             <TableHead className="h-8 min-w-0 px-2 py-1">{t('musicFileTable.columns.title')}</TableHead>
@@ -173,7 +196,7 @@ export function MusicFileTable({
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+              <TableCell colSpan={isMultiSelectMode ? 6 : 5} className="text-center py-12 text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
                   <Music className="size-8 text-muted-foreground/50" />
                   <p>{t('mediaPlayer.noTracksFound')}</p>
@@ -190,8 +213,27 @@ export function MusicFileTable({
                   <ContextMenuTrigger asChild>
                     <TableRow
                       className={`cursor-pointer group ${isActive ? 'bg-muted' : ''}`}
-                      onClick={() => !isDownloading && onTrackClick?.(row.id)}
+                      onClick={() => {
+                        if (isDownloading) return
+                        if (isMultiSelectMode) {
+                          toggleTrackSelection(row.id)
+                          return
+                        }
+                        onTrackClick?.(row.id)
+                      }}
                     >
+                      {isMultiSelectMode && (
+                        <TableCell className="w-10 px-2 py-1.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedTrackIds.includes(row.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={() => toggleTrackSelection(row.id)}
+                            data-testid={`music-file-row-checkbox-${row.id}`}
+                            aria-label={`select-row-${row.id}`}
+                          />
+                        </TableCell>
+                      )}
                       {/* Index / Play / Download status indicator */}
                       <TableCell className="w-10 px-2 py-1.5 text-center">
                         <div className="flex items-center justify-center">

@@ -6,11 +6,15 @@ import type { MediaMetadata } from "@core/types"
 export interface MusicHeaderV2Props {
     selectedMediaMetadata?: MediaMetadata
     onDownloadClick?: () => void
+    isMultiSelectMode?: boolean
+    onToggleMultiSelectMode?: () => void
 }
 
 export function MusicHeaderV2({
     selectedMediaMetadata,
     onDownloadClick,
+    isMultiSelectMode = false,
+    onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
     const { t } = useTranslation(['components'])
 
@@ -35,6 +39,15 @@ export function MusicHeaderV2({
                     </div>
                 </div>
                 <div className="flex gap-2 flex-wrap shrink-0">
+                    <Button
+                        variant={isMultiSelectMode ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={() => onToggleMultiSelectMode?.()}
+                        disabled={!selectedMediaMetadata?.mediaFolderPath}
+                        data-testid="music-multi-select-toggle"
+                    >
+                        {isMultiSelectMode ? "Cancel" : "Select"}
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"

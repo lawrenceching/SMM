@@ -1,23 +1,30 @@
 ---
-description: Start a new OpenSpec change (experimental artifact workflow)
+description: Start a new change using the experimental artifact workflow (OPSX)
 ---
 
 Start a new change using the experimental artifact-driven approach.
 
-**Input**: The argument after the command is the change name (kebab-case), OR a description of what the user wants to build.
+**Input**: The argument after `/opsx-new` is the change name (kebab-case), OR a description of what the user wants to build.
 
 **Steps**
 
 1. **If no input provided, ask what they want to build**
 
-   Ask the user: "What change do you want to work on? Describe what you want to build or fix."
+   Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
+   > "What change do you want to work on? Describe what you want to build or fix."
+
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
 2. **Determine the workflow schema**
 
    Use the default schema (omit `--schema`) unless the user explicitly requests a different workflow.
-   **Use a different schema only if the user mentions:** "tdd" or "test-driven" → use `--schema tdd`; a specific schema name → use `--schema <name>`; "show workflows" or "what workflows" → run `openspec schemas --json` and let them choose.
+
+   **Use a different schema only if the user mentions:**
+   - A specific schema name → use `--schema <name>`
+   - "show workflows" or "what workflows" → run `openspec schemas --json` and let them choose
+
    **Otherwise**: Omit `--schema` to use the default.
 
 3. **Create the change directory**

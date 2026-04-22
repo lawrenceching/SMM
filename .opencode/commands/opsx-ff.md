@@ -1,17 +1,20 @@
 ---
-description: Fast-forward artifact creation - generate all artifacts needed for implementation at once
+description: Create a change and generate all artifacts needed for implementation in one go
 ---
 
 Fast-forward through artifact creation - generate everything needed to start implementation.
 
-**Input**: The argument after the command is the change name (kebab-case), OR a description of what the user wants to build.
+**Input**: The argument after `/opsx-ff` is the change name (kebab-case), OR a description of what the user wants to build.
 
 **Steps**
 
 1. **If no input provided, ask what they want to build**
 
-   Ask the user: "What change do you want to work on? Describe what you want to build or fix."
+   Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
+   > "What change do you want to work on? Describe what you want to build or fix."
+
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
 2. **Create the change directory**
@@ -30,6 +33,8 @@ Fast-forward through artifact creation - generate everything needed to start imp
 
 4. **Create artifacts in sequence until apply-ready**
 
+   Use the **TodoWrite tool** to track progress through the artifacts.
+
    Loop through artifacts in dependency order (artifacts with no pending dependencies first):
 
    a. **For each artifact that is `ready` (dependencies satisfied)**:
@@ -37,7 +42,13 @@ Fast-forward through artifact creation - generate everything needed to start imp
         ```bash
         openspec instructions <artifact-id> --change "<name>" --json
         ```
-      - The instructions JSON includes: `context`, `rules`, `template`, `instruction`, `outputPath`, `dependencies`
+      - The instructions JSON includes:
+        - `context`: Project background (constraints for you - do NOT include in output)
+        - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
+        - `template`: The structure to use for your output file
+        - `instruction`: Schema-specific guidance for this artifact type
+        - `outputPath`: Where to write the artifact
+        - `dependencies`: Completed artifacts to read for context
       - Read any completed dependency files for context
       - Create the artifact file using `template` as the structure
       - Apply `context` and `rules` as constraints - but do NOT copy them into the file
@@ -48,7 +59,9 @@ Fast-forward through artifact creation - generate everything needed to start imp
       - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
       - Stop when all `applyRequires` artifacts are done
 
-   c. **If an artifact requires user input** (unclear context): Ask the user to clarify, then continue with creation.
+   c. **If an artifact requires user input** (unclear context):
+      - Use **AskUserQuestion tool** to clarify
+      - Then continue with creation
 
 5. **Show final status**
    ```bash
@@ -62,6 +75,16 @@ After completing all artifacts, summarize:
 - List of artifacts created with brief descriptions
 - What's ready: "All artifacts created! Ready for implementation."
 - Prompt: "Run `/opsx-apply` to start implementing."
+
+**Artifact Creation Guidelines**
+
+- Follow the `instruction` field from `openspec instructions` for each artifact type
+- The schema defines what each artifact should contain - follow it
+- Read dependency artifacts for context before creating new ones
+- Use `template` as the structure for your output file - fill in its sections
+- **IMPORTANT**: `context` and `rules` are constraints for YOU, not content for the file
+  - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
+  - These guide what you write, but should never appear in the output
 
 **Guardrails**
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)

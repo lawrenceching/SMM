@@ -72,3 +72,70 @@ describe("MusicFileTable transcribe action", () => {
     expect(onTrackTranscribe).toHaveBeenCalledWith(row);
   });
 });
+
+describe("MusicFileTable multi-select mode", () => {
+  it("shows selection checkbox column only in multi-select mode", () => {
+    const { rerender } = render(
+      <MusicFileTable
+        data={[row]}
+        isMultiSelectMode={false}
+      />
+    );
+
+    expect(screen.queryByTestId("music-file-table-selection-header")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("music-file-row-checkbox-1")).not.toBeInTheDocument();
+
+    rerender(
+      <MusicFileTable
+        data={[row]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[]}
+      />
+    );
+
+    expect(screen.getByTestId("music-file-table-selection-header")).toBeInTheDocument();
+    expect(screen.getByTestId("music-file-row-checkbox-1")).toBeInTheDocument();
+  });
+
+  it("calls selected ids change callback when checkbox is toggled", () => {
+    const onSelectedTrackIdsChange = vi.fn();
+    render(
+      <MusicFileTable
+        data={[row]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[]}
+        onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId("music-file-row-checkbox-1"));
+    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([1]);
+  });
+
+  it("toggles row selection when clicking the row in multi-select mode", () => {
+    const onSelectedTrackIdsChange = vi.fn();
+    const { rerender } = render(
+      <MusicFileTable
+        data={[row]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[]}
+        onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Song A"));
+    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([1]);
+
+    rerender(
+      <MusicFileTable
+        data={[row]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[1]}
+        onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Song A"));
+    expect(onSelectedTrackIdsChange).toHaveBeenLastCalledWith([]);
+  });
+});

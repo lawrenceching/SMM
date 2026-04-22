@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Define required UI feedback behavior for transcription actions in `MusicPanel`, including background job lifecycle states and toast notifications.
+## Requirements
 ### Requirement: Transcribe background job lifecycle feedback
 The system SHALL create and maintain a transcribe background job lifecycle in the UI when a user triggers transcription from `MusicPanel`.
 
@@ -29,3 +30,11 @@ The system SHALL surface both start and completion feedback toasts for a transcr
 #### Scenario: Show completion failure toast
 - **WHEN** the API returns a completed failure result
 - **THEN** the UI shows a failure toast indicating transcription failed
+
+### Requirement: Music panel supports explicit multi-select mode in file table interactions
+The system SHALL allow `MusicPanel` to orchestrate an explicit multi-select mode for `MusicFileTable` interactions, with mode transitions initiated by `MusicHeaderV2`.
+
+#### Scenario: Header and table mode states stay synchronized
+- **WHEN** a user toggles `Select` or `Cancel` from `MusicHeaderV2`
+- **THEN** `MusicPanel` updates mode state and `MusicFileTable` reflects the matching selection-mode rendering state
+
