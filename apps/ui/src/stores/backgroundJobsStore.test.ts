@@ -46,6 +46,10 @@ describe('backgroundJobsStore', () => {
     const id = useBackgroundJobsStore.getState().createTranscribeJob('Song A', '/media/song-a.mp3')
     let job = useBackgroundJobsStore.getState().jobs.find((x) => x.id === id)!
     expect(job.type).toBe('transcribe')
+    expect(job.status).toBe('pending')
+
+    useBackgroundJobsStore.getState().markTranscribeJobRunning(id)
+    job = useBackgroundJobsStore.getState().jobs.find((x) => x.id === id)!
     expect(job.status).toBe('running')
 
     useBackgroundJobsStore.getState().markTranscribeJobSucceeded(id)

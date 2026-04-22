@@ -1,4 +1,4 @@
-import { Download, Music } from "lucide-react"
+import { Captions, Download, Music } from "lucide-react"
 import { Button } from "./ui/button"
 import { useTranslation } from "@/lib/i18n"
 import type { MediaMetadata } from "@core/types"
@@ -6,6 +6,10 @@ import type { MediaMetadata } from "@core/types"
 export interface MusicHeaderV2Props {
     selectedMediaMetadata?: MediaMetadata
     onDownloadClick?: () => void
+    onTranscribeClick?: () => void
+    isTranscribeAvailable?: boolean
+    selectedTrackCount?: number
+    isTranscribing?: boolean
     isMultiSelectMode?: boolean
     onToggleMultiSelectMode?: () => void
 }
@@ -13,6 +17,10 @@ export interface MusicHeaderV2Props {
 export function MusicHeaderV2({
     selectedMediaMetadata,
     onDownloadClick,
+    onTranscribeClick,
+    isTranscribeAvailable = false,
+    selectedTrackCount = 0,
+    isTranscribing = false,
     isMultiSelectMode = false,
     onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
@@ -47,6 +55,22 @@ export function MusicHeaderV2({
                         data-testid="music-multi-select-toggle"
                     >
                         {isMultiSelectMode ? "Cancel" : "Select"}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onTranscribeClick?.()}
+                        disabled={
+                            !isMultiSelectMode ||
+                            !selectedMediaMetadata?.mediaFolderPath ||
+                            !isTranscribeAvailable ||
+                            selectedTrackCount === 0 ||
+                            isTranscribing
+                        }
+                        data-testid="music-multi-select-transcribe"
+                    >
+                        <Captions className="size-4 mr-2" />
+                        {t('mediaPlayer.trackContextMenu.transcribe', { defaultValue: 'Transcribe' })}
                     </Button>
                     <Button
                         variant="outline"

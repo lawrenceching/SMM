@@ -21,6 +21,7 @@ interface BackgroundJobsState {
   removeJob: (id: string) => void
   setPopoverOpen: (open: boolean) => void
   createTranscribeJob: (trackTitle: string, mediaPath: string) => string
+  markTranscribeJobRunning: (id: string) => void
   markTranscribeJobSucceeded: (id: string) => void
   markTranscribeJobFailed: (id: string) => void
 }
@@ -89,7 +90,7 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
     const newJob: TranscribeBackgroundJob = {
       id,
       name: `Transcribe: ${trackTitle}`,
-      status: 'running',
+      status: 'pending',
       progress: 0,
       type: 'transcribe',
       data: {
@@ -103,6 +104,13 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
     }))
     return id
   },
+
+  markTranscribeJobRunning: (id) =>
+    set((state) => ({
+      jobs: state.jobs.map((job) =>
+        job.id === id ? ({ ...job, status: 'running' } as BackgroundJob) : job
+      ),
+    })),
 
   markTranscribeJobSucceeded: (id) =>
     set((state) => ({
