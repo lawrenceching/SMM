@@ -26,12 +26,13 @@ describe('useBackgroundJobsIndicator', () => {
 
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
-    expect(result.current.shouldRender).toBe(false)
+    expect(result.current.shouldRender).toBe(true)
     expect(result.current.runningCount).toBe(0)
     expect(result.current.activeCount).toBe(0)
+    expect(result.current.statusVariant).toBe('success')
   })
 
-  it('should not render when all jobs are completed', () => {
+  it('should render success variant when all jobs are completed', () => {
     const completedJobs: BackgroundJob[] = [
       { id: '1', name: 'Job 1', status: 'succeeded', progress: 100 },
       { id: '2', name: 'Job 2', status: 'failed', progress: 0 },
@@ -46,8 +47,9 @@ describe('useBackgroundJobsIndicator', () => {
 
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
-    expect(result.current.shouldRender).toBe(false)
+    expect(result.current.shouldRender).toBe(true)
     expect(result.current.activeCount).toBe(0)
+    expect(result.current.statusVariant).toBe('warning')
   })
 
   it('should render with running job count', () => {
@@ -65,7 +67,7 @@ describe('useBackgroundJobsIndicator', () => {
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
     expect(result.current.shouldRender).toBe(true)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.statusVariant).toBe('running')
     expect(result.current.runningCount).toBe(1)
     expect(result.current.activeCount).toBe(1)
   })
@@ -85,7 +87,7 @@ describe('useBackgroundJobsIndicator', () => {
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
     expect(result.current.shouldRender).toBe(true)
-    expect(result.current.isRunning).toBe(false)
+    expect(result.current.statusVariant).toBe('success')
     expect(result.current.runningCount).toBe(0)
     expect(result.current.activeCount).toBe(1)
   })
@@ -107,7 +109,7 @@ describe('useBackgroundJobsIndicator', () => {
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
     expect(result.current.shouldRender).toBe(true)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.statusVariant).toBe('running')
     expect(result.current.runningCount).toBe(1)
     expect(result.current.activeCount).toBe(2) // running + pending
     expect(result.current.isPopoverOpen).toBe(true)
@@ -134,7 +136,7 @@ describe('useBackgroundJobsIndicator', () => {
     expect(mockSetPopoverOpen).toHaveBeenCalledWith(true)
   })
 
-  it('should handle aborted jobs as active (not running)', () => {
+  it('should handle aborted jobs as warning', () => {
     const abortedJobs: BackgroundJob[] = [
       { id: '1', name: 'Aborted Job', status: 'aborted', progress: 30 },
     ]
@@ -148,7 +150,58 @@ describe('useBackgroundJobsIndicator', () => {
 
     const { result } = renderHook(() => useBackgroundJobsIndicator())
 
-    expect(result.current.shouldRender).toBe(false) // aborted is not running or pending
+    expect(result.current.shouldRender).toBe(true)
     expect(result.current.activeCount).toBe(0)
+    expect(result.current.statusVariant).toBe('warning')
+  })
+
+  it('should prioritize running over failed/aborted', () => {
+    const mixedJobs: BackgroundJob[] = [
+      { id: '1', name: 'Running Job', status: 'running', progress: 20 },
+      { id: '2', name: 'Failed Job', status: 'failed', progress: 80 },
+      { id: '3', name: 'Aborted Job', status: 'aborted', progress: 30 },
+    ]
+
+    mockUseBackgroundJobsStore.mockReturnValue({
+      getRunningJobs: () => mixedJobs.filter((j) => j.status === 'running'),
+      jobs: mixedJobs,
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+    })
+
+    const { result } = renderHook(() => useBackgroundJobsIndicator())
+
+    expect(result.current.statusVariant).toBe('running')
+  })
+
+  it('should treat download-video item downloading as running', () => {
+    const jobs: BackgroundJob[] = [
+      {
+        id: '1',
+        name: 'Download Job',
+        status: 'pending',
+        progress: 20,
+        type: 'download-video',
+        data: {
+          folder: '/tmp',
+          videos: [
+            { url: 'https://a', artist: 'A', title: 'T', status: 'downloading' },
+            { url: 'https://b', artist: 'B', title: 'U', status: 'pending' },
+          ],
+        },
+      },
+    ]
+
+    mockUseBackgroundJobsStore.mockReturnValue({
+      getRunningJobs: () => [],
+      jobs,
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+    })
+
+    const { result } = renderHook(() => useBackgroundJobsIndicator())
+
+    expect(result.current.runningCount).toBe(1)
+    expect(result.current.statusVariant).toBe('running')
   })
 })

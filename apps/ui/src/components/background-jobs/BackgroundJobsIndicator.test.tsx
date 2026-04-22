@@ -1,3 +1,5 @@
+import React from 'react'
+import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BackgroundJobsIndicator } from './BackgroundJobsIndicator'
@@ -36,7 +38,7 @@ describe('BackgroundJobsIndicator', () => {
   it('should return null when shouldRender is false', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: false,
-      isRunning: false,
+      statusVariant: 'success',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 0,
@@ -50,7 +52,7 @@ describe('BackgroundJobsIndicator', () => {
   it('should return null when jobs array is empty', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: false,
-      isRunning: false,
+      statusVariant: 'success',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 0,
@@ -64,7 +66,7 @@ describe('BackgroundJobsIndicator', () => {
   it('should render trigger button when there are running jobs', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: true,
+      statusVariant: 'running',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 2,
@@ -78,27 +80,43 @@ describe('BackgroundJobsIndicator', () => {
     expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('2')
   })
 
-  it('should render check icon when jobs are pending (not running)', () => {
+  it('should render check icon when all jobs are successful', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: false,
+      statusVariant: 'success',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 0,
-      activeCount: 1,
+      activeCount: 2,
     })
 
     render(<BackgroundJobsIndicator />)
 
     expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
     expect(screen.getByTestId('background-jobs-completed-icon')).toBeInTheDocument()
-    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('2')
+  })
+
+  it('should render warning icon when there are failed or aborted jobs', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'warning',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
+    })
+
+    render(<BackgroundJobsIndicator />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-warning-icon')).toBeInTheDocument()
   })
 
   it('should render with custom className', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: true,
+      statusVariant: 'running',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 1,
@@ -114,7 +132,7 @@ describe('BackgroundJobsIndicator', () => {
   it('should have correct aria-label', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: true,
+      statusVariant: 'running',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 1,
@@ -130,7 +148,7 @@ describe('BackgroundJobsIndicator', () => {
   it('should have correct aria-label for multiple jobs', () => {
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: true,
+      statusVariant: 'running',
       isPopoverOpen: false,
       setPopoverOpen: vi.fn(),
       runningCount: 3,
@@ -140,14 +158,14 @@ describe('BackgroundJobsIndicator', () => {
     render(<BackgroundJobsIndicator />)
 
     const button = screen.getByTestId('background-jobs-trigger-button')
-    expect(button).toHaveAttribute('aria-label', 'View 3 background jobs')
+    expect(button).toHaveAttribute('aria-label', 'View 5 background jobs')
   })
 
   it('should pass isPopoverOpen to Popover', () => {
     const mockSetPopoverOpen = vi.fn()
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: false,
+      statusVariant: 'success',
       isPopoverOpen: true,
       setPopoverOpen: mockSetPopoverOpen,
       runningCount: 0,
@@ -164,7 +182,7 @@ describe('BackgroundJobsIndicator', () => {
     const mockSetPopoverOpen = vi.fn()
     mockUseBackgroundJobsIndicator.mockReturnValue({
       shouldRender: true,
-      isRunning: false,
+      statusVariant: 'success',
       isPopoverOpen: false,
       setPopoverOpen: mockSetPopoverOpen,
       runningCount: 0,
@@ -175,5 +193,22 @@ describe('BackgroundJobsIndicator', () => {
 
     expect(screen.getByTestId('popover-content')).toBeInTheDocument()
     expect(screen.getByTestId('popover-content-inner')).toBeInTheDocument()
+  })
+
+  it('should show success icon even when jobs list is empty', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
+    })
+
+    render(<BackgroundJobsIndicator />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-completed-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('0')
   })
 })

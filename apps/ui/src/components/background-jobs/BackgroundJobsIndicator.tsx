@@ -1,4 +1,4 @@
-import { Loader2, CircleCheck } from 'lucide-react';
+import { Loader2, CircleAlert, CircleCheck } from 'lucide-react';
 import { useBackgroundJobsIndicator } from '../hooks/useBackgroundJobsIndicator';
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -12,7 +12,7 @@ interface BackgroundJobsIndicatorProps {
 export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorProps) {
   const { 
     shouldRender, 
-    isRunning, 
+    statusVariant,
     isPopoverOpen, 
     setPopoverOpen,
     runningCount,
@@ -32,12 +32,17 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
             'flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200',
             className
           )}
-          aria-label={`View ${runningCount} background ${runningCount === 1 ? 'job' : 'jobs'}`}
+          aria-label={`View ${activeCount} background ${activeCount === 1 ? 'job' : 'jobs'}`}
         >
-          {isRunning ? (
+          {statusVariant === 'running' ? (
             <>
               <Loader2 data-testid="background-jobs-loading-icon" className="h-4 w-4 animate-spin text-blue-500" />
               <span data-testid="background-jobs-count" className="text-xs font-medium text-blue-500">{runningCount}</span>
+            </>
+          ) : statusVariant === 'warning' ? (
+            <>
+              <CircleAlert data-testid="background-jobs-warning-icon" className="h-4 w-4 text-yellow-500" />
+              <span data-testid="background-jobs-count" className="text-xs font-medium text-yellow-500">{activeCount}</span>
             </>
           ) : (
             <>
