@@ -3,11 +3,11 @@ import { Path } from "@core/path"
 import { cn } from "@/lib/utils"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
-import { ConnectionStatusIndicator, type ConnectionStatus } from "./ConnectionStatusIndicator"
+import { MessageIndicator, type Message } from "./ConnectionStatusIndicator"
 import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
-import { DatabaseConnectionIndicator } from "./DatabaseConnectionIndicator"
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
+import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 
 export { mapWebSocketStatusToConnectionStatus }
 
@@ -15,8 +15,6 @@ interface StatusBarProps {
     className?: string
     /** When set (including `""`), overrides the path from `UIMediaFolderStore` `selectedFolder`. */
     message?: string
-    /** Override connection status (e.g. for tests); when set, useWebSocket is not used for status. */
-    connectionStatus?: ConnectionStatus
     /** Override app version (e.g. for tests); when set, useConfig is not used for version. */
     version?: string
 }
@@ -24,20 +22,36 @@ interface StatusBarProps {
 export function StatusBar({
     className,
     message,
-    connectionStatus: connectionStatusOverride,
     version: versionOverride,
 }: StatusBarProps) {
     const { selectedFolder } = useUIMediaFolderStoreState()
+    const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const folderPathMessage = useMemo(
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
     )
     const displayMessage = message !== undefined ? message : folderPathMessage
 
-    const { connectionStatus, version } = useStatusBar({
-        connectionStatusOverride,
-        versionOverride,
-    })
+    const { version } = useStatusBar({ versionOverride })
+    const statusMessages = useMemo<Message[]>(
+        () => [
+            {
+                title:
+                    tmdbStatus === "disconnected"
+                        ? "TMDB is unavailable"
+                        : "TMDB is available",
+                type: tmdbStatus === "disconnected" ? "error" : "info",
+            },
+            {
+                title:
+                    tvdbStatus === "disconnected"
+                        ? "TVDB is unavailable"
+                        : "TVDB is available",
+                type: tvdbStatus === "disconnected" ? "error" : "info",
+            },
+        ],
+        [tmdbStatus, tvdbStatus],
+    )
 
     return (
         <div
@@ -52,12 +66,11 @@ export function StatusBar({
         >
             <div className="flex items-center gap-2">
                 <div data-testid="connection-status-indicator">
-                    <ConnectionStatusIndicator status={connectionStatus} />
+                    <MessageIndicator messages={statusMessages} />
                 </div>
             </div>
             <div className="flex-1" data-testid="status-bar-message">{displayMessage}</div>
             <div className="flex items-center gap-2">
-                <DatabaseConnectionIndicator />
                 <McpIndicator />
                 <div data-testid="background-jobs-indicator">
                     <BackgroundJobsIndicator />

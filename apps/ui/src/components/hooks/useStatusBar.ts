@@ -1,6 +1,7 @@
 import { useConfig } from "@/hooks/userConfig"
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket"
-import { type ConnectionStatus } from "../ConnectionStatusIndicator"
+
+export type ConnectionStatus = "connected" | "disconnected" | "connecting"
 
 export function mapWebSocketStatusToConnectionStatus(status: WebSocketStatus): ConnectionStatus {
     switch (status) {

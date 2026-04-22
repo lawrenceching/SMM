@@ -1,5 +1,6 @@
-## ADDED Requirements
-
+## Purpose
+Define how the application discovers VideoCaptioner executables and presents discovery results in the UI.
+## Requirements
 ### Requirement: Python Scripts folder discovery for VideoCaptioner
 The system SHALL include Python `Scripts` installation path candidates when discovering VideoCaptioner executables, including pip-installed layout patterns on supported operating systems.
 
@@ -28,3 +29,15 @@ The system SHALL display the discovered VideoCaptioner path as a settings item i
 #### Scenario: Path is unavailable
 - **WHEN** discovery returns an unavailable result
 - **THEN** `GeneralSettings` shows an explicit unavailable state for VideoCaptioner path
+
+### Requirement: Status bar surfaces TMDB and TVDB availability issues
+The system SHALL present TMDB/TVDB service availability issues as `MessageIndicator` messages in the status bar with severity-based message typing.
+
+#### Scenario: TMDB unavailable is surfaced as an error message
+- **WHEN** TMDB service is unavailable in UI-visible discovery/connection status
+- **THEN** the status bar `MessageIndicator` includes a TMDB message with `type` set to `error`
+
+#### Scenario: TVDB unavailable is surfaced as an error message
+- **WHEN** TVDB service is unavailable in UI-visible discovery/connection status
+- **THEN** the status bar `MessageIndicator` includes a TVDB message with `type` set to `error`
+

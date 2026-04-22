@@ -20,8 +20,11 @@ vi.mock("./hooks/useStatusBar", () => ({
 }))
 
 vi.mock("./ConnectionStatusIndicator", () => ({
-    ConnectionStatusIndicator: ({ status }: { status: string }) => (
-        <span data-testid="connection-dot" data-status={status} />
+    MessageIndicator: ({ messages }: { messages: Array<{ title: string; type: string }> }) => (
+        <span
+            data-testid="message-indicator"
+            data-messages={JSON.stringify(messages)}
+        />
     ),
 }))
 
@@ -33,10 +36,8 @@ vi.mock("./mcp/McpIndicator", () => ({
     McpIndicator: () => <div data-testid="mcp-indicator" />,
 }))
 
-vi.mock("./DatabaseConnectionIndicator", () => ({
-    DatabaseConnectionIndicator: () => (
-        <div data-testid="database-connection-indicator" />
-    ),
+vi.mock("@/hooks/useDatabaseConnectionStatus", () => ({
+    useDatabaseConnectionStatus: vi.fn(),
 }))
 
 vi.mock("@/components/ui/separator", () => ({
@@ -45,11 +46,13 @@ vi.mock("@/components/ui/separator", () => ({
 
 import { useStatusBar } from "./hooks/useStatusBar"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 
 const mockUseStatusBar = useStatusBar as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
     typeof vi.fn
 >
+const mockUseDatabaseConnectionStatus = useDatabaseConnectionStatus as ReturnType<typeof vi.fn>
 
 describe("mapWebSocketStatusToConnectionStatus", () => {
     it("maps connected to connected", () => {
@@ -78,31 +81,30 @@ describe("StatusBar", () => {
             selectedFolders: [],
         })
         mockUseStatusBar.mockReturnValue({
-            connectionStatus: 'disconnected',
             version: '0.0.0-mock',
+        })
+        mockUseDatabaseConnectionStatus.mockReturnValue({
+            tmdbStatus: "connected",
+            tvdbStatus: "connected",
+            hasWarning: false,
         })
     })
 
     it("renders with testids and overrides", () => {
         mockUseStatusBar.mockReturnValue({
-            connectionStatus: 'connected',
             version: '1.2.3-test',
         })
 
         render(
             <StatusBar
                 message="Test message"
-                connectionStatus="connected"
                 version="1.2.3-test"
             />
         )
 
         expect(screen.getByTestId("status-bar")).toBeInTheDocument()
         expect(screen.getByTestId("connection-status-indicator")).toBeInTheDocument()
-        expect(screen.getByTestId("connection-dot")).toHaveAttribute(
-            "data-status",
-            "connected"
-        )
+        expect(screen.getByTestId("message-indicator")).toBeInTheDocument()
         expect(screen.getByTestId("status-bar-message")).toHaveTextContent("Test message")
         expect(screen.getByTestId("app-version")).toHaveTextContent("1.2.3-test")
         expect(screen.getByTestId("background-jobs-indicator")).toBeInTheDocument()
@@ -111,25 +113,11 @@ describe("StatusBar", () => {
 
     it("uses default version from config when version override is not passed", () => {
         mockUseStatusBar.mockReturnValue({
-            connectionStatus: 'disconnected',
             version: '0.0.0-mock',
         })
 
         render(<StatusBar />)
         expect(screen.getByTestId("app-version")).toHaveTextContent("0.0.0-mock")
-    })
-
-    it("passes connectionStatus override to hook", () => {
-        render(
-            <StatusBar
-                connectionStatus="connected"
-            />
-        )
-
-        expect(mockUseStatusBar).toHaveBeenCalledWith({
-            connectionStatusOverride: 'connected',
-            versionOverride: undefined,
-        })
     })
 
     it("passes version override to hook", () => {
@@ -140,28 +128,48 @@ describe("StatusBar", () => {
         )
 
         expect(mockUseStatusBar).toHaveBeenCalledWith({
-            connectionStatusOverride: undefined,
             versionOverride: '2.0.0',
         })
     })
 
-    it("renders connection status from hook return value", () => {
-        mockUseStatusBar.mockReturnValue({
-            connectionStatus: 'connecting',
-            version: '1.0.0',
+    it("renders status messages with TMDB and TVDB deterministic ordering", () => {
+        mockUseDatabaseConnectionStatus.mockReturnValue({
+            tmdbStatus: "disconnected",
+            tvdbStatus: "connected",
+            hasWarning: true,
         })
 
         render(<StatusBar />)
 
-        expect(screen.getByTestId("connection-dot")).toHaveAttribute(
-            "data-status",
-            "connecting"
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB is unavailable", type: "error" },
+                { title: "TVDB is available", type: "info" },
+            ]),
+        )
+    })
+
+    it("renders TVDB unavailable as error message", () => {
+        mockUseDatabaseConnectionStatus.mockReturnValue({
+            tmdbStatus: "connected",
+            tvdbStatus: "disconnected",
+            hasWarning: true,
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB is available", type: "info" },
+                { title: "TVDB is unavailable", type: "error" },
+            ]),
         )
     })
 
     it("renders message from props", () => {
         mockUseStatusBar.mockReturnValue({
-            connectionStatus: 'disconnected',
             version: '1.0.0',
         })
 

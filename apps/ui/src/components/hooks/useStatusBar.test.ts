@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from './useStatusBar'
 import type { WebSocketStatus } from '@/hooks/useWebSocket'
-import type { ConnectionStatus } from '../ConnectionStatusIndicator'
+import type { ConnectionStatus } from './useStatusBar'
 
 vi.mock('@/hooks/userConfig', () => ({
   useConfig: vi.fn(),

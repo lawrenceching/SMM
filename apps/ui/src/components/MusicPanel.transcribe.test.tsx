@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { transcribeTrackWithFeedback } from './MusicPanel'
 import { toast } from 'sonner'
-import { transcribeWithVideoCaptioner } from '@/api/videocaptioner'
 
 const h = vi.hoisted(() => ({
   createTranscribeJob: vi.fn(() => 'transcribe-job-1'),
