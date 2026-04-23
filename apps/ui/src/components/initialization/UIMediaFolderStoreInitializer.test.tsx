@@ -8,13 +8,20 @@ vi.mock("@/hooks/userConfig", () => ({
   useConfig: vi.fn(),
 }))
 
-const { mockSetFolders } = vi.hoisted(() => ({
+const { mockSetFolders, mockSetSelectedFolder } = vi.hoisted(() => ({
   mockSetFolders: vi.fn(),
+  mockSetSelectedFolder: vi.fn(),
 }))
 
 vi.mock("@/stores/uiMediaFolderStore", () => ({
-  useUIMediaFolderStore: vi.fn((selector: (s: { setFolders: typeof mockSetFolders }) => unknown) =>
-    selector({ setFolders: mockSetFolders }),
+  useUIMediaFolderStore: vi.fn((selector: (s: {
+    setFolders: typeof mockSetFolders
+    setSelectedFolder: typeof mockSetSelectedFolder
+  }) => unknown) =>
+    selector({
+      setFolders: mockSetFolders,
+      setSelectedFolder: mockSetSelectedFolder,
+    }),
   ),
 }))
 
@@ -25,7 +32,10 @@ describe("UIMediaFolderStoreInitializer", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseUIMediaFolderStore.mockImplementation((selector) =>
-      selector({ setFolders: mockSetFolders }),
+      selector({
+        setFolders: mockSetFolders,
+        setSelectedFolder: mockSetSelectedFolder,
+      }),
     )
   })
 
@@ -39,11 +49,12 @@ describe("UIMediaFolderStoreInitializer", () => {
     render(<UIMediaFolderStoreInitializer />)
 
     expect(mockSetFolders).not.toHaveBeenCalled()
+    expect(mockSetSelectedFolder).not.toHaveBeenCalled()
   })
 
   it("initializes folders only once after config is loaded", () => {
     mockUseConfig.mockReturnValue({
-      userConfig: { folders: ["C:/Movies/A", "C:/Shows/B"] },
+      userConfig: { folders: ["C:/Movies/A", "C:/Shows/B"], selectedFolder: "C:/Shows/B" },
       isLoading: false,
       isUserConfigLoaded: true,
     })
@@ -56,5 +67,23 @@ describe("UIMediaFolderStoreInitializer", () => {
       { path: "C:/Movies/A", status: "ok", test: false },
       { path: "C:/Shows/B", status: "ok", test: false },
     ])
+    expect(mockSetSelectedFolder).toHaveBeenCalledTimes(1)
+    expect(mockSetSelectedFolder).toHaveBeenCalledWith("C:/Shows/B")
+  })
+
+  it("falls back to first folder when persisted selection is missing", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: {
+        folders: ["C:/Movies/A", "C:/Shows/B"],
+        selectedFolder: "C:/Missing/NotFound",
+      },
+      isLoading: false,
+      isUserConfigLoaded: true,
+    })
+
+    render(<UIMediaFolderStoreInitializer />)
+
+    expect(mockSetSelectedFolder).toHaveBeenCalledTimes(1)
+    expect(mockSetSelectedFolder).toHaveBeenCalledWith("C:/Movies/A")
   })
 })

@@ -61,6 +61,10 @@ export interface UserConfig {
    */
   folders: string[]
   /**
+   * Persisted primary selection in sidebar, stored in POSIX format for stable comparison.
+   */
+  selectedFolder?: string
+  /**
    * Rename rules for media files
    */
   renameRules: string[]

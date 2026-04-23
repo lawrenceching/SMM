@@ -69,6 +69,7 @@ export function MediaFolderListItemV2({
             !selected && "bg-sidebar hover:bg-sidebar-accent/80"
           )}
           onClick={onClick}
+          data-selected={selected ? "true" : "false"}
         >
           {/* Content */}
           <div className="flex-1 min-w-0">

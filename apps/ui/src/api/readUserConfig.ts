@@ -46,6 +46,7 @@ export const defaultUserConfig: UserConfig = {
   selectedAI: 'DeepSeek',
   selectedTMDBIntance: 'public',
   folders: [],
+  selectedFolder: undefined,
   renameRules: [],
   dryRun: false,
   selectedRenameRule: RenameRules.Plex.name,

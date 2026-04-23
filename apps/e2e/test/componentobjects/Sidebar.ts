@@ -109,6 +109,27 @@ class Sidebar {
     }
 
     /**
+     * Check whether a folder is currently selected in sidebar.
+     * Selection is indicated by data-selected="true" on item container.
+     */
+    async isFolderSelected(folderName: string): Promise<boolean> {
+        const selectedFolderElement = $(`//*[@data-testid="sidebar-folder-name" and text()="${folderName}"]/ancestor::div[@data-selected="true"][1]`)
+        return await selectedFolderElement.isExisting()
+    }
+
+    /**
+     * Wait until a folder becomes selected in sidebar.
+     */
+    async waitForFolderSelected(folderName: string, timeout: number = 10000): Promise<boolean> {
+        return await browser.waitUntil(async () => {
+            return await this.isFolderSelected(folderName)
+        }, {
+            timeout,
+            timeoutMsg: `Folder "${folderName}" was not selected after ${timeout}ms`
+        })
+    }
+
+    /**
      * Check if a folder with the given name exists in the sidebar
      * @param folderName The name of the folder to check
      */

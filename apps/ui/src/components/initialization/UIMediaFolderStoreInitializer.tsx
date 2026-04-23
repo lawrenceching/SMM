@@ -1,11 +1,13 @@
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useEffect, useRef } from "react"
+import { Path } from "@core/path"
 
 export function UIMediaFolderStoreInitializer() {
   
   const { userConfig, isLoading, isUserConfigLoaded } = useConfig()
   const setFolders = useUIMediaFolderStore((s) => s.setFolders)
+  const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder)
   const initializedRef = useRef(false)
 
   useEffect(() => {
@@ -25,8 +27,23 @@ export function UIMediaFolderStoreInitializer() {
         test: false,
       }
     }))
+
+    const persistedSelectedFolder = userConfig.selectedFolder
+    const restoredSelection = persistedSelectedFolder
+      ? userConfig.folders.find((folder) => Path.posix(folder) === Path.posix(persistedSelectedFolder))
+      : undefined
+    const fallbackSelection = restoredSelection ?? userConfig.folders[0] ?? ""
+    setSelectedFolder(fallbackSelection)
     initializedRef.current = true
-  }, [setFolders, userConfig.folders, isLoading, initializedRef, isUserConfigLoaded])
+  }, [
+    setFolders,
+    setSelectedFolder,
+    userConfig.folders,
+    userConfig.selectedFolder,
+    isLoading,
+    initializedRef,
+    isUserConfigLoaded,
+  ])
 
   
   return null

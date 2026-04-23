@@ -38,7 +38,7 @@ import { MusicPanel } from "./components/MusicPanel"
 function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
-  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
 
   const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
   const [isResizing, setIsResizing] = useState(false)
@@ -87,6 +87,24 @@ function AppV2Content() {
       useUIMediaFolderStore.getState().applyFolderClick(path, false)
     }
   }, [selectedMediaMetadata?.mediaFolderPath])
+
+  useEffect(() => {
+    if (!isUserConfigLoaded) return
+
+    const normalizedSelectedFolder = selectedFolder ? Path.posix(selectedFolder) : undefined
+    const normalizedPersistedSelection = userConfig.selectedFolder
+      ? Path.posix(userConfig.selectedFolder)
+      : undefined
+    if (normalizedSelectedFolder === normalizedPersistedSelection) {
+      return
+    }
+
+    const traceId = `AppV2:PersistSelectedFolder:${nextTraceId()}`
+    void setAndSaveUserConfig(traceId, {
+      ...userConfig,
+      selectedFolder: normalizedSelectedFolder,
+    })
+  }, [isUserConfigLoaded, selectedFolder, setAndSaveUserConfig, userConfig])
 
   // Open native file dialog in Electron
   const openNativeFileDialog = useCallback(async (options?: { title?: string }): Promise<FileItem | null> => {

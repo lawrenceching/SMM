@@ -314,4 +314,42 @@ describe('Sidebar', () => {
         }
 
     })
+
+    it('Selection - should restore selected folder after app relaunch', async function() {
+        const testFolders: TestFolder[] = [
+            {
+                folderName: 'Persist-A',
+                type: 'tvshow',
+                files: [],
+            },
+            {
+                folderName: 'Persist-B',
+                type: 'movie',
+                files: [],
+            },
+            {
+                folderName: 'Persist-C',
+                type: 'music',
+                files: [],
+            },
+        ]
+
+        for (const folder of testFolders) {
+            await createAndImportFolder(folder, 'e2eTest:Import Media Folder')
+        }
+
+        const targetFolder = testFolders[1]?.folderName
+        if (!targetFolder) {
+            throw new Error('Missing target folder for persistence assertion')
+        }
+        await Sidebar.waitForFoldersToLoad(3, 60000)
+        await Sidebar.clickFolder(targetFolder)
+        await Sidebar.waitForFolderSelected(targetFolder)
+
+        // Simulate app relaunch by refreshing the renderer.
+        await browser.refresh()
+
+        await Sidebar.waitForFoldersToLoad(3, 60000)
+        await Sidebar.waitForFolderSelected(targetFolder)
+    })
 })
