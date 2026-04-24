@@ -33,6 +33,7 @@ import {
   type OnMediaLibraryImportedEventData,
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
+import localStorages from "@/lib/localStorages"
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
 function AppV2Content() {
@@ -92,19 +93,25 @@ function AppV2Content() {
     if (!isUserConfigLoaded) return
 
     const normalizedSelectedFolder = selectedFolder ? Path.posix(selectedFolder) : undefined
-    const normalizedPersistedSelection = userConfig.selectedFolder
-      ? Path.posix(userConfig.selectedFolder)
+    const normalizedPersistedSelection = localStorages.sidebarSelectedFolder
+      ? Path.posix(localStorages.sidebarSelectedFolder)
       : undefined
+    const hasSelectedFolderInConfig =
+      normalizedSelectedFolder === undefined
+        ? true
+        : userConfig.folders.some((folder) => Path.posix(folder) === normalizedSelectedFolder)
+
+    if (!hasSelectedFolderInConfig) {
+      // Skip persisting to avoid overwriting folders with stale userConfig snapshot during import.
+      return
+    }
+
     if (normalizedSelectedFolder === normalizedPersistedSelection) {
       return
     }
 
-    const traceId = `AppV2:PersistSelectedFolder:${nextTraceId()}`
-    void setAndSaveUserConfig(traceId, {
-      ...userConfig,
-      selectedFolder: normalizedSelectedFolder,
-    })
-  }, [isUserConfigLoaded, selectedFolder, setAndSaveUserConfig, userConfig])
+    localStorages.sidebarSelectedFolder = normalizedSelectedFolder ?? null
+  }, [isUserConfigLoaded, selectedFolder, userConfig.folders])
 
   // Open native file dialog in Electron
   const openNativeFileDialog = useCallback(async (options?: { title?: string }): Promise<FileItem | null> => {

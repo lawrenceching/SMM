@@ -1,8 +1,4 @@
-# sidebar-selection-persistence
-
-Persist and restore sidebar selected directory across app restarts.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Persist selected sidebar directory
 

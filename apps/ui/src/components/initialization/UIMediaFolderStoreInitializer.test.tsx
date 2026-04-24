@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { UIMediaFolderStoreInitializer } from "./UIMediaFolderStoreInitializer"
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
+import localStorages from "@/lib/localStorages"
 
 vi.mock("@/hooks/userConfig", () => ({
   useConfig: vi.fn(),
@@ -25,12 +26,19 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
   ),
 }))
 
+vi.mock("@/lib/localStorages", () => ({
+  default: {
+    sidebarSelectedFolder: null,
+  },
+}))
+
 const mockUseConfig = useConfig as unknown as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStore = useUIMediaFolderStore as unknown as ReturnType<typeof vi.fn>
 
 describe("UIMediaFolderStoreInitializer", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(localStorages as { sidebarSelectedFolder: string | null }).sidebarSelectedFolder = null
     mockUseUIMediaFolderStore.mockImplementation((selector) =>
       selector({
         setFolders: mockSetFolders,
@@ -53,6 +61,7 @@ describe("UIMediaFolderStoreInitializer", () => {
   })
 
   it("initializes folders only once after config is loaded", () => {
+    ;(localStorages as { sidebarSelectedFolder: string | null }).sidebarSelectedFolder = "C:/Shows/B"
     mockUseConfig.mockReturnValue({
       userConfig: { folders: ["C:/Movies/A", "C:/Shows/B"], selectedFolder: "C:/Shows/B" },
       isLoading: false,
@@ -72,10 +81,28 @@ describe("UIMediaFolderStoreInitializer", () => {
   })
 
   it("falls back to first folder when persisted selection is missing", () => {
+    ;(localStorages as { sidebarSelectedFolder: string | null }).sidebarSelectedFolder = "C:/Missing/NotFound"
     mockUseConfig.mockReturnValue({
       userConfig: {
         folders: ["C:/Movies/A", "C:/Shows/B"],
         selectedFolder: "C:/Missing/NotFound",
+      },
+      isLoading: false,
+      isUserConfigLoaded: true,
+    })
+
+    render(<UIMediaFolderStoreInitializer />)
+
+    expect(mockSetSelectedFolder).toHaveBeenCalledTimes(1)
+    expect(mockSetSelectedFolder).toHaveBeenCalledWith("C:/Movies/A")
+  })
+
+  it("ignores legacy userConfig.selectedFolder when localStorage has no value", () => {
+    ;(localStorages as { sidebarSelectedFolder: string | null }).sidebarSelectedFolder = null
+    mockUseConfig.mockReturnValue({
+      userConfig: {
+        folders: ["C:/Movies/A", "C:/Shows/B"],
+        selectedFolder: "C:/Shows/B",
       },
       isLoading: false,
       isUserConfigLoaded: true,

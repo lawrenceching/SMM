@@ -2,6 +2,7 @@ import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useEffect, useRef } from "react"
 import { Path } from "@core/path"
+import localStorages from "@/lib/localStorages"
 
 export function UIMediaFolderStoreInitializer() {
   
@@ -28,7 +29,7 @@ export function UIMediaFolderStoreInitializer() {
       }
     }))
 
-    const persistedSelectedFolder = userConfig.selectedFolder
+    const persistedSelectedFolder = localStorages.sidebarSelectedFolder
     const restoredSelection = persistedSelectedFolder
       ? userConfig.folders.find((folder) => Path.posix(folder) === Path.posix(persistedSelectedFolder))
       : undefined
@@ -39,7 +40,6 @@ export function UIMediaFolderStoreInitializer() {
     setFolders,
     setSelectedFolder,
     userConfig.folders,
-    userConfig.selectedFolder,
     isLoading,
     initializedRef,
     isUserConfigLoaded,

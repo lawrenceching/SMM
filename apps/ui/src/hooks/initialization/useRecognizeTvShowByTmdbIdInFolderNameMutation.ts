@@ -3,6 +3,7 @@ import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import { basename } from "@/lib/path";
 import { useMutation } from "@tanstack/react-query";
 import type { MediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
+import type { TmdbRequestOptions } from "@/api/tmdb";
 
 export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {
 
@@ -12,9 +13,10 @@ export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {
         mutationFn: async (_variables: {
             mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
+            tmdb?: TmdbRequestOptions
         }): Promise<TvShowMediaMetadata | undefined> => {
             const m = _variables.mediaMetadata;
-            const { language } = _variables;
+            const { language, tmdb } = _variables;
             if(m.type !== "tvshow-folder") {
                 console.warn(`[useRecognizeByTmdbIdInTvShowFolderNameMutation] mediaMetadata is not a tvshow-folder: ${m.type}`)
             }
@@ -26,7 +28,7 @@ export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {
                 return undefined;
             }
 
-            return await getTvShowByIdFromTmdb({ id: parseInt(tmdbId, 10), language })
+            return await getTvShowByIdFromTmdb({ id: parseInt(tmdbId, 10), language, tmdb })
         },
     })
 

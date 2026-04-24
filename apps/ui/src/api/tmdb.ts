@@ -8,6 +8,51 @@ import type {
 
 export type { TmdbSeasonDetailsRequestBody, TmdbTvSeasonDetails, TmdbSeriesDetails, TmdbSeasonDetails, TmdbMovieDetails } from '@core/types';
 
+export interface TmdbRequestOptions {
+  tmdbHost?: string;
+  tmdbApiKey?: string;
+  signal?: AbortSignal;
+}
+
+interface TmdbResolvedConnection {
+  directHost?: string;
+  tmdbApiKey?: string;
+  signal?: AbortSignal;
+}
+
+function normalizeHost(host?: string): string | undefined {
+  const trimmed = host?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.replace(/\/+$/, '');
+}
+
+function resolveConnection(options?: TmdbRequestOptions, legacyBaseURL?: string): TmdbResolvedConnection {
+  const directHost = normalizeHost(options?.tmdbHost ?? legacyBaseURL);
+  return {
+    directHost,
+    tmdbApiKey: options?.tmdbApiKey,
+    signal: options?.signal,
+  };
+}
+
+function assertDirectModeApiKey(apiKey?: string): string {
+  const normalized = apiKey?.trim();
+  if (!normalized) {
+    throw new Error('TMDB API key is required when TMDB host is configured');
+  }
+  return normalized;
+}
+
+async function fetchJson<T>(url: string, init: RequestInit, errorPrefix: string): Promise<T> {
+  const resp = await fetch(url, init);
+  if (!resp.ok) {
+    throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`);
+  }
+  return resp.json() as Promise<T>;
+}
+
 /**
  * Search TMDB for movies or TV shows
  */
@@ -15,30 +60,47 @@ export async function searchTmdb(
   keyword: string,
   type: 'movie' | 'tv',
   language: 'zh-CN' | 'en-US' | 'ja-JP',
-  baseURL?: string
+  optionsOrBaseURL?: TmdbRequestOptions | string
 ): Promise<TmdbSearchResponseBody> {
+  const options = typeof optionsOrBaseURL === 'string' ? undefined : optionsOrBaseURL;
+  const legacyBaseURL = typeof optionsOrBaseURL === 'string' ? optionsOrBaseURL : undefined;
+  const connection = resolveConnection(options, legacyBaseURL);
   const queryParams = new URLSearchParams();
   queryParams.append('query', keyword);
   queryParams.append('language', language);
-  if (baseURL) {
-    queryParams.append('baseURL', baseURL);
+
+  if (connection.directHost) {
+    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
+    const url = `${connection.directHost}/search/${type}?${queryParams.toString()}`;
+    return fetchJson<TmdbSearchResponseBody>(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: connection.signal,
+      },
+      'Failed to search TMDB'
+    );
   }
 
+  if (legacyBaseURL) {
+    queryParams.append('baseURL', legacyBaseURL);
+  }
   const url = `/tmdb/search/${type}?${queryParams.toString()}`;
-
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
+  return fetchJson<TmdbSearchResponseBody>(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: connection.signal,
     },
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to search TMDB: ${resp.statusText}`);
-  }
-
-  const data: TmdbSearchResponseBody = await resp.json();
-  return data;
+    'Failed to search TMDB'
+  );
 }
 
 /**
@@ -47,29 +109,49 @@ export async function searchTmdb(
 export async function getTvShowById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
-  signal?: AbortSignal
+  signalOrOptions?: AbortSignal | TmdbRequestOptions
 ): Promise<TmdbSeriesDetails> {
+  const options = signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions;
+  const connection = resolveConnection(options);
   const queryParams = new URLSearchParams();
   if (language) {
     queryParams.append('language', language);
   }
+  if (!connection.directHost && options?.tmdbHost) {
+    queryParams.append('baseURL', options.tmdbHost);
+  }
   const queryString = queryParams.toString();
-  const url = `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = connection.directHost
+    ? `${connection.directHost}/tv/${id}${queryString ? `?${queryString}` : ''}`
+    : `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
 
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    signal,
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to get TV show: ${resp.statusText}`);
+  if (connection.directHost) {
+    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
+    return fetchJson<TmdbSeriesDetails>(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get TV show'
+    );
   }
 
-  const data: TmdbSeriesDetails = await resp.json();
-  return data;
+  return fetchJson<TmdbSeriesDetails>(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: connection.signal,
+    },
+    'Failed to get TV show'
+  );
 }
 
 /**
@@ -78,29 +160,49 @@ export async function getTvShowById(
 export async function getMovieById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
-  signal?: AbortSignal
+  signalOrOptions?: AbortSignal | TmdbRequestOptions
 ): Promise<TmdbMovieDetails> {
+  const options = signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions;
+  const connection = resolveConnection(options);
   const queryParams = new URLSearchParams();
   if (language) {
     queryParams.append('language', language);
   }
+  if (!connection.directHost && options?.tmdbHost) {
+    queryParams.append('baseURL', options.tmdbHost);
+  }
   const queryString = queryParams.toString();
-  const url = `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = connection.directHost
+    ? `${connection.directHost}/movie/${id}${queryString ? `?${queryString}` : ''}`
+    : `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
 
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    signal,
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to get movie: ${resp.statusText}`);
+  if (connection.directHost) {
+    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
+    return fetchJson<TmdbMovieDetails>(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get movie'
+    );
   }
 
-  const data: TmdbMovieDetails = await resp.json();
-  return data;
+  return fetchJson<TmdbMovieDetails>(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: connection.signal,
+    },
+    'Failed to get movie'
+  );
 }
 
 /**
@@ -134,6 +236,8 @@ export async function getSeason(
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
   options?: {
     baseURL?: string;
+    tmdbHost?: string;
+    tmdbApiKey?: string;
     appendToResponse?: string;
     signal?: AbortSignal;
   }
@@ -150,27 +254,50 @@ export async function getSeason(
   if (req.language) {
     queryParams.append('language', req.language);
   }
-  if (req.baseURL) {
+  const connection = resolveConnection(
+    {
+      tmdbHost: options?.tmdbHost,
+      tmdbApiKey: options?.tmdbApiKey,
+      signal: options?.signal,
+    },
+    options?.baseURL
+  );
+  if (!connection.directHost && req.baseURL) {
     queryParams.append('baseURL', req.baseURL);
   }
   if (req.appendToResponse) {
     queryParams.append('appendToResponse', req.appendToResponse);
   }
   const queryString = queryParams.toString();
-  const url = `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
+  const url = connection.directHost
+    ? `${connection.directHost}/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`
+    : `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
 
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    signal: options?.signal,
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to get TV season: ${resp.statusText}`);
+  if (connection.directHost) {
+    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
+    return fetchJson<TmdbSeasonDetails>(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get TV season'
+    );
   }
 
-  const data: TmdbSeasonDetails = await resp.json();
-  return data;
+  return fetchJson<TmdbSeasonDetails>(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: connection.signal,
+    },
+    'Failed to get TV season'
+  );
 }

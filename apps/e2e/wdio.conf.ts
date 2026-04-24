@@ -1,5 +1,6 @@
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
 import { ReportAggregator } from 'wdio-html-nice-reporter';
 import { browser } from '@wdio/globals';
 import { setup, updateUserConfig } from './test/lib/testbed';
@@ -9,6 +10,24 @@ import {
 } from './test/lib/mcpSpecShared';
 
 const HTML_REPORT_DIR = './reports/html-reports';
+const PINNED_CHROME_VERSION = '146.0.7680.153';
+const WDIO_CACHE_DIR = path.join(os.homedir(), 'wdio-cache');
+const LOCAL_CHROME_BINARY = path.join(
+    WDIO_CACHE_DIR,
+    'chrome',
+    `win64-${PINNED_CHROME_VERSION}`,
+    'chrome-win64',
+    'chrome.exe'
+);
+const LOCAL_CHROMEDRIVER_BINARY = path.join(
+    WDIO_CACHE_DIR,
+    'chromedriver',
+    `win64-${PINNED_CHROME_VERSION}`,
+    'chromedriver-win64',
+    'chromedriver.exe'
+);
+const USE_LOCAL_CHROME_BINARY = fs.existsSync(LOCAL_CHROME_BINARY);
+const USE_LOCAL_CHROMEDRIVER_BINARY = fs.existsSync(LOCAL_CHROMEDRIVER_BINARY);
 
 let reportAggregator: ReportAggregator | undefined;
 
@@ -136,7 +155,7 @@ export const config: WebdriverIO.Config = {
     // Cache Directory
     // ============
     // Directory to cache browser drivers
-    cacheDir: path.join(os.homedir(), 'wdio-cache'),
+    cacheDir: WDIO_CACHE_DIR,
     
     //
     // ==================
@@ -184,10 +203,18 @@ export const config: WebdriverIO.Config = {
     //
     capabilities: [{
         browserName: 'chrome',
-        // Pin Chrome so WDIO doesn't switch/download a different stable version.
-        browserVersion: '146.0.7680.153',
+        // Use pinned browserVersion only when local browser binary isn't available.
+        ...(!USE_LOCAL_CHROME_BINARY ? { browserVersion: PINNED_CHROME_VERSION } : {}),
+        ...(USE_LOCAL_CHROMEDRIVER_BINARY
+            ? {
+                'wdio:chromedriverOptions': {
+                    binary: LOCAL_CHROMEDRIVER_BINARY
+                }
+            }
+            : {}),
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
+            ...(USE_LOCAL_CHROME_BINARY ? { binary: LOCAL_CHROME_BINARY } : {}),
             args: process.env.BUILD_ENV === 'docker'
                 ? [
                     '--disable-gpu',

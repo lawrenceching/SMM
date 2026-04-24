@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { getTMDBImageUrl } from './tmdb'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getMovieById, getTMDBImageUrl, searchTmdb } from './tmdb'
+
+beforeEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('getTMDBImageUrl', () => {
   describe('backdrop_path handling', () => {
@@ -110,5 +114,62 @@ describe('getTMDBImageUrl', () => {
         })
       })
     })
+  })
+})
+
+describe('tmdb routing', () => {
+  it('uses proxy route when tmdb host is empty', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          page: 1,
+          total_pages: 1,
+          total_results: 0,
+        }),
+        { status: 200 }
+      )
+    )
+
+    await searchTmdb('naruto', 'tv', 'en-US')
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/tmdb/search/tv?query=naruto&language=en-US')
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+  })
+
+  it('uses direct host with bearer token when tmdb host is configured', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          page: 1,
+          total_pages: 1,
+          total_results: 0,
+        }),
+        { status: 200 }
+      )
+    )
+
+    await searchTmdb('inception', 'movie', 'en-US', {
+      tmdbHost: 'https://api.themoviedb.org/3/',
+      tmdbApiKey: 'abc123',
+    })
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      'https://api.themoviedb.org/3/search/movie?query=inception&language=en-US'
+    )
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123')
+  })
+
+  it('fails fast when direct mode has no api key', async () => {
+    await expect(
+      getMovieById(1, 'en-US', {
+        tmdbHost: 'https://api.themoviedb.org/3',
+      })
+    ).rejects.toThrow('TMDB API key is required when TMDB host is configured')
   })
 })

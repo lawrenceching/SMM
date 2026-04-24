@@ -1,13 +1,14 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import type { PreferMediaLanguage, TmdbSeriesDetails, TmdbSeasonDetails, TvShowMediaMetadata, TvShowSeasonMetadata, TvShowEpisodeMetadata } from "@core/types"
+import type { TmdbRequestOptions } from "@/api/tmdb"
 
 /**
  * Fetches TMDB TV details via cached HTTP (`fetchQuery`) and maps to {@link TvShowMediaMetadata}.
  * Pass `onMutate` / `onSuccess` / `onError` (and optional `meta` via variables) for component-specific UI updates.
  */
 export function useGetTmdbTvShowMutation<
-  TVariables extends { id: number; language?: PreferMediaLanguage },
+  TVariables extends { id: number; language?: PreferMediaLanguage; tmdb?: TmdbRequestOptions },
   TContext = unknown,
 >(
   options?: Omit<
@@ -21,11 +22,20 @@ export function useGetTmdbTvShowMutation<
     ...options,
     mutationFn: async (variables: TVariables) => {
       console.log(`useGetTmdbTvShowMutation CALLED`, {...variables})
-      const tmdbTvSeriesDetails: TmdbSeriesDetails = await getTvShowById(variables.id, variables.language)
+      const tmdbTvSeriesDetails: TmdbSeriesDetails = await getTvShowById(
+        variables.id,
+        variables.language,
+        variables.tmdb
+      )
 
       const seasonDetails: TmdbSeasonDetails[] = []
       for(const season of tmdbTvSeriesDetails.seasons) {
-        const tmdbTvShowSeasonDetails: TmdbSeasonDetails = await getTvShowSeasonDetails(variables.id, season.season_number, variables.language)
+        const tmdbTvShowSeasonDetails: TmdbSeasonDetails = await getTvShowSeasonDetails(
+          variables.id,
+          season.season_number,
+          variables.language,
+          variables.tmdb
+        )
         seasonDetails.push(tmdbTvShowSeasonDetails)
       }
       

@@ -34,16 +34,16 @@ describe('TVDB Movie Media Folder Initialization', () => {
     })
 
     afterEach(async () => {
-        // await cleanup({
-        //     removeMetadataDir: true,
-        //     removePlansDir: true,
-        //     removeMediaFolders: true,
-        //     removeDirInSidebar: true,
-        //     resetUserConfig: true,
-        // })
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+        })
     })
 
-    it.only('import media folder with tvdbid in folder name', async function() {
+    it('import media folder with tvdbid in folder name', async function() {
 
         if(env.slowdown) {
             this.timeout(60 * 1000)

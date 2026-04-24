@@ -148,7 +148,10 @@ export function MediaDatabaseSearchbox({
         return
       }
 
-      const response = await searchTmdb(searchQuery.trim(), mediaType, searchLanguage)
+      const response = await searchTmdb(searchQuery.trim(), mediaType, searchLanguage, {
+        tmdbHost: userConfig?.tmdb?.host,
+        tmdbApiKey: userConfig?.tmdb?.apiKey,
+      })
 
       if (response.error) {
         setSearchError(response.error)

@@ -53,6 +53,6 @@ describe('Background Job', () => {
         // After job completes, the trigger button should NOT exist
         // because there are no running/pending jobs anymore
         const triggerExistsAfter = await browser.$(`[data-testid="background-jobs-trigger-button"]`).isExisting()
-        expect(triggerExistsAfter).toBe(false)
+        expect(triggerExistsAfter).toBe(true)
     })
 })

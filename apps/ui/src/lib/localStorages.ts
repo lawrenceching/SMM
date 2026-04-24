@@ -1,5 +1,6 @@
 const STORAGE_KEY_SELECTED_FOLDER_INDEX = 'selectedFolderIndex';
 const STORAGE_KEY_FILE_PICKER_LAST_DIR = 'filepickerdialog.lastdir';
+const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
 
 const localStorages = {
     get selectedFolderIndex(): number | null {
@@ -12,6 +13,25 @@ const localStorages = {
     },
     set selectedFolderIndex(index: number) {
         localStorage.setItem(STORAGE_KEY_SELECTED_FOLDER_INDEX, index.toString());
+    },
+    get sidebarSelectedFolder(): string | null {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY_SIDEBAR_SELECTED_FOLDER);
+            return stored || null;
+        } catch {
+            return null;
+        }
+    },
+    set sidebarSelectedFolder(path: string | null) {
+        try {
+            if (path && path.trim() !== "") {
+                localStorage.setItem(STORAGE_KEY_SIDEBAR_SELECTED_FOLDER, path);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_SIDEBAR_SELECTED_FOLDER);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
     },
     get filePickerLastDir(): string {
         try {

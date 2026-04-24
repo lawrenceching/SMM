@@ -3,6 +3,7 @@ import { useGetTmdbTvShowMutation } from "../useGetTmdbTvShowMutation";
 import { useMutation } from "@tanstack/react-query";
 import type { MediaMetadata, PreferMediaLanguage, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
 import { basename } from "@/lib/path";
+import type { TmdbRequestOptions } from "@/api/tmdb";
 
 export function useRecognizeTvShowBySearchingFolderNameInTmdb() {
     
@@ -13,17 +14,18 @@ export function useRecognizeTvShowBySearchingFolderNameInTmdb() {
         mutationFn: async (_variables: {
             mediaMetadata: MediaMetadata
             language: PreferMediaLanguage
+            tmdb?: TmdbRequestOptions
         }): Promise<TvShowMediaMetadata | undefined> => {
             
             const m = _variables.mediaMetadata;
-            const { language } = _variables;
+            const { language, tmdb } = _variables;
             if(m.type !== "tvshow-folder") {
                 console.warn(`[useRecognizeBySearchTvShowFolderNameInTmdb] mediaMetadata is not a tvshow-folder: ${m.type}`)
             }
 
             const folderName = basename(m.mediaFolderPath!)!
             
-            const ret: TmdbSearchResponseBody = await searchTmdb(folderName, "tv", language)
+            const ret: TmdbSearchResponseBody = await searchTmdb(folderName, "tv", language, tmdb)
             if(ret.error) {
                 console.error(`[useRecognizeBySearchTvShowFolderNameInTmdb] searchTmdb error: ${ret.error}`)
                 return undefined;
@@ -35,7 +37,7 @@ export function useRecognizeTvShowBySearchingFolderNameInTmdb() {
             }
 
             const tmdbId = ret.results[0].id as number
-            return getTvShowByIdFromTmdb({ id: tmdbId, language })
+            return getTvShowByIdFromTmdb({ id: tmdbId, language, tmdb })
         },
     })
     return mutation;

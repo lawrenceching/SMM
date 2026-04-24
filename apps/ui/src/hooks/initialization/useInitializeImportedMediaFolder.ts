@@ -94,6 +94,10 @@ export function useInitializeImportedMediaFolder() {
     const recognizeTvShow = useCallback(async (mm: MediaMetadata, traceId: string) => {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
+        const tmdb = {
+            tmdbHost: latestUserConfig.current.tmdb?.host,
+            tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -113,6 +117,7 @@ export function useInitializeImportedMediaFolder() {
                         recognizeTvShowByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
+                            tmdb,
                         }),
                 },
                 {
@@ -133,6 +138,7 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeTvShowBySearchTvShowFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
+                                tmdb,
                             })
                             : recognizeTvShowBySearchTvShowFolderNameInTvdb({
                                 mediaMetadata: mm,
@@ -188,6 +194,10 @@ export function useInitializeImportedMediaFolder() {
     const recognizeMovie = useCallback(async (mm: MediaMetadata, traceId: string) => {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
+        const tmdb = {
+            tmdbHost: latestUserConfig.current.tmdb?.host,
+            tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -208,6 +218,7 @@ export function useInitializeImportedMediaFolder() {
                         recognizeMovieByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
+                            tmdb,
                         }),
                 },
                 {
@@ -228,6 +239,7 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeMovieBySearchFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
+                                tmdb,
                             })
                             : recognizeMovieBySearchFolderNameInTvdb({
                                 mediaMetadata: mm,

@@ -5,6 +5,8 @@ import { cleanup, setup } from '../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, type TestFolder } from 'test/actions/import-folders'
 import { env } from 'node:process'
+import { getUserConfigPath } from '../lib/testbed'
+import fs from 'node:fs'
 
 const slowdown = env.slowdown
 
@@ -351,5 +353,9 @@ describe('Sidebar', () => {
 
         await Sidebar.waitForFoldersToLoad(3, 60000)
         await Sidebar.waitForFolderSelected(targetFolder)
+
+        const userConfigPath = await getUserConfigPath()
+        const userConfig = JSON.parse(fs.readFileSync(userConfigPath, 'utf-8')) as { selectedFolder?: string }
+        expect(userConfig.selectedFolder).toBeUndefined()
     })
 })

@@ -7,6 +7,12 @@ const mockUseUIMediaFolderStoreState = vi.fn()
 const mockUseMediaMetadataQuery = vi.fn()
 const mockUseUIMediaFolderStore = vi.fn()
 const mockGetState = vi.fn()
+const { mockSetAndSaveUserConfig, mockLocalStorages } = vi.hoisted(() => ({
+  mockSetAndSaveUserConfig: vi.fn(),
+  mockLocalStorages: {
+    sidebarSelectedFolder: null as string | null,
+  },
+}))
 
 vi.mock("@/stores/uiMediaFolderStore", () => ({
   useUIMediaFolderStoreState: (...args: unknown[]) => mockUseUIMediaFolderStoreState(...args),
@@ -27,9 +33,14 @@ vi.mock("@/hooks/mediaMetadata", () => ({
 
 vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => ({
-    userConfig: { folders: [] },
-    setAndSaveUserConfig: vi.fn(),
+    userConfig: { folders: ["/media/local-folder"] },
+    setAndSaveUserConfig: mockSetAndSaveUserConfig,
+    isUserConfigLoaded: true,
   }),
+}))
+
+vi.mock("@/lib/localStorages", () => ({
+  default: mockLocalStorages,
 }))
 
 vi.mock("@/providers/dialog-provider", () => ({
@@ -109,6 +120,8 @@ function renderApp() {
 describe("AppV2", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSetAndSaveUserConfig.mockReset()
+    mockLocalStorages.sidebarSelectedFolder = null
   })
 
   function arrange({
@@ -159,5 +172,13 @@ describe("AppV2", () => {
     renderApp()
 
     expect(screen.queryByTestId("local-file-panel")).not.toBeInTheDocument()
+  })
+
+  it("persists selected folder to localStorage without backend config write", () => {
+    arrange({ folderStatus: "ok" })
+    renderApp()
+
+    expect(mockLocalStorages.sidebarSelectedFolder).toBe("/media/local-folder")
+    expect(mockSetAndSaveUserConfig).not.toHaveBeenCalled()
   })
 })
