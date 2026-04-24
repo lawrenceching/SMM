@@ -71,14 +71,15 @@ export async function searchTmdb(
 
   if (connection.directHost) {
     const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
-    const url = `${connection.directHost}/search/${type}?${queryParams.toString()}`;
+    const url = `/tmdb/search/${type}?${queryParams.toString()}`;
     return fetchJson<TmdbSearchResponseBody>(
       url,
       {
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          'X-TMDB-Host': connection.directHost,
+          'X-TMDB-API-Key': apiKey,
         },
         signal: connection.signal,
       },
@@ -121,9 +122,7 @@ export async function getTvShowById(
     queryParams.append('baseURL', options.tmdbHost);
   }
   const queryString = queryParams.toString();
-  const url = connection.directHost
-    ? `${connection.directHost}/tv/${id}${queryString ? `?${queryString}` : ''}`
-    : `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
 
   if (connection.directHost) {
     const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
@@ -133,7 +132,8 @@ export async function getTvShowById(
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          'X-TMDB-Host': connection.directHost,
+          'X-TMDB-API-Key': apiKey,
         },
         signal: connection.signal,
       },
@@ -172,9 +172,7 @@ export async function getMovieById(
     queryParams.append('baseURL', options.tmdbHost);
   }
   const queryString = queryParams.toString();
-  const url = connection.directHost
-    ? `${connection.directHost}/movie/${id}${queryString ? `?${queryString}` : ''}`
-    : `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
 
   if (connection.directHost) {
     const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
@@ -184,7 +182,8 @@ export async function getMovieById(
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          'X-TMDB-Host': connection.directHost,
+          'X-TMDB-API-Key': apiKey,
         },
         signal: connection.signal,
       },
@@ -269,9 +268,7 @@ export async function getSeason(
     queryParams.append('appendToResponse', req.appendToResponse);
   }
   const queryString = queryParams.toString();
-  const url = connection.directHost
-    ? `${connection.directHost}/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`
-    : `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
+  const url = `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
 
   if (connection.directHost) {
     const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
@@ -281,7 +278,8 @@ export async function getSeason(
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          'X-TMDB-Host': connection.directHost,
+          'X-TMDB-API-Key': apiKey,
         },
         signal: connection.signal,
       },
