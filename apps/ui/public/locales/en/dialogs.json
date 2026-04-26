@@ -85,8 +85,8 @@
         "description": "For movies and films"
       },
       "music": {
-        "label": "Music",
-        "description": "For music albums and tracks"
+        "label": "Video/Music",
+        "description": "For video and music files"
       }
     }
   },

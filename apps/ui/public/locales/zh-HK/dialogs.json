@@ -85,8 +85,8 @@
         "description": "適用於電影和影片"
       },
       "music": {
-        "label": "音樂",
-        "description": "適用於音樂專輯和曲目"
+        "label": "音/視頻文件",
+        "description": "適用於音視頻文件"
       }
     }
   },
