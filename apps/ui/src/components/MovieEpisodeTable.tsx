@@ -138,8 +138,6 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
   const { renameFileDialog } = useDialogs()
   const [openRename] = renameFileDialog
 
-  console.log("[MovieEpisodeTable] render", { dataLength: data.length })
-
   const toggleColumn = (key: ColumnKey) => {
     setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
   }

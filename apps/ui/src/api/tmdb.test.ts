@@ -139,7 +139,7 @@ describe('tmdb routing', () => {
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
   })
 
-  it('uses direct host with bearer token when tmdb host is configured', async () => {
+  it('uses direct host headers when tmdb host is configured', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -159,10 +159,13 @@ describe('tmdb routing', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(
-      'https://api.themoviedb.org/3/search/movie?query=inception&language=en-US'
+      '/tmdb/search/movie?query=inception&language=en-US'
     )
     const init = fetchSpy.mock.calls[0][1] as RequestInit
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123')
+    expect((init.headers as Record<string, string>)['X-TMDB-Host']).toBe(
+      'https://api.themoviedb.org/3'
+    )
+    expect((init.headers as Record<string, string>)['X-TMDB-API-Key']).toBe('abc123')
   })
 
   it('fails fast when direct mode has no api key', async () => {

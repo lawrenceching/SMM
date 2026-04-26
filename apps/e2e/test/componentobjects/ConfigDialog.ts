@@ -12,6 +12,7 @@ const Key = {
 
 type SettingsTab = 'general' | 'ai' | 'rename-rules' | 'feedback'
 type PreferMediaLanguageCode = "__unset__" | "zh-CN" | "en-US" | "ja-JP"
+type ThemeMode = "light" | "dark" | "system"
 
 class ConfigDialog {
     /**
@@ -63,6 +64,20 @@ class ConfigDialog {
     }
 
     /**
+     * Get the theme select trigger
+     */
+    get themeSelectTrigger() {
+        return $('[data-testid="setting-theme-trigger"]')
+    }
+
+    /**
+     * Get a theme option by value
+     */
+    async getThemeOption(mode: ThemeMode) {
+        return $(`[data-testid="setting-theme-${mode}"]`)
+    }
+
+    /**
      * Get the primary database (TMDB / TVDB) select trigger
      */
     get primaryDatabaseSelectTrigger() {
@@ -109,6 +124,20 @@ class ConfigDialog {
      */
     get tmdbProxyInput() {
         return $('[data-testid="setting-tmdb-proxy"]')
+    }
+
+    /**
+     * Get the TVDB host input
+     */
+    get tvdbHostInput() {
+        return $('[data-testid="setting-tvdb-host"]')
+    }
+
+    /**
+     * Get the TVDB API key input
+     */
+    get tvdbApiKeyInput() {
+        return $('[data-testid="setting-tvdb-api-key"]')
     }
 
     /**
@@ -252,7 +281,8 @@ class ConfigDialog {
      * Get the value of an input field
      */
     async getInputValue(element: ChainablePromiseElement): Promise<string> {
-        return await element.getValue()
+        const value = await element.getValue()
+        return typeof value === 'string' ? value : String(value ?? '')
     }
 
     /**
@@ -308,6 +338,29 @@ class ConfigDialog {
      */
     async getSelectedLanguage(): Promise<string> {
         const trigger = await this.languageSelectTrigger
+        return await trigger.getText()
+    }
+
+    /**
+     * Select a theme mode
+     */
+    async selectTheme(mode: ThemeMode): Promise<void> {
+        const trigger = await this.themeSelectTrigger
+        await trigger.waitForClickable({ timeout: 5000 })
+        await trigger.click()
+
+        await browser.pause(200)
+
+        const option = await this.getThemeOption(mode)
+        await option.waitForClickable({ timeout: 5000 })
+        await option.click()
+    }
+
+    /**
+     * Get the current theme selection
+     */
+    async getSelectedTheme(): Promise<string> {
+        const trigger = await this.themeSelectTrigger
         return await trigger.getText()
     }
 
@@ -415,6 +468,34 @@ class ConfigDialog {
     }
 
     /**
+     * Set the TVDB host
+     */
+    async setTvdbHost(value: string): Promise<void> {
+        await this.setInputValue(this.tvdbHostInput, value)
+    }
+
+    /**
+     * Get the TVDB host value
+     */
+    async getTvdbHost(): Promise<string> {
+        return await this.getInputValue(this.tvdbHostInput)
+    }
+
+    /**
+     * Set the TVDB API key
+     */
+    async setTvdbApiKey(value: string): Promise<void> {
+        await this.setInputValue(this.tvdbApiKeyInput, value)
+    }
+
+    /**
+     * Get the TVDB API key value
+     */
+    async getTvdbApiKey(): Promise<string> {
+        return await this.getInputValue(this.tvdbApiKeyInput)
+    }
+
+    /**
      * Toggle the MCP server checkbox
      */
     async toggleMcpServer(checked: boolean): Promise<void> {
@@ -470,10 +551,24 @@ class ConfigDialog {
     }
 
     /**
+     * Set yt-dlp executable path
+     */
+    async setYtdlpPath(value: string): Promise<void> {
+        await this.setInputValue(this.ytdlpPathInput, value)
+    }
+
+    /**
      * Get ffmpeg executable path value
      */
     async getFfmpegPath(): Promise<string> {
         return await this.getInputValue(this.ffmpegPathInput)
+    }
+
+    /**
+     * Set ffmpeg executable path
+     */
+    async setFfmpegPath(value: string): Promise<void> {
+        await this.setInputValue(this.ffmpegPathInput, value)
     }
 
     // ==================== External Tools Actions ====================
@@ -536,8 +631,12 @@ class ConfigDialog {
     async getFfmpegVersion(): Promise<string> {
         const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
         // Return the second one (first is yt-dlp, second is ffmpeg)
-        if (versionTexts.length >= 2) {
-            return await versionTexts[1].getText()
+        const versionCount = await versionTexts.length
+        if (versionCount >= 2) {
+            const ffmpegVersion = versionTexts[1]
+            if (ffmpegVersion) {
+                return await ffmpegVersion.getText()
+            }
         }
         return ''
     }

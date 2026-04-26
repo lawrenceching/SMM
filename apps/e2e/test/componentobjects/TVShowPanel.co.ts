@@ -108,6 +108,10 @@ class MediaDatabaseSearchboxCO {
         await clickableRow.click()
     }
 
+    async results() {
+        return await $$('[data-testid="tmdb-search-result-item"]')
+    }
+
     async selectSearchResult(options: {title?: string, date?: string}) {
 
         const { title, date } = options

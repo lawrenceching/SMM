@@ -367,3 +367,25 @@ export async function importFolderWithMediaMetadata(
         mediaFolderPath: Path.posix(folderPath),
     })
 }
+
+
+/**
+ * Check if the official TMDB host is accessible
+ * Returns true if accessible, false otherwise
+ */
+export async function isOfficialHostAccessible(): Promise<boolean> {
+    const officialHost = 'https://api.themoviedb.org'
+    try {
+        const response = await fetch(`${officialHost}/3/configuration?api_key=dummy`, {
+            method: 'GET',
+            // Use a short timeout to avoid hanging
+            signal: AbortSignal.timeout(5000),
+        })
+        // Even if we get a 401 (unauthorized), it means the host is reachable
+        // Only network errors mean it's not accessible
+        return response.status !== undefined
+    } catch (error) {
+        console.warn('Official TMDB host is not accessible:', error)
+        return false
+    }
+}

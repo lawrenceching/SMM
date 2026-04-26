@@ -19,7 +19,14 @@ export function useGetTvdbMovieMutation<
 
   return useMutation({
     ...options,
-    mutationFn: async (variables: TVariables) =>
-      getMovieMediaMetadata(variables.movieId, variables.language),
+    mutationFn: async (variables: TVariables) => {
+      if (!Number.isFinite(variables.movieId) || variables.movieId <= 0) {
+        const errMsg =
+          `[useGetTvdbMovieMutation] Invalid movieId: ${String(variables.movieId)}`
+        console.error(errMsg, { variables })
+        throw new Error(errMsg)
+      }
+      return getMovieMediaMetadata(variables.movieId, variables.language)
+    },
   })
 }
