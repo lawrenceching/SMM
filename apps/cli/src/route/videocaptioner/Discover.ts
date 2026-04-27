@@ -9,11 +9,10 @@ export interface VideoCaptionerDiscoverResponseData {
 
 export async function processVideoCaptionerDiscover(): Promise<VideoCaptionerDiscoverResponseData> {
   try {
-    // TODO: Disable for testing, uncomment before commit
-    // const path = await discoverVideoCaptioner();
-    // if (path) {
-    //   return { path };
-    // }
+    const path = await discoverVideoCaptioner();
+    if (path) {
+      return { path };
+    }
     return { error: "videocaptioner not found" };
   } catch (error) {
     logger.error({ error }, "Error discovering videocaptioner");

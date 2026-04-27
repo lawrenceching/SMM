@@ -16,9 +16,14 @@ vi.mock("./config", () => ({
 
 vi.mock("os", async () => {
   const actual = await vi.importActual<typeof import("os")>("os");
+  const platform = vi.fn().mockReturnValue("win32");
   return {
     ...actual,
-    platform: vi.fn().mockReturnValue("win32"),
+    default: {
+      ...actual,
+      platform,
+    },
+    platform,
   };
 });
 

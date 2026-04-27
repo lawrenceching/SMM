@@ -25,6 +25,10 @@ vi.mock("fs", async () => {
   const actual = await vi.importActual<typeof import("fs")>("fs");
   return {
     ...actual,
+    default: {
+      ...actual,
+      existsSync: vi.fn().mockReturnValue(true),
+    },
     existsSync: vi.fn().mockReturnValue(true),
   };
 });
