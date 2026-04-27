@@ -1,6 +1,7 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
+import SearchboxCO from './Searchbox.co'
 
 /** Confirm button labels (en and zh-CN). */
 const CONFIRM_LABELS = ['Confirm', '确认']
@@ -34,155 +35,6 @@ export interface TvShowPanelState {
         disabled: boolean,
     },
     table: TvShowEpisodeTableRow[]
-}
-
-class MediaDatabaseSearchboxCO {
-
-    get input() {
-        return $('[data-testid="immersive-input"]')
-    }
-
-    get database() {
-        return $('#tmdb-search-database')
-    }
-
-    get language() {
-        return $('#tmdb-search-language')
-    }
-
-    get searchButton() {
-        return $('[data-testid="immersive-input-search-button"]')
-    }
-
-    async setDatabase(database: string) {
-        const selectTrigger = await this.database
-        
-        await selectTrigger.waitForExist({ timeout: 5000 })
-        await selectTrigger.waitForDisplayed({ timeout: 5000 })
-        await selectTrigger.waitForClickable({ timeout: 5000 })
-        await selectTrigger.click()
-
-        await browser.pause(300)
-        const selectItem = await $(`[data-testid="tmdb-search-database-option-${database}"]`)
-        await selectItem.waitForExist({ timeout: 5000 })
-        await selectItem.waitForDisplayed({ timeout: 5000 })
-        await selectItem.waitForClickable({ timeout: 5000 })
-        await selectItem.click()
-
-    }
-
-    async setLanguage(language: string) {
-        const selectTrigger = await this.language
-        
-        await selectTrigger.waitForExist({ timeout: 5000 })
-        await selectTrigger.waitForDisplayed({ timeout: 5000 })
-        await selectTrigger.waitForClickable({ timeout: 5000 })
-        await selectTrigger.click()
-
-        await browser.pause(300)
-        
-        const selectItems = await $$(`[data-testid^="tmdb-search-language-option-"]`)
-        let targetItem
-        
-        for (const item of selectItems) {
-            const text = await item.getText()
-            if (text === language) {
-                targetItem = item
-                break
-            }
-        }
-        
-        if (!targetItem) {
-            throw new Error(`Language option "${language}" not found`)
-        }
-        
-        await targetItem.waitForClickable({ timeout: 5000 })
-        await targetItem.click()
-
-    }
-
-    async selectSearchResultByText(text: string) {
-        const resultItem = await $(`//h3[contains(text(),"${text}")]`)
-        await resultItem.waitForDisplayed({ timeout: 1000 })
-        const clickableRow = await resultItem.$('..').$('..').$('..')
-        await clickableRow.click()
-    }
-
-    async results() {
-        return await $$('[data-testid="tmdb-search-result-item"]')
-    }
-
-    async selectSearchResult(options: {title?: string, date?: string}) {
-
-        const { title, date } = options
-        if(title === undefined && date === undefined) {
-            throw new Error('Either title or date must be provided')
-        }
-
-        const expectedDate = date
-
-        await browser.waitUntil(
-            async () => {
-                const resultItems = await $$('[data-testid="tmdb-search-result-item"]')
-                return (await resultItems.length) > 0
-            },
-            {
-                timeout: 10000,
-                interval: 200,
-                timeoutMsg: 'Search result items did not appear after 10000ms',
-            }
-        )
-
-        const rows = await $$('[data-testid="tmdb-search-result-item"]')
-        const matchedRows = []
-        for (const row of rows) {
-            let matches = true
-
-            if (title !== undefined) {
-                const titleEl = await row.$('h3')
-                const titleText = (await titleEl.getText()).trim()
-                matches = matches && titleText === title
-            }
-
-            if (date !== undefined) {
-                const dateEl = await row.$('[data-testid="search-result-item-date"]')
-                const hasDate = await dateEl.isExisting().catch(() => false)
-                if (!hasDate) {
-                    matches = false
-                } else {
-                    const dateText = (await dateEl.getText()).trim()
-                    matches = matches && dateText === expectedDate
-                }
-            }
-
-            if (matches) {
-                matchedRows.push(row)
-            }
-        }
-
-        if (matchedRows.length === 0) {
-            throw new Error(
-                `No search result matched title="${title ?? '*'}" date="${expectedDate ?? '*'}"`
-            )
-        }
-
-        if (matchedRows.length > 1) {
-            throw new Error(
-                `Multiple search results matched title="${title ?? '*'}" date="${expectedDate ?? '*'}". Please provide both title and date to disambiguate.`
-            )
-        }
-
-        const matchedRow = matchedRows[0]
-        if (!matchedRow) {
-            throw new Error('Internal error: matched row is undefined')
-        }
-
-        // Click the actual clickable row wrapper.
-        const clickableRow = await matchedRow.$('..')
-        await clickableRow.waitForClickable({ timeout: 5000 })
-        await clickableRow.click()
-    }
-
 }
 
 class TVShowPanel {
@@ -690,11 +542,15 @@ class TVShowPanel {
     }
 
     get searchbox() {
-        return new MediaDatabaseSearchboxCO()
+        return SearchboxCO
     }
 
     get scrapeButton() {
         return $('[data-testid="scrape-button"]')
+    }
+
+    get newVideoFilePaths() {
+        return $$('[data-testid="tvshow-episode-table-new-video-file"]')
     }
     
 }

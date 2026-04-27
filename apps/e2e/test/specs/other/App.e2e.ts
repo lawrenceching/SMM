@@ -1,5 +1,5 @@
 import { expect } from '@wdio/globals'
-import { cleanup, setup } from '../lib/testbed'
+import { cleanup, setup } from '../../lib/testbed'
 import { createAndImportFolder } from 'test/actions/import-folders'
 import { folder1, folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'

@@ -1,11 +1,11 @@
 import { expect, browser } from '@wdio/globals'
-import Sidebar from '../componentobjects/Sidebar'
-import StatusBar from '../componentobjects/StatusBar'
-import { cleanup, setup } from '../lib/testbed'
+import Sidebar from '../../componentobjects/Sidebar'
+import StatusBar from '../../componentobjects/StatusBar'
+import { cleanup, setup } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, type TestFolder } from 'test/actions/import-folders'
 import { env } from 'node:process'
-import { getUserConfigPath } from '../lib/testbed'
+import { getUserConfigPath } from '../../lib/testbed'
 import fs from 'node:fs'
 
 const slowdown = env.slowdown

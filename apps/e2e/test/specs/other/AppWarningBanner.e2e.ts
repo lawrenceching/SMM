@@ -1,5 +1,5 @@
 import { expect, browser } from '@wdio/globals'
-import env from '../lib/env'
+import env from '../../lib/env'
 
 const WARNING_BANNER_SELECTOR = '[data-testid="app-warning-banner"]'
 const WARNING_DISMISSED_KEY = 'warning.appNotFullyTestedInMacOsOrLinux'

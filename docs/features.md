@@ -11,22 +11,35 @@ And the test status of v1.1.0
 | Import media library - Web GUI/Electron          | MANUAL |  DONE   |
 |                                                  |        |         |
 | Media Folder Initialization                      |        |         |
-| ---- TV Show - TMDB ID in folder name            |  AUTO  |         |
-| ---- TV Show - nfo                               |  AUTO  |         |
-| ---- TV Show - Folder Name                       |  AUTO  |         |
-| ---- TV Show - Not able to detect                |  AUTO  |         |
-| ---- Movie - TMDB ID in folder name              |  AUTO  |         |
-| ---- Movie - nfo                                 |  AUTO  |         |
-| ---- Movie - Folder Name                         |  AUTO  |         |
-| ---- Movie - Not able to detect                  |  AUTO  |         |
+| test/specs/media-folder-initialization/          |        |         |
+| - TV Show - TMDB ID in folder name               |  AUTO  |         |
+| - TV Show - nfo                                  |  AUTO  |         |
+| - TV Show - Folder Name                          |  AUTO  |         |
+| - TV Show - Not able to detect                   |  AUTO  |         |
+| - Movie - TMDB ID in folder name                 |  AUTO  |         |
+| - Movie - nfo                                    |  AUTO  |         |
+| - Movie - Folder Name                            |  AUTO  |         |
+| - Movie - Not able to detect                     |  AUTO  |         |
+| - TV Show (TVDB) - TVDB ID in folder name        |  AUTO  |         |
+| - TV Show (TVDB) - nfo                           |  AUTO  |         |
+| - TV Show (TVDB) - Folder Name                   |  AUTO  |         |
+| - Movie (TVDB) - TVDB ID in folder name          |  AUTO  |         |
+| - Movie (TVDB) - Folder Name                     |  AUTO  |         |
+| - Import Library - TV Show, TMDB&TVDB            |  TODO  |         |
+| - Import Library - Movie, TMDB&TVDB              |  TODO  |         |
+| - Import Library - Music/Audio                   |  TODO  |         |
 |                                                  |        |         |
-| TV Show - Search TV Show                         |  AUTO  |         |
-| TV Show - Rule Based Recognize                   |        | If rule based recognition work, it worked in folder initialization. Need furture considerataion of this scenario        |
+| TV Show - Search TV Show (TMDB, TVDB, Language)  |  AUTO  |         |
+| > SearchTvShow.e2e.ts                            |        |         |
 | TV Show - Rule Based Rename                      |  AUTO  |         |
+| > TVShow-RenameByPlan.e2e.ts                     |        |         |
 | TV Show - Scrape                                 |  AUTO  |         |
-| TV Show - Rename Episode Video File              |        |         |
+| > Scrape.e2e.ts                                  |        |         |
+| TV Show - Rename Episode Video File              |  AUTO  |         |
+| > TVShow-RenameEpisodeFile.e2e.ts                |        |         |
 |                                                  |        |         |
 | Movie - Search Movie                             |  AUTO  |         |
+| > SearchMovie.e2e.ts                    |        |         |
 | Movie - Rule Based Recognize                     |        |         |
 | Movie - Rule Based Rename                        |  AUTO  |         |
 | Movie - Scrape                                   |  AUTO  |         |
@@ -34,6 +47,7 @@ And the test status of v1.1.0
 |                                                  |        |         |
 | Sidebar - Filter and Sort                        | AUTO   |         |
 | Sidebar - Rename Folder                          | AUTO   |         |
+| > RenameFolder.e2e.ts                            |        |         |
 | Sidebar - Delete Single Folder                   | AUTO   |         |
 | Sidebar - Multiple Selection                     | MANUAL |         |
 | Sidebar - Multiple Deletion                      | MANUAL |         |
@@ -68,3 +82,17 @@ And the test status of v1.1.0
 | StatusBar - MCP Indicator and Popover            | AUTO   |         |
 | StatusBar - App Version                          | AUTO   |         |
 | StatusBar - Background Job Indicator and Popover | AUTO   |         |
+|                                                  |        |         |
+| Download Bilibili Video                          | MANUAL |         |
+| Download Bilibili Episodes                       | MANUAL |         |
+| Download Youtube Video                           | MANUAL |         |
+| Download Youtube Episodes                        | MANUAL |         |
+|                                                  |        |         |
+| Settings                                         |        |         |
+| Custom TMDB host and API key                     | MANUAL |         |
+| Custom TVDB host and API key                     | MANUAL |         |
+| DeepSeek                                         | MANUAL |         |
+| OpenAPI                                         | MANUAL |         |
+| GLM                                         | MANUAL |         |
+| Other                                         | MANUAL |         |
+|                                                  |        |         |

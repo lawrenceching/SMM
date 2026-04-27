@@ -83,7 +83,7 @@ describe('Custom TMDB Host', () => {
 
         await browser.waitUntil(
             async () => {
-                const results = await TVShowPanel.searchbox.results()
+                const results = await TVShowPanel.searchbox.results
                 const count = await results.length
                 return count > 0
             },

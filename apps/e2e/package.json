@@ -28,8 +28,13 @@
     "wdio": "wdio run ./wdio.conf.ts",
     "wdio:run": "wdio run ./wdio.conf.ts --spec ./test/specs/ImportMediaLibrary.e2e.ts",
     "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts",
-    "wdio:initialization": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\"",
+    "wdio:init": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\"",
     "wdio:tv": "wdio run ./wdio.conf.ts --spec \"./test/specs/tv/*.e2e.ts\"",
+    "wdio:movie": "wdio run ./wdio.conf.ts --spec \"./test/specs/movie/*.e2e.ts\"",
+    "wdio:tvdb": "wdio run ./wdio.conf.ts --spec \"./test/specs/tvdb/*.e2e.ts\"",
+    "wdio:other": "wdio run ./wdio.conf.ts --spec \"./test/specs/other/*.e2e.ts\"",
+    "wdio:config": "wdio run ./wdio.conf.ts --spec \"./test/specs/config/*.e2e.ts\"",
+    "wdio:ai": "wdio run ./wdio.conf.ts --spec \"./test/specs/ai/*.e2e.ts\"",
     "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./test/specs/mcp/*.e2e.ts\""
   },
   "dependencies": {

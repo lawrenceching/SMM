@@ -622,10 +622,14 @@ export function TvShowEpisodeTable({
                         </div>
                       ) : preview === 'rename' && row.newVideoFile && basename(row.videoFile) !== basename(row.newVideoFile) ? (
                         <div className="min-w-0 space-y-0.5">
-                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}>
+                          <div className="truncate text-muted-foreground/60 line-through text-xs" title={row.videoFile}
+                            data-testid="tvshow-episode-table-old-video-file"
+                          >
                             {getDisplayPath(row.videoFile, mediaFolderPath)}
                           </div>
-                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}>
+                          <div className="truncate text-foreground font-medium" title={row.newVideoFile}
+                            data-testid="tvshow-episode-table-new-video-file"
+                          >
                             {getDisplayPath(row.newVideoFile, mediaFolderPath)}
                           </div>
                         </div>

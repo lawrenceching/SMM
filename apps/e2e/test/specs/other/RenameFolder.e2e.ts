@@ -1,9 +1,9 @@
 import { expect } from '@wdio/globals'
-import { TvShowPanelCO } from '../componentobjects/TVShowPanel.co'
-import { cleanup, expectMediaMetadataToBe } from '../lib/testbed'
+import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
+import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, folder1, folder2, folder5, type TestFolder } from '../actions/import-folders'
-import { setup } from '../lib/testbed'
+import { createAndImportFolder, folder1, folder2, folder5, type TestFolder } from '../../actions/import-folders'
+import { setup } from '../../lib/testbed'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
 

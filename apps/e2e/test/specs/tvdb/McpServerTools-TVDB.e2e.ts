@@ -5,7 +5,7 @@ import { cleanup, importFolderWithMediaMetadata, setup } from '../../lib/testbed
 import mcpClient from '../../lib/McpClient'
 import { createFolderInTestFolder, folder3 } from '../../actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import { getMcpAddressForWorker } from '../../lib/mcpSpecShared'
+import { enableMcpFromStatusBarAndStoreAddress, getMcpAddressForWorker } from '../../lib/mcpSpecShared'
 
 describe('MCP Server Tools - TVDB', () => {
   before(async () => {
@@ -20,6 +20,11 @@ describe('MCP Server Tools - TVDB', () => {
       },
       openBrowserPage: true,
     })
+
+    // App start MCP server after it detected user config changed
+    // It may need a while for MCP server to start
+    await browser.pause(5000)
+    await enableMcpFromStatusBarAndStoreAddress()
   })
 
   const repoRoot = path.resolve(process.cwd(), '..', '..')
@@ -42,6 +47,8 @@ describe('MCP Server Tools - TVDB', () => {
   }) 
 
   it('GetMediaMetadataTool should return cached metadata for folder', async function () {
+
+    
     
     const folder = createFolderInTestFolder({
       ...folder3,

@@ -3,7 +3,7 @@ import { expect } from '@wdio/globals'
 import { join } from "path";
 import { createFolderInTestFolder, folder1, folder2, folder5 } from "test/actions/import-folders";
 import { cleanup, importFolderWithMediaMetadata, setup, updateUserConfig } from "test/lib/testbed";
-import Page from '../pageobjects/page'
+import Page from '../../pageobjects/page'
 import Sidebar from "test/componentobjects/Sidebar";
 import TvShowPanelCO from "test/componentobjects/TVShowPanel.co";
 import ScrapeDialogCO from 'test/componentobjects/ScrapeDialogCO';

@@ -1,6 +1,6 @@
 /// <reference types="@wdio/globals/types" />
 
-import { browser } from '@wdio/globals'
+import SearchboxCO from './Searchbox.co'
 
 class MoviePanelComponentObject {
 
@@ -9,18 +9,23 @@ class MoviePanelComponentObject {
     }
 
     get input() {
-        return $('[data-testid="immersive-input"]')
+        return this.searchbox.input
+    }
+
+    get results() {
+        return this.searchbox.results
+    }
+
+    async getResults() {
+        return this.searchbox.getResults()
+    }
+
+    get searchbox() {
+        return SearchboxCO
     }
 
     async waitForTitleToBe(expected: string, timeout: number = 10000): Promise<void> {
-        await this.input.waitForDisplayed({ timeout });
-        await browser.waitUntil(
-            async () => (await this.input.getValue()) === expected,
-            {
-                timeout,
-                timeoutMsg: `Expected title to be "${expected}", but got "${await this.input.getValue()}"`
-            }
-        )
+        await this.searchbox.waitForTitleToBe(expected, timeout)
     }
 
 }
