@@ -29,8 +29,9 @@ import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
-import { discoverVideoCaptioner, transcribeWithVideoCaptioner } from "@/api/videocaptioner";
+import { transcribeWithVideoCaptioner } from "@/api/videocaptioner";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 
 interface PendingDelete {
   trackPath: string;
@@ -230,7 +231,7 @@ export function MusicPanel() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isTranscribeAvailable, setIsTranscribeAvailable] = useState(false);
+  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus();
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isBatchTranscribing, setIsBatchTranscribing] = useState(false);
@@ -249,18 +250,6 @@ export function MusicPanel() {
       }
       return !prev;
     });
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      const result = await discoverVideoCaptioner();
-      if (!active) return;
-      setIsTranscribeAvailable(Boolean(result.path) && !result.error);
-    })();
-    return () => {
-      active = false;
-    };
   }, []);
 
   useEffect(() => {

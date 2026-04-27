@@ -39,6 +39,9 @@ vi.mock("./mcp/McpIndicator", () => ({
 vi.mock("@/hooks/useDatabaseConnectionStatus", () => ({
     useDatabaseConnectionStatus: vi.fn(),
 }))
+vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
+    useVideoCaptionerStatus: vi.fn(),
+}))
 
 vi.mock("@/components/ui/separator", () => ({
     Separator: () => <hr data-testid="separator" />,
@@ -47,12 +50,14 @@ vi.mock("@/components/ui/separator", () => ({
 import { useStatusBar } from "./hooks/useStatusBar"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 const mockUseStatusBar = useStatusBar as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
     typeof vi.fn
 >
 const mockUseDatabaseConnectionStatus = useDatabaseConnectionStatus as ReturnType<typeof vi.fn>
+const mockUseVideoCaptionerStatus = useVideoCaptionerStatus as ReturnType<typeof vi.fn>
 
 describe("mapWebSocketStatusToConnectionStatus", () => {
     it("maps connected to connected", () => {
@@ -87,6 +92,10 @@ describe("StatusBar", () => {
             tmdbStatus: "connected",
             tvdbStatus: "connected",
             hasWarning: false,
+        })
+        mockUseVideoCaptionerStatus.mockReturnValue({
+            isAvailable: true,
+            isChecking: false,
         })
     })
 
@@ -146,6 +155,7 @@ describe("StatusBar", () => {
             JSON.stringify([
                 { title: "TMDB is unavailable", type: "error" },
                 { title: "TVDB is available", type: "info" },
+                { title: "VideoCaptioner is available", type: "info" },
             ]),
         )
     })
@@ -164,6 +174,25 @@ describe("StatusBar", () => {
             JSON.stringify([
                 { title: "TMDB is available", type: "info" },
                 { title: "TVDB is unavailable", type: "error" },
+                { title: "VideoCaptioner is available", type: "info" },
+            ]),
+        )
+    })
+
+    it("renders videocaptioner not found as error message", () => {
+        mockUseVideoCaptionerStatus.mockReturnValue({
+            isAvailable: false,
+            isChecking: false,
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB is available", type: "info" },
+                { title: "TVDB is available", type: "info" },
+                { title: "videocaptioner not found", type: "error" },
             ]),
         )
     })

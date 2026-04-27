@@ -58,6 +58,20 @@ describe("MusicFileTable transcribe action", () => {
     expect(btn).toBeDisabled();
   });
 
+  it("does not trigger callback when transcribe action is disabled", () => {
+    const onTrackTranscribe = vi.fn();
+    render(
+      <MusicFileTable
+        data={[row]}
+        isTranscribeAvailable={false}
+        onTrackTranscribe={onTrackTranscribe}
+      />
+    );
+    const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.transcribe/i });
+    fireEvent.click(btn);
+    expect(onTrackTranscribe).not.toHaveBeenCalled();
+  });
+
   it("triggers callback when transcribe is enabled", () => {
     const onTrackTranscribe = vi.fn();
     render(

@@ -39,7 +39,7 @@ And the test status of v1.1.0
 | > TVShow-RenameEpisodeFile.e2e.ts                |        |         |
 |                                                  |        |         |
 | Movie - Search Movie                             |  AUTO  |         |
-| > SearchMovie.e2e.ts                    |        |         |
+| > SearchMovie.e2e.ts                             |         |
 | Movie - Rule Based Recognize                     |        |         |
 | Movie - Rule Based Rename                        |  AUTO  |         |
 | Movie - Scrape                                   |  AUTO  |         |
@@ -96,3 +96,6 @@ And the test status of v1.1.0
 | GLM                                         | MANUAL |         |
 | Other                                         | MANUAL |         |
 |                                                  |        |         |
+| Messages |||
+| TMDB/TVDB Connectivity |||
+| videocaptioner not found |||

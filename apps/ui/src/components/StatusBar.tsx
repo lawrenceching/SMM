@@ -8,6 +8,7 @@ import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicat
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 export { mapWebSocketStatusToConnectionStatus }
 
@@ -26,6 +27,7 @@ export function StatusBar({
 }: StatusBarProps) {
     const { selectedFolder } = useUIMediaFolderStoreState()
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
+    const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
     const folderPathMessage = useMemo(
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
@@ -49,8 +51,14 @@ export function StatusBar({
                         : "TVDB is available",
                 type: tvdbStatus === "disconnected" ? "error" : "info",
             },
+            {
+                title: isVideoCaptionerAvailable
+                    ? "VideoCaptioner is available"
+                    : "videocaptioner not found",
+                type: isVideoCaptionerAvailable ? "info" : "error",
+            },
         ],
-        [tmdbStatus, tvdbStatus],
+        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable],
     )
 
     return (
