@@ -207,6 +207,36 @@ interface ComponentsResources {
       checking: string
       warningAriaLabel: string
     }
+    messages: {
+      tmdbAvailable: string
+      tmdbUnavailable: string
+      tvdbAvailable: string
+      tvdbUnavailable: string
+      videoCaptionerAvailable: string
+      videoCaptionerNotFound: string
+      learnMore: string
+    }
+    backgroundJobs: {
+      title: string
+      subtitle: string
+      empty: string
+      triggerAriaLabel: string
+      triggerAriaLabel_one: string
+      triggerAriaLabel_other: string
+      abortAriaLabel: string
+      status: {
+        pending: string
+        running: string
+        succeeded: string
+        failed: string
+        aborted: string
+      }
+      messages: {
+        succeeded: string
+        failed: string
+        aborted: string
+      }
+    }
   }
   mediaPlayer: {
     trackContextMenu: {
