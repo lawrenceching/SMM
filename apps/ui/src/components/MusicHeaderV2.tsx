@@ -77,6 +77,7 @@ export function MusicHeaderV2({
                         size="sm"
                         onClick={() => onDownloadClick?.()}
                         disabled={!selectedMediaMetadata?.mediaFolderPath}
+                        data-testid="music-download-button"
                     >
                         <Download className="size-4 mr-2" />
                         {t('mediaPlayer.download')}

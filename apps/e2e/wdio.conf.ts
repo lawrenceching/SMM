@@ -4,6 +4,7 @@ import fs from 'fs';
 import { ReportAggregator } from 'wdio-html-nice-reporter';
 import { browser } from '@wdio/globals';
 import { setup, updateUserConfig } from './test/lib/testbed';
+import { registerExpectExtensions } from './test/lib/expect-extensions';
 import {
     disableMcpFromStatusBarAndClearGlobal,
     enableMcpFromStatusBarAndStoreAddress,
@@ -390,6 +391,8 @@ export const config: WebdriverIO.Config = {
      * @param {object}         browser      instance of created browser/device session
      */
     before: async function (_capabilities, specs) {
+        registerExpectExtensions();
+
         const browserLogEnabled = process.env.BROWSER_LOG_ENABLED === 'true';
         if (browserLogEnabled) {
             // 先订阅 BiDi 协议的 log 事件
