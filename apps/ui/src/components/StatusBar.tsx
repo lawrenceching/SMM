@@ -12,6 +12,9 @@ import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 export { mapWebSocketStatusToConnectionStatus }
 
+const VIDEO_CAPTIONER_CLI_HELP_LINK =
+    "https://github.com/WEIFENG2333/VideoCaptioner#cli-%E5%91%BD%E4%BB%A4%E8%A1%8C"
+
 interface StatusBarProps {
     className?: string
     /** When set (including `""`), overrides the path from `UIMediaFolderStore` `selectedFolder`. */
@@ -56,6 +59,9 @@ export function StatusBar({
                     ? "VideoCaptioner is available"
                     : "videocaptioner not found",
                 type: isVideoCaptionerAvailable ? "info" : "error",
+                link: isVideoCaptionerAvailable
+                    ? undefined
+                    : VIDEO_CAPTIONER_CLI_HELP_LINK,
             },
         ],
         [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable],

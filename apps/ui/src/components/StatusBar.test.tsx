@@ -20,7 +20,7 @@ vi.mock("./hooks/useStatusBar", () => ({
 }))
 
 vi.mock("./ConnectionStatusIndicator", () => ({
-    MessageIndicator: ({ messages }: { messages: Array<{ title: string; type: string }> }) => (
+    MessageIndicator: ({ messages }: { messages: Array<{ title: string; type: string; link?: string }> }) => (
         <span
             data-testid="message-indicator"
             data-messages={JSON.stringify(messages)}
@@ -192,7 +192,11 @@ describe("StatusBar", () => {
             JSON.stringify([
                 { title: "TMDB is available", type: "info" },
                 { title: "TVDB is available", type: "info" },
-                { title: "videocaptioner not found", type: "error" },
+                {
+                    title: "videocaptioner not found",
+                    type: "error",
+                    link: "https://github.com/WEIFENG2333/VideoCaptioner#cli-%E5%91%BD%E4%BB%A4%E8%A1%8C",
+                },
             ]),
         )
     })

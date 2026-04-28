@@ -1,8 +1,5 @@
-# statusbar-message-indicator Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change message-indicator-in-statusbar. Update Purpose after archive.
-## Requirements
 ### Requirement: Status bar displays typed messages through MessageIndicator
 The system SHALL provide a `MessageIndicator` in the status bar that renders message entries using the `Message` structure with fields `title`, optional `link`, and `type` (`info` | `warning` | `error`), including dependency-unavailable diagnostics for features such as VideoCaptioner.
 
@@ -15,15 +12,3 @@ The system SHALL provide a `MessageIndicator` in the status bar that renders mes
 - **THEN** the status bar includes a `videocaptioner not found` message entry
 - **AND** the message `type` is `error`
 - **AND** the message `link` is `https://github.com/WEIFENG2333/VideoCaptioner#cli-%E5%91%BD%E4%BB%A4%E8%A1%8C`
-
-### Requirement: Actionable badge count highlights warning and error messages
-The system SHALL show a red notification badge on the status bar message icon, and the badge count SHALL equal the number of messages whose `type` is `warning` or `error`.
-
-#### Scenario: Info messages do not increase badge count
-- **WHEN** all messages are `info` type
-- **THEN** the badge count is zero and no warning/error alert count is shown
-
-#### Scenario: Warning and error messages increase badge count
-- **WHEN** the message list includes two `error` messages and one `warning` message
-- **THEN** the badge count shown on the status icon is `3`
-
