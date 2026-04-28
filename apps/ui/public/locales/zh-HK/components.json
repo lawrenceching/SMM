@@ -215,6 +215,8 @@
     }
   },
   "mediaPlayer": {
+    "select": "選擇",
+    "download": "下載",
     "trackContextMenu": {
       "open": "開啟",
       "delete": "刪除",

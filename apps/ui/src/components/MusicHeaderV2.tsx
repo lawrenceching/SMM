@@ -24,7 +24,7 @@ export function MusicHeaderV2({
     isMultiSelectMode = false,
     onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
-    const { t } = useTranslation(['components'])
+    const { t } = useTranslation(['components', 'common'])
 
     const folderName = selectedMediaMetadata?.mediaFolderPath?.split('/').pop() || 'Music'
     const trackCount = selectedMediaMetadata?.files?.length ?? 0
@@ -54,7 +54,7 @@ export function MusicHeaderV2({
                         disabled={!selectedMediaMetadata?.mediaFolderPath}
                         data-testid="music-multi-select-toggle"
                     >
-                        {isMultiSelectMode ? "Cancel" : "Select"}
+                        {isMultiSelectMode ? t('cancel', { ns: 'common' }) : t('mediaPlayer.select')}
                     </Button>
                     <Button
                         variant="outline"
@@ -79,7 +79,7 @@ export function MusicHeaderV2({
                         disabled={!selectedMediaMetadata?.mediaFolderPath}
                     >
                         <Download className="size-4 mr-2" />
-                        {t('mediaPlayer.download', { defaultValue: 'Download' })}
+                        {t('mediaPlayer.download')}
                     </Button>
                 </div>
             </div>

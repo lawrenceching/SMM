@@ -216,6 +216,8 @@
     }
   },
   "mediaPlayer": {
+    "select": "选择",
+    "download": "下载",
     "trackContextMenu": {
       "open": "打开",
       "delete": "删除",

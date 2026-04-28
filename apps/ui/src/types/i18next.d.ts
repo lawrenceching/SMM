@@ -239,6 +239,8 @@ interface ComponentsResources {
     }
   }
   mediaPlayer: {
+    select: string
+    download: string
     trackContextMenu: {
       open: string
       delete: string
