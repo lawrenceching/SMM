@@ -26,6 +26,18 @@ vi.mock('./BackgroundJobsPopover', () => ({
   BackgroundJobsPopoverContent: () => <div data-testid="popover-content-inner" />,
 }))
 
+vi.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) => {
+      if (key === 'statusBar.backgroundJobs.triggerAriaLabel') {
+        const count = options?.count ?? 0
+        return count === 1 ? `View ${count} background job` : `View ${count} background jobs`
+      }
+      return key
+    },
+  }),
+}))
+
 import { useBackgroundJobsIndicator } from '../hooks/useBackgroundJobsIndicator'
 
 const mockUseBackgroundJobsIndicator = useBackgroundJobsIndicator as ReturnType<typeof vi.fn>

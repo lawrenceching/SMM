@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import type { JobStatus } from '@/types/background-jobs';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 export function BackgroundJobsPopoverContent() {
+  const { t } = useTranslation("components")
   const { jobs, abortJob } = useBackgroundJobsStore();
 
    const getStatusIcon = (status: JobStatus) => {
@@ -54,20 +56,37 @@ export function BackgroundJobsPopoverContent() {
     }
   };
 
+  const getStatusText = (status: JobStatus) => {
+    switch (status) {
+      case 'pending':
+        return t("statusBar.backgroundJobs.status.pending");
+      case 'running':
+        return t("statusBar.backgroundJobs.status.running");
+      case 'succeeded':
+        return t("statusBar.backgroundJobs.status.succeeded");
+      case 'failed':
+        return t("statusBar.backgroundJobs.status.failed");
+      case 'aborted':
+        return t("statusBar.backgroundJobs.status.aborted");
+    }
+  };
+
   return (
     <>
       <div data-testid="background-jobs-header" className="p-4 border-b border-border">
-        <h3 data-testid="background-jobs-title" className="text-sm font-semibold">Background Jobs</h3>
+        <h3 data-testid="background-jobs-title" className="text-sm font-semibold">{t("statusBar.backgroundJobs.title")}</h3>
         <p data-testid="background-jobs-subtitle" className="text-xs text-muted-foreground mt-1">
-           {jobs.filter(j => j.status === 'running').length} running,
-          {jobs.filter(j => j.status === 'pending').length} pending
+          {t("statusBar.backgroundJobs.subtitle", {
+            running: jobs.filter(j => j.status === 'running').length,
+            pending: jobs.filter(j => j.status === 'pending').length,
+          })}
         </p>
       </div>
 
       <div data-testid="background-jobs-list" className="max-h-80 overflow-y-auto">
         {jobs.length === 0 ? (
           <div data-testid="background-jobs-empty" className="p-4 text-center text-sm text-muted-foreground">
-            No background jobs
+            {t("statusBar.backgroundJobs.empty")}
           </div>
         ) : (
           jobs.map((job) => (
@@ -84,7 +103,7 @@ export function BackgroundJobsPopoverContent() {
                     </span>
                     <h4 data-testid={`background-job-${job.id}-name`} className="text-sm font-medium truncate">{job.name}</h4>
                     <Badge data-testid={`background-job-${job.id}-status-badge`} variant={getStatusVariant(job.status)} className="text-xs">
-                      {job.status}
+                      {getStatusText(job.status)}
                     </Badge>
                   </div>
 
@@ -96,15 +115,15 @@ export function BackgroundJobsPopoverContent() {
                   )}
 
                    {job.status === 'succeeded' && (
-                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">Completed successfully</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">{t("statusBar.backgroundJobs.messages.succeeded")}</p>
                   )}
 
                    {job.status === 'failed' && (
-                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-destructive">Job failed</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-destructive">{t("statusBar.backgroundJobs.messages.failed")}</p>
                   )}
 
                    {job.status === 'aborted' && (
-                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">Aborted by user</p>
+                    <p data-testid={`background-job-${job.id}-message`} className="text-xs text-muted-foreground">{t("statusBar.backgroundJobs.messages.aborted")}</p>
                   )}
                 </div>
 
@@ -115,7 +134,7 @@ export function BackgroundJobsPopoverContent() {
                     size="icon-sm"
                     onClick={() => abortJob(job.id)}
                     className="shrink-0"
-                    aria-label={`Abort ${job.name}`}
+                    aria-label={t("statusBar.backgroundJobs.abortAriaLabel", { name: job.name })}
                   >
                     <StopCircle className="h-4 w-4" />
                   </Button>

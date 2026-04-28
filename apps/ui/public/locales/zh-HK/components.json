@@ -184,6 +184,34 @@
       "disconnected": "連線失敗",
       "checking": "檢測中...",
       "warningAriaLabel": "資料庫連線警告"
+    },
+    "messages": {
+      "tmdbAvailable": "TMDB 可用",
+      "tmdbUnavailable": "TMDB 不可用",
+      "tvdbAvailable": "TVDB 可用",
+      "tvdbUnavailable": "TVDB 不可用",
+      "videoCaptionerAvailable": "VideoCaptioner 可用",
+      "videoCaptionerNotFound": "找不到 videocaptioner",
+      "learnMore": "了解更多"
+    },
+    "backgroundJobs": {
+      "title": "背景工作",
+      "subtitle": "{{running}} 個執行中，{{pending}} 個待處理",
+      "empty": "沒有背景工作",
+      "triggerAriaLabel": "檢視 {{count}} 個背景工作",
+      "abortAriaLabel": "中止 {{name}}",
+      "status": {
+        "pending": "待處理",
+        "running": "執行中",
+        "succeeded": "已完成",
+        "failed": "失敗",
+        "aborted": "已中止"
+      },
+      "messages": {
+        "succeeded": "已成功完成",
+        "failed": "工作失敗",
+        "aborted": "使用者已中止"
+      }
     }
   },
   "mediaPlayer": {

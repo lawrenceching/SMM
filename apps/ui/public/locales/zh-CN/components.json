@@ -185,6 +185,34 @@
       "disconnected": "连接失败",
       "checking": "检测中...",
       "warningAriaLabel": "数据库连接警告"
+    },
+    "messages": {
+      "tmdbAvailable": "TMDB 可用",
+      "tmdbUnavailable": "TMDB 不可用",
+      "tvdbAvailable": "TVDB 可用",
+      "tvdbUnavailable": "TVDB 不可用",
+      "videoCaptionerAvailable": "VideoCaptioner 可用",
+      "videoCaptionerNotFound": "未找到 videocaptioner",
+      "learnMore": "了解更多"
+    },
+    "backgroundJobs": {
+      "title": "后台任务",
+      "subtitle": "{{running}} 个运行中，{{pending}} 个排队中",
+      "empty": "暂无后台任务",
+      "triggerAriaLabel": "查看 {{count}} 个后台任务",
+      "abortAriaLabel": "终止 {{name}}",
+      "status": {
+        "pending": "排队中",
+        "running": "运行中",
+        "succeeded": "已完成",
+        "failed": "失败",
+        "aborted": "已终止"
+      },
+      "messages": {
+        "succeeded": "任务已成功完成",
+        "failed": "任务失败",
+        "aborted": "用户已终止任务"
+      }
     }
   },
   "mediaPlayer": {

@@ -1,6 +1,7 @@
 import { Bell } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 export interface Message {
     title: string
@@ -13,6 +14,7 @@ interface MessageIndicatorProps {
 }
 
 export function MessageIndicator({ messages }: MessageIndicatorProps) {
+    const { t } = useTranslation("components")
     const actionableCount = messages.filter(
         (message) => message.type === "warning" || message.type === "error",
     ).length
@@ -73,7 +75,7 @@ export function MessageIndicator({ messages }: MessageIndicatorProps) {
                                             rel="noreferrer"
                                             className="text-[11px] text-primary underline-offset-2 hover:underline"
                                         >
-                                            Learn more
+                                            {t("statusBar.messages.learnMore")}
                                         </a>
                                     ) : null}
                                 </div>

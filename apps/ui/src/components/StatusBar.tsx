@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { Path } from "@core/path"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { MessageIndicator, type Message } from "./ConnectionStatusIndicator"
@@ -28,6 +29,7 @@ export function StatusBar({
     message,
     version: versionOverride,
 }: StatusBarProps) {
+    const { t } = useTranslation("components")
     const { selectedFolder } = useUIMediaFolderStoreState()
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
@@ -43,28 +45,28 @@ export function StatusBar({
             {
                 title:
                     tmdbStatus === "disconnected"
-                        ? "TMDB is unavailable"
-                        : "TMDB is available",
+                        ? t("statusBar.messages.tmdbUnavailable")
+                        : t("statusBar.messages.tmdbAvailable"),
                 type: tmdbStatus === "disconnected" ? "error" : "info",
             },
             {
                 title:
                     tvdbStatus === "disconnected"
-                        ? "TVDB is unavailable"
-                        : "TVDB is available",
+                        ? t("statusBar.messages.tvdbUnavailable")
+                        : t("statusBar.messages.tvdbAvailable"),
                 type: tvdbStatus === "disconnected" ? "error" : "info",
             },
             {
                 title: isVideoCaptionerAvailable
-                    ? "VideoCaptioner is available"
-                    : "videocaptioner not found",
+                    ? t("statusBar.messages.videoCaptionerAvailable")
+                    : t("statusBar.messages.videoCaptionerNotFound"),
                 type: isVideoCaptionerAvailable ? "info" : "error",
                 link: isVideoCaptionerAvailable
                     ? undefined
                     : VIDEO_CAPTIONER_CLI_HELP_LINK,
             },
         ],
-        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable],
+        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, t],
     )
 
     return (

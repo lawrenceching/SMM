@@ -185,6 +185,35 @@
       "disconnected": "Disconnected",
       "checking": "Checking...",
       "warningAriaLabel": "Database connection warning"
+    },
+    "messages": {
+      "tmdbAvailable": "TMDB is available",
+      "tmdbUnavailable": "TMDB is unavailable",
+      "tvdbAvailable": "TVDB is available",
+      "tvdbUnavailable": "TVDB is unavailable",
+      "videoCaptionerAvailable": "VideoCaptioner is available",
+      "videoCaptionerNotFound": "videocaptioner not found",
+      "learnMore": "Learn more"
+    },
+    "backgroundJobs": {
+      "title": "Background Jobs",
+      "subtitle": "{{running}} running, {{pending}} pending",
+      "empty": "No background jobs",
+      "triggerAriaLabel_one": "View {{count}} background job",
+      "triggerAriaLabel_other": "View {{count}} background jobs",
+      "abortAriaLabel": "Abort {{name}}",
+      "status": {
+        "pending": "pending",
+        "running": "running",
+        "succeeded": "succeeded",
+        "failed": "failed",
+        "aborted": "aborted"
+      },
+      "messages": {
+        "succeeded": "Completed successfully",
+        "failed": "Job failed",
+        "aborted": "Aborted by user"
+      }
     }
   },
   "mediaPlayer": {

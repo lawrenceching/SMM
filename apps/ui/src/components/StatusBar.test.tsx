@@ -52,6 +52,22 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
+vi.mock("@/lib/i18n", () => ({
+    useTranslation: () => ({
+        t: (key: string) => {
+            const messages: Record<string, string> = {
+                "statusBar.messages.tmdbUnavailable": "TMDB is unavailable",
+                "statusBar.messages.tmdbAvailable": "TMDB is available",
+                "statusBar.messages.tvdbUnavailable": "TVDB is unavailable",
+                "statusBar.messages.tvdbAvailable": "TVDB is available",
+                "statusBar.messages.videoCaptionerAvailable": "VideoCaptioner is available",
+                "statusBar.messages.videoCaptionerNotFound": "videocaptioner not found",
+            }
+            return messages[key] ?? key
+        },
+    }),
+}))
+
 const mockUseStatusBar = useStatusBar as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
     typeof vi.fn

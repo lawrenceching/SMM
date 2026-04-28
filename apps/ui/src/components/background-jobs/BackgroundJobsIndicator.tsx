@@ -3,6 +3,7 @@ import { useBackgroundJobsIndicator } from '../hooks/useBackgroundJobsIndicator'
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 
 interface BackgroundJobsIndicatorProps {
@@ -10,6 +11,7 @@ interface BackgroundJobsIndicatorProps {
 }
 
 export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorProps) {
+  const { t } = useTranslation("components")
   const { 
     shouldRender, 
     statusVariant,
@@ -32,7 +34,7 @@ export function BackgroundJobsIndicator({ className }: BackgroundJobsIndicatorPr
             'flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200',
             className
           )}
-          aria-label={`View ${activeCount} background ${activeCount === 1 ? 'job' : 'jobs'}`}
+          aria-label={t("statusBar.backgroundJobs.triggerAriaLabel", { count: activeCount })}
         >
           {statusVariant === 'running' ? (
             <>
