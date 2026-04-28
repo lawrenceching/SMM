@@ -27,7 +27,7 @@ const DEFAULT_USER_CONFIG: UserConfig = {
     deepseek: {
       baseURL: 'https://api.deepseek.com',
       apiKey: '',
-      model: 'deepseek-chat'
+      model: 'deepseek-v4-flash'
     },
     openAI: {
       baseURL: 'https://api.openai.com/v1',
@@ -37,7 +37,7 @@ const DEFAULT_USER_CONFIG: UserConfig = {
     openrouter: {
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: '',
-      model: 'deepseek/deepseek-chat'
+      model: 'deepseek/deepseek-v4-flash'
     },
     glm: {
       baseURL: 'https://open.bigmodel.cn/api/paas/v4',

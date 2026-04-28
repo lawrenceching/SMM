@@ -1,7 +1,7 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { UserConfig, AI } from '@core/types';
 
-export const DEEPSEEK_MODEL = 'deepseek-chat';
+export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
 
 // Get API key from environment
 function getApiKey(): string {

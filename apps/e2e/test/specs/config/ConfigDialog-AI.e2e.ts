@@ -21,7 +21,7 @@ const testData: Record<string, { baseUrl: string; apiKey: string; model: string 
     'DeepSeek': {
         baseUrl: 'https://api.deepseek.com/v1',
         apiKey: 'test-deepseek-key-67890',
-        model: 'deepseek-chat'
+        model: 'deepseek-v4-flash'
     },
     'OpenRouter': {
         baseUrl: 'https://openrouter.ai/api/v1',

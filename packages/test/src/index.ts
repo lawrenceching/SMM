@@ -110,7 +110,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
         ai: {
             deepseek: {
                 baseURL: 'https://api.deepseek.com',
-                model: 'deepseek-chat',
+                model: 'deepseek-v4-flash',
                 apiKey: deepseekApiKey,
             },
             openAI: {},
