@@ -63,6 +63,7 @@ export async function setup(options: {
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
     openBrowserPage: boolean,
+    clearLocalStorage?: boolean,
 }) {
 
     await cleanup({
@@ -71,6 +72,7 @@ export async function setup(options: {
         removeMediaFolders: options.removeMediaFolders,
         removeDirInSidebar: options.removeDirInSidebar,
         resetUserConfig: options.resetUserConfig,
+        clearLocalStorage: options.clearLocalStorage,
     })
 
 
@@ -86,6 +88,10 @@ export async function setup(options: {
             timeout: 10000,
             timeoutMsg: 'Status bar was not displayed after 10 seconds'
         })
+
+        if (options.clearLocalStorage) {
+            await clearBrowserLocalStorage()
+        }
     }
     
 }
@@ -181,8 +187,9 @@ export async function cleanup(options?: {
     removeMediaFolders: boolean,
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
+    clearLocalStorage?: boolean,
 }): Promise<void> {
-    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig } = options ?? {
+    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig, clearLocalStorage } = options ?? {
         removeMetadataDir: true,
     };
     if (isToRemoveMediaFolders) {
@@ -198,10 +205,24 @@ export async function cleanup(options?: {
         await removeDirInSidebar()
     }
     await applyResetUserConfig(needToResetUserConfig ?? false)
+    if (clearLocalStorage) {
+        await clearBrowserLocalStorage()
+    }
 }
 
 export async function removeDirInSidebar(): Promise<void> {
     await Sidebar.deleteAllFolders()
+}
+
+async function clearBrowserLocalStorage(): Promise<void> {
+    // In some cleanup paths browser context may not be ready.
+    try {
+        await browser.execute(() => {
+            (globalThis as { localStorage?: { clear: () => void } }).localStorage?.clear()
+        })
+    } catch (error) {
+        console.warn('Skip clearing localStorage because browser is not ready:', error)
+    }
 }
 
 /**

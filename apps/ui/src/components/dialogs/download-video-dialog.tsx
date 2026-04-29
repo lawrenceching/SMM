@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import type { DownloadVideoDialogProps, FileItem } from "./types"
 import { useTranslation } from "@/lib/i18n"
 import type { YtdlpVideo } from "@core/types/YtdlpTypes"
@@ -328,14 +329,19 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent showCloseButton={true} className="max-w-2xl">
+      <DialogContent
+        data-testid="download-video-dialog"
+        showCloseButton={true}
+        className="max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+      >
         <DialogHeader>
           <DialogTitle>{t('downloadVideo.title')}</DialogTitle>
           <DialogDescription>
             {t('downloadVideo.description')}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4 py-4">
+        <ScrollArea className="h-full min-h-0">
+          <div className="flex flex-col gap-4 px-1 py-2 pr-4">
           {!hasAgreed && (
             <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
               <p className="font-medium">
@@ -346,6 +352,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               </p>
               <label className="mt-1 inline-flex items-center gap-2 text-sm">
                 <input
+                  data-testid="download-video-dialog-agreement-checkbox"
                   type="checkbox"
                   className="h-3.5 w-3.5"
                   checked={isAgreementChecked}
@@ -363,6 +370,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
           <div className="flex flex-col gap-2">
             <Label htmlFor="url">{t('downloadVideo.urlLabel')}</Label>
             <Input
+              data-testid="download-video-dialog-url-input"
               id="url"
               type="url"
               placeholder="https://www.youtube.com/watch?v=..."
@@ -379,6 +387,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
           {canDownloadEpisodes && (
             <label className="inline-flex items-center gap-2 text-sm">
               <input
+                data-testid="download-video-dialog-episodes-checkbox"
                 type="checkbox"
                 className="h-3.5 w-3.5"
                 checked={downloadEpisodes}
@@ -389,7 +398,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             </label>
           )}
           {downloadEpisodes && hasAgreed && (
-            <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
+            <div data-testid="download-video-dialog-episodes-panel" className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
               {episodesLoading && (
                 <p className="text-sm text-muted-foreground">{t('downloadVideo.episodesLoading')}</p>
               )}
@@ -397,25 +406,28 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                 <p className="text-sm text-destructive">{episodesError}</p>
               )}
               {!episodesLoading && !episodesError && episodes.length > 0 && (
-                <ul className="max-h-52 list-none space-y-2 overflow-y-auto p-0 m-0">
-                  {episodes.map((episode) => {
-                    const { title, url: vidUrl } = episode
-                    return (
-                      <li key={vidUrl}>
-                        <label className="flex cursor-pointer items-start gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                            checked={selectedEpisodeUrls.has(vidUrl)}
-                            onChange={() => toggleEpisodeSelection(vidUrl)}
-                            disabled={formBusy}
-                          />
-                          <span className="leading-snug">{title}</span>
-                        </label>
-                      </li>
-                    )
-                  })}
-                </ul>
+                <ScrollArea className="h-52">
+                  <ul data-testid="download-video-dialog-episodes-list" className="list-none space-y-2 p-0 m-0 pr-3">
+                    {episodes.map((episode) => {
+                      const { title, url: vidUrl } = episode
+                      return (
+                        <li key={vidUrl} data-testid="download-video-dialog-episodes-list-item">
+                          <label className="flex cursor-pointer items-start gap-2 text-sm">
+                            <input
+                              data-testid={`download-video-dialog-episode-checkbox-${episode.url}`}
+                              type="checkbox"
+                              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                              checked={selectedEpisodeUrls.has(vidUrl)}
+                              onChange={() => toggleEpisodeSelection(vidUrl)}
+                              disabled={formBusy}
+                            />
+                            <span className="leading-snug">{title}</span>
+                          </label>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </ScrollArea>
               )}
             </div>
           )}
@@ -423,6 +435,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             <Label htmlFor="downloadFolder">{t('downloadVideo.folderLabel')}</Label>
             <div className="flex gap-2">
               <Input
+                data-testid="download-video-dialog-folder-input"
                 id="downloadFolder"
                 type="text"
                 placeholder={t('downloadVideo.folderPlaceholder')}
@@ -432,6 +445,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                 readOnly
               />
               <Button
+                data-testid="download-video-dialog-folder-picker"
                 type="button"
                 variant="outline"
                 onClick={handleFolderSelect}
@@ -441,12 +455,14 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               </Button>
             </div>
           </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={handleCancel} disabled={formBusy}>
+          </div>
+        </ScrollArea>
+        <div className="flex shrink-0 justify-end gap-2 border-t pt-3">
+          <Button data-testid="download-video-dialog-cancel" variant="outline" onClick={handleCancel} disabled={formBusy}>
             {tCommon('cancel')}
           </Button>
           <Button
+            data-testid="download-video-dialog-start"
             onClick={() => void handleStart()}
             disabled={!isUrlValid || !downloadFolder.trim() || formBusy || !hasAgreed}
           >

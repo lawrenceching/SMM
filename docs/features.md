@@ -45,6 +45,10 @@ And the test status of v1.1.0
 | Movie - Scrape                                   |  AUTO  |         |
 | Movie - Rename Episode Video File                |  AUTO  |         |
 |                                                  |        |         |
+| Music/Audio Folder              |        |         |
+| transcribe              |        |         |
+| > MusicPanel-Transcribe.e2e.ts |||
+|                                                  |        |         |
 | Sidebar - Filter and Sort                        | AUTO   |         |
 | Sidebar - Rename Folder                          | AUTO   |         |
 | > RenameFolder.e2e.ts                            |        |         |
@@ -84,9 +88,11 @@ And the test status of v1.1.0
 | StatusBar - Background Job Indicator and Popover | AUTO   |         |
 |                                                  |        |         |
 | Download Bilibili Video                          | MANUAL |         |
+| > MusicPanel-Download.e2e.ts |||
 | Download Bilibili Episodes                       | MANUAL |         |
+| > MusicPanel-Download.e2e.ts |||
 | Download Youtube Video                           | MANUAL |         |
-| Download Youtube Episodes                        | MANUAL |         |
+| > MusicPanel-Download.e2e.ts |||
 |                                                  |        |         |
 | Settings                                         |        |         |
 | Custom TMDB host and API key                     | MANUAL |         |
@@ -98,4 +104,4 @@ And the test status of v1.1.0
 |                                                  |        |         |
 | Messages |||
 | TMDB/TVDB Connectivity |||
-| videocaptioner not found |||
+| videocaptioner not found | ||

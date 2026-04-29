@@ -23,7 +23,7 @@ describe('Template', () => {
         })
     })
 
-    it('Example Test', async () => {
+    it('Example Test', async function() {
         // The web page is opened
         // start test and assert the result
     })

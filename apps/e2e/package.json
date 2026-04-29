@@ -31,6 +31,7 @@
     "wdio:init": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\"",
     "wdio:tv": "wdio run ./wdio.conf.ts --spec \"./test/specs/tv/*.e2e.ts\"",
     "wdio:movie": "wdio run ./wdio.conf.ts --spec \"./test/specs/movie/*.e2e.ts\"",
+    "wdio:music": "wdio run ./wdio.conf.ts --spec \"./test/specs/music/*.e2e.ts\"",
     "wdio:tvdb": "wdio run ./wdio.conf.ts --spec \"./test/specs/tvdb/*.e2e.ts\"",
     "wdio:other": "wdio run ./wdio.conf.ts --spec \"./test/specs/other/*.e2e.ts\"",
     "wdio:config": "wdio run ./wdio.conf.ts --spec \"./test/specs/config/*.e2e.ts\"",

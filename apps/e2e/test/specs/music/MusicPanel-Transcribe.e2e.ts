@@ -6,7 +6,7 @@ import { cleanup, setup } from "test/lib/testbed"
 import MusicPanel from "test/componentobjects/MusicPanel.co"
 const videoFolderPath = join(import.meta.dirname, '../../../../../test/media/tutorials')
 
-describe('Template', () => {
+describe('MusicPanel - Transcribe', () => {
 
     before(async () => {
         // In this test case

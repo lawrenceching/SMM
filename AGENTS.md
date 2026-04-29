@@ -202,8 +202,14 @@ pnpm ci               # 构建 + 测试 + 类型检查
 ### 代码结构
 本项目主要代码在 `apps/e2e/test` 目录下
 * actions - 可复用的测试动作
-* componentobjects - 用于操作 SMM 界面的组件
+* componentobjects - Component Object (简称CO), 用于表示应用界面的一个组件, 辅助开发者操作该组件的各个元素
 * pageobject - 用于操作网页
 * lib - 可复用的辅助函数
 * specs - 端到端测试用例
 
+### 执行测试
+
+进入 `apps/e2e` 目录, 并执行
+```
+pnpm run wdio --spec ./test/specs/[test file].e2e.ts
+```
