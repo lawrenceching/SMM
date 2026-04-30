@@ -1,7 +1,7 @@
 import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import './lib/i18n' // Initialize i18n
+import { i18nReady } from './lib/i18n'
 import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
@@ -219,20 +219,28 @@ function AppSwitcher() {
   )
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-          <DialogProvider>
-            <BackgroundJobsProvider>
-              <IndexedDbObserver />
-              <AppLanguageSync />
-              <UIMediaFolderStoreInitializer />
-              <AppInitializer />
-              <AppSwitcher />
-            </BackgroundJobsProvider>
-          </DialogProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </StrictMode>,
-)
+async function bootstrap() {
+  await i18nReady
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+            <DialogProvider>
+              <BackgroundJobsProvider>
+                <IndexedDbObserver />
+                <AppLanguageSync />
+                <UIMediaFolderStoreInitializer />
+                <AppInitializer />
+                <AppSwitcher />
+              </BackgroundJobsProvider>
+            </DialogProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </StrictMode>,
+  )
+}
+
+bootstrap().catch((error) => {
+  logger.error({ error }, "Failed to bootstrap UI")
+})

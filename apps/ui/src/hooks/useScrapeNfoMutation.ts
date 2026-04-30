@@ -22,7 +22,7 @@ import type {
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types"
-import { getTVDBv4Client, mapToTvdbLangCode } from "@/lib/TvdbUtils"
+import { mapToTvdbLangCode } from "@/lib/TvdbUtils"
 import {
   buildMovieNfo,
   buildMovieNfoByTVDB,
@@ -50,7 +50,14 @@ export function useScrapeNfoMutation<TContext = unknown>(
   >,
 ) {
   const { getTvShowById, getTvShowSeasonDetails } = useTmdbQueries()
-  const { getSeriesExtended, getSeasonExtended } = useTvdbQueries()
+  const {
+    getSeriesExtended,
+    getSeasonExtended,
+    getMovieExtended,
+    getSeriesTranslationByLangCode,
+    getEpisodeTranslationByLangCode,
+    getMovieTranslationByLangCode,
+  } = useTvdbQueries()
   const { userConfig } = useConfig()
 
   return useMutation({
@@ -102,7 +109,6 @@ export function useScrapeNfoMutation<TContext = unknown>(
           const tvdbSeriesId = parseInt(mediaMetadata.tvShow.id, 10)
           const preferLang = userConfig.preferMediaLanguage ?? "en-US"
           const tvdbLangCode = mapToTvdbLangCode(preferLang)
-          const tvdb = getTVDBv4Client()
           const tvdbSeries = await getSeriesExtended(tvdbSeriesId)
           if (!tvdbSeries) {
             throw new Error(`Failed to fetch TVDB series: ${tvdbSeriesId}`)
@@ -111,19 +117,17 @@ export function useScrapeNfoMutation<TContext = unknown>(
             await Promise.all((tvdbSeries.seasons ?? []).map((s) => getSeasonExtended(s.id)))
           ).filter(isNotNil)
 
-          const seriesTranslation = await tvdb.seriesTranslationByLangCode(tvdbSeriesId, tvdbLangCode)
+          const seriesTranslation = await getSeriesTranslationByLangCode(tvdbSeriesId, tvdbLangCode)
           const resolvedSeriesText = {
             title:
-              seriesTranslation.status === "success" &&
-              typeof seriesTranslation.data.name === "string" &&
-              seriesTranslation.data.name.trim().length > 0
-                ? seriesTranslation.data.name
+              typeof seriesTranslation?.name === "string" &&
+              seriesTranslation.name.trim().length > 0
+                ? seriesTranslation.name
                 : tvdbSeries.name,
             overview:
-              seriesTranslation.status === "success" &&
-              typeof seriesTranslation.data.overview === "string" &&
-              seriesTranslation.data.overview.trim().length > 0
-                ? seriesTranslation.data.overview
+              typeof seriesTranslation?.overview === "string" &&
+              seriesTranslation.overview.trim().length > 0
+                ? seriesTranslation.overview
                 : tvdbSeries.overview,
           }
 
@@ -144,10 +148,10 @@ export function useScrapeNfoMutation<TContext = unknown>(
 
                 let episodeTranslationData: Record<string, string> | undefined
                 try {
-                  const episodeTranslationResponse = await tvdb.episodeTranslationByLangCode(tvdbEpisode.id, tvdbLangCode)
-                  if (episodeTranslationResponse.status === "success") {
-                    episodeTranslationData = episodeTranslationResponse.data
-                  }
+                  episodeTranslationData = await getEpisodeTranslationByLangCode(
+                    tvdbEpisode.id,
+                    tvdbLangCode,
+                  )
                 } catch (e) {
                   debug(`TVDB episode translation failed for ${tvdbEpisode.id}: ${e}`)
                 }
@@ -190,25 +194,24 @@ export function useScrapeNfoMutation<TContext = unknown>(
           const tvdbMovieId = parseInt(mediaMetadata.movie.id, 10)
           const preferLang = userConfig.preferMediaLanguage ?? "en-US"
           const tvdbLangCode = mapToTvdbLangCode(preferLang)
-          const tvdb = getTVDBv4Client()
-          const tvdbMovieResp = await tvdb.movieExtendedById(tvdbMovieId)
-          if (tvdbMovieResp.status !== "success") {
+          const tvdbMovie = await getMovieExtended(tvdbMovieId)
+          if (!tvdbMovie) {
             throw new Error(`Failed to fetch TVDB movie: ${tvdbMovieId}`)
           }
 
           let resolvedMovieText: { title?: string; overview?: string } | undefined
           try {
-            const movieTranslationResp = await tvdb.movieTranslationByLangCode(tvdbMovieId, tvdbLangCode)
-            if (movieTranslationResp.status === "success") {
+            const movieTranslationResp = await getMovieTranslationByLangCode(tvdbMovieId, tvdbLangCode)
+            if (movieTranslationResp) {
               resolvedMovieText = {
                 title:
-                  typeof movieTranslationResp.data.name === "string" && movieTranslationResp.data.name.trim().length > 0
-                    ? movieTranslationResp.data.name
+                  typeof movieTranslationResp.name === "string" && movieTranslationResp.name.trim().length > 0
+                    ? movieTranslationResp.name
                     : undefined,
                 overview:
-                  typeof movieTranslationResp.data.overview === "string" &&
-                  movieTranslationResp.data.overview.trim().length > 0
-                    ? movieTranslationResp.data.overview
+                  typeof movieTranslationResp.overview === "string" &&
+                  movieTranslationResp.overview.trim().length > 0
+                    ? movieTranslationResp.overview
                     : undefined,
               }
             }
@@ -216,7 +219,7 @@ export function useScrapeNfoMutation<TContext = unknown>(
             debug(`TVDB movie translation failed for ${tvdbMovieId}: ${e}`)
           }
 
-          const movieNfo: MovieNFO = buildMovieNfoByTVDB(tvdbMovieResp.data as TvdbMovieDetails, resolvedMovieText)
+          const movieNfo: MovieNFO = buildMovieNfoByTVDB(tvdbMovie as TvdbMovieDetails, resolvedMovieText)
           const movieNfoXml = convertMovieNfoToXml(movieNfo)
           const movieNfoPath = join(Path.toPlatformPath(mediaMetadata.mediaFolderPath!), "movie.nfo")
           await writeFile(movieNfoPath, movieNfoXml)

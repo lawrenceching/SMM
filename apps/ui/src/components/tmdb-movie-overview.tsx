@@ -5,7 +5,6 @@ import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveMovieSearchbox } from "./ImmersiveMovieSearchbox"
 import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { searchTmdb } from "@/api/tmdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
@@ -19,6 +18,7 @@ import { MovieFilesSection } from "./movie-files-section"
 import { useTranslation } from "@/lib/i18n"
 import type { TFunction } from "i18next"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 
 interface TMDBMovieOverviewProps {
     movie?: TMDBMovie
@@ -88,6 +88,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     const [searchQuery, setSearchQuery] = useState("")
     const [isUpdatingMovie, setIsUpdatingMovie] = useState(false)
     const { userConfig } = useConfig()
+    const { search: searchTmdb } = useTmdbQueries()
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
     const formattedDate = movie ? formatDate(movie.release_date, t) : (t("movie.notAvailable" as any) as string)

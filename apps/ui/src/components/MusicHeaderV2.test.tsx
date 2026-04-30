@@ -4,7 +4,11 @@ import { MusicHeaderV2 } from "./MusicHeaderV2";
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
-    t: (_key: string, opts?: { defaultValue?: string }) => opts?.defaultValue ?? _key,
+    t: (_key: string, opts?: { defaultValue?: string; ns?: string }) => {
+      if (_key === "mediaPlayer.select") return "Select";
+      if (_key === "cancel" && opts?.ns === "common") return "Cancel";
+      return opts?.defaultValue ?? _key;
+    },
   }),
 }));
 

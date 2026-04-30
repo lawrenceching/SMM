@@ -2,280 +2,175 @@ import type {
   TmdbSearchResponseBody,
   TmdbMovieDetails,
   TmdbSeriesDetails,
-  TmdbSeasonDetailsRequestBody,
   TmdbSeasonDetails,
-} from '@core/types';
+} from '@core/types'
+export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tmdb'
 
-export type { TmdbSeasonDetailsRequestBody, TmdbTvSeasonDetails, TmdbSeriesDetails, TmdbSeasonDetails, TmdbMovieDetails } from '@core/types';
+export interface TmdbUpstream {
+  reverseProxyUrl: string
+  upstreamBaseURL: string
+  apiKey?: string
+}
 
+export type {
+  TmdbTvSeasonDetails,
+  TmdbSeriesDetails,
+  TmdbSeasonDetails,
+  TmdbMovieDetails,
+} from '@core/types'
+
+/**
+ * Optional overrides for a single TMDB request.
+ * The caller should pass connection values from UI config/hooks.
+ */
 export interface TmdbRequestOptions {
-  tmdbHost?: string;
-  tmdbApiKey?: string;
-  signal?: AbortSignal;
-  reverseProxyUrl?: string | null;
+  /**
+   * Reverse proxy base URL discovered via the hello task
+   * (e.g. `http://127.0.0.1:30005`). Required at request time;
+   * if not provided here, the singleton must have it.
+   */
+  reverseProxyUrl?: string | null
+  /** Custom TMDB upstream base URL configured by the user. */
+  upstreamBaseURL?: string
+  /** TMDB API key configured by the user. Attached as `Authorization: Bearer <apiKey>`. */
+  apiKey?: string
+  signal?: AbortSignal
 }
 
-interface TmdbResolvedConnection {
-  directHost?: string;
-  tmdbApiKey?: string;
-  signal?: AbortSignal;
-  reverseProxyUrl?: string | null;
-}
-
-const TMDB_UPSTREAM_BASE_URL = 'https://api.themoviedb.org/3';
-
-function normalizeHost(host?: string): string | undefined {
-  const trimmed = host?.trim();
-  if (!trimmed) {
-    return undefined;
+function buildHeaders(upstream: TmdbUpstream): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'X-SMM-Proxy-Upstream-BaseURL': upstream.upstreamBaseURL,
   }
-  return trimmed.replace(/\/+$/, '');
-}
-
-function resolveConnection(options?: TmdbRequestOptions, legacyBaseURL?: string): TmdbResolvedConnection {
-  const directHost = normalizeHost(options?.tmdbHost ?? legacyBaseURL);
-  return {
-    directHost,
-    tmdbApiKey: options?.tmdbApiKey,
-    signal: options?.signal,
-    reverseProxyUrl: options?.reverseProxyUrl ?? null,
-  };
-}
-
-function assertDirectModeApiKey(apiKey?: string): string {
-  const normalized = apiKey?.trim();
-  if (!normalized) {
-    throw new Error('TMDB API key is required when TMDB host is configured');
+  if (upstream.apiKey) {
+    headers['Authorization'] = `Bearer ${upstream.apiKey}`
   }
-  return normalized;
+  return headers
+}
+
+function buildProxyUrl(upstream: TmdbUpstream, path: string, queryString: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const suffix = queryString ? `?${queryString}` : ''
+  return `${upstream.reverseProxyUrl}${normalizedPath}${suffix}`
 }
 
 async function fetchJson<T>(url: string, init: RequestInit, errorPrefix: string): Promise<T> {
-  const resp = await fetch(url, init);
+  const resp = await fetch(url, init)
   if (!resp.ok) {
-    throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`);
+    throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`)
   }
-  return resp.json() as Promise<T>;
+  return resp.json() as Promise<T>
+}
+
+function resolveUpstream(options?: TmdbRequestOptions): TmdbUpstream {
+  const reverseProxyUrl = options?.reverseProxyUrl
+  if (!reverseProxyUrl) {
+    throw new Error(
+      'Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.',
+    )
+  }
+  const normalizedUpstream = options?.upstreamBaseURL?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
+  const upstreamBaseURL = normalizedUpstream.replace(/\/+$/, '')
+  const apiKey = options?.apiKey?.trim() || undefined
+  return { reverseProxyUrl, upstreamBaseURL, apiKey }
 }
 
 /**
- * Search TMDB for movies or TV shows
+ * Search TMDB for movies or TV shows.
  */
 export async function searchTmdb(
   keyword: string,
   type: 'movie' | 'tv',
   language: 'zh-CN' | 'en-US' | 'ja-JP',
-  optionsOrBaseURL?: TmdbRequestOptions | string
+  options?: TmdbRequestOptions,
 ): Promise<TmdbSearchResponseBody> {
-  const options = typeof optionsOrBaseURL === 'string' ? undefined : optionsOrBaseURL;
-  const legacyBaseURL = typeof optionsOrBaseURL === 'string' ? optionsOrBaseURL : undefined;
-  const connection = resolveConnection(options, legacyBaseURL);
-  const queryParams = new URLSearchParams();
-  queryParams.append('query', keyword);
-  queryParams.append('language', language);
-
-  if (connection.directHost) {
-    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
-    const url = `/tmdb/search/${type}?${queryParams.toString()}`;
-    return fetchJson<TmdbSearchResponseBody>(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-TMDB-Host': connection.directHost,
-          'X-TMDB-API-Key': apiKey,
-        },
-        signal: connection.signal,
-      },
-      'Failed to search TMDB'
-    );
-  }
-
-  if (connection.reverseProxyUrl) {
-    const url = `${connection.reverseProxyUrl}/search/${type}?${queryParams.toString()}`;
-    return fetchJson<TmdbSearchResponseBody>(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
-        },
-        signal: connection.signal,
-      },
-      'Failed to search TMDB'
-    );
-  }
-
-  if (legacyBaseURL) {
-    queryParams.append('baseURL', legacyBaseURL);
-  }
-  const url = `/tmdb/search/${type}?${queryParams.toString()}`;
+  const upstream = resolveUpstream(options)
+  const queryParams = new URLSearchParams()
+  queryParams.append('query', keyword)
+  queryParams.append('language', language)
+  const url = buildProxyUrl(upstream, `/search/${type}`, queryParams.toString())
   return fetchJson<TmdbSearchResponseBody>(
     url,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: connection.signal,
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
     },
-    'Failed to search TMDB'
-  );
+    'Failed to search TMDB',
+  )
 }
 
 /**
- * Get TV show by TMDB ID
+ * Get TV show by TMDB ID.
  */
 export async function getTvShowById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
-  signalOrOptions?: AbortSignal | TmdbRequestOptions
+  signalOrOptions?: AbortSignal | TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
-  const options = signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions;
-  const connection = resolveConnection(options);
-  const queryParams = new URLSearchParams();
-  if (language) {
-    queryParams.append('language', language);
-  }
-  if (!connection.directHost && options?.tmdbHost) {
-    queryParams.append('baseURL', options.tmdbHost);
-  }
-  const queryString = queryParams.toString();
-  const url = `/tmdb/tv/${id}${queryString ? `?${queryString}` : ''}`;
-
-  if (connection.directHost) {
-    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
-    return fetchJson<TmdbSeriesDetails>(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-TMDB-Host': connection.directHost,
-          'X-TMDB-API-Key': apiKey,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get TV show'
-    );
-  }
-
-  if (connection.reverseProxyUrl) {
-    const proxyUrl = `${connection.reverseProxyUrl}/tv/${id}${queryString ? `?${queryString}` : ''}`;
-    return fetchJson<TmdbSeriesDetails>(
-      proxyUrl,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get TV show'
-    );
-  }
-
+  const options =
+    signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions
+  const upstream = resolveUpstream(options)
+  const queryParams = new URLSearchParams()
+  if (language) queryParams.append('language', language)
+  const url = buildProxyUrl(upstream, `/tv/${id}`, queryParams.toString())
   return fetchJson<TmdbSeriesDetails>(
     url,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: connection.signal,
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
     },
-    'Failed to get TV show'
-  );
+    'Failed to get TV show',
+  )
 }
 
 /**
- * Get movie by TMDB ID
+ * Get movie by TMDB ID.
  */
 export async function getMovieById(
   id: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
-  signalOrOptions?: AbortSignal | TmdbRequestOptions
+  signalOrOptions?: AbortSignal | TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
-  const options = signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions;
-  const connection = resolveConnection(options);
-  const queryParams = new URLSearchParams();
-  if (language) {
-    queryParams.append('language', language);
-  }
-  if (!connection.directHost && options?.tmdbHost) {
-    queryParams.append('baseURL', options.tmdbHost);
-  }
-  const queryString = queryParams.toString();
-  const url = `/tmdb/movie/${id}${queryString ? `?${queryString}` : ''}`;
-
-  if (connection.directHost) {
-    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
-    return fetchJson<TmdbMovieDetails>(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-TMDB-Host': connection.directHost,
-          'X-TMDB-API-Key': apiKey,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get movie'
-    );
-  }
-
-  if (connection.reverseProxyUrl) {
-    const proxyUrl = `${connection.reverseProxyUrl}/movie/${id}${queryString ? `?${queryString}` : ''}`;
-    return fetchJson<TmdbMovieDetails>(
-      proxyUrl,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get movie'
-    );
-  }
-
+  const options =
+    signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions
+  const upstream = resolveUpstream(options)
+  const queryParams = new URLSearchParams()
+  if (language) queryParams.append('language', language)
+  const url = buildProxyUrl(upstream, `/movie/${id}`, queryParams.toString())
   return fetchJson<TmdbMovieDetails>(
     url,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: connection.signal,
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
     },
-    'Failed to get movie'
-  );
+    'Failed to get movie',
+  )
 }
 
 /**
- * Helper function to get TMDB image URL
- * Handles both relative paths (e.g., /abc123.jpg) and absolute URLs (e.g., https://example.com/image.jpg)
+ * Helper function to get TMDB image URL.
+ * Handles both relative paths (e.g., /abc123.jpg) and absolute URLs (e.g., https://example.com/image.jpg).
+ *
+ * Image URLs are served by the TMDB image CDN directly and are NOT routed through the reverse proxy.
  */
 export function getTMDBImageUrl(
   path: string | null | undefined = undefined,
-  size: 'w200' | 'w300' | 'w500' | 'w780' | 'original' = 'w500'
+  size: 'w200' | 'w300' | 'w500' | 'w780' | 'original' = 'w500',
 ): string | null {
-  if (!path || typeof path !== 'string') return null;
+  if (!path || typeof path !== 'string') return null
 
-  const trimmedPath = path.trim();
-  if (trimmedPath.length === 0) return null;
+  const trimmedPath = path.trim()
+  if (trimmedPath.length === 0) return null
 
   if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
-    return trimmedPath;
+    return trimmedPath
   }
 
-  const baseUrl = 'https://image.tmdb.org/t/p';
-  return `${baseUrl}/${size}${trimmedPath}`;
+  const baseUrl = 'https://image.tmdb.org/t/p'
+  return `${baseUrl}/${size}${trimmedPath}`
 }
 
 /**
@@ -287,84 +182,34 @@ export async function getSeason(
   seasonNumber: number,
   language?: 'zh-CN' | 'en-US' | 'ja-JP',
   options?: {
-    baseURL?: string;
-    tmdbHost?: string;
-    tmdbApiKey?: string;
-    appendToResponse?: string;
-    signal?: AbortSignal;
-  }
+    upstreamBaseURL?: string
+    apiKey?: string
+    reverseProxyUrl?: string | null
+    appendToResponse?: string
+    signal?: AbortSignal
+  },
 ): Promise<TmdbSeasonDetails> {
-  const req: TmdbSeasonDetailsRequestBody = {
-    seriesId,
-    seasonNumber,
-    language,
-    baseURL: options?.baseURL,
-    appendToResponse: options?.appendToResponse,
-  };
-
-  const queryParams = new URLSearchParams();
-  if (req.language) {
-    queryParams.append('language', req.language);
-  }
-  const connection = resolveConnection(
-    {
-      tmdbHost: options?.tmdbHost,
-      tmdbApiKey: options?.tmdbApiKey,
-      signal: options?.signal,
-    },
-    options?.baseURL
-  );
-  if (!connection.directHost && req.baseURL) {
-    queryParams.append('baseURL', req.baseURL);
-  }
-  if (req.appendToResponse) {
-    queryParams.append('appendToResponse', req.appendToResponse);
-  }
-  const queryString = queryParams.toString();
-  const url = `/tmdb/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
-
-  if (connection.directHost) {
-    const apiKey = assertDirectModeApiKey(connection.tmdbApiKey);
-    return fetchJson<TmdbSeasonDetails>(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-TMDB-Host': connection.directHost,
-          'X-TMDB-API-Key': apiKey,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get TV season'
-    );
-  }
-
-  if (connection.reverseProxyUrl) {
-    const proxyUrl = `${connection.reverseProxyUrl}/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
-    return fetchJson<TmdbSeasonDetails>(
-      proxyUrl,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
-        },
-        signal: connection.signal,
-      },
-      'Failed to get TV season'
-    );
-  }
-
+  const upstream = resolveUpstream({
+    upstreamBaseURL: options?.upstreamBaseURL,
+    apiKey: options?.apiKey,
+    reverseProxyUrl: options?.reverseProxyUrl,
+    signal: options?.signal,
+  })
+  const queryParams = new URLSearchParams()
+  if (language) queryParams.append('language', language)
+  if (options?.appendToResponse) queryParams.append('append_to_response', options.appendToResponse)
+  const url = buildProxyUrl(
+    upstream,
+    `/tv/${seriesId}/season/${seasonNumber}`,
+    queryParams.toString(),
+  )
   return fetchJson<TmdbSeasonDetails>(
     url,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: connection.signal,
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
     },
-    'Failed to get TV season'
-  );
+    'Failed to get TV season',
+  )
 }

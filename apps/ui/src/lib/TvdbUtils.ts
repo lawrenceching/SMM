@@ -2,6 +2,14 @@ import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"
+export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tvdb'
+
+export interface TvdbUpstream {
+    reverseProxyUrl: string
+    upstreamBaseURL: string
+    apiKey?: string
+    requiresAuth: boolean
+}
 
 const debug = Debug('TvdbUtils')
 
@@ -23,26 +31,79 @@ export function extractMovieId(objectId: string): number {
     return Number.isFinite(n) && n > 0 ? n : NaN
 }
 
-const TVDB_UPSTREAM_BASE_URL = 'https://api4.thetvdb.com/v4';
+export interface GetTVDBv4ClientOverrides {
+    reverseProxyUrl?: string | null
+    upstreamBaseURL?: string
+    apiKey?: string
+}
 
-export function getTVDBv4Client(reverseProxyUrl?: string | null) {
-    if (reverseProxyUrl) {
-        return new TVDBv4({
-            baseUrl: reverseProxyUrl,
-            fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
-                const headers = new Headers(init?.headers);
-                headers.set('X-SMM-Proxy-Upstream-BaseURL', TVDB_UPSTREAM_BASE_URL);
-                return window.fetch(input, { ...init, headers });
-            },
-        })
+function resolveTvdbUpstream(overrides?: GetTVDBv4ClientOverrides): TvdbUpstream {
+    const reverseProxyUrl = overrides?.reverseProxyUrl
+    if (!reverseProxyUrl) {
+        throw new Error(
+            'Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.',
+        )
     }
+    const upstreamBaseURL =
+        overrides?.upstreamBaseURL?.trim() || SMM_TVDB_DEFAULT_UPSTREAM
+    const apiKey = overrides?.apiKey?.trim() || undefined
+    return {
+        reverseProxyUrl,
+        upstreamBaseURL,
+        apiKey,
+        requiresAuth: upstreamBaseURL !== SMM_TVDB_DEFAULT_UPSTREAM,
+    }
+}
+
+/**
+ * Memoization cache keyed by `(reverseProxyUrl, upstreamBaseURL, apiKey)` so
+ * the in-process token cache inside `TVDBv4` (its `this.token` /
+ * `this.tokenExpiresAt`) survives across calls during a single UI session.
+ */
+const tvdbClientCache = new Map<string, TVDBv4>()
+
+function buildClientCacheKey(upstream: TvdbUpstream): string {
+    return [upstream.reverseProxyUrl, upstream.upstreamBaseURL, upstream.apiKey ?? ""].join("|")
+}
+
+function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
     return new TVDBv4({
-        baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/tvdb`,
-        // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
-        // 导致 `TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation`。
-        // 绑定到 `window` 后可避免该问题。
-        fetchImpl: window.fetch.bind(window),
-      })
+        baseUrl: upstream.reverseProxyUrl,
+        apiKey: upstream.apiKey ?? "",
+        // Login is required only when the upstream is a real TVDB v4 host. The SMM-managed
+        // default upstream does not require a login request.
+        disableAuth: !(upstream.requiresAuth && Boolean(upstream.apiKey)),
+        fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
+            const headers = new Headers(init?.headers)
+            headers.set('X-SMM-Proxy-Upstream-BaseURL', upstream.upstreamBaseURL)
+            return window.fetch(input, { ...init, headers })
+        },
+    })
+}
+
+/**
+ * Build (or reuse) a `TVDBv4` client that always routes traffic through the
+ * discovered reverse proxy. Callers should pass `(reverseProxyUrl,
+ * upstreamBaseURL, apiKey)` from UI configuration/hooks.
+ *
+ * Throws when no reverse proxy URL is available (no fallback to a CLI
+ * `/tvdb/*` route).
+ */
+export function getTVDBv4Client(overrides?: GetTVDBv4ClientOverrides): TVDBv4 {
+    const upstream = resolveTvdbUpstream(overrides)
+    const key = buildClientCacheKey(upstream)
+    const cached = tvdbClientCache.get(key)
+    if (cached) return cached
+    const client = buildTvdbClient(upstream)
+    tvdbClientCache.set(key, client)
+    return client
+}
+
+/**
+ * Test-only helper to clear the memoization cache between test cases.
+ */
+export function _resetTvdbClientCacheForTesting(): void {
+    tvdbClientCache.clear()
 }
 
 export async function fetchTvdbAndBuildTvShowMediaMetadata(
@@ -52,7 +113,7 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         onSeasonsAPIError?: (error: Error) => void,
         onSeriesAPIError?: (error: Error) => void,
     },
-    reverseProxyUrl?: string | null,
+    overrides?: GetTVDBv4ClientOverrides,
 ): Promise<TvShowMediaMetadata | undefined> {
 
     debug(`fetchTvdbAndBuildTvShowMediaMetadata CALLED: seriesId: ${seriesId}, lang: ${lang}`)
@@ -64,7 +125,7 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         seasons: [],
     }
 
-    const tvdb = getTVDBv4Client(reverseProxyUrl);
+    const tvdb = getTVDBv4Client(overrides);
 
     const tvdbLangCode = mapToTvdbLangCode(lang);
     const translationResp = await tvdb.seriesTranslationByLangCode(seriesId, tvdbLangCode)
@@ -169,7 +230,7 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
     callbacks: {
         onMovieAPIError?: (error: Error) => void,
     },
-    reverseProxyUrl?: string | null,
+    overrides?: GetTVDBv4ClientOverrides,
 ): Promise<MovieMediaMetadata | undefined> {
 
     const m: MovieMediaMetadata = {
@@ -178,7 +239,7 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
         database: "TVDB",
     }
 
-    const tvdb = getTVDBv4Client(reverseProxyUrl)
+    const tvdb = getTVDBv4Client(overrides)
     const tvdbLangCode = mapToTvdbLangCode(lang)
 
     const translationResp = await tvdb.movieTranslationByLangCode(movieId, tvdbLangCode)

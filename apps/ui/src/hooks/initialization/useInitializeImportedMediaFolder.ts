@@ -95,8 +95,8 @@ export function useInitializeImportedMediaFolder() {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
         const tmdb = {
-            tmdbHost: latestUserConfig.current.tmdb?.host,
-            tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
+            apiKey: latestUserConfig.current.tmdb?.apiKey,
             reverseProxyUrl: appConfig.reverseProxyUrl,
         };
         const searchOrder = searchOrderForPrimaryDb(
@@ -196,8 +196,8 @@ export function useInitializeImportedMediaFolder() {
         const recognitionLanguage =
             latestUserConfig.current.preferMediaLanguage ?? "en-US";
         const tmdb = {
-            tmdbHost: latestUserConfig.current.tmdb?.host,
-            tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
+            apiKey: latestUserConfig.current.tmdb?.apiKey,
             reverseProxyUrl: appConfig.reverseProxyUrl,
         };
         const searchOrder = searchOrderForPrimaryDb(

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
-import { getTMDBImageUrl, searchTmdb } from "@/api/tmdb"
+import { getTMDBImageUrl } from "@/api/tmdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_APP_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
@@ -14,6 +14,7 @@ import {
 } from "@/lib/tvdbSearchDisplay"
 import { buildTvdbSearchResults, type TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
+import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 
 /** TMDB API language for search and get-by-id. */
 export type TmdbSearchLanguage = "zh-CN" | "en-US" | "ja-JP"
@@ -96,6 +97,7 @@ export function MediaDatabaseSearchbox({
   const [searchError, setSearchError] = useState<string | null>(null)
 
   const { search: searchTvdb } = useTvdbQueries()
+  const { search: searchTmdb } = useTmdbQueries()
 
   useEffect(() => {
     const db = userConfig?.primaryDatabase
@@ -149,8 +151,8 @@ export function MediaDatabaseSearchbox({
       }
 
       const response = await searchTmdb(searchQuery.trim(), mediaType, searchLanguage, {
-        tmdbHost: userConfig?.tmdb?.host,
-        tmdbApiKey: userConfig?.tmdb?.apiKey,
+        upstreamBaseURL: userConfig?.tmdb?.host,
+        apiKey: userConfig?.tmdb?.apiKey,
       })
 
       if (response.error) {

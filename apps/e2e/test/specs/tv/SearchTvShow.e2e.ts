@@ -5,11 +5,10 @@ import * as os from 'node:os'
 import Menu from '../../componentobjects/Menu'
 import Sidebar from '../../componentobjects/Sidebar'
 import ConfigDialog from '../../componentobjects/ConfigDialog'
-import { createBeforeHook, expectMediaMetadataToBe } from '../../lib/testbed'
-import { delay } from 'es-toolkit'
+import { cleanup, setup, expectMediaMetadataToBe } from '../../lib/testbed'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
-import { TvShowNameVariable, type MediaMetadata } from '@smm/core/types'
+import { type MediaMetadata, type UserConfig } from '@smm/core/types'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
@@ -17,35 +16,29 @@ const mediaDir = path.join(tmpMediaRoot, 'media')
 describe('Search TV Show', () => {
 
     before(async () => {
-        await createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false })();
-        console.log('Setting language to zh-CN for Chinese search test...')
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        await ConfigDialog.selectLanguage('zh-CN')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(200)
-        await ConfigDialog.pressEscape()
-        await ConfigDialog.waitForClosed()
-        console.log('Language set to zh-CN')
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: (config: UserConfig) => {
+                config.preferMediaLanguage = 'zh-CN'
+                config.applicationLanguage = 'zh-CN'
+                return config
+            },
+            openBrowserPage: true,
+        })  
     })
 
     after(async () => {
-        console.log(`${new Date().toISOString()} start to reset language to en`);
-        await Menu.openConfigDialog()
-        await ConfigDialog.waitForDisplayed()
-        await ConfigDialog.selectLanguage('en')
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(200)
-        await ConfigDialog.pressEscape()
-        await ConfigDialog.waitForClosed()
-        console.log('Language reset to en')
-
-        if (fs.existsSync(tmpMediaRoot)) {
-            fs.rmSync(tmpMediaRoot, { recursive: true, force: true })
-            console.log('Removed tmp media folder:', tmpMediaRoot)
-        }
+        cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+            clearLocalStorage: true,
+        })
     })
 
     beforeEach(async () => {
@@ -228,59 +221,25 @@ S01E35 - - - -`)
         console.log(`Searching TV show using keyword: ${keyword}`)
         await TVShowPanel.searchbox.selectSearchResultByText('【我推的孩子】')
 
-        console.log(`Selected search result`)
-
-        await browser.pause(50000)
-
-//         const stateInString = await TVShowPanel.toString()
-//         expect(stateInString).toBe(`Season 0
-// S00E01 - - - -
-// S00E02 - - - -
-// Season 1
-// S01E01 - - - -
-// S01E02 - - - -
-// S01E03 - - - -
-// S01E04 - - - -
-// S01E05 - - - -
-// S01E06 - - - -
-// S01E07 - - - -
-// S01E08 - - - -
-// S01E09 - - - -
-// S01E10 - - - -
-// S01E11 - - - -
-// Season 2
-// S02E01 - - - -
-// S02E02 - - - -
-// S02E03 - - - -
-// S02E04 - - - -
-// S02E05 - - - -
-// S02E06 - - - -
-// S02E07 - - - -
-// S02E08 - - - -
-// S02E09 - - - -
-// S02E10 - - - -
-// S02E11 - - - -
-// S02E12 - - - -
-// S02E13 - - - -
-// Season 3
-// S03E01 - - - -
-// S03E02 - - - -
-// S03E03 - - - -
-// S03E04 - - - -
-// S03E05 - - - -
-// S03E06 - - - -
-// S03E07 - - - -
-// S03E08 - - - -
-// S03E09 - - - -
-// S03E10 - - - -
-// S03E11 - - - -`)
-
         console.log(`Waiting for media metadata to be updated`)
 
-        await expectMediaMetadataToBe(testMediaFolder, (obj) => {
-            console.log(JSON.stringify(obj))
-            const mm = obj as MediaMetadata;
-            return mm.tvShow !== undefined
+        await browser.waitUntil(async () => {
+
+            try {
+                await expectMediaMetadataToBe(testMediaFolder, (obj) => {
+                    console.log(JSON.stringify(obj))
+                    const mm = obj as MediaMetadata;
+                    return mm.tvShow !== undefined
+                })
+            } catch (error) {
+                return false
+            }
+            return true
+
+        }, {
+            timeout: 5 * 60 * 1000,
+            interval: 1000,
+            timeoutMsg: 'Expected to see TV show metadata in the media metadata',
         })
 
         if(env.slowdown) {

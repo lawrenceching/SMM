@@ -1,8 +1,4 @@
-## Purpose
-
-Define consistent TMDB endpoint routing behavior across the UI based on TMDB host configuration.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: TMDB endpoint mode is selected from TMDB host configuration
 The system SHALL select the TMDB upstream base URL from user configuration and the discovered reverse proxy URL from the hello task so that all TMDB requests are sent through the reverse proxy with the upstream selected by `UserConfig.tmdb.host`. The reverse proxy URL is the only TMDB transport; there is no separate "direct mode" or "CLI `/tmdb` route" path.

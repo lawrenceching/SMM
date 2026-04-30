@@ -44,6 +44,7 @@ import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 import Debug from 'debug'
+import { hello } from "@/api/hello"
 const debug = Debug('TvShowPanel')
 
 interface ToolbarOption {
@@ -152,7 +153,7 @@ function TvShowPanel() {
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
   const [openEditMediaFile] = editMediaFileDialog
-  const { userConfig } = useConfig()
+  const { userConfig, appConfig } = useConfig()
   const { getTvShowById } = useTmdbQueries()
 
   type ApplyTmdbTvShowSelectionVars = {
@@ -236,6 +237,11 @@ function TvShowPanel() {
       const tvdbId = selectedTvdbSearchResult.tvdb_id;
       const seriesId = parseInt(tvdbId, 10);
       debug(`start to fetch TVDB series data for series id: ${seriesId}, name: ${selectedTvdbSearchResult.name}`)
+      const reverseProxyUrl = appConfig.reverseProxyUrl ?? (await hello()).reverseProxyUrl ?? null
+      if (!reverseProxyUrl) {
+        toast.error("Reverse proxy URL is not available. Please wait for app initialization to complete.")
+        return
+      }
       const tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(seriesId, searchLanguage, {
         onSeasonsAPIError: (error: Error) => {
           toast.error(`TVDB Seasons API Error: ${error.message}`)
@@ -243,6 +249,10 @@ function TvShowPanel() {
         onSeriesAPIError: (error: Error) => {
           toast.error(`TVDB Series API Error: ${error.message}`)
         },
+      }, {
+        reverseProxyUrl,
+        upstreamBaseURL: userConfig.tvdb?.host?.trim(),
+        apiKey: userConfig.tvdb?.apiKey?.trim(),
       })
 
       updateMediaMetadata(
@@ -288,7 +298,7 @@ function TvShowPanel() {
         })
     }
 
-  }, [applyTmdbTvShowSelectionMutation, mediaMetadata, updateMediaMetadata])
+  }, [applyTmdbTvShowSelectionMutation, mediaMetadata, updateMediaMetadata, appConfig.reverseProxyUrl, userConfig.tvdb?.host, userConfig.tvdb?.apiKey, t])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {

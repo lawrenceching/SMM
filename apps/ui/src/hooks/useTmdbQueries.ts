@@ -5,6 +5,7 @@ import {
   getTvShowById as fetchTvShowByIdHttp,
   getSeason as fetchTvShowSeasonHttp,
   searchTmdb,
+  SMM_TMDB_DEFAULT_UPSTREAM,
   type TmdbRequestOptions,
 } from "@/api/tmdb"
 import { tmdbMovieByIdQueryKey, tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
@@ -18,6 +19,7 @@ import type {
 } from "@core/types"
 import { delay } from "es-toolkit"
 import { helloQueryKey } from "@/lib/appQueryKeys"
+import { useConfig } from "./userConfig"
 
 const TMDB_TV_SHOW_BY_ID_STALE_MS = 5 * 60 * 1000
 const TMDB_TV_SHOW_SEASON_STALE_MS = 5 * 60 * 1000
@@ -27,19 +29,28 @@ const delayInMs = parseInt(localStorage.getItem('debug_http_delay_ms') ?? "0");
 
 export function useTmdbQueries() {
   const queryClient = useQueryClient()
+  const { appConfig, userConfig } = useConfig()
+  const reverseProxyFromConfig = appConfig?.reverseProxyUrl ?? null
+
   const tmdbCacheScope = (options?: TmdbRequestOptions) => ({
-    tmdbHost: options?.tmdbHost?.trim() ?? "",
-    hasTmdbApiKey: Boolean(options?.tmdbApiKey?.trim()),
+    upstreamBaseURL: options?.upstreamBaseURL?.trim() ?? "",
+    hasTmdbApiKey: Boolean(options?.apiKey?.trim()),
   })
 
-  const getReverseProxyUrl = (): string | null | undefined => {
-    const helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
-    return helloData?.reverseProxyUrl
-  }
+  const getReverseProxyUrl = (): string | null | undefined =>
+    reverseProxyFromConfig ??
+    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl
+
+  const getDefaultTmdbRequestOptions = (): TmdbRequestOptions => ({
+    reverseProxyUrl: getReverseProxyUrl(),
+    upstreamBaseURL: userConfig.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM,
+    apiKey: userConfig.tmdb?.apiKey?.trim() || undefined,
+  })
 
   const withReverseProxyUrl = (options?: TmdbRequestOptions): TmdbRequestOptions => ({
+    ...getDefaultTmdbRequestOptions(),
     ...options,
-    reverseProxyUrl: options?.reverseProxyUrl ?? getReverseProxyUrl(),
+    reverseProxyUrl: options?.reverseProxyUrl ?? getDefaultTmdbRequestOptions().reverseProxyUrl,
   })
 
   const getTvShowById = useCallback(
@@ -58,7 +69,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_TV_SHOW_BY_ID_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
   )
 
   const getTvShowSeasonDetails = useCallback(
@@ -67,9 +78,8 @@ export function useTmdbQueries() {
       seasonNumber: number,
       language?: PreferMediaLanguage,
       options?: {
-        baseURL?: string;
-        tmdbHost?: string;
-        tmdbApiKey?: string;
+        upstreamBaseURL?: string;
+        apiKey?: string;
         appendToResponse?: string;
         signal?: AbortSignal;
       }
@@ -77,7 +87,7 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
-      const resolvedOptions = { ...options, reverseProxyUrl: getReverseProxyUrl() }
+      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
         queryKey: [
           ...tmdbTvShowSeasonQueryKey(seriesId, seasonNumber, language),
@@ -87,7 +97,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_TV_SHOW_SEASON_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
   )
 
   const getMovieById = useCallback(
@@ -106,7 +116,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_MOVIE_BY_ID_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
   )
 
   const search = useCallback(
@@ -125,7 +135,7 @@ export function useTmdbQueries() {
         queryFn: () => searchTmdb(query, type, language, resolvedOptions),
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
   )
 
   return { getTvShowById, getTvShowSeasonDetails, getMovieById, search}

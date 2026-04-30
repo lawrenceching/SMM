@@ -8,7 +8,7 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata, removePlanFolder } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata, removePlanFolder, hello } from '@smm/test'
 import { Path } from '@smm/core'
 import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaMetadata'
 import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
@@ -404,7 +404,29 @@ export async function isOfficialTvdbHostAccessible(): Promise<boolean> {
     return _isRemoteAccessible(`${officialHost}/people`, 'GET')
 }
 
-export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' = 'GET'): Promise<boolean> {
+/**
+ * Check if the CLI-managed reverse proxy is up and discoverable through the hello task.
+ * Returns true when the hello response contains a `reverseProxyUrl` and that URL responds
+ * to an OPTIONS preflight (which the proxy answers with `204 No Content`).
+ */
+export async function isReverseProxyAccessible(): Promise<boolean> {
+    let proxyUrl: string | null = null
+    try {
+        const helloResp = await hello()
+        proxyUrl = helloResp.reverseProxyUrl
+    } catch (error) {
+        console.warn('Failed to call hello API while probing reverse proxy', error)
+        return false
+    }
+
+    if (!proxyUrl) {
+        return false
+    }
+
+    return _isRemoteAccessible(proxyUrl, 'OPTIONS')
+}
+
+export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET'): Promise<boolean> {
     try {
         const response = await fetch(url, {
             method,

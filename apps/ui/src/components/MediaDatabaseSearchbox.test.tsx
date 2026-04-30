@@ -31,16 +31,14 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-vi.mock('@/api/tmdb', () => ({
-  searchTmdb: vi.fn(),
-}))
-
-vi.mock('@/api/tvdb', () => ({
-  searchTvdb: vi.fn(),
-}))
-
 vi.mock('@/hooks/useTvdbQueries', () => ({
   useTvdbQueries: () => ({
+    search: vi.fn(),
+  }),
+}))
+
+vi.mock('@/hooks/useTmdbQueries', () => ({
+  useTmdbQueries: () => ({
     search: vi.fn(),
   }),
 }))

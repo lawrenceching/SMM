@@ -46,7 +46,9 @@ const detectionOptions = {
 }
 
 // i18n configuration
-i18n
+const i18nDebugEnabled = import.meta.env.DEV && import.meta.env.VITE_I18N_DEBUG === 'true'
+
+export const i18nReady = i18n
   .use(Backend)
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -77,8 +79,9 @@ i18n
       loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
     
-    // Debug mode (only in development)
-    debug: import.meta.env.DEV,
+    // Debug mode is opt-in to avoid noisy console logs in local/e2e runs.
+    // Enable with: VITE_I18N_DEBUG=true
+    debug: i18nDebugEnabled,
   })
 
 // Function to change language programmatically

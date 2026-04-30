@@ -116,6 +116,9 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
 
 vi.mock("@/hooks/userConfig", () => ({
     useConfig: () => ({
+        appConfig: {
+            reverseProxyUrl: "http://127.0.0.1:30005",
+        },
         userConfig: {
             preferMediaLanguage: "en-US",
             primaryDatabase: "TMDB" as const,

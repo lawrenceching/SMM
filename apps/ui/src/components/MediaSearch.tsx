@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
-import { searchTmdb, getTMDBImageUrl } from '@/api/tmdb';
+import { getTMDBImageUrl } from '@/api/tmdb';
 import { useConfig } from '@/hooks/userConfig';
 import type { TMDBMovie, TMDBTVShow } from '@core/types';
 import { SearchBox } from './SearchBox';
+import { useTmdbQueries } from '@/hooks/useTmdbQueries';
 
 type MediaType = 'tvshow' | 'movie';
 
@@ -33,6 +34,7 @@ export function MediaSearch({ onSelect }: MediaSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userConfig } = useConfig();
+  const { search: searchTmdb } = useTmdbQueries();
 
   /**
    * Maps TMDB result to SearchResult format

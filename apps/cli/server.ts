@@ -19,9 +19,6 @@ import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
-import { handleTmdb } from './src/route/Tmdb';
-import { handleTmdbProxy } from './src/route/TmdbProxy';
-import { handleTvdb } from './src/route/Tvdb';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
@@ -223,9 +220,6 @@ export class Server {
     handleFfmpegWriteTags(this.app);
     handleFfmpegDiscover(this.app);
     handleFfmpegVersion(this.app);
-    // handleTmdb(this.app);
-    handleTmdbProxy(this.app);
-    handleTvdb(this.app);
     handleLog(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks

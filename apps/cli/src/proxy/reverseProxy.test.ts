@@ -64,6 +64,16 @@ describe('validateUpstreamBaseURL', () => {
     expect(url.hostname).toBe('httpbin.io');
   });
 
+  it('accepts allowlisted SMM-managed TMDB upstream', () => {
+    const url = validateUpstreamBaseURL('https://tmdb-mcp-server.imlc.me/api/tmdb');
+    expect(url.hostname).toBe('tmdb-mcp-server.imlc.me');
+  });
+
+  it('accepts allowlisted SMM-managed TVDB upstream', () => {
+    const url = validateUpstreamBaseURL('https://tmdb-mcp-server.imlc.me/api/tvdb');
+    expect(url.hostname).toBe('tmdb-mcp-server.imlc.me');
+  });
+
   it('rejects malformed URL', () => {
     expect(() => validateUpstreamBaseURL('not-a-valid-url')).toThrow('Invalid upstream base URL');
   });
@@ -260,6 +270,30 @@ describe('handleProxyRequest', () => {
     expect(response.status).toBe(200);
     const forwardedReq: Request = mockFetch.mock.calls[0][0];
     expect(forwardedReq.url).toBe('https://httpbin.io/get');
+  });
+
+  it('accepts SMM-managed TMDB upstream and forwards with base path', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ results: [] }));
+
+    const request = makeProxyRequest('/search/tv?query=test', 'https://tmdb-mcp-server.imlc.me/api/tmdb');
+    const response = await handleProxyRequest(request);
+
+    expect(response.status).toBe(200);
+    const forwardedReq: Request = mockFetch.mock.calls[0]![0];
+    expect(forwardedReq.url).toBe('https://tmdb-mcp-server.imlc.me/api/tmdb/search/tv?query=test');
+    expect(forwardedReq.headers.get('Host')).toBe('tmdb-mcp-server.imlc.me');
+  });
+
+  it('accepts SMM-managed TVDB upstream and forwards with base path', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }));
+
+    const request = makeProxyRequest('/series/123/extended', 'https://tmdb-mcp-server.imlc.me/api/tvdb');
+    const response = await handleProxyRequest(request);
+
+    expect(response.status).toBe(200);
+    const forwardedReq: Request = mockFetch.mock.calls[0]![0];
+    expect(forwardedReq.url).toBe('https://tmdb-mcp-server.imlc.me/api/tvdb/series/123/extended');
+    expect(forwardedReq.headers.get('Host')).toBe('tmdb-mcp-server.imlc.me');
   });
 
   it('filters hop-by-hop response headers', async () => {

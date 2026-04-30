@@ -94,6 +94,7 @@ const formatBrowserLogEntry = (entry: BrowserLogEntry): string => {
     return baseText || argsText || '';
 };
 
+
 function workerSpecsIncludeMcp(specs: string[] | undefined): boolean {
     if (!specs?.length) return false;
     return specs.some((specPath) => {

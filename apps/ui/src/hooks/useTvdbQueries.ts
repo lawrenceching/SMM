@@ -20,6 +20,8 @@ import type {
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types"
 import { helloQueryKey } from "@/lib/appQueryKeys"
+import { useConfig } from "./userConfig"
+import { SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
 
 const TVDB_ARTWORK_TYPES_STALE_MS = 24 * 60 * 60 * 1000
 const TVDB_SERIES_EXTENDED_STALE_MS = 5 * 60 * 1000
@@ -28,18 +30,28 @@ const TVDB_SEASON_EXTENDED_STALE_MS = 5 * 60 * 1000
 const TVDB_TV_SHOW_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
 const TVDB_MOVIE_MEDIA_METADATA_STALE_MS = 5 * 60 * 1000
 const TVDB_SEARCH_STALE_MS = 2 * 60 * 1000
+const TVDB_TRANSLATION_STALE_MS = 5 * 60 * 1000
 
 export function useTvdbQueries() {
   const queryClient = useQueryClient()
+  const { appConfig, userConfig } = useConfig()
+  const reverseProxyFromConfig = appConfig?.reverseProxyUrl ?? null
 
-  const getReverseProxyUrl = (): string | null | undefined => {
-    const helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
-    return helloData?.reverseProxyUrl
-  }
+  const getReverseProxyUrl = (): string | null | undefined =>
+    reverseProxyFromConfig ??
+    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl
+
+  const getTvdbClientOptions = () => ({
+    reverseProxyUrl: getReverseProxyUrl(),
+    upstreamBaseURL: userConfig.tvdb?.host?.trim() || SMM_TVDB_DEFAULT_UPSTREAM,
+    apiKey: userConfig.tvdb?.apiKey?.trim() || undefined,
+  })
+
+  const getClient = () => getTVDBv4Client(getTvdbClientOptions())
 
   const getArtworkTypes = useCallback(
     (): Promise<TVDBv4ArtworkTypeRecord[] | undefined> => {
-      const tvdb = getTVDBv4Client(getReverseProxyUrl())
+      const tvdb = getClient()
       return queryClient.fetchQuery({
         queryKey: tvdbArtworkTypesQueryKey(),
         queryFn: async () => {
@@ -49,12 +61,12 @@ export function useTvdbQueries() {
         staleTime: TVDB_ARTWORK_TYPES_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const getSeriesExtended = useCallback(
     (seriesId: number): Promise<TVDBv4SeriesExtendedResponse | undefined> => {
-      const tvdb = getTVDBv4Client(getReverseProxyUrl())
+      const tvdb = getClient()
       return queryClient.fetchQuery({
         queryKey: tvdbSeriesExtendedQueryKey(seriesId),
         queryFn: async () => {
@@ -64,12 +76,12 @@ export function useTvdbQueries() {
         staleTime: TVDB_SERIES_EXTENDED_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const getSeasonExtended = useCallback(
     (seasonId: number): Promise<TVDBv4SeriesSeasonsExtendedResponse | undefined> => {
-      const tvdb = getTVDBv4Client(getReverseProxyUrl())
+      const tvdb = getClient()
       return queryClient.fetchQuery({
         queryKey: tvdbSeasonExtendedQueryKey(seasonId),
         queryFn: async () => {
@@ -79,12 +91,12 @@ export function useTvdbQueries() {
         staleTime: TVDB_SEASON_EXTENDED_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const getMovieExtended = useCallback(
     (movieId: number): Promise<TVDBv4MovieBaseRecord | undefined> => {
-      const tvdb = getTVDBv4Client(getReverseProxyUrl())
+      const tvdb = getClient()
       return queryClient.fetchQuery({
         queryKey: tvdbMovieExtendedQueryKey(movieId),
         queryFn: async () => {
@@ -94,12 +106,57 @@ export function useTvdbQueries() {
         staleTime: TVDB_MOVIE_EXTENDED_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+  )
+
+  const getSeriesTranslationByLangCode = useCallback(
+    (seriesId: number, langCode: string): Promise<Record<string, string> | undefined> => {
+      const tvdb = getClient()
+      return queryClient.fetchQuery({
+        queryKey: ["tvdb-series-translation", seriesId, langCode],
+        queryFn: async () => {
+          const resp = await tvdb.seriesTranslationByLangCode(seriesId, langCode)
+          return resp.status === "success" ? resp.data : undefined
+        },
+        staleTime: TVDB_TRANSLATION_STALE_MS,
+      })
+    },
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+  )
+
+  const getEpisodeTranslationByLangCode = useCallback(
+    (episodeId: number, langCode: string): Promise<Record<string, string> | undefined> => {
+      const tvdb = getClient()
+      return queryClient.fetchQuery({
+        queryKey: ["tvdb-episode-translation", episodeId, langCode],
+        queryFn: async () => {
+          const resp = await tvdb.episodeTranslationByLangCode(episodeId, langCode)
+          return resp.status === "success" ? resp.data : undefined
+        },
+        staleTime: TVDB_TRANSLATION_STALE_MS,
+      })
+    },
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+  )
+
+  const getMovieTranslationByLangCode = useCallback(
+    (movieId: number, langCode: string): Promise<Record<string, string> | undefined> => {
+      const tvdb = getClient()
+      return queryClient.fetchQuery({
+        queryKey: ["tvdb-movie-translation", movieId, langCode],
+        queryFn: async () => {
+          const resp = await tvdb.movieTranslationByLangCode(movieId, langCode)
+          return resp.status === "success" ? resp.data : undefined
+        },
+        staleTime: TVDB_TRANSLATION_STALE_MS,
+      })
+    },
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const search = useCallback(
     (params: TVDBv4SearchParams): Promise<TVDBv4SearchResult[] | undefined> => {
-      const tvdb = getTVDBv4Client(getReverseProxyUrl())
+      const tvdb = getClient()
       return queryClient.fetchQuery({
         queryKey: tvdbSearchQueryKey(params),
         queryFn: async () => {
@@ -109,7 +166,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_SEARCH_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const getTvShowMediaMetadata = useCallback(
@@ -125,7 +182,7 @@ export function useTvdbQueries() {
             seriesId,
             lang,
             {},
-            getReverseProxyUrl(),
+            getTvdbClientOptions(),
           )
           if (metadata === undefined) {
             throw new Error(`Failed to fetch TVDB series ${seriesId}`)
@@ -135,7 +192,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_TV_SHOW_MEDIA_METADATA_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   const getMovieMediaMetadata = useCallback(
@@ -144,7 +201,12 @@ export function useTvdbQueries() {
       return queryClient.fetchQuery({
         queryKey: tvdbMovieMediaMetadataQueryKey(movieId, lang),
         queryFn: async () => {
-          const metadata = await fetchTvdbAndBuildMovieMediaMetadata(movieId, lang, {}, getReverseProxyUrl())
+          const metadata = await fetchTvdbAndBuildMovieMediaMetadata(
+            movieId,
+            lang,
+            {},
+            getTvdbClientOptions(),
+          )
           if (metadata === undefined) {
             throw new Error(`Failed to fetch TVDB movie ${movieId}`)
           }
@@ -153,7 +215,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_MOVIE_MEDIA_METADATA_STALE_MS,
       })
     },
-    [queryClient]
+    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
   )
 
   return {
@@ -161,6 +223,9 @@ export function useTvdbQueries() {
     getSeriesExtended,
     getMovieExtended,
     getSeasonExtended,
+    getSeriesTranslationByLangCode,
+    getEpisodeTranslationByLangCode,
+    getMovieTranslationByLangCode,
     search,
     getTvShowMediaMetadata,
     getMovieMediaMetadata,

@@ -1,9 +1,11 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
 import { getMovieById } from "@/api/tmdb"
-import { getTVDBv4Client } from "@/lib/TvdbUtils"
+import { getTVDBv4Client, SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
+import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { useDownloadThumbnailFromTMDB } from "./useDownloadThumbnailFromTMDB"
 import { useDownloadThumbnailFromTVDB } from "./useDownloadThumbnailFromTVDB"
+import { useConfig } from "./userConfig"
 
 export interface ScrapeThumbnailMutationVariables {
   mediaMetadata: MediaMetadata
@@ -17,6 +19,7 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
 ) {
   const downloadThumbnailFromTMDBMutation = useDownloadThumbnailFromTMDB()
   const downloadThumbnailFromTVDBMutation = useDownloadThumbnailFromTVDB()
+  const { appConfig, userConfig } = useConfig()
 
   return useMutation({
     ...options,
@@ -57,13 +60,21 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
 
         if (movie.database === "TMDB") {
           const movieId = parseInt(movie.id, 10)
-          await getMovieById(movieId, "en-US")
+          await getMovieById(movieId, "en-US", {
+            reverseProxyUrl: appConfig.reverseProxyUrl,
+            upstreamBaseURL: userConfig.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM,
+            apiKey: userConfig.tmdb?.apiKey?.trim() || undefined,
+          })
           // TODO: implement movie thumbnail scraping
           return
         }
         if (movie.database === "TVDB") {
           const movieId = parseInt(movie.id, 10)
-          const tvdb = getTVDBv4Client()
+          const tvdb = getTVDBv4Client({
+            reverseProxyUrl: appConfig.reverseProxyUrl,
+            upstreamBaseURL: userConfig.tvdb?.host?.trim() || SMM_TVDB_DEFAULT_UPSTREAM,
+            apiKey: userConfig.tvdb?.apiKey?.trim() || undefined,
+          })
           await tvdb.movieExtendedById(movieId)
           // TODO: implement movie thumbnail scraping
           return

@@ -1,4 +1,5 @@
 import { logger } from '../../lib/logger';
+import { getUserConfig } from '@/utils/config';
 
 export const PORT_RANGE_START = 30000;
 export const PORT_RANGE_END = 31000;
@@ -6,6 +7,8 @@ export const PORT_RANGE_END = 31000;
 export const ALLOWED_UPSTREAM_HOSTS = new Set([
   'api.themoviedb.org',
   'api4.thetvdb.com',
+  // SMM-managed default upstream that hosts the public TMDB/TVDB proxy without requiring an API key.
+  'tmdb-mcp-server.imlc.me',
   'httpbin.io',
 ]);
 
@@ -190,8 +193,11 @@ export function createReverseProxyManager(): ReverseProxyManager {
   let server: ReturnType<typeof Bun.serve> | null = null;
   let currentUrl: string | null = null;
 
-  async function findAvailablePort(): Promise<number> {
+  async function findAvailablePort(reservedPorts: Set<number>): Promise<number> {
     for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
+      if (reservedPorts.has(port)) {
+        continue;
+      }
       try {
         const testServer = Bun.serve({
           port,
@@ -224,7 +230,17 @@ export function createReverseProxyManager(): ReverseProxyManager {
 
       let port: number;
       try {
-        port = await findAvailablePort();
+        const reservedPorts = new Set<number>();
+        try {
+          const userConfig = await getUserConfig();
+          const configuredMcpPort = Number(userConfig.mcpPort ?? 30001);
+          if (Number.isFinite(configuredMcpPort)) {
+            reservedPorts.add(configuredMcpPort);
+          }
+        } catch (err) {
+          logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');
+        }
+        port = await findAvailablePort(reservedPorts);
       } catch (error) {
         logger.error({ err: error }, 'Failed to find available port for reverse proxy');
         currentUrl = null;
