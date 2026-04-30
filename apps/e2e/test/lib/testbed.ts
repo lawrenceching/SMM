@@ -394,19 +394,28 @@ export async function importFolderWithMediaMetadata(
  * Check if the official TMDB host is accessible
  * Returns true if accessible, false otherwise
  */
-export async function isOfficialHostAccessible(): Promise<boolean> {
+export async function isOfficialTmdbHostAccessible(): Promise<boolean> {
     const officialHost = 'https://api.themoviedb.org'
+    return _isRemoteAccessible(`${officialHost}/3/configuration?api_key=dummy`, 'GET')
+}
+
+export async function isOfficialTvdbHostAccessible(): Promise<boolean> {
+    const officialHost = 'https://api4.thetvdb.com/v4'
+    return _isRemoteAccessible(`${officialHost}/people`, 'GET')
+}
+
+export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' = 'GET'): Promise<boolean> {
     try {
-        const response = await fetch(`${officialHost}/3/configuration?api_key=dummy`, {
-            method: 'GET',
+        const response = await fetch(url, {
+            method,
             // Use a short timeout to avoid hanging
             signal: AbortSignal.timeout(5000),
         })
-        // Even if we get a 401 (unauthorized), it means the host is reachable
-        // Only network errors mean it's not accessible
+        // Even if response is 4xx/5xx, host is still reachable.
+        // Only network errors mean it's not accessible.
         return response.status !== undefined
     } catch (error) {
-        console.warn('Official TMDB host is not accessible:', error)
+        console.warn(`Remote is not accessible: ${url}`, error)
         return false
     }
 }

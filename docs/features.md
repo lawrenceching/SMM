@@ -87,15 +87,16 @@ And the test status of v1.1.0
 | StatusBar - App Version                          | AUTO   |         |
 | StatusBar - Background Job Indicator and Popover | AUTO   |         |
 |                                                  |        |         |
-| Download Bilibili Video                          | MANUAL |         |
+| Download Bilibili Video                          | AUTO |         |
 | > MusicPanel-Download.e2e.ts |||
-| Download Bilibili Episodes                       | MANUAL |         |
+| Download Bilibili Episodes                       | AUTO |         |
 | > MusicPanel-Download.e2e.ts |||
-| Download Youtube Video                           | MANUAL |         |
+| Download Youtube Video                           | AUTO |         |
 | > MusicPanel-Download.e2e.ts |||
 |                                                  |        |         |
 | Settings                                         |        |         |
 | Custom TMDB host and API key                     | MANUAL |         |
+| > CustomTmdbHost.e2e.ts |||
 | Custom TVDB host and API key                     | MANUAL |         |
 | DeepSeek                                         | MANUAL |         |
 | OpenAPI                                         | MANUAL |         |

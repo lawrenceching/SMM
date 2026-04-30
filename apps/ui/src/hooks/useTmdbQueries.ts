@@ -9,6 +9,7 @@ import {
 } from "@/api/tmdb"
 import { tmdbMovieByIdQueryKey, tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
 import type {
+  HelloResponseBody,
   PreferMediaLanguage,
   TmdbMovieDetails,
   TmdbSearchResponseBody,
@@ -16,6 +17,7 @@ import type {
   TmdbSeasonDetails,
 } from "@core/types"
 import { delay } from "es-toolkit"
+import { helloQueryKey } from "@/lib/appQueryKeys"
 
 const TMDB_TV_SHOW_BY_ID_STALE_MS = 5 * 60 * 1000
 const TMDB_TV_SHOW_SEASON_STALE_MS = 5 * 60 * 1000
@@ -30,6 +32,16 @@ export function useTmdbQueries() {
     hasTmdbApiKey: Boolean(options?.tmdbApiKey?.trim()),
   })
 
+  const getReverseProxyUrl = (): string | null | undefined => {
+    const helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
+    return helloData?.reverseProxyUrl
+  }
+
+  const withReverseProxyUrl = (options?: TmdbRequestOptions): TmdbRequestOptions => ({
+    ...options,
+    reverseProxyUrl: options?.reverseProxyUrl ?? getReverseProxyUrl(),
+  })
+
   const getTvShowById = useCallback(
     async (
       id: number,
@@ -39,9 +51,10 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
+      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
         queryKey: [...tmdbTvShowByIdQueryKey(id, language), tmdbCacheScope(options)],
-        queryFn: () => fetchTvShowByIdHttp(id, language, options),
+        queryFn: () => fetchTvShowByIdHttp(id, language, resolvedOptions),
         staleTime: TMDB_TV_SHOW_BY_ID_STALE_MS,
       })
     },
@@ -64,12 +77,13 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
+      const resolvedOptions = { ...options, reverseProxyUrl: getReverseProxyUrl() }
       return queryClient.fetchQuery({
         queryKey: [
           ...tmdbTvShowSeasonQueryKey(seriesId, seasonNumber, language),
           tmdbCacheScope(options),
         ],
-        queryFn: () => fetchTvShowSeasonHttp(seriesId, seasonNumber, language, options),
+        queryFn: () => fetchTvShowSeasonHttp(seriesId, seasonNumber, language, resolvedOptions),
         staleTime: TMDB_TV_SHOW_SEASON_STALE_MS,
       })
     },
@@ -85,9 +99,10 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
+      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
         queryKey: [...tmdbMovieByIdQueryKey(id, language), tmdbCacheScope(options)],
-        queryFn: () => fetchMovieByIdHttp(id, language, options),
+        queryFn: () => fetchMovieByIdHttp(id, language, resolvedOptions),
         staleTime: TMDB_MOVIE_BY_ID_STALE_MS,
       })
     },
@@ -104,9 +119,10 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
+      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
         queryKey: ["tmdb-search", query, type, language, tmdbCacheScope(options)],
-        queryFn: () => searchTmdb(query, type, language, options),
+        queryFn: () => searchTmdb(query, type, language, resolvedOptions),
       })
     },
     [queryClient]

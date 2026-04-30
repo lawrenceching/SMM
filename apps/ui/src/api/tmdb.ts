@@ -12,13 +12,17 @@ export interface TmdbRequestOptions {
   tmdbHost?: string;
   tmdbApiKey?: string;
   signal?: AbortSignal;
+  reverseProxyUrl?: string | null;
 }
 
 interface TmdbResolvedConnection {
   directHost?: string;
   tmdbApiKey?: string;
   signal?: AbortSignal;
+  reverseProxyUrl?: string | null;
 }
+
+const TMDB_UPSTREAM_BASE_URL = 'https://api.themoviedb.org/3';
 
 function normalizeHost(host?: string): string | undefined {
   const trimmed = host?.trim();
@@ -34,6 +38,7 @@ function resolveConnection(options?: TmdbRequestOptions, legacyBaseURL?: string)
     directHost,
     tmdbApiKey: options?.tmdbApiKey,
     signal: options?.signal,
+    reverseProxyUrl: options?.reverseProxyUrl ?? null,
   };
 }
 
@@ -80,6 +85,22 @@ export async function searchTmdb(
           Accept: 'application/json',
           'X-TMDB-Host': connection.directHost,
           'X-TMDB-API-Key': apiKey,
+        },
+        signal: connection.signal,
+      },
+      'Failed to search TMDB'
+    );
+  }
+
+  if (connection.reverseProxyUrl) {
+    const url = `${connection.reverseProxyUrl}/search/${type}?${queryParams.toString()}`;
+    return fetchJson<TmdbSearchResponseBody>(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
         },
         signal: connection.signal,
       },
@@ -141,6 +162,22 @@ export async function getTvShowById(
     );
   }
 
+  if (connection.reverseProxyUrl) {
+    const proxyUrl = `${connection.reverseProxyUrl}/tv/${id}${queryString ? `?${queryString}` : ''}`;
+    return fetchJson<TmdbSeriesDetails>(
+      proxyUrl,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get TV show'
+    );
+  }
+
   return fetchJson<TmdbSeriesDetails>(
     url,
     {
@@ -184,6 +221,22 @@ export async function getMovieById(
           Accept: 'application/json',
           'X-TMDB-Host': connection.directHost,
           'X-TMDB-API-Key': apiKey,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get movie'
+    );
+  }
+
+  if (connection.reverseProxyUrl) {
+    const proxyUrl = `${connection.reverseProxyUrl}/movie/${id}${queryString ? `?${queryString}` : ''}`;
+    return fetchJson<TmdbMovieDetails>(
+      proxyUrl,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
         },
         signal: connection.signal,
       },
@@ -280,6 +333,22 @@ export async function getSeason(
           Accept: 'application/json',
           'X-TMDB-Host': connection.directHost,
           'X-TMDB-API-Key': apiKey,
+        },
+        signal: connection.signal,
+      },
+      'Failed to get TV season'
+    );
+  }
+
+  if (connection.reverseProxyUrl) {
+    const proxyUrl = `${connection.reverseProxyUrl}/tv/${req.seriesId}/season/${req.seasonNumber}${queryString ? `?${queryString}` : ''}`;
+    return fetchJson<TmdbSeasonDetails>(
+      proxyUrl,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-SMM-Proxy-Upstream-BaseURL': TMDB_UPSTREAM_BASE_URL,
         },
         signal: connection.signal,
       },

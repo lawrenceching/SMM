@@ -43,8 +43,9 @@ export function useConfig(): UseConfigResult {
     () => ({
       version: helloQuery.data?.version ?? "unknown",
       userDataDir: helloQuery.data?.userDataDir,
+      reverseProxyUrl: helloQuery.data?.reverseProxyUrl ?? null,
     }),
-    [helloQuery.data?.version, helloQuery.data?.userDataDir],
+    [helloQuery.data?.version, helloQuery.data?.userDataDir, helloQuery.data?.reverseProxyUrl],
   )
 
   const setAndSaveUserConfig = useCallback(

@@ -4,6 +4,7 @@
 export interface AppConfig {
     version: string;
     userDataDir?: string;
+    reverseProxyUrl: string | null;
 }
 
 
@@ -961,6 +962,13 @@ export interface HelloResponseBody {
    * path in platform-specific format
    */
   logDir: string;
+
+  /**
+   * The base URL of the CLI reverse proxy (e.g. http://127.0.0.1:30001).
+   * Used by the UI to route external metadata API requests through a CORS-safe local proxy.
+   * This field is null when the reverse proxy fails to start.
+   */
+  reverseProxyUrl: string | null;
 
   /**
    * error message when the hello task fails (e.g. validation, server error)

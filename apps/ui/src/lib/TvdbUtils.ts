@@ -23,7 +23,19 @@ export function extractMovieId(objectId: string): number {
     return Number.isFinite(n) && n > 0 ? n : NaN
 }
 
-export function getTVDBv4Client() {
+const TVDB_UPSTREAM_BASE_URL = 'https://api4.thetvdb.com/v4';
+
+export function getTVDBv4Client(reverseProxyUrl?: string | null) {
+    if (reverseProxyUrl) {
+        return new TVDBv4({
+            baseUrl: reverseProxyUrl,
+            fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
+                const headers = new Headers(init?.headers);
+                headers.set('X-SMM-Proxy-Upstream-BaseURL', TVDB_UPSTREAM_BASE_URL);
+                return window.fetch(input, { ...init, headers });
+            },
+        })
+    }
     return new TVDBv4({
         baseUrl: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/tvdb`,
         // `fetch` 作为裸函数被传递后，在某些运行环境里会丢失 `this` 绑定，
@@ -39,7 +51,8 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
     callbacks: {
         onSeasonsAPIError?: (error: Error) => void,
         onSeriesAPIError?: (error: Error) => void,
-    }
+    },
+    reverseProxyUrl?: string | null,
 ): Promise<TvShowMediaMetadata | undefined> {
 
     debug(`fetchTvdbAndBuildTvShowMediaMetadata CALLED: seriesId: ${seriesId}, lang: ${lang}`)
@@ -51,7 +64,7 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
         seasons: [],
     }
 
-    const tvdb = getTVDBv4Client();
+    const tvdb = getTVDBv4Client(reverseProxyUrl);
 
     const tvdbLangCode = mapToTvdbLangCode(lang);
     const translationResp = await tvdb.seriesTranslationByLangCode(seriesId, tvdbLangCode)
@@ -155,7 +168,8 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
     lang: "zh-CN" | "en-US" | "ja-JP",
     callbacks: {
         onMovieAPIError?: (error: Error) => void,
-    }
+    },
+    reverseProxyUrl?: string | null,
 ): Promise<MovieMediaMetadata | undefined> {
 
     const m: MovieMediaMetadata = {
@@ -164,7 +178,7 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
         database: "TVDB",
     }
 
-    const tvdb = getTVDBv4Client()
+    const tvdb = getTVDBv4Client(reverseProxyUrl)
     const tvdbLangCode = mapToTvdbLangCode(lang)
 
     const translationResp = await tvdb.movieTranslationByLangCode(movieId, tvdbLangCode)

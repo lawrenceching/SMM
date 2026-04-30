@@ -162,6 +162,8 @@ export interface HelloResponse {
     version: string
     userDataDir: string
     appDataDir: string
+    logDir: string
+    reverseProxyUrl: string | null
 }
 
 /**
@@ -186,6 +188,26 @@ export async function hello(): Promise<HelloResponse> {
 export async function getAppDataDir(): Promise<string> {
     const data = await hello()
     return data.appDataDir
+}
+
+export async function getReverseProxyUrl(): Promise<string | null> {
+    const data = await hello()
+    return data.reverseProxyUrl ?? null
+}
+
+export async function isReverseProxyAccessible(): Promise<boolean> {
+    const url = await getReverseProxyUrl()
+    if (!url) return false
+    try {
+        const resp = await fetch(`${url}/health`, {
+            method: 'GET',
+            headers: { 'X-SMM-Proxy-Upstream-BaseURL': 'https://httpbin.io' },
+            signal: AbortSignal.timeout(5000),
+        })
+        return resp.ok || resp.status === 404
+    } catch {
+        return false
+    }
 }
 
 /**

@@ -1,8 +1,4 @@
-## Purpose
-
-Define the TMDB API proxy behavior in `apps/cli`, which accepts browser requests and routes them to either the official TMDB API or the SMM proxy based on request headers.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: TMDB API Proxy accepts and routes requests
 
@@ -29,7 +25,7 @@ The proxy service SHALL read the `X-TMDB-API-Key` header and forward it as `Auth
 
 #### Scenario: X-TMDB-API-Key is provided
 
-- **WHEN** the client request includes `X-TMDB-API-Key: abc123` header
+- **WHEN** the client request includes `X-TMDB-API-Key: abc123`
 - **THEN** the proxy adds `Authorization: Bearer abc123` header to the upstream request
 
 #### Scenario: X-TMDB-API-Key is not provided
@@ -39,7 +35,7 @@ The proxy service SHALL read the `X-TMDB-API-Key` header and forward it as `Auth
 
 ### Requirement: TMDB API Proxy preserves request method, path, query, and body
 
-The proxy service SHALL preserve the client request's HTTP method, path, query parameters, and body, only modifying the target host and path prefix according to routing rules.
+The proxy service SHALL preserve the client request's HTTP method, path, query parameters, and body, only modifying the target host, path prefix, and proxy-specific headers according to routing rules.
 
 #### Scenario: GET request with query parameters is proxied
 

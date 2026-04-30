@@ -10,7 +10,7 @@ import {
   tvdbSeasonExtendedQueryKey,
   tvdbTvShowMediaMetadataQueryKey,
 } from "@/lib/tvdbQueryKeys"
-import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
+import type { HelloResponseBody, MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 import type {
   TVDBv4ArtworkTypeRecord,
@@ -19,6 +19,7 @@ import type {
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types"
+import { helloQueryKey } from "@/lib/appQueryKeys"
 
 const TVDB_ARTWORK_TYPES_STALE_MS = 24 * 60 * 60 * 1000
 const TVDB_SERIES_EXTENDED_STALE_MS = 5 * 60 * 1000
@@ -31,9 +32,14 @@ const TVDB_SEARCH_STALE_MS = 2 * 60 * 1000
 export function useTvdbQueries() {
   const queryClient = useQueryClient()
 
+  const getReverseProxyUrl = (): string | null | undefined => {
+    const helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)
+    return helloData?.reverseProxyUrl
+  }
+
   const getArtworkTypes = useCallback(
     (): Promise<TVDBv4ArtworkTypeRecord[] | undefined> => {
-      const tvdb = getTVDBv4Client()
+      const tvdb = getTVDBv4Client(getReverseProxyUrl())
       return queryClient.fetchQuery({
         queryKey: tvdbArtworkTypesQueryKey(),
         queryFn: async () => {
@@ -48,7 +54,7 @@ export function useTvdbQueries() {
 
   const getSeriesExtended = useCallback(
     (seriesId: number): Promise<TVDBv4SeriesExtendedResponse | undefined> => {
-      const tvdb = getTVDBv4Client()
+      const tvdb = getTVDBv4Client(getReverseProxyUrl())
       return queryClient.fetchQuery({
         queryKey: tvdbSeriesExtendedQueryKey(seriesId),
         queryFn: async () => {
@@ -63,7 +69,7 @@ export function useTvdbQueries() {
 
   const getSeasonExtended = useCallback(
     (seasonId: number): Promise<TVDBv4SeriesSeasonsExtendedResponse | undefined> => {
-      const tvdb = getTVDBv4Client()
+      const tvdb = getTVDBv4Client(getReverseProxyUrl())
       return queryClient.fetchQuery({
         queryKey: tvdbSeasonExtendedQueryKey(seasonId),
         queryFn: async () => {
@@ -78,7 +84,7 @@ export function useTvdbQueries() {
 
   const getMovieExtended = useCallback(
     (movieId: number): Promise<TVDBv4MovieBaseRecord | undefined> => {
-      const tvdb = getTVDBv4Client()
+      const tvdb = getTVDBv4Client(getReverseProxyUrl())
       return queryClient.fetchQuery({
         queryKey: tvdbMovieExtendedQueryKey(movieId),
         queryFn: async () => {
@@ -93,7 +99,7 @@ export function useTvdbQueries() {
 
   const search = useCallback(
     (params: TVDBv4SearchParams): Promise<TVDBv4SearchResult[] | undefined> => {
-      const tvdb = getTVDBv4Client()
+      const tvdb = getTVDBv4Client(getReverseProxyUrl())
       return queryClient.fetchQuery({
         queryKey: tvdbSearchQueryKey(params),
         queryFn: async () => {
@@ -118,7 +124,8 @@ export function useTvdbQueries() {
           const metadata = await fetchTvdbAndBuildTvShowMediaMetadata(
             seriesId,
             lang,
-            {}
+            {},
+            getReverseProxyUrl(),
           )
           if (metadata === undefined) {
             throw new Error(`Failed to fetch TVDB series ${seriesId}`)
@@ -137,7 +144,7 @@ export function useTvdbQueries() {
       return queryClient.fetchQuery({
         queryKey: tvdbMovieMediaMetadataQueryKey(movieId, lang),
         queryFn: async () => {
-          const metadata = await fetchTvdbAndBuildMovieMediaMetadata(movieId, lang, {})
+          const metadata = await fetchTvdbAndBuildMovieMediaMetadata(movieId, lang, {}, getReverseProxyUrl())
           if (metadata === undefined) {
             throw new Error(`Failed to fetch TVDB movie ${movieId}`)
           }

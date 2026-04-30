@@ -1,19 +1,19 @@
 
 import { browser } from '@wdio/globals'
 import * as path from 'node:path'
-import { setup, cleanup, importFolderWithMediaMetadata, isOfficialTmdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
+import { setup, cleanup, importFolderWithMediaMetadata, isOfficialTmdbHostAccessible, isOfficialTvdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import type { UserConfig } from '@smm/core/types'
 import Sidebar from 'test/componentobjects/Sidebar'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
 
-describe('Custom TMDB Host', () => {
+describe('Custom TVDB Host', () => {
 
     before(async () => {
-        const accessible = await isOfficialTmdbHostAccessible()
+        const accessible = await isOfficialTvdbHostAccessible()
         if(!accessible) {
-            throw new Error('Official TMDB host is not accessible')
+            throw new Error('Official TVDB host is not accessible')
         }
         const proxyAccessible = await isReverseProxyAccessible()
         if(!proxyAccessible) {
@@ -23,8 +23,8 @@ describe('Custom TMDB Host', () => {
 
     beforeEach(async () => {
 
-        const tmdbApiKey: string = process.env.TMDB_API_KEY || '';
-        if (!tmdbApiKey || tmdbApiKey.trim() === '') {
+        const tvdbApiKey: string = process.env.TVDB_API_KEY || '';
+        if (!tvdbApiKey || tvdbApiKey.trim() === '') {
             throw new Error('TMDB_API_KEY is not set');
         }
 
@@ -35,9 +35,9 @@ describe('Custom TMDB Host', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: (config: UserConfig) => {
-                config.tmdb = {
-                    host: 'https://api.themoviedb.org/3',
-                    apiKey: tmdbApiKey,
+                config.tvdb = {
+                    host: 'https://api4.thetvdb.com/v4',
+                    apiKey: tvdbApiKey,
                 }
                 return config
             },
@@ -54,7 +54,7 @@ describe('Custom TMDB Host', () => {
         })
     })
 
-    it('Search from custom TMDB host', async function () {
+    it('Search from custom TVDB host', async function () {
         this.timeout(90 * 1000)
 
         const folder = createFolderInTestFolder({
@@ -83,6 +83,7 @@ describe('Custom TMDB Host', () => {
 
         await TVShowPanel.searchbox.input.waitForDisplayed();
         await TVShowPanel.searchbox.input.click();
+        await TVShowPanel.searchbox.setDatabase('TVDB')
         await TVShowPanel.searchbox.searchButton.click();
 
         await browser.waitUntil(

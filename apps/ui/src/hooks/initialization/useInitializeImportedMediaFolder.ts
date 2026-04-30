@@ -38,7 +38,7 @@ export function useInitializeImportedMediaFolder() {
     const setSelectedFolder = useUIMediaFolderStore(state => state.setSelectedFolder)
     const folders = useUIMediaFolderStore(state => state.folders)
     const latestFolders = useLatest(folders);
-    const { addMediaFolderInUserConfig, userConfig } = useConfig();
+    const { addMediaFolderInUserConfig, userConfig, appConfig } = useConfig();
     const latestUserConfig = useLatest(userConfig);
 
     const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
@@ -97,6 +97,7 @@ export function useInitializeImportedMediaFolder() {
         const tmdb = {
             tmdbHost: latestUserConfig.current.tmdb?.host,
             tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+            reverseProxyUrl: appConfig.reverseProxyUrl,
         };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
@@ -197,6 +198,7 @@ export function useInitializeImportedMediaFolder() {
         const tmdb = {
             tmdbHost: latestUserConfig.current.tmdb?.host,
             tmdbApiKey: latestUserConfig.current.tmdb?.apiKey,
+            reverseProxyUrl: appConfig.reverseProxyUrl,
         };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase

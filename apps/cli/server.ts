@@ -57,6 +57,7 @@ import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
+import { createReverseProxyManager, type ReverseProxyManager } from '@/proxy/reverseProxy';
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as Engine } from '@socket.io/bun-engine';
 import { initI18n } from './src/i18n/config';
@@ -73,6 +74,7 @@ export class Server {
   private root: string;
   private io: SocketIOServer;
   private engine: Engine;
+  private proxyManager: ReverseProxyManager;
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
@@ -128,6 +130,8 @@ export class Server {
         duration: `${duration}ms`
       }, 'request completed');
     });
+
+    this.proxyManager = createReverseProxyManager();
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -246,7 +250,7 @@ export class Server {
 
         // Execute task based on name
         if (body.name === 'hello') {
-          const result = await executeHelloTask();
+          const result = await executeHelloTask(this.proxyManager.url);
           return c.json(result);
         }
 
@@ -310,6 +314,12 @@ export class Server {
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(`🚀 Static file server running on http://localhost:${this.port}`);
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
+
+    // Start the reverse proxy before MCP config so it's available for metadata operations
+    this.proxyManager.start().catch((err) =>
+      logger.error({ err }, 'Failed to start reverse proxy'),
+    );
+
     applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
   }
 
@@ -319,6 +329,7 @@ export class Server {
       return;
     }
 
+    this.proxyManager.stop();
     this.server.stop();
     this.server = null;
     logger.info('Server stopped.');
