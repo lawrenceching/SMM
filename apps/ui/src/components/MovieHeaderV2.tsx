@@ -31,7 +31,12 @@ export function MovieHeaderV2({
 
     const folderStatus = selectedMediaFolder?.status
     const movieMeta = selectedMediaMetadata?.movie
-    const isUpdatingMovie = folderStatus === 'updating'
+    const isUpdatingMovie = selectedMediaFolder === undefined
+       || folderStatus === 'idle'
+       || folderStatus === 'pending_for_initialization'
+       || folderStatus === 'initializing'
+       || folderStatus === 'loading'
+       || folderStatus === 'updating'
     const isMediaMetadataOk = folderStatus === 'ok'
     const initialSearchValue = movieMeta?.name ?? ''
 

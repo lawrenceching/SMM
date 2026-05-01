@@ -1,4 +1,4 @@
-import type { MediaFileMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
+import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { extname, join } from "@/lib/path";
@@ -1047,8 +1047,8 @@ export interface OnMediaFolderSelectedParams {
 export interface UnlinkEpisodeParams {
   season: number,
   episode: number,
-  mediaMetadata: UIMediaMetadata | undefined
-  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => Promise<void>
+  mediaMetadata: MediaMetadata | undefined
+  updateMediaMetadata: (path: string, metadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata), options?: { traceId?: string }) => Promise<void>
   t: (key: string, options?: Record<string, unknown>) => string
 }
 

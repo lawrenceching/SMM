@@ -60,12 +60,14 @@ vi.mock('@/hooks/userConfig', () => ({
   })),
 }))
 
+const defaultOkFolder: UIMediaFolder = { path: '/media/movie', status: 'ok' }
+
 describe('MovieHeaderV2', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
     onRenameClick: vi.fn(),
     selectedMediaMetadata: undefined as UIMediaMetadata | undefined,
-    selectedMediaFolder: undefined as UIMediaFolder | undefined,
+    selectedMediaFolder: defaultOkFolder as UIMediaFolder | undefined,
     openScrape: vi.fn(),
   }
 
@@ -266,6 +268,30 @@ describe('MovieHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/movie', status: 'updating' }}
+        />
+      )
+
+      expect(screen.queryByPlaceholderText('movie.searchPlaceholder')).not.toBeInTheDocument()
+    })
+
+    it('shows loading skeleton and hides searchbox when selected folder status is loading', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={{ path: '/media/movie', status: 'loading' }}
+        />
+      )
+
+      expect(screen.queryByPlaceholderText('movie.searchPlaceholder')).not.toBeInTheDocument()
+    })
+
+    it('shows loading skeleton and hides searchbox when selectedMediaFolder is undefined', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMetadata}
+          selectedMediaFolder={undefined}
         />
       )
 

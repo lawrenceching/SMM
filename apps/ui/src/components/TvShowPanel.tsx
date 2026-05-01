@@ -1,10 +1,10 @@
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
-import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
+import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { TMDBTVShow, PreferMediaLanguage } from "@core/types"
+import type { TMDBTVShow } from "@core/types"
+import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 
@@ -17,7 +17,6 @@ import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
 import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
-import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation"
 import { useConfig } from "@/hooks/userConfig"
 import { mapSearchLanguageToTmdb } from "./MediaDatabaseSearchbox"
 import type { SupportedLanguage } from "@/lib/i18n"
@@ -39,14 +38,7 @@ import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanFor
 import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
-import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
-import { fetchTvdbAndBuildTvShowMediaMetadata } from "@/lib/TvdbUtils"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import type { TVDBv4SearchResult } from "@smm/tvdb4"
-import Debug from 'debug'
-import { hello } from "@/api/hello"
-const debug = Debug('TvShowPanel')
-
 interface ToolbarOption {
   value: "plex" | "emby",
   label: string,
@@ -113,92 +105,26 @@ function TvShowPanel() {
   const setSelectedByMediaFolderPath = useCallback((path: string) => {
     useUIMediaFolderStore.getState().applyFolderClick(path, false)
   }, [])
-  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
-  const updateMediaMetadataMutation = useUpdateMediaMetadataMutation()
-  const updateMediaMetadata = useCallback(
-    async (
-      path: string,
-      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-      options?: { traceId?: string },
-    ) => {
-      const pathPosix = normalizeMediaFolderPathForQuery(path)
-      if (!pathPosix) return
-      const current = (await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })) as UIMediaMetadata
-      const next =
-        typeof updaterOrMetadata === "function"
-          ? updaterOrMetadata(current)
-          : updaterOrMetadata
-      await updateMediaMetadataMutation.mutateAsync({
-        pathPosix,
-        metadata: next,
-        traceId: options?.traceId,
-      })
-    },
-    [fetchMediaMetadata, updateMediaMetadataMutation],
-  )
+  const { selectTvShowForFolderMutation, updateMediaMetadata, persistUiMediaMetadata } =
+    useSelectTvShowForFolderMutation()
 
-  /** Write UIMediaMetadata via TanStack Query + Zustand (recognize + rename plans). */
-  const persistUiMediaMetadata = useCallback(
-    async (path: string, metadata: UIMediaMetadata, options?: { traceId?: string }) => {
-      const pathPosix = normalizeMediaFolderPathForQuery(path)
-      await updateMediaMetadataMutation.mutateAsync({
-        pathPosix,
-        metadata,
-        traceId: options?.traceId,
-      })
+  const handleSelectResult = useCallback(
+    (args: SearchResultSelectedArgs) => {
+      const path = mediaMetadata?.mediaFolderPath
+      if (!path) {
+        console.error(`[TvShowPanel] handleSelectResult called with no mediaFolderPath`)
+        return
+      }
+      selectTvShowForFolderMutation.mutate({ mediaFolderPath: path, ...args })
     },
-    [updateMediaMetadataMutation]
+    [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
   const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
   const [openEditMediaFile] = editMediaFileDialog
-  const { userConfig, appConfig } = useConfig()
+  const { userConfig } = useConfig()
   const { getTvShowById } = useTmdbQueries()
-
-  type ApplyTmdbTvShowSelectionVars = {
-    id: number
-    language?: PreferMediaLanguage
-    mediaFolderPath: string
-    traceId: string
-  }
-
-  const applyTmdbTvShowSelectionMutation = useGetTmdbTvShowMutation<ApplyTmdbTvShowSelectionVars>({
-    onMutate: (variables) => {
-      updateMediaMetadata(
-        variables.mediaFolderPath,
-        (prev: UIMediaMetadata) => ({
-          ...prev,
-          status: "updating",
-        }),
-        { traceId: variables.traceId }
-      )
-    },
-    onSuccess: (tvShow, variables) => {
-      updateMediaMetadata(
-        variables.mediaFolderPath,
-        (prev: UIMediaMetadata) => ({
-          ...prev,
-          tvShow,
-          status: "ok",
-        }),
-        { traceId: variables.traceId }
-      )
-    },
-    onError: (error, variables) => {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to get TV show details"
-      )
-      updateMediaMetadata(
-        variables.mediaFolderPath,
-        (prev: UIMediaMetadata) => ({
-          ...prev,
-          status: "error_loading_metadata",
-        }),
-        { traceId: variables.traceId }
-      )
-    },
-  })
 
   const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
   
@@ -217,88 +143,6 @@ function TvShowPanel() {
   const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
   const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
-
-  // TODO: 重构至使用 mutation 和 query
-  const handleSelectResult = useCallback(async (args: SearchResultSelectedArgs) => {
-    const { database, result, searchLanguage } = args;
-    const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
-
-    console.log('[TvShowPanel] handleSelectResult CALLED', {
-      timestamp: new Date().toISOString(),
-      database,
-      result,
-      searchLanguage,
-      stackTrace: new Error().stack,
-    })
-
-    if (database === 'TVDB') {
-
-      const selectedTvdbSearchResult = result as TVDBv4SearchResult
-      const tvdbId = selectedTvdbSearchResult.tvdb_id;
-      const seriesId = parseInt(tvdbId, 10);
-      debug(`start to fetch TVDB series data for series id: ${seriesId}, name: ${selectedTvdbSearchResult.name}`)
-      const reverseProxyUrl = appConfig.reverseProxyUrl ?? (await hello()).reverseProxyUrl ?? null
-      if (!reverseProxyUrl) {
-        toast.error("Reverse proxy URL is not available. Please wait for app initialization to complete.")
-        return
-      }
-      const tvdbTvShow = await fetchTvdbAndBuildTvShowMediaMetadata(seriesId, searchLanguage, {
-        onSeasonsAPIError: (error: Error) => {
-          toast.error(`TVDB Seasons API Error: ${error.message}`)
-        },
-        onSeriesAPIError: (error: Error) => {
-          toast.error(`TVDB Series API Error: ${error.message}`)
-        },
-      }, {
-        reverseProxyUrl,
-        upstreamBaseURL: userConfig.tvdb?.host?.trim(),
-        apiKey: userConfig.tvdb?.apiKey?.trim(),
-      })
-
-      updateMediaMetadata(
-        mediaMetadata!.mediaFolderPath!,
-        (prev: UIMediaMetadata) => {
-          return {
-            ...prev,
-            status: 'updating',
-          }
-        }, 
-        {traceId}
-      )
-
-      if(tvdbTvShow) {
-        debug(`successfully fetched TVDB series data for series id: ${seriesId}, name: ${selectedTvdbSearchResult.name}`)
-        updateMediaMetadata(
-          mediaMetadata!.mediaFolderPath!,
-          (prev: UIMediaMetadata) => {
-            return {
-              ...prev,
-              tmdbTvShow: undefined,
-              tvShow: tvdbTvShow,
-              status: 'ok',
-            }
-          }, 
-          {traceId}
-        )
-      } else {
-        toast.error(`Failed to fetch TVDB series ${seriesId}`)
-      }
-
-    } else {
-        if (!mediaMetadata?.mediaFolderPath) {
-          toast.error("No media metadata available")
-          return
-        }
-
-        applyTmdbTvShowSelectionMutation.mutate({
-          id: result.id,
-          language: searchLanguage,
-          mediaFolderPath: mediaMetadata.mediaFolderPath,
-          traceId,
-        })
-    }
-
-  }, [applyTmdbTvShowSelectionMutation, mediaMetadata, updateMediaMetadata, appConfig.reverseProxyUrl, userConfig.tvdb?.host, userConfig.tvdb?.apiKey, t])
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -738,19 +582,6 @@ function TvShowPanel() {
         toast.error(err instanceof Error ? err.message : 'Recognition failed')
       })
   }, [mediaMetadata, t])
-
-  /**
-   * This method was used when the media folder was selected by user,
-   * trigger the recognition process automatically.
-   * Comment out temporarily because it seems we don't need this.
-   */
-  // const handleMediaFolderSelected = useCallback((mm: UIMediaMetadata): boolean => {
-  //   return onMediaFolderSelected({
-  //     mediaMetadata: mm,
-  //     openRuleBasedRecognizePrompt,
-  //     updateMediaMetadata,
-  //   })
-  // }, [openRuleBasedRecognizePrompt, updateMediaMetadata])
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([]);
   const latestTableData = useLatest(tableData)

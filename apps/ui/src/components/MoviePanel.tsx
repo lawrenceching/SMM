@@ -8,8 +8,7 @@ import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
-import { nextTraceId } from "@/lib/utils"
+import { useSelectMovieForFolderMutation } from "@/hooks/useSelectMovieForFolderMutation"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import { findMediaFilesForMovieMediaMetadata } from "@/lib/MovieMediaMetadataUtils"
@@ -21,8 +20,6 @@ import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import Debug from 'debug'
-import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation"
-import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation"
 const debug = Debug('MoviePanel')
 
 export interface MovieFileModel {
@@ -91,32 +88,13 @@ function MoviePanel() {
   ])
 
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
-  const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation()
-  const updateMediaMetadata = useCallback(
-    async (
-      path: string,
-      updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
-      options?: { traceId?: string },
-    ) => {
-      const pathPosix = normalizeMediaFolderPathForQuery(path)
-      if (!pathPosix) return
-      const current = (await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })) as UIMediaMetadata
-      const next =
-        typeof updaterOrMetadata === "function"
-          ? updaterOrMetadata(current)
-          : updaterOrMetadata
-      await saveMediaMetadata({ pathPosix, metadata: next, traceId: options?.traceId })
-    },
-    [fetchMediaMetadata, saveMediaMetadata],
-  )
+  const { selectMovieForFolderMutation } = useSelectMovieForFolderMutation()
   const refreshMediaMetadata = useCallback(
     async (path: string, options?: { traceId?: string }) => {
       await fetchMediaMetadata({ path, traceId: options?.traceId })
     },
     [fetchMediaMetadata],
   )
-  const { mutate: getTvdbMovie } = useGetTvdbMovieMutation()
-  const { mutate: getTmdbMovie } = useGetTmdbMovieMutation()
   const { scrapeDialog } = useDialogs()
   const [openScrape] = scrapeDialog
 
@@ -264,120 +242,29 @@ function MoviePanel() {
     }
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
 
-  // Handle search result selection
-  const handleSelectResult = useCallback(async (args: SearchResultSelectedArgs) => {
-    debug(`[MoviePanel] handleSelectResult() called`, {
-      args,
-    })
+  const handleSelectResult = useCallback(
+    (args: SearchResultSelectedArgs) => {
+      debug(`[MoviePanel] handleSelectResult() called`, { args })
 
-    if(rawMediaMetadata === undefined) {
-      console.error(`[MoviePanel] handleSelectResult() rawMediaMetadata is undefined, skip`)
-      return
-    }
+      if (rawMediaMetadata === undefined) {
+        console.error(`[MoviePanel] handleSelectResult() rawMediaMetadata is undefined, skip`)
+        return
+      }
 
-    const { database, result, searchLanguage } = args
+      const path = rawMediaMetadata.mediaFolderPath
+      if (!path) {
+        console.error(`[MoviePanel] handleSelectResult() mediaFolderPath is missing, skip`)
+        return
+      }
 
-    const traceId = `MovieSearchResultSelected-${nextTraceId()}`
-    const mediaFolderPath = rawMediaMetadata.mediaFolderPath!
-
-    updateMediaMetadata(mediaFolderPath, {
-      ...rawMediaMetadata,
-      status: 'updating',
-    }, { traceId })
-
-    if(database === 'TVDB') {
-
-      updateMediaMetadata(
-        mediaFolderPath,
-        (prev) => ({
-          ...prev,
-          status: "updating",
-        }),
-        { traceId },
-      )
-
-      getTvdbMovie(
-        {
-          movieId: parseInt(String(result.tvdb_id), 10),
-          language: searchLanguage,
-        },
-        {
-          onSuccess: (movie) => {
-            updateMediaMetadata(
-              mediaFolderPath,
-              (prev) => ({
-                ...prev,
-                movie,
-                status: "ok",
-              }),
-              { traceId },
-            )
-          },
-          onError: (error) => {
-            console.error("Failed to get TVDB movie:", error)
-            toast.error(`Unable to fetch data from TVDB: ${error.message}`)
-            updateMediaMetadata(
-              mediaFolderPath,
-              (prev) => ({
-                ...prev,
-                status: "ok",
-              }),
-              { traceId },
-            )
-          },
-        },
-      )
-
-    } else if(database === 'TMDB') {
-
-      updateMediaMetadata(
-        mediaFolderPath,
-        (prev) => ({
-          ...prev,
-          status: "updating",
-        }),
-        { traceId },
-      )
-      
-      getTmdbMovie(
-        {
-          id: parseInt(String(result.id), 10),
-          language: searchLanguage,
-        },
-        {
-          onSuccess: (movie) => {
-            updateMediaMetadata(
-              mediaFolderPath,
-              (prev) => ({
-                ...prev,
-                movie,
-                status: "ok",
-              }),
-              { traceId },
-            )
-          },
-          onError: (error) => {
-            console.error("Failed to get TMDB movie:", error)
-            toast.error(`Unable to fetch data from TMDB: ${error.message}`)
-            updateMediaMetadata(
-              mediaFolderPath,
-              (prev) => ({
-                ...prev,
-                status: "ok",
-              }),
-              { traceId },
-            )
-          },
-        },
-      )
-
-    } else {
-      toast.error("Invalid database")
-      return
-    }
-
-    
-  }, [updateMediaMetadata, rawMediaMetadata, getTvdbMovie, getTmdbMovie])
+      selectMovieForFolderMutation.mutate({
+        mediaFolderPath: path,
+        baseMetadata: rawMediaMetadata,
+        ...args,
+      })
+    },
+    [rawMediaMetadata, selectMovieForFolderMutation],
+  )
 
   // Handle confirm button click - rename all files
   const handleRuleBasedRenameConfirm = useCallback(async () => {

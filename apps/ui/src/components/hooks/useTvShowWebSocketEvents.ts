@@ -5,7 +5,6 @@ import type {
   AskForRenameFilesConfirmationAddFileResponseData,
 } from "@core/event-types"
 import type { MediaMetadata } from "@core/types"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 interface UseTvShowWebSocketEventsParams {
   mediaMetadata: MediaMetadata | undefined
@@ -17,7 +16,7 @@ interface UseTvShowWebSocketEventsParams {
     onCancel?: () => void
   }) => void
   setAiBasedRenameFileStatus: (status: "generating" | "wait-for-ack") => void
-  updateMediaMetadata: (path: string, updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void | Promise<void>
+  updateMediaMetadata: (path: string, updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata), options?: { traceId?: string }) => void | Promise<void>
 }
 
 export function useTvShowWebSocketEvents({
