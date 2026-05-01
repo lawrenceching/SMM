@@ -296,6 +296,9 @@
       "showColumns": "显示..."
     },
     "noFilesFound": "未找到文件"
+  },
+  "toast": {
+    "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。"
   }
 }
 

@@ -295,6 +295,9 @@
       "showColumns": "顯示..."
     },
     "noFilesFound": "未找到檔案"
+  },
+  "toast": {
+    "noRecognizedFiles": "無法辨識任何劇集。建議改用 AI 辨識。"
   }
 }
 

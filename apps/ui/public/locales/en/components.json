@@ -297,6 +297,9 @@
       "showColumns": "Show..."
     },
     "noFilesFound": "No files found"
+  },
+  "toast": {
+    "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead."
   }
 }
 

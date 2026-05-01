@@ -574,7 +574,7 @@ function TvShowPanel() {
           setPlanById(newPlan.id, { status: 'pending', files: planData.files })
         } else {
           setPlanById(newPlan.id, { status: 'rejected' })
-          toast.error(t('toolbar.noRecognizedFiles', { defaultValue: 'No recognized files found' }))
+          toast.error(t('toast.noRecognizedFiles', { defaultValue: 'Unable to recognize any episodes. Consider using AI to recognize instead.' }))
         }
       })
       .catch(err => {
