@@ -1,5 +1,16 @@
 # cli
 
+## 1.2.0
+
+### Minor Changes
+
+- Support TVDB
+
+### Patch Changes
+
+- Updated dependencies
+  - @smm/tvdb4@1.2.0
+
 ## 1.1.6
 
 ### Patch Changes

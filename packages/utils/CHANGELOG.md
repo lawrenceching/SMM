@@ -1,5 +1,11 @@
 # @smm/utils
 
+## 1.1.0
+
+### Minor Changes
+
+- Support TVDB
+
 ## 1.0.6
 
 ### Patch Changes
