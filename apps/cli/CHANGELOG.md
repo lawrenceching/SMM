@@ -1,5 +1,13 @@
 # cli
 
+## 1.2.1
+
+### Patch Changes
+
+- Support transcribe for TV show and movie folder
+- Updated dependencies
+  - @smm/tvdb4@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @smm/test
 
+## 1.1.1
+
+### Patch Changes
+
+- Support transcribe for TV show and movie folder
+
 ## 1.1.0
 
 ### Minor Changes

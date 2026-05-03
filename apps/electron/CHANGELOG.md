@@ -1,5 +1,11 @@
 # SMM
 
+## 1.2.1
+
+### Patch Changes
+
+- Support transcribe for TV show and movie folder
+
 ## 1.2.0
 
 ### Minor Changes
