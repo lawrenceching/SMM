@@ -42,7 +42,7 @@ export function transcribeDialogRowsFromMediaFiles(
   mediaMetadata: MediaMetadata | undefined,
 ): TranscribeDialogRow[] {
   const files = mediaMetadata?.mediaFiles
-  if (!files?.length) return []
+  if (!mediaMetadata || !files?.length) return []
 
   const folder = mediaMetadata.mediaFolderPath
 
@@ -54,7 +54,7 @@ export function transcribeDialogRowsFromMediaFiles(
       path: absolutePath,
       displayPath,
       status: "pending" as const,
-      title: mediaMetadata ? labelForMediaFile(mediaMetadata, mf) : basename(absolutePath) ?? absolutePath,
+      title: labelForMediaFile(mediaMetadata, mf),
     }
   })
 }

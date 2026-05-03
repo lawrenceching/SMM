@@ -1,3 +1,3 @@
 // This file is auto-generated at build time
 // DO NOT EDIT MANUALLY
-export const APP_VERSION = '1.1.6';
+export const APP_VERSION = '1.2.0';
