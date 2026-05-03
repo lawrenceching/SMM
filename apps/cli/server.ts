@@ -20,6 +20,7 @@ import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleDeleteMediaMetadata } from '@/route/mediaMetadata/delete';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
+import { handleAICheck } from './src/route/AICheck';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
@@ -190,6 +191,7 @@ export class Server {
     handleDeleteMediaMetadata(this.app);
     handleRenameFilesInMediaMetadata(this.app);
     handleMatchMediaFilesToEpisodeRequest(this.app);
+    handleAICheck(this.app);
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);

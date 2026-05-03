@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import type { AI } from "@core/types"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
+import { checkAiConnection } from "@/api/checkAiConnection"
 
 const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
 
@@ -54,6 +55,8 @@ export function AiSettings() {
   // Track current form state
   const [selectedProvider, setSelectedProvider] = useState<AI>(initialState.selectedProvider)
   const [providerConfigs, setProviderConfigs] = useState<Record<AI, { baseURL: string; apiKey: string; model: string }>>(initialState.configs)
+  const [checkStatus, setCheckStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle')
+  const [checkMessage, setCheckMessage] = useState<string>('')
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -74,6 +77,8 @@ export function AiSettings() {
   // Update config when provider changes
   const handleProviderChange = (value: AI) => {
     setSelectedProvider(value)
+    setCheckStatus('idle')
+    setCheckMessage('')
   }
 
   // Update config values
@@ -85,6 +90,28 @@ export function AiSettings() {
         [field]: value,
       },
     }))
+  }
+
+  // Check AI provider connectivity
+  const handleCheck = async () => {
+    const config = providerConfigs[selectedProvider]
+    if (!config.apiKey || !config.model || !config.baseURL) return
+
+    setCheckStatus('checking')
+    setCheckMessage('')
+
+    try {
+      const result = await checkAiConnection(selectedProvider, config.model, config.apiKey, config.baseURL)
+      if (result.status === 'ok') {
+        setCheckStatus('ok')
+      } else {
+        setCheckStatus('error')
+        setCheckMessage('Connection failed')
+      }
+    } catch (err) {
+      setCheckStatus('error')
+      setCheckMessage(err instanceof Error ? err.message : 'Connection failed')
+    }
   }
 
   // Detect changes
@@ -204,6 +231,28 @@ export function AiSettings() {
                 placeholder={t('ai.modelPlaceholder')}
                 data-testid="setting-ai-model"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                onClick={handleCheck}
+                disabled={checkStatus === 'checking' || !currentConfig.apiKey || !currentConfig.model || !currentConfig.baseURL}
+                data-testid="setting-ai-check-button"
+              >
+                {checkStatus === 'checking' ? t('ai.checkChecking') : t('ai.check')}
+              </Button>
+
+              {checkStatus === 'ok' && (
+                <p className="text-sm text-green-600" data-testid="setting-ai-check-success">
+                  {t('ai.checkSuccess')}
+                </p>
+              )}
+              {checkStatus === 'error' && (
+                <p className="text-sm text-red-600" data-testid="setting-ai-check-error">
+                  {checkMessage || t('ai.checkError')}
+                </p>
+              )}
             </div>
           </div>
         </div>

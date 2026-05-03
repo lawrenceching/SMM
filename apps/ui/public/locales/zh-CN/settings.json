@@ -62,7 +62,11 @@
     "apiKey": "API 密钥",
     "apiKeyPlaceholder": "请输入您的 API 密钥",
     "model": "模型",
-    "modelPlaceholder": "模型名称"
+    "modelPlaceholder": "模型名称",
+    "check": "检查",
+    "checkSuccess": "连接成功",
+    "checkError": "连接失败",
+    "checkChecking": "检查中..."
   },
   "feedback": {
     "title": "反馈",

@@ -51,7 +51,11 @@
     "apiKey": "API 金鑰",
     "apiKeyPlaceholder": "請輸入您的 API 金鑰",
     "model": "模型",
-    "modelPlaceholder": "模型名稱"
+    "modelPlaceholder": "模型名稱",
+    "check": "檢查",
+    "checkSuccess": "連接成功",
+    "checkError": "連接失敗",
+    "checkChecking": "檢查中..."
   },
   "feedback": {
     "title": "意見回饋",

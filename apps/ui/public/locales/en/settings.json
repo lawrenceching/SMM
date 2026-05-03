@@ -62,7 +62,11 @@
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "model": "Model",
-    "modelPlaceholder": "model-name"
+    "modelPlaceholder": "model-name",
+    "check": "Check",
+    "checkSuccess": "Connected successfully",
+    "checkError": "Connection failed",
+    "checkChecking": "Checking..."
   },
   "feedback": {
     "title": "Feedback",
