@@ -113,6 +113,33 @@ export interface ScrapeDialogProps {
   mediaMetadata?: MediaMetadata
 }
 
+export type TranscribeRowStatus = "pending" | "running" | "completed" | "failed"
+
+export interface TranscribeDialogRow {
+  id: string
+  /** POSIX absolute path (passed to transcribe API). */
+  path: string
+  /** Shown in the file column when set; defaults to `path`. */
+  displayPath?: string
+  status: TranscribeRowStatus
+  /** Used for job labels and toasts; falls back to basename of path in TranscribeDialog. */
+  title?: string
+}
+
+export interface UITranscribeDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  rows: TranscribeDialogRow[]
+  title?: string
+  description?: string
+  /** When omitted, all rows are selected when the dialog opens. */
+  defaultSelectedIds?: string[]
+  onConfirm?: (selectedIds: string[]) => void | Promise<void>
+}
+
+/** Smart dialog: confirm runs transcribe via background jobs (no external onConfirm). */
+export type TranscribeDialogProps = Omit<UITranscribeDialogProps, "onConfirm">
+
 export interface TrackProperties {
   id: number
   title?: string

@@ -19,6 +19,9 @@ import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
+import { TranscribeDialog } from "@/components/dialogs"
+import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
 
@@ -127,6 +130,13 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [rawMediaMetadata])
 
+  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus()
+  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
+  const transcribeDialogRows = useMemo(
+    () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
+    [mediaMetadata],
+  )
+  const hasTranscribeTargets = transcribeDialogRows.length > 0
 
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
@@ -325,10 +335,19 @@ function MoviePanel() {
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
+      <TranscribeDialog
+        isOpen={isTranscribeOpen}
+        onClose={() => setIsTranscribeOpen(false)}
+        rows={transcribeDialogRows}
+      />
+
       <div className="shrink-0 px-4 pt-4">
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
+          onTranscribeClick={() => setIsTranscribeOpen(true)}
+          isTranscribeAvailable={isTranscribeAvailable}
+          hasTranscribeTargets={hasTranscribeTargets}
           selectedMediaMetadata={
             mediaMetadata && rawMediaMetadata
               ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)

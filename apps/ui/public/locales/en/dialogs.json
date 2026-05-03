@@ -71,6 +71,23 @@
     "start": "Start",
     "done": "Done"
   },
+  "transcribe": {
+    "defaultTitle": "Transcribe",
+    "defaultDescription": "Choose which files to transcribe.",
+    "columns": {
+      "filePath": "File path",
+      "status": "Status"
+    },
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "noFiles": "No files",
+    "confirm": "Transcribe",
+    "selectAllAria": "Select all files"
+  },
   "openFolder": {
     "title": "Select Folder Type",
     "description": "Choose the type of media folder you want to open",

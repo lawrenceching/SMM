@@ -389,6 +389,23 @@ interface DialogsResources {
     start: string
     done: string
   }
+  transcribe: {
+    defaultTitle: string
+    defaultDescription: string
+    columns: {
+      filePath: string
+      status: string
+    }
+    status: {
+      running: string
+      completed: string
+      failed: string
+      pending: string
+    }
+    noFiles: string
+    confirm: string
+    selectAllAria: string
+  }
   editMediaFile: {
     title: string
     description: string

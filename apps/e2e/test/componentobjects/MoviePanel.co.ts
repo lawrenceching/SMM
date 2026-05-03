@@ -24,6 +24,11 @@ class MoviePanelComponentObject {
         return SearchboxCO
     }
 
+    /** Matches {@link MovieHeaderV2} transcribe control. */
+    get transcribeButton() {
+        return $('[data-testid="movie-header-transcribe"]')
+    }
+
     async waitForTitleToBe(expected: string, timeout: number = 10000): Promise<void> {
         await this.searchbox.waitForTitleToBe(expected, timeout)
     }

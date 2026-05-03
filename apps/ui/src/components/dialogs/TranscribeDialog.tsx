@@ -1,0 +1,62 @@
+import { useCallback } from "react"
+import { toast } from "sonner"
+import { basename } from "@/lib/path"
+import { UITranscribeDialog } from "./UITranscribeDialog"
+import type { TranscribeDialogProps } from "./types"
+import { transcribeTracksWithFeedback } from "@/lib/transcribeFeedback"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
+
+/**
+ * Closes immediately after confirm, then runs transcribe in the background (toasts + background jobs).
+ */
+export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogProps) {
+  const {
+    createTranscribeJob,
+    markTranscribeJobRunning,
+    markTranscribeJobSucceeded,
+    markTranscribeJobFailed,
+  } = useBackgroundJobsStore()
+
+  const handleConfirm = useCallback(
+    (selectedIds: string[]) => {
+      const byId = new Map(rows.map((r) => [r.id, r]))
+      const feedbackRows: { title: string; path: string }[] = []
+      for (const id of selectedIds) {
+        const row = byId.get(id)
+        if (!row?.path) {
+          toast.error(
+            `Track "${row?.title ?? id}" does not have an associated file path.`,
+          )
+          continue
+        }
+        const displayTitle = row.title?.trim() || basename(row.path) || row.path
+        feedbackRows.push({ title: displayTitle, path: row.path })
+      }
+      if (feedbackRows.length === 0) return
+      onClose()
+      void transcribeTracksWithFeedback(feedbackRows, {
+        createTranscribeJob,
+        markTranscribeJobRunning,
+        markTranscribeJobSucceeded,
+        markTranscribeJobFailed,
+      })
+    },
+    [
+      rows,
+      onClose,
+      createTranscribeJob,
+      markTranscribeJobRunning,
+      markTranscribeJobSucceeded,
+      markTranscribeJobFailed,
+    ],
+  )
+
+  return (
+    <UITranscribeDialog
+      {...rest}
+      rows={rows}
+      onClose={onClose}
+      onConfirm={handleConfirm}
+    />
+  )
+}

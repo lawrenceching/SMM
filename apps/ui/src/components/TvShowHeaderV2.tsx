@@ -1,6 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop } from "lucide-react"
+import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -20,6 +20,11 @@ export interface TvShowHeaderV2Props {
     onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
+    /** Opens transcribe dialog when VideoCaptioner is available and there are video files. */
+    onTranscribeClick?: () => void
+    isTranscribeAvailable?: boolean
+    /** True when `mediaFiles` has at least one entry (caller-derived). */
+    hasTranscribeTargets?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -31,6 +36,9 @@ export function TvShowHeaderV2({
     onSearchResultSelected,
     onRecognizeButtonClick,
     onRenameClick,
+    onTranscribeClick,
+    isTranscribeAvailable = false,
+    hasTranscribeTargets = false,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -62,6 +70,11 @@ export function TvShowHeaderV2({
     const database = tvShow?.database ?? movie?.database
     const mediaId = tvShow?.id ?? movie?.id
     const mediaName = tvShow?.name ?? movie?.name ?? ''
+    const transcribeBlocked =
+        actionsDisabled ||
+        !hasTranscribeTargets ||
+        !isTranscribeAvailable
+
     const hasExternalId = !!mediaId
     const externalUrl = hasExternalId
         ? database === 'TVDB'
@@ -196,6 +209,17 @@ export function TvShowHeaderV2({
                             >
                                 <Download className="size-4 mr-2" />
                                 {t('tvShow.scrape', { ns: 'components' })}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="hidden @[200px]:inline-flex"
+                                data-testid="tvshow-header-transcribe"
+                                disabled={transcribeBlocked}
+                                onClick={() => onTranscribeClick?.()}
+                            >
+                                <Captions className="size-4 mr-2" />
+                                {t('mediaPlayer.trackContextMenu.transcribe', { ns: 'components' })}
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

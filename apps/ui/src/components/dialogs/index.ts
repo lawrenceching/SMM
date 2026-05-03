@@ -13,6 +13,8 @@ export { FilePropertyDialog } from "./file-property-dialog"
 export { FormatConverterDialog } from "./format-converter-dialog"
 export { DeleteTrackDialog } from "./delete-track-dialog"
 export { EditMediaFileDialog } from "./edit-media-file-dialog"
+export { TranscribeDialog } from "./TranscribeDialog"
+export { UITranscribeDialog } from "./UITranscribeDialog"
 
 export type {
   DialogConfig,
@@ -35,5 +37,9 @@ export type {
   DeleteTrackDialogProps,
   EditMediaFileDialogProps,
   OpenEditMediaFileOptions,
+  TranscribeRowStatus,
+  TranscribeDialogRow,
+  TranscribeDialogProps,
+  UITranscribeDialogProps,
 } from "./types"
 

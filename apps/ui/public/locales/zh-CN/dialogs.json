@@ -71,6 +71,23 @@
     "start": "开始",
     "done": "完成"
   },
+  "transcribe": {
+    "defaultTitle": "生成字幕",
+    "defaultDescription": "选择要生成字幕的文件。",
+    "columns": {
+      "filePath": "文件路径",
+      "status": "状态"
+    },
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "pending": "等待中"
+    },
+    "noFiles": "没有文件",
+    "confirm": "开始生成字幕",
+    "selectAllAria": "全选文件"
+  },
   "openFolder": {
     "title": "选择文件夹类型",
     "description": "选择要打开的媒体文件夹类型",

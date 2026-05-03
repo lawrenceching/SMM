@@ -1,6 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, MoreVertical, ExternalLink } from "lucide-react"
+import { FileEdit, Download, MoreVertical, ExternalLink, Captions } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -15,6 +15,9 @@ import { useTranslation } from "@/lib/i18n"
 export interface MovieHeaderV2Props {
     onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRenameClick?: () => void
+    onTranscribeClick?: () => void
+    isTranscribeAvailable?: boolean
+    hasTranscribeTargets?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -23,6 +26,9 @@ export interface MovieHeaderV2Props {
 export function MovieHeaderV2({
     onSearchResultSelected,
     onRenameClick,
+    onTranscribeClick,
+    isTranscribeAvailable = false,
+    hasTranscribeTargets = false,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -51,6 +57,10 @@ export function MovieHeaderV2({
     const mediaId = movieMeta?.id
     const mediaName = movieMeta?.name ?? ''
     const isTmdb = database === 'TMDB'
+    const transcribeBlocked =
+        actionsDisabled ||
+        !hasTranscribeTargets ||
+        !isTranscribeAvailable
     const hasExternalId = !!mediaId
     const externalUrl = hasExternalId
         ? isTmdb
@@ -114,6 +124,16 @@ export function MovieHeaderV2({
                             >
                                 <Download className="size-4 mr-2" />
                                 {t('movie.scrape', { ns: 'components' })}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                data-testid="movie-header-transcribe"
+                                disabled={transcribeBlocked}
+                                onClick={() => onTranscribeClick?.()}
+                            >
+                                <Captions className="size-4 mr-2" />
+                                {t('mediaPlayer.trackContextMenu.transcribe', { ns: 'components' })}
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

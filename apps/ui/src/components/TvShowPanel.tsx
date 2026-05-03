@@ -30,6 +30,9 @@ import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolder
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
+import { TranscribeDialog } from "@/components/dialogs"
+import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
 import { fetchPlans, savePlan } from "@/actions/planActions"
@@ -134,6 +137,14 @@ function TvShowPanel() {
   ]
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
+
+  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus()
+  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
+  const transcribeDialogRows = useMemo(
+    () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
+    [mediaMetadata],
+  )
+  const hasTranscribeTargets = transcribeDialogRows.length > 0
 
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
   const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
@@ -726,6 +737,12 @@ function TvShowPanel() {
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       <TvShowPanelPrompts />
 
+      <TranscribeDialog
+        isOpen={isTranscribeOpen}
+        onClose={() => setIsTranscribeOpen(false)}
+        rows={transcribeDialogRows}
+      />
+
       <div className="shrink-0 px-4 pt-4">
         <TvShowHeaderV2
           onSearchResultSelected={handleSelectResult}
@@ -796,6 +813,9 @@ function TvShowPanel() {
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
+          onTranscribeClick={() => setIsTranscribeOpen(true)}
+          isTranscribeAvailable={isTranscribeAvailable}
+          hasTranscribeTargets={hasTranscribeTargets}
           episodeTableLayout={episodeTableLayout}
           onEpisodeTableLayoutChange={setEpisodeTableLayout}
         />

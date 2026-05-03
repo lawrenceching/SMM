@@ -227,7 +227,7 @@
       "downloadStart": "开始",
       "downloadStop": "停止",
       "downloadRemove": "删除",
-      "transcribe": "转录"
+      "transcribe": "生成字幕"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"

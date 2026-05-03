@@ -226,7 +226,7 @@
       "downloadStart": "開始",
       "downloadStop": "停止",
       "downloadRemove": "刪除",
-      "transcribe": "轉錄"
+      "transcribe": "產生字幕"
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"

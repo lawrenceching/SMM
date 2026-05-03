@@ -29,7 +29,10 @@ import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
-import { transcribeWithVideoCaptioner } from "@/api/videocaptioner";
+import {
+  transcribeTrackWithFeedback,
+  transcribeTracksWithFeedback,
+} from "@/lib/transcribeFeedback";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 
@@ -38,51 +41,6 @@ interface PendingDelete {
   trackTitle: string;
   currentFiles: string[];
   fileIndex: number;
-}
-
-interface TranscribeDeps {
-  createTranscribeJob: (trackTitle: string, mediaPath: string) => string;
-  markTranscribeJobRunning: (id: string) => void;
-  markTranscribeJobSucceeded: (id: string) => void;
-  markTranscribeJobFailed: (id: string) => void;
-}
-
-export async function transcribeTracksWithFeedback(rows: MusicFileRow[], deps: TranscribeDeps): Promise<void> {
-  const queued = rows
-    .filter((row) => {
-      if (row.path) return true;
-      toast.error(`Track "${row.title}" does not have an associated file path.`);
-      return false;
-    })
-    .map((row) => {
-      const mediaPath = Path.toPlatformPath(row.path!);
-      const jobId = deps.createTranscribeJob(row.title, mediaPath);
-      return { row, mediaPath, jobId };
-    });
-
-  for (const item of queued) {
-    deps.markTranscribeJobRunning(item.jobId);
-    toast.success(`Transcribe start: "${item.row.title}".`);
-    try {
-      const result = await transcribeWithVideoCaptioner({ mediaPath: item.mediaPath });
-      if (result.error) {
-        deps.markTranscribeJobFailed(item.jobId);
-        toast.error(`Could not transcribe "${item.row.title}". ${result.error}`);
-        continue;
-      }
-      deps.markTranscribeJobSucceeded(item.jobId);
-      toast.success(`Transcription completed for "${item.row.title}".`);
-    } catch (error) {
-      deps.markTranscribeJobFailed(item.jobId);
-      toast.error(
-        `Could not transcribe "${item.row.title}". ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  }
-}
-
-export async function transcribeTrackWithFeedback(row: MusicFileRow, deps: TranscribeDeps): Promise<void> {
-  await transcribeTracksWithFeedback([row], deps);
 }
 
 export function syncTracks(prev: Track[], localTracks: Track[]) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { transcribeTrackWithFeedback, transcribeTracksWithFeedback } from './MusicPanel'
+import { transcribeTrackWithFeedback, transcribeTracksWithFeedback } from '@/lib/transcribeFeedback'
 import { toast } from 'sonner'
 
 const h = vi.hoisted(() => ({
@@ -15,7 +15,7 @@ vi.mock('@/api/videocaptioner', () => ({
 }))
 vi.mock('sonner')
 
-describe('MusicPanel transcribe feedback', () => {
+describe('transcribeFeedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(toast.success).mockImplementation(() => 'toast-id')

@@ -71,6 +71,23 @@
     "start": "開始",
     "done": "完成"
   },
+  "transcribe": {
+    "defaultTitle": "產生字幕",
+    "defaultDescription": "揀邊啲檔案要產生字幕。",
+    "columns": {
+      "filePath": "檔案路徑",
+      "status": "狀態"
+    },
+    "status": {
+      "running": "執行中",
+      "completed": "已完成",
+      "failed": "失敗",
+      "pending": "等待中"
+    },
+    "noFiles": "冇檔案",
+    "confirm": "開始產生字幕",
+    "selectAllAria": "全選檔案"
+  },
   "openFolder": {
     "title": "選擇資料夾類型",
     "description": "選擇要開啟的媒體資料夾類型",
