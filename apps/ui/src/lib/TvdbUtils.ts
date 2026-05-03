@@ -13,6 +13,14 @@ export interface TvdbUpstream {
 
 const debug = Debug('TvdbUtils')
 
+function isParallelTranslationEnabled(): boolean {
+  try {
+    return localStorage.getItem("feature.parallelTvdbTranslationRequest") !== "false"
+  } catch {
+    return true
+  }
+}
+
 /**
  * The TVDB search API return object id in form "series-421069".
  * This function return the number id extracted from the object id.
@@ -154,62 +162,108 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
             })
         }
 
-        for(const season of seasons) {
+        // Collect episode data across all seasons
+        interface EpisodeData {
+          episodeId: number
+          seasonNumber: number
+          episodeNumber: number
+          defaultName: string
+          needsTranslation: boolean
+        }
+        const allEpisodes: EpisodeData[] = []
 
-            const seasonId = season.id;
-            
-            const seasonResp = await tvdb.seasonExtendedById(seasonId)
-            
-            if(seasonResp.status === 'success') {
-                for (const episode of seasonResp.data.episodes) {
-                    const mediaSeason = m.seasons.find((s) => s.season === episode.seasonNumber);
-                    // season (TVDB `season` in outer loop) nameTranslations: could use
-                    // GET /seasons/{id}/translations/{lang} to populate mediaSeason.name when needed.
+        for (const season of seasons) {
+          const seasonId = season.id
+          const seasonResp = await tvdb.seasonExtendedById(seasonId)
 
-                    let episodeName = episode.name;
-                    if (episode.nameTranslations?.includes(tvdbLangCode)) {
-                        try {
-                            const tr = await tvdb.episodeTranslationByLangCode(episode.id, tvdbLangCode);
-                            if (tr.status === 'success') {
-                                const translated = tr.data['name'];
-                                if (typeof translated === 'string' && translated.trim()) {
-                                    episodeName = translated;
-                                }
-                            } else {
-                                console.warn(`Failed to get TVDB episode ${episode.id} translation (${tvdbLangCode}): ${tr.message ?? 'N/A'}`)
-                            }
-                        } catch (e) {
-                            console.warn(
-                                `TVDB episode ${episode.id} translation (${tvdbLangCode}) failed; using default title`,
-                                e,
-                            );
-                        }
-                    }
-
-                    if (mediaSeason) {
-                        mediaSeason.episodes.push({
-                            season: episode.seasonNumber,
-                            episode: episode.number,
-                            name: episodeName,
-                        });
-                    } else {
-                        console.warn(`Failed to find season ${episode.seasonNumber} in TVDB series ${seriesId}`)
-                        m.seasons.push({
-                            season: episode.seasonNumber,
-                            name: 'N/A',
-                            episodes: [{
-                                season: episode.seasonNumber,
-                                episode: episode.number,
-                                name: episodeName,
-                            }],
-                        })
-                    }
-                }
-            } else {
-                console.warn(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`)
-                callbacks.onSeasonsAPIError?.(new Error(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`))
+          if (seasonResp.status === 'success') {
+            for (const episode of seasonResp.data.episodes) {
+              allEpisodes.push({
+                episodeId: episode.id,
+                seasonNumber: episode.seasonNumber,
+                episodeNumber: episode.number,
+                defaultName: episode.name,
+                needsTranslation:
+                  episode.nameTranslations?.includes(tvdbLangCode) ?? false,
+              })
             }
+          } else {
+            console.warn(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`)
+            callbacks.onSeasonsAPIError?.(new Error(`Failed to get TVDB season ${seasonId}: ${seasonResp.message ?? 'N/A'}`))
+          }
+        }
 
+        // Resolve episode translations
+        const translationResults = new Map<number, string>()
+        const episodesToTranslate = allEpisodes.filter((e) => e.needsTranslation)
+
+        if (episodesToTranslate.length > 0) {
+          if (isParallelTranslationEnabled()) {
+            const promises = episodesToTranslate.map((e) =>
+              tvdb
+                .episodeTranslationByLangCode(e.episodeId, tvdbLangCode)
+                .then((tr) =>
+                  tr.status === 'success'
+                    ? (tr.data as Record<string, string> | undefined)?.['name']
+                    : undefined,
+                )
+                .catch(() => undefined),
+            )
+            const results = await Promise.allSettled(promises)
+            results.forEach((result, idx) => {
+              const ep = episodesToTranslate[idx]
+              if (result.status === 'fulfilled' && typeof result.value === 'string' && result.value.trim()) {
+                translationResults.set(ep.episodeId, result.value.trim())
+              }
+            })
+          } else {
+            for (const ep of episodesToTranslate) {
+              try {
+                const tr = await tvdb.episodeTranslationByLangCode(ep.episodeId, tvdbLangCode)
+                if (tr.status === 'success') {
+                  const translated = tr.data['name']
+                  if (typeof translated === 'string' && translated.trim()) {
+                    translationResults.set(ep.episodeId, translated.trim())
+                  }
+                } else {
+                  console.warn(
+                    `Failed to get TVDB episode ${ep.episodeId} translation (${tvdbLangCode}): ${tr.message ?? 'N/A'}`,
+                  )
+                }
+              } catch (e) {
+                console.warn(
+                  `TVDB episode ${ep.episodeId} translation (${tvdbLangCode}) failed; using default title`,
+                  e,
+                )
+              }
+            }
+          }
+        }
+
+        // Push episodes into seasons
+        for (const ep of allEpisodes) {
+          const episodeName = translationResults.get(ep.episodeId) || ep.defaultName
+          const mediaSeason = m.seasons.find((s) => s.season === ep.seasonNumber)
+          if (mediaSeason) {
+            mediaSeason.episodes.push({
+              season: ep.seasonNumber,
+              episode: ep.episodeNumber,
+              name: episodeName,
+            })
+          } else {
+            console.warn(`Failed to find season ${ep.seasonNumber} in TVDB series ${seriesId}`)
+            m.seasons.push({
+              season: ep.seasonNumber,
+              name: 'N/A',
+              episodes: [
+                {
+                  season: ep.seasonNumber,
+                  episode: ep.episodeNumber,
+                  name: episodeName,
+                },
+              ],
+            })
+          }
         }
 
     } else {
