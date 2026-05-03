@@ -11,7 +11,7 @@ async function getLanguage() {
   return userConfig.applicationLanguage ?? 'zh-CN';
 }
 
-async function getSelectedMediaFolder(_clientId?: string) {
+export async function getSelectedMediaFolder(_clientId?: string) {
 
   let clientId: string | undefined = _clientId;
   if(clientId === undefined) {

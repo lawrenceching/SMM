@@ -160,7 +160,9 @@
         "label": "Rename files according to Plex rules",
         "prompt": "Organize the current media folder according to Plex rules\nPlex rules are:\n{SeasonFolder}/{TV Show/Anime Name} - S{Season}E{Episode} - {Title}.{Extension}"
       }
-    }
+    },
+    "clearChat": "Clear chat",
+    "clearChatTooltip": "Clear conversation with the AI"
   },
   "statusBar": {
     "mcp": {

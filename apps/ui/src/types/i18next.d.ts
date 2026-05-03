@@ -182,6 +182,8 @@ interface ComponentsResources {
         prompt: string
       }
     }
+    clearChat: string
+    clearChatTooltip: string
   }
   statusBar: {
     mcp: {

@@ -12,6 +12,8 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  useAssistantApi,
+  useAssistantState,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -24,6 +26,7 @@ import {
   PencilIcon,
   RefreshCwIcon,
   SquareIcon,
+  EraserIcon,
 } from "lucide-react";
 import { useMemo, type FC } from "react";
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
@@ -33,6 +36,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useConfig } from "@/hooks/userConfig";
 import type { AI, AIConfig } from "@core/types";
 import { useDialogs } from "@/providers/dialog-provider";
+import { resetFolderSwitchTrackingForCurrentPath } from "@/ai/pendingFolderSwitch";
 
 export const Thread: FC = () => {
   const { userConfig } = useConfig();
@@ -246,12 +250,46 @@ function short(path: string, maxLength: number) {
 }
 
 const ComposerAction: FC = () => {
-  const { selectedFolder } = useUIMediaFolderStoreState()
-  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const { t } = useTranslation("components");
+  const api = useAssistantApi();
+  const { selectedFolder } = useUIMediaFolderStoreState();
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(
+    selectedFolder || undefined,
+  );
+  const isRunning = useAssistantState((s) => s.thread.isRunning);
+  const isEmpty = useAssistantState((s) => s.thread.isEmpty);
+
+  const clearChatDisabled = isRunning || isEmpty;
+  const folderPath = selectedMediaMetadata?.mediaFolderPath ?? "";
+
+  const handleClearChat = () => {
+    if (clearChatDisabled) return;
+    void (async () => {
+      await api.thread().reset();
+      await api.composer().reset();
+      resetFolderSwitchTrackingForCurrentPath(folderPath);
+    })();
+  };
 
   return (
     <div className="aui-composer-action-wrapper relative mx-2 mb-2 flex items-center justify-between">
-      <Badge variant="secondary">{short(selectedMediaMetadata?.mediaFolderPath ?? '', 8)}</Badge>
+      <div className="flex min-w-0 items-center gap-2">
+        <Badge variant="secondary">
+          {short(folderPath, 8)}
+        </Badge>
+        <TooltipIconButton
+          type="button"
+          tooltip={t("thread.clearChatTooltip")}
+          side="top"
+          variant="outline"
+          size="icon"
+          disabled={clearChatDisabled}
+          onClick={handleClearChat}
+          className="aui-composer-clear-chat size-7 shrink-0 rounded-md"
+        >
+          <EraserIcon className="size-4" />
+        </TooltipIconButton>
+      </div>
 
       <AssistantIf condition={({ thread }) => !thread.isRunning}>
         <ComposerPrimitive.Send asChild>
