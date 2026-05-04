@@ -25,18 +25,24 @@ export type PrimaryDatabase = 'TMDB' | 'TVDB'
 export type PreferMediaLanguage = 'zh-CN' | 'en-US' | 'ja-JP'
 
 export interface OpenAICompatibleConfig {
+  name?: string
   baseURL?: string
   apiKey?: string
   model?: string
 }
 
-export interface AIConfig {
-  deepseek: OpenAICompatibleConfig
-  openAI: OpenAICompatibleConfig
-  openrouter: OpenAICompatibleConfig
-  glm: OpenAICompatibleConfig
-  other: OpenAICompatibleConfig
-}
+/**
+ * Default AI provider configurations shipped with the app.
+ */
+export const DEFAULT_AI_PROVIDERS: OpenAICompatibleConfig[] = [
+  { name: 'DeepSeek', baseURL: 'https://api.deepseek.com', apiKey: '', model: 'deepseek-v4-flash' },
+  { name: 'OpenAI', baseURL: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o' },
+  { name: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: '', model: 'deepseek/deepseek-v4-flash' },
+  { name: 'GLM', baseURL: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', model: 'GLM-4.5' },
+  { name: 'Other', baseURL: '', apiKey: '', model: '' },
+]
+
+export const DEFAULT_SELECTED_AI_PROVIDER = 'DeepSeek'
 
 /**
  * Represent the user configuration, which is editable to the user.
@@ -73,8 +79,19 @@ export interface UserConfig {
    * Whether dry run mode is enabled
    */
   dryRun: boolean
-  ai?: AIConfig
-  selectedAI?: AI
+  ai?: Record<string, OpenAICompatibleConfig>
+  /** @deprecated Use selectedAIProvider instead. */
+  selectedAI?: string
+  /**
+   * Array of AI provider configurations.
+   * Replaces the old object-based 'ai' field.
+   */
+  aiProviders?: OpenAICompatibleConfig[]
+  /**
+   * Name of the currently selected AI provider.
+   * Must match the name field of an entry in aiProviders.
+   */
+  selectedAIProvider?: string
   selectedTMDBIntance?: TMDBInstance
   /**
    * The name of rename rule
@@ -219,7 +236,6 @@ export interface ReadImageResponseBody {
   error?: string;
 }
 
-export type AI = "OpenAI" | "DeepSeek" | "OpenRouter" | "GLM" | "Other"
 export type TMDBInstance = "public" | "customized"
 
 export interface RenameRuleVariable {

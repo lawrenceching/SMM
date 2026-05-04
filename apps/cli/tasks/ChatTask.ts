@@ -29,7 +29,7 @@ interface ChatRequest {
 export async function processChatRequest(request: Request): Promise<Response> {
 
   const userConfig = await getUserConfig();
-  if(userConfig.selectedAI === undefined) {
+  if(!userConfig.selectedAIProvider) {
     return new Response(
       JSON.stringify({ error: 'No AI selected' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -87,7 +87,7 @@ export async function processChatRequest(request: Request): Promise<Response> {
     // Convert UI messages to model messages format
     const modelMessages = await convertToModelMessages(messages || []);
 
-    logger.debug({ selectedAI: userConfig.selectedAI, model: model || defaultModel }, 'Using AI model configuration');
+    logger.debug({ selectedAIProvider: userConfig.selectedAIProvider, model: model || defaultModel }, 'Using AI model configuration');
 
     const result = streamText({
       model: aiProvider.chatModel(model || defaultModel),

@@ -34,7 +34,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
 import { useConfig } from "@/hooks/userConfig";
-import type { AI, AIConfig } from "@core/types";
+import type { OpenAICompatibleConfig } from "@core/types";
 import { useDialogs } from "@/providers/dialog-provider";
 import { resetFolderSwitchTrackingForCurrentPath } from "@/ai/pendingFolderSwitch";
 
@@ -42,9 +42,9 @@ export const Thread: FC = () => {
   const { userConfig } = useConfig();
   
   const ready = useMemo(() => {
-    const selectedAI = userConfig.selectedAI;
-    if (selectedAI === undefined) return false;
-    return isAIReady(selectedAI, userConfig.ai);
+    const selectedAIProvider = userConfig.selectedAIProvider;
+    if (!selectedAIProvider) return false;
+    return isAIReady(selectedAIProvider, userConfig.aiProviders);
   }, [userConfig]);
 
   return (
@@ -93,26 +93,15 @@ const ThreadScrollToBottom: FC = () => {
   );
 };
 
-const AI_TO_CONFIG_KEY: Record<AI, keyof AIConfig> = {
-  OpenAI: "openAI",
-  DeepSeek: "deepseek",
-  OpenRouter: "openrouter",
-  GLM: "glm",
-  Other: "other",
-};
+function isAIReady(selectedProviderName: string, aiProviders?: OpenAICompatibleConfig[]): boolean {
+  const provider = aiProviders?.find(p => p.name === selectedProviderName);
+  if (!provider) return false;
 
-function isAIReady(selectedAI: AI, ai?: AIConfig): boolean {
-  const key = AI_TO_CONFIG_KEY[selectedAI];
-  const config = ai?.[key];
-  if (!config) return false;
+  const baseURL = typeof provider.baseURL === "string" ? provider.baseURL.trim() : "";
+  const model = typeof provider.model === "string" ? provider.model.trim() : "";
+  const apiKey = typeof provider.apiKey === "string" ? provider.apiKey.trim() : "";
 
-  const baseURL = typeof config.baseURL === "string" ? config.baseURL.trim() : "";
-  const model = typeof config.model === "string" ? config.model.trim() : "";
-  const apiKey = typeof config.apiKey === "string" ? config.apiKey.trim() : "";
-
-  if (!baseURL || !model) return false;
-  const apiKeyOptional = selectedAI === "Other";
-  if (!apiKeyOptional && !apiKey) return false;
+  if (!baseURL || !model || !apiKey) return false;
   return true;
 }
 
@@ -145,7 +134,7 @@ const ThreadWelcome: FC<ThreadWelcomeProps> = ({ ready }) => {
           {!ready && (
             <>
               <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in text-muted-foreground text-xl delay-75 duration-200">
-                {t('thread.welcome.configNotComplete' as any, { selectedAI: userConfig.selectedAI || '' }) as string}
+                {t('thread.welcome.configNotComplete' as any, { selectedAIProvider: userConfig.selectedAIProvider || '' }) as string}
               </p>
               <p>
                 <a onClick={() => openConfig('ai')} className="cursor-pointer underline hover:text-foreground font-bold">

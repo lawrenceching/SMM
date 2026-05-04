@@ -8,51 +8,15 @@ import { delay } from 'es-toolkit'
 
 const slowdown = process.env.SLOWDOWN === 'true'
 
-// AI providers to test
-const aiProviders = ['OpenAI', 'DeepSeek', 'OpenRouter', 'GLM', 'Other']
-
-// Test data for each provider
-const testData: Record<string, { baseUrl: string; apiKey: string; model: string }> = {
-    'OpenAI': {
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: 'test-openai-key-12345',
-        model: 'gpt-4o'
-    },
-    'DeepSeek': {
-        baseUrl: 'https://api.deepseek.com/v1',
-        apiKey: 'test-deepseek-key-67890',
-        model: 'deepseek-v4-flash'
-    },
-    'OpenRouter': {
-        baseUrl: 'https://openrouter.ai/api/v1',
-        apiKey: 'test-openrouter-key-abcde',
-        model: 'anthropic/claude-3-opus'
-    },
-    'GLM': {
-        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-        apiKey: 'test-glm-key-fghij',
-        model: 'glm-4'
-    },
-    'Other': {
-        baseUrl: 'https://custom-ai.example.com/v1',
-        apiKey: 'test-other-key-klmno',
-        model: 'custom-model'
-    }
-}
-
 describe('Config Dialog AI Settings', () => {
     before(async () => {
         await createBeforeHook({ setupMediaFolders: false })()
     })
 
     beforeEach(async () => {
-        // Refresh page before each test to reset page state
         await reloadAndWaitForReady()
     })
 
-    /**
-     * Helper function to reload page and wait for it to be ready
-     */
     async function reloadAndWaitForReady(): Promise<void> {
         await Page.refresh()
         await browser.waitUntil(async () => {
@@ -61,261 +25,248 @@ describe('Config Dialog AI Settings', () => {
             timeout: 10000,
             timeoutMsg: 'Status bar was not displayed after page reload'
         })
-        // Add a small delay to let the UI stabilize after reload
         await browser.pause(500)
         console.log('Page reloaded and ready')
     }
 
-    /**
-     * Helper function to save settings and close dialog + menu
-     */
     async function saveAndCloseDialog(): Promise<void> {
         await ConfigDialog.clickSave()
-        // Press Escape twice: once to close dialog, once to close menu dropdown
         await ConfigDialog.pressEscape()
         await browser.pause(200)
         await ConfigDialog.pressEscape()
         await ConfigDialog.waitForClosed()
     }
 
-    /**
-     * Helper function to open AI settings in config dialog
-     */
     async function openAiSettings(): Promise<void> {
         console.log('Opening config dialog...')
         await Menu.openConfigDialog()
         await ConfigDialog.waitForDisplayed()
         expect(await ConfigDialog.isDisplayed()).toBe(true)
 
-        if (slowdown) {
-            await delay(1000)
-        }
+        if (slowdown) await delay(1000)
 
-        // Switch to AI tab
         console.log('Switching to AI settings tab...')
         await ConfigDialog.clickTab('ai')
 
-        if (slowdown) {
-            await delay(1000)
-        }
+        if (slowdown) await delay(1000)
 
-        // Wait for AI settings to be displayed
         const aiSettings = $('[data-testid="ai-settings"]')
         await aiSettings.waitForDisplayed({ timeout: 5000 })
     }
 
-    /**
-     * Helper function to set AI provider configuration
-     */
-    async function setAiProviderConfig(
-        provider: string,
-        baseUrl: string,
-        apiKey: string,
-        model: string
-    ): Promise<void> {
-        console.log(`Setting AI provider: ${provider}`)
-        await ConfigDialog.selectAiProvider(provider)
-
-        if (slowdown) {
-            await delay(500)
-        }
-
-        console.log(`Setting base URL: ${baseUrl}`)
-        await ConfigDialog.setAiBaseUrl(baseUrl)
-
-        if (slowdown) {
-            await delay(500)
-        }
-
-        console.log(`Setting API key: ${apiKey}`)
-        await ConfigDialog.setAiApiKey(apiKey)
-
-        if (slowdown) {
-            await delay(500)
-        }
-
-        console.log(`Setting model: ${model}`)
-        await ConfigDialog.setAiModel(model)
-
-        if (slowdown) {
-            await delay(500)
-        }
-    }
-
-    /**
-     * Helper function to verify AI provider configuration
-     */
-    async function verifyAiProviderConfig(
-        provider: string,
-        expectedBaseUrl: string,
-        expectedApiKey: string,
-        expectedModel: string
-    ): Promise<void> {
-        // Verify selected provider
-        const selectedProvider = await ConfigDialog.getSelectedAiProvider()
-        console.log(`Current selected provider: ${selectedProvider}`)
-        expect(selectedProvider).toBe(provider)
-
-        // Verify base URL
-        const baseUrl = await ConfigDialog.getAiBaseUrl()
-        console.log(`Current base URL: ${baseUrl}`)
-        expect(baseUrl).toBe(expectedBaseUrl)
-
-        // Verify API key
-        const apiKey = await ConfigDialog.getAiApiKey()
-        console.log(`Current API key: ${apiKey}`)
-        expect(apiKey).toBe(expectedApiKey)
-
-        // Verify model
-        const model = await ConfigDialog.getAiModel()
-        console.log(`Current model: ${model}`)
-        expect(model).toBe(expectedModel)
-    }
-
-    describe('AI Settings - Provider Configuration', () => {
-        it('should change and persist AI provider settings for all providers', async function() {
-            if (slowdown) {
-                this.timeout(300 * 1000)
-            }
-
-            // Store original settings to revert at the end
-            let originalProvider: string = ''
-
-            // Step 1: Open AI settings and get initial provider
-            console.log('Step 1: Opening AI settings to get initial provider...')
+    describe('AI Settings - Provider Cards', () => {
+        it('should start with no providers and allow adding one', async function() {
             await openAiSettings()
 
-            originalProvider = await ConfigDialog.getSelectedAiProvider()
-            console.log(`Original AI provider: ${originalProvider}`)
+            let count = await ConfigDialog.getProviderCount()
+            console.log(`Initial provider count: ${count}`)
+            expect(count).toBe(0)
 
-            // Test each AI provider
-            for (const provider of aiProviders) {
-                console.log(`\n========== Testing provider: ${provider} ==========`)
+            // Add a provider
+            console.log('Adding a new provider...')
+            await ConfigDialog.addProvider()
+            await browser.pause(200)
 
-                const data = testData[provider]
+            count = await ConfigDialog.getProviderCount()
+            expect(count).toBe(1)
 
-                // Step 2: Set the provider configuration
-                console.log(`Step 2: Setting ${provider} configuration...`)
-                await setAiProviderConfig(provider, data.baseUrl, data.apiKey, data.model)
+            // Fill in provider details
+            const providerName = 'MyAI'
+            const baseUrl = 'https://api.myai.com/v1'
+            const apiKey = 'sk-test-key'
+            const model = 'my-model'
 
-                // Step 3: Save and close dialog
-                console.log('Step 3: Saving settings and closing dialog...')
-                await saveAndCloseDialog()
+            await ConfigDialog.setProviderName(0, providerName)
+            await ConfigDialog.setProviderBaseUrl(0, baseUrl)
+            await ConfigDialog.setProviderApiKey(0, apiKey)
+            await ConfigDialog.setProviderModel(0, model)
 
-                // Step 4: Reload the page
-                console.log('Step 4: Reloading page...')
-                await reloadAndWaitForReady()
-
-                // Step 5: Open AI settings and verify persistence
-                console.log('Step 5: Opening AI settings to verify persistence...')
-                await openAiSettings()
-
-                // Verify the settings are persisted
-                await verifyAiProviderConfig(provider, data.baseUrl, data.apiKey, data.model)
-
-                console.log(`✓ ${provider} settings persisted correctly!`)
-
-                if (slowdown) {
-                    await delay(1000)
-                }
-            }
-
-            // Step 6: Revert to original provider
-            console.log('\n========== Reverting to original settings ==========')
-            console.log(`Reverting to original provider: ${originalProvider}`)
-
-            if (originalProvider && aiProviders.includes(originalProvider)) {
-                const originalData = testData[originalProvider]
-                await setAiProviderConfig(
-                    originalProvider,
-                    originalData.baseUrl,
-                    originalData.apiKey,
-                    originalData.model
-                )
-                await saveAndCloseDialog()
-            } else {
-                // If original was not in our test list, just close without saving
-                await ConfigDialog.pressEscape()
-                await browser.pause(200)
-                await ConfigDialog.pressEscape()
-                await ConfigDialog.waitForClosed()
-            }
-
-            console.log('\nAI Settings test completed successfully!')
-        })
-
-        it('should switch between providers and preserve each provider configuration', async function() {
-            if (slowdown) {
-                this.timeout(180 * 1000)
-            }
-
-            // Step 1: Open AI settings
-            console.log('Step 1: Opening AI settings...')
-            await openAiSettings()
-
-            // Step 2: Configure multiple providers without saving
-            console.log('Step 2: Configuring multiple providers (DeepSeek first)...')
-            await setAiProviderConfig('DeepSeek', testData['DeepSeek'].baseUrl, testData['DeepSeek'].apiKey, testData['DeepSeek'].model)
-
-            // Switch to OpenAI
-            console.log('Switching to OpenAI...')
-            await ConfigDialog.selectAiProvider('OpenAI')
-            await delay(300)
-
-            // Configure OpenAI
-            await ConfigDialog.setAiBaseUrl(testData['OpenAI'].baseUrl)
-            await ConfigDialog.setAiApiKey(testData['OpenAI'].apiKey)
-            await ConfigDialog.setAiModel(testData['OpenAI'].model)
-
-            if (slowdown) {
-                await delay(500)
-            }
-
-            // Step 3: Save settings
-            console.log('Step 3: Saving settings...')
+            // Save and verify persistence
+            console.log('Saving and reloading...')
             await saveAndCloseDialog()
-
-            // Step 4: Reload and verify
-            console.log('Step 4: Reloading and verifying...')
             await reloadAndWaitForReady()
             await openAiSettings()
 
-            // Should be on OpenAI (last selected)
-            let selectedProvider = await ConfigDialog.getSelectedAiProvider()
-            expect(selectedProvider).toBe('OpenAI')
+            count = await ConfigDialog.getProviderCount()
+            expect(count).toBe(1)
 
-            let baseUrl = await ConfigDialog.getAiBaseUrl()
-            expect(baseUrl).toBe(testData['OpenAI'].baseUrl)
+            const persistedName = await ConfigDialog.getProviderName(0)
+            expect(persistedName).toBe(providerName)
 
-            console.log('OpenAI configuration verified!')
+            const persistedBaseUrl = await ConfigDialog.getProviderBaseUrl(0)
+            expect(persistedBaseUrl).toBe(baseUrl)
 
-            // Step 5: Switch to DeepSeek and verify its config is preserved
-            console.log('Step 5: Switching to DeepSeek and verifying preserved config...')
-            await ConfigDialog.selectAiProvider('DeepSeek')
-            await delay(300)
+            const persistedApiKey = await ConfigDialog.getProviderApiKey(0)
+            expect(persistedApiKey).toBe(apiKey)
 
-            selectedProvider = await ConfigDialog.getSelectedAiProvider()
-            expect(selectedProvider).toBe('DeepSeek')
+            const persistedModel = await ConfigDialog.getProviderModel(0)
+            expect(persistedModel).toBe(model)
 
-            baseUrl = await ConfigDialog.getAiBaseUrl()
-            expect(baseUrl).toBe(testData['DeepSeek'].baseUrl)
+            console.log('Provider added and persisted correctly')
+        })
 
-            const apiKey = await ConfigDialog.getAiApiKey()
-            expect(apiKey).toBe(testData['DeepSeek'].apiKey)
+        it('should switch active provider via radio button', async function() {
+            await openAiSettings()
 
-            const model = await ConfigDialog.getAiModel()
-            expect(model).toBe(testData['DeepSeek'].model)
+            // Add two providers
+            console.log('Adding provider 1...')
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            await ConfigDialog.setProviderName(0, 'ProviderA')
+            await ConfigDialog.setProviderBaseUrl(0, 'https://api.a.com')
+            await ConfigDialog.setProviderApiKey(0, 'key-a')
+            await ConfigDialog.setProviderModel(0, 'model-a')
 
-            console.log('DeepSeek configuration verified!')
+            console.log('Adding provider 2...')
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            await ConfigDialog.setProviderName(1, 'ProviderB')
+            await ConfigDialog.setProviderBaseUrl(1, 'https://api.b.com')
+            await ConfigDialog.setProviderApiKey(1, 'key-b')
+            await ConfigDialog.setProviderModel(1, 'model-b')
 
-            // Step 6: Revert to DeepSeek with empty values
-            console.log('Step 6: Reverting to initial state...')
-            await ConfigDialog.setAiBaseUrl('')
-            await ConfigDialog.setAiApiKey('')
-            await ConfigDialog.setAiModel('')
+            // First added is active by default
+            let activeIndex = await ConfigDialog.getActiveProviderIndex()
+            expect(activeIndex).toBe(0)
+
+            // Switch to ProviderB (index 1)
+            console.log('Switching active provider to ProviderB...')
+            await ConfigDialog.selectActiveProvider(1)
+            activeIndex = await ConfigDialog.getActiveProviderIndex()
+            expect(activeIndex).toBe(1)
+
+            // Save and verify persistence
+            console.log('Saving and reloading...')
             await saveAndCloseDialog()
+            await reloadAndWaitForReady()
+            await openAiSettings()
 
-            console.log('Provider switching test completed successfully!')
+            activeIndex = await ConfigDialog.getActiveProviderIndex()
+            expect(activeIndex).toBe(1)
+            console.log('Active provider persisted correctly')
+        })
+
+        it('should add a new provider and persist', async function() {
+            await openAiSettings()
+
+            const initialCount = await ConfigDialog.getProviderCount()
+            console.log(`Initial provider count: ${initialCount}`)
+
+            console.log('Adding a new provider...')
+            await ConfigDialog.addProvider()
+            await browser.pause(200)
+
+            const afterAddCount = await ConfigDialog.getProviderCount()
+            expect(afterAddCount).toBe(initialCount + 1)
+
+            const newIndex = afterAddCount - 1
+            const newName = 'CustomAI'
+            const newBaseUrl = 'https://custom-ai.com/v1'
+            const newApiKey = 'sk-custom-key'
+            const newModel = 'custom-model-v1'
+
+            await ConfigDialog.setProviderName(newIndex, newName)
+            await ConfigDialog.setProviderBaseUrl(newIndex, newBaseUrl)
+            await ConfigDialog.setProviderApiKey(newIndex, newApiKey)
+            await ConfigDialog.setProviderModel(newIndex, newModel)
+
+            if (slowdown) await delay(300)
+
+            console.log('Saving and reloading...')
+            await saveAndCloseDialog()
+            await reloadAndWaitForReady()
+            await openAiSettings()
+
+            const persistedCount = await ConfigDialog.getProviderCount()
+            expect(persistedCount).toBe(initialCount + 1)
+
+            expect(await ConfigDialog.getProviderName(newIndex)).toBe(newName)
+            expect(await ConfigDialog.getProviderBaseUrl(newIndex)).toBe(newBaseUrl)
+            expect(await ConfigDialog.getProviderApiKey(newIndex)).toBe(newApiKey)
+            expect(await ConfigDialog.getProviderModel(newIndex)).toBe(newModel)
+            console.log('New provider persisted correctly')
+        })
+
+        it('should delete a provider and auto-select another when active provider is deleted', async function() {
+            await openAiSettings()
+
+            // Add two providers so we have something to work with
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            await ConfigDialog.setProviderName(0, 'First')
+            await ConfigDialog.setProviderBaseUrl(0, 'https://first.com')
+            await ConfigDialog.setProviderApiKey(0, 'key1')
+            await ConfigDialog.setProviderModel(0, 'model1')
+
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            await ConfigDialog.setProviderName(1, 'Second')
+            await ConfigDialog.setProviderBaseUrl(1, 'https://second.com')
+            await ConfigDialog.setProviderApiKey(1, 'key2')
+            await ConfigDialog.setProviderModel(1, 'model2')
+
+            const initialCount = await ConfigDialog.getProviderCount()
+            expect(initialCount).toBe(2)
+
+            // Set the second provider as active
+            await ConfigDialog.selectActiveProvider(1)
+            let activeIndex = await ConfigDialog.getActiveProviderIndex()
+            expect(activeIndex).toBe(1)
+
+            // Delete the active provider
+            console.log('Deleting active provider (index 1)...')
+            await ConfigDialog.deleteProvider(1)
+            await browser.pause(200)
+
+            const afterDeleteCount = await ConfigDialog.getProviderCount()
+            expect(afterDeleteCount).toBe(1)
+
+            // Should auto-select first remaining
+            activeIndex = await ConfigDialog.getActiveProviderIndex()
+            expect(activeIndex).toBe(0)
+            console.log(`Active provider fell back to index ${activeIndex}`)
+        })
+
+        it('should hide delete button when only 1 provider remains', async function() {
+            await openAiSettings()
+
+            // Add a provider
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+
+            let count = await ConfigDialog.getProviderCount()
+            expect(count).toBe(1)
+
+            // Delete button should NOT be present for the only provider
+            const hasDelete = await ConfigDialog.isDeleteButtonPresent(0)
+            expect(hasDelete).toBe(false)
+            console.log('Delete button hidden when only 1 provider remains')
+        })
+
+        it('should show check button per provider card', async function() {
+            await openAiSettings()
+
+            // Add a provider with required fields
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            await ConfigDialog.setProviderName(0, 'TestAI')
+            await ConfigDialog.setProviderBaseUrl(0, 'https://test-ai.com/v1')
+            await ConfigDialog.setProviderApiKey(0, 'sk-test')
+            await ConfigDialog.setProviderModel(0, 'test-model')
+
+            // Verify the check button exists for the card
+            const checkButton = await ConfigDialog.getProviderCheckButton(0)
+            await checkButton.waitForExist({ timeout: 5000 })
+            expect(await checkButton.isExisting()).toBe(true)
+
+            // Add another provider and verify its check button exists too
+            await ConfigDialog.addProvider()
+            await browser.pause(100)
+            const checkButton2 = await ConfigDialog.getProviderCheckButton(1)
+            await checkButton2.waitForExist({ timeout: 5000 })
+            expect(await checkButton2.isExisting()).toBe(true)
+
+            console.log('Each provider card has its own check button')
         })
     })
 })

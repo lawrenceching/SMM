@@ -110,7 +110,7 @@ This runs only the MCP server over stdio (stdin/stdout). Do not write to stdout 
 - **Description**: Get application context including configured media folders and settings.
 - **Parameters**: None
 - **Success**: Returns JSON with `success: true` and `context` object containing:
-  - `selectedAI`: Current AI provider selection
+  - `selectedAIProvider`: Current AI provider selection
   - `applicationLanguage`: Application language setting
   - `folders`: Array of configured media folders
   - `selectedRenameRule`: Current rename rule selection

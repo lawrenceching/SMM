@@ -201,31 +201,87 @@ class ConfigDialog {
     // ==================== AI Settings ====================
 
     /**
-     * Get the AI provider combobox trigger
+     * Get all provider card elements
      */
-    get aiProviderTrigger() {
-        return $('[data-testid="setting-ai-provider"] [role="combobox"]')
+    get providerCards() {
+        return $$('[data-testid^="ai-provider-card-"]')
     }
 
     /**
-     * Get the AI base URL input
+     * Get a specific provider card by index
      */
-    get aiBaseUrlInput() {
-        return $('[data-testid="setting-ai-base-url"]')
+    getProviderCard(index: number) {
+        return $(`[data-testid="ai-provider-card-${index}"]`)
     }
 
     /**
-     * Get the AI API key input
+     * Get provider name input by index
      */
-    get aiApiKeyInput() {
-        return $('[data-testid="setting-ai-api-key"]')
+    getProviderNameInput(index: number) {
+        return $(`[data-testid="ai-provider-name-${index}"]`)
     }
 
     /**
-     * Get the AI model input
+     * Get provider base URL input by index
      */
-    get aiModelInput() {
-        return $('[data-testid="setting-ai-model"]')
+    getProviderBaseUrlInput(index: number) {
+        return $(`[data-testid="ai-provider-baseurl-${index}"]`)
+    }
+
+    /**
+     * Get provider API key input by index
+     */
+    getProviderApiKeyInput(index: number) {
+        return $(`[data-testid="ai-provider-apikey-${index}"]`)
+    }
+
+    /**
+     * Get provider model input by index
+     */
+    getProviderModelInput(index: number) {
+        return $(`[data-testid="ai-provider-model-${index}"]`)
+    }
+
+    /**
+     * Get provider radio button by index
+     */
+    getProviderRadio(index: number) {
+        return $(`[data-testid="ai-provider-radio-${index}"]`)
+    }
+
+    /**
+     * Get provider delete button by index
+     */
+    getProviderDeleteButton(index: number) {
+        return $(`[data-testid="ai-provider-delete-${index}"]`)
+    }
+
+    /**
+     * Get the add provider button
+     */
+    get addProviderButton() {
+        return $('[data-testid="ai-add-provider"]')
+    }
+
+    /**
+     * Get the AI check button for a specific provider card
+     */
+    getProviderCheckButton(index: number) {
+        return $(`[data-testid="ai-provider-check-${index}"]`)
+    }
+
+    /**
+     * Get the AI check success message for a specific provider card
+     */
+    getProviderCheckSuccess(index: number) {
+        return $(`[data-testid="ai-provider-check-success-${index}"]`)
+    }
+
+    /**
+     * Get the AI check error message for a specific provider card
+     */
+    getProviderCheckError(index: number) {
+        return $(`[data-testid="ai-provider-check-error-${index}"]`)
     }
 
     // ==================== Save Button ====================
@@ -644,69 +700,124 @@ class ConfigDialog {
     // ==================== AI Settings Actions ====================
 
     /**
-     * Select an AI provider
+     * Get the number of provider cards displayed
      */
-    async selectAiProvider(provider: string): Promise<void> {
-        const trigger = await this.aiProviderTrigger
-        await trigger.waitForClickable({ timeout: 5000 })
-        await trigger.click()
-
-        await browser.pause(200)
-
-        // Find and click the provider option using data-testid with provider name
-        const option = $(`[data-testid="setting-ai-provider-option-${provider}"]`)
-        await option.waitForClickable({ timeout: 5000 })
-        await option.click()
+    async getProviderCount(): Promise<number> {
+        const cards = await this.providerCards
+        return cards.length
     }
 
     /**
-     * Set the AI base URL
+     * Click the radio button for a provider to set it as active
      */
-    async setAiBaseUrl(value: string): Promise<void> {
-        await this.setInputValue(this.aiBaseUrlInput, value)
+    async selectActiveProvider(index: number): Promise<void> {
+        const radio = await this.getProviderRadio(index)
+        await radio.waitForClickable({ timeout: 5000 })
+        await radio.click()
     }
 
     /**
-     * Get the AI base URL value
+     * Get the active provider index by checking radio button state
      */
-    async getAiBaseUrl(): Promise<string> {
-        return await this.getInputValue(this.aiBaseUrlInput)
+    async getActiveProviderIndex(): Promise<number> {
+        const count = await this.getProviderCount()
+        for (let i = 0; i < count; i++) {
+            const radio = await this.getProviderRadio(i)
+            // The active provider has a CircleCheck icon (which may have aria-checked or classes)
+            // We check if the radio is the active one by looking at the provider card's border class
+            const card = await this.getProviderCard(i)
+            const className = await card.getAttribute('class')
+            if (className && className.includes('border-primary')) {
+                return i
+            }
+        }
+        return -1
     }
 
     /**
-     * Set the AI API key
+     * Get the name value of a provider by index
      */
-    async setAiApiKey(value: string): Promise<void> {
-        await this.setInputValue(this.aiApiKeyInput, value)
+    async getProviderName(index: number): Promise<string> {
+        return await this.getInputValue(this.getProviderNameInput(index))
     }
 
     /**
-     * Get the AI API key value
+     * Set the provider name by index
      */
-    async getAiApiKey(): Promise<string> {
-        return await this.getInputValue(this.aiApiKeyInput)
+    async setProviderName(index: number, value: string): Promise<void> {
+        await this.setInputValue(this.getProviderNameInput(index), value)
     }
 
     /**
-     * Set the AI model
+     * Get the base URL value of a provider by index
      */
-    async setAiModel(value: string): Promise<void> {
-        await this.setInputValue(this.aiModelInput, value)
+    async getProviderBaseUrl(index: number): Promise<string> {
+        return await this.getInputValue(this.getProviderBaseUrlInput(index))
     }
 
     /**
-     * Get the AI model value
+     * Set the provider base URL by index
      */
-    async getAiModel(): Promise<string> {
-        return await this.getInputValue(this.aiModelInput)
+    async setProviderBaseUrl(index: number, value: string): Promise<void> {
+        await this.setInputValue(this.getProviderBaseUrlInput(index), value)
     }
 
     /**
-     * Get the current selected AI provider
+     * Get the API key value of a provider by index
      */
-    async getSelectedAiProvider(): Promise<string> {
-        const trigger = await this.aiProviderTrigger
-        return (await trigger.getText()) as string
+    async getProviderApiKey(index: number): Promise<string> {
+        return await this.getInputValue(this.getProviderApiKeyInput(index))
+    }
+
+    /**
+     * Set the provider API key by index
+     */
+    async setProviderApiKey(index: number, value: string): Promise<void> {
+        await this.setInputValue(this.getProviderApiKeyInput(index), value)
+    }
+
+    /**
+     * Get the model value of a provider by index
+     */
+    async getProviderModel(index: number): Promise<string> {
+        return await this.getInputValue(this.getProviderModelInput(index))
+    }
+
+    /**
+     * Set the provider model by index
+     */
+    async setProviderModel(index: number, value: string): Promise<void> {
+        await this.setInputValue(this.getProviderModelInput(index), value)
+    }
+
+    /**
+     * Click the add provider button
+     */
+    async addProvider(): Promise<void> {
+        const button = await this.addProviderButton
+        await button.waitForClickable({ timeout: 5000 })
+        await button.click()
+    }
+
+    /**
+     * Click the delete button for a provider by index
+     */
+    async deleteProvider(index: number): Promise<void> {
+        const button = await this.getProviderDeleteButton(index)
+        await button.waitForClickable({ timeout: 5000 })
+        await button.click()
+    }
+
+    /**
+     * Check if the delete button for a provider exists (is rendered)
+     */
+    async isDeleteButtonPresent(index: number): Promise<boolean> {
+        try {
+            const button = await this.getProviderDeleteButton(index)
+            return await button.isExisting()
+        } catch {
+            return false
+        }
     }
 
     // ==================== Save & Close ====================

@@ -536,17 +536,24 @@ interface SettingsResources {
   ai: {
     title: string
     description: string
-    selectProvider: string
-    selectProviderPlaceholder: string
-    searchPlaceholder: string
-    noProviderFound: string
-    configuration: string
+    noProviders: string
+    providerName: string
+    providerNamePlaceholder: string
+    setActive: string
+    addProvider: string
+    deleteProvider: string
+    nameRequired: string
+    nameDuplicate: string
     baseUrl: string
     baseUrlPlaceholder: string
     apiKey: string
     apiKeyPlaceholder: string
     model: string
     modelPlaceholder: string
+    check: string
+    checkChecking: string
+    checkSuccess: string
+    checkError: string
   }
   feedback: {
     title: string

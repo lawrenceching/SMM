@@ -1,174 +1,164 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useConfig } from "@/hooks/userConfig"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Button } from "@/components/ui/button"
-import type { AI } from "@core/types"
+import type { OpenAICompatibleConfig } from "@core/types"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { checkAiConnection } from "@/api/checkAiConnection"
+import { Trash2, Plus, CircleCheck, Circle } from "lucide-react"
 
-const aiProviders: AI[] = ["OpenAI", "DeepSeek", "OpenRouter", "GLM", "Other"]
-
-const aiProviderOptions: ComboboxOption[] = aiProviders.map((provider) => ({
-  value: provider,
-  label: provider,
-}))
-
-const providerKeyMap: Record<AI, keyof NonNullable<import("@core/types").AIConfig>> = {
-  'OpenAI': 'openAI',
-  'DeepSeek': 'deepseek',
-  'OpenRouter': 'openrouter',
-  'GLM': 'glm',
-  'Other': 'other'
+interface CheckState {
+  status: 'idle' | 'checking' | 'ok' | 'error'
+  message: string
 }
 
 export function AiSettings() {
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
-  
-  // Get initial values
-  const initialSelectedProvider = (userConfig.selectedAI as AI) || "DeepSeek"
-  const getInitialProviderConfig = (provider: AI) => {
-    const providerKey = providerKeyMap[provider]
-    const config = userConfig.ai?.[providerKey] || { baseURL: '', apiKey: '', model: '' }
-    return {
-      baseURL: config.baseURL || '',
-      apiKey: config.apiKey || '',
-      model: config.model || '',
+
+  const initialProviders: OpenAICompatibleConfig[] = useMemo(() => {
+    if (userConfig.aiProviders && userConfig.aiProviders.length > 0) {
+      return userConfig.aiProviders.map(p => ({ ...p }))
     }
-  }
+    return []
+  }, [userConfig.aiProviders])
 
-  // Track initial state for all providers
-  const initialState = useMemo(() => {
-    const state: Record<AI, { baseURL: string; apiKey: string; model: string }> = {} as any
-    aiProviders.forEach(provider => {
-      state[provider] = getInitialProviderConfig(provider)
-    })
-    return {
-      selectedProvider: initialSelectedProvider,
-      configs: state,
-    }
-  }, [userConfig])
+  const initialActive = userConfig.selectedAIProvider || ''
 
-  // Track current form state
-  const [selectedProvider, setSelectedProvider] = useState<AI>(initialState.selectedProvider)
-  const [providerConfigs, setProviderConfigs] = useState<Record<AI, { baseURL: string; apiKey: string; model: string }>>(initialState.configs)
-  const [checkStatus, setCheckStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle')
-  const [checkMessage, setCheckMessage] = useState<string>('')
+  const [providers, setProviders] = useState<OpenAICompatibleConfig[]>(initialProviders)
+  const [activeProviderName, setActiveProviderName] = useState(initialActive)
+  const [checkStates, setCheckStates] = useState<Record<number, CheckState>>({})
+  const [validationErrors, setValidationErrors] = useState<Record<number, string>>({})
 
-  // Reset form when userConfig changes
   useEffect(() => {
-    const newInitialState = {
-      selectedProvider: (userConfig.selectedAI as AI) || "DeepSeek",
-      configs: {} as Record<AI, { baseURL: string; apiKey: string; model: string }>,
-    }
-    aiProviders.forEach(provider => {
-      newInitialState.configs[provider] = getInitialProviderConfig(provider)
-    })
-    setSelectedProvider(newInitialState.selectedProvider)
-    setProviderConfigs(newInitialState.configs)
+    const newProviders = userConfig.aiProviders?.length
+      ? userConfig.aiProviders.map(p => ({ ...p }))
+      : []
+    setProviders(newProviders)
+    setActiveProviderName(userConfig.selectedAIProvider || '')
+    setCheckStates({})
   }, [userConfig])
 
-  // Get current provider config
-  const currentConfig = providerConfigs[selectedProvider] || { baseURL: '', apiKey: '', model: '' }
-
-  // Update config when provider changes
-  const handleProviderChange = (value: AI) => {
-    setSelectedProvider(value)
-    setCheckStatus('idle')
-    setCheckMessage('')
-  }
-
-  // Update config values
-  const updateConfig = (provider: AI, field: 'baseURL' | 'apiKey' | 'model', value: string) => {
-    setProviderConfigs(prev => ({
-      ...prev,
-      [provider]: {
-        ...prev[provider],
-        [field]: value,
-      },
-    }))
-  }
-
-  // Check AI provider connectivity
-  const handleCheck = async () => {
-    const config = providerConfigs[selectedProvider]
-    if (!config.apiKey || !config.model || !config.baseURL) return
-
-    setCheckStatus('checking')
-    setCheckMessage('')
-
-    try {
-      const result = await checkAiConnection(selectedProvider, config.model, config.apiKey, config.baseURL)
-      if (result.status === 'ok') {
-        setCheckStatus('ok')
-      } else {
-        setCheckStatus('error')
-        setCheckMessage('Connection failed')
-      }
-    } catch (err) {
-      setCheckStatus('error')
-      setCheckMessage(err instanceof Error ? err.message : 'Connection failed')
-    }
-  }
-
-  // Detect changes
   const hasChanges = useMemo(() => {
-    if (selectedProvider !== initialState.selectedProvider) {
-      return true
-    }
-    for (const provider of aiProviders) {
-      const current = providerConfigs[provider]
-      const initial = initialState.configs[provider]
-      if (
-        current.baseURL !== initial.baseURL ||
-        current.apiKey !== initial.apiKey ||
-        current.model !== initial.model
-      ) {
+    const orig = userConfig.aiProviders || []
+    if (providers.length !== orig.length) return true
+    for (let i = 0; i < providers.length; i++) {
+      const p = providers[i]
+      const o = orig[i]
+      if (p.name !== o.name || p.baseURL !== o.baseURL || p.apiKey !== o.apiKey || p.model !== o.model) {
         return true
       }
     }
+    if (activeProviderName !== (userConfig.selectedAIProvider || '')) return true
     return false
-  }, [selectedProvider, providerConfigs, initialState])
+  }, [providers, activeProviderName, userConfig])
 
-  // Handle save
-  const handleSave = () => {
-    const traceId = `AiSettings-${nextTraceId()}`;
-    console.log(`[${traceId}] AiSettings: Saving AI settings`)
-
-    // Build complete AIConfig with all providers, starting with existing values
-    const existingAi = userConfig.ai
-    const updatedAiConfig: import("@core/types").AIConfig = {
-      deepseek: existingAi?.deepseek || { baseURL: '', apiKey: '', model: '' },
-      openAI: existingAi?.openAI || { baseURL: '', apiKey: '', model: '' },
-      openrouter: existingAi?.openrouter || { baseURL: '', apiKey: '', model: '' },
-      glm: existingAi?.glm || { baseURL: '', apiKey: '', model: '' },
-      other: existingAi?.other || { baseURL: '', apiKey: '', model: '' },
-    }
-
-    // Update all provider configs with current form values
-    aiProviders.forEach(provider => {
-      const providerKey = providerKeyMap[provider]
-      const config = providerConfigs[provider]
-      updatedAiConfig[providerKey] = {
-        baseURL: config.baseURL || undefined,
-        apiKey: config.apiKey || undefined,
-        model: config.model || undefined,
+  const validateUniqueNames = useCallback((list: OpenAICompatibleConfig[]): Record<number, string> => {
+    const errors: Record<number, string> = {}
+    const seen = new Map<string, number>()
+    list.forEach((p, i) => {
+      const name = (p.name || '').trim()
+      if (!name) {
+        errors[i] = t('ai.nameRequired')
+      } else if (seen.has(name)) {
+        errors[i] = t('ai.nameDuplicate', { name })
+        const firstIdx = seen.get(name)!
+        errors[firstIdx] = t('ai.nameDuplicate', { name })
+      } else {
+        seen.set(name, i)
       }
     })
+    return errors
+  }, [t])
 
-    const updatedConfig = {
-      ...userConfig,
-      selectedAI: selectedProvider,
-      ai: updatedAiConfig,
-    }
-    console.log(`[${traceId}] AiSettings: Selected AI provider: ${selectedProvider}`)
-    setAndSaveUserConfig(traceId, updatedConfig)
+  const updateProvider = (index: number, field: keyof OpenAICompatibleConfig, value: string) => {
+    setProviders(prev => {
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value }
+      if (field === 'name') {
+        setValidationErrors(validateUniqueNames(next))
+      }
+      return next
+    })
   }
 
-  const providerKey = selectedProvider.toLowerCase()
+  const setActive = (name: string | undefined) => {
+    if (name) {
+      setActiveProviderName(name)
+    }
+  }
+
+  const addProvider = () => {
+    const newProvider: OpenAICompatibleConfig = {
+      name: `provider-${providers.length + 1}`,
+      baseURL: '',
+      apiKey: '',
+      model: '',
+    }
+    setProviders(prev => [...prev, newProvider])
+  }
+
+  const deleteProvider = (index: number) => {
+    if (providers.length <= 1) return
+    const deleted = providers[index]
+    setProviders(prev => prev.filter((_, i) => i !== index))
+    setCheckStates(prev => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    if (deleted.name === activeProviderName) {
+      const remaining = providers.filter((_, i) => i !== index)
+      if (remaining.length > 0) {
+        setActiveProviderName(remaining[0].name!)
+      }
+    }
+  }
+
+  const handleCheck = async (index: number) => {
+    const provider = providers[index]
+    if (!provider) return
+    const { baseURL, apiKey, model } = provider
+    if (!baseURL || !model) return
+
+    setCheckStates(prev => ({ ...prev, [index]: { status: 'checking', message: '' } }))
+    try {
+      const result = await checkAiConnection(model!, apiKey || '', baseURL)
+      setCheckStates(prev => ({
+        ...prev,
+        [index]: {
+          status: result.status === 'ok' ? 'ok' : 'error',
+          message: result.status !== 'ok' ? t('ai.checkError') : '',
+        }
+      }))
+    } catch (err) {
+      setCheckStates(prev => ({
+        ...prev,
+        [index]: {
+          status: 'error',
+          message: err instanceof Error ? err.message : t('ai.checkError'),
+        }
+      }))
+    }
+  }
+
+  const handleSave = () => {
+    const traceId = `AiSettings-${nextTraceId()}`
+    const errors = validateUniqueNames(providers)
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
+    }
+    setAndSaveUserConfig(traceId, {
+      ...userConfig,
+      aiProviders: providers,
+      selectedAIProvider: activeProviderName,
+    })
+  }
+
+  const canDelete = providers.length > 1
 
   return (
     <div className="space-y-6 p-6 relative" data-testid="ai-settings">
@@ -179,84 +169,136 @@ export function AiSettings() {
         </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="selected-ai">{t('ai.selectProvider')}</Label>
-          <Combobox
-            options={aiProviderOptions}
-            value={selectedProvider}
-            onValueChange={(value) => handleProviderChange(value as AI)}
-            placeholder={t('ai.selectProviderPlaceholder')}
-            searchPlaceholder={t('ai.searchPlaceholder')}
-            emptyText={t('ai.noProviderFound')}
-            className="w-full"
-            data-testid="setting-ai-provider"
-            optionDataTestIdPrefix="setting-ai-provider"
-          />
+      {providers.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>{t('ai.noProviders')}</p>
         </div>
-
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-semibold text-lg">{t('ai.configuration', { provider: selectedProvider })}</h3>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-baseurl`}>{t('ai.baseUrl')}</Label>
-              <Input
-                id={`${providerKey}-baseurl`}
-                value={currentConfig.baseURL}
-                onChange={(e) => updateConfig(selectedProvider, 'baseURL', e.target.value)}
-                placeholder={t('ai.baseUrlPlaceholder')}
-                data-testid="setting-ai-base-url"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-apikey`}>{t('ai.apiKey')}</Label>
-              <Input
-                id={`${providerKey}-apikey`}
-                type="password"
-                value={currentConfig.apiKey}
-                onChange={(e) => updateConfig(selectedProvider, 'apiKey', e.target.value)}
-                placeholder={t('ai.apiKeyPlaceholder')}
-                data-testid="setting-ai-api-key"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`${providerKey}-model`}>{t('ai.model')}</Label>
-              <Input
-                id={`${providerKey}-model`}
-                value={currentConfig.model}
-                onChange={(e) => updateConfig(selectedProvider, 'model', e.target.value)}
-                placeholder={t('ai.modelPlaceholder')}
-                data-testid="setting-ai-model"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                onClick={handleCheck}
-                disabled={checkStatus === 'checking' || !currentConfig.apiKey || !currentConfig.model || !currentConfig.baseURL}
-                data-testid="setting-ai-check-button"
+      ) : (
+        <div className="space-y-4">
+          {providers.map((provider, index) => {
+            const isActive = provider.name === activeProviderName
+            const checkState = checkStates[index]
+            return (
+              <div
+                key={index}
+                className={`space-y-3 p-4 border rounded-lg ${isActive ? 'border-primary bg-primary/5' : ''}`}
+                data-testid={`ai-provider-card-${index}`}
               >
-                {checkStatus === 'checking' ? t('ai.checkChecking') : t('ai.check')}
-              </Button>
+                <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActive(provider.name)}
+                    className="flex-shrink-0 mt-1"
+                    data-testid={`ai-provider-radio-${index}`}
+                    aria-label={t('ai.setActive')}
+                  >
+                    {isActive ? (
+                      <CircleCheck className="h-5 w-5 text-primary fill-primary" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
 
-              {checkStatus === 'ok' && (
-                <p className="text-sm text-green-600" data-testid="setting-ai-check-success">
-                  {t('ai.checkSuccess')}
-                </p>
-              )}
-              {checkStatus === 'error' && (
-                <p className="text-sm text-red-600" data-testid="setting-ai-check-error">
-                  {checkMessage || t('ai.checkError')}
-                </p>
-              )}
-            </div>
-          </div>
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <Label htmlFor={`provider-name-${index}`}>{t('ai.providerName')}</Label>
+                    <Input
+                      id={`provider-name-${index}`}
+                      value={provider.name || ''}
+                      onChange={(e) => updateProvider(index, 'name', e.target.value)}
+                      placeholder="provider-name"
+                      data-testid={`ai-provider-name-${index}`}
+                      className={validationErrors[index] ? 'border-destructive' : ''}
+                    />
+                    {validationErrors[index] && (
+                      <p className="text-sm text-destructive">{validationErrors[index]}</p>
+                    )}
+                  </div>
+
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteProvider(index)}
+                      data-testid={`ai-provider-delete-${index}`}
+                      aria-label={t('ai.deleteProvider')}
+                      className="flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-8">
+                  <div className="space-y-2">
+                    <Label htmlFor={`provider-baseurl-${index}`}>{t('ai.baseUrl')}</Label>
+                    <Input
+                      id={`provider-baseurl-${index}`}
+                      value={provider.baseURL || ''}
+                      onChange={(e) => updateProvider(index, 'baseURL', e.target.value)}
+                      placeholder={t('ai.baseUrlPlaceholder')}
+                      data-testid={`ai-provider-baseurl-${index}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`provider-apikey-${index}`}>{t('ai.apiKey')}</Label>
+                    <Input
+                      id={`provider-apikey-${index}`}
+                      type="password"
+                      value={provider.apiKey || ''}
+                      onChange={(e) => updateProvider(index, 'apiKey', e.target.value)}
+                      placeholder={t('ai.apiKeyPlaceholder')}
+                      data-testid={`ai-provider-apikey-${index}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`provider-model-${index}`}>{t('ai.model')}</Label>
+                    <Input
+                      id={`provider-model-${index}`}
+                      value={provider.model || ''}
+                      onChange={(e) => updateProvider(index, 'model', e.target.value)}
+                      placeholder={t('ai.modelPlaceholder')}
+                      data-testid={`ai-provider-model-${index}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="ml-8 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCheck(index)}
+                    disabled={checkState?.status === 'checking' || !provider.baseURL || !provider.model}
+                    data-testid={`ai-provider-check-${index}`}
+                  >
+                    {checkState?.status === 'checking' ? t('ai.checkChecking') : t('ai.check')}
+                  </Button>
+
+                  {checkState?.status === 'ok' && (
+                    <p className="text-sm text-green-600" data-testid={`ai-provider-check-success-${index}`}>
+                      {t('ai.checkSuccess')}
+                    </p>
+                  )}
+                  {checkState?.status === 'error' && (
+                    <p className="text-sm text-red-600" data-testid={`ai-provider-check-error-${index}`}>
+                      {checkState.message || t('ai.checkError')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </div>
+      )}
+
+      <Button
+        variant="outline"
+        onClick={addProvider}
+        data-testid="ai-add-provider"
+        className="w-full"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        {t('ai.addProvider')}
+      </Button>
 
       {hasChanges && (
         <div className="fixed bottom-4 right-4 z-50">
@@ -268,4 +310,3 @@ export function AiSettings() {
     </div>
   )
 }
-

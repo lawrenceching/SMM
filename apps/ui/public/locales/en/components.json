@@ -146,7 +146,7 @@
     "welcome": {
       "title": "Hello there!",
       "subtitle": "How can I help you today?",
-      "configNotComplete": "You have not completed the configuration for {{selectedAI}}",
+      "configNotComplete": "You have not completed the configuration for {{selectedAIProvider}}",
       "openSettings": "Open Settings"
     },
     "suggestions": {

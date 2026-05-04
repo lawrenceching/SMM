@@ -10,8 +10,10 @@ The user configuration feature allows users to manage application settings throu
 |--------|------|-------------|
 | `applicationLanguage` | `LanguageCode` | UI language (`zh-CN`, `zh-HK`, `zh-TW`, `en`) |
 | `tmdb` | `TMDBConfig` | TMDB API configuration (host, API key, HTTP proxy) |
-| `ai` | `AIConfig` | AI provider settings for DeepSeek, OpenAI, OpenRouter, GLM, Other |
-| `selectedAI` | `AI` | Currently selected AI provider |
+| `ai` | `AIConfig` (deprecated) | Old AI provider settings — migrated to `aiProviders` on load |
+| `aiProviders` | `OpenAICompatibleConfig[]` | Array of AI provider configurations |
+| `selectedAI` | `string` (deprecated) | Old selected AI provider — migrated to `selectedAIProvider` on load |
+| `selectedAIProvider` | `string` | Name of the currently selected AI provider |
 | `folders` | `string[]` | List of media folder paths opened in SMM |
 | `renameRules` | `string[]` | Custom rename rules for media files |
 | `dryRun` | `boolean` | Whether dry run mode is enabled |

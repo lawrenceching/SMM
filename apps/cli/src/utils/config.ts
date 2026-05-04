@@ -1,5 +1,6 @@
 import type { UserConfig } from "@core/types";
 import { RenameRules } from "@core/types";
+import { migrateAIConfig } from "@core/configMigration";
 import { renameFolderInUserConfig } from "@core/userConfig";
 import path from "path";
 import os from "os";
@@ -23,34 +24,6 @@ const DEFAULT_USER_CONFIG: UserConfig = {
   },
   primaryDatabase: 'TMDB',
   preferMediaLanguage: undefined,
-  ai: {
-    deepseek: {
-      baseURL: 'https://api.deepseek.com',
-      apiKey: '',
-      model: 'deepseek-v4-flash'
-    },
-    openAI: {
-      baseURL: 'https://api.openai.com/v1',
-      apiKey: '',
-      model: 'gpt-4o'
-    },
-    openrouter: {
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: '',
-      model: 'deepseek/deepseek-v4-flash'
-    },
-    glm: {
-      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-      apiKey: '',
-      model: 'GLM-4.5'
-    },
-    other: {
-      baseURL: '',
-      apiKey: '',
-      model: ''
-    }
-  },
-  selectedAI: 'DeepSeek',
   selectedTMDBIntance: 'public',
   folders: [],
   selectedFolder: undefined,
@@ -188,7 +161,9 @@ export async function getUserConfig(): Promise<UserConfig> {
     }
     const content = await file.text();
     try {
-        return JSON.parse(content) as UserConfig;
+        const raw = JSON.parse(content);
+        migrateAIConfig(raw);
+        return raw as UserConfig;
     } catch (parseError) {
         throw new Error(
             `Failed to parse user config file at "${configPath}": ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}`

@@ -107,19 +107,20 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
         folders: [],
         renameRules: [],
         dryRun: false,
-        ai: {
-            deepseek: {
+        aiProviders: [
+            {
+                name: 'DeepSeek',
                 baseURL: 'https://api.deepseek.com',
                 model: 'deepseek-v4-flash',
                 apiKey: deepseekApiKey,
             },
-            openAI: {},
-            openrouter: {},
-            glm: {},
-            other: {},
-        },
+            { name: 'OpenAI', baseURL: '', apiKey: '', model: '' },
+            { name: 'OpenRouter', baseURL: '', apiKey: '', model: '' },
+            { name: 'GLM', baseURL: '', apiKey: '', model: '' },
+            { name: 'Other', baseURL: '', apiKey: '', model: '' },
+        ],
         preferMediaLanguage: undefined,
-        selectedAI: 'DeepSeek',
+        selectedAIProvider: 'DeepSeek',
         selectedTMDBIntance: 'public',
         selectedRenameRule: 'Plex(TvShow/Anime)',
         enableMcpServer: false,
