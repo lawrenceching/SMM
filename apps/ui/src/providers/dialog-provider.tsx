@@ -16,12 +16,14 @@ import {
   FilePropertyDialog,
   FormatConverterDialog,
   EditMediaFileDialog,
+  ExecuteCmdDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
   type Task,
   type TrackProperties,
   type OpenEditMediaFileOptions,
+  type ExecuteCmdType,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
 import { useConfig } from "@/hooks/userConfig"
@@ -103,6 +105,10 @@ interface DialogContextValue {
     openEditMediaFile: (options: OpenEditMediaFileOptions) => void,
     closeEditMediaFile: () => void
   ]
+  executeCmdDialog: [
+    openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
+    closeExecuteCmd: () => void
+  ]
 }
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined)
@@ -169,6 +175,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Edit media file (tags) dialog state
   const [isEditMediaFileOpen, setIsEditMediaFileOpen] = useState(false)
   const [editMediaFilePath, setEditMediaFilePath] = useState<string | undefined>(undefined)
+
+  // Execute command dialog state
+  const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
+  const [executeCmdInitialCommand, setExecuteCmdInitialCommand] = useState<ExecuteCmdType | undefined>(undefined)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -367,6 +377,18 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setTimeout(() => setEditMediaFilePath(undefined), 200)
   }, [])
 
+  const openExecuteCmd = useCallback((initialCommand?: ExecuteCmdType) => {
+    setExecuteCmdInitialCommand(initialCommand)
+    setIsExecuteCmdOpen(true)
+  }, [])
+
+  const closeExecuteCmd = useCallback(() => {
+    setIsExecuteCmdOpen(false)
+    setTimeout(() => {
+      setExecuteCmdInitialCommand(undefined)
+    }, 200)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -381,6 +403,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     filePropertyDialog: [openFileProperty, closeFileProperty],
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
     editMediaFileDialog: [openEditMediaFile, closeEditMediaFile],
+    executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
   }
 
   return (
@@ -473,6 +496,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isEditMediaFileOpen}
         onClose={closeEditMediaFile}
         path={editMediaFilePath}
+      />
+      <ExecuteCmdDialog
+        isOpen={isExecuteCmdOpen}
+        onClose={closeExecuteCmd}
+        initialCommand={executeCmdInitialCommand}
       />
     </DialogContext.Provider>
   )

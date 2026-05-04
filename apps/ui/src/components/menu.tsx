@@ -159,7 +159,7 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
-  const { configDialog, downloadVideoDialog, formatConverterDialog, openFolderDialog, filePickerDialog } = useDialogs()
+  const { configDialog, downloadVideoDialog, formatConverterDialog, openFolderDialog, filePickerDialog, executeCmdDialog } = useDialogs()
   const { t } = useTranslation('components')
 
   const [openConfig] = configDialog
@@ -167,6 +167,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const [openFormatConverter] = formatConverterDialog
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
+  const [openExecuteCmd] = executeCmdDialog
 
   const logMenuAction = (action: string, context?: Record<string, unknown>) => {
     void writeFrontendLog({
@@ -314,6 +315,17 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
                   toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
                   logMenuError("open-log-folder.exception", error)
                 }
+              }
+            },
+            {
+              type: "separator"
+            },
+            {
+              name: t('menu.openExecuteCmd'),
+              id: 'open-execute-cmd-dialog',
+              onClick: () => {
+                logMenuAction("open-execute-cmd-dialog.click")
+                openExecuteCmd()
               }
             },
             {

@@ -43,6 +43,7 @@ interface ComponentsResources {
     developer: string
     openAppDataFolder: string
     openLogFolder: string
+    openExecuteCmd: string
     config: string
     cleanUp: string
     exit: string
@@ -479,6 +480,20 @@ interface DialogsResources {
     uiOnlyHint: string
     invalidParams: string
     success: string
+  }
+  executeCmd: {
+    title: string
+    description: string
+    command: string
+    selectCommand: string
+    arguments: string
+    addArgument: string
+    output: string
+    running: string
+    clear: string
+    noOutput: string
+    execute: string
+    stop: string
   }
 }
 

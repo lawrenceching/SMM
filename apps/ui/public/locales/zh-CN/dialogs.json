@@ -160,6 +160,20 @@
     "uiOnlyHint": "仅 UI 演示，未实际开始转换。",
     "invalidParams": "请设置输出文件夹和文件名。",
     "success": "转换完成。"
+  },
+  "executeCmd": {
+    "title": "执行命令",
+    "description": "运行命令行工具并实时查看输出",
+    "command": "命令",
+    "selectCommand": "选择命令...",
+    "arguments": "参数",
+    "addArgument": "添加参数",
+    "output": "输出",
+    "running": "运行中",
+    "clear": "清空",
+    "noOutput": "暂无输出。执行命令后查看结果。",
+    "execute": "执行",
+    "stop": "停止"
   }
 }
 

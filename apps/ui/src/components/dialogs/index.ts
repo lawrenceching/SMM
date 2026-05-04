@@ -15,6 +15,7 @@ export { DeleteTrackDialog } from "./delete-track-dialog"
 export { EditMediaFileDialog } from "./edit-media-file-dialog"
 export { TranscribeDialog } from "./TranscribeDialog"
 export { UITranscribeDialog } from "./UITranscribeDialog"
+export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
 
 export type {
   DialogConfig,
@@ -41,5 +42,8 @@ export type {
   TranscribeDialogRow,
   TranscribeDialogProps,
   UITranscribeDialogProps,
+  ExecuteCmdDialogProps,
+  ExecuteCmdLogEntry,
+  ExecuteCmdType,
 } from "./types"
 

@@ -160,6 +160,20 @@
     "uiOnlyHint": "UI only – conversion not started.",
     "invalidParams": "Please set output folder and file name.",
     "success": "Conversion completed."
+  },
+  "executeCmd": {
+    "title": "Execute Command",
+    "description": "Run command-line tools and view output in real time",
+    "command": "Command",
+    "selectCommand": "Select a command...",
+    "arguments": "Arguments",
+    "addArgument": "Add Argument",
+    "output": "Output",
+    "running": "Running",
+    "clear": "Clear",
+    "noOutput": "No output yet. Execute a command to see results.",
+    "execute": "Execute",
+    "stop": "Stop"
   }
 }
 

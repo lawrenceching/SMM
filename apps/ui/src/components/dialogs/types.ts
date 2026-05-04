@@ -180,3 +180,18 @@ export interface EditMediaFileDialogProps {
   path: string | undefined
 }
 
+export type ExecuteCmdType = 'ffmpeg' | 'ffprobe' | 'yt-dlp' | 'videocaptioner'
+
+export interface ExecuteCmdDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  initialCommand?: ExecuteCmdType
+}
+
+export interface ExecuteCmdLogEntry {
+  id: number
+  timestamp: number
+  type: 'stdout' | 'stderr' | 'system'
+  content: string
+}
+

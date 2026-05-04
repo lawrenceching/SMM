@@ -9,6 +9,7 @@
     "developer": "Developer",
     "openAppDataFolder": "Open App Data Folder",
     "openLogFolder": "Open Log Folder",
+    "openExecuteCmd": "Execute Command",
     "config": "Config",
     "cleanUp": "Clean Up",
     "exit": "Exit",
