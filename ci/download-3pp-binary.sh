@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download plugins.tar from SMM GitHub release and extract platform-specific
+# Download plugins.tar.gz from SMM GitHub release and extract platform-specific
 # ffmpeg/ffprobe and yt-dlp into bin/ffmpeg and bin/yt-dlp for Electron packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64). Optional: PLUGINS_VERSION, PLUGINS_REPO.
 
@@ -11,7 +11,7 @@ PLUGINS_VERSION="${PLUGINS_VERSION:-v1.0.0}"
 PLUGINS_REPO="${PLUGINS_REPO:-lawrenceching/SMM}"
 
 BASE_URL="https://github.com/${PLUGINS_REPO}/releases/download/${PLUGINS_VERSION}"
-PLUGINS_TAR_URL="${BASE_URL}/plugins.tar"
+PLUGINS_TAR_URL="${BASE_URL}/plugins.tar.gz"
 
 case "${PLATFORM}-${ARCH}" in
   linux-x64)
@@ -53,13 +53,13 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "${TMPDIR}"' EXIT
 
 echo "Downloading ${PLUGINS_TAR_URL} ..."
-if ! curl -sSLf -o "${TMPDIR}/plugins.tar" "${PLUGINS_TAR_URL}"; then
+if ! curl -sSLf -o "${TMPDIR}/plugins.tar.gz" "${PLUGINS_TAR_URL}"; then
   echo "Download failed." >&2
   exit 1
 fi
 
-echo "Extracting plugins.tar ..."
-tar -xf "${TMPDIR}/plugins.tar" -C "${TMPDIR}"
+echo "Extracting plugins.tar.gz ..."
+tar -xf "${TMPDIR}/plugins.tar.gz" -C "${TMPDIR}"
 
 PLUGINS="${TMPDIR}/plugins"
 if [ ! -d "${PLUGINS}" ]; then
