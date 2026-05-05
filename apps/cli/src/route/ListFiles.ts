@@ -39,7 +39,7 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
     }
 
     let { path: folderPath, onlyFiles, onlyFolders, includeHiddenFiles = false, recursively = false } = validationResult.data;
-    logger.info(
+    logger.debug(
       { requestId, folderPath, onlyFiles, onlyFolders, includeHiddenFiles, recursively },
       '[ListFiles] validated params'
     );
@@ -114,12 +114,12 @@ export async function doListFiles(body: ListFilesRequestBody): Promise<ListFiles
 
     // List directory contents
     try {
-      logger.info({ requestId, validatedPath }, '[ListFiles] starting readdir');
+      logger.debug({ requestId, validatedPath }, '[ListFiles] starting readdir');
       const results: Array<{ path: string; size: number; mtime: number; isDirectory: boolean }> = [];
       let totalCount = 0; // Count of all items in the immediate directory (before onlyFiles/onlyFolders filtering)
 
       async function scanDirectory(dirPath: string, isTopLevel: boolean = false): Promise<void> {
-        logger.info({ requestId, dirPath, isTopLevel }, '[ListFiles] scanDirectory readdir');
+        logger.debug({ requestId, dirPath, isTopLevel }, '[ListFiles] scanDirectory readdir');
         const items = await readdir(dirPath);
 
         for (const item of items) {

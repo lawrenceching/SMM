@@ -1,7 +1,7 @@
 import { getUserConfig, getUserDataDir, getAppDataDir } from '@/utils/config';
 import { Path } from '@core/path';
 import path from 'path';
-import logger from '../../lib/logger';
+import logger, { maskOsUsername } from '../../lib/logger';
 
 /**
  * 
@@ -30,10 +30,10 @@ export async function validatePathIsInAllowlist(filePath: string): Promise<boole
     allowlist.push(Path.posix(folder));
   }
 
-  logger.info({
-    allowlist,
-    filePath,
-  }, `Validating path is in allowlist: ${filePath}`);
+  logger.debug({
+    allowlist: allowlist.map(i => maskOsUsername(i)),
+    filePath: maskOsUsername(filePath),
+  }, `Validating path is in allowlist`);
 
   return allowlist.some(allowlistItem => filePath.startsWith(allowlistItem));
 }

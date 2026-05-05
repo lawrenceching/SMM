@@ -114,7 +114,7 @@ export class Server {
 
       const start = Date.now();
 
-      logger.info({ requestId: reqId, method, path }, 'incoming request');
+      logger.debug({ requestId: reqId, method, path }, 'incoming request');
 
       await next();
 
