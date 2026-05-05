@@ -1,3 +1,4 @@
+plugins/**
 test/media/tutorials/**
 .trae/
 .DS_Store
