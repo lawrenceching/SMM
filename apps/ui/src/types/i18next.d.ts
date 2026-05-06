@@ -546,6 +546,7 @@ interface SettingsResources {
     selectFfmpegExecutableDescription: string
     videoCaptionerExecutablePath: string
     videoCaptionerExecutablePathUnavailable: string
+    useBundledFfmpegForVideoCaptioner: string
     browse: string
   }
   ai: {

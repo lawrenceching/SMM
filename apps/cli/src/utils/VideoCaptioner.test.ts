@@ -137,7 +137,7 @@ describe("transcribeWithVideoCaptioner", () => {
   it("injects bundled ffmpeg dir into PATH when enabled in config", async () => {
     const child = createMockChild();
     h.spawn.mockReturnValue(child);
-    h.getUserConfig.mockResolvedValueOnce({
+    h.getUserConfig.mockResolvedValue({
       useBundledFfmpegForVideoCaptioner: true,
     });
     h.discoverFfmpeg.mockResolvedValueOnce("C:/SMM/bin/ffmpeg/ffmpeg.exe");
