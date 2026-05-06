@@ -61,6 +61,7 @@ export function GeneralSettings() {
     mcpPort: userConfig.mcpPort ?? 30001,
     ytdlpExecutablePath: userConfig.ytdlpExecutablePath || '',
     ffmpegExecutablePath: userConfig.ffmpegExecutablePath || '',
+    useBundledFfmpegForVideoCaptioner: userConfig.useBundledFfmpegForVideoCaptioner ?? true,
   }), [userConfig])
 
   // Track current form values
@@ -77,6 +78,9 @@ export function GeneralSettings() {
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
   const [ytdlpExecutablePath, setYtdlpExecutablePath] = useState(initialValues.ytdlpExecutablePath)
   const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
+  const [useBundledFfmpegForVideoCaptioner, setUseBundledFfmpegForVideoCaptioner] = useState(
+    initialValues.useBundledFfmpegForVideoCaptioner,
+  )
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null)
   const [ffmpegVersion, setFfmpegVersion] = useState<string | null>(null)
   const [videoCaptionerPath, setVideoCaptionerPath] = useState<string | null>(null)
@@ -96,6 +100,7 @@ export function GeneralSettings() {
     setMcpPort(String(initialValues.mcpPort))
     setYtdlpExecutablePath(initialValues.ytdlpExecutablePath)
     setFfmpegExecutablePath(initialValues.ffmpegExecutablePath)
+    setUseBundledFfmpegForVideoCaptioner(initialValues.useBundledFfmpegForVideoCaptioner)
   }, [initialValues])
 
   // Discover ytdlp and ffmpeg paths when component mounts
@@ -150,9 +155,26 @@ export function GeneralSettings() {
       mcpHost !== initialValues.mcpHost ||
       mcpPort !== String(initialValues.mcpPort) ||
       ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
-      ffmpegExecutablePath !== initialValues.ffmpegExecutablePath
+      ffmpegExecutablePath !== initialValues.ffmpegExecutablePath ||
+      useBundledFfmpegForVideoCaptioner !== initialValues.useBundledFfmpegForVideoCaptioner
     )
-  }, [applicationLanguage, tmdbHost, tmdbApiKey, tmdbProxy, tvdbHost, tvdbApiKey, primaryDatabase, preferMediaLanguage, enableMcpServer, mcpHost, mcpPort, ytdlpExecutablePath, ffmpegExecutablePath, initialValues])
+  }, [
+    applicationLanguage,
+    tmdbHost,
+    tmdbApiKey,
+    tmdbProxy,
+    tvdbHost,
+    tvdbApiKey,
+    primaryDatabase,
+    preferMediaLanguage,
+    enableMcpServer,
+    mcpHost,
+    mcpPort,
+    ytdlpExecutablePath,
+    ffmpegExecutablePath,
+    useBundledFfmpegForVideoCaptioner,
+    initialValues,
+  ])
 
   // Handle save
   const handleSave = async () => {
@@ -187,6 +209,7 @@ export function GeneralSettings() {
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
       ytdlpExecutablePath: ytdlpExecutablePath || undefined,
       ffmpegExecutablePath: ffmpegExecutablePath || undefined,
+      useBundledFfmpegForVideoCaptioner,
     }
     setAndSaveUserConfig(traceId, updatedConfig)
   }
@@ -461,6 +484,21 @@ export function GeneralSettings() {
             >
               {videoCaptionerPath ?? t('general.videoCaptionerExecutablePathUnavailable')}
             </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="use-bundled-ffmpeg-videocaptioner"
+                type="checkbox"
+                checked={useBundledFfmpegForVideoCaptioner}
+                onChange={(e) => setUseBundledFfmpegForVideoCaptioner(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+                data-testid="setting-use-bundled-ffmpeg-videocaptioner"
+              />
+              <Label htmlFor="use-bundled-ffmpeg-videocaptioner">
+                {t('general.useBundledFfmpegForVideoCaptioner')}
+              </Label>
+            </div>
           </div>
         </div>
       </div>

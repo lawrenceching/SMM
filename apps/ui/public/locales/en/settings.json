@@ -47,6 +47,7 @@
     "selectFfmpegExecutableDescription": "Choose the ffmpeg executable file",
     "videoCaptionerExecutablePath": "VideoCaptioner Executable Path",
     "videoCaptionerExecutablePathUnavailable": "Not found",
+    "useBundledFfmpegForVideoCaptioner": "Use bundled ffmpeg for VideoCaptioner",
     "browse": "Browse"
   },
   "ai": {

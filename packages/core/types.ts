@@ -123,6 +123,10 @@ export interface UserConfig {
    * Path to the videocaptioner executable file.
    */
   videoCaptionerExecutablePath?: string
+  /**
+   * Whether to prefer the bundled ffmpeg when running videocaptioner (Transcribe feature).
+   */
+  useBundledFfmpegForVideoCaptioner?: boolean
 }
 
 /**

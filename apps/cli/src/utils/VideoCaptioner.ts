@@ -4,6 +4,7 @@ import os from "os";
 import fs from "fs";
 import { spawn } from "child_process";
 import { logger } from "../../lib/logger";
+import { discoverFfmpeg } from "./Ffmpeg";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
 const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -135,6 +136,38 @@ export async function transcribeWithVideoCaptioner(
     return { error: "videocaptioner executable not found" };
   }
 
+  let env: NodeJS.ProcessEnv | undefined;
+  try {
+    const userConfig = await getUserConfig();
+    if (userConfig.useBundledFfmpegForVideoCaptioner) {
+      const ffmpegPath = await discoverFfmpeg();
+      if (ffmpegPath) {
+        const ffmpegDir = path.dirname(ffmpegPath);
+        const baseEnv: NodeJS.ProcessEnv = { ...process.env };
+        const currentPath = baseEnv.PATH || baseEnv.Path || "";
+        const sep = process.platform === "win32" ? ";" : ":";
+        const newPath = ffmpegDir + (currentPath ? sep + currentPath : "");
+        baseEnv.PATH = newPath;
+        baseEnv.Path = newPath;
+        env = baseEnv;
+        videoCaptionerLog.info(
+          { ffmpegPath, ffmpegDir, useBundledFfmpegForVideoCaptioner: true },
+          "configured PATH for videocaptioner to prefer bundled ffmpeg"
+        );
+      } else {
+        videoCaptionerLog.warn(
+          { useBundledFfmpegForVideoCaptioner: true },
+          "useBundledFfmpegForVideoCaptioner is enabled but bundled ffmpeg was not found"
+        );
+      }
+    }
+  } catch (error) {
+    videoCaptionerLog.warn(
+      { error },
+      "failed to read user config for useBundledFfmpegForVideoCaptioner; falling back to default PATH"
+    );
+  }
+
   // CLI requires subcommand form: videocaptioner transcribe <mediaPath>
   const args = ["transcribe", mediaPath, "--asr", "bijian"];
   const commandForLog = [executablePath, ...args]
@@ -147,6 +180,7 @@ export async function transcribeWithVideoCaptioner(
     );
     const child = spawn(executablePath, args, {
       stdio: ["ignore", "pipe", "pipe"],
+      ...(env ? { env } : {}),
     });
     return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
       let settled = false;

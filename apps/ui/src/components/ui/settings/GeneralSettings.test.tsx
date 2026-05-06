@@ -12,18 +12,20 @@ const h = vi.hoisted(() => ({
   discoverVideoCaptioner: vi.fn(),
 }));
 
+const mockUseConfig = vi.fn(() => ({
+  userConfig: {
+    applicationLanguage: "en",
+    tmdb: {},
+    folders: [],
+    renameRules: [],
+    dryRun: false,
+    selectedRenameRule: "",
+  },
+  setAndSaveUserConfig: vi.fn(),
+}));
+
 vi.mock("@/hooks/userConfig", () => ({
-  useConfig: () => ({
-    userConfig: {
-      applicationLanguage: "en",
-      tmdb: {},
-      folders: [],
-      renameRules: [],
-      dryRun: false,
-      selectedRenameRule: "",
-    },
-    setAndSaveUserConfig: vi.fn(),
-  }),
+  useConfig: () => mockUseConfig(),
 }));
 
 vi.mock("@/providers/theme-provider", () => ({
@@ -84,5 +86,25 @@ describe("GeneralSettings VideoCaptioner path display", () => {
     await waitFor(() => {
       expect(screen.getByTestId("setting-videocaptioner-path")).toHaveTextContent("general.videoCaptionerExecutablePathUnavailable");
     });
+  });
+
+  it("defaults useBundledFfmpegForVideoCaptioner to checked when config field is missing", async () => {
+    h.discoverVideoCaptioner.mockResolvedValue({ error: "videocaptioner not found" });
+    mockUseConfig.mockReturnValueOnce({
+      userConfig: {
+        applicationLanguage: "en",
+        tmdb: {},
+        folders: [],
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "",
+      },
+      setAndSaveUserConfig: vi.fn(),
+    });
+
+    render(<GeneralSettings />);
+
+    const checkbox = await screen.findByTestId("setting-use-bundled-ffmpeg-videocaptioner");
+    expect((checkbox as HTMLInputElement).checked).toBe(true);
   });
 });

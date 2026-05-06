@@ -4,6 +4,8 @@ import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner } from "./
 
 const h = vi.hoisted(() => ({
   spawn: vi.fn(),
+  getUserConfig: vi.fn().mockResolvedValue({}),
+  discoverFfmpeg: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("child_process", () => ({
@@ -11,7 +13,11 @@ vi.mock("child_process", () => ({
 }));
 
 vi.mock("./config", () => ({
-  getUserConfig: vi.fn().mockResolvedValue({}),
+  getUserConfig: h.getUserConfig,
+}));
+
+vi.mock("./Ffmpeg", () => ({
+  discoverFfmpeg: h.discoverFfmpeg,
 }));
 
 vi.mock("os", async () => {
@@ -126,5 +132,25 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(child.kill).toHaveBeenCalled();
     expect(result.error).toContain("timed out");
+  });
+
+  it("injects bundled ffmpeg dir into PATH when enabled in config", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+    h.getUserConfig.mockResolvedValueOnce({
+      useBundledFfmpegForVideoCaptioner: true,
+    });
+    h.discoverFfmpeg.mockResolvedValueOnce("C:/SMM/bin/ffmpeg/ffmpeg.exe");
+
+    const promise = transcribeWithVideoCaptioner("C:/media/a.mp3");
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    const spawnCall = h.spawn.mock.calls[0];
+    const options = spawnCall[2] as { env?: NodeJS.ProcessEnv };
+    expect(options.env).toBeDefined();
+    const envPath = options.env!.PATH || options.env!.Path || "";
+    expect(envPath.toLowerCase().startsWith("c:/smm/bin/ffmpeg".toLowerCase())).toBe(true);
   });
 });

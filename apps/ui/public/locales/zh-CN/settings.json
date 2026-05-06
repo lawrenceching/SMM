@@ -47,6 +47,7 @@
     "selectFfmpegExecutableDescription": "选择 ffmpeg 可执行文件",
     "videoCaptionerExecutablePath": "VideoCaptioner 可执行文件路径",
     "videoCaptionerExecutablePathUnavailable": "未找到",
+    "useBundledFfmpegForVideoCaptioner": "使用程序自带的 ffmpeg",
     "browse": "浏览"
   },
   "ai": {
