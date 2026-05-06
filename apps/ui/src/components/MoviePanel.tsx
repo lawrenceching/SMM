@@ -22,6 +22,7 @@ import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { TranscribeDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useFeatures } from "@/hooks/useFeatures"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
 
@@ -130,7 +131,9 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [rawMediaMetadata])
 
-  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus()
+  const { isTranscribeEnabled } = useFeatures()
+  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
+  const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
   const transcribeDialogRows = useMemo(
     () => transcribeDialogRowsFromMediaFiles(mediaMetadata),

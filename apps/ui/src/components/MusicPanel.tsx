@@ -35,6 +35,7 @@ import {
 } from "@/lib/transcribeFeedback";
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
+import { useFeatures } from "@/hooks/useFeatures";
 
 interface PendingDelete {
   trackPath: string;
@@ -189,7 +190,9 @@ export function MusicPanel() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus();
+  const { isTranscribeEnabled } = useFeatures();
+  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus();
+  const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isBatchTranscribing, setIsBatchTranscribing] = useState(false);

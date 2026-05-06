@@ -43,6 +43,10 @@ vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
     useVideoCaptionerStatus: vi.fn(),
 }))
 
+vi.mock("@/hooks/useFeatures", () => ({
+    useFeatures: vi.fn(() => ({ isTranscribeEnabled: true })),
+}))
+
 vi.mock("@/components/ui/separator", () => ({
     Separator: () => <hr data-testid="separator" />,
 }))
@@ -51,6 +55,7 @@ import { useStatusBar } from "./hooks/useStatusBar"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useFeatures } from "@/hooks/useFeatures"
 
 vi.mock("@/lib/i18n", () => ({
     useTranslation: () => ({
@@ -62,6 +67,8 @@ vi.mock("@/lib/i18n", () => ({
                 "statusBar.messages.tvdbAvailable": "TVDB is available",
                 "statusBar.messages.videoCaptionerAvailable": "VideoCaptioner is available",
                 "statusBar.messages.videoCaptionerNotFound": "videocaptioner not found",
+                "statusBar.messages.transcribeUnavailableOnOs":
+                    "Subtitle generation is not available on this operating system.",
             }
             return messages[key] ?? key
         },
@@ -74,6 +81,7 @@ const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
 >
 const mockUseDatabaseConnectionStatus = useDatabaseConnectionStatus as ReturnType<typeof vi.fn>
 const mockUseVideoCaptionerStatus = useVideoCaptionerStatus as ReturnType<typeof vi.fn>
+const mockUseFeatures = useFeatures as ReturnType<typeof vi.fn>
 
 describe("mapWebSocketStatusToConnectionStatus", () => {
     it("maps connected to connected", () => {
@@ -113,6 +121,7 @@ describe("StatusBar", () => {
             isAvailable: true,
             isChecking: false,
         })
+        mockUseFeatures.mockReturnValue({ isTranscribeEnabled: true })
     })
 
     it("renders with testids and overrides", () => {
@@ -212,6 +221,24 @@ describe("StatusBar", () => {
                     title: "videocaptioner not found",
                     type: "error",
                     link: "https://github.com/WEIFENG2333/VideoCaptioner#cli-%E5%91%BD%E4%BB%A4%E8%A1%8C",
+                },
+            ]),
+        )
+    })
+
+    it("renders transcribe unavailable on OS when transcribe feature is disabled", () => {
+        mockUseFeatures.mockReturnValue({ isTranscribeEnabled: false })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB is available", type: "info" },
+                { title: "TVDB is available", type: "info" },
+                {
+                    title: "Subtitle generation is not available on this operating system.",
+                    type: "warning",
                 },
             ]),
         )

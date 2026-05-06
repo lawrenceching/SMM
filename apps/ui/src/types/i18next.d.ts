@@ -217,6 +217,7 @@ interface ComponentsResources {
       tvdbUnavailable: string
       videoCaptionerAvailable: string
       videoCaptionerNotFound: string
+      transcribeUnavailableOnOs: string
       learnMore: string
     }
     backgroundJobs: {

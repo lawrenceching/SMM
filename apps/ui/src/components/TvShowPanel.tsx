@@ -33,6 +33,7 @@ import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import { TranscribeDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useFeatures } from "@/hooks/useFeatures"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
 import { fetchPlans, savePlan } from "@/actions/planActions"
@@ -138,7 +139,9 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isAvailable: isTranscribeAvailable } = useVideoCaptionerStatus()
+  const { isTranscribeEnabled } = useFeatures()
+  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
+  const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
   const transcribeDialogRows = useMemo(
     () => transcribeDialogRowsFromMediaFiles(mediaMetadata),

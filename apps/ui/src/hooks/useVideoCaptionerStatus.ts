@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { discoverVideoCaptioner } from "@/api/videocaptioner"
+import { useFeatures } from "@/hooks/useFeatures"
 
 const VIDEOCAPTIONER_DISCOVERY_CHECK_INTERVAL_MS = 60 * 1000
 const VIDEOCAPTIONER_DISCOVERY_STALE_MS = 50 * 1000
@@ -10,8 +11,10 @@ export interface UseVideoCaptionerStatusResult {
 }
 
 export function useVideoCaptionerStatus(): UseVideoCaptionerStatusResult {
+  const { isTranscribeEnabled } = useFeatures()
   const query = useQuery({
     queryKey: ["videocaptioner-discovery-status"],
+    enabled: isTranscribeEnabled,
     queryFn: async () => {
       try {
         const result = await discoverVideoCaptioner()
@@ -27,7 +30,7 @@ export function useVideoCaptionerStatus(): UseVideoCaptionerStatusResult {
   })
 
   return {
-    isAvailable: query.data === true,
-    isChecking: query.isLoading,
+    isAvailable: isTranscribeEnabled && query.data === true,
+    isChecking: isTranscribeEnabled && query.isLoading,
   }
 }

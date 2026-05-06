@@ -196,6 +196,7 @@
       "tvdbUnavailable": "TVDB is unavailable",
       "videoCaptionerAvailable": "VideoCaptioner is available",
       "videoCaptionerNotFound": "videocaptioner not found",
+      "transcribeUnavailableOnOs": "Subtitle generation is not available on this operating system.",
       "learnMore": "Learn more"
     },
     "backgroundJobs": {

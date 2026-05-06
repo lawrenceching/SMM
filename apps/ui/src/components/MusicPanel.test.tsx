@@ -11,6 +11,7 @@ import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
 import { getMediaTags } from '@/api/ffmpeg';
 import { useVideoCaptionerStatus } from '@/hooks/useVideoCaptionerStatus';
+import { useFeatures } from '@/hooks/useFeatures';
 
 const h = vi.hoisted(() => ({
   mockFetchMediaMetadata: vi.fn(),
@@ -46,6 +47,9 @@ vi.mock('@/api/videocaptioner', () => ({
 }));
 vi.mock('@/hooks/useVideoCaptionerStatus', () => ({
   useVideoCaptionerStatus: vi.fn(),
+}));
+vi.mock('@/hooks/useFeatures', () => ({
+  useFeatures: vi.fn(() => ({ isTranscribeEnabled: true })),
 }));
 vi.mock('sonner');
 
@@ -125,6 +129,7 @@ describe('MusicPanel', () => {
       isAvailable: true,
       isChecking: false,
     });
+    vi.mocked(useFeatures).mockReturnValue({ isTranscribeEnabled: true });
 
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
   });

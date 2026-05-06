@@ -194,6 +194,7 @@
       "tvdbUnavailable": "TVDB 不可用",
       "videoCaptionerAvailable": "VideoCaptioner 可用",
       "videoCaptionerNotFound": "找不到 videocaptioner",
+      "transcribeUnavailableOnOs": "生成字幕功能在目前作業系統上不可用",
       "learnMore": "了解更多"
     },
     "backgroundJobs": {

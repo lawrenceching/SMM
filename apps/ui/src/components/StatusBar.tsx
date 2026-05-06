@@ -10,6 +10,7 @@ import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useFeatures } from "@/hooks/useFeatures"
 
 export { mapWebSocketStatusToConnectionStatus }
 
@@ -32,6 +33,7 @@ export function StatusBar({
     const { t } = useTranslation("components")
     const { selectedFolder } = useUIMediaFolderStoreState()
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
+    const { isTranscribeEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
     const folderPathMessage = useMemo(
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
@@ -56,17 +58,22 @@ export function StatusBar({
                         : t("statusBar.messages.tvdbAvailable"),
                 type: tvdbStatus === "disconnected" ? "error" : "info",
             },
-            {
-                title: isVideoCaptionerAvailable
-                    ? t("statusBar.messages.videoCaptionerAvailable")
-                    : t("statusBar.messages.videoCaptionerNotFound"),
-                type: isVideoCaptionerAvailable ? "info" : "error",
-                link: isVideoCaptionerAvailable
-                    ? undefined
-                    : VIDEO_CAPTIONER_CLI_HELP_LINK,
-            },
+            isTranscribeEnabled
+                ? {
+                      title: isVideoCaptionerAvailable
+                          ? t("statusBar.messages.videoCaptionerAvailable")
+                          : t("statusBar.messages.videoCaptionerNotFound"),
+                      type: isVideoCaptionerAvailable ? "info" : "error",
+                      link: isVideoCaptionerAvailable
+                          ? undefined
+                          : VIDEO_CAPTIONER_CLI_HELP_LINK,
+                  }
+                : {
+                      title: t("statusBar.messages.transcribeUnavailableOnOs"),
+                      type: "warning",
+                  },
         ],
-        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, t],
+        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isTranscribeEnabled, t],
     )
 
     return (
