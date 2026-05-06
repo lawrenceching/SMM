@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple Media Manager — AI 驱动的本地媒体库管理工具</title>
+    <meta
+      name="description"
+      content="Simple Media Manager (SMM) 是一款 AI 驱动的桌面应用，帮你整理、重命名、刮削并转码本地的电影、电视剧和音乐。支持 Windows、macOS 与 Linux。"
+    />
+    <meta property="og:title" content="Simple Media Manager (SMM)" />
+    <meta
+      property="og:description"
+      content="AI 驱动的本地媒体库管理工具，支持 Windows、macOS 和 Linux。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://lawrenceching.github.io/SMM/zh/" />
+    <meta property="og:image" content="../assets/img/screenshot.png" />
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+    <link rel="canonical" href="https://lawrenceching.github.io/SMM/zh/" />
+    <link rel="alternate" hreflang="en" href="../en/" />
+    <link rel="alternate" hreflang="zh" href="../zh/" />
+    <link rel="alternate" hreflang="x-default" href="../" />
+    <link rel="stylesheet" href="../assets/css/main.css" />
+    <link rel="stylesheet" href="../assets/css/home.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="site-brand" href="./">
+          <img class="site-brand__logo" src="../assets/img/logo.svg" alt="" />
+          <span>Simple Media Manager</span>
+        </a>
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-label="切换导航"
+          aria-expanded="false"
+          data-nav-toggle
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <nav class="site-nav" data-nav>
+          <a href="#features">功能特性</a>
+          <a href="./docs/">使用说明</a>
+          <a href="https://github.com/lawrenceching/SMM">GitHub</a>
+          <a href="https://github.com/lawrenceching/SMM/releases">下载</a>
+          <span class="lang-switch" role="group" aria-label="语言">
+            <a href="../en/">EN</a>
+            <a href="./" aria-current="true">中</a>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero__inner">
+          <span class="badge">AI 驱动 · 开源免费</span>
+          <h1 class="hero__title">让本地媒体库井井有条</h1>
+          <p class="hero__subtitle">
+            Simple Media Manager（SMM）帮你重命名、刮削、转码本地的电影、电视剧
+            和音乐，自带 AI 助手，界面清爽，完全在本机运行，不上传任何文件。
+          </p>
+          <div class="hero__actions">
+            <a
+              class="btn btn--primary btn--lg"
+              href="https://github.com/lawrenceching/SMM/releases"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              下载 Windows / macOS / Linux 版
+            </a>
+            <a
+              class="btn btn--ghost btn--lg"
+              href="https://github.com/lawrenceching/SMM"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.2.69-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.74 2.67 1.24 3.32.95.1-.74.4-1.24.73-1.52-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.8 10.8 0 0 1 5.74 0c2.18-1.49 3.14-1.18 3.14-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.13 0 .3.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+                />
+              </svg>
+              在 GitHub 查看
+            </a>
+          </div>
+          <p class="hero__meta">
+            开源免费 · 不依赖云端 · 你的媒体文件不离开本机
+          </p>
+          <div class="platforms" aria-label="支持的平台">
+            <span class="platform-chip">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M3 4.6 10.5 3.5v8.6H3V4.6Zm0 14.8v-7.5h7.5v8.6L3 19.4Zm8.5-7.5H21v8.6l-9.5-1.1v-7.5Zm0-9.4L21 1.4v9.7h-9.5V2.5Z" />
+              </svg>
+              Windows
+            </span>
+            <span class="platform-chip">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.7-3-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.4 1-4.3 2.6-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.6.7-1 1.2-1.9 1.6-2.9-.1 0-3.1-1.1-3.1-4.3ZM13.8 4c.7-.9 1.2-2.1 1.1-3.3-1 .1-2.3.7-3 1.6-.6.8-1.2 2-1 3.2 1.1.1 2.2-.6 2.9-1.5Z" />
+              </svg>
+              macOS
+            </span>
+            <span class="platform-chip">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2c-2 0-3 1.8-3 3.6 0 .5.1 1 .2 1.4-.7.5-1.5 1.4-2 2.5-.6 1.4-.6 3 0 4.4-.7 1.7-1.2 2.7-1.7 3.6-.5 1-1.5 2.7-1.5 3.6 0 .8.6 1.4 1.7 1.4.6 0 1.1-.2 1.4-.5.5.4 1.1.6 1.7.6 1.5 0 2.6-.9 3.2-1.6.6.7 1.7 1.6 3.2 1.6.6 0 1.2-.2 1.7-.6.3.3.8.5 1.4.5 1.1 0 1.7-.6 1.7-1.4 0-.9-1-2.6-1.5-3.6-.5-.9-1-1.9-1.7-3.6.6-1.4.6-3 0-4.4-.5-1.1-1.3-2-2-2.5.1-.4.2-.9.2-1.4C15 3.8 14 2 12 2Z" />
+              </svg>
+              Linux
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screenshot">
+        <div class="container">
+          <div class="screenshot__frame">
+            <img
+              src="../assets/img/screenshot.png"
+              alt="Simple Media Manager 应用截图"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="container">
+          <div class="section__head">
+            <h2>整理媒体库需要的能力，全都内置</h2>
+            <p>
+              从重命名、刮削元数据到从网络下载视频 —— SMM 是你本地媒体库的一站式工具。
+            </p>
+          </div>
+          <div class="features">
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                  <polyline points="14 3 14 9 20 9" />
+                </svg>
+              </div>
+              <h3>智能重命名</h3>
+              <p>
+                一键将文件重命名为 Plex / Jellyfin / Emby 命名规范，自动识别
+                季、集、标题、年份与语言。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              </div>
+              <h3>元数据与海报刮削</h3>
+              <p>
+                从 TMDB 与 TVDB 抓取海报、Fanart 与 NFO 文件，让你的媒体库
+                在任意播放器中都精致美观。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12" />
+                  <path d="m7 10 5 5 5-5" />
+                  <path d="M5 21h14" />
+                </svg>
+              </div>
+              <h3>视频下载</h3>
+              <p>
+                基于 yt-dlp，从 YouTube、Bilibili 等网站直接下载视频到媒体库。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" />
+                </svg>
+              </div>
+              <h3>视频转码</h3>
+              <p>
+                内置 FFmpeg 转码与封装能力，支持各种主流编码，速度与稳定性兼得。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41 11 23 1 13l9.59-9.59A2 2 0 0 1 12 3h7a2 2 0 0 1 2 2v7a2 2 0 0 1-.41 1.41Z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+              </div>
+              <h3>标签与元数据编辑</h3>
+              <p>
+                直接在应用中编辑标题、剧集、简介等信息，结果以标准 NFO 文件形式
+                写回到本地。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+                </svg>
+              </div>
+              <h3>内置 AI 助手</h3>
+              <p>
+                让 AI 帮你识别媒体目录、修正剧集匹配、生成简介，并通过 MCP Server
+                供其他工具调用。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 5h18" />
+                  <path d="M3 12h18" />
+                  <path d="M3 19h12" />
+                </svg>
+              </div>
+              <h3>自动字幕</h3>
+              <p>
+                通过内置的 VideoCaptioner 工作流，对音频进行转写并生成字幕文件。
+              </p>
+            </article>
+
+            <article class="feature-card">
+              <div class="feature-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+              </div>
+              <h3>跨平台桌面应用</h3>
+              <p>
+                基于 Electron，支持 Windows（含 Windows 11 ARM）、macOS 与
+                Linux，文件始终保留在你的电脑上。
+              </p>
+            </article>
+          </div>
+
+          <div class="cta">
+            <h2>开始整理你的媒体库</h2>
+            <p>下载对应平台的最新版本，几分钟就能拥有一个井井有条的媒体目录。</p>
+            <a
+              class="btn btn--primary btn--lg"
+              href="https://github.com/lawrenceching/SMM/releases"
+              >下载 SMM</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="site-footer__grid">
+          <div class="site-footer__brand">
+            <strong>Simple Media Manager</strong>
+            <p>AI 驱动的桌面应用，整理本地的电影、电视剧和音乐。</p>
+          </div>
+          <div>
+            <h4>产品</h4>
+            <ul>
+              <li><a href="#features">功能特性</a></li>
+              <li><a href="./docs/">使用说明</a></li>
+              <li>
+                <a href="https://github.com/lawrenceching/SMM/releases">下载</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>社区</h4>
+            <ul>
+              <li>
+                <a href="https://github.com/lawrenceching/SMM/issues">反馈问题</a>
+              </li>
+              <li>
+                <a href="https://github.com/lawrenceching/SMM/discussions"
+                  >讨论区</a
+                >
+              </li>
+              <li>
+                <a href="https://gitcode.com/lawrenceching/simple-media-manager"
+                  >GitCode 国内镜像</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>语言</h4>
+            <ul>
+              <li><a href="../en/">English</a></li>
+              <li><a href="./">中文</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="site-footer__bottom">
+          <span>© <span data-year>2026</span> Simple Media Manager</span>
+          <span>
+            <a href="https://github.com/lawrenceching/SMM">GitHub</a> ·
+            <a href="https://github.com/lawrenceching/SMM/releases">发布版本</a>
+          </span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../assets/js/main.js"></script>
+  </body>
+</html>

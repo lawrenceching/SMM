@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Simple Media Manager logo">
+  <defs>
+    <linearGradient id="smmGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#smmGrad)" />
+  <path
+    d="M20 22 L32 16 L44 22 V42 L32 48 L20 42 Z"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <polygon points="28,26 28,38 39,32" fill="#ffffff" />
+</svg>

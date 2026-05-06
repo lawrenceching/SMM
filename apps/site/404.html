@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 · Simple Media Manager</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="./assets/img/favicon.svg" />
+    <link rel="stylesheet" href="./assets/css/main.css" />
+    <style>
+      .notfound {
+        min-height: 70vh;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 64px 24px;
+      }
+      .notfound__code {
+        font-size: clamp(4rem, 14vw, 7rem);
+        line-height: 1;
+        margin: 0;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        background: linear-gradient(
+          135deg,
+          var(--color-primary),
+          var(--color-accent)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .notfound h1 {
+        font-size: 1.6rem;
+        margin: 12px 0 8px;
+      }
+      .notfound p {
+        max-width: 48ch;
+        margin: 0 auto 22px;
+      }
+      .notfound__actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="site-brand" href="./">
+          <img class="site-brand__logo" src="./assets/img/logo.svg" alt="" />
+          <span>Simple Media Manager</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="notfound">
+        <div>
+          <p class="notfound__code">404</p>
+          <h1>Page not found / 页面不存在</h1>
+          <p>
+            The page you&rsquo;re looking for doesn&rsquo;t exist, or has been
+            moved.<br />
+            你访问的页面不存在，或已被移动。
+          </p>
+          <div class="notfound__actions">
+            <a class="btn btn--primary" href="./en/">Back to home (EN)</a>
+            <a class="btn btn--ghost" href="./zh/">返回首页（中文）</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>

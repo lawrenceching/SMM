@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VideoCaptioner macOS 上不可用 · SMM 使用说明</title>
+    <meta
+      name="description"
+      content="Simple Media Manager 中自动字幕（VideoCaptioner）功能在 macOS 上不可用时，应该如何处理。"
+    />
+    <link rel="icon" type="image/svg+xml" href="../../assets/img/favicon.svg" />
+    <link
+      rel="canonical"
+      href="https://lawrenceching.github.io/SMM/zh/docs/video-captioner-macos.html"
+    />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="../../en/docs/video-captioner-macos.html"
+    />
+    <link
+      rel="alternate"
+      hreflang="zh"
+      href="../../zh/docs/video-captioner-macos.html"
+    />
+    <link rel="stylesheet" href="../../assets/css/main.css" />
+    <link rel="stylesheet" href="../../assets/css/docs.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="site-brand" href="../">
+          <img class="site-brand__logo" src="../../assets/img/logo.svg" alt="" />
+          <span>Simple Media Manager</span>
+        </a>
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-label="切换导航"
+          aria-expanded="false"
+          data-nav-toggle
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <nav class="site-nav" data-nav>
+          <a href="../#features">功能特性</a>
+          <a href="./" aria-current="page">使用说明</a>
+          <a href="https://github.com/lawrenceching/SMM">GitHub</a>
+          <a href="https://github.com/lawrenceching/SMM/releases">下载</a>
+          <span class="lang-switch" role="group" aria-label="语言">
+            <a href="../../en/docs/video-captioner-macos.html">EN</a>
+            <a href="./video-captioner-macos.html" aria-current="true">中</a>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <button
+        class="docs-mobile-toggle"
+        type="button"
+        aria-expanded="false"
+        data-docs-toggle
+      >
+        文章列表
+      </button>
+
+      <div class="docs-layout">
+        <aside class="docs-sidebar" data-docs-sidebar>
+          <h2>使用说明</h2>
+          <nav>
+            <a href="./">总览</a>
+          </nav>
+          <h3 class="docs-section-title">问题排查</h3>
+          <nav>
+            <a href="./video-captioner-macos.html"
+              >VideoCaptioner macOS 上不可用</a
+            >
+          </nav>
+        </aside>
+
+        <div class="docs-content">
+          <article class="docs-article">
+            <p class="docs-breadcrumb">
+              <a href="../">首页</a> /
+              <a href="./">使用说明</a> / 问题排查
+            </p>
+            <h1>VideoCaptioner macOS 上不可用</h1>
+            <p class="docs-meta">
+              <span>最后更新：2026 年 5 月 6 日</span>
+              <span>· 分类：问题排查</span>
+            </p>
+
+            <div class="docs-callout docs-callout--info" role="note">
+              <svg
+                class="docs-callout__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <div class="docs-callout__body">
+                <p>
+                  <strong>本文为占位示例</strong>，作为后续撰写文档的模板。
+                  实际现象与解决步骤会随 SMM 版本更新而变化。
+                </p>
+              </div>
+            </div>
+
+            <h2>现象</h2>
+            <p>
+              在 macOS 上打开 <strong>设置 → 字幕</strong> 时，自动字幕
+              <em>（VideoCaptioner）</em> 选项呈灰色，并提示类似：
+            </p>
+            <blockquote>VideoCaptioner 当前仅在 Windows 上可用。</blockquote>
+
+            <h2>原因</h2>
+            <p>
+              VideoCaptioner 依赖一个第三方语音转写引擎，目前仅打包了 Windows
+              版本，macOS 与 Linux 的二进制还在跟进中，尚未默认随应用一起分发。
+            </p>
+
+            <h2>解决方法</h2>
+            <ol>
+              <li>
+                <strong>使用远程转写服务。</strong>如果你有 OpenAI 兼容的
+                Whisper 接口，可在
+                <code>设置 → AI → 转写</code> 里配置远程地址，SMM 会优先使用它。
+              </li>
+              <li>
+                <strong>手动生成字幕。</strong>使用
+                <code>whisper.cpp</code> 等工具在终端中生成
+                <code>.srt</code> 文件，把它放在与视频文件同一目录，SMM 会自动
+                识别为关联字幕。
+              </li>
+              <li>
+                <strong>在 Windows 虚拟机中运行 SMM。</strong>如果你只是偶尔需要
+                生成字幕，并希望使用内置工作流，这是最简单的方式。
+              </li>
+            </ol>
+
+            <div class="docs-callout docs-callout--warn" role="note">
+              <svg
+                class="docs-callout__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <div class="docs-callout__body">
+                <p>
+                  在批量处理之前，请先确保远程转写服务可访问，避免大量任务失败
+                  之后还要手动重试。
+                </p>
+              </div>
+            </div>
+
+            <h2>关注 macOS 原生支持</h2>
+            <p>
+              macOS 原生支持的进度在 GitHub 上跟踪。如果你希望在 macOS 版本可用
+              时第一时间收到通知，可以订阅相关 Issue：
+            </p>
+            <ul>
+              <li>
+                <a href="https://github.com/lawrenceching/SMM/issues"
+                  >GitHub Issues</a
+                >
+                —— 搜索 <code>VideoCaptioner macOS</code>。
+              </li>
+            </ul>
+
+            <div class="docs-toc">
+              延伸阅读：
+              <a href="./">使用说明首页</a>
+              <a href="https://github.com/lawrenceching/SMM/discussions"
+                >讨论区</a
+              >
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="site-footer__bottom">
+          <span>© <span data-year>2026</span> Simple Media Manager</span>
+          <span>
+            <a href="../../en/">English</a> ·
+            <a href="../../zh/">中文</a> ·
+            <a href="https://github.com/lawrenceching/SMM">GitHub</a>
+          </span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/docs.js"></script>
+  </body>
+</html>
