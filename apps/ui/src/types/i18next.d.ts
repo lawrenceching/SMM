@@ -54,6 +54,10 @@ interface ComponentsResources {
     mediaFolders: string
     addFolder: string
   }
+  folderNotAvailablePanel: {
+    title: string
+    description: string
+  }
   toolbar: {
     refresh: string
     settings: string
@@ -84,6 +88,8 @@ interface ComponentsResources {
     renameDescription: string
     renameError: string
     initializing: string
+    folderNotFound: string
+    errorLoadingMetadata: string
   }
   assistant: {
     open: string

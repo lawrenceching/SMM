@@ -20,6 +20,10 @@
     "mediaFolders": "Media Folders",
     "addFolder": "Add Folder"
   },
+  "folderNotAvailablePanel": {
+    "title": "Folder unavailable",
+    "description": "This media folder cannot be reached. It may have been moved, renamed, or deleted, or the drive may be disconnected."
+  },
   "mediaFolder": {
     "rename": "Rename",
     "openInExplorer": "Open in Explorer",

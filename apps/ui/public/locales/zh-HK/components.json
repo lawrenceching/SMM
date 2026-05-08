@@ -19,6 +19,10 @@
     "mediaFolders": "媒體資料夾",
     "addFolder": "新增資料夾"
   },
+  "folderNotAvailablePanel": {
+    "title": "資料夾無法使用",
+    "description": "無法連線到此媒體資料夾。路徑可能已被移動、重新命名或刪除，亦可能磁碟機尚未連線。"
+  },
   "mediaFolder": {
     "rename": "重新命名",
     "openInExplorer": "在檔案總管中開啟",

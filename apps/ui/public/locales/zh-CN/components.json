@@ -20,6 +20,10 @@
     "mediaFolders": "媒体文件夹",
     "addFolder": "添加文件夹"
   },
+  "folderNotAvailablePanel": {
+    "title": "文件夹不可用",
+    "description": "无法访问此媒体文件夹。该路径可能已被移动、重命名或删除，也可能所在的磁盘未连接。"
+  },
   "mediaFolder": {
     "rename": "重命名",
     "openInExplorer": "在资源管理器中打开",

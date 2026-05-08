@@ -14,6 +14,7 @@ import { StatusBar } from "./components/StatusBar"
 import { AppWarningBanner } from "./components/AppWarningBanner"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
+import { FolderNotAvailablePanel } from "./components/FolderNotAvailablePanel"
 import TvShowPanel from "./components/TvShowPanel"
 import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
@@ -481,7 +482,11 @@ function AppV2Content() {
             onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            viewSwitcherDisabled={uiFolders.length === 0 || !selectedMediaMetadata}
+            viewSwitcherDisabled={
+              uiFolders.length === 0 ||
+              !selectedMediaMetadata ||
+              folderStatus === "folder_not_found"
+            }
           />
         </div>
 
@@ -514,7 +519,10 @@ function AppV2Content() {
               <Welcome />
             </div>
           )}
-          {uiFolders.length > 0 && selectedMediaMetadata && (
+          {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (
+            <FolderNotAvailablePanel />
+          )}
+          {uiFolders.length > 0 && folderStatus !== "folder_not_found" && selectedMediaMetadata && (
             <>
               {viewMode === "metadata" && (
                 <>

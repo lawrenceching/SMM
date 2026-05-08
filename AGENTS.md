@@ -213,3 +213,6 @@ pnpm ci               # 构建 + 测试 + 类型检查
 ```
 pnpm run wdio --spec ./test/specs/[test file].e2e.ts
 ```
+
+## apps/cli API 列表
+API列表可查阅文件: `docs/api/index.md`.

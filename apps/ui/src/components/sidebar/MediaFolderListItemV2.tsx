@@ -7,7 +7,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { Loader2 } from "lucide-react"
+import { Loader2, TriangleAlert } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 
 export interface MediaFolderListItemV2Props {
@@ -51,6 +51,7 @@ export function MediaFolderListItemV2({
 }: MediaFolderListItemV2Props) {
   const { t } = useTranslation(['components', 'dialogs'])
   const selected = isSelected
+  const isFolderUnavailable = status === 'folder_not_found'
 
   const folderName = useMemo(() => {
     return basename(path)
@@ -76,16 +77,27 @@ export function MediaFolderListItemV2({
             <h5
               className={cn(
                 "text-sm font-medium truncate",
-                selected ? "text-sidebar-foreground font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+                isFolderUnavailable &&
+                  "text-muted-foreground opacity-60",
+                !isFolderUnavailable &&
+                  (selected
+                    ? "text-sidebar-foreground font-bold"
+                    : "text-sidebar-foreground/80 hover:text-sidebar-foreground")
               )}
               data-testid="sidebar-folder-title"
             >
               {mediaName}
             </h5>
-            <p className={cn(
-              "text-xs truncate mt-0.5",
-              selected ? "text-sidebar-foreground/60" : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60"
-            )}
+            <p
+              className={cn(
+                "text-xs truncate mt-0.5",
+                isFolderUnavailable &&
+                  "text-muted-foreground opacity-50",
+                !isFolderUnavailable &&
+                  (selected
+                    ? "text-sidebar-foreground/60"
+                    : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60")
+              )}
               data-testid="sidebar-folder-name"
             >
               {folderName}
@@ -94,6 +106,15 @@ export function MediaFolderListItemV2({
           {/* Status indicator */}
           {(status === 'initializing' || status === 'loading') && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+          )}
+          {isFolderUnavailable && (
+            <span
+              className="inline-flex shrink-0 text-amber-500"
+              title={t('mediaFolder.folderNotFound')}
+              aria-label={t('mediaFolder.folderNotFound')}
+            >
+              <TriangleAlert className="h-4 w-4" aria-hidden />
+            </span>
           )}
         </div>
       </ContextMenuTrigger>

@@ -55,3 +55,71 @@ describe('MediaFolderListItemV2 context menu callbacks', () => {
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 })
+
+describe("MediaFolderListItemV2 folder_not_found status", () => {
+  const path = "/media/tvshows/Missing"
+  const mediaName = "Missing Show"
+
+  it("renders warning icon with aria-label from translation key", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "folder_not_found",
+      }),
+    )
+
+    expect(screen.getByLabelText("mediaFolder.folderNotFound")).toBeInTheDocument()
+  })
+
+  it("applies muted disabled-style classes on media title and folder name", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "folder_not_found",
+      }),
+    )
+
+    const title = screen.getByTestId("sidebar-folder-title")
+    const folderNameEl = screen.getByTestId("sidebar-folder-name")
+
+    expect(title).toHaveClass("text-muted-foreground")
+    expect(title).toHaveClass("opacity-60")
+    expect(folderNameEl).toHaveClass("text-muted-foreground")
+    expect(folderNameEl).toHaveClass("opacity-50")
+  })
+
+  it("does not show loading spinner when status is folder_not_found", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "folder_not_found",
+      }),
+    )
+
+    expect(document.querySelector(".animate-spin")).toBeNull()
+  })
+
+  it("still fires onClick on the row when folder_not_found (visual-only disabled state)", () => {
+    const onClick = vi.fn()
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "folder_not_found",
+        onClick,
+      }),
+    )
+
+    const trigger = document.querySelector('[data-slot="context-menu-trigger"]')
+    expect(trigger).toBeTruthy()
+    fireEvent.click(trigger!)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+})
