@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   assertValidBilibiliCollectionUrl,
@@ -9,11 +6,28 @@ import {
   parseBilibiliVideoStdout,
 } from "./ytdlp";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const COLLECTION_FIXTURE = join(
-  __dirname,
-  "../../../../bin/yt-dlp/bilibili-collection-metadata.json"
-);
+/** Shape-compatible subset of yt-dlp `-J` playlist output for collection lists (no repo fixture file). */
+function minimalCollectionPlaylistStdout(): string {
+  const entries = Array.from({ length: 5 }, (_, i) => ({
+    ie_key: "BiliBili",
+    id: i === 0 ? "BV1AFwczFEGu" : `BVstub${i}`,
+    _type: "url",
+    url: `https://www.bilibili.com/video/${i === 0 ? "BV1AFwczFEGu" : `BVstub${i}`}`,
+  }));
+  return JSON.stringify({
+    _type: "playlist",
+    extractor_key: "BilibiliCollectionList",
+    playlist_count: 5,
+    webpage_url: "https://space.bilibili.com/131560419/lists/7780118",
+    entries,
+  });
+}
+
+/** Minimal playlist JSON so video-parser tests do not depend on disk fixtures. */
+const PLAYLIST_REJECT_STDOUT = JSON.stringify({
+  _type: "playlist",
+  entries: [],
+});
 
 describe("assertValidBilibiliCollectionUrl", () => {
   it("accepts a standard collection URL", () => {
@@ -76,8 +90,8 @@ describe("assertValidBilibiliCollectionUrl", () => {
 });
 
 describe("parseBilibiliCollectionStdout", () => {
-  it("parses fixture stdout into metadata", () => {
-    const raw = readFileSync(COLLECTION_FIXTURE, "utf-8");
+  it("parses playlist-shaped stdout into metadata", () => {
+    const raw = minimalCollectionPlaylistStdout();
     const meta = parseBilibiliCollectionStdout(raw);
 
     expect(meta._type).toBe("playlist");
@@ -118,8 +132,9 @@ describe("parseBilibiliVideoStdout", () => {
   });
 
   it("rejects playlist-shaped stdout", () => {
-    const raw = readFileSync(COLLECTION_FIXTURE, "utf-8");
-    expect(() => parseBilibiliVideoStdout(raw)).toThrow(/playlist/);
+    expect(() => parseBilibiliVideoStdout(PLAYLIST_REJECT_STDOUT)).toThrow(
+      /playlist/
+    );
   });
 
   it("throws on empty stdout", () => {
