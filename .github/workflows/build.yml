@@ -23,6 +23,8 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
       - '.github/workflows/build.yml'
+  # Docker image build is slow (multi-arch); run it only via Actions → Run workflow.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -119,6 +121,7 @@ jobs:
 
   build-docker:
     name: Build Docker Image
+    if: github.event_name == 'workflow_dispatch'
     needs: [build-ui, build-cli]
     runs-on: ubuntu-latest
     
