@@ -16,12 +16,15 @@ import { useTranslation } from "@/lib/i18n"
 import type { YtdlpVideo } from "@core/types/YtdlpTypes"
 import { toast } from "sonner"
 import { validateDownloadUrl } from "@core/download-video-validators"
+import { isBilibiliCollectionUrl } from "@/api/ytdlp"
 import {
+  useBilibiliCollectionMetadataMutation,
   useBilibiliEpisodesMetadataMutation,
   useExtractYtdlpVideoDataMutation,
 } from "@/hooks/ytdlp/useYtdlpMutations"
 import { buildDownloadVideoJob } from "@/lib/downloadVideoJobFactory"
 import { saveDownloadVideoJob } from "@/lib/downloadTaskDb"
+import { ListItem } from "@/components/dialogs/download-video-list-item"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
@@ -70,20 +73,40 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const [hasAgreed, setHasAgreed] = useState(false)
   const [isAgreementChecked, setIsAgreementChecked] = useState(false)
   const [downloadEpisodes, setDownloadEpisodes] = useState(false)
+  const [downloadCollectionVideos, setDownloadCollectionVideos] = useState(false)
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([])
   const [episodesLoading, setEpisodesLoading] = useState(false)
   const [episodesError, setEpisodesError] = useState<string | null>(null)
   const [selectedEpisodeUrls, setSelectedEpisodeUrls] = useState<Set<string>>(new Set())
   const [isEnqueueing, setIsEnqueueing] = useState(false)
+  const [collectionEntries, setCollectionEntries] = useState<
+    { url: string }[]
+  >([])
+  const [selectedCollectionUrls, setSelectedCollectionUrls] = useState<
+    Set<string>
+  >(new Set())
+  const [collectionError, setCollectionError] = useState<string | null>(null)
   const episodesFetchGen = useRef(0)
   const previousUrlRef = useRef("")
 
   const { mutate: mutateEpisodesMetadata, reset: resetEpisodesMetadata } =
     useBilibiliEpisodesMetadataMutation()
+  const {
+    mutate: mutateCollectionMetadata,
+    reset: resetCollectionMetadata,
+    isPending: collectionMetadataLoading,
+  } = useBilibiliCollectionMetadataMutation()
   const extractMutation = useExtractYtdlpVideoDataMutation()
 
-  const formBusy = isEnqueueing || (downloadEpisodes && episodesLoading)
-  const canDownloadEpisodes = isBilibiliUrl(url)
+  const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
+  const isCollectionUrl =
+    isBilibiliCollectionUrl(url.trim()) && isUrlValid
+
+  const formBusy =
+    isEnqueueing ||
+    (downloadEpisodes && episodesLoading) ||
+    (downloadCollectionVideos && collectionMetadataLoading)
+  const canDownloadEpisodes = isBilibiliUrl(url) && !isCollectionUrl
 
   const resetEpisodesState = useCallback(() => {
     episodesFetchGen.current += 1
@@ -169,7 +192,13 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     }
   }, [t])
 
-  const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
+  const resetCollectionState = useCallback(() => {
+    setDownloadCollectionVideos(false)
+    setCollectionEntries([])
+    setSelectedCollectionUrls(new Set())
+    setCollectionError(null)
+    resetCollectionMetadata()
+  }, [resetCollectionMetadata])
 
   useEffect(() => {
     const current = url.trim()
@@ -177,8 +206,11 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     if (previous && previous !== current && downloadEpisodes) {
       resetEpisodesState()
     }
+    if (previous && previous !== current) {
+      resetCollectionState()
+    }
     previousUrlRef.current = current
-  }, [url, downloadEpisodes, resetEpisodesState])
+  }, [url, downloadEpisodes, resetEpisodesState, resetCollectionState])
 
   useEffect(() => {
     if (canDownloadEpisodes) return
@@ -223,6 +255,38 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     setHasAgreed(true)
   }
 
+  const fetchCollectionMetadata = useCallback(() => {
+    if (!hasAgreed || !isCollectionUrl) {
+      return
+    }
+    const trimmed = url.trim()
+    setCollectionError(null)
+    mutateCollectionMetadata(trimmed, {
+      onSuccess: (metadata) => {
+        setCollectionEntries(metadata.entries)
+        setSelectedCollectionUrls(
+          new Set(metadata.entries.map((e) => e.url.trim()).filter(Boolean))
+        )
+      },
+      onError: (err) => {
+        const message = err instanceof Error ? err.message : String(err)
+        setCollectionError(message)
+        setCollectionEntries([])
+        setSelectedCollectionUrls(new Set())
+        toast.error(message)
+      },
+    })
+  }, [hasAgreed, isCollectionUrl, url, mutateCollectionMetadata])
+
+  const handleDownloadCollectionVideosChange = (checked: boolean) => {
+    if (!checked) {
+      resetCollectionState()
+      return
+    }
+    setDownloadCollectionVideos(true)
+    fetchCollectionMetadata()
+  }
+
   const handleStart = async () => {
     if (!hasAgreed) {
       return
@@ -234,6 +298,33 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     }
 
     if (!downloadFolder.trim()) {
+      return
+    }
+
+    if (isCollectionUrl) {
+      if (selectedCollectionUrls.size === 0) {
+        toast.error(t("downloadVideo.episodesNoneSelected"))
+        return
+      }
+
+      setIsEnqueueing(true)
+      try {
+        for (const u of selectedCollectionUrls) {
+          const job = buildDownloadVideoJob({
+            name: "Download Video",
+            folder: downloadFolder,
+            urls: [u],
+            itemMeta: [{ title: u, artist: "" }],
+          })
+          void saveDownloadVideoJob(job)
+        }
+        onClose()
+      } catch (error) {
+        console.error("[DownloadVideoDialog] Failed to enqueue download job:", error)
+        toast.error(error instanceof Error ? error.message : "Download failed")
+      } finally {
+        setIsEnqueueing(false)
+      }
       return
     }
 
@@ -293,12 +384,25 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     setSelectedEpisodeUrls(new Set())
     setIsEnqueueing(false)
     resetEpisodesMetadata()
+    resetCollectionState()
     extractMutation.reset()
     onClose()
   }
 
   const toggleEpisodeSelection = (id: string) => {
     setSelectedEpisodeUrls((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleCollectionUrlSelection = (id: string) => {
+    setSelectedCollectionUrls((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
@@ -397,6 +501,21 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               <span>{t('downloadVideo.downloadEpisodesLabel')}</span>
             </label>
           )}
+          {isCollectionUrl && (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                data-testid="download-video-dialog-get-videos-checkbox"
+                type="checkbox"
+                className="h-3.5 w-3.5"
+                checked={downloadCollectionVideos}
+                onChange={(e) =>
+                  handleDownloadCollectionVideosChange(e.target.checked)
+                }
+                disabled={formBusy || !hasAgreed}
+              />
+              <span>{t("downloadVideo.getVideos")}</span>
+            </label>
+          )}
           {downloadEpisodes && hasAgreed && (
             <div data-testid="download-video-dialog-episodes-panel" className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
               {episodesLoading && (
@@ -411,19 +530,58 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                     {episodes.map((episode) => {
                       const { title, url: vidUrl } = episode
                       return (
-                        <li key={vidUrl} data-testid="download-video-dialog-episodes-list-item">
-                          <label className="flex cursor-pointer items-start gap-2 text-sm">
-                            <input
-                              data-testid={`download-video-dialog-episode-checkbox-${episode.url}`}
-                              type="checkbox"
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                              checked={selectedEpisodeUrls.has(vidUrl)}
-                              onChange={() => toggleEpisodeSelection(vidUrl)}
-                              disabled={formBusy}
-                            />
-                            <span className="leading-snug">{title}</span>
-                          </label>
-                        </li>
+                        <ListItem
+                          key={vidUrl}
+                          listItemTestId="download-video-dialog-episodes-list-item"
+                          checkboxTestId={`download-video-dialog-episode-checkbox-${episode.url}`}
+                          label={title}
+                          checked={selectedEpisodeUrls.has(vidUrl)}
+                          onToggle={() => {
+                            toggleEpisodeSelection(vidUrl)
+                          }}
+                          disabled={formBusy}
+                        />
+                      )
+                    })}
+                  </ul>
+                </ScrollArea>
+              )}
+            </div>
+          )}
+          {downloadCollectionVideos && isCollectionUrl && hasAgreed && (
+            <div
+              data-testid="download-video-dialog-collection-panel"
+              className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3"
+            >
+              {collectionMetadataLoading && (
+                <p className="text-sm text-muted-foreground">
+                  {t("downloadVideo.collectionVideosLoading")}
+                </p>
+              )}
+              {collectionError && !collectionMetadataLoading && (
+                <p className="text-sm text-destructive">{collectionError}</p>
+              )}
+              {!collectionMetadataLoading && !collectionError && collectionEntries.length > 0 && (
+                <ScrollArea className="h-52">
+                  <ul
+                    data-testid="download-video-dialog-collection-list"
+                    className="list-none space-y-2 p-0 m-0 pr-3"
+                  >
+                    {collectionEntries.map((entry) => {
+                      const vidUrl = entry.url
+                      return (
+                        <ListItem
+                          key={vidUrl}
+                          listItemTestId="download-video-dialog-collection-list-item"
+                          checkboxTestId={`download-video-dialog-collection-checkbox-${vidUrl}`}
+                          label={vidUrl}
+                          labelClassName="break-all leading-snug"
+                          checked={selectedCollectionUrls.has(vidUrl)}
+                          onToggle={() => {
+                            toggleCollectionUrlSelection(vidUrl)
+                          }}
+                          disabled={formBusy}
+                        />
                       )
                     })}
                   </ul>
@@ -461,13 +619,31 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
           <Button data-testid="download-video-dialog-cancel" variant="outline" onClick={handleCancel} disabled={formBusy}>
             {tCommon('cancel')}
           </Button>
-          <Button
-            data-testid="download-video-dialog-start"
-            onClick={() => void handleStart()}
-            disabled={!isUrlValid || !downloadFolder.trim() || formBusy || !hasAgreed}
-          >
-            {isEnqueueing ? t('downloadVideo.downloading') : t('downloadVideo.start')}
-          </Button>
+          {isCollectionUrl ? (
+            collectionEntries.length > 0 && (
+              <Button
+                data-testid="download-video-dialog-start"
+                onClick={() => void handleStart()}
+                disabled={
+                  !isUrlValid ||
+                  !downloadFolder.trim() ||
+                  formBusy ||
+                  !hasAgreed ||
+                  selectedCollectionUrls.size === 0
+                }
+              >
+                {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
+              </Button>
+            )
+          ) : (
+            <Button
+              data-testid="download-video-dialog-start"
+              onClick={() => void handleStart()}
+              disabled={!isUrlValid || !downloadFolder.trim() || formBusy || !hasAgreed}
+            >
+              {isEnqueueing ? t('downloadVideo.downloading') : t('downloadVideo.start')}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

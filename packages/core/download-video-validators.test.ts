@@ -83,6 +83,13 @@ describe('validateDownloadUrl', () => {
       const result = validateDownloadUrl('https://m.bilibili.com/video/BV1xx411c7mD')
       expect(result).toEqual({ valid: true })
     })
+
+    it('should accept Bilibili space collection URL', () => {
+      const result = validateDownloadUrl(
+        'https://space.bilibili.com/131560419/lists/7780118'
+      )
+      expect(result).toEqual({ valid: true })
+    })
   })
 
   describe('disallowed platforms', () => {
@@ -115,6 +122,7 @@ describe('validateDownloadUrl', () => {
       expect(ALLOWED_HOSTNAMES).toContain('bilibili.com')
       expect(ALLOWED_HOSTNAMES).toContain('www.bilibili.com')
       expect(ALLOWED_HOSTNAMES).toContain('m.bilibili.com')
+      expect(ALLOWED_HOSTNAMES).toContain('space.bilibili.com')
       expect(ALLOWED_HOSTNAMES).toContain('b23.tv')
     })
   })

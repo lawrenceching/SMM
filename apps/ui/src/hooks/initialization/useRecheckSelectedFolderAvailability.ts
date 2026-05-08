@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { isFolderAvailable } from "@/api/isFolderAvailable"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"

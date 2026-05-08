@@ -2,12 +2,19 @@ import { useMutation } from "@tanstack/react-query";
 import {
   downloadYtdlpVideo,
   extractYtdlpVideoData,
+  getBilibiliCollectionMetadata,
   getBilibiliEpisodesMetadata,
 } from "@/api/ytdlp";
 
 export function useBilibiliEpisodesMetadataMutation() {
   return useMutation({
     mutationFn: (url: string) => getBilibiliEpisodesMetadata(url),
+  });
+}
+
+export function useBilibiliCollectionMetadataMutation() {
+  return useMutation({
+    mutationFn: (url: string) => getBilibiliCollectionMetadata(url),
   });
 }
 

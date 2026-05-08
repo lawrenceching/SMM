@@ -32,6 +32,8 @@
     "agreementCheckboxLabel": "I understand and agree that I will not use this feature to download illegal or unlicensed content.",
     "agreementRequiredNotice": "You must agree to the notice above before downloading.",
     "downloadEpisodesLabel": "Download episodes",
+    "getVideos": "Get videos",
+    "collectionVideosLoading": "Loading video list…",
     "episodesLoading": "Loading episodes…",
     "episodesNoneSelected": "Select at least one episode.",
     "episodesNoVideoUrls": "Selected episodes are missing playable URLs.",

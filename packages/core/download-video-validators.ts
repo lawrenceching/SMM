@@ -15,6 +15,7 @@ export const ALLOWED_HOSTNAMES: readonly string[] = [
   'bilibili.com',
   'www.bilibili.com',
   'm.bilibili.com',
+  'space.bilibili.com',
   'b23.tv',
 ]
 

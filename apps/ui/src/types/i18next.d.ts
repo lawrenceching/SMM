@@ -360,6 +360,8 @@ interface DialogsResources {
     agreementCheckboxLabel: string
     agreementRequiredNotice: string
     downloadEpisodesLabel: string
+    getVideos: string
+    collectionVideosLoading: string
     episodesLoading: string
     episodesNoneSelected: string
     episodesNoVideoUrls: string

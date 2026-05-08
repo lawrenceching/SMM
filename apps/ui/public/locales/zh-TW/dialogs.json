@@ -32,6 +32,8 @@
     "agreementCheckboxLabel": "我已閱讀並理解上述聲明，不會使用此功能下載違法或未授權內容。",
     "agreementRequiredNotice": "在開始下載前，您必須先同意上述聲明。",
     "downloadEpisodesLabel": "下載分集",
+    "getVideos": "获取视频列表",
+    "collectionVideosLoading": "正在載入影片清單…",
     "episodesLoading": "正在載入分集…",
     "episodesNoneSelected": "請至少選取一集。",
     "episodesNoVideoUrls": "所選分集缺少可播放連結。",

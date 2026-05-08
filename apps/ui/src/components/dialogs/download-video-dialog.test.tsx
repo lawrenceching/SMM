@@ -8,6 +8,8 @@ const h = vi.hoisted(() => ({
   saveDownloadVideoJob: vi.fn().mockResolvedValue(undefined),
   mutateEpisodesMetadata: vi.fn(),
   resetEpisodesMetadata: vi.fn(),
+  mutateCollectionMetadata: vi.fn(),
+  resetCollectionMetadata: vi.fn(),
   extractReset: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
@@ -22,6 +24,11 @@ vi.mock('@/hooks/ytdlp/useYtdlpMutations', () => ({
   useBilibiliEpisodesMetadataMutation: () => ({
     mutate: h.mutateEpisodesMetadata,
     reset: h.resetEpisodesMetadata,
+  }),
+  useBilibiliCollectionMetadataMutation: () => ({
+    mutate: h.mutateCollectionMetadata,
+    reset: h.resetCollectionMetadata,
+    isPending: false,
   }),
   useExtractYtdlpVideoDataMutation: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ title: 'Mock Title', artist: 'Mock Artist' }),
@@ -68,7 +75,10 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.backgroundQueued': 'Added to background.',
         'downloadVideo.backgroundJobEpisodesName': `Episodes (${options?.count ?? 0} videos)`,
         'downloadVideo.downloadEpisodesLabel': 'Download episodes',
+        'downloadVideo.getVideos': 'Get videos',
+        'downloadVideo.collectionVideosLoading': 'Loading video list…',
         'downloadVideo.episodesLoading': 'Loading episodes…',
+        'downloadVideo.episodesNoneSelected': 'Select at least one item.',
       }
       return dialogsTranslations[key] || key
     },
@@ -101,6 +111,8 @@ describe('DownloadVideoDialog - user agreement', () => {
     vi.clearAllMocks()
     h.mutateEpisodesMetadata.mockReset()
     h.resetEpisodesMetadata.mockReset()
+    h.mutateCollectionMetadata.mockReset()
+    h.resetCollectionMetadata.mockReset()
     h.extractReset.mockReset()
     h.toastError.mockReset()
     h.toastSuccess.mockReset()
@@ -164,6 +176,78 @@ describe('DownloadVideoDialog - user agreement', () => {
 
     expect(urlInput.disabled).toBe(false)
     expect(folderInput.disabled).toBe(false)
+  })
+
+  it('shows Get videos checkbox but not Start until the collection list is loaded', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: {
+        value: 'https://space.bilibili.com/131560419/lists/7780118',
+      },
+    })
+
+    expect(screen.queryByTestId('download-video-dialog-start')).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId('download-video-dialog-get-videos-checkbox')
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByTestId('download-video-dialog-episodes-checkbox')
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows Start after checking Get videos and enqueues one job per selected collection video URL', async () => {
+    const videoUrl = 'https://www.bilibili.com/video/BV1test'
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        entries: [
+          {
+            ie_key: 'BiliBili',
+            id: 'BV1test',
+            _type: 'url',
+            url: videoUrl,
+          },
+        ],
+      })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: {
+        value: 'https://space.bilibili.com/131560419/lists/7780118',
+      },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-start')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'D:\\collection-downloads' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-start'))
+
+    await waitFor(() => {
+      expect(h.saveDownloadVideoJob).toHaveBeenCalledTimes(1)
+      expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'download-video',
+          data: expect.objectContaining({
+            folder: 'D:\\collection-downloads',
+            videos: [
+              expect.objectContaining({
+                url: videoUrl,
+              }),
+            ],
+          }),
+        })
+      )
+    })
+    expect(mockOnClose).toHaveBeenCalled()
   })
 
   it('does not create a background job if user has not agreed, even when URL and folder look valid', () => {
