@@ -14,7 +14,16 @@ const h = vi.hoisted(() => ({
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
   validateDownloadUrl: vi.fn(),
+  getBilibiliVideoMetadata: vi.fn(),
 }))
+
+vi.mock('@/api/ytdlp', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/ytdlp')>()
+  return {
+    ...actual,
+    getBilibiliVideoMetadata: h.getBilibiliVideoMetadata,
+  }
+})
 
 vi.mock('@/lib/downloadTaskDb', () => ({
   saveDownloadVideoJob: h.saveDownloadVideoJob,
@@ -40,6 +49,7 @@ vi.mock('@/hooks/ytdlp/useYtdlpMutations', () => ({
 function renderWithQueryClient(ui: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
+      queries: { retry: false },
       mutations: { retry: false },
     },
   })
@@ -117,9 +127,17 @@ describe('DownloadVideoDialog - user agreement', () => {
     h.toastError.mockReset()
     h.toastSuccess.mockReset()
     h.validateDownloadUrl.mockReset()
+    h.getBilibiliVideoMetadata.mockReset()
     h.validateDownloadUrl.mockImplementation((value: string) => ({
       valid: value.trim().length > 0 && !value.includes('invalid'),
       error: 'URL_EMPTY',
+    }))
+    h.getBilibiliVideoMetadata.mockImplementation(async (url: string) => ({
+      _type: 'video',
+      id: 'BV',
+      title: url,
+      fulltitle: url,
+      webpage_url: url,
     }))
     // Reset localStorage between tests
     window.localStorage.clear()
@@ -248,6 +266,66 @@ describe('DownloadVideoDialog - user agreement', () => {
       )
     })
     expect(mockOnClose).toHaveBeenCalled()
+  })
+
+  it('shows resolved per-video title in collection list after metadata resolves', async () => {
+    const videoUrl = 'https://www.bilibili.com/video/BV1test'
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        entries: [
+          {
+            ie_key: 'BiliBili',
+            id: 'BV1test',
+            _type: 'url',
+            url: videoUrl,
+          },
+        ],
+      })
+    })
+    h.getBilibiliVideoMetadata.mockResolvedValue({
+      _type: 'video',
+      id: 'BV1test',
+      title: 'Short',
+      fulltitle: 'Collection row resolved title',
+      webpage_url: videoUrl,
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: {
+        value: 'https://space.bilibili.com/131560419/lists/7780118',
+      },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Collection row resolved title')).toBeInTheDocument()
+    })
+    expect(h.getBilibiliVideoMetadata).toHaveBeenCalledWith(videoUrl)
+  })
+
+  it('shows collection list error and toast when collection metadata fetch fails', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onError?.(new Error('Collection list failed'))
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: {
+        value: 'https://space.bilibili.com/131560419/lists/7780118',
+      },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Collection list failed')).toBeInTheDocument()
+    })
+    expect(h.toastError).toHaveBeenCalledWith('Collection list failed')
+    expect(screen.queryByTestId('download-video-dialog-collection-list')).not.toBeInTheDocument()
   })
 
   it('does not create a background job if user has not agreed, even when URL and folder look valid', () => {

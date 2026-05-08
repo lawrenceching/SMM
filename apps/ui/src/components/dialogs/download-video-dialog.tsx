@@ -576,6 +576,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                           checkboxTestId={`download-video-dialog-collection-checkbox-${vidUrl}`}
                           label={vidUrl}
                           labelClassName="break-all leading-snug"
+                          fetchVideoMetadata
+                          videoUrl={vidUrl}
                           checked={selectedCollectionUrls.has(vidUrl)}
                           onToggle={() => {
                             toggleCollectionUrlSelection(vidUrl)

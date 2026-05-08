@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   assertValidBilibiliCollectionUrl,
+  bilibiliVideoDisplayTitle,
   parseBilibiliCollectionStdout,
+  parseBilibiliVideoStdout,
 } from "./ytdlp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -94,5 +96,33 @@ describe("parseBilibiliCollectionStdout", () => {
     expect(() => parseBilibiliCollectionStdout('{"_type":"video"}')).toThrow(
       /playlist/
     );
+  });
+});
+
+const SAMPLE_VIDEO_JSON = `{
+  "_type": "video",
+  "id": "BV1Sample01",
+  "title": "Episode title",
+  "fulltitle": "Full episode title",
+  "webpage_url": "https://www.bilibili.com/video/BV1Sample01"
+}`;
+
+describe("parseBilibiliVideoStdout", () => {
+  it("parses single-video JSON", () => {
+    const meta = parseBilibiliVideoStdout(SAMPLE_VIDEO_JSON);
+    expect(meta._type).toBe("video");
+    expect(meta.id).toBe("BV1Sample01");
+    expect(meta.title).toBe("Episode title");
+    expect(meta.fulltitle).toBe("Full episode title");
+    expect(bilibiliVideoDisplayTitle(meta)).toBe("Full episode title");
+  });
+
+  it("rejects playlist-shaped stdout", () => {
+    const raw = readFileSync(COLLECTION_FIXTURE, "utf-8");
+    expect(() => parseBilibiliVideoStdout(raw)).toThrow(/playlist/);
+  });
+
+  it("throws on empty stdout", () => {
+    expect(() => parseBilibiliVideoStdout("   ")).toThrow(/empty/);
   });
 });

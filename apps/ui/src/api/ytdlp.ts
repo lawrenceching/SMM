@@ -1,4 +1,5 @@
 import type { YtdlpVideo } from "@core/types/YtdlpTypes";
+import { validateDownloadUrl } from "@core/download-video-validators";
 import { executeCmdStream, type ExecuteCmdRequest } from "@/api/executeCmd";
 import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
 
@@ -113,6 +114,18 @@ export interface BilibiliCollectionMetadataVersion {
   current_git_head: string | null;
   release_git_head: string;
   repository: string;
+}
+
+/** Subset of yt-dlp `-J` output for a single video (`_type: video`). */
+export interface BilibiliVideoMetadata {
+  _type: "video";
+  id: string;
+  title: string;
+  fulltitle: string;
+  webpage_url: string;
+  original_url?: string;
+  extractor?: string;
+  extractor_key?: string;
 }
 
 /** Parsed stdout from `yt-dlp --flat-playlist -J` on a Bilibili collection list URL. */
@@ -241,6 +254,86 @@ function collectExecuteCmdOutput(
 }
 
 const YTDLP_COLLECTION_CMD_TIMEOUT_MS = 180_000;
+const YTDLP_VIDEO_METADATA_TIMEOUT_MS = 60_000;
+
+/**
+ * Display title from {@link BilibiliVideoMetadata} (prefer fulltitle).
+ */
+export function bilibiliVideoDisplayTitle(meta: BilibiliVideoMetadata): string {
+  const t = meta.fulltitle?.trim() || meta.title?.trim() || meta.id;
+  return t || "";
+}
+
+/**
+ * Parses a single JSON object from `yt-dlp -J` stdout for one video URL.
+ */
+export function parseBilibiliVideoStdout(stdout: string): BilibiliVideoMetadata {
+  const trimmed = stdout.trim();
+  if (!trimmed) {
+    throw new Error("yt-dlp produced empty stdout");
+  }
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(trimmed);
+  } catch {
+    throw new Error("yt-dlp stdout is not valid JSON");
+  }
+
+  if (raw === null || typeof raw !== "object") {
+    throw new Error("yt-dlp output is not a JSON object");
+  }
+
+  const obj = raw as Record<string, unknown>;
+  if (obj._type === "playlist") {
+    throw new Error("yt-dlp returned a playlist; expected a single video");
+  }
+  if (obj._type !== "video") {
+    throw new Error("yt-dlp output is not a single video");
+  }
+
+  const id = typeof obj.id === "string" ? obj.id : "";
+  const title = typeof obj.title === "string" ? obj.title : "";
+  const fulltitle = typeof obj.fulltitle === "string" ? obj.fulltitle : "";
+  const webpage_url = typeof obj.webpage_url === "string" ? obj.webpage_url : "";
+
+  return {
+    _type: "video",
+    id,
+    title,
+    fulltitle,
+    webpage_url,
+    original_url: typeof obj.original_url === "string" ? obj.original_url : undefined,
+    extractor: typeof obj.extractor === "string" ? obj.extractor : undefined,
+    extractor_key: typeof obj.extractor_key === "string" ? obj.extractor_key : undefined,
+  };
+}
+
+/**
+ * Runs `yt-dlp -J` via executeCmd for one video URL and returns parsed metadata.
+ */
+export async function getBilibiliVideoMetadata(url: string): Promise<BilibiliVideoMetadata> {
+  const trimmed = url.trim();
+  const validation = validateDownloadUrl(trimmed);
+  if (!validation.valid) {
+    throw new Error("Invalid or unsupported video URL");
+  }
+
+  const { stdout, stderr, exitCode } = await collectExecuteCmdOutput(
+    {
+      command: "yt-dlp",
+      args: ["-J", trimmed],
+    },
+    YTDLP_VIDEO_METADATA_TIMEOUT_MS
+  );
+
+  if (exitCode !== 0) {
+    const detail = stderr.trim() || `exit code ${exitCode ?? "unknown"}`;
+    throw new Error(`yt-dlp failed: ${detail}`);
+  }
+
+  return parseBilibiliVideoStdout(stdout);
+}
 
 /**
  * Parses a single JSON document from `yt-dlp --flat-playlist -J` stdout (may be pretty-printed).
