@@ -1,5 +1,13 @@
 # ui
 
+## 1.2.2
+
+### Patch Changes
+
+- Support downloading Bilibili Collection
+- Updated dependencies
+  - @smm/tvdb4@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

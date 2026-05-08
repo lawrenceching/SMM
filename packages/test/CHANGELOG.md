@@ -1,5 +1,11 @@
 # @smm/test
 
+## 1.1.2
+
+### Patch Changes
+
+- Support downloading Bilibili Collection
+
 ## 1.1.1
 
 ### Patch Changes

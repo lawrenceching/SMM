@@ -1,5 +1,11 @@
 # @smm/core
 
+## 1.2.2
+
+### Patch Changes
+
+- Support downloading Bilibili Collection
+
 ## 1.2.1
 
 ### Patch Changes
