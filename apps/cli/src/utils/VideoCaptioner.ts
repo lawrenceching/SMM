@@ -121,8 +121,12 @@ export interface VideoCaptionerTranscribeResult {
   error?: string;
 }
 
+export const VIDEOCAPTIONER_ASR_ENGINES = ["bijian", "jianying", "whisper-cpp"] as const;
+export type VideoCaptionerAsrEngine = (typeof VIDEOCAPTIONER_ASR_ENGINES)[number];
+
 export async function transcribeWithVideoCaptioner(
-  mediaPath: string
+  mediaPath: string,
+  options?: { asr?: VideoCaptionerAsrEngine }
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!mediaPath) {
     return { error: "mediaPath is required" };
@@ -168,8 +172,9 @@ export async function transcribeWithVideoCaptioner(
     );
   }
 
+  const asr: VideoCaptionerAsrEngine = options?.asr ?? "bijian";
   // CLI requires subcommand form: videocaptioner transcribe <mediaPath>
-  const args = ["transcribe", mediaPath, "--asr", "bijian"];
+  const args = ["transcribe", mediaPath, "--asr", asr];
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");

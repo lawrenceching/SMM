@@ -1,6 +1,9 @@
 import { toast } from "sonner"
 import { Path } from "@core/path"
-import { transcribeWithVideoCaptioner } from "@/api/videocaptioner"
+import {
+  transcribeWithVideoCaptioner,
+  type VideoCaptionerTranscribeAsr,
+} from "@/api/videocaptioner"
 
 export interface TranscribeDeps {
   createTranscribeJob: (trackTitle: string, mediaPath: string) => string
@@ -18,6 +21,7 @@ export interface TranscribeFeedbackRow {
 export async function transcribeTracksWithFeedback(
   rows: TranscribeFeedbackRow[],
   deps: TranscribeDeps,
+  options?: { asr?: VideoCaptionerTranscribeAsr },
 ): Promise<void> {
   const queued = rows
     .filter((row) => {
@@ -35,7 +39,10 @@ export async function transcribeTracksWithFeedback(
     deps.markTranscribeJobRunning(item.jobId)
     toast.success(`Transcribe start: "${item.row.title}".`)
     try {
-      const result = await transcribeWithVideoCaptioner({ mediaPath: item.mediaPath })
+      const result = await transcribeWithVideoCaptioner({
+        mediaPath: item.mediaPath,
+        ...(options?.asr !== undefined ? { asr: options.asr } : {}),
+      })
       if (result.error) {
         deps.markTranscribeJobFailed(item.jobId)
         toast.error(`Could not transcribe "${item.row.title}". ${result.error}`)
@@ -55,6 +62,7 @@ export async function transcribeTracksWithFeedback(
 export async function transcribeTrackWithFeedback(
   row: TranscribeFeedbackRow,
   deps: TranscribeDeps,
+  options?: { asr?: VideoCaptionerTranscribeAsr },
 ): Promise<void> {
-  await transcribeTracksWithFeedback([row], deps)
+  await transcribeTracksWithFeedback([row], deps, options)
 }

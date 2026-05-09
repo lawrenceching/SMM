@@ -1,4 +1,27 @@
-import { useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+
+const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
+
+function readVideoCaptionerAsrOptionsEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return window.localStorage.getItem(VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeVideoCaptionerAsrOptionsEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(
+      VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY,
+      enabled ? "true" : "false",
+    )
+  } catch {
+    // ignore quota / private mode
+  }
+}
 
 /**
  * Best-effort runtime OS detection for renderer (Electron + browser dev).
@@ -31,13 +54,44 @@ function getRuntimePlatform(): string | undefined {
 export interface UseFeaturesResult {
   /** Subtitle / transcribe via VideoCaptioner is supported on this OS build. */
   isTranscribeEnabled: boolean
+  /**
+   * When true, UI may expose VideoCaptioner ASR engine selection (e.g. Transcribe dialog).
+   * Persisted in localStorage under key `features.isVideoCaptionerAsrOptionsEnabled`.
+   */
+  isVideoCaptionerAsrOptionsEnabled: boolean
+  setVideoCaptionerAsrOptionsEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
-  return useMemo(() => {
+  const isTranscribeEnabled = useMemo(() => {
     const platform = getRuntimePlatform()
-    return {
-      isTranscribeEnabled: platform !== "darwin",
-    }
+    return platform !== "darwin"
   }, [])
+
+  const [isVideoCaptionerAsrOptionsEnabled, setIsVideoCaptionerAsrOptionsEnabled] = useState(
+    readVideoCaptionerAsrOptionsEnabled,
+  )
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) return
+      setIsVideoCaptionerAsrOptionsEnabled(readVideoCaptionerAsrOptionsEnabled())
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
+
+  const setVideoCaptionerAsrOptionsEnabled = useCallback((enabled: boolean) => {
+    writeVideoCaptionerAsrOptionsEnabled(enabled)
+    setIsVideoCaptionerAsrOptionsEnabled(enabled)
+  }, [])
+
+  return useMemo(
+    () => ({
+      isTranscribeEnabled,
+      isVideoCaptionerAsrOptionsEnabled,
+      setVideoCaptionerAsrOptionsEnabled,
+    }),
+    [isTranscribeEnabled, isVideoCaptionerAsrOptionsEnabled, setVideoCaptionerAsrOptionsEnabled],
+  )
 }

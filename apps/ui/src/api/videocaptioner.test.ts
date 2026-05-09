@@ -17,16 +17,31 @@ describe("videocaptioner api", () => {
   });
 
   it("calls transcribe endpoint", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       json: async () => ({ success: true }),
     } as Response);
     const result = await transcribeWithVideoCaptioner({ mediaPath: "C:/a.mp4" });
     expect(result.success).toBe(true);
-    expect(fetch).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledWith(
       "/api/videocaptioner/transcribe",
       expect.objectContaining({
         method: "POST",
-      })
+        body: JSON.stringify({ mediaPath: "C:/a.mp4" }),
+      }),
+    );
+  });
+
+  it("includes asr in body when provided", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      json: async () => ({ success: true }),
+    } as Response);
+    await transcribeWithVideoCaptioner({ mediaPath: "C:/a.mp4", asr: "jianying" });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/videocaptioner/transcribe",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ mediaPath: "C:/a.mp4", asr: "jianying" }),
+      }),
     );
   });
 });

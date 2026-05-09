@@ -88,7 +88,13 @@
     },
     "noFiles": "No files",
     "confirm": "Transcribe",
-    "selectAllAria": "Select all files"
+    "selectAllAria": "Select all files",
+    "asr": {
+      "label": "ASR engine",
+      "bijian": "Bijian",
+      "jianying": "Jianying",
+      "whisperCpp": "Whisper CPP"
+    }
   },
   "openFolder": {
     "title": "Select Folder Type",

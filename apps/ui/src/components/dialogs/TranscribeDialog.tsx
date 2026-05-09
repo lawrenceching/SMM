@@ -2,9 +2,10 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 import { basename } from "@/lib/path"
 import { UITranscribeDialog } from "./UITranscribeDialog"
-import type { TranscribeDialogProps } from "./types"
+import type { TranscribeAsrEngine, TranscribeDialogProps } from "./types"
 import { transcribeTracksWithFeedback } from "@/lib/transcribeFeedback"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
+import { useFeatures } from "@/hooks/useFeatures"
 
 /**
  * Closes immediately after confirm, then runs transcribe in the background (toasts + background jobs).
@@ -16,9 +17,10 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
     markTranscribeJobSucceeded,
     markTranscribeJobFailed,
   } = useBackgroundJobsStore()
+  const { isVideoCaptionerAsrOptionsEnabled } = useFeatures()
 
   const handleConfirm = useCallback(
-    (selectedIds: string[]) => {
+    ({ selectedIds, asr }: { selectedIds: string[]; asr: TranscribeAsrEngine }) => {
       const byId = new Map(rows.map((r) => [r.id, r]))
       const feedbackRows: { title: string; path: string }[] = []
       for (const id of selectedIds) {
@@ -34,12 +36,16 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       }
       if (feedbackRows.length === 0) return
       onClose()
-      void transcribeTracksWithFeedback(feedbackRows, {
-        createTranscribeJob,
-        markTranscribeJobRunning,
-        markTranscribeJobSucceeded,
-        markTranscribeJobFailed,
-      })
+      void transcribeTracksWithFeedback(
+        feedbackRows,
+        {
+          createTranscribeJob,
+          markTranscribeJobRunning,
+          markTranscribeJobSucceeded,
+          markTranscribeJobFailed,
+        },
+        isVideoCaptionerAsrOptionsEnabled ? { asr } : undefined,
+      )
     },
     [
       rows,
@@ -48,6 +54,7 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       markTranscribeJobRunning,
       markTranscribeJobSucceeded,
       markTranscribeJobFailed,
+      isVideoCaptionerAsrOptionsEnabled,
     ],
   )
 
@@ -56,6 +63,7 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       {...rest}
       rows={rows}
       onClose={onClose}
+      asrOptionsEnabled={isVideoCaptionerAsrOptionsEnabled}
       onConfirm={handleConfirm}
     />
   )

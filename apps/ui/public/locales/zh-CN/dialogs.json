@@ -88,7 +88,13 @@
     },
     "noFiles": "没有文件",
     "confirm": "开始生成字幕",
-    "selectAllAria": "全选文件"
+    "selectAllAria": "全选文件",
+    "asr": {
+      "label": "语音识别引擎",
+      "bijian": "Bijian",
+      "jianying": "剪映",
+      "whisperCpp": "Whisper CPP"
+    }
   },
   "openFolder": {
     "title": "选择文件夹类型",

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import "@testing-library/jest-dom/vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import React, { type ComponentProps } from "react"
 import { UITranscribeDialog } from "./UITranscribeDialog"
 import type { TranscribeDialogRow } from "./types"
@@ -24,6 +24,10 @@ vi.mock("@/lib/i18n", () => ({
         "transcribe.status.completed": "Done",
         "transcribe.status.failed": "Failed",
         "transcribe.noFiles": "No files",
+        "transcribe.asr.label": "ASR engine",
+        "transcribe.asr.bijian": "Bijian",
+        "transcribe.asr.jianying": "Jianying",
+        "transcribe.asr.whisperCpp": "Whisper CPP",
       }
       return dialogs[key] ?? key
     },
@@ -63,5 +67,48 @@ describe("UITranscribeDialog", () => {
     )
 
     expect(screen.getByTestId("transcribe-dialog-confirm")).toBeDisabled()
+  })
+
+  it("calls onConfirm with default ASR when confirming", async () => {
+    const props = {
+      isOpen: true,
+      onClose: mockOnClose,
+      rows: sampleRows,
+      onConfirm: mockOnConfirm,
+    } satisfies ComponentProps<typeof UITranscribeDialog>
+
+    render(
+      <React.Fragment>
+        <UITranscribeDialog {...props} />
+      </React.Fragment>,
+    )
+
+    expect(screen.queryByTestId("transcribe-dialog-asr")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
+    await waitFor(() => {
+      expect(mockOnConfirm).toHaveBeenCalledWith({
+        selectedIds: ["row-1"],
+        asr: "bijian",
+      })
+    })
+  })
+
+  it("shows ASR select when asrOptionsEnabled is true", () => {
+    const props = {
+      isOpen: true,
+      onClose: mockOnClose,
+      rows: sampleRows,
+      asrOptionsEnabled: true,
+      onConfirm: mockOnConfirm,
+    } satisfies ComponentProps<typeof UITranscribeDialog>
+
+    render(
+      <React.Fragment>
+        <UITranscribeDialog {...props} />
+      </React.Fragment>,
+    )
+
+    expect(screen.getByTestId("transcribe-dialog-asr")).toBeInTheDocument()
   })
 })

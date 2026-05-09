@@ -417,6 +417,12 @@ interface DialogsResources {
     noFiles: string
     confirm: string
     selectAllAria: string
+    asr: {
+      label: string
+      bijian: string
+      jianying: string
+      whisperCpp: string
+    }
   }
   editMediaFile: {
     title: string

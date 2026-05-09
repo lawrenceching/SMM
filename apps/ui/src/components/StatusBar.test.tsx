@@ -44,7 +44,11 @@ vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
 }))
 
 vi.mock("@/hooks/useFeatures", () => ({
-    useFeatures: vi.fn(() => ({ isTranscribeEnabled: true })),
+    useFeatures: vi.fn(() => ({
+        isTranscribeEnabled: true,
+        isVideoCaptionerAsrOptionsEnabled: false,
+        setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+    })),
 }))
 
 vi.mock("@/components/ui/separator", () => ({
@@ -121,7 +125,11 @@ describe("StatusBar", () => {
             isAvailable: true,
             isChecking: false,
         })
-        mockUseFeatures.mockReturnValue({ isTranscribeEnabled: true })
+        mockUseFeatures.mockReturnValue({
+            isTranscribeEnabled: true,
+            isVideoCaptionerAsrOptionsEnabled: false,
+            setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+        })
     })
 
     it("renders with testids and overrides", () => {
@@ -227,7 +235,11 @@ describe("StatusBar", () => {
     })
 
     it("renders transcribe unavailable on OS when transcribe feature is disabled", () => {
-        mockUseFeatures.mockReturnValue({ isTranscribeEnabled: false })
+        mockUseFeatures.mockReturnValue({
+            isTranscribeEnabled: false,
+            isVideoCaptionerAsrOptionsEnabled: false,
+            setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+        })
 
         render(<StatusBar />)
 

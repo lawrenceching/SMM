@@ -97,6 +97,22 @@ describe("transcribeWithVideoCaptioner", () => {
     );
   });
 
+  it("passes custom --asr when options.asr is set", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = transcribeWithVideoCaptioner("C:/media/a.mp3", { asr: "jianying" });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      ["transcribe", "C:/media/a.mp3", "--asr", "jianying"],
+      expect.any(Object)
+    );
+  });
+
   it("returns error when videocaptioner exits with non-zero code", async () => {
     const child = createMockChild();
     h.spawn.mockReturnValue(child);

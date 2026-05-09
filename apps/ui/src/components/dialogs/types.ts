@@ -115,6 +115,9 @@ export interface ScrapeDialogProps {
 
 export type TranscribeRowStatus = "pending" | "running" | "completed" | "failed"
 
+/** Values passed to VideoCaptioner `transcribe --asr` from TranscribeDialog. */
+export type TranscribeAsrEngine = "bijian" | "jianying" | "whisper-cpp"
+
 export interface TranscribeDialogRow {
   id: string
   /** POSIX absolute path (passed to transcribe API). */
@@ -134,7 +137,14 @@ export interface UITranscribeDialogProps {
   description?: string
   /** When omitted, all rows are selected when the dialog opens. */
   defaultSelectedIds?: string[]
-  onConfirm?: (selectedIds: string[]) => void | Promise<void>
+  /**
+   * When true, show ASR engine selection (VideoCaptioner). When false, transcription uses the default engine (omit `asr` on API).
+   */
+  asrOptionsEnabled?: boolean
+  onConfirm?: (payload: {
+    selectedIds: string[]
+    asr: TranscribeAsrEngine
+  }) => void | Promise<void>
 }
 
 /** Smart dialog: confirm runs transcribe via background jobs (no external onConfirm). */

@@ -3,8 +3,11 @@ export interface VideoCaptionerDiscoverResponse {
   error?: string;
 }
 
+export type VideoCaptionerTranscribeAsr = "bijian" | "jianying" | "whisper-cpp";
+
 export interface VideoCaptionerTranscribeRequest {
   mediaPath: string;
+  asr?: VideoCaptionerTranscribeAsr;
 }
 
 export interface VideoCaptionerTranscribeResponse {
@@ -22,12 +25,16 @@ export async function discoverVideoCaptioner(): Promise<VideoCaptionerDiscoverRe
 export async function transcribeWithVideoCaptioner(
   request: VideoCaptionerTranscribeRequest
 ): Promise<VideoCaptionerTranscribeResponse> {
+  const body: Record<string, unknown> = { mediaPath: request.mediaPath };
+  if (request.asr !== undefined) {
+    body.asr = request.asr;
+  }
   const resp = await fetch("/api/videocaptioner/transcribe", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify(body),
   });
   return (await resp.json()) as VideoCaptionerTranscribeResponse;
 }

@@ -49,7 +49,11 @@ vi.mock('@/hooks/useVideoCaptionerStatus', () => ({
   useVideoCaptionerStatus: vi.fn(),
 }));
 vi.mock('@/hooks/useFeatures', () => ({
-  useFeatures: vi.fn(() => ({ isTranscribeEnabled: true })),
+  useFeatures: vi.fn(() => ({
+    isTranscribeEnabled: true,
+    isVideoCaptionerAsrOptionsEnabled: false,
+    setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+  })),
 }));
 vi.mock('sonner');
 
@@ -129,7 +133,11 @@ describe('MusicPanel', () => {
       isAvailable: true,
       isChecking: false,
     });
-    vi.mocked(useFeatures).mockReturnValue({ isTranscribeEnabled: true });
+    vi.mocked(useFeatures).mockReturnValue({
+      isTranscribeEnabled: true,
+      isVideoCaptionerAsrOptionsEnabled: false,
+      setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+    });
 
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
   });

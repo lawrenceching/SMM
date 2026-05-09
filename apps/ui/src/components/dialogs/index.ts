@@ -39,6 +39,7 @@ export type {
   EditMediaFileDialogProps,
   OpenEditMediaFileOptions,
   TranscribeRowStatus,
+  TranscribeAsrEngine,
   TranscribeDialogRow,
   TranscribeDialogProps,
   UITranscribeDialogProps,

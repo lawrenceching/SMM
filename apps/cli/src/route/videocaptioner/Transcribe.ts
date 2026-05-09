@@ -1,10 +1,14 @@
 import type { Hono } from "hono";
 import { z } from "zod/v3";
-import { transcribeWithVideoCaptioner } from "../../utils/VideoCaptioner";
+import {
+  transcribeWithVideoCaptioner,
+  VIDEOCAPTIONER_ASR_ENGINES,
+} from "../../utils/VideoCaptioner";
 import { logger } from "../../../lib/logger";
 
 const transcribeRequestSchema = z.object({
   mediaPath: z.string().min(1, "mediaPath is required"),
+  asr: z.enum(VIDEOCAPTIONER_ASR_ENGINES).optional(),
 });
 
 export type TranscribeRequestBody = z.infer<typeof transcribeRequestSchema>;
@@ -18,7 +22,10 @@ export async function processVideoCaptionerTranscribe(
   body: TranscribeRequestBody
 ): Promise<VideoCaptionerTranscribeResponseData> {
   try {
-    return await transcribeWithVideoCaptioner(body.mediaPath);
+    return await transcribeWithVideoCaptioner(
+      body.mediaPath,
+      body.asr !== undefined ? { asr: body.asr } : undefined
+    );
   } catch (error) {
     logger.error({ error }, "Error transcribing with videocaptioner");
     return {

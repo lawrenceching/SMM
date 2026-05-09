@@ -26,6 +26,10 @@ class TranscribeDialogCO {
         return $('[data-testid="transcribe-dialog-confirm"]')
     }
 
+    get asrTrigger() {
+        return $('[data-testid="transcribe-dialog-asr"]')
+    }
+
     /**
      * @param rowId Same as `TranscribeDialogRow.id` (POSIX absolute path used as row key).
      */

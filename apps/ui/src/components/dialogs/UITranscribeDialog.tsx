@@ -9,7 +9,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -18,8 +26,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type { TranscribeDialogRow, TranscribeRowStatus, UITranscribeDialogProps } from "./types"
+import type {
+  TranscribeAsrEngine,
+  TranscribeDialogRow,
+  TranscribeRowStatus,
+  UITranscribeDialogProps,
+} from "./types"
 import { useTranslation } from "@/lib/i18n"
+
+const ASR_OPTIONS: TranscribeAsrEngine[] = ["bijian", "jianying", "whisper-cpp"]
+
+type TranscribeAsrOptionI18nKey =
+  | "transcribe.asr.bijian"
+  | "transcribe.asr.jianying"
+  | "transcribe.asr.whisperCpp"
+
+function transcribeAsrOptionKey(engine: TranscribeAsrEngine): TranscribeAsrOptionI18nKey {
+  switch (engine) {
+    case "bijian":
+      return "transcribe.asr.bijian"
+    case "jianying":
+      return "transcribe.asr.jianying"
+    case "whisper-cpp":
+      return "transcribe.asr.whisperCpp"
+    default: {
+      const _exhaustive: never = engine
+      return _exhaustive
+    }
+  }
+}
 
 function computeInitialSelection(
   rows: TranscribeDialogRow[],
@@ -76,16 +111,19 @@ export function UITranscribeDialog({
   title,
   description,
   defaultSelectedIds,
+  asrOptionsEnabled = false,
   onConfirm,
 }: UITranscribeDialogProps) {
   const { t } = useTranslation(["dialogs", "common"])
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
   const wasOpenRef = useRef(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [asr, setAsr] = useState<TranscribeAsrEngine>("bijian")
 
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       setSelectedIds(computeInitialSelection(rows, defaultSelectedIds))
+      setAsr("bijian")
     }
     wasOpenRef.current = isOpen
   }, [isOpen, rows, defaultSelectedIds])
@@ -118,8 +156,8 @@ export function UITranscribeDialog({
 
   const handleConfirm = useCallback(async () => {
     if (!onConfirm || selectedIds.size === 0) return
-    await onConfirm([...selectedIds])
-  }, [onConfirm, selectedIds])
+    await onConfirm({ selectedIds: [...selectedIds], asr })
+  }, [onConfirm, selectedIds, asr])
 
   const dialogTitle = title ?? t("transcribe.defaultTitle")
   const dialogDescription = description ?? t("transcribe.defaultDescription")
@@ -186,6 +224,30 @@ export function UITranscribeDialog({
             </Table>
           )}
         </ScrollArea>
+        {onConfirm && rows.length > 0 && asrOptionsEnabled ? (
+          <div className="flex flex-col gap-2 pt-2">
+            <Label htmlFor="transcribe-dialog-asr">{t("transcribe.asr.label")}</Label>
+            <Select
+              value={asr}
+              onValueChange={(v) => setAsr(v as TranscribeAsrEngine)}
+            >
+              <SelectTrigger
+                id="transcribe-dialog-asr"
+                className="w-full max-w-xs"
+                data-testid="transcribe-dialog-asr"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASR_OPTIONS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(transcribeAsrOptionKey(value))}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={onClose} data-testid="transcribe-dialog-cancel">
             {t("cancel", { ns: "common" })}
