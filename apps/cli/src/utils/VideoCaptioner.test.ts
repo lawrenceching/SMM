@@ -92,7 +92,7 @@ describe("transcribeWithVideoCaptioner", () => {
     expect(result).toEqual({ success: true });
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "bijian"],
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt"],
       expect.any(Object)
     );
   });
@@ -108,7 +108,28 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "jianying"],
+      ["transcribe", "C:/media/a.mp3", "--asr", "jianying", "--format", "srt"],
+      expect.any(Object)
+    );
+  });
+
+  it("passes --language and --word-timestamps when set", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = transcribeWithVideoCaptioner("C:/media/a.mp3", {
+      asr: "bijian",
+      language: "zh",
+      wordTimestamps: true,
+      format: "json",
+    });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--language", "zh", "--word-timestamps", "--format", "json"],
       expect.any(Object)
     );
   });

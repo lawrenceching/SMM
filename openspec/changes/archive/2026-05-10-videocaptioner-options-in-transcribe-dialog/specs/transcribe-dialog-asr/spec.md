@@ -1,8 +1,4 @@
-## Purpose
-
-Define **TranscribeDialog** transcription options: **Provider** (**VideoCaptioner** vs **Tencent ASR**), VideoCaptioner ASR/language/word timestamps/format, Tencent credentials, and plumbing to the transcription APIs.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Transcribe dialog ASR selection
 

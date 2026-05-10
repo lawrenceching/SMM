@@ -118,6 +118,29 @@ export type TranscribeRowStatus = "pending" | "running" | "completed" | "failed"
 /** Values passed to VideoCaptioner `transcribe --asr` from TranscribeDialog. */
 export type TranscribeAsrEngine = "bijian" | "jianying" | "whisper-cpp"
 
+/** Transcription backend chosen in TranscribeDialog. */
+export type TranscribeProvider = "videoCaptioner" | "tencentAsr"
+
+/** Subtitle/text output format for VideoCaptioner `transcribe --format`. */
+export type TranscribeOutputFormat = "srt" | "ass" | "txt" | "json"
+
+export interface TranscribeDialogConfirmPayload {
+  selectedIds: string[]
+  provider: TranscribeProvider
+  /** Set when **VideoCaptioner** is selected. */
+  videoCaptioner?: {
+    asr: TranscribeAsrEngine
+    language: string
+    wordTimestamps: boolean
+    format: TranscribeOutputFormat
+  }
+  /** Set when **Tencent ASR** is selected. */
+  tencentAsr?: {
+    baseUrl: string
+    apiKey: string
+  }
+}
+
 export interface TranscribeDialogRow {
   id: string
   /** POSIX absolute path (passed to transcribe API). */
@@ -141,12 +164,13 @@ export interface UITranscribeDialogProps {
    * When true, show ASR engine selection (VideoCaptioner). When false, transcription uses the default engine (omit `asr` on API).
    */
   asrOptionsEnabled?: boolean
+  /** When true, user may choose Tencent ASR (subject to **Tencent** SelectItem disabled state). */
+  tencentAsrEnabled?: boolean
+  /** VideoCaptioner executable discovery — disables **VideoCaptioner** provider when false. */
+  videoCaptionerAvailable?: boolean
   /** Engines listed in the selector but not selectable. */
   disabledAsrEngines?: readonly TranscribeAsrEngine[]
-  onConfirm?: (payload: {
-    selectedIds: string[]
-    asr: TranscribeAsrEngine
-  }) => void | Promise<void>
+  onConfirm?: (payload: TranscribeDialogConfirmPayload) => void | Promise<void>
 }
 
 /** Smart dialog: confirm runs transcribe via background jobs (no external onConfirm). */

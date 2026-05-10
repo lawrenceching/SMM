@@ -48,6 +48,8 @@ vi.mock("@/hooks/useFeatures", () => ({
         isTranscribeEnabled: true,
         isVideoCaptionerAsrOptionsEnabled: false,
         setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+        isTencentAsrTranscribeEnabled: false,
+        setTencentAsrTranscribeEnabled: vi.fn(),
     })),
 }))
 
@@ -129,6 +131,8 @@ describe("StatusBar", () => {
             isTranscribeEnabled: true,
             isVideoCaptionerAsrOptionsEnabled: false,
             setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+            isTencentAsrTranscribeEnabled: false,
+            setTencentAsrTranscribeEnabled: vi.fn(),
         })
     })
 
@@ -239,6 +243,8 @@ describe("StatusBar", () => {
             isTranscribeEnabled: false,
             isVideoCaptionerAsrOptionsEnabled: false,
             setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+            isTencentAsrTranscribeEnabled: false,
+            setTencentAsrTranscribeEnabled: vi.fn(),
         })
 
         render(<StatusBar />)

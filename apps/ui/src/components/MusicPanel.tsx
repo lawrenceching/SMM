@@ -189,9 +189,10 @@ export function MusicPanel() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { isTranscribeEnabled } = useFeatures();
+  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures();
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus();
-  const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady;
+  const isTranscribeAvailable =
+    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);

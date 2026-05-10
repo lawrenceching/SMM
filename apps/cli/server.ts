@@ -46,6 +46,7 @@ import { handleYtdlpExtractData } from './src/route/ytdlp/ExtractData';
 import { handleYtdlpBilibiliEpisodes } from './src/route/ytdlp/BilibiliEpisodes';
 import { handleVideoCaptionerDiscover } from './src/route/videocaptioner/Discover';
 import { handleVideoCaptionerTranscribe } from './src/route/videocaptioner/Transcribe';
+import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
 import { handleFfmpegTags } from './src/route/ffmpeg/Tags';
@@ -219,6 +220,7 @@ export class Server {
     handleYtdlpBilibiliEpisodes(this.app);
     handleVideoCaptionerDiscover(this.app);
     handleVideoCaptionerTranscribe(this.app);
+    handleTencentAsrTranscribe(this.app);
     handleFfmpegScreenshots(this.app);
     handleFfmpegConvert(this.app);
     handleFfmpegTags(this.app);

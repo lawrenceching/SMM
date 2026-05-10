@@ -3,7 +3,9 @@ import { Path } from "@core/path"
 import {
   transcribeWithVideoCaptioner,
   type VideoCaptionerTranscribeAsr,
+  type VideoCaptionerTranscribeFormat,
 } from "@/api/videocaptioner"
+import { transcribeWithTencentAsr } from "@/api/tencentAsr"
 
 export interface TranscribeDeps {
   createTranscribeJob: (trackTitle: string, mediaPath: string) => string
@@ -18,10 +20,24 @@ export interface TranscribeFeedbackRow {
   path?: string
 }
 
+export type TranscribeTracksOptions =
+  | {
+      provider: "videoCaptioner"
+      asr?: VideoCaptionerTranscribeAsr
+      language?: string
+      wordTimestamps?: boolean
+      format?: VideoCaptionerTranscribeFormat
+    }
+  | {
+      provider: "tencentAsr"
+      baseUrl: string
+      apiKey: string
+    }
+
 export async function transcribeTracksWithFeedback(
   rows: TranscribeFeedbackRow[],
   deps: TranscribeDeps,
-  options?: { asr?: VideoCaptionerTranscribeAsr },
+  options?: TranscribeTracksOptions,
 ): Promise<void> {
   const queued = rows
     .filter((row) => {
@@ -35,14 +51,37 @@ export async function transcribeTracksWithFeedback(
       return { row, mediaPath, jobId }
     })
 
+  const provider = options?.provider ?? "videoCaptioner"
+
   for (const item of queued) {
     deps.markTranscribeJobRunning(item.jobId)
     toast.success(`Transcribe start: "${item.row.title}".`)
     try {
-      const result = await transcribeWithVideoCaptioner({
-        mediaPath: item.mediaPath,
-        ...(options?.asr !== undefined ? { asr: options.asr } : {}),
-      })
+      let result: { success?: boolean; error?: string }
+
+      if (provider === "tencentAsr") {
+        if (options?.provider !== "tencentAsr") {
+          deps.markTranscribeJobFailed(item.jobId)
+          toast.error(`Could not transcribe "${item.row.title}". Invalid transcribe options.`)
+          continue
+        }
+        result = await transcribeWithTencentAsr({
+          mediaPath: item.mediaPath,
+          baseUrl: options.baseUrl,
+          apiKey: options.apiKey,
+        })
+      } else {
+        const vc =
+          options?.provider === "videoCaptioner" || options === undefined ? options : undefined
+        result = await transcribeWithVideoCaptioner({
+          mediaPath: item.mediaPath,
+          ...(vc?.asr !== undefined ? { asr: vc.asr } : {}),
+          ...(vc?.language !== undefined ? { language: vc.language } : {}),
+          ...(vc?.wordTimestamps !== undefined ? { wordTimestamps: vc.wordTimestamps } : {}),
+          ...(vc?.format !== undefined ? { format: vc.format } : {}),
+        })
+      }
+
       if (result.error) {
         deps.markTranscribeJobFailed(item.jobId)
         toast.error(`Could not transcribe "${item.row.title}". ${result.error}`)
@@ -62,7 +101,7 @@ export async function transcribeTracksWithFeedback(
 export async function transcribeTrackWithFeedback(
   row: TranscribeFeedbackRow,
   deps: TranscribeDeps,
-  options?: { asr?: VideoCaptionerTranscribeAsr },
+  options?: TranscribeTracksOptions,
 ): Promise<void> {
   await transcribeTracksWithFeedback([row], deps, options)
 }

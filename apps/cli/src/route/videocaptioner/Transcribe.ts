@@ -3,12 +3,16 @@ import { z } from "zod/v3";
 import {
   transcribeWithVideoCaptioner,
   VIDEOCAPTIONER_ASR_ENGINES,
+  VIDEOCAPTIONER_TRANSCRIBE_FORMATS,
 } from "../../utils/VideoCaptioner";
 import { logger } from "../../../lib/logger";
 
 const transcribeRequestSchema = z.object({
   mediaPath: z.string().min(1, "mediaPath is required"),
   asr: z.enum(VIDEOCAPTIONER_ASR_ENGINES).optional(),
+  language: z.string().min(1).optional(),
+  wordTimestamps: z.boolean().optional(),
+  format: z.enum(VIDEOCAPTIONER_TRANSCRIBE_FORMATS).optional(),
 });
 
 export type TranscribeRequestBody = z.infer<typeof transcribeRequestSchema>;
@@ -22,10 +26,19 @@ export async function processVideoCaptionerTranscribe(
   body: TranscribeRequestBody
 ): Promise<VideoCaptionerTranscribeResponseData> {
   try {
-    return await transcribeWithVideoCaptioner(
-      body.mediaPath,
-      body.asr !== undefined ? { asr: body.asr } : undefined
-    );
+    const cliOpts =
+      body.asr !== undefined ||
+      body.language !== undefined ||
+      body.wordTimestamps !== undefined ||
+      body.format !== undefined
+        ? {
+            ...(body.asr !== undefined ? { asr: body.asr } : {}),
+            ...(body.language !== undefined ? { language: body.language } : {}),
+            ...(body.wordTimestamps !== undefined ? { wordTimestamps: body.wordTimestamps } : {}),
+            ...(body.format !== undefined ? { format: body.format } : {}),
+          }
+        : undefined;
+    return await transcribeWithVideoCaptioner(body.mediaPath, cliOpts);
   } catch (error) {
     logger.error({ error }, "Error transcribing with videocaptioner");
     return {

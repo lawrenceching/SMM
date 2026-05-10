@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
 vi.mock("../../utils/VideoCaptioner", () => ({
   transcribeWithVideoCaptioner: h.transcribeWithVideoCaptioner,
   VIDEOCAPTIONER_ASR_ENGINES: ["bijian", "jianying", "whisper-cpp"],
+  VIDEOCAPTIONER_TRANSCRIBE_FORMATS: ["srt", "ass", "txt", "json"],
 }));
 
 vi.mock("../../../lib/logger", () => ({
@@ -81,5 +82,32 @@ describe("POST /api/videocaptioner/transcribe", () => {
       body: JSON.stringify({ mediaPath: "C:/a.mp4", asr: "whisper-api" }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when format is invalid", async () => {
+    const res = await app.request("/api/videocaptioner/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaPath: "C:/a.mp4", format: "vtt" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("passes language and wordTimestamps to transcribeWithVideoCaptioner", async () => {
+    await app.request("/api/videocaptioner/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mediaPath: "C:/a.mp4",
+        language: "en",
+        wordTimestamps: true,
+        format: "ass",
+      }),
+    });
+    expect(h.transcribeWithVideoCaptioner).toHaveBeenCalledWith("C:/a.mp4", {
+      language: "en",
+      wordTimestamps: true,
+      format: "ass",
+    });
   });
 });

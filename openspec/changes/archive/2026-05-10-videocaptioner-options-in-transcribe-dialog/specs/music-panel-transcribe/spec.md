@@ -1,8 +1,4 @@
-## Purpose
-
-Define transcribe entry points for **MusicPanel**: **`MusicHeaderV2`** and **`MusicFileTable`** context menu opening **`TranscribeDialog`**, row mapping from music files, default selection rules, and gating when neither VideoCaptioner nor Tencent ASR is available.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Music panel header opens TranscribeDialog
 

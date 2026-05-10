@@ -423,6 +423,29 @@ interface DialogsResources {
       jianying: string
       whisperCpp: string
     }
+    provider: {
+      label: string
+      videoCaptioner: string
+      tencentAsr: string
+    }
+    language: {
+      label: string
+      placeholder: string
+    }
+    wordTimestamps: {
+      label: string
+    }
+    format: {
+      label: string
+      srt: string
+      ass: string
+      txt: string
+      json: string
+    }
+    tencent: {
+      baseUrl: string
+      apiKey: string
+    }
   }
   editMediaFile: {
     title: string

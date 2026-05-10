@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
+const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -11,6 +12,27 @@ function readVideoCaptionerAsrOptionsEnabled(): boolean {
     return v === "true"
   } catch {
     return true
+  }
+}
+
+/** Default: disabled until the user opts in (`false` when unset). */
+function readTencentAsrTranscribeEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(TENCENT_ASR_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeTencentAsrTranscribeEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(TENCENT_ASR_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore
   }
 }
 
@@ -64,6 +86,12 @@ export interface UseFeaturesResult {
    */
   isVideoCaptionerAsrOptionsEnabled: boolean
   setVideoCaptionerAsrOptionsEnabled: (enabled: boolean) => void
+  /**
+   * When true, Transcribe entry points stay available without VideoCaptioner, and **Tencent ASR** may be selected in TranscribeDialog.
+   * Persisted under `features.isTencentAsrTranscribeEnabled`.
+   */
+  isTencentAsrTranscribeEnabled: boolean
+  setTencentAsrTranscribeEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -76,10 +104,18 @@ export function useFeatures(): UseFeaturesResult {
     readVideoCaptionerAsrOptionsEnabled,
   )
 
+  const [isTencentAsrTranscribeEnabled, setIsTencentAsrTranscribeEnabled] = useState(
+    readTencentAsrTranscribeEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) return
-      setIsVideoCaptionerAsrOptionsEnabled(readVideoCaptionerAsrOptionsEnabled())
+      if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
+        setIsVideoCaptionerAsrOptionsEnabled(readVideoCaptionerAsrOptionsEnabled())
+      }
+      if (event.key === TENCENT_ASR_STORAGE_KEY) {
+        setIsTencentAsrTranscribeEnabled(readTencentAsrTranscribeEnabled())
+      }
     }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
@@ -90,12 +126,25 @@ export function useFeatures(): UseFeaturesResult {
     setIsVideoCaptionerAsrOptionsEnabled(enabled)
   }, [])
 
+  const setTencentAsrTranscribeEnabled = useCallback((enabled: boolean) => {
+    writeTencentAsrTranscribeEnabled(enabled)
+    setIsTencentAsrTranscribeEnabled(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isTranscribeEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
+      isTencentAsrTranscribeEnabled,
+      setTencentAsrTranscribeEnabled,
     }),
-    [isTranscribeEnabled, isVideoCaptionerAsrOptionsEnabled, setVideoCaptionerAsrOptionsEnabled],
+    [
+      isTranscribeEnabled,
+      isVideoCaptionerAsrOptionsEnabled,
+      setVideoCaptionerAsrOptionsEnabled,
+      isTencentAsrTranscribeEnabled,
+      setTencentAsrTranscribeEnabled,
+    ],
   )
 }

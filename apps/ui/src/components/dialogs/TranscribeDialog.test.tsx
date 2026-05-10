@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { TranscribeDialog } from "./TranscribeDialog"
 import type { TranscribeDialogRow } from "./types"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 const h = vi.hoisted(() => ({
   mockTranscribeTracksWithFeedback: vi.fn().mockResolvedValue(undefined),
@@ -38,6 +39,19 @@ vi.mock("@/lib/i18n", () => ({
         "transcribe.asr.bijian": "Bijian",
         "transcribe.asr.jianying": "Jianying",
         "transcribe.asr.whisperCpp": "Whisper CPP",
+        "transcribe.provider.label": "Provider",
+        "transcribe.provider.videoCaptioner": "VideoCaptioner",
+        "transcribe.provider.tencentAsr": "Tencent ASR",
+        "transcribe.language.label": "Language",
+        "transcribe.language.placeholder": "auto",
+        "transcribe.wordTimestamps.label": "Word timestamps",
+        "transcribe.format.label": "Format",
+        "transcribe.format.srt": "SRT",
+        "transcribe.format.ass": "ASS",
+        "transcribe.format.txt": "TXT",
+        "transcribe.format.json": "JSON",
+        "transcribe.tencent.baseUrl": "Base URL",
+        "transcribe.tencent.apiKey": "API key",
       }
       return dialogs[key] ?? key
     },
@@ -59,6 +73,10 @@ vi.mock("@/stores/backgroundJobsStore", () => ({
 
 vi.mock("@/hooks/useFeatures", () => ({
   useFeatures: vi.fn(),
+}))
+
+vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
+  useVideoCaptionerStatus: vi.fn(),
 }))
 
 vi.mock("sonner")
@@ -83,10 +101,16 @@ describe("TranscribeDialog", () => {
     h.createTranscribeJob.mockReturnValue("job-1")
     vi.mocked(toast.error).mockImplementation(() => "id")
     vi.mocked(toast.success).mockImplementation(() => "id")
+    vi.mocked(useVideoCaptionerStatus).mockReturnValue({
+      isAvailable: true,
+      isChecking: false,
+    })
     vi.mocked(useFeatures).mockReturnValue({
       isTranscribeEnabled: true,
       isVideoCaptionerAsrOptionsEnabled: false,
       setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+      isTencentAsrTranscribeEnabled: false,
+      setTencentAsrTranscribeEnabled: vi.fn(),
     })
   })
 
@@ -105,7 +129,7 @@ describe("TranscribeDialog", () => {
           markTranscribeJobSucceeded: h.markTranscribeJobSucceeded,
           markTranscribeJobFailed: h.markTranscribeJobFailed,
         },
-        undefined,
+        { provider: "videoCaptioner" },
       )
     })
   })
@@ -115,6 +139,8 @@ describe("TranscribeDialog", () => {
       isTranscribeEnabled: true,
       isVideoCaptionerAsrOptionsEnabled: true,
       setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+      isTencentAsrTranscribeEnabled: false,
+      setTencentAsrTranscribeEnabled: vi.fn(),
     })
     render(<TranscribeDialog isOpen onClose={mockOnClose} rows={[rowWithPath()]} />)
 
@@ -126,7 +152,12 @@ describe("TranscribeDialog", () => {
         expect.objectContaining({
           createTranscribeJob: h.createTranscribeJob,
         }),
-        { asr: "bijian" },
+        {
+          provider: "videoCaptioner",
+          asr: "bijian",
+          language: "auto",
+          format: "srt",
+        },
       )
     })
   })
@@ -148,7 +179,7 @@ describe("TranscribeDialog", () => {
         expect.objectContaining({
           createTranscribeJob: h.createTranscribeJob,
         }),
-        undefined,
+        { provider: "videoCaptioner" },
       )
     })
   })
@@ -203,7 +234,7 @@ describe("TranscribeDialog", () => {
           markTranscribeJobSucceeded: h.markTranscribeJobSucceeded,
           markTranscribeJobFailed: h.markTranscribeJobFailed,
         }),
-        undefined,
+        { provider: "videoCaptioner" },
       )
     })
   })

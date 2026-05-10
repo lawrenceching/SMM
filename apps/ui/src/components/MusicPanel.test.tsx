@@ -53,6 +53,8 @@ vi.mock('@/hooks/useFeatures', () => ({
     isTranscribeEnabled: true,
     isVideoCaptionerAsrOptionsEnabled: false,
     setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+    isTencentAsrTranscribeEnabled: false,
+    setTencentAsrTranscribeEnabled: vi.fn(),
   })),
 }));
 vi.mock('sonner');
@@ -137,6 +139,8 @@ describe('MusicPanel', () => {
       isTranscribeEnabled: true,
       isVideoCaptionerAsrOptionsEnabled: false,
       setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+      isTencentAsrTranscribeEnabled: false,
+      setTencentAsrTranscribeEnabled: vi.fn(),
     });
 
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);

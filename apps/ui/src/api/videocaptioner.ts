@@ -5,9 +5,14 @@ export interface VideoCaptionerDiscoverResponse {
 
 export type VideoCaptionerTranscribeAsr = "bijian" | "jianying" | "whisper-cpp";
 
+export type VideoCaptionerTranscribeFormat = "srt" | "ass" | "txt" | "json";
+
 export interface VideoCaptionerTranscribeRequest {
   mediaPath: string;
   asr?: VideoCaptionerTranscribeAsr;
+  language?: string;
+  wordTimestamps?: boolean;
+  format?: VideoCaptionerTranscribeFormat;
 }
 
 export interface VideoCaptionerTranscribeResponse {
@@ -28,6 +33,15 @@ export async function transcribeWithVideoCaptioner(
   const body: Record<string, unknown> = { mediaPath: request.mediaPath };
   if (request.asr !== undefined) {
     body.asr = request.asr;
+  }
+  if (request.language !== undefined) {
+    body.language = request.language;
+  }
+  if (request.wordTimestamps !== undefined) {
+    body.wordTimestamps = request.wordTimestamps;
+  }
+  if (request.format !== undefined) {
+    body.format = request.format;
   }
   const resp = await fetch("/api/videocaptioner/transcribe", {
     method: "POST",

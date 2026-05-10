@@ -13,6 +13,9 @@ const h = vi.hoisted(() => ({
 vi.mock('@/api/videocaptioner', () => ({
   transcribeWithVideoCaptioner: h.transcribeWithVideoCaptioner,
 }))
+vi.mock('@/api/tencentAsr', () => ({
+  transcribeWithTencentAsr: vi.fn(),
+}))
 vi.mock('sonner')
 
 describe('transcribeFeedback', () => {

@@ -1,8 +1,4 @@
-## Purpose
-
-Define transcribe entry points for **TvShowPanel** and **MoviePanel**: header control, **`TranscribeDialog`** filled from **`MediaMetadata.mediaFiles`**, and gating when neither VideoCaptioner nor Tencent ASR is available.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: TV show panel header exposes Transcribe
 

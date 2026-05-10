@@ -94,6 +94,29 @@
       "bijian": "Bijian",
       "jianying": "剪映",
       "whisperCpp": "Whisper CPP"
+    },
+    "provider": {
+      "label": "提供商",
+      "videoCaptioner": "VideoCaptioner",
+      "tencentAsr": "騰訊雲語音識別"
+    },
+    "language": {
+      "label": "語言",
+      "placeholder": "auto 或 ISO 639-1（如 zh、en）"
+    },
+    "wordTimestamps": {
+      "label": "詞級時間戳"
+    },
+    "format": {
+      "label": "輸出格式",
+      "srt": "SRT",
+      "ass": "ASS",
+      "txt": "純文字",
+      "json": "JSON"
+    },
+    "tencent": {
+      "baseUrl": "Base URL",
+      "apiKey": "API 密鑰"
     }
   },
   "openFolder": {

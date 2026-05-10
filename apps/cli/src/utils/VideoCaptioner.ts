@@ -124,9 +124,20 @@ export interface VideoCaptionerTranscribeResult {
 export const VIDEOCAPTIONER_ASR_ENGINES = ["bijian", "jianying", "whisper-cpp"] as const;
 export type VideoCaptionerAsrEngine = (typeof VIDEOCAPTIONER_ASR_ENGINES)[number];
 
+export const VIDEOCAPTIONER_TRANSCRIBE_FORMATS = ["srt", "ass", "txt", "json"] as const;
+export type VideoCaptionerTranscribeFormat = (typeof VIDEOCAPTIONER_TRANSCRIBE_FORMATS)[number];
+
+export interface VideoCaptionerTranscribeCliOptions {
+  asr?: VideoCaptionerAsrEngine;
+  /** ISO 639-1 code or `auto`; forwarded as `--language`. */
+  language?: string;
+  wordTimestamps?: boolean;
+  format?: VideoCaptionerTranscribeFormat;
+}
+
 export async function transcribeWithVideoCaptioner(
   mediaPath: string,
-  options?: { asr?: VideoCaptionerAsrEngine }
+  options?: VideoCaptionerTranscribeCliOptions
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!mediaPath) {
     return { error: "mediaPath is required" };
@@ -175,6 +186,14 @@ export async function transcribeWithVideoCaptioner(
   const asr: VideoCaptionerAsrEngine = options?.asr ?? "bijian";
   // CLI requires subcommand form: videocaptioner transcribe <mediaPath>
   const args = ["transcribe", mediaPath, "--asr", asr];
+  if (options?.language !== undefined && options.language.trim() !== "") {
+    args.push("--language", options.language.trim());
+  }
+  if (options?.wordTimestamps === true) {
+    args.push("--word-timestamps");
+  }
+  const format: VideoCaptionerTranscribeFormat = options?.format ?? "srt";
+  args.push("--format", format);
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");

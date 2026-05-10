@@ -139,9 +139,10 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isTranscribeEnabled } = useFeatures()
+  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
-  const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady
+  const isTranscribeAvailable =
+    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
   const transcribeDialogRows = useMemo(
     () => transcribeDialogRowsFromMediaFiles(mediaMetadata),

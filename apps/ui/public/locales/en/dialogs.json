@@ -94,6 +94,29 @@
       "bijian": "Bijian",
       "jianying": "Jianying",
       "whisperCpp": "Whisper CPP"
+    },
+    "provider": {
+      "label": "Provider",
+      "videoCaptioner": "VideoCaptioner",
+      "tencentAsr": "Tencent ASR"
+    },
+    "language": {
+      "label": "Language",
+      "placeholder": "auto or ISO 639-1 (e.g. zh, en)"
+    },
+    "wordTimestamps": {
+      "label": "Word timestamps"
+    },
+    "format": {
+      "label": "Format",
+      "srt": "SRT",
+      "ass": "ASS",
+      "txt": "Plain text",
+      "json": "JSON"
+    },
+    "tencent": {
+      "baseUrl": "Base URL",
+      "apiKey": "API key"
     }
   },
   "openFolder": {

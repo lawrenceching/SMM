@@ -28,6 +28,19 @@ vi.mock("@/lib/i18n", () => ({
         "transcribe.asr.bijian": "Bijian",
         "transcribe.asr.jianying": "Jianying",
         "transcribe.asr.whisperCpp": "Whisper CPP",
+        "transcribe.provider.label": "Provider",
+        "transcribe.provider.videoCaptioner": "VideoCaptioner",
+        "transcribe.provider.tencentAsr": "Tencent ASR",
+        "transcribe.language.label": "Language",
+        "transcribe.language.placeholder": "auto",
+        "transcribe.wordTimestamps.label": "Word timestamps",
+        "transcribe.format.label": "Format",
+        "transcribe.format.srt": "SRT",
+        "transcribe.format.ass": "ASS",
+        "transcribe.format.txt": "TXT",
+        "transcribe.format.json": "JSON",
+        "transcribe.tencent.baseUrl": "Base URL",
+        "transcribe.tencent.apiKey": "API key",
       }
       return dialogs[key] ?? key
     },
@@ -89,7 +102,13 @@ describe("UITranscribeDialog", () => {
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalledWith({
         selectedIds: ["row-1"],
-        asr: "bijian",
+        provider: "videoCaptioner",
+        videoCaptioner: {
+          asr: "bijian",
+          language: "auto",
+          wordTimestamps: false,
+          format: "srt",
+        },
       })
     })
   })
@@ -110,5 +129,24 @@ describe("UITranscribeDialog", () => {
     )
 
     expect(screen.getByTestId("transcribe-dialog-asr")).toBeInTheDocument()
+  })
+
+  it("disables confirm for Tencent ASR until URL and API key are filled", () => {
+    const props = {
+      isOpen: true,
+      onClose: mockOnClose,
+      rows: sampleRows,
+      onConfirm: mockOnConfirm,
+      tencentAsrEnabled: true,
+      videoCaptionerAvailable: false,
+    } satisfies ComponentProps<typeof UITranscribeDialog>
+
+    render(
+      <React.Fragment>
+        <UITranscribeDialog {...props} />
+      </React.Fragment>,
+    )
+
+    expect(screen.getByTestId("transcribe-dialog-confirm")).toBeDisabled()
   })
 })

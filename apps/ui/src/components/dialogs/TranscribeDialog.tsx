@@ -2,10 +2,15 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 import { basename } from "@/lib/path"
 import { UITranscribeDialog } from "./UITranscribeDialog"
-import type { TranscribeAsrEngine, TranscribeDialogProps } from "./types"
+import type {
+  TranscribeAsrEngine,
+  TranscribeDialogConfirmPayload,
+  TranscribeDialogProps,
+} from "./types"
 import { transcribeTracksWithFeedback } from "@/lib/transcribeFeedback"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 /** Not selectable in the dialog UI (still listed). */
 const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
@@ -20,13 +25,14 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
     markTranscribeJobSucceeded,
     markTranscribeJobFailed,
   } = useBackgroundJobsStore()
-  const { isVideoCaptionerAsrOptionsEnabled } = useFeatures()
+  const { isVideoCaptionerAsrOptionsEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
+  const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
 
   const handleConfirm = useCallback(
-    ({ selectedIds, asr }: { selectedIds: string[]; asr: TranscribeAsrEngine }) => {
+    (payload: TranscribeDialogConfirmPayload) => {
       const byId = new Map(rows.map((r) => [r.id, r]))
       const feedbackRows: { title: string; path: string }[] = []
-      for (const id of selectedIds) {
+      for (const id of payload.selectedIds) {
         const row = byId.get(id)
         if (!row?.path) {
           toast.error(
@@ -39,16 +45,35 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       }
       if (feedbackRows.length === 0) return
       onClose()
-      void transcribeTracksWithFeedback(
-        feedbackRows,
-        {
-          createTranscribeJob,
-          markTranscribeJobRunning,
-          markTranscribeJobSucceeded,
-          markTranscribeJobFailed,
-        },
-        isVideoCaptionerAsrOptionsEnabled ? { asr } : undefined,
-      )
+
+      const deps = {
+        createTranscribeJob,
+        markTranscribeJobRunning,
+        markTranscribeJobSucceeded,
+        markTranscribeJobFailed,
+      }
+
+      if (payload.provider === "tencentAsr" && payload.tencentAsr) {
+        void transcribeTracksWithFeedback(feedbackRows, deps, {
+          provider: "tencentAsr",
+          baseUrl: payload.tencentAsr.baseUrl,
+          apiKey: payload.tencentAsr.apiKey,
+        })
+        return
+      }
+
+      const vc = payload.videoCaptioner
+      if (isVideoCaptionerAsrOptionsEnabled && vc) {
+        void transcribeTracksWithFeedback(feedbackRows, deps, {
+          provider: "videoCaptioner",
+          asr: vc.asr,
+          language: vc.language,
+          ...(vc.wordTimestamps ? { wordTimestamps: true as const } : {}),
+          format: vc.format,
+        })
+      } else {
+        void transcribeTracksWithFeedback(feedbackRows, deps, { provider: "videoCaptioner" })
+      }
     },
     [
       rows,
@@ -67,6 +92,8 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       rows={rows}
       onClose={onClose}
       asrOptionsEnabled={isVideoCaptionerAsrOptionsEnabled}
+      tencentAsrEnabled={isTencentAsrTranscribeEnabled}
+      videoCaptionerAvailable={videoCaptionerAvailable}
       disabledAsrEngines={TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES}
       onConfirm={handleConfirm}
     />
