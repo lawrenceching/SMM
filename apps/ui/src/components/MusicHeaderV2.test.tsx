@@ -44,4 +44,22 @@ describe("MusicHeaderV2 multi-select toggle", () => {
 
     expect(screen.getByTestId("music-multi-select-toggle")).toHaveTextContent("Cancel");
   });
+
+  it("enables header Transcribe when targets exist without multi-select mode", () => {
+    const onTranscribeClick = vi.fn();
+    render(
+      <MusicHeaderV2
+        selectedMediaMetadata={selectedMediaMetadata}
+        onTranscribeClick={onTranscribeClick}
+        isTranscribeAvailable={true}
+        hasTranscribeTargets={true}
+        isMultiSelectMode={false}
+      />,
+    );
+
+    const transcribe = screen.getByTestId("music-multi-select-transcribe");
+    expect(transcribe).not.toBeDisabled();
+    fireEvent.click(transcribe);
+    expect(onTranscribeClick).toHaveBeenCalledTimes(1);
+  });
 });

@@ -112,6 +112,7 @@ export function UITranscribeDialog({
   description,
   defaultSelectedIds,
   asrOptionsEnabled = false,
+  disabledAsrEngines,
   onConfirm,
 }: UITranscribeDialogProps) {
   const { t } = useTranslation(["dialogs", "common"])
@@ -240,7 +241,11 @@ export function UITranscribeDialog({
               </SelectTrigger>
               <SelectContent>
                 {ASR_OPTIONS.map((value) => (
-                  <SelectItem key={value} value={value}>
+                  <SelectItem
+                    key={value}
+                    value={value}
+                    disabled={disabledAsrEngines?.includes(value) ?? false}
+                  >
                     {t(transcribeAsrOptionKey(value))}
                   </SelectItem>
                 ))}

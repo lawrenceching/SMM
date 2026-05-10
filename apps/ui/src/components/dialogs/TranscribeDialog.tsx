@@ -7,6 +7,9 @@ import { transcribeTracksWithFeedback } from "@/lib/transcribeFeedback"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useFeatures } from "@/hooks/useFeatures"
 
+/** Not selectable in the dialog UI (still listed). */
+const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
+
 /**
  * Closes immediately after confirm, then runs transcribe in the background (toasts + background jobs).
  */
@@ -64,6 +67,7 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       rows={rows}
       onClose={onClose}
       asrOptionsEnabled={isVideoCaptionerAsrOptionsEnabled}
+      disabledAsrEngines={TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES}
       onConfirm={handleConfirm}
     />
   )

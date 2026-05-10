@@ -8,8 +8,8 @@ export interface MusicHeaderV2Props {
     onDownloadClick?: () => void
     onTranscribeClick?: () => void
     isTranscribeAvailable?: boolean
-    selectedTrackCount?: number
-    isTranscribing?: boolean
+    /** At least one music file row can be transcribed (resolvable path). */
+    hasTranscribeTargets?: boolean
     isMultiSelectMode?: boolean
     onToggleMultiSelectMode?: () => void
 }
@@ -19,8 +19,7 @@ export function MusicHeaderV2({
     onDownloadClick,
     onTranscribeClick,
     isTranscribeAvailable = false,
-    selectedTrackCount = 0,
-    isTranscribing = false,
+    hasTranscribeTargets = false,
     isMultiSelectMode = false,
     onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
@@ -61,11 +60,9 @@ export function MusicHeaderV2({
                         size="sm"
                         onClick={() => onTranscribeClick?.()}
                         disabled={
-                            !isMultiSelectMode ||
                             !selectedMediaMetadata?.mediaFolderPath ||
                             !isTranscribeAvailable ||
-                            selectedTrackCount === 0 ||
-                            isTranscribing
+                            !hasTranscribeTargets
                         }
                         data-testid="music-multi-select-transcribe"
                     >

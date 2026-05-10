@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
 
+/** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
-  if (typeof window === "undefined") return false
+  if (typeof window === "undefined") return true
   try {
-    return window.localStorage.getItem(VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) === "true"
+    const v = window.localStorage.getItem(VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY)
+    if (v === null) return true
+    return v === "true"
   } catch {
-    return false
+    return true
   }
 }
 
@@ -57,6 +60,7 @@ export interface UseFeaturesResult {
   /**
    * When true, UI may expose VideoCaptioner ASR engine selection (e.g. Transcribe dialog).
    * Persisted in localStorage under key `features.isVideoCaptionerAsrOptionsEnabled`.
+   * Defaults to enabled until the user explicitly turns it off.
    */
   isVideoCaptionerAsrOptionsEnabled: boolean
   setVideoCaptionerAsrOptionsEnabled: (enabled: boolean) => void

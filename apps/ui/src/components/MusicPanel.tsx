@@ -26,14 +26,13 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
-import { DeleteTrackDialog } from "@/components/dialogs";
+import { DeleteTrackDialog, TranscribeDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import {
-  transcribeTrackWithFeedback,
-  transcribeTracksWithFeedback,
-} from "@/lib/transcribeFeedback";
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
+  transcribeDialogRowsFromMusicFileRows,
+  absolutePosixMusicFilePath,
+} from "@/lib/transcribeDialogRows";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 import { useFeatures } from "@/hooks/useFeatures";
 
@@ -195,14 +194,10 @@ export function MusicPanel() {
   const isTranscribeAvailable = isTranscribeEnabled && isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
-  const [isBatchTranscribing, setIsBatchTranscribing] = useState(false);
-  const {
-    createTranscribeJob,
-    markTranscribeJobRunning,
-    markTranscribeJobSucceeded,
-    markTranscribeJobFailed,
-  } =
-    useBackgroundJobsStore();
+  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
+  const [transcribeDialogDefaultSelectedIds, setTranscribeDialogDefaultSelectedIds] = useState<
+    string[] | undefined
+  >(undefined);
 
   const handleToggleMultiSelectMode = useCallback(() => {
     setIsMultiSelectMode((prev) => {
@@ -299,6 +294,53 @@ export function MusicPanel() {
   const selectedRows = useMemo(
     () => tableData.filter((row) => selectedTrackIds.includes(row.id)),
     [tableData, selectedTrackIds],
+  );
+
+  const transcribeDialogRows = useMemo(
+    () =>
+      transcribeDialogRowsFromMusicFileRows(tableData, mediaMetadata?.mediaFolderPath),
+    [tableData, mediaMetadata?.mediaFolderPath],
+  );
+
+  const hasTranscribeTargets = transcribeDialogRows.length > 0;
+
+  const closeTranscribeDialog = useCallback(() => {
+    setIsTranscribeOpen(false);
+    setTranscribeDialogDefaultSelectedIds(undefined);
+  }, []);
+
+  const handleHeaderTranscribeClick = useCallback(() => {
+    if (!hasTranscribeTargets) {
+      toast.error("No media files available to transcribe.");
+      return;
+    }
+    const folder = mediaMetadata?.mediaFolderPath;
+    const selectedWithPath = selectedRows.filter(
+      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
+    );
+    if (selectedWithPath.length > 0) {
+      setTranscribeDialogDefaultSelectedIds(
+        selectedWithPath.map((r) => absolutePosixMusicFilePath(r, folder)!),
+      );
+    } else {
+      setTranscribeDialogDefaultSelectedIds(undefined);
+    }
+    setIsTranscribeOpen(true);
+  }, [hasTranscribeTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
+
+  const handleTrackTranscribe = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const pathId = absolutePosixMusicFilePath(row, folder);
+      if (!pathId) {
+        toast.error(`Track "${row.title}" does not have an associated file path.`);
+        return;
+      }
+      setSelectedTrackIds([]);
+      setTranscribeDialogDefaultSelectedIds([pathId]);
+      setIsTranscribeOpen(true);
+    },
+    [mediaMetadata?.mediaFolderPath],
   );
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
@@ -466,43 +508,6 @@ export function MusicPanel() {
     }
   }, [tracks, currentTrackId, isMultiSelectMode]);
 
-  const handleTrackTranscribe = useCallback(async (row: MusicFileRow) => {
-    await transcribeTrackWithFeedback(row, {
-      createTranscribeJob,
-      markTranscribeJobRunning,
-      markTranscribeJobSucceeded,
-      markTranscribeJobFailed,
-    });
-  }, [createTranscribeJob, markTranscribeJobRunning, markTranscribeJobSucceeded, markTranscribeJobFailed]);
-
-  const handleBatchTranscribe = useCallback(async () => {
-    if (isBatchTranscribing) {
-      return;
-    }
-    if (selectedRows.length === 0) {
-      toast.error("Please select at least one media file to transcribe.");
-      return;
-    }
-    setIsBatchTranscribing(true);
-    try {
-      await transcribeTracksWithFeedback(selectedRows, {
-        createTranscribeJob,
-        markTranscribeJobRunning,
-        markTranscribeJobSucceeded,
-        markTranscribeJobFailed,
-      });
-    } finally {
-      setIsBatchTranscribing(false);
-    }
-  }, [
-    isBatchTranscribing,
-    selectedRows,
-    createTranscribeJob,
-    markTranscribeJobRunning,
-    markTranscribeJobSucceeded,
-    markTranscribeJobFailed,
-  ]);
-
   useEffect(() => {
     const subscriptions: Array<() => void> = [
       addMusicEventListener<TrackOpenEventDetail>(
@@ -534,14 +539,19 @@ export function MusicPanel() {
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
+      <TranscribeDialog
+        isOpen={isTranscribeOpen}
+        onClose={closeTranscribeDialog}
+        rows={transcribeDialogRows}
+        defaultSelectedIds={transcribeDialogDefaultSelectedIds}
+      />
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
           selectedMediaMetadata={mediaMetadata}
           onDownloadClick={handleDownloadClick}
-          onTranscribeClick={() => void handleBatchTranscribe()}
+          onTranscribeClick={handleHeaderTranscribeClick}
           isTranscribeAvailable={isTranscribeAvailable}
-          selectedTrackCount={selectedRows.length}
-          isTranscribing={isBatchTranscribing}
+          hasTranscribeTargets={hasTranscribeTargets}
           isMultiSelectMode={isMultiSelectMode}
           onToggleMultiSelectMode={handleToggleMultiSelectMode}
         />
@@ -562,7 +572,7 @@ export function MusicPanel() {
             onDownloadStop={stopDownload}
             onDownloadRemove={(jobId) => void removeDownload(jobId)}
             isTranscribeAvailable={isTranscribeAvailable}
-            onTrackTranscribe={(row) => void handleTrackTranscribe(row)}
+            onTrackTranscribe={handleTrackTranscribe}
             isMultiSelectMode={isMultiSelectMode}
             selectedTrackIds={selectedTrackIds}
             onSelectedTrackIdsChange={setSelectedTrackIds}

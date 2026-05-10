@@ -46,6 +46,7 @@ const row: MusicFileRow = {
   path: "/tmp/song-a.mp3",
 };
 
+/** Context-menu Transcribe invokes parent; parent opens TranscribeDialog. */
 describe("MusicFileTable transcribe action", () => {
   it("disables transcribe action when capability unavailable", () => {
     render(

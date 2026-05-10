@@ -141,6 +141,8 @@ export interface UITranscribeDialogProps {
    * When true, show ASR engine selection (VideoCaptioner). When false, transcription uses the default engine (omit `asr` on API).
    */
   asrOptionsEnabled?: boolean
+  /** Engines listed in the selector but not selectable. */
+  disabledAsrEngines?: readonly TranscribeAsrEngine[]
   onConfirm?: (payload: {
     selectedIds: string[]
     asr: TranscribeAsrEngine
