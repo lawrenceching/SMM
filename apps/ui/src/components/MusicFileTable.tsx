@@ -32,6 +32,8 @@ export interface MusicFileRow {
   path?: string
   status?: "pending" | "downloading" | "completed" | "failed" | "stopped"
   jobId?: string
+  /** Subtitle generation task for this file (IndexedDB + Service Worker). */
+  transcribeStatus?: "running" | "failed"
 }
 
 interface MusicFileTableProps {
@@ -56,6 +58,8 @@ interface MusicFileTableProps {
   isTranscribeAvailable?: boolean
   /** Trigger transcribe for a track path */
   onTrackTranscribe?: (track: MusicFileRow) => void
+  /** Stop an in-progress transcribe job for this row's file */
+  onTranscribeStop?: (track: MusicFileRow) => void
   /** Whether table is in multi-select mode */
   isMultiSelectMode?: boolean
   /** Selected track ids in multi-select mode */
@@ -115,11 +119,12 @@ export function MusicFileTable({
   onDownloadRemove,
   isTranscribeAvailable,
   onTrackTranscribe,
+  onTranscribeStop,
   isMultiSelectMode = false,
   selectedTrackIds = [],
   onSelectedTrackIdsChange,
 }: MusicFileTableProps) {
-  const { t } = useTranslation(['components'])
+  const { t } = useTranslation(["components"])
   const handleOpen = (track: MusicFileRow) => {
     if (!track.path) return
     emitTrackOpenEvent({
@@ -207,6 +212,7 @@ export function MusicFileTable({
             data.map((row) => {
               const isActive = currentTrackId === row.id
               const isDownloading = row.status === 'downloading'
+              const isTranscribing = row.transcribeStatus === 'running'
 
               return (
                 <ContextMenu key={row.id}>
@@ -308,8 +314,28 @@ export function MusicFileTable({
 
                       {/* Title */}
                       <TableCell className="min-w-0 px-2 py-1.5">
-                        <p className={`truncate ${isActive ? 'text-green-500 font-medium' : ''}`} title={row.title}>
-                          {row.title}
+                        <p
+                          className={`flex min-w-0 items-center gap-1.5 truncate ${isActive ? "text-green-500 font-medium" : ""}`}
+                          title={
+                            isTranscribing
+                              ? t("mediaPlayer.transcribingTooltip")
+                              : row.transcribeStatus === "failed"
+                                ? t("mediaPlayer.transcribeFailedTooltip")
+                                : row.title
+                          }
+                        >
+                          {isTranscribing && (
+                            <span className="inline-flex shrink-0 items-center text-primary">
+                              <Spinner className="size-3.5 shrink-0" />
+                            </span>
+                          )}
+                          {row.transcribeStatus === "failed" && !isTranscribing && (
+                            <XCircle
+                              className="size-3.5 shrink-0 text-destructive"
+                              aria-hidden
+                            />
+                          )}
+                          <span className="truncate">{row.title}</span>
                         </p>
                       </TableCell>
 
@@ -381,8 +407,17 @@ export function MusicFileTable({
                       <FileText className="size-4 mr-2" />
                       {t('mediaPlayer.trackContextMenu.formatConvert')}
                     </ContextMenuItem>
+                    {row.transcribeStatus === 'running' && (
+                      <ContextMenuItem
+                        disabled={!row.path || isDownloading}
+                        onClick={() => onTranscribeStop?.(row)}
+                      >
+                        <CircleStop className="size-4 mr-2" />
+                        {t('mediaPlayer.trackContextMenu.transcribeStop')}
+                      </ContextMenuItem>
+                    )}
                     <ContextMenuItem
-                      disabled={!row.path || isDownloading || !isTranscribeAvailable}
+                      disabled={!row.path || isDownloading || !isTranscribeAvailable || isTranscribing}
                       onClick={() => onTrackTranscribe?.(row)}
                     >
                       <Captions className="size-4 mr-2" />

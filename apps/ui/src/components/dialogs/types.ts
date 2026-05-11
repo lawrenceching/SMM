@@ -156,6 +156,11 @@ export interface UITranscribeDialogProps {
   isOpen: boolean
   onClose: () => void
   rows: TranscribeDialogRow[]
+  /**
+   * Media library folder (platform path), persisted on transcribe jobs for IndexedDB filtering.
+   * Required for enqueue when using {@link TranscribeDialog}.
+   */
+  folder?: string
   title?: string
   description?: string
   /** When omitted, all rows are selected when the dialog opens. */

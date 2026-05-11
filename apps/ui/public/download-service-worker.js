@@ -85,10 +85,11 @@ async function notifyClients(event, args) {
 
 // ─── Heartbeat ────────────────────────────────────────────────────────────────
 
-function startHeartbeat(jobId) {
+function startHeartbeat(jobId, heartbeatEvent) {
   stopHeartbeat(jobId)
+  const ev = heartbeatEvent || 'download:heartbeat'
   const timer = setInterval(() => {
-    notifyClients('download:heartbeat', { id: jobId })
+    notifyClients(ev, { id: jobId })
   }, HEARTBEAT_INTERVAL_MS)
   heartbeatTimers.set(jobId, timer)
 }
@@ -153,7 +154,7 @@ async function startDownload(jobId) {
   job.updatedAt = Date.now()
   await dbPutJob(job)
 
-  startHeartbeat(jobId)
+  startHeartbeat(jobId, 'download:heartbeat')
   await notifyClients('download:started', { id: jobId })
 
   let data
@@ -240,6 +241,7 @@ async function startDownload(jobId) {
   } else {
     console.log('[SW] startDownload: job failed', { jobId })
     job.status = 'failed'
+    await notifyClients('download:failed', { id: jobId })
   }
 
   job.updatedAt = Date.now()
@@ -342,6 +344,150 @@ async function removeDownload(jobId) {
   await notifyClients('download:removed', { id: jobId, reason: 'user' })
 }
 
+// ─── Transcribe logic ─────────────────────────────────────────────────────────
+
+async function startTranscribe(jobId) {
+  console.log('[SW] startTranscribe called', { jobId })
+
+  if (abortControllers.has(jobId)) {
+    console.log('[SW] startTranscribe: already running, skipping', { jobId })
+    return
+  }
+
+  const job = await dbGetJob(jobId)
+  if (!job || job.type !== 'transcribe') {
+    console.warn('[SW] startTranscribe: job not found or wrong type', { jobId, type: job?.type })
+    return
+  }
+
+  const controller = new AbortController()
+  abortControllers.set(jobId, controller)
+
+  job.status = 'running'
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+
+  startHeartbeat(jobId, 'transcribe:heartbeat')
+  await notifyClients('transcribe:started', { id: jobId })
+
+  let data
+  try {
+    data = JSON.parse(job.data || '{}')
+  } catch (_) {
+    data = {}
+  }
+
+  const mediaPath = data.mediaPathPlatform || data.mediaPath || ''
+  const provider = data.provider || 'videoCaptioner'
+
+  let ok = false
+  try {
+    if (provider === 'tencentAsr') {
+      const ta = data.tencentAsr || {}
+      const res = await fetch('/api/tencent-asr/transcribe', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaPath,
+          baseUrl: ta.baseUrl,
+          apiKey: ta.apiKey,
+        }),
+        signal: controller.signal,
+      })
+      const body = await res.json()
+      if (body.error) {
+        console.warn('[SW] startTranscribe: tencent error', { jobId, error: body.error })
+      } else {
+        ok = true
+      }
+    } else {
+      const vc = data.videoCaptioner || {}
+      const reqBody = { mediaPath }
+      if (vc.asr !== undefined) reqBody.asr = vc.asr
+      if (vc.language !== undefined) reqBody.language = vc.language
+      if (vc.wordTimestamps !== undefined) reqBody.wordTimestamps = vc.wordTimestamps
+      if (vc.format !== undefined) reqBody.format = vc.format
+      const res = await fetch('/api/videocaptioner/transcribe', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+        signal: controller.signal,
+      })
+      const body = await res.json()
+      if (body.error) {
+        console.warn('[SW] startTranscribe: videocaptioner error', { jobId, error: body.error })
+      } else {
+        ok = true
+      }
+    }
+  } catch (e) {
+    console.log('[SW] startTranscribe: fetch threw', {
+      jobId,
+      aborted: controller.signal.aborted,
+      errorMessage: e instanceof Error ? e.message : String(e),
+    })
+    if (controller.signal.aborted) {
+      job.status = 'stopped'
+      job.progress = 0
+      job.updatedAt = Date.now()
+      await dbPutJob(job)
+      abortControllers.delete(jobId)
+      stopHeartbeat(jobId)
+      await notifyClients('transcribe:stopped', { id: jobId })
+      return
+    }
+    ok = false
+  }
+
+  abortControllers.delete(jobId)
+  stopHeartbeat(jobId)
+
+  if (controller.signal.aborted) {
+    job.status = 'stopped'
+  } else if (ok) {
+    job.status = 'succeeded'
+    job.progress = 100
+    await notifyClients('transcribe:succeeded', { id: jobId })
+  } else {
+    job.status = 'failed'
+    await notifyClients('transcribe:failed', { id: jobId })
+  }
+
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+}
+
+async function stopTranscribe(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+
+  const job = await dbGetJob(jobId)
+  if (job && job.type === 'transcribe') {
+    job.status = 'stopped'
+    job.updatedAt = Date.now()
+    await dbPutJob(job)
+  }
+
+  await notifyClients('transcribe:stopped', { id: jobId })
+}
+
+async function removeTranscribe(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+  await dbDeleteJob(jobId)
+  await notifyClients('transcribe:removed', { id: jobId, reason: 'user' })
+}
+
 // ─── Service Worker lifecycle ─────────────────────────────────────────────────
 
 self.addEventListener('install', () => {
@@ -383,6 +529,21 @@ self.addEventListener('message', (event) => {
     case 'download:remove':
       if (msg.id) {
         removeDownload(msg.id)
+      }
+      break
+    case 'transcribe:start':
+      if (msg.id) {
+        startTranscribe(msg.id)
+      }
+      break
+    case 'transcribe:stop':
+      if (msg.id) {
+        stopTranscribe(msg.id)
+      }
+      break
+    case 'transcribe:remove':
+      if (msg.id) {
+        removeTranscribe(msg.id)
       }
       break
   }

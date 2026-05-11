@@ -251,6 +251,8 @@ interface ComponentsResources {
   mediaPlayer: {
     select: string
     download: string
+    transcribingTooltip: string
+    transcribeFailedTooltip: string
     trackContextMenu: {
       open: string
       delete: string
@@ -261,6 +263,7 @@ interface ComponentsResources {
       downloadStop: string
       downloadRemove: string
       transcribe: string
+      transcribeStop: string
     }
     noTracksFound: string
     tryAdjustingFilter: string

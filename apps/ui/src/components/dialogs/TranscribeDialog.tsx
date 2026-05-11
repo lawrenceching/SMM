@@ -7,31 +7,33 @@ import type {
   TranscribeDialogConfirmPayload,
   TranscribeDialogProps,
 } from "./types"
-import { transcribeTracksWithFeedback } from "@/lib/transcribeFeedback"
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { buildTranscribeJob } from "@/lib/transcribeJobFactory"
+import { saveTranscribeJob } from "@/lib/downloadTaskDb"
 
 /** Not selectable in the dialog UI (still listed). */
 const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
 
 /**
- * Closes immediately after confirm, then runs transcribe in the background (toasts + background jobs).
+ * Closes immediately after confirm, then enqueues transcribe jobs (IndexedDB + Service Worker).
  */
-export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogProps) {
-  const {
-    createTranscribeJob,
-    markTranscribeJobRunning,
-    markTranscribeJobSucceeded,
-    markTranscribeJobFailed,
-  } = useBackgroundJobsStore()
+export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeDialogProps) {
   const { isVideoCaptionerAsrOptionsEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
 
   const handleConfirm = useCallback(
-    (payload: TranscribeDialogConfirmPayload) => {
+    async (payload: TranscribeDialogConfirmPayload) => {
+      const folderTrimmed = folder?.trim()
+      if (!folderTrimmed) {
+        toast.error("Media folder is not available; cannot start transcription.")
+        return
+      }
+
       const byId = new Map(rows.map((r) => [r.id, r]))
-      const feedbackRows: { title: string; path: string }[] = []
+      let saved = 0
+      const vcOptions =
+        payload.provider === "videoCaptioner" ? payload.videoCaptioner : undefined
       for (const id of payload.selectedIds) {
         const row = byId.get(id)
         if (!row?.path) {
@@ -41,49 +43,35 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
           continue
         }
         const displayTitle = row.title?.trim() || basename(row.path) || row.path
-        feedbackRows.push({ title: displayTitle, path: row.path })
+
+        const job = buildTranscribeJob({
+          folder: folderTrimmed,
+          mediaPath: row.path,
+          title: displayTitle,
+          provider: payload.provider,
+          ...(payload.provider === "tencentAsr" && payload.tencentAsr
+            ? { tencentAsr: payload.tencentAsr }
+            : {}),
+          ...(payload.provider === "videoCaptioner" && isVideoCaptionerAsrOptionsEnabled && vcOptions
+            ? {
+                videoCaptioner: {
+                  asr: vcOptions.asr,
+                  language: vcOptions.language,
+                  ...(vcOptions.wordTimestamps ? { wordTimestamps: true as const } : {}),
+                  format: vcOptions.format,
+                },
+              }
+            : {}),
+        })
+
+        await saveTranscribeJob(job)
+        saved += 1
       }
-      if (feedbackRows.length === 0) return
+
+      if (saved === 0) return
       onClose()
-
-      const deps = {
-        createTranscribeJob,
-        markTranscribeJobRunning,
-        markTranscribeJobSucceeded,
-        markTranscribeJobFailed,
-      }
-
-      if (payload.provider === "tencentAsr" && payload.tencentAsr) {
-        void transcribeTracksWithFeedback(feedbackRows, deps, {
-          provider: "tencentAsr",
-          baseUrl: payload.tencentAsr.baseUrl,
-          apiKey: payload.tencentAsr.apiKey,
-        })
-        return
-      }
-
-      const vc = payload.videoCaptioner
-      if (isVideoCaptionerAsrOptionsEnabled && vc) {
-        void transcribeTracksWithFeedback(feedbackRows, deps, {
-          provider: "videoCaptioner",
-          asr: vc.asr,
-          language: vc.language,
-          ...(vc.wordTimestamps ? { wordTimestamps: true as const } : {}),
-          format: vc.format,
-        })
-      } else {
-        void transcribeTracksWithFeedback(feedbackRows, deps, { provider: "videoCaptioner" })
-      }
     },
-    [
-      rows,
-      onClose,
-      createTranscribeJob,
-      markTranscribeJobRunning,
-      markTranscribeJobSucceeded,
-      markTranscribeJobFailed,
-      isVideoCaptionerAsrOptionsEnabled,
-    ],
+    [rows, onClose, folder, isVideoCaptionerAsrOptionsEnabled],
   )
 
   return (
@@ -91,6 +79,7 @@ export function TranscribeDialog({ rows, onClose, ...rest }: TranscribeDialogPro
       {...rest}
       rows={rows}
       onClose={onClose}
+      folder={folder}
       asrOptionsEnabled={isVideoCaptionerAsrOptionsEnabled}
       tencentAsrEnabled={isTencentAsrTranscribeEnabled}
       videoCaptionerAvailable={videoCaptionerAvailable}

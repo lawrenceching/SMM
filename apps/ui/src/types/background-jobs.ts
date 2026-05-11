@@ -51,9 +51,31 @@ export interface DownloadVideoBackgroundJob extends BackgroundJobBase {
   data: DownloadVideoBackgroundJobData;
 }
 
+/** Subtitle/text output format (VideoCaptioner CLI). */
+export type TranscribeOutputFormat = 'srt' | 'ass' | 'txt' | 'json';
+
+/** ASR engine id for VideoCaptioner `transcribe --asr`. */
+export type TranscribeVideoCaptionerAsr = 'bijian' | 'jianying' | 'whisper-cpp';
+
 export interface TranscribeBackgroundJobData {
+  /** Media library folder (platform path), matches `TaskJobRecord.folder` for filtering. */
+  folder: string;
+  /** Absolute media file path (POSIX); used to match library rows in the UI. */
   mediaPath: string;
-  trackTitle: string;
+  /** Platform path for videocaptioner/tencent transcribe API request bodies (main thread). */
+  mediaPathPlatform: string;
+  title: string;
+  provider: 'videoCaptioner' | 'tencentAsr';
+  videoCaptioner?: {
+    asr?: TranscribeVideoCaptionerAsr;
+    language?: string;
+    wordTimestamps?: boolean;
+    format?: TranscribeOutputFormat;
+  };
+  tencentAsr?: {
+    baseUrl: string;
+    apiKey: string;
+  };
 }
 
 export interface TranscribeBackgroundJob extends BackgroundJobBase {

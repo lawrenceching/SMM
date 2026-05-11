@@ -1,10 +1,11 @@
-import type { DownloadVideoBackgroundJob } from '@/types/background-jobs'
+import type { DownloadVideoBackgroundJob, TranscribeBackgroundJob } from '@/types/background-jobs'
 
 const DB_NAME = 'DownloadTaskDatabase'
 const DB_VERSION = 1
 const STORE_NAME = 'jobs'
 
-export interface DownloadJobRecord {
+/** Persisted row in `DownloadTaskDatabase` / `jobs` (download-video, transcribe, etc.). */
+export interface TaskJobRecord {
   id: string
   name: string
   status: string
@@ -15,6 +16,9 @@ export interface DownloadJobRecord {
   createdAt: number
   updatedAt: number
 }
+
+/** @deprecated Use {@link TaskJobRecord} */
+export type DownloadJobRecord = TaskJobRecord
 
 export function openDownloadTaskDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -30,7 +34,7 @@ export function openDownloadTaskDB(): Promise<IDBDatabase> {
   })
 }
 
-export async function getAllJobs(): Promise<DownloadJobRecord[]> {
+export async function getAllJobs(): Promise<TaskJobRecord[]> {
   const db = await openDownloadTaskDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
@@ -41,7 +45,7 @@ export async function getAllJobs(): Promise<DownloadJobRecord[]> {
   })
 }
 
-export async function putJob(job: DownloadJobRecord): Promise<void> {
+export async function putJob(job: TaskJobRecord): Promise<void> {
   const db = await openDownloadTaskDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite')
@@ -69,13 +73,52 @@ export function isWithinOneHour(createdAt: number): boolean {
   return Date.now() - createdAt < ONE_HOUR_MS
 }
 
+export interface GetJobsByTypeAndFolderOptions {
+  /** When true (default), omit records with status `succeeded`. */
+  excludeSucceeded?: boolean
+  /** When true (default), only include jobs created within the last hour. */
+  withinOneHour?: boolean
+}
+
+export async function getJobsByTypeAndFolder(
+  jobType: string,
+  folder: string,
+  options: GetJobsByTypeAndFolderOptions = {},
+): Promise<TaskJobRecord[]> {
+  const { excludeSucceeded = true, withinOneHour = true } = options
+  const records = await getAllJobs()
+  return records.filter((r) => {
+    if (r.type !== jobType || r.folder !== folder) return false
+    if (withinOneHour && !isWithinOneHour(r.createdAt)) return false
+    if (excludeSucceeded && r.status === 'succeeded') return false
+    return true
+  })
+}
+
 export function notifyIndexedDbUpdated(): void {
   window.dispatchEvent(new CustomEvent('indexed-updated'))
 }
 
 export async function saveDownloadVideoJob(job: DownloadVideoBackgroundJob): Promise<void> {
   const now = Date.now()
-  const record: DownloadJobRecord = {
+  const record: TaskJobRecord = {
+    id: job.id,
+    name: job.name,
+    status: job.status,
+    progress: job.progress,
+    type: job.type,
+    folder: job.data.folder,
+    data: JSON.stringify(job.data),
+    createdAt: now,
+    updatedAt: now,
+  }
+  await putJob(record)
+  notifyIndexedDbUpdated()
+}
+
+export async function saveTranscribeJob(job: TranscribeBackgroundJob): Promise<void> {
+  const now = Date.now()
+  const record: TaskJobRecord = {
     id: job.id,
     name: job.name,
     status: job.status,

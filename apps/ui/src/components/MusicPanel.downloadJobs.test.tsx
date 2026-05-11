@@ -92,12 +92,23 @@ vi.mock('@/hooks/useDownloadManager', () => ({
   }),
 }))
 
+vi.mock('@/hooks/useTranscribeManager', () => ({
+  useTranscribeManager: () => ({
+    transcribingPaths: new Set<string>(),
+    transcribeFailedPaths: new Set<string>(),
+    pendingTranscribePaths: new Set<string>(),
+    jobIdByPath: new Map<string, string>(),
+    stopTranscribe: vi.fn(),
+    hasRunningTranscribe: false,
+    jobRecords: [],
+    startTranscribe: vi.fn(),
+    removeTranscribe: vi.fn(),
+  }),
+}))
+
 vi.mock('@/stores/backgroundJobsStore', () => {
   const state = {
     jobs: h.jobs,
-    createTranscribeJob: vi.fn(),
-    markTranscribeJobSucceeded: vi.fn(),
-    markTranscribeJobFailed: vi.fn(),
   }
   const store = {
     getState: () => state,

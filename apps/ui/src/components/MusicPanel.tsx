@@ -29,6 +29,7 @@ import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@
 import { DeleteTrackDialog, TranscribeDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { useTranscribeManager } from "@/hooks/useTranscribeManager";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
@@ -167,6 +168,22 @@ export function MusicPanel() {
     }, [mediaMetadata, fetchMediaMetadata]),
   });
 
+  const {
+    transcribingPaths,
+    transcribeFailedPaths,
+    jobIdByPath,
+    stopTranscribe,
+  } = useTranscribeManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      if (mediaMetadata?.mediaFolderPath) {
+        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
+      }
+    }, [mediaMetadata, fetchMediaMetadata]),
+  });
+
   const jobTracks = useMemo(
     () => tracksFromDownloadJobRecords(jobRecords),
     [jobRecords],
@@ -279,18 +296,39 @@ export function MusicPanel() {
   }, [mediaMetadata, pathSignature]);
 
   const tableData = useMemo<MusicFileRow[]>(() => {
-    return tracks.map((track, index) => ({
-      id: track.id,
-      index,
-      title: track.title,
-      artist: track.artist,
-      duration: track.duration,
-      thumbnail: track.thumbnail,
-      path: track.path,
-      status: track.status,
-      jobId: track.jobId,
-    }));
-  }, [tracks]);
+    const folder = mediaMetadata?.mediaFolderPath
+    return tracks.map((track, index) => {
+      const abs = absolutePosixMusicFilePath({ path: track.path }, folder)
+      let transcribeStatus: MusicFileRow["transcribeStatus"]
+      if (abs) {
+        if (transcribingPaths.has(abs)) transcribeStatus = "running"
+        else if (transcribeFailedPaths.has(abs)) transcribeStatus = "failed"
+      }
+      return {
+        id: track.id,
+        index,
+        title: track.title,
+        artist: track.artist,
+        duration: track.duration,
+        thumbnail: track.thumbnail,
+        path: track.path,
+        status: track.status,
+        jobId: track.jobId,
+        transcribeStatus,
+      }
+    })
+  }, [tracks, transcribingPaths, transcribeFailedPaths, mediaMetadata?.mediaFolderPath]);
+
+  const handleTranscribeStop = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath
+      const abs = absolutePosixMusicFilePath(row, folder)
+      if (!abs) return
+      const jobId = jobIdByPath.get(abs)
+      if (jobId) void stopTranscribe(jobId)
+    },
+    [mediaMetadata?.mediaFolderPath, jobIdByPath, stopTranscribe],
+  );
 
   const selectedRows = useMemo(
     () => tableData.filter((row) => selectedTrackIds.includes(row.id)),
@@ -545,6 +583,11 @@ export function MusicPanel() {
         onClose={closeTranscribeDialog}
         rows={transcribeDialogRows}
         defaultSelectedIds={transcribeDialogDefaultSelectedIds}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
       />
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
@@ -574,6 +617,7 @@ export function MusicPanel() {
             onDownloadRemove={(jobId) => void removeDownload(jobId)}
             isTranscribeAvailable={isTranscribeAvailable}
             onTrackTranscribe={handleTrackTranscribe}
+            onTranscribeStop={handleTranscribeStop}
             isMultiSelectMode={isMultiSelectMode}
             selectedTrackIds={selectedTrackIds}
             onSelectedTrackIdsChange={setSelectedTrackIds}

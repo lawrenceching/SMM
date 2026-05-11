@@ -226,6 +226,8 @@
   "mediaPlayer": {
     "select": "选择",
     "download": "下载",
+    "transcribingTooltip": "正在生成字幕…",
+    "transcribeFailedTooltip": "字幕生成失败",
     "trackContextMenu": {
       "open": "打开",
       "delete": "删除",
@@ -235,7 +237,8 @@
       "downloadStart": "开始",
       "downloadStop": "停止",
       "downloadRemove": "删除",
-      "transcribe": "生成字幕"
+      "transcribe": "生成字幕",
+      "transcribeStop": "停止生成字幕"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"

@@ -745,6 +745,11 @@ function TvShowPanel() {
         isOpen={isTranscribeOpen}
         onClose={() => setIsTranscribeOpen(false)}
         rows={transcribeDialogRows}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
       />
 
       <div className="shrink-0 px-4 pt-4">

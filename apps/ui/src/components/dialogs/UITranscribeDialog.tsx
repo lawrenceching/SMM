@@ -118,6 +118,7 @@ export function UITranscribeDialog({
   isOpen,
   onClose,
   rows,
+  folder: _folder,
   title,
   description,
   defaultSelectedIds,

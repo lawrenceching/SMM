@@ -2,13 +2,52 @@ import { useEffect } from 'react'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import {
   isDownloadVideoJob,
+  isTranscribeBackgroundJob,
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
+  type TranscribeBackgroundJob,
+  type TranscribeBackgroundJobData,
 } from '@/types/background-jobs'
-import { getAllJobs, putJob, isWithinOneHour, type DownloadJobRecord } from '@/lib/downloadTaskDb'
+import { getAllJobs, putJob, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
 
-function jobRecordToBackgroundJob(record: DownloadJobRecord): BackgroundJob | null {
+function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
+  if (record.type === 'transcribe') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const mediaPath = typeof parsed.mediaPath === 'string' ? parsed.mediaPath : ''
+    const mediaPathPlatform =
+      typeof parsed.mediaPathPlatform === 'string' ? parsed.mediaPathPlatform : mediaPath
+    const provider: TranscribeBackgroundJobData['provider'] =
+      parsed.provider === 'tencentAsr' ? 'tencentAsr' : 'videoCaptioner'
+    const data: TranscribeBackgroundJobData = {
+      folder: (typeof parsed.folder === 'string' ? parsed.folder : record.folder) || '',
+      mediaPath,
+      mediaPathPlatform,
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+      provider,
+    }
+    if (provider === 'tencentAsr' && parsed.tencentAsr && typeof parsed.tencentAsr === 'object') {
+      data.tencentAsr = parsed.tencentAsr as TranscribeBackgroundJobData['tencentAsr']
+    }
+    if (parsed.videoCaptioner && typeof parsed.videoCaptioner === 'object') {
+      data.videoCaptioner = parsed.videoCaptioner as TranscribeBackgroundJobData['videoCaptioner']
+    }
+    const job: TranscribeBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as TranscribeBackgroundJob['status'],
+      progress: record.progress,
+      type: 'transcribe',
+      data,
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -38,10 +77,14 @@ function jobRecordToBackgroundJob(record: DownloadJobRecord): BackgroundJob | nu
   return job
 }
 
+function isPersistedFromIdbJob(job: BackgroundJob): boolean {
+  return isDownloadVideoJob(job) || isTranscribeBackgroundJob(job)
+}
+
 async function syncJobsToStore(): Promise<void> {
   const store = useBackgroundJobsStore.getState()
   const records = await getAllJobs()
-  const storeJobIds = new Set(store.jobs.filter(isDownloadVideoJob).map((j) => j.id))
+  const storeJobIds = new Set(store.jobs.filter(isPersistedFromIdbJob).map((j) => j.id))
   const dbJobIds = new Set<string>()
 
   for (const record of records) {
@@ -86,11 +129,18 @@ async function handleSwMessage(data: unknown): Promise<void> {
   switch (msg.event) {
     case 'download:started':
     case 'download:succeeded':
+    case 'download:failed':
     case 'download:stopped':
     case 'download:removed':
+    case 'transcribe:started':
+    case 'transcribe:succeeded':
+    case 'transcribe:failed':
+    case 'transcribe:stopped':
+    case 'transcribe:removed':
       await syncJobsToStore()
       break
     case 'download:heartbeat':
+    case 'transcribe:heartbeat':
       break
   }
 }
@@ -120,15 +170,15 @@ export function IndexedDbObserver() {
       }
 
       navigator.serviceWorker.addEventListener('message', (event) => {
-        handleSwMessage(event.data)
+        void handleSwMessage(event.data)
       })
 
       window.addEventListener('indexed-updated', () => {
-        syncJobsToStore()
+        void syncJobsToStore()
       })
     }
 
-    init()
+    void init()
 
     return () => {
       cancelled = true

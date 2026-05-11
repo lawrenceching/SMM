@@ -9,12 +9,16 @@ import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 
 const h = vi.hoisted(() => ({
-  mockTranscribeTracksWithFeedback: vi.fn().mockResolvedValue(undefined),
-  createTranscribeJob: vi.fn(() => "job-1"),
-  markTranscribeJobRunning: vi.fn(),
-  markTranscribeJobSucceeded: vi.fn(),
-  markTranscribeJobFailed: vi.fn(),
+  saveTranscribeJob: vi.fn().mockResolvedValue(undefined),
 }))
+
+vi.mock("@/lib/downloadTaskDb", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/downloadTaskDb")>()
+  return {
+    ...actual,
+    saveTranscribeJob: h.saveTranscribeJob,
+  }
+})
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
@@ -58,19 +62,6 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }))
 
-vi.mock("@/lib/transcribeFeedback", () => ({
-  transcribeTracksWithFeedback: h.mockTranscribeTracksWithFeedback,
-}))
-
-vi.mock("@/stores/backgroundJobsStore", () => ({
-  useBackgroundJobsStore: () => ({
-    createTranscribeJob: h.createTranscribeJob,
-    markTranscribeJobRunning: h.markTranscribeJobRunning,
-    markTranscribeJobSucceeded: h.markTranscribeJobSucceeded,
-    markTranscribeJobFailed: h.markTranscribeJobFailed,
-  }),
-}))
-
 vi.mock("@/hooks/useFeatures", () => ({
   useFeatures: vi.fn(),
 }))
@@ -81,8 +72,17 @@ vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
 
 vi.mock("sonner")
 
+const defaultFeatures = {
+  isTranscribeEnabled: true,
+  isVideoCaptionerAsrOptionsEnabled: false,
+  setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+  isTencentAsrTranscribeEnabled: false,
+  setTencentAsrTranscribeEnabled: vi.fn(),
+}
+
 describe("TranscribeDialog", () => {
   const mockOnClose = vi.fn()
+  const platformFolder = "C:\\media\\music"
 
   function rowWithPath(overrides?: Partial<TranscribeDialogRow>): TranscribeDialogRow {
     return {
@@ -97,69 +97,80 @@ describe("TranscribeDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    h.mockTranscribeTracksWithFeedback.mockResolvedValue(undefined)
-    h.createTranscribeJob.mockReturnValue("job-1")
     vi.mocked(toast.error).mockImplementation(() => "id")
     vi.mocked(toast.success).mockImplementation(() => "id")
     vi.mocked(useVideoCaptionerStatus).mockReturnValue({
       isAvailable: true,
       isChecking: false,
     })
-    vi.mocked(useFeatures).mockReturnValue({
-      isTranscribeEnabled: true,
-      isVideoCaptionerAsrOptionsEnabled: false,
-      setVideoCaptionerAsrOptionsEnabled: vi.fn(),
-      isTencentAsrTranscribeEnabled: false,
-      setTencentAsrTranscribeEnabled: vi.fn(),
-    })
+    vi.mocked(useFeatures).mockReturnValue(defaultFeatures)
   })
 
-  it("closes and starts transcribe with selected rows that have paths", async () => {
+  it("shows error and does not save when folder is missing", async () => {
     render(<TranscribeDialog isOpen onClose={mockOnClose} rows={[rowWithPath()]} />)
 
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Media folder is not available; cannot start transcription.",
+      )
+    })
+    expect(mockOnClose).not.toHaveBeenCalled()
+    expect(h.saveTranscribeJob).not.toHaveBeenCalled()
+  })
+
+  it("saves jobs and closes when folder and paths are valid", async () => {
+    render(
+      <TranscribeDialog
+        isOpen
+        onClose={mockOnClose}
+        rows={[rowWithPath()]}
+        folder={platformFolder}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
+
+    await waitFor(() => {
+      expect(h.saveTranscribeJob).toHaveBeenCalledTimes(1)
+    })
+    const arg = h.saveTranscribeJob.mock.calls[0]![0]
+    expect(arg.type).toBe("transcribe")
+    expect(arg.data.folder).toBe(platformFolder)
+    expect(arg.data.mediaPath).toMatch(/track1\.mp3/)
+    expect(arg.data.provider).toBe("videoCaptioner")
+    expect(arg.data.videoCaptioner).toBeUndefined()
     expect(mockOnClose).toHaveBeenCalledTimes(1)
-    await waitFor(() => {
-      expect(h.mockTranscribeTracksWithFeedback).toHaveBeenCalledWith(
-        [{ title: "My Track", path: "/music/track1.mp3" }],
-        {
-          createTranscribeJob: h.createTranscribeJob,
-          markTranscribeJobRunning: h.markTranscribeJobRunning,
-          markTranscribeJobSucceeded: h.markTranscribeJobSucceeded,
-          markTranscribeJobFailed: h.markTranscribeJobFailed,
-        },
-        { provider: "videoCaptioner" },
-      )
-    })
   })
 
-  it("passes asr when VideoCaptioner ASR options feature is enabled", async () => {
+  it("persists videoCaptioner options when ASR feature is enabled", async () => {
     vi.mocked(useFeatures).mockReturnValue({
-      isTranscribeEnabled: true,
+      ...defaultFeatures,
       isVideoCaptionerAsrOptionsEnabled: true,
-      setVideoCaptionerAsrOptionsEnabled: vi.fn(),
-      isTencentAsrTranscribeEnabled: false,
-      setTencentAsrTranscribeEnabled: vi.fn(),
     })
-    render(<TranscribeDialog isOpen onClose={mockOnClose} rows={[rowWithPath()]} />)
+    render(
+      <TranscribeDialog
+        isOpen
+        onClose={mockOnClose}
+        rows={[rowWithPath()]}
+        folder={platformFolder}
+      />,
+    )
 
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     await waitFor(() => {
-      expect(h.mockTranscribeTracksWithFeedback).toHaveBeenCalledWith(
-        [{ title: "My Track", path: "/music/track1.mp3" }],
-        expect.objectContaining({
-          createTranscribeJob: h.createTranscribeJob,
-        }),
-        {
-          provider: "videoCaptioner",
-          asr: "bijian",
-          language: "auto",
-          format: "srt",
-        },
-      )
+      expect(h.saveTranscribeJob).toHaveBeenCalled()
     })
+    const arg = h.saveTranscribeJob.mock.calls[0]![0]
+    expect(arg.data.videoCaptioner).toEqual(
+      expect.objectContaining({
+        asr: "bijian",
+        language: "auto",
+        format: "srt",
+      }),
+    )
   })
 
   it("uses basename when title is empty or whitespace", async () => {
@@ -168,27 +179,24 @@ describe("TranscribeDialog", () => {
         isOpen
         onClose={mockOnClose}
         rows={[rowWithPath({ title: "   " })]}
+        folder={platformFolder}
       />,
     )
 
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     await waitFor(() => {
-      expect(h.mockTranscribeTracksWithFeedback).toHaveBeenCalledWith(
-        [{ title: "track1.mp3", path: "/music/track1.mp3" }],
-        expect.objectContaining({
-          createTranscribeJob: h.createTranscribeJob,
-        }),
-        { provider: "videoCaptioner" },
-      )
+      expect(h.saveTranscribeJob).toHaveBeenCalled()
     })
+    expect(h.saveTranscribeJob.mock.calls[0]![0].data.title).toMatch(/track1\.mp3/)
   })
 
-  it("does not close or transcribe when selected rows have no file path", () => {
+  it("does not close when selected rows have no file path", () => {
     render(
       <TranscribeDialog
         isOpen
         onClose={mockOnClose}
+        folder={platformFolder}
         rows={[{ id: "x", path: "", displayPath: "", status: "pending", title: "No file" }]}
       />,
     )
@@ -196,17 +204,18 @@ describe("TranscribeDialog", () => {
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     expect(mockOnClose).not.toHaveBeenCalled()
-    expect(h.mockTranscribeTracksWithFeedback).not.toHaveBeenCalled()
+    expect(h.saveTranscribeJob).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledWith(
       'Track "No file" does not have an associated file path.',
     )
   })
 
-  it("skips rows without path but still transcribes remaining valid selections", async () => {
+  it("skips invalid rows but saves valid ones", async () => {
     render(
       <TranscribeDialog
         isOpen
         onClose={mockOnClose}
+        folder={platformFolder}
         rows={[
           { id: "a", path: "", status: "pending", title: "Bad" },
           rowWithPath({
@@ -224,18 +233,10 @@ describe("TranscribeDialog", () => {
     expect(toast.error).toHaveBeenCalledWith(
       'Track "Bad" does not have an associated file path.',
     )
-    expect(mockOnClose).toHaveBeenCalledTimes(1)
     await waitFor(() => {
-      expect(h.mockTranscribeTracksWithFeedback).toHaveBeenCalledWith(
-        [{ title: "Good", path: "/ok.mp3" }],
-        expect.objectContaining({
-          createTranscribeJob: h.createTranscribeJob,
-          markTranscribeJobRunning: h.markTranscribeJobRunning,
-          markTranscribeJobSucceeded: h.markTranscribeJobSucceeded,
-          markTranscribeJobFailed: h.markTranscribeJobFailed,
-        }),
-        { provider: "videoCaptioner" },
-      )
+      expect(h.saveTranscribeJob).toHaveBeenCalledTimes(1)
     })
+    expect(h.saveTranscribeJob.mock.calls[0]![0].data.title).toBe("Good")
+    expect(mockOnClose).toHaveBeenCalledTimes(1)
   })
 })

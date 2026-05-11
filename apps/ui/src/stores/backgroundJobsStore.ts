@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { BackgroundJob, GenericBackgroundJob, TranscribeBackgroundJob } from '@/types/background-jobs'
+import type { BackgroundJob, GenericBackgroundJob } from '@/types/background-jobs'
 
 function newJobId(): string {
   return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
@@ -20,10 +20,6 @@ interface BackgroundJobsState {
   getJobsByType: (type: string) => BackgroundJob[]
   removeJob: (id: string) => void
   setPopoverOpen: (open: boolean) => void
-  createTranscribeJob: (trackTitle: string, mediaPath: string) => string
-  markTranscribeJobRunning: (id: string) => void
-  markTranscribeJobSucceeded: (id: string) => void
-  markTranscribeJobFailed: (id: string) => void
 }
 
 export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) => ({
@@ -84,45 +80,4 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
     })),
 
   setPopoverOpen: (open) => set({ isPopoverOpen: open }),
-
-  createTranscribeJob: (trackTitle, mediaPath) => {
-    const id = newJobId()
-    const newJob: TranscribeBackgroundJob = {
-      id,
-      name: `Transcribe: ${trackTitle}`,
-      status: 'pending',
-      progress: 0,
-      type: 'transcribe',
-      data: {
-        trackTitle,
-        mediaPath,
-      },
-    }
-    set((state) => ({
-      jobs: [...state.jobs, newJob],
-      isPopoverOpen: true,
-    }))
-    return id
-  },
-
-  markTranscribeJobRunning: (id) =>
-    set((state) => ({
-      jobs: state.jobs.map((job) =>
-        job.id === id ? ({ ...job, status: 'running' } as BackgroundJob) : job
-      ),
-    })),
-
-  markTranscribeJobSucceeded: (id) =>
-    set((state) => ({
-      jobs: state.jobs.map((job) =>
-        job.id === id ? ({ ...job, status: 'succeeded', progress: 100 } as BackgroundJob) : job
-      ),
-    })),
-
-  markTranscribeJobFailed: (id) =>
-    set((state) => ({
-      jobs: state.jobs.map((job) =>
-        job.id === id ? ({ ...job, status: 'failed' } as BackgroundJob) : job
-      ),
-    })),
 }))

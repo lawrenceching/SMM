@@ -227,6 +227,8 @@
   "mediaPlayer": {
     "select": "Select",
     "download": "Download",
+    "transcribingTooltip": "Generating subtitles…",
+    "transcribeFailedTooltip": "Subtitle generation failed",
     "trackContextMenu": {
       "open": "Open",
       "delete": "Delete",
@@ -236,7 +238,8 @@
       "downloadStart": "Start",
       "downloadStop": "Stop",
       "downloadRemove": "Remove",
-      "transcribe": "Transcribe"
+      "transcribe": "Transcribe",
+      "transcribeStop": "Stop transcribing"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
