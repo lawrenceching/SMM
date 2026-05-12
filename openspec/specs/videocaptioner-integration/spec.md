@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Define VideoCaptioner availability discovery, **Transcribe** and **Translate** UI gating, and the transcription API trigger.
+
+## Requirements
 
 ### Requirement: VideoCaptioner availability discovery
 The system SHALL perform VideoCaptioner executable presence discovery during application startup and expose an availability result to the UI.
@@ -11,24 +15,38 @@ The system SHALL perform VideoCaptioner executable presence discovery during app
 - **WHEN** the application startup sequence performs VideoCaptioner discovery and no executable is resolvable
 - **THEN** the system returns an availability result indicating transcription is disabled
 
+### Requirement: Translate action gating in UI
+
+The system SHALL enable or disable the **Translate** action surfaces in panel headers and `MusicFileTable` context menu based on whether VideoCaptioner discovery reports **available**. Tencent ASR availability SHALL NOT enable **Translate**, as Tencent ASR is not a translation backend.
+
+#### Scenario: Translate action enabled when VideoCaptioner is available
+
+- **WHEN** the UI has a discovery result where VideoCaptioner is available
+- **THEN** the **Translate** action is enabled in `TvShowPanel` / `MoviePanel` / `MusicPanel` `Subtitle` entry points (subject to source-subtitle eligibility rules)
+
+#### Scenario: Translate action disabled when VideoCaptioner is unavailable
+
+- **WHEN** VideoCaptioner discovery reports unavailable
+- **THEN** the **Translate** action is disabled in `TvShowPanel` / `MoviePanel` / `MusicPanel` `Subtitle` entry points regardless of Tencent ASR availability
+
 ### Requirement: Transcribe action gating in UI
 
-The system SHALL enable or disable the `Transcribe` context-menu action in `MusicPanel` based on whether transcription can proceed: when VideoCaptioner discovery reports **available**, **OR** when Tencent ASR transcription is **enabled** for the application (for example via feature configuration).
+The system SHALL enable or disable the `Transcribe` action exposed through the panel **Subtitle** entry points (header `Subtitle > Transcribe` and row-context-menu `Subtitle > Transcribe` in `MusicFileTable`) based on whether transcription can proceed: when VideoCaptioner discovery reports **available**, **OR** when Tencent ASR transcription is **enabled** for the application (for example via feature configuration).
 
 #### Scenario: Action enabled when VideoCaptioner is available
 
 - **WHEN** the UI has a discovery result where VideoCaptioner is available
-- **THEN** the `Transcribe` action is enabled in `MusicPanel` for supported media-file context menus (subject to existing path eligibility rules)
+- **THEN** the `Transcribe` action is enabled under the `Subtitle` entry in `MusicPanel` (header and row context menu) and in `TvShowPanel` / `MoviePanel` headers for supported media-file context menus (subject to existing path eligibility rules)
 
 #### Scenario: Action enabled when Tencent ASR is enabled without VideoCaptioner
 
 - **WHEN** VideoCaptioner discovery reports unavailable **and** Tencent ASR transcription is enabled for the application
-- **THEN** the `Transcribe` action is enabled in `MusicPanel` for supported media-file context menus (subject to existing path eligibility rules)
+- **THEN** the `Transcribe` action is enabled under the `Subtitle` entry in `MusicPanel` (header and row context menu) and in `TvShowPanel` / `MoviePanel` headers for supported media-file context menus (subject to existing path eligibility rules)
 
 #### Scenario: Action disabled when neither path is available
 
 - **WHEN** VideoCaptioner discovery reports unavailable **and** Tencent ASR transcription is not enabled for the application
-- **THEN** the `Transcribe` action is disabled in `MusicPanel` for supported media-file context menus
+- **THEN** the `Transcribe` action is disabled under the `Subtitle` entry in `MusicPanel` (header and row context menu) and in `TvShowPanel` / `MoviePanel` headers for supported media-file context menus
 
 ### Requirement: Transcription command trigger
 

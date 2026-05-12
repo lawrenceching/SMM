@@ -82,11 +82,11 @@
 
 ## 12. Verification
 
-- [ ] 12.1 Run `pnpm typecheck` (root) and fix any new type errors.
-- [ ] 12.2 Run `pnpm test:cli` and confirm new VideoCaptioner / Translate tests pass.
-- [ ] 12.3 Run `pnpm test:ui` and confirm new dialog / hook / panel / header tests pass.
-- [ ] 12.4 Manual smoke test: enqueue a translate job from `MusicPanel` row context menu (Bing translator, `zh-Hans`) and confirm the spinner appears, the SW posts to `/api/videocaptioner/translate`, and the row transitions to a non-running state on completion.
-- [ ] 12.5 Manual smoke test: refresh the page mid-translate; ensure the SW reactivation flips stale `running` records to `stopped` and the UI reflects this.
-- [ ] 12.6 Manual smoke test: switch translator to **LLM** with empty API key → confirm dialog blocks confirm.
-- [ ] 12.7 Manual smoke test: header `Subtitle > Translate` from `TvShowPanel` enqueues one job per selected episode subtitle file.
-- [ ] 12.8 Run `openspec validate subtitle-translation` and confirm the change is still valid.
+- [x] 12.1 Run `pnpm typecheck` (root) and fix any new type errors.
+- [x] 12.2 Run `pnpm test:cli` and confirm new VideoCaptioner / Translate tests pass.
+- [x] 12.3 Run `pnpm test:ui` and confirm new dialog / hook / panel / header tests pass.
+- [x] 12.4 Manual smoke test: enqueue a translate job from `MusicPanel` row context menu (Bing translator, `zh-Hans`) and confirm the spinner appears, the SW posts to `/api/videocaptioner/translate`, and the row transitions to a non-running state on completion.
+- [x] 12.5 Manual smoke test: refresh the page mid-translate; ensure the SW reactivation flips stale `running` records to `stopped` and the UI reflects this.
+- [x] 12.6 Manual smoke test: switch translator to **LLM** with empty API key → confirm dialog blocks confirm.
+- [x] 12.7 Manual smoke test: header `Subtitle > Translate` from `TvShowPanel` enqueues one job per selected episode subtitle file.
+- [x] 12.8 Run `openspec validate subtitle-translation` and confirm the change is still valid.
