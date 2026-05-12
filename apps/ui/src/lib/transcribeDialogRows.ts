@@ -54,7 +54,6 @@ export function transcribeDialogRowsFromMediaFiles(
       id: absolutePath,
       path: absolutePath,
       displayPath,
-      status: "pending" as const,
       title: labelForMediaFile(mediaMetadata, mf),
     }
   })
@@ -96,7 +95,6 @@ export function transcribeDialogRowsFromMusicFileRows(
       id: absolutePath,
       path: absolutePath,
       displayPath,
-      status: "pending",
       title,
     })
   }

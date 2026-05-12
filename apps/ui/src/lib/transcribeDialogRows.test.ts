@@ -48,7 +48,6 @@ describe("transcribeDialogRowsFromMediaFiles", () => {
     expect(rows[0].displayPath).toBe("S01/E02.mkv")
     expect(rows[0].title).toContain("S01E02")
     expect(rows[0].title).toContain("Pilot")
-    expect(rows[0].status).toBe("pending")
   })
 
   it("maps movie file using movie name", () => {

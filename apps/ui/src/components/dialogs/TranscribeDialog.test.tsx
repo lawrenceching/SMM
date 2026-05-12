@@ -33,11 +33,7 @@ vi.mock("@/lib/i18n", () => ({
         "transcribe.confirm": "Confirm",
         "transcribe.selectAllAria": "Select all",
         "transcribe.columns.filePath": "File",
-        "transcribe.columns.status": "Status",
-        "transcribe.status.pending": "Pending",
-        "transcribe.status.running": "Running",
-        "transcribe.status.completed": "Done",
-        "transcribe.status.failed": "Failed",
+        "transcribe.advancedOptions.label": "Advanced options",
         "transcribe.noFiles": "No files",
         "transcribe.asr.label": "ASR engine",
         "transcribe.asr.bijian": "Bijian",
@@ -89,7 +85,6 @@ describe("TranscribeDialog", () => {
       id: "row-1",
       path: "/music/track1.mp3",
       displayPath: "track1.mp3",
-      status: "pending",
       title: "My Track",
       ...overrides,
     }
@@ -197,7 +192,7 @@ describe("TranscribeDialog", () => {
         isOpen
         onClose={mockOnClose}
         folder={platformFolder}
-        rows={[{ id: "x", path: "", displayPath: "", status: "pending", title: "No file" }]}
+        rows={[{ id: "x", path: "", displayPath: "", title: "No file" }]}
       />,
     )
 
@@ -217,7 +212,7 @@ describe("TranscribeDialog", () => {
         onClose={mockOnClose}
         folder={platformFolder}
         rows={[
-          { id: "a", path: "", status: "pending", title: "Bad" },
+          { id: "a", path: "", title: "Bad" },
           rowWithPath({
             id: "b",
             path: "/ok.mp3",

@@ -1,6 +1,4 @@
-import type { ReactNode } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, CheckCircle2, XCircle, Circle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -32,7 +30,6 @@ import type {
   TranscribeDialogRow,
   TranscribeOutputFormat,
   TranscribeProvider,
-  TranscribeRowStatus,
   UITranscribeDialogProps,
 } from "./types"
 import { useTranslation } from "@/lib/i18n"
@@ -81,39 +78,6 @@ function computeInitialSelection(
   return new Set(rows.map((r) => r.id))
 }
 
-function StatusCell({ status }: { status: TranscribeRowStatus }) {
-  const { t } = useTranslation("dialogs")
-
-  let icon: ReactNode
-  let label: string
-  switch (status) {
-    case "running":
-      icon = <Loader2 className="h-4 w-4 animate-spin text-primary" />
-      label = t("transcribe.status.running")
-      break
-    case "completed":
-      icon = <CheckCircle2 className="h-4 w-4 text-green-500" />
-      label = t("transcribe.status.completed")
-      break
-    case "failed":
-      icon = <XCircle className="h-4 w-4 text-destructive" />
-      label = t("transcribe.status.failed")
-      break
-    case "pending":
-    default:
-      icon = <Circle className="h-4 w-4 text-muted-foreground" />
-      label = t("transcribe.status.pending")
-      break
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      {icon}
-      <span className="text-xs text-muted-foreground">{label}</span>
-    </div>
-  )
-}
-
 export function UITranscribeDialog({
   isOpen,
   onClose,
@@ -134,6 +98,7 @@ export function UITranscribeDialog({
   const wasOpenRef = useRef(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [provider, setProvider] = useState<TranscribeProvider>("videoCaptioner")
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [asr, setAsr] = useState<TranscribeAsrEngine>("bijian")
   const [language, setLanguage] = useState("auto")
   const [wordTimestamps, setWordTimestamps] = useState(false)
@@ -141,9 +106,12 @@ export function UITranscribeDialog({
   const [tencentBaseUrl, setTencentBaseUrl] = useState("")
   const [tencentApiKey, setTencentApiKey] = useState("")
 
+  const hasAdvancedContent = asrOptionsEnabled || tencentAsrEnabled
+
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       setSelectedIds(computeInitialSelection(rows, defaultSelectedIds))
+      setShowAdvancedOptions(false)
       setAsr("bijian")
       setLanguage("auto")
       setWordTimestamps(false)
@@ -241,6 +209,10 @@ export function UITranscribeDialog({
   const dialogTitle = title ?? t("transcribe.defaultTitle")
   const dialogDescription = description ?? t("transcribe.defaultDescription")
 
+  const showVideoCaptionerAdvanced =
+    showAdvancedOptions && provider === "videoCaptioner" && asrOptionsEnabled
+  const showTencentAdvanced = showAdvancedOptions && provider === "tencentAsr"
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl" data-testid="transcribe-dialog">
@@ -270,7 +242,6 @@ export function UITranscribeDialog({
                     />
                   </TableHead>
                   <TableHead className="py-2 px-2">{t("transcribe.columns.filePath")}</TableHead>
-                  <TableHead className="py-2 px-2">{t("transcribe.columns.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -293,9 +264,6 @@ export function UITranscribeDialog({
                       >
                         {row.displayPath ?? row.path}
                       </div>
-                    </TableCell>
-                    <TableCell className="px-2 py-2">
-                      <StatusCell status={row.status} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -328,7 +296,26 @@ export function UITranscribeDialog({
                 </SelectContent>
               </Select>
             </div>
-            {provider === "videoCaptioner" && asrOptionsEnabled ? (
+            {hasAdvancedContent ? (
+              <div className="flex items-center gap-2">
+                <input
+                  id="transcribe-dialog-advanced-options"
+                  type="checkbox"
+                  role="checkbox"
+                  className="h-4 w-4 cursor-pointer"
+                  checked={showAdvancedOptions}
+                  onChange={(e) => setShowAdvancedOptions(e.target.checked)}
+                  data-testid="transcribe-dialog-advanced-options"
+                />
+                <Label
+                  htmlFor="transcribe-dialog-advanced-options"
+                  className="cursor-pointer font-normal"
+                >
+                  {t("transcribe.advancedOptions.label")}
+                </Label>
+              </div>
+            ) : null}
+            {showVideoCaptionerAdvanced ? (
               <>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="transcribe-dialog-asr">{t("transcribe.asr.label")}</Label>
@@ -404,7 +391,7 @@ export function UITranscribeDialog({
                 </div>
               </>
             ) : null}
-            {provider === "tencentAsr" ? (
+            {showTencentAdvanced ? (
               <>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="transcribe-dialog-tencent-url">{t("transcribe.tencent.baseUrl")}</Label>

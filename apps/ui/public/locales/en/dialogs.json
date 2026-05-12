@@ -77,14 +77,10 @@
     "defaultTitle": "Transcribe",
     "defaultDescription": "Choose which files to transcribe.",
     "columns": {
-      "filePath": "File path",
-      "status": "Status"
+      "filePath": "File path"
     },
-    "status": {
-      "running": "Running",
-      "completed": "Completed",
-      "failed": "Failed",
-      "pending": "Pending"
+    "advancedOptions": {
+      "label": "Advanced options"
     },
     "noFiles": "No files",
     "confirm": "Transcribe",

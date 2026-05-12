@@ -30,6 +30,10 @@ class TranscribeDialogCO {
         return $('[data-testid="transcribe-dialog-asr"]')
     }
 
+    get advancedOptionsCheckbox() {
+        return $('[data-testid="transcribe-dialog-advanced-options"]')
+    }
+
     /**
      * @param rowId Same as `TranscribeDialogRow.id` (POSIX absolute path used as row key).
      */

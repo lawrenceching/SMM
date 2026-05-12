@@ -18,12 +18,8 @@ vi.mock("@/lib/i18n", () => ({
         "transcribe.confirm": "Confirm",
         "transcribe.selectAllAria": "Select all",
         "transcribe.columns.filePath": "File",
-        "transcribe.columns.status": "Status",
-        "transcribe.status.pending": "Pending",
-        "transcribe.status.running": "Running",
-        "transcribe.status.completed": "Done",
-        "transcribe.status.failed": "Failed",
         "transcribe.noFiles": "No files",
+        "transcribe.advancedOptions.label": "Advanced options",
         "transcribe.asr.label": "ASR engine",
         "transcribe.asr.bijian": "Bijian",
         "transcribe.asr.jianying": "Jianying",
@@ -56,7 +52,6 @@ describe("UITranscribeDialog", () => {
       id: "row-1",
       path: "/music/track1.mp3",
       displayPath: "track1.mp3",
-      status: "pending",
     },
   ]
 
@@ -113,7 +108,7 @@ describe("UITranscribeDialog", () => {
     })
   })
 
-  it("shows ASR select when asrOptionsEnabled is true", () => {
+  it("shows ASR select only after advanced options are enabled", () => {
     const props = {
       isOpen: true,
       onClose: mockOnClose,
@@ -128,7 +123,40 @@ describe("UITranscribeDialog", () => {
       </React.Fragment>,
     )
 
+    expect(screen.queryByTestId("transcribe-dialog-asr")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId("transcribe-dialog-advanced-options"))
     expect(screen.getByTestId("transcribe-dialog-asr")).toBeInTheDocument()
+  })
+
+  it("confirms with default payload after opening advanced for VideoCaptioner", async () => {
+    const props = {
+      isOpen: true,
+      onClose: mockOnClose,
+      rows: sampleRows,
+      asrOptionsEnabled: true,
+      onConfirm: mockOnConfirm,
+    } satisfies ComponentProps<typeof UITranscribeDialog>
+
+    render(
+      <React.Fragment>
+        <UITranscribeDialog {...props} />
+      </React.Fragment>,
+    )
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-advanced-options"))
+    fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
+    await waitFor(() => {
+      expect(mockOnConfirm).toHaveBeenCalledWith({
+        selectedIds: ["row-1"],
+        provider: "videoCaptioner",
+        videoCaptioner: {
+          asr: "bijian",
+          language: "auto",
+          wordTimestamps: false,
+          format: "srt",
+        },
+      })
+    })
   })
 
   it("disables confirm for Tencent ASR until URL and API key are filled", () => {
@@ -148,5 +176,15 @@ describe("UITranscribeDialog", () => {
     )
 
     expect(screen.getByTestId("transcribe-dialog-confirm")).toBeDisabled()
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-advanced-options"))
+    fireEvent.change(screen.getByTestId("transcribe-dialog-tencent-base-url"), {
+      target: { value: "https://api.example.com" },
+    })
+    fireEvent.change(screen.getByTestId("transcribe-dialog-tencent-api-key"), {
+      target: { value: "secret" },
+    })
+
+    expect(screen.getByTestId("transcribe-dialog-confirm")).not.toBeDisabled()
   })
 })

@@ -113,8 +113,6 @@ export interface ScrapeDialogProps {
   mediaMetadata?: MediaMetadata
 }
 
-export type TranscribeRowStatus = "pending" | "running" | "completed" | "failed"
-
 /** Values passed to VideoCaptioner `transcribe --asr` from TranscribeDialog. */
 export type TranscribeAsrEngine = "bijian" | "jianying" | "whisper-cpp"
 
@@ -147,7 +145,6 @@ export interface TranscribeDialogRow {
   path: string
   /** Shown in the file column when set; defaults to `path`. */
   displayPath?: string
-  status: TranscribeRowStatus
   /** Used for job labels and toasts; falls back to basename of path in TranscribeDialog. */
   title?: string
 }

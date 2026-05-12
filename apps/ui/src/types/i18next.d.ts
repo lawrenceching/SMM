@@ -409,13 +409,9 @@ interface DialogsResources {
     defaultDescription: string
     columns: {
       filePath: string
-      status: string
     }
-    status: {
-      running: string
-      completed: string
-      failed: string
-      pending: string
+    advancedOptions: {
+      label: string
     }
     noFiles: string
     confirm: string

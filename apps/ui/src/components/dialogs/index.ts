@@ -38,7 +38,6 @@ export type {
   DeleteTrackDialogProps,
   EditMediaFileDialogProps,
   OpenEditMediaFileOptions,
-  TranscribeRowStatus,
   TranscribeAsrEngine,
   TranscribeProvider,
   TranscribeOutputFormat,
