@@ -8,6 +8,8 @@ import { discoverFfmpeg } from "./Ffmpeg";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
 export const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
+/** Subtitle mux/burn can exceed transcribe duration. */
+export const SYNTHESIZE_TIMEOUT_MS = 60 * 60 * 1000;
 
 async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.ProcessEnv | undefined> {
   let env: NodeJS.ProcessEnv | undefined;
@@ -172,6 +174,24 @@ export const VIDEOCAPTIONER_SUBTITLE_LAYOUTS = [
   "source-only",
 ] as const;
 export type VideoCaptionerSubtitleLayout = (typeof VIDEOCAPTIONER_SUBTITLE_LAYOUTS)[number];
+
+export const VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES = ["soft", "hard"] as const;
+export type VideoCaptionerSynthesizeSubtitleMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES)[number];
+
+export const VIDEOCAPTIONER_SYNTHESIZE_QUALITY = ["ultra", "high", "medium", "low"] as const;
+export type VideoCaptionerSynthesizeQuality = (typeof VIDEOCAPTIONER_SYNTHESIZE_QUALITY)[number];
+
+export const VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES = ["ass", "rounded"] as const;
+export type VideoCaptionerSynthesizeRenderMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES)[number];
+
+export interface VideoCaptionerSynthesizeCliOptions {
+  subtitleMode?: VideoCaptionerSynthesizeSubtitleMode;
+  quality?: VideoCaptionerSynthesizeQuality;
+  /** Preset style name (e.g. `anime`). */
+  style?: string;
+  renderMode?: VideoCaptionerSynthesizeRenderMode;
+  layout?: VideoCaptionerSubtitleLayout;
+}
 
 export interface VideoCaptionerTranslateCliOptions {
   translator: VideoCaptionerTranslator;
@@ -381,6 +401,121 @@ export async function translateSubtitleWithVideoCaptioner(
     });
   } catch (error) {
     videoCaptionerLog.error({ error, executablePath, subtitlePath }, "failed to start videocaptioner");
+    return {
+      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+}
+
+export async function synthesizeWithVideoCaptioner(
+  videoPath: string,
+  subtitlePath: string,
+  options?: VideoCaptionerSynthesizeCliOptions
+): Promise<VideoCaptionerTranscribeResult> {
+  if (!videoPath) {
+    return { error: "videoPath is required" };
+  }
+  if (!subtitlePath) {
+    return { error: "subtitlePath is required" };
+  }
+  if (!fs.existsSync(videoPath)) {
+    return { error: `file not found: ${videoPath}` };
+  }
+  if (!fs.existsSync(subtitlePath)) {
+    return { error: `file not found: ${subtitlePath}` };
+  }
+
+  const executablePath = await discoverVideoCaptioner();
+  if (!executablePath) {
+    return { error: "videocaptioner executable not found" };
+  }
+
+  const env = await resolveSpawnEnvForVideoCaptioner();
+
+  const args = ["synthesize", videoPath, "-s", subtitlePath];
+  if (options?.subtitleMode !== undefined) {
+    args.push("--subtitle-mode", options.subtitleMode);
+  }
+  if (options?.quality !== undefined) {
+    args.push("--quality", options.quality);
+  }
+  if (options?.style?.trim()) {
+    args.push("--style", options.style.trim());
+  }
+  if (options?.renderMode !== undefined) {
+    args.push("--render-mode", options.renderMode);
+  }
+  if (options?.layout !== undefined) {
+    args.push("--layout", options.layout);
+  }
+
+  const commandForLog = [executablePath, ...args]
+    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+    .join(" ");
+  try {
+    videoCaptionerLog.info(
+      { executablePath, videoPath, subtitlePath, args, command: commandForLog },
+      "running videocaptioner synthesize command"
+    );
+    const child = spawn(executablePath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(env ? { env } : {}),
+    });
+    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
+      let settled = false;
+      let stderrOutput = "";
+      const finish = (result: VideoCaptionerTranscribeResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(result);
+      };
+
+      const timeoutId = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // ignore kill failures and surface timeout error
+        }
+        finish({ error: `videocaptioner timed out after ${SYNTHESIZE_TIMEOUT_MS}ms` });
+      }, SYNTHESIZE_TIMEOUT_MS);
+
+      child.once("error", (error) => {
+        finish({
+          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+        });
+      });
+
+      child.once("close", (code) => {
+        if (code === 0) {
+          finish({ success: true });
+          return;
+        }
+        const trimmedStderr = stderrOutput.trim();
+        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+        videoCaptionerLog.warn(
+          {
+            exitCode: code,
+            stderr: trimmedStderr.slice(0, 4000),
+            stderrTruncated: trimmedStderr.length > 4000,
+            videoPath,
+            subtitlePath,
+          },
+          "videocaptioner synthesize exited with non-zero code",
+        );
+        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
+      });
+
+      child.stderr?.setEncoding("utf8");
+      child.stderr?.on("data", (chunk: string | Buffer) => {
+        stderrOutput += String(chunk);
+      });
+    });
+  } catch (error) {
+    videoCaptionerLog.error(
+      { error, executablePath, videoPath, subtitlePath },
+      "failed to start videocaptioner synthesize"
+    );
     return {
       error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
     };

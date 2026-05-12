@@ -75,4 +75,42 @@ describe("MusicHeaderV2 multi-select toggle", () => {
     fireEvent.click(transcribe);
     expect(onTranscribeClick).toHaveBeenCalledTimes(1);
   });
+
+  it("disables subtitle menu when transcribe, translate, and synthesize are all unavailable", () => {
+    render(
+      <MusicHeaderV2
+        selectedMediaMetadata={
+          { mediaFolderPath: "/media/music", files: [] } as any
+        }
+        isTranscribeAvailable={false}
+        hasTranscribeTargets={false}
+        isTranslateAvailable={false}
+        hasTranslateTargets={false}
+        isSynthesizeAvailable={false}
+        hasSynthesizeTargets={false}
+      />,
+    );
+    expect(screen.getByTestId("music-header-subtitle")).toBeDisabled();
+  });
+
+  it("calls onSynthesizeClick when synthesize is the only available subtitle action", () => {
+    const onSynthesizeClick = vi.fn();
+    render(
+      <MusicHeaderV2
+        selectedMediaMetadata={
+          { mediaFolderPath: "/media/music", files: [] } as any
+        }
+        isTranscribeAvailable={false}
+        hasTranscribeTargets={false}
+        isTranslateAvailable={false}
+        hasTranslateTargets={false}
+        isSynthesizeAvailable
+        hasSynthesizeTargets
+        onSynthesizeClick={onSynthesizeClick}
+      />,
+    );
+    expect(screen.getByTestId("music-header-subtitle")).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId("music-header-synthesize"));
+    expect(onSynthesizeClick).toHaveBeenCalledTimes(1);
+  });
 });

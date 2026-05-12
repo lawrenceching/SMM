@@ -117,7 +117,42 @@ export interface TranslateBackgroundJob extends BackgroundJobBase {
   data: TranslateBackgroundJobData;
 }
 
-export type BackgroundJob = GenericBackgroundJob | DownloadVideoBackgroundJob | TranscribeBackgroundJob | TranslateBackgroundJob;
+export type SynthesizeSubtitleMode = 'soft' | 'hard'
+export type SynthesizeQuality = 'ultra' | 'high' | 'medium' | 'low'
+export type SynthesizeRenderMode = 'ass' | 'rounded'
+export type SynthesizeSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only'
+
+export interface SynthesizeBackgroundJobData {
+  /** Media library folder (platform path). */
+  folder: string
+  /** Absolute video file path (POSIX). */
+  videoPath: string
+  videoPathPlatform: string
+  /** Absolute subtitle file path (POSIX). */
+  subtitlePath: string
+  subtitlePathPlatform: string
+  /** Same as videoPath when set; used for row-status mapping in MusicPanel. */
+  mediaPath?: string
+  mediaPathPlatform?: string
+  title: string
+  subtitleMode?: SynthesizeSubtitleMode
+  quality?: SynthesizeQuality
+  style?: string
+  renderMode?: SynthesizeRenderMode
+  layout?: SynthesizeSubtitleLayout
+}
+
+export interface SynthesizeBackgroundJob extends BackgroundJobBase {
+  type: 'synthesize'
+  data: SynthesizeBackgroundJobData
+}
+
+export type BackgroundJob =
+  | GenericBackgroundJob
+  | DownloadVideoBackgroundJob
+  | TranscribeBackgroundJob
+  | TranslateBackgroundJob
+  | SynthesizeBackgroundJob
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -133,4 +168,8 @@ export function isTranscribeBackgroundJob(job: BackgroundJob): job is Transcribe
 
 export function isTranslateBackgroundJob(job: BackgroundJob): job is TranslateBackgroundJob {
   return job.type === 'translate';
+}
+
+export function isSynthesizeBackgroundJob(job: BackgroundJob): job is SynthesizeBackgroundJob {
+  return job.type === 'synthesize'
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "events";
-import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner } from "./VideoCaptioner";
+import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner, synthesizeWithVideoCaptioner } from "./VideoCaptioner";
 
 const h = vi.hoisted(() => ({
   spawn: vi.fn(),
@@ -41,16 +41,20 @@ vi.mock("fs", async () => {
       ...actual,
       existsSync: vi.fn(
         (targetPath: string) =>
-          targetPath.endsWith(".mp3") ||
-          targetPath.endsWith(".srt") ||
-          targetPath.includes("videocaptioner")
+          !targetPath.includes("/missing/") &&
+          (targetPath.endsWith(".mp3") ||
+            targetPath.endsWith(".mp4") ||
+            targetPath.endsWith(".srt") ||
+            targetPath.includes("videocaptioner"))
       ),
     },
     existsSync: vi.fn(
       (targetPath: string) =>
-        targetPath.endsWith(".mp3") ||
-        targetPath.endsWith(".srt") ||
-        targetPath.includes("videocaptioner")
+        !targetPath.includes("/missing/") &&
+        (targetPath.endsWith(".mp3") ||
+          targetPath.endsWith(".mp4") ||
+          targetPath.endsWith(".srt") ||
+          targetPath.includes("videocaptioner"))
     ),
   };
 });
@@ -297,6 +301,71 @@ describe("translateSubtitleWithVideoCaptioner", () => {
       targetLanguage: "ja",
     });
     await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    const result = await promise;
+
+    expect(child.kill).toHaveBeenCalled();
+    expect(result.error).toContain("timed out");
+  });
+});
+
+describe("synthesizeWithVideoCaptioner", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("invokes synthesize with video, -s subtitle, and optional flags", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = synthesizeWithVideoCaptioner("C:/media/a.mp4", "C:/media/a.srt", {
+      subtitleMode: "hard",
+      quality: "medium",
+      style: "anime",
+      renderMode: "ass",
+      layout: "source-only",
+    });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      [
+        "synthesize",
+        "C:/media/a.mp4",
+        "-s",
+        "C:/media/a.srt",
+        "--subtitle-mode",
+        "hard",
+        "--quality",
+        "medium",
+        "--style",
+        "anime",
+        "--render-mode",
+        "ass",
+        "--layout",
+        "source-only",
+      ],
+      expect.any(Object)
+    );
+  });
+
+  it("returns error when video file is missing", async () => {
+    const result = await synthesizeWithVideoCaptioner("C:/missing/foo.mp4", "C:/media/a.srt");
+    expect(result.error).toContain("file not found");
+  });
+
+  it("returns timeout error and kills child process", async () => {
+    vi.useFakeTimers();
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = synthesizeWithVideoCaptioner("C:/media/a.mp4", "C:/media/a.srt");
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     const result = await promise;
 
     expect(child.kill).toHaveBeenCalled();

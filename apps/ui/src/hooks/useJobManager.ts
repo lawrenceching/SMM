@@ -18,10 +18,10 @@ function isStartableJob(r: TaskJobRecord): boolean {
   return r.status !== 'stopped' && r.status !== 'aborted'
 }
 
-export type TaskJobMessagePrefix = 'download' | 'transcribe' | 'translate'
+export type TaskJobMessagePrefix = 'download' | 'transcribe' | 'translate' | 'synthesize'
 
 export interface UseJobManagerOptions {
-  jobType: 'download-video' | 'transcribe' | 'translate'
+  jobType: 'download-video' | 'transcribe' | 'translate' | 'synthesize'
   messagePrefix: TaskJobMessagePrefix
   platformFolder: string | undefined
   autoStartKey: string

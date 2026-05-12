@@ -34,8 +34,8 @@ vi.mock('@/components/ui/dropdown-menu', () => {
     DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
     DropdownMenuTrigger: ({ children, asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
     DropdownMenuContent: ({ children }: any) => <div role="menu">{children}</div>,
-    DropdownMenuItem: ({ children, disabled, onClick }: any) => (
-      <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick}>{children}</div>
+    DropdownMenuItem: ({ children, disabled, onClick, ...rest }: any) => (
+      <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick} {...rest}>{children}</div>
     ),
     DropdownMenuSeparator: () => <hr />,
   }
@@ -308,6 +308,42 @@ describe('MovieHeaderV2', () => {
       )
 
       expect(screen.getByPlaceholderText('movie.searchPlaceholder')).toBeInTheDocument()
+    })
+  })
+
+  describe('Subtitle menu / synthesize', () => {
+    const okMovie = {
+      status: 'ok' as const,
+      mediaFolderPath: '/media/movie',
+      mediaFiles: [],
+      movie: { id: '789', name: 'Test Movie', database: 'TMDB' as const },
+    } as UIMediaMetadata
+
+    it('disables subtitle dropdown when transcribe, translate, and synthesize are all blocked', () => {
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMovie}
+          selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
+        />,
+      )
+      expect(screen.getByTestId('movie-header-subtitle')).toBeDisabled()
+    })
+
+    it('invokes onSynthesizeClick when synthesize menu item is used', () => {
+      const onSynthesizeClick = vi.fn()
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMovie}
+          selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
+          onSynthesizeClick={onSynthesizeClick}
+          isSynthesizeAvailable
+          hasSynthesizeTargets
+        />,
+      )
+      fireEvent.click(screen.getByTestId('movie-header-synthesize'))
+      expect(onSynthesizeClick).toHaveBeenCalledTimes(1)
     })
   })
 })

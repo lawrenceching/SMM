@@ -26,16 +26,18 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
-import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog } from "@/components/dialogs";
+import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useTranscribeManager } from "@/hooks/useTranscribeManager";
 import { useTranslateManager } from "@/hooks/useTranslateManager";
+import { useSynthesizeManager } from "@/hooks/useSynthesizeManager";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
 } from "@/lib/transcribeDialogRows";
 import { subtitleTranslationDialogRowsFromMusicFileRows } from "@/lib/subtitleTranslationDialogRows";
+import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeSubtitleDialogRows";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 import { useFeatures } from "@/hooks/useFeatures";
 
@@ -202,6 +204,22 @@ export function MusicPanel() {
     }, [mediaMetadata, fetchMediaMetadata]),
   });
 
+  const {
+    synthesizingPaths,
+    synthesizeFailedPaths,
+    jobIdByPath: synthesizeJobIdByPath,
+    stopSynthesize,
+  } = useSynthesizeManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      if (mediaMetadata?.mediaFolderPath) {
+        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
+      }
+    }, [mediaMetadata, fetchMediaMetadata]),
+  });
+
   const jobTracks = useMemo(
     () => tracksFromDownloadJobRecords(jobRecords),
     [jobRecords],
@@ -229,6 +247,7 @@ export function MusicPanel() {
   const isTranscribeAvailable =
     isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled);
   const isTranslateAvailable = isVideoCaptionerReady;
+  const isSynthesizeAvailable = isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
@@ -238,6 +257,10 @@ export function MusicPanel() {
   const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false);
   const [subtitleTranslationDefaultSelectedIds, setSubtitleTranslationDefaultSelectedIds] =
     useState<string[] | undefined>(undefined);
+  const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false);
+  const [synthesizeSubtitleDefaultSelectedIds, setSynthesizeSubtitleDefaultSelectedIds] = useState<
+    string[] | undefined
+  >(undefined);
 
   const handleToggleMultiSelectMode = useCallback(() => {
     setIsMultiSelectMode((prev) => {
@@ -343,6 +366,16 @@ export function MusicPanel() {
     [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath, mediaMetadata?.files],
   );
 
+  const synthesizeSubtitleDialogRows = useMemo(
+    () =>
+      synthesizeSubtitleDialogRowsFromMusicFileRows(
+        musicFileRowsForDialogs,
+        mediaMetadata?.mediaFolderPath,
+        mediaMetadata?.files,
+      ),
+    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath, mediaMetadata?.files],
+  );
+
   const translateEligibleByMediaPath = useMemo(() => {
     const m = new Map<string, boolean>();
     for (const r of subtitleTranslationDialogRows) {
@@ -350,6 +383,14 @@ export function MusicPanel() {
     }
     return m;
   }, [subtitleTranslationDialogRows]);
+
+  const synthesizeEligibleByMediaPath = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const r of synthesizeSubtitleDialogRows) {
+      if (r.videoPath) m.set(r.videoPath, r.eligible);
+    }
+    return m;
+  }, [synthesizeSubtitleDialogRows]);
 
   const tableData = useMemo<MusicFileRow[]>(() => {
     const folder = mediaMetadata?.mediaFolderPath
@@ -365,7 +406,13 @@ export function MusicPanel() {
         if (translatingPaths.has(abs)) translateStatus = "running"
         else if (translateFailedPaths.has(abs)) translateStatus = "failed"
       }
+      let synthesizeStatus: MusicFileRow["synthesizeStatus"]
+      if (abs) {
+        if (synthesizingPaths.has(abs)) synthesizeStatus = "running"
+        else if (synthesizeFailedPaths.has(abs)) synthesizeStatus = "failed"
+      }
       const canTranslate = abs ? (translateEligibleByMediaPath.get(abs) ?? false) : false
+      const canSynthesize = abs ? (synthesizeEligibleByMediaPath.get(abs) ?? false) : false
       return {
         id: track.id,
         index,
@@ -378,7 +425,9 @@ export function MusicPanel() {
         jobId: track.jobId,
         transcribeStatus,
         translateStatus,
+        synthesizeStatus,
         canTranslate,
+        canSynthesize,
       }
     })
   }, [
@@ -387,8 +436,11 @@ export function MusicPanel() {
     transcribeFailedPaths,
     translatingPaths,
     translateFailedPaths,
+    synthesizingPaths,
+    synthesizeFailedPaths,
     mediaMetadata?.mediaFolderPath,
     translateEligibleByMediaPath,
+    synthesizeEligibleByMediaPath,
   ]);
 
   const handleTranscribeStop = useCallback(
@@ -418,6 +470,7 @@ export function MusicPanel() {
 
   const hasTranscribeTargets = transcribeDialogRows.length > 0;
   const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible);
+  const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible);
 
   const closeTranscribeDialog = useCallback(() => {
     setIsTranscribeOpen(false);
@@ -504,6 +557,69 @@ export function MusicPanel() {
       if (jobId) void stopTranslate(jobId);
     },
     [mediaMetadata?.mediaFolderPath, translateJobIdByPath, stopTranslate],
+  );
+
+  const closeSynthesizeSubtitleDialog = useCallback(() => {
+    setIsSynthesizeSubtitleOpen(false);
+    setSynthesizeSubtitleDefaultSelectedIds(undefined);
+  }, []);
+
+  const handleHeaderSynthesizeClick = useCallback(() => {
+    if (!hasSynthesizeTargets) {
+      toast.error("No video and subtitle pairs available to synthesize.");
+      return;
+    }
+    const folder = mediaMetadata?.mediaFolderPath;
+    const selectedWithPath = selectedRows.filter(
+      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
+    );
+    if (selectedWithPath.length > 0) {
+      const ids: string[] = [];
+      for (const sel of selectedWithPath) {
+        const abs = absolutePosixMusicFilePath(sel, folder)!;
+        const match = synthesizeSubtitleDialogRows.find(
+          (r) => r.videoPath === abs && r.eligible && r.subtitlePath,
+        );
+        if (match) ids.push(match.id);
+      }
+      setSynthesizeSubtitleDefaultSelectedIds(ids.length > 0 ? ids : undefined);
+    } else {
+      setSynthesizeSubtitleDefaultSelectedIds(undefined);
+    }
+    setIsSynthesizeSubtitleOpen(true);
+  }, [hasSynthesizeTargets, selectedRows, mediaMetadata?.mediaFolderPath, synthesizeSubtitleDialogRows]);
+
+  const handleTrackSynthesize = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const pathId = absolutePosixMusicFilePath(row, folder);
+      if (!pathId) {
+        toast.error(`Track "${row.title}" does not have an associated file path.`);
+        return;
+      }
+      const match = synthesizeSubtitleDialogRows.find(
+        (r) => r.videoPath === pathId && r.eligible && r.subtitlePath,
+      );
+      if (!match) {
+        toast.error(`Track "${row.title}" is not eligible for subtitle synthesis.`);
+        return;
+      }
+      setSelectedTrackIds([]);
+      setSynthesizeSubtitleDefaultSelectedIds([match.id]);
+      setIsSynthesizeSubtitleOpen(true);
+    },
+    [mediaMetadata?.mediaFolderPath, synthesizeSubtitleDialogRows],
+  );
+
+  const handleSynthesizeStop = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const abs = absolutePosixMusicFilePath(row, folder);
+      if (!abs) return;
+      const jobId = synthesizeJobIdByPath.get(abs);
+      if (jobId) void stopSynthesize(jobId);
+    },
+    [mediaMetadata?.mediaFolderPath, synthesizeJobIdByPath, stopSynthesize],
   );
 
   const handleTrackTranscribe = useCallback(
@@ -739,6 +855,17 @@ export function MusicPanel() {
             : undefined
         }
       />
+      <SynthesizeSubtitleDialog
+        isOpen={isSynthesizeSubtitleOpen}
+        onClose={closeSynthesizeSubtitleDialog}
+        rows={synthesizeSubtitleDialogRows}
+        defaultSelectedIds={synthesizeSubtitleDefaultSelectedIds}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
           selectedMediaMetadata={mediaMetadata}
@@ -749,6 +876,9 @@ export function MusicPanel() {
           hasTranscribeTargets={hasTranscribeTargets}
           isTranslateAvailable={isTranslateAvailable}
           hasTranslateTargets={hasTranslateTargets}
+          onSynthesizeClick={handleHeaderSynthesizeClick}
+          isSynthesizeAvailable={isSynthesizeAvailable}
+          hasSynthesizeTargets={hasSynthesizeTargets}
           isMultiSelectMode={isMultiSelectMode}
           onToggleMultiSelectMode={handleToggleMultiSelectMode}
         />
@@ -774,6 +904,9 @@ export function MusicPanel() {
             isTranslateAvailable={isTranslateAvailable}
             onTrackTranslate={handleTrackTranslate}
             onTranslateStop={handleTranslateStop}
+            isSynthesizeAvailable={isSynthesizeAvailable}
+            onTrackSynthesize={handleTrackSynthesize}
+            onSynthesizeStop={handleSynthesizeStop}
             isMultiSelectMode={isMultiSelectMode}
             selectedTrackIds={selectedTrackIds}
             onSelectedTrackIdsChange={setSelectedTrackIds}

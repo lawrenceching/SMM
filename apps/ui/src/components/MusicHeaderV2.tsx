@@ -19,6 +19,9 @@ export interface MusicHeaderV2Props {
   hasTranscribeTargets?: boolean
   isTranslateAvailable?: boolean
   hasTranslateTargets?: boolean
+  onSynthesizeClick?: () => void
+  isSynthesizeAvailable?: boolean
+  hasSynthesizeTargets?: boolean
   isMultiSelectMode?: boolean
   onToggleMultiSelectMode?: () => void
 }
@@ -32,6 +35,9 @@ export function MusicHeaderV2({
   hasTranscribeTargets = false,
   isTranslateAvailable = false,
   hasTranslateTargets = false,
+  onSynthesizeClick,
+  isSynthesizeAvailable = false,
+  hasSynthesizeTargets = false,
   isMultiSelectMode = false,
   onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
@@ -44,7 +50,8 @@ export function MusicHeaderV2({
   const transcribeDisabled =
     !folderReady || !isTranscribeAvailable || !hasTranscribeTargets
   const translateDisabled = !folderReady || !isTranslateAvailable || !hasTranslateTargets
-  const subtitleDisabled = transcribeDisabled && translateDisabled
+  const synthesizeDisabled = !folderReady || !isSynthesizeAvailable || !hasSynthesizeTargets
+  const subtitleDisabled = transcribeDisabled && translateDisabled && synthesizeDisabled
 
   return (
     <div className="relative w-full space-y-3">
@@ -98,6 +105,13 @@ export function MusicHeaderV2({
                 data-testid="music-header-translate"
               >
                 {t("mediaPlayer.trackContextMenu.translate")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={synthesizeDisabled}
+                onClick={() => onSynthesizeClick?.()}
+                data-testid="music-header-synthesize"
+              >
+                {t("mediaPlayer.trackContextMenu.synthesize")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

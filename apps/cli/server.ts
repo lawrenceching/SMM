@@ -47,6 +47,7 @@ import { handleYtdlpBilibiliEpisodes } from './src/route/ytdlp/BilibiliEpisodes'
 import { handleVideoCaptionerDiscover } from './src/route/videocaptioner/Discover';
 import { handleVideoCaptionerTranscribe } from './src/route/videocaptioner/Transcribe';
 import { handleVideoCaptionerTranslate } from './src/route/videocaptioner/Translate';
+import { handleVideoCaptionerSynthesize } from './src/route/videocaptioner/Synthesize';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
@@ -222,6 +223,7 @@ export class Server {
     handleVideoCaptionerDiscover(this.app);
     handleVideoCaptionerTranscribe(this.app);
     handleVideoCaptionerTranslate(this.app);
+    handleVideoCaptionerSynthesize(this.app);
     handleTencentAsrTranscribe(this.app);
     handleFfmpegScreenshots(this.app);
     handleFfmpegConvert(this.app);
@@ -287,6 +289,24 @@ export class Server {
     // Fallback for root path
     this.app.get('/', (c) => {
       return c.text('Static file server is running. Access files from the /public directory.');
+    });
+
+    // Plain-text 404 bodies (e.g. "404 Not Found") break the UI service worker's JSON parsing.
+    this.app.notFound((c) => {
+      const p = c.req.path;
+      if (p.startsWith('/api/')) {
+        logger.warn(
+          { method: c.req.method, path: p },
+          'Hono notFound: no route matched for /api request (restart CLI after adding routes; check method/path)',
+        );
+        return c.json(
+          {
+            error: `Not found: ${c.req.method} ${p}. If you recently updated the app, restart the CLI server.`,
+          },
+          404,
+        );
+      }
+      return c.text('Not Found', 404);
     });
   }
 

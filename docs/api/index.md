@@ -15,3 +15,7 @@ HTTP: `POST /api/videocaptioner/transcribe` — request body validated with Zod 
 ## VideoCaptionerTranslate
 Source Code: apps/cli/src/route/videocaptioner/Translate.ts
 HTTP: `POST /api/videocaptioner/translate` — request body validated with Zod (`subtitlePath`, `translator`, `targetLanguage`, optional `reflect`, `layout`, `llm`).
+
+## VideoCaptionerSynthesize
+Source Code: apps/cli/src/route/videocaptioner/Synthesize.ts
+HTTP: `POST /api/videocaptioner/synthesize` — request body validated with Zod (`videoPath`, `subtitlePath`, optional `subtitleMode`, `quality`, `style`, `renderMode`, `layout`).

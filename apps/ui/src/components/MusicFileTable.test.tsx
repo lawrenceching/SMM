@@ -161,3 +161,50 @@ describe("MusicFileTable multi-select mode", () => {
     expect(onSelectedTrackIdsChange).toHaveBeenLastCalledWith([]);
   });
 });
+
+const videoRow: MusicFileRow = {
+  ...row,
+  path: "/tmp/track.mp4",
+};
+
+describe("MusicFileTable synthesize action", () => {
+  it("disables synthesize when capability or canSynthesize is false", () => {
+    render(
+      <MusicFileTable
+        data={[{ ...videoRow, canSynthesize: true }]}
+        isSynthesizeAvailable={false}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesize/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("invokes onTrackSynthesize when enabled", () => {
+    const onTrackSynthesize = vi.fn();
+    render(
+      <MusicFileTable
+        data={[{ ...videoRow, canSynthesize: true }]}
+        isSynthesizeAvailable
+        canSynthesize
+        onTrackSynthesize={onTrackSynthesize}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesize/i }));
+    expect(onTrackSynthesize).toHaveBeenCalledWith(expect.objectContaining({ path: videoRow.path }));
+  });
+
+  it("shows stop synthesize while running", () => {
+    const onSynthesizeStop = vi.fn();
+    render(
+      <MusicFileTable
+        data={[{ ...videoRow, canSynthesize: true, synthesizeStatus: "running" }]}
+        isSynthesizeAvailable
+        onSynthesizeStop={onSynthesizeStop}
+      />,
+    );
+    const stopBtn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesizeStop/i });
+    expect(stopBtn).not.toBeDisabled();
+    fireEvent.click(stopBtn);
+    expect(onSynthesizeStop).toHaveBeenCalled();
+  });
+});

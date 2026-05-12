@@ -17,6 +17,8 @@ export { TranscribeDialog } from "./TranscribeDialog"
 export { UITranscribeDialog } from "./UITranscribeDialog"
 export { SubtitleTranslationDialog } from "./SubtitleTranslationDialog"
 export { UISubtitleTranslationDialog } from "./UISubtitleTranslationDialog"
+export { SynthesizeSubtitleDialog } from "./SynthesizeSubtitleDialog"
+export { UISynthesizeSubtitleDialog } from "./UISynthesizeSubtitleDialog"
 export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
 
 export type {
@@ -53,6 +55,10 @@ export type {
   SubtitleTranslateLayout,
   SubtitleTranslationDialogProps,
   UISubtitleTranslationDialogProps,
+  SynthesizeSubtitleDialogRow,
+  SynthesizeSubtitleConfirmPayload,
+  SynthesizeSubtitleDialogProps,
+  UISynthesizeSubtitleDialogProps,
   ExecuteCmdDialogProps,
   ExecuteCmdLogEntry,
   ExecuteCmdType,

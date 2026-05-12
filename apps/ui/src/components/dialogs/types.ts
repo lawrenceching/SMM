@@ -232,6 +232,55 @@ export interface UISubtitleTranslationDialogProps {
 
 export type SubtitleTranslationDialogProps = Omit<UISubtitleTranslationDialogProps, "onConfirm">
 
+/** Known i18n keys for ineligible synthesize rows (`components` namespace). */
+export type SynthesizeSubtitleDisabledReasonKey =
+  | "synthesizeSubtitleDialog.noSubtitleFile"
+  | "synthesizeSubtitleDialog.notVideoFile"
+
+export interface SynthesizeSubtitleDialogRow {
+  id: string
+  /** POSIX absolute path of video file. */
+  videoPath: string
+  /** POSIX absolute path of subtitle file; empty when ineligible. */
+  subtitlePath: string
+  displayPath?: string
+  title?: string
+  eligible: boolean
+  disabledReason?: SynthesizeSubtitleDisabledReasonKey
+}
+
+export type SynthesizeSubtitleMode = "soft" | "hard"
+export type SynthesizeQuality = "ultra" | "high" | "medium" | "low"
+export type SynthesizeRenderMode = "ass" | "rounded"
+export type SynthesizeSubtitleLayoutOption =
+  | "target-above"
+  | "source-above"
+  | "target-only"
+  | "source-only"
+
+export interface SynthesizeSubtitleConfirmPayload {
+  selectedIds: string[]
+  subtitleMode: SynthesizeSubtitleMode
+  quality: SynthesizeQuality
+  style?: string
+  renderMode?: SynthesizeRenderMode
+  layout?: SynthesizeSubtitleLayoutOption
+}
+
+export interface UISynthesizeSubtitleDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  rows: SynthesizeSubtitleDialogRow[]
+  folder?: string
+  title?: string
+  description?: string
+  defaultSelectedIds?: string[]
+  videoCaptionerAvailable?: boolean
+  onConfirm?: (payload: SynthesizeSubtitleConfirmPayload) => void | Promise<void>
+}
+
+export type SynthesizeSubtitleDialogProps = Omit<UISynthesizeSubtitleDialogProps, "onConfirm">
+
 export interface TrackProperties {
   id: number
   title?: string

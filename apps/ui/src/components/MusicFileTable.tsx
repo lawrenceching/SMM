@@ -19,7 +19,7 @@ import {
   ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions, Languages } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions, Languages, FileVideo } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
@@ -39,8 +39,12 @@ export interface MusicFileRow {
   transcribeStatus?: "running" | "failed"
   /** Subtitle translation task for this row's media path (IndexedDB + Service Worker). */
   translateStatus?: "running" | "failed"
+  /** Subtitle-to-video synthesis task for this row's media path. */
+  synthesizeStatus?: "running" | "failed"
   /** Sibling `.srt`/`.ass` exists in the media folder (see {@link subtitleTranslationDialogRowsFromMusicFileRows}). */
   canTranslate?: boolean
+  /** Video + sibling subtitle available for synthesize (see {@link synthesizeSubtitleDialogRowsFromMusicFileRows}). */
+  canSynthesize?: boolean
 }
 
 interface MusicFileTableProps {
@@ -73,6 +77,10 @@ interface MusicFileTableProps {
   onTrackTranslate?: (track: MusicFileRow) => void
   /** Stop an in-progress translate job for this row */
   onTranslateStop?: (track: MusicFileRow) => void
+  /** VideoCaptioner synthesize is available */
+  isSynthesizeAvailable?: boolean
+  onTrackSynthesize?: (track: MusicFileRow) => void
+  onSynthesizeStop?: (track: MusicFileRow) => void
   /** Whether table is in multi-select mode */
   isMultiSelectMode?: boolean
   /** Selected track ids in multi-select mode */
@@ -136,6 +144,9 @@ export function MusicFileTable({
   isTranslateAvailable,
   onTrackTranslate,
   onTranslateStop,
+  isSynthesizeAvailable,
+  onTrackSynthesize,
+  onSynthesizeStop,
   isMultiSelectMode = false,
   selectedTrackIds = [],
   onSelectedTrackIdsChange,
@@ -230,12 +241,19 @@ export function MusicFileTable({
               const isDownloading = row.status === 'downloading'
               const isTranscribing = row.transcribeStatus === 'running'
               const isTranslating = row.translateStatus === 'running'
+              const isSynthesizing = row.synthesizeStatus === 'running'
               const translateDisabled =
                 !row.path ||
                 isDownloading ||
                 !isTranslateAvailable ||
                 !row.canTranslate ||
                 isTranslating
+              const synthesizeDisabled =
+                !row.path ||
+                isDownloading ||
+                !isSynthesizeAvailable ||
+                !row.canSynthesize ||
+                isSynthesizing
               const transcribeItemDisabled =
                 !row.path || isDownloading || !isTranscribeAvailable || isTranscribing
               const subtitleSubmenuDisabled =
@@ -243,7 +261,9 @@ export function MusicFileTable({
                   (row.path && !isDownloading && row.transcribeStatus === 'running') ||
                   (row.path && !isDownloading && isTranscribeAvailable && !isTranscribing) ||
                   (row.path && !isDownloading && isTranslateAvailable && row.canTranslate && !isTranslating) ||
-                  (row.path && !isDownloading && row.translateStatus === 'running')
+                  (row.path && !isDownloading && row.translateStatus === 'running') ||
+                  (row.path && !isDownloading && isSynthesizeAvailable && row.canSynthesize && !isSynthesizing) ||
+                  (row.path && !isDownloading && row.synthesizeStatus === 'running')
                 )
 
               return (
@@ -353,11 +373,15 @@ export function MusicFileTable({
                               ? t("mediaPlayer.translateRunningTooltip")
                               : row.translateStatus === "failed" && !isTranslating
                                 ? t("mediaPlayer.translateFailedTooltip")
-                                : isTranscribing
-                                  ? t("mediaPlayer.transcribingTooltip")
-                                  : row.transcribeStatus === "failed"
-                                    ? t("mediaPlayer.transcribeFailedTooltip")
-                                    : row.title
+                                : isSynthesizing
+                                  ? t("mediaPlayer.synthesizeRunningTooltip")
+                                  : row.synthesizeStatus === "failed" && !isSynthesizing
+                                    ? t("mediaPlayer.synthesizeFailedTooltip")
+                                    : isTranscribing
+                                      ? t("mediaPlayer.transcribingTooltip")
+                                      : row.transcribeStatus === "failed"
+                                        ? t("mediaPlayer.transcribeFailedTooltip")
+                                        : row.title
                           }
                         >
                           {isTranscribing && (
@@ -381,6 +405,14 @@ export function MusicFileTable({
                               className="size-3.5 shrink-0 text-destructive"
                               aria-hidden
                             />
+                          )}
+                          {isSynthesizing && (
+                            <span className="inline-flex shrink-0 items-center text-primary">
+                              <FileVideo className="size-3.5 shrink-0 animate-pulse" />
+                            </span>
+                          )}
+                          {row.synthesizeStatus === "failed" && !isSynthesizing && (
+                            <FileVideo className="size-3.5 shrink-0 text-destructive" aria-hidden />
                           )}
                           <span className="truncate">{row.title}</span>
                         </p>
@@ -494,6 +526,22 @@ export function MusicFileTable({
                         >
                           <Languages className="size-4 mr-2" />
                           {t("mediaPlayer.trackContextMenu.translate")}
+                        </ContextMenuItem>
+                        {row.synthesizeStatus === "running" && (
+                          <ContextMenuItem
+                            disabled={!row.path || isDownloading}
+                            onClick={() => onSynthesizeStop?.(row)}
+                          >
+                            <CircleStop className="size-4 mr-2" />
+                            {t("mediaPlayer.trackContextMenu.synthesizeStop")}
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          disabled={synthesizeDisabled}
+                          onClick={() => onTrackSynthesize?.(row)}
+                        >
+                          <FileVideo className="size-4 mr-2" />
+                          {t("mediaPlayer.trackContextMenu.synthesize")}
                         </ContextMenuItem>
                       </ContextMenuSubContent>
                     </ContextMenuSub>

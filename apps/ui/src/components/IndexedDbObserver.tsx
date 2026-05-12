@@ -2,11 +2,14 @@ import { useEffect } from 'react'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import {
   isDownloadVideoJob,
+  isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
+  type SynthesizeBackgroundJob,
+  type SynthesizeBackgroundJobData,
   type TranscribeBackgroundJob,
   type TranscribeBackgroundJobData,
   type TranslateBackgroundJob,
@@ -109,6 +112,77 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     return job
   }
 
+  if (record.type === 'synthesize') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const videoPathRaw = typeof parsed.videoPath === 'string' ? parsed.videoPath : ''
+    const videoPath = videoPathRaw ? Path.posix(videoPathRaw) : ''
+    const videoPathPlatform =
+      typeof parsed.videoPathPlatform === 'string' ? parsed.videoPathPlatform : videoPath
+    const subtitlePathRaw = typeof parsed.subtitlePath === 'string' ? parsed.subtitlePath : ''
+    const subtitlePath = subtitlePathRaw ? Path.posix(subtitlePathRaw) : ''
+    const subtitlePathPlatform =
+      typeof parsed.subtitlePathPlatform === 'string' ? parsed.subtitlePathPlatform : subtitlePath
+    const data: SynthesizeBackgroundJobData = {
+      folder: (typeof parsed.folder === 'string' ? parsed.folder : record.folder) || '',
+      videoPath,
+      videoPathPlatform,
+      subtitlePath,
+      subtitlePathPlatform,
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+    }
+    if (typeof parsed.mediaPath === 'string' && parsed.mediaPath.trim()) {
+      const mp = Path.posix(parsed.mediaPath.trim())
+      data.mediaPath = mp
+      data.mediaPathPlatform =
+        typeof parsed.mediaPathPlatform === 'string' && parsed.mediaPathPlatform.trim()
+          ? parsed.mediaPathPlatform
+          : Path.toPlatformPath(mp)
+    } else if (videoPath) {
+      data.mediaPath = videoPath
+      data.mediaPathPlatform = videoPathPlatform
+    }
+    if (parsed.subtitleMode === 'soft' || parsed.subtitleMode === 'hard') {
+      data.subtitleMode = parsed.subtitleMode
+    }
+    if (
+      parsed.quality === 'ultra' ||
+      parsed.quality === 'high' ||
+      parsed.quality === 'medium' ||
+      parsed.quality === 'low'
+    ) {
+      data.quality = parsed.quality
+    }
+    if (typeof parsed.style === 'string' && parsed.style.trim()) {
+      data.style = parsed.style.trim()
+    }
+    if (parsed.renderMode === 'ass' || parsed.renderMode === 'rounded') {
+      data.renderMode = parsed.renderMode
+    }
+    const layout = parsed.layout
+    if (
+      layout === 'target-above' ||
+      layout === 'source-above' ||
+      layout === 'target-only' ||
+      layout === 'source-only'
+    ) {
+      data.layout = layout
+    }
+    const job: SynthesizeBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as SynthesizeBackgroundJob['status'],
+      progress: record.progress,
+      type: 'synthesize',
+      data,
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -139,7 +213,12 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
 }
 
 function isPersistedFromIdbJob(job: BackgroundJob): boolean {
-  return isDownloadVideoJob(job) || isTranscribeBackgroundJob(job) || isTranslateBackgroundJob(job)
+  return (
+    isDownloadVideoJob(job) ||
+    isTranscribeBackgroundJob(job) ||
+    isTranslateBackgroundJob(job) ||
+    isSynthesizeBackgroundJob(job)
+  )
 }
 
 async function syncJobsToStore(): Promise<void> {
@@ -203,11 +282,17 @@ async function handleSwMessage(data: unknown): Promise<void> {
     case 'translate:failed':
     case 'translate:stopped':
     case 'translate:removed':
+    case 'synthesize:started':
+    case 'synthesize:succeeded':
+    case 'synthesize:failed':
+    case 'synthesize:stopped':
+    case 'synthesize:removed':
       await syncJobsToStore()
       break
     case 'download:heartbeat':
     case 'transcribe:heartbeat':
     case 'translate:heartbeat':
+    case 'synthesize:heartbeat':
       break
   }
 }

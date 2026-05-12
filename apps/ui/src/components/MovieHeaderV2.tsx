@@ -1,6 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown } from "lucide-react"
+import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -17,10 +17,13 @@ export interface MovieHeaderV2Props {
     onRenameClick?: () => void
     onTranscribeClick?: () => void
     onTranslateClick?: () => void
+    onSynthesizeClick?: () => void
     isTranscribeAvailable?: boolean
     hasTranscribeTargets?: boolean
     isTranslateAvailable?: boolean
     hasTranslateTargets?: boolean
+    isSynthesizeAvailable?: boolean
+    hasSynthesizeTargets?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -31,10 +34,13 @@ export function MovieHeaderV2({
     onRenameClick,
     onTranscribeClick,
     onTranslateClick,
+    onSynthesizeClick,
     isTranscribeAvailable = false,
     hasTranscribeTargets = false,
     isTranslateAvailable = false,
     hasTranslateTargets = false,
+    isSynthesizeAvailable = false,
+    hasSynthesizeTargets = false,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -71,7 +77,11 @@ export function MovieHeaderV2({
         actionsDisabled ||
         !hasTranslateTargets ||
         !isTranslateAvailable
-    const subtitleBlocked = transcribeBlocked && translateBlocked
+    const synthesizeBlocked =
+        actionsDisabled ||
+        !hasSynthesizeTargets ||
+        !isSynthesizeAvailable
+    const subtitleBlocked = transcribeBlocked && translateBlocked && synthesizeBlocked
     const hasExternalId = !!mediaId
     const externalUrl = hasExternalId
         ? isTmdb
@@ -164,6 +174,14 @@ export function MovieHeaderV2({
                                         data-testid="movie-header-translate"
                                     >
                                         {t('mediaPlayer.trackContextMenu.translate', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        disabled={synthesizeBlocked}
+                                        onClick={() => onSynthesizeClick?.()}
+                                        data-testid="movie-header-synthesize"
+                                    >
+                                        <FileVideo className="size-4 mr-2" />
+                                        {t('mediaPlayer.trackContextMenu.synthesize', { ns: 'components' })}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

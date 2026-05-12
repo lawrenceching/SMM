@@ -231,6 +231,8 @@
     "transcribeFailedTooltip": "Subtitle generation failed",
     "translateRunningTooltip": "Translating subtitles…",
     "translateFailedTooltip": "Subtitle translation failed",
+    "synthesizeRunningTooltip": "Synthesizing subtitles into video…",
+    "synthesizeFailedTooltip": "Subtitle synthesis failed",
     "trackContextMenu": {
       "open": "Open",
       "delete": "Delete",
@@ -244,7 +246,9 @@
       "transcribe": "Transcribe",
       "transcribeStop": "Stop transcribing",
       "translate": "Translate",
-      "translateStop": "Stop translating"
+      "translateStop": "Stop translating",
+      "synthesize": "Synthesize",
+      "synthesizeStop": "Stop synthesizing"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
@@ -281,6 +285,39 @@
     "toastStart": "Translation started",
     "toastSucceeded": "Translation finished",
     "toastFailed": "Translation failed"
+  },
+  "synthesizeSubtitleDialog": {
+    "title": "Synthesize subtitles into video",
+    "description": "Choose output options and video/subtitle pairs to mux or burn with VideoCaptioner.",
+    "subtitleMode": "Subtitle mode",
+    "subtitleModes": {
+      "soft": "Soft (mux)",
+      "hard": "Hard (burn-in)"
+    },
+    "quality": "Video quality",
+    "qualities": {
+      "ultra": "Ultra",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "style": "Style preset",
+    "stylePlaceholder": "Optional (e.g. anime)",
+    "renderMode": "Render mode",
+    "renderModeDefault": "Default",
+    "renderModes": {
+      "ass": "ASS outline",
+      "rounded": "Rounded background"
+    },
+    "layout": "Bilingual layout",
+    "layoutDefault": "None",
+    "confirm": "Start synthesis",
+    "cancel": "Cancel",
+    "noSubtitleFile": "No subtitle file linked to this video.",
+    "notVideoFile": "Synthesis requires a video file (not audio-only).",
+    "toastStart": "Synthesis started",
+    "toastSucceeded": "Synthesis finished",
+    "toastFailed": "Synthesis failed"
   },
   "tvShowEpisodeTable": {
     "columns": {

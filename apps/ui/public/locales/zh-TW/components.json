@@ -228,6 +228,8 @@
     "transcribeFailedTooltip": "字幕產生失敗",
     "translateRunningTooltip": "正在翻譯字幕…",
     "translateFailedTooltip": "字幕翻譯失敗",
+    "synthesizeRunningTooltip": "正在將字幕合成到影片…",
+    "synthesizeFailedTooltip": "字幕合成失敗",
     "trackContextMenu": {
       "open": "開啟",
       "delete": "刪除",
@@ -241,7 +243,9 @@
       "transcribe": "產生字幕",
       "transcribeStop": "停止產生字幕",
       "translate": "翻譯字幕",
-      "translateStop": "停止翻譯字幕"
+      "translateStop": "停止翻譯字幕",
+      "synthesize": "合成字幕",
+      "synthesizeStop": "停止合成字幕"
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"
@@ -278,6 +282,39 @@
     "toastStart": "已開始翻譯",
     "toastSucceeded": "翻譯完成",
     "toastFailed": "翻譯失敗"
+  },
+  "synthesizeSubtitleDialog": {
+    "title": "將字幕合成到影片",
+    "description": "選擇輸出選項以及要封裝或燒錄的字幕／影片組合。",
+    "subtitleMode": "字幕模式",
+    "subtitleModes": {
+      "soft": "軟字幕（封裝）",
+      "hard": "硬字幕（燒錄）"
+    },
+    "quality": "畫質",
+    "qualities": {
+      "ultra": "極高",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "style": "樣式預設",
+    "stylePlaceholder": "可選（如 anime）",
+    "renderMode": "渲染模式",
+    "renderModeDefault": "預設",
+    "renderModes": {
+      "ass": "ASS 描邊",
+      "rounded": "圓角背景"
+    },
+    "layout": "雙語排版",
+    "layoutDefault": "無",
+    "confirm": "開始合成",
+    "cancel": "取消",
+    "noSubtitleFile": "此影片未關聯字幕檔。",
+    "notVideoFile": "合成需要影片檔案（不支援純音訊）。",
+    "toastStart": "已開始合成",
+    "toastSucceeded": "合成完成",
+    "toastFailed": "合成失敗"
   },
   "tvShowEpisodeTable": {
     "columns": {

@@ -255,6 +255,8 @@ interface ComponentsResources {
     transcribeFailedTooltip: string
     translateRunningTooltip: string
     translateFailedTooltip: string
+    synthesizeRunningTooltip: string
+    synthesizeFailedTooltip: string
     trackContextMenu: {
       open: string
       delete: string
@@ -269,6 +271,8 @@ interface ComponentsResources {
       transcribeStop: string
       translate: string
       translateStop: string
+      synthesize: string
+      synthesizeStop: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -293,6 +297,39 @@ interface ComponentsResources {
     confirm: string
     cancel: string
     noSubtitleFile: string
+    toastStart: string
+    toastSucceeded: string
+    toastFailed: string
+  }
+  synthesizeSubtitleDialog: {
+    title: string
+    description: string
+    subtitleMode: string
+    subtitleModes: {
+      soft: string
+      hard: string
+    }
+    quality: string
+    qualities: {
+      ultra: string
+      high: string
+      medium: string
+      low: string
+    }
+    style: string
+    stylePlaceholder: string
+    renderMode: string
+    renderModeDefault: string
+    renderModes: {
+      ass: string
+      rounded: string
+    }
+    layout: string
+    layoutDefault: string
+    confirm: string
+    cancel: string
+    noSubtitleFile: string
+    notVideoFile: string
     toastStart: string
     toastSucceeded: string
     toastFailed: string

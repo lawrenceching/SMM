@@ -83,6 +83,62 @@ async function notifyClients(event, args) {
   }
 }
 
+/**
+ * Read `/api/*` response as JSON. Proxies and plain-text errors (e.g. "404 Not Found") break `res.json()`
+ * with "Unexpected non-whitespace character after JSON at position 4".
+ */
+async function parseApiResponseBody(res, logContext) {
+  const meta = {
+    status: res.status,
+    statusText: res.statusText,
+    ok: res.ok,
+    url: res.url,
+    redirected: res.redirected,
+    type: res.type,
+    contentType: res.headers.get('content-type') ?? undefined,
+    contentLength: res.headers.get('content-length') ?? undefined,
+  }
+  console.log('[SW] parseApiResponseBody: response meta', { ...logContext, ...meta })
+
+  const text = await res.text()
+  const trimmed = text.trim()
+
+  const dumpBody = !res.ok || !trimmed
+  if (dumpBody) {
+    console.log('[SW] parseApiResponseBody: raw body (non-OK or empty)', {
+      ...logContext,
+      bodyLength: text.length,
+      bodyPreview: trimmed.slice(0, 800),
+    })
+  }
+
+  if (!trimmed) {
+    if (!res.ok) {
+      console.warn('[SW] parseApiResponseBody: empty body with error HTTP status', { ...logContext, ...meta })
+    }
+    return {}
+  }
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (!res.ok) {
+      console.warn('[SW] parseApiResponseBody: non-OK HTTP but JSON body', { ...logContext, ...meta, parsed })
+    }
+    return parsed
+  } catch (e) {
+    const preview = trimmed.slice(0, 800)
+    console.warn('[SW] parseApiResponseBody: JSON.parse failed', {
+      ...logContext,
+      ...meta,
+      parseError: e instanceof Error ? e.message : String(e),
+      bodyLength: trimmed.length,
+      bodyPreview: preview,
+    })
+    return {
+      error: `Non-JSON response (HTTP ${res.status}): ${preview.slice(0, 240)}${preview.length > 240 ? '…' : ''}`,
+    }
+  }
+}
+
 // ─── Heartbeat ────────────────────────────────────────────────────────────────
 
 function startHeartbeat(jobId, heartbeatEvent) {
@@ -198,7 +254,7 @@ async function startDownload(jobId) {
         }),
         signal: controller.signal,
       })
-      const body = await res.json()
+      const body = await parseApiResponseBody(res, { jobId, op: 'ytdlp/download', videoIndex: i })
       if (body.error) {
         console.warn('[SW] startDownload: fetch returned error', { jobId, videoIndex: i, error: body.error })
         video.status = 'failed'
@@ -395,7 +451,7 @@ async function startTranscribe(jobId) {
         }),
         signal: controller.signal,
       })
-      const body = await res.json()
+      const body = await parseApiResponseBody(res, { jobId, op: 'tencent-asr/transcribe' })
       if (body.error) {
         console.warn('[SW] startTranscribe: tencent error', { jobId, error: body.error })
       } else {
@@ -415,7 +471,7 @@ async function startTranscribe(jobId) {
         body: JSON.stringify(reqBody),
         signal: controller.signal,
       })
-      const body = await res.json()
+      const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/transcribe' })
       if (body.error) {
         console.warn('[SW] startTranscribe: videocaptioner error', { jobId, error: body.error })
       } else {
@@ -543,7 +599,7 @@ async function startTranslate(jobId) {
       body: JSON.stringify(reqBody),
       signal: controller.signal,
     })
-    const body = await res.json()
+    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/translate' })
     if (body.error) {
       console.warn('[SW] startTranslate: videocaptioner error', { jobId, error: body.error })
     } else {
@@ -613,6 +669,158 @@ async function removeTranslate(jobId) {
   stopHeartbeat(jobId)
   await dbDeleteJob(jobId)
   await notifyClients('translate:removed', { id: jobId, reason: 'user' })
+}
+
+// ─── Synthesize logic ─────────────────────────────────────────────────────────
+
+async function startSynthesize(jobId) {
+  console.log('[SW] startSynthesize called', { jobId })
+
+  if (abortControllers.has(jobId)) {
+    console.log('[SW] startSynthesize: already running, skipping', { jobId })
+    return
+  }
+
+  const job = await dbGetJob(jobId)
+  if (!job || job.type !== 'synthesize') {
+    console.warn('[SW] startSynthesize: job not found or wrong type', { jobId, type: job?.type })
+    return
+  }
+
+  const controller = new AbortController()
+  abortControllers.set(jobId, controller)
+
+  job.status = 'running'
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+
+  startHeartbeat(jobId, 'synthesize:heartbeat')
+  await notifyClients('synthesize:started', { id: jobId })
+
+  let data
+  try {
+    data = JSON.parse(job.data || '{}')
+  } catch (_) {
+    data = {}
+  }
+
+  const videoPath = data.videoPathPlatform || data.videoPath || ''
+  const subtitlePath = data.subtitlePathPlatform || data.subtitlePath || ''
+
+  let ok = false
+  try {
+    const reqBody = {
+      videoPath,
+      subtitlePath,
+    }
+    if (data.subtitleMode) reqBody.subtitleMode = data.subtitleMode
+    if (data.quality) reqBody.quality = data.quality
+    if (data.style) reqBody.style = data.style
+    if (data.renderMode) reqBody.renderMode = data.renderMode
+    if (data.layout) reqBody.layout = data.layout
+
+    const synthesizePath = '/api/videocaptioner/synthesize'
+    const requestUrl = new URL(synthesizePath, self.location.origin).href
+    const pathLen = (s) => (typeof s === 'string' ? s.length : 0)
+    const pathHead = (s, n) => (typeof s === 'string' ? `${s.slice(0, n)}${s.length > n ? '…' : ''}` : String(s))
+    console.log('[SW] startSynthesize: outgoing request', {
+      jobId,
+      synthesizePath,
+      requestUrl,
+      swScope: self.registration?.scope,
+      serviceWorkerUrl: self.location?.href,
+      jobFolder: job.folder,
+      jobType: job.type,
+      dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+      reqBody: {
+        ...reqBody,
+        videoPath: `${pathHead(videoPath, 160)} (len=${pathLen(videoPath)})`,
+        subtitlePath: `${pathHead(subtitlePath, 160)} (len=${pathLen(subtitlePath)})`,
+      },
+    })
+
+    const res = await fetch(synthesizePath, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reqBody),
+      signal: controller.signal,
+    })
+    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/synthesize' })
+    if (body.error) {
+      console.warn('[SW] startSynthesize: videocaptioner error', {
+        jobId,
+        error: body.error,
+        responseUrl: res.url,
+        httpStatus: res.status,
+      })
+    } else {
+      ok = true
+    }
+  } catch (e) {
+    console.log('[SW] startSynthesize: fetch threw', {
+      jobId,
+      aborted: controller.signal.aborted,
+      errorMessage: e instanceof Error ? e.message : String(e),
+    })
+    if (controller.signal.aborted) {
+      job.status = 'stopped'
+      job.progress = 0
+      job.updatedAt = Date.now()
+      await dbPutJob(job)
+      abortControllers.delete(jobId)
+      stopHeartbeat(jobId)
+      await notifyClients('synthesize:stopped', { id: jobId })
+      return
+    }
+    ok = false
+  }
+
+  abortControllers.delete(jobId)
+  stopHeartbeat(jobId)
+
+  if (controller.signal.aborted) {
+    job.status = 'stopped'
+  } else if (ok) {
+    job.status = 'succeeded'
+    job.progress = 100
+    await notifyClients('synthesize:succeeded', { id: jobId })
+  } else {
+    job.status = 'failed'
+    await notifyClients('synthesize:failed', { id: jobId })
+  }
+
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+}
+
+async function stopSynthesize(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+
+  const job = await dbGetJob(jobId)
+  if (job && job.type === 'synthesize') {
+    job.status = 'stopped'
+    job.updatedAt = Date.now()
+    await dbPutJob(job)
+  }
+
+  await notifyClients('synthesize:stopped', { id: jobId })
+}
+
+async function removeSynthesize(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+  await dbDeleteJob(jobId)
+  await notifyClients('synthesize:removed', { id: jobId, reason: 'user' })
 }
 
 // ─── Service Worker lifecycle ─────────────────────────────────────────────────
@@ -686,6 +894,21 @@ self.addEventListener('message', (event) => {
     case 'translate:remove':
       if (msg.id) {
         removeTranslate(msg.id)
+      }
+      break
+    case 'synthesize:start':
+      if (msg.id) {
+        startSynthesize(msg.id)
+      }
+      break
+    case 'synthesize:stop':
+      if (msg.id) {
+        stopSynthesize(msg.id)
+      }
+      break
+    case 'synthesize:remove':
+      if (msg.id) {
+        removeSynthesize(msg.id)
       }
       break
   }

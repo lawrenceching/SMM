@@ -18,8 +18,8 @@ vi.mock('@/components/ui/dropdown-menu', () => {
     DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
     DropdownMenuTrigger: ({ children, asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
     DropdownMenuContent: ({ children }: any) => <div role="menu">{children}</div>,
-    DropdownMenuItem: ({ children, disabled, onClick }: any) => (
-      <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick}>{children}</div>
+    DropdownMenuItem: ({ children, disabled, onClick, ...rest }: any) => (
+      <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick} {...rest}>{children}</div>
     ),
     DropdownMenuSeparator: () => <hr />,
   }
@@ -281,6 +281,42 @@ describe('TvShowHeaderV2', () => {
       )
 
       expect(screen.getByTestId('media-database-searchbox')).toBeInTheDocument()
+    })
+  })
+
+  describe('Subtitle menu / synthesize', () => {
+    const okTv = {
+      status: 'ok' as const,
+      mediaFolderPath: '/media/show',
+      mediaFiles: [],
+      tvShow: { id: '123', name: 'Test Show', database: 'TMDB' as const, seasons: [] },
+    } as UIMediaMetadata
+
+    it('disables subtitle dropdown when all subtitle actions are blocked', () => {
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okTv}
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
+        />,
+      )
+      expect(screen.getByTestId('tvshow-header-subtitle')).toBeDisabled()
+    })
+
+    it('invokes onSynthesizeClick when synthesize menu item is used', () => {
+      const onSynthesizeClick = vi.fn()
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okTv}
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
+          onSynthesizeClick={onSynthesizeClick}
+          isSynthesizeAvailable
+          hasSynthesizeTargets
+        />,
+      )
+      fireEvent.click(screen.getByTestId('tvshow-header-synthesize'))
+      expect(onSynthesizeClick).toHaveBeenCalledTimes(1)
     })
   })
 })

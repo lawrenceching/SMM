@@ -30,12 +30,14 @@ import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolder
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
-import { TranscribeDialog, SubtitleTranslationDialog } from "@/components/dialogs"
+import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
 import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
+import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslateManager } from "@/hooks/useTranslateManager"
+import { useSynthesizeManager } from "@/hooks/useSynthesizeManager"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
@@ -165,6 +167,16 @@ function TvShowPanel() {
   const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
   const isTranslateAvailable = isVideoCaptionerReady
 
+  const synthesizeSubtitleDialogRows = useMemo(
+    () =>
+      synthesizeSubtitleDialogRowsFromMediaFiles(
+        mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
+      ),
+    [mediaMetadata],
+  )
+  const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
+  const isSynthesizeAvailable = isVideoCaptionerReady
+
   useTranslateManager({
     platformFolder:
       mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
@@ -176,7 +188,19 @@ function TvShowPanel() {
     }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
   })
 
+  useSynthesizeManager({
+    platformFolder:
+      mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
+        ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+        : undefined,
+    onJobSucceeded: useCallback(() => {
+      const p = mediaMetadata?.mediaFolderPath
+      if (p) void fetchMediaMetadata({ path: p })
+    }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
+  })
+
   const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
+  const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
   const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
   const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
@@ -771,6 +795,14 @@ function TvShowPanel() {
     setIsSubtitleTranslationOpen(true)
   }, [hasTranslateTargets])
 
+  const handleHeaderSynthesizeClick = useCallback(() => {
+    if (!hasSynthesizeTargets) {
+      toast.error("No video and subtitle pairs available to synthesize.")
+      return
+    }
+    setIsSynthesizeSubtitleOpen(true)
+  }, [hasSynthesizeTargets])
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       <TvShowPanelPrompts />
@@ -789,6 +821,16 @@ function TvShowPanel() {
         isOpen={isSubtitleTranslationOpen}
         onClose={() => setIsSubtitleTranslationOpen(false)}
         rows={subtitleTranslationDialogRows}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
+      <SynthesizeSubtitleDialog
+        isOpen={isSynthesizeSubtitleOpen}
+        onClose={() => setIsSynthesizeSubtitleOpen(false)}
+        rows={synthesizeSubtitleDialogRows}
         folder={
           mediaMetadata?.mediaFolderPath
             ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
@@ -868,10 +910,13 @@ function TvShowPanel() {
           openScrape={openScrape}
           onTranscribeClick={() => setIsTranscribeOpen(true)}
           onTranslateClick={handleHeaderTranslateClick}
+          onSynthesizeClick={handleHeaderSynthesizeClick}
           isTranscribeAvailable={isTranscribeAvailable}
           hasTranscribeTargets={hasTranscribeTargets}
           isTranslateAvailable={isTranslateAvailable}
           hasTranslateTargets={hasTranslateTargets}
+          isSynthesizeAvailable={isSynthesizeAvailable}
+          hasSynthesizeTargets={hasSynthesizeTargets}
           episodeTableLayout={episodeTableLayout}
           onEpisodeTableLayoutChange={setEpisodeTableLayout}
         />
