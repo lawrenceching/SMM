@@ -83,7 +83,41 @@ export interface TranscribeBackgroundJob extends BackgroundJobBase {
   data: TranscribeBackgroundJobData;
 }
 
-export type BackgroundJob = GenericBackgroundJob | DownloadVideoBackgroundJob | TranscribeBackgroundJob;
+/** Translator for VideoCaptioner `subtitle --translator`. */
+export type TranslateTranslator = 'bing' | 'google' | 'llm';
+
+/** Layout for VideoCaptioner `subtitle --layout`. */
+export type TranslateSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only';
+
+export interface TranslateBackgroundJobData {
+  /** Media library folder (platform path), matches `TaskJobRecord.folder` for filtering. */
+  folder: string;
+  /** Absolute source subtitle path (POSIX); used for job identity and API. */
+  subtitlePath: string;
+  /** Platform path for `/api/videocaptioner/translate` request body. */
+  subtitlePathPlatform: string;
+  /** Associated media file path (POSIX); used for row-status mapping in MusicPanel. */
+  mediaPath?: string;
+  /** Platform path for media file when present. */
+  mediaPathPlatform?: string;
+  title: string;
+  translator: TranslateTranslator;
+  targetLanguage: string;
+  reflect?: boolean;
+  layout?: TranslateSubtitleLayout;
+  llm?: {
+    apiKey: string;
+    apiBase?: string;
+    model?: string;
+  };
+}
+
+export interface TranslateBackgroundJob extends BackgroundJobBase {
+  type: 'translate';
+  data: TranslateBackgroundJobData;
+}
+
+export type BackgroundJob = GenericBackgroundJob | DownloadVideoBackgroundJob | TranscribeBackgroundJob | TranslateBackgroundJob;
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -95,4 +129,8 @@ export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgr
 
 export function isTranscribeBackgroundJob(job: BackgroundJob): job is TranscribeBackgroundJob {
   return job.type === 'transcribe';
+}
+
+export function isTranslateBackgroundJob(job: BackgroundJob): job is TranslateBackgroundJob {
+  return job.type === 'translate';
 }

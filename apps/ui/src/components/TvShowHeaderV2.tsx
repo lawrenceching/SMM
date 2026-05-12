@@ -1,6 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions } from "lucide-react"
+import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions, ChevronDown } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -22,9 +22,12 @@ export interface TvShowHeaderV2Props {
     onRenameClick?: () => void
     /** Opens transcribe dialog when VideoCaptioner is available and there are video files. */
     onTranscribeClick?: () => void
+    onTranslateClick?: () => void
     isTranscribeAvailable?: boolean
     /** True when `mediaFiles` has at least one entry (caller-derived). */
     hasTranscribeTargets?: boolean
+    isTranslateAvailable?: boolean
+    hasTranslateTargets?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -37,8 +40,11 @@ export function TvShowHeaderV2({
     onRecognizeButtonClick,
     onRenameClick,
     onTranscribeClick,
+    onTranslateClick,
     isTranscribeAvailable = false,
     hasTranscribeTargets = false,
+    isTranslateAvailable = false,
+    hasTranslateTargets = false,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -74,6 +80,11 @@ export function TvShowHeaderV2({
         actionsDisabled ||
         !hasTranscribeTargets ||
         !isTranscribeAvailable
+    const translateBlocked =
+        actionsDisabled ||
+        !hasTranslateTargets ||
+        !isTranslateAvailable
+    const subtitleBlocked = transcribeBlocked && translateBlocked
 
     const hasExternalId = !!mediaId
     const externalUrl = hasExternalId
@@ -210,17 +221,38 @@ export function TvShowHeaderV2({
                                 <Download className="size-4 mr-2" />
                                 {t('tvShow.scrape', { ns: 'components' })}
                             </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="hidden @[200px]:inline-flex"
-                                data-testid="tvshow-header-transcribe"
-                                disabled={transcribeBlocked}
-                                onClick={() => onTranscribeClick?.()}
-                            >
-                                <Captions className="size-4 mr-2" />
-                                {t('mediaPlayer.trackContextMenu.transcribe', { ns: 'components' })}
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="hidden @[200px]:inline-flex"
+                                        disabled={isUpdatingTvShow || subtitleBlocked}
+                                        data-testid="tvshow-header-subtitle"
+                                    >
+                                        <Captions className="size-4 mr-2" />
+                                        {t('mediaPlayer.trackContextMenu.subtitle', { ns: 'components' })}
+                                        <ChevronDown className="size-4 ml-1 opacity-60" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    <DropdownMenuItem
+                                        disabled={transcribeBlocked}
+                                        onClick={() => onTranscribeClick?.()}
+                                        data-testid="tvshow-header-transcribe"
+                                    >
+                                        <Captions className="size-4 mr-2" />
+                                        {t('mediaPlayer.trackContextMenu.transcribe', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        disabled={translateBlocked}
+                                        onClick={() => onTranslateClick?.()}
+                                        data-testid="tvshow-header-translate"
+                                    >
+                                        {t('mediaPlayer.trackContextMenu.translate', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -290,7 +322,25 @@ export function TvShowHeaderV2({
                                         <Download className="size-4" />
                                         {t('tvShow.scrape', { ns: 'components' })}
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="@[520px]:hidden" />
+                                    <DropdownMenuSeparator className="@[200px]:hidden" />
+                                    <DropdownMenuItem
+                                        className="@[200px]:hidden"
+                                        disabled={transcribeBlocked}
+                                        onClick={() => onTranscribeClick?.()}
+                                        data-testid="tvshow-header-transcribe"
+                                    >
+                                        <Captions className="size-4" />
+                                        {t('mediaPlayer.trackContextMenu.transcribe', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="@[200px]:hidden"
+                                        disabled={translateBlocked}
+                                        onClick={() => onTranslateClick?.()}
+                                        data-testid="tvshow-header-translate-overflow"
+                                    >
+                                        {t('mediaPlayer.trackContextMenu.translate', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         disabled={!externalUrl}
                                         onClick={() => externalUrl && window.open(externalUrl, '_blank', 'noopener,noreferrer')}

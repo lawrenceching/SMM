@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "events";
-import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner } from "./VideoCaptioner";
+import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner } from "./VideoCaptioner";
 
 const h = vi.hoisted(() => ({
   spawn: vi.fn(),
@@ -39,9 +39,19 @@ vi.mock("fs", async () => {
     ...actual,
     default: {
       ...actual,
-      existsSync: vi.fn((targetPath: string) => targetPath.endsWith(".mp3") || targetPath.includes("videocaptioner")),
+      existsSync: vi.fn(
+        (targetPath: string) =>
+          targetPath.endsWith(".mp3") ||
+          targetPath.endsWith(".srt") ||
+          targetPath.includes("videocaptioner")
+      ),
     },
-    existsSync: vi.fn((targetPath: string) => targetPath.endsWith(".mp3") || targetPath.includes("videocaptioner")),
+    existsSync: vi.fn(
+      (targetPath: string) =>
+        targetPath.endsWith(".mp3") ||
+        targetPath.endsWith(".srt") ||
+        targetPath.includes("videocaptioner")
+    ),
   };
 });
 
@@ -184,10 +194,112 @@ describe("transcribeWithVideoCaptioner", () => {
     child.emit("close", 0);
     await promise;
 
-    const spawnCall = h.spawn.mock.calls[0];
+    const spawnCall = h.spawn.mock.calls[0]!;
     const options = spawnCall[2] as { env?: NodeJS.ProcessEnv };
     expect(options.env).toBeDefined();
     const envPath = options.env!.PATH || options.env!.Path || "";
     expect(envPath.toLowerCase().startsWith("c:/smm/bin/ffmpeg".toLowerCase())).toBe(true);
+  });
+});
+
+describe("translateSubtitleWithVideoCaptioner", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("invokes subtitle with translator, target language, and skip optimize/split", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = translateSubtitleWithVideoCaptioner("C:/media/a.srt", {
+      translator: "bing",
+      targetLanguage: "zh-Hans",
+    });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      [
+        "subtitle",
+        "C:/media/a.srt",
+        "--translator",
+        "bing",
+        "--target-language",
+        "zh-Hans",
+        "--no-optimize",
+        "--no-split",
+      ],
+      expect.any(Object)
+    );
+  });
+
+  it("passes --reflect and --layout when set", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = translateSubtitleWithVideoCaptioner("C:/media/a.srt", {
+      translator: "llm",
+      targetLanguage: "en",
+      reflect: true,
+      layout: "target-only",
+      llm: { apiKey: "sk-test", apiBase: "https://api.example/v1", model: "gpt-4o-mini" },
+    });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      [
+        "subtitle",
+        "C:/media/a.srt",
+        "--translator",
+        "llm",
+        "--target-language",
+        "en",
+        "--no-optimize",
+        "--no-split",
+        "--reflect",
+        "--layout",
+        "target-only",
+        "--api-key",
+        "sk-test",
+        "--api-base",
+        "https://api.example/v1",
+        "--model",
+        "gpt-4o-mini",
+      ],
+      expect.any(Object)
+    );
+  });
+
+  it("returns error when subtitle file is missing", async () => {
+    const result = await translateSubtitleWithVideoCaptioner("C:/missing/foo.vtt", {
+      translator: "bing",
+      targetLanguage: "en",
+    });
+    expect(result.error).toContain("file not found");
+  });
+
+  it("returns timeout error and kills child process", async () => {
+    vi.useFakeTimers();
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = translateSubtitleWithVideoCaptioner("C:/media/a.srt", {
+      translator: "google",
+      targetLanguage: "ja",
+    });
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    const result = await promise;
+
+    expect(child.kill).toHaveBeenCalled();
+    expect(result.error).toContain("timed out");
   });
 });

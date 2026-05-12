@@ -26,14 +26,16 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
-import { DeleteTrackDialog, TranscribeDialog } from "@/components/dialogs";
+import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useTranscribeManager } from "@/hooks/useTranscribeManager";
+import { useTranslateManager } from "@/hooks/useTranslateManager";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
 } from "@/lib/transcribeDialogRows";
+import { subtitleTranslationDialogRowsFromMusicFileRows } from "@/lib/subtitleTranslationDialogRows";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 import { useFeatures } from "@/hooks/useFeatures";
 
@@ -184,6 +186,22 @@ export function MusicPanel() {
     }, [mediaMetadata, fetchMediaMetadata]),
   });
 
+  const {
+    translatingPaths,
+    translateFailedPaths,
+    jobIdByPath: translateJobIdByPath,
+    stopTranslate,
+  } = useTranslateManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      if (mediaMetadata?.mediaFolderPath) {
+        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
+      }
+    }, [mediaMetadata, fetchMediaMetadata]),
+  });
+
   const jobTracks = useMemo(
     () => tracksFromDownloadJobRecords(jobRecords),
     [jobRecords],
@@ -210,12 +228,16 @@ export function MusicPanel() {
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus();
   const isTranscribeAvailable =
     isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled);
+  const isTranslateAvailable = isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
   const [transcribeDialogDefaultSelectedIds, setTranscribeDialogDefaultSelectedIds] = useState<
     string[] | undefined
   >(undefined);
+  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false);
+  const [subtitleTranslationDefaultSelectedIds, setSubtitleTranslationDefaultSelectedIds] =
+    useState<string[] | undefined>(undefined);
 
   const handleToggleMultiSelectMode = useCallback(() => {
     setIsMultiSelectMode((prev) => {
@@ -295,6 +317,40 @@ export function MusicPanel() {
     return () => controller.abort();
   }, [mediaMetadata, pathSignature]);
 
+  const musicFileRowsForDialogs = useMemo<MusicFileRow[]>(
+    () =>
+      tracks.map((track, index) => ({
+        id: track.id,
+        index,
+        title: track.title,
+        artist: track.artist ?? "",
+        duration: track.duration ?? 0,
+        thumbnail: track.thumbnail,
+        path: track.path,
+        status: track.status,
+        jobId: track.jobId,
+      })),
+    [tracks],
+  );
+
+  const subtitleTranslationDialogRows = useMemo(
+    () =>
+      subtitleTranslationDialogRowsFromMusicFileRows(
+        musicFileRowsForDialogs,
+        mediaMetadata?.mediaFolderPath,
+        mediaMetadata?.files,
+      ),
+    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath, mediaMetadata?.files],
+  );
+
+  const translateEligibleByMediaPath = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const r of subtitleTranslationDialogRows) {
+      if (r.mediaPath) m.set(r.mediaPath, r.eligible);
+    }
+    return m;
+  }, [subtitleTranslationDialogRows]);
+
   const tableData = useMemo<MusicFileRow[]>(() => {
     const folder = mediaMetadata?.mediaFolderPath
     return tracks.map((track, index) => {
@@ -304,6 +360,12 @@ export function MusicPanel() {
         if (transcribingPaths.has(abs)) transcribeStatus = "running"
         else if (transcribeFailedPaths.has(abs)) transcribeStatus = "failed"
       }
+      let translateStatus: MusicFileRow["translateStatus"]
+      if (abs) {
+        if (translatingPaths.has(abs)) translateStatus = "running"
+        else if (translateFailedPaths.has(abs)) translateStatus = "failed"
+      }
+      const canTranslate = abs ? (translateEligibleByMediaPath.get(abs) ?? false) : false
       return {
         id: track.id,
         index,
@@ -315,9 +377,19 @@ export function MusicPanel() {
         status: track.status,
         jobId: track.jobId,
         transcribeStatus,
+        translateStatus,
+        canTranslate,
       }
     })
-  }, [tracks, transcribingPaths, transcribeFailedPaths, mediaMetadata?.mediaFolderPath]);
+  }, [
+    tracks,
+    transcribingPaths,
+    transcribeFailedPaths,
+    translatingPaths,
+    translateFailedPaths,
+    mediaMetadata?.mediaFolderPath,
+    translateEligibleByMediaPath,
+  ]);
 
   const handleTranscribeStop = useCallback(
     (row: MusicFileRow) => {
@@ -337,11 +409,15 @@ export function MusicPanel() {
 
   const transcribeDialogRows = useMemo(
     () =>
-      transcribeDialogRowsFromMusicFileRows(tableData, mediaMetadata?.mediaFolderPath),
-    [tableData, mediaMetadata?.mediaFolderPath],
+      transcribeDialogRowsFromMusicFileRows(
+        musicFileRowsForDialogs,
+        mediaMetadata?.mediaFolderPath,
+      ),
+    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath],
   );
 
   const hasTranscribeTargets = transcribeDialogRows.length > 0;
+  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible);
 
   const closeTranscribeDialog = useCallback(() => {
     setIsTranscribeOpen(false);
@@ -366,6 +442,69 @@ export function MusicPanel() {
     }
     setIsTranscribeOpen(true);
   }, [hasTranscribeTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
+
+  const closeSubtitleTranslationDialog = useCallback(() => {
+    setIsSubtitleTranslationOpen(false);
+    setSubtitleTranslationDefaultSelectedIds(undefined);
+  }, []);
+
+  const handleHeaderTranslateClick = useCallback(() => {
+    if (!hasTranslateTargets) {
+      toast.error("No subtitle files available to translate.");
+      return;
+    }
+    const folder = mediaMetadata?.mediaFolderPath;
+    const selectedWithPath = selectedRows.filter(
+      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
+    );
+    if (selectedWithPath.length > 0) {
+      const ids: string[] = [];
+      for (const sel of selectedWithPath) {
+        const abs = absolutePosixMusicFilePath(sel, folder)!;
+        const match = subtitleTranslationDialogRows.find(
+          (r) => r.mediaPath === abs && r.eligible && r.path,
+        );
+        if (match) ids.push(match.id);
+      }
+      setSubtitleTranslationDefaultSelectedIds(ids.length > 0 ? ids : undefined);
+    } else {
+      setSubtitleTranslationDefaultSelectedIds(undefined);
+    }
+    setIsSubtitleTranslationOpen(true);
+  }, [hasTranslateTargets, selectedRows, mediaMetadata?.mediaFolderPath, subtitleTranslationDialogRows]);
+
+  const handleTrackTranslate = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const pathId = absolutePosixMusicFilePath(row, folder);
+      if (!pathId) {
+        toast.error(`Track "${row.title}" does not have an associated file path.`);
+        return;
+      }
+      const match = subtitleTranslationDialogRows.find(
+        (r) => r.mediaPath === pathId && r.eligible && r.path,
+      );
+      if (!match) {
+        toast.error(`Track "${row.title}" does not have a sidecar subtitle to translate.`);
+        return;
+      }
+      setSelectedTrackIds([]);
+      setSubtitleTranslationDefaultSelectedIds([match.id]);
+      setIsSubtitleTranslationOpen(true);
+    },
+    [mediaMetadata?.mediaFolderPath, subtitleTranslationDialogRows],
+  );
+
+  const handleTranslateStop = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const abs = absolutePosixMusicFilePath(row, folder);
+      if (!abs) return;
+      const jobId = translateJobIdByPath.get(abs);
+      if (jobId) void stopTranslate(jobId);
+    },
+    [mediaMetadata?.mediaFolderPath, translateJobIdByPath, stopTranslate],
+  );
 
   const handleTrackTranscribe = useCallback(
     (row: MusicFileRow) => {
@@ -589,13 +728,27 @@ export function MusicPanel() {
             : undefined
         }
       />
+      <SubtitleTranslationDialog
+        isOpen={isSubtitleTranslationOpen}
+        onClose={closeSubtitleTranslationDialog}
+        rows={subtitleTranslationDialogRows}
+        defaultSelectedIds={subtitleTranslationDefaultSelectedIds}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
           selectedMediaMetadata={mediaMetadata}
           onDownloadClick={handleDownloadClick}
           onTranscribeClick={handleHeaderTranscribeClick}
+          onTranslateClick={handleHeaderTranslateClick}
           isTranscribeAvailable={isTranscribeAvailable}
           hasTranscribeTargets={hasTranscribeTargets}
+          isTranslateAvailable={isTranslateAvailable}
+          hasTranslateTargets={hasTranslateTargets}
           isMultiSelectMode={isMultiSelectMode}
           onToggleMultiSelectMode={handleToggleMultiSelectMode}
         />
@@ -618,6 +771,9 @@ export function MusicPanel() {
             isTranscribeAvailable={isTranscribeAvailable}
             onTrackTranscribe={handleTrackTranscribe}
             onTranscribeStop={handleTranscribeStop}
+            isTranslateAvailable={isTranslateAvailable}
+            onTrackTranslate={handleTrackTranslate}
+            onTranslateStop={handleTranslateStop}
             isMultiSelectMode={isMultiSelectMode}
             selectedTrackIds={selectedTrackIds}
             onSelectedTrackIdsChange={setSelectedTrackIds}

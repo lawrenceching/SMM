@@ -16,6 +16,13 @@ vi.mock("@/components/ui/context-menu", () => {
     ContextMenu: ({ children }: any) => <div>{children}</div>,
     ContextMenuTrigger: ({ children }: any) => <div>{children}</div>,
     ContextMenuContent: ({ children }: any) => <div>{children}</div>,
+    ContextMenuSub: ({ children }: any) => <div data-testid="context-menu-sub">{children}</div>,
+    ContextMenuSubTrigger: ({ children, disabled }: any) => (
+      <button type="button" disabled={disabled}>
+        {children}
+      </button>
+    ),
+    ContextMenuSubContent: ({ children }: any) => <div>{children}</div>,
     ContextMenuItem: ({ children, disabled, onClick }: any) => (
       <button disabled={disabled} onClick={onClick}>
         {children}

@@ -2,6 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
 
+vi.mock("@/components/ui/dropdown-menu", () => ({
+    DropdownMenu: ({ children }: any) => (
+      <div data-testid="music-header-dropdown-root">{children}</div>
+    ),
+    DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuContent: ({ children }: any) => <div role="menu">{children}</div>,
+    DropdownMenuItem: ({ children, disabled, onClick, ...rest }: any) => (
+      <button type="button" disabled={disabled} onClick={onClick} {...rest}>
+        {children}
+      </button>
+    ),
+}));
+
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
     t: (_key: string, opts?: { defaultValue?: string; ns?: string }) => {

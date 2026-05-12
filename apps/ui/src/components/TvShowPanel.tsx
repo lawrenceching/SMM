@@ -30,10 +30,14 @@ import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolder
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
-import { TranscribeDialog } from "@/components/dialogs"
+import { TranscribeDialog, SubtitleTranslationDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
+import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useTranslateManager } from "@/hooks/useTranslateManager"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
 import { fetchPlans, savePlan } from "@/actions/planActions"
@@ -111,6 +115,7 @@ function TvShowPanel() {
   }, [])
   const { selectTvShowForFolderMutation, updateMediaMetadata, persistUiMediaMetadata } =
     useSelectTvShowForFolderMutation()
+  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
 
   const handleSelectResult = useCallback(
     (args: SearchResultSelectedArgs) => {
@@ -150,6 +155,28 @@ function TvShowPanel() {
   )
   const hasTranscribeTargets = transcribeDialogRows.length > 0
 
+  const subtitleTranslationDialogRows = useMemo(
+    () =>
+      subtitleTranslationDialogRowsFromMediaFiles(
+        mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
+      ),
+    [mediaMetadata],
+  )
+  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
+  const isTranslateAvailable = isVideoCaptionerReady
+
+  useTranslateManager({
+    platformFolder:
+      mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
+        ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+        : undefined,
+    onJobSucceeded: useCallback(() => {
+      const p = mediaMetadata?.mediaFolderPath
+      if (p) void fetchMediaMetadata({ path: p })
+    }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
+  })
+
+  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
   const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
   const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
@@ -736,6 +763,13 @@ function TvShowPanel() {
     }
   }, [plan])
 
+  const handleHeaderTranslateClick = useCallback(() => {
+    if (!hasTranslateTargets) {
+      toast.error("No subtitle files available to translate.")
+      return
+    }
+    setIsSubtitleTranslationOpen(true)
+  }, [hasTranslateTargets])
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
@@ -745,6 +779,16 @@ function TvShowPanel() {
         isOpen={isTranscribeOpen}
         onClose={() => setIsTranscribeOpen(false)}
         rows={transcribeDialogRows}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
+      <SubtitleTranslationDialog
+        isOpen={isSubtitleTranslationOpen}
+        onClose={() => setIsSubtitleTranslationOpen(false)}
+        rows={subtitleTranslationDialogRows}
         folder={
           mediaMetadata?.mediaFolderPath
             ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
@@ -823,8 +867,11 @@ function TvShowPanel() {
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
           onTranscribeClick={() => setIsTranscribeOpen(true)}
+          onTranslateClick={handleHeaderTranslateClick}
           isTranscribeAvailable={isTranscribeAvailable}
           hasTranscribeTargets={hasTranscribeTargets}
+          isTranslateAvailable={isTranslateAvailable}
+          hasTranslateTargets={hasTranslateTargets}
           episodeTableLayout={episodeTableLayout}
           onEpisodeTableLayoutChange={setEpisodeTableLayout}
         />

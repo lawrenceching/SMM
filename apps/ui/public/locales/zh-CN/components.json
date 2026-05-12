@@ -228,6 +228,8 @@
     "download": "下载",
     "transcribingTooltip": "正在生成字幕…",
     "transcribeFailedTooltip": "字幕生成失败",
+    "translateRunningTooltip": "正在翻译字幕…",
+    "translateFailedTooltip": "字幕翻译失败",
     "trackContextMenu": {
       "open": "打开",
       "delete": "删除",
@@ -237,8 +239,11 @@
       "downloadStart": "开始",
       "downloadStop": "停止",
       "downloadRemove": "删除",
+      "subtitle": "字幕",
       "transcribe": "生成字幕",
-      "transcribeStop": "停止生成字幕"
+      "transcribeStop": "停止生成字幕",
+      "translate": "翻译字幕",
+      "translateStop": "停止翻译字幕"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"
@@ -251,6 +256,30 @@
       "artist": "艺术家",
       "duration": "时长"
     }
+  },
+  "subtitleTranslationDialog": {
+    "title": "翻译字幕",
+    "description": "为所选字幕选择翻译引擎与目标语言。",
+    "translator": "翻译引擎",
+    "translators": {
+      "bing": "必应",
+      "google": "谷歌",
+      "llm": "大语言模型"
+    },
+    "targetLanguage": "目标语言",
+    "reflect": "双语对照输出",
+    "apiKey": "API 密钥",
+    "apiBase": "API 基础地址",
+    "model": "模型",
+    "layout": "排版",
+    "layoutOptional": "可选排版",
+    "layoutNone": "无",
+    "confirm": "开始翻译",
+    "cancel": "取消",
+    "noSubtitleFile": "该媒体条目未关联字幕文件。",
+    "toastStart": "已开始翻译",
+    "toastSucceeded": "翻译完成",
+    "toastFailed": "翻译失败"
   },
   "tvShowEpisodeTable": {
     "columns": {

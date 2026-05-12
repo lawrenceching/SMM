@@ -7,7 +7,42 @@ import { logger } from "../../lib/logger";
 import { discoverFfmpeg } from "./Ffmpeg";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
-const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
+export const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
+
+async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.ProcessEnv | undefined> {
+  let env: NodeJS.ProcessEnv | undefined;
+  try {
+    const userConfig = await getUserConfig();
+    if (userConfig.useBundledFfmpegForVideoCaptioner) {
+      const ffmpegPath = await discoverFfmpeg();
+      if (ffmpegPath) {
+        const ffmpegDir = path.dirname(ffmpegPath);
+        const baseEnv: NodeJS.ProcessEnv = { ...process.env };
+        const currentPath = baseEnv.PATH || baseEnv.Path || "";
+        const sep = process.platform === "win32" ? ";" : ":";
+        const newPath = ffmpegDir + (currentPath ? sep + currentPath : "");
+        baseEnv.PATH = newPath;
+        baseEnv.Path = newPath;
+        env = baseEnv;
+        videoCaptionerLog.info(
+          { ffmpegPath, ffmpegDir, useBundledFfmpegForVideoCaptioner: true },
+          "configured PATH for videocaptioner to prefer bundled ffmpeg"
+        );
+      } else {
+        videoCaptionerLog.warn(
+          { useBundledFfmpegForVideoCaptioner: true },
+          "useBundledFfmpegForVideoCaptioner is enabled but bundled ffmpeg was not found"
+        );
+      }
+    }
+  } catch (error) {
+    videoCaptionerLog.warn(
+      { error },
+      "failed to read user config for useBundledFfmpegForVideoCaptioner; falling back to default PATH"
+    );
+  }
+  return env;
+}
 
 function getSmmDataDir(): string {
   const platform = os.platform();
@@ -127,6 +162,30 @@ export type VideoCaptionerAsrEngine = (typeof VIDEOCAPTIONER_ASR_ENGINES)[number
 export const VIDEOCAPTIONER_TRANSCRIBE_FORMATS = ["srt", "ass", "txt", "json"] as const;
 export type VideoCaptionerTranscribeFormat = (typeof VIDEOCAPTIONER_TRANSCRIBE_FORMATS)[number];
 
+export const VIDEOCAPTIONER_TRANSLATORS = ["bing", "google", "llm"] as const;
+export type VideoCaptionerTranslator = (typeof VIDEOCAPTIONER_TRANSLATORS)[number];
+
+export const VIDEOCAPTIONER_SUBTITLE_LAYOUTS = [
+  "target-above",
+  "source-above",
+  "target-only",
+  "source-only",
+] as const;
+export type VideoCaptionerSubtitleLayout = (typeof VIDEOCAPTIONER_SUBTITLE_LAYOUTS)[number];
+
+export interface VideoCaptionerTranslateCliOptions {
+  translator: VideoCaptionerTranslator;
+  /** BCP 47 target language code (e.g. zh-Hans, en, ja). */
+  targetLanguage: string;
+  reflect?: boolean;
+  layout?: VideoCaptionerSubtitleLayout;
+  llm?: {
+    apiKey: string;
+    apiBase?: string;
+    model?: string;
+  };
+}
+
 export interface VideoCaptionerTranscribeCliOptions {
   asr?: VideoCaptionerAsrEngine;
   /** ISO 639-1 code or `auto`; forwarded as `--language`. */
@@ -151,37 +210,7 @@ export async function transcribeWithVideoCaptioner(
     return { error: "videocaptioner executable not found" };
   }
 
-  let env: NodeJS.ProcessEnv | undefined;
-  try {
-    const userConfig = await getUserConfig();
-    if (userConfig.useBundledFfmpegForVideoCaptioner) {
-      const ffmpegPath = await discoverFfmpeg();
-      if (ffmpegPath) {
-        const ffmpegDir = path.dirname(ffmpegPath);
-        const baseEnv: NodeJS.ProcessEnv = { ...process.env };
-        const currentPath = baseEnv.PATH || baseEnv.Path || "";
-        const sep = process.platform === "win32" ? ";" : ":";
-        const newPath = ffmpegDir + (currentPath ? sep + currentPath : "");
-        baseEnv.PATH = newPath;
-        baseEnv.Path = newPath;
-        env = baseEnv;
-        videoCaptionerLog.info(
-          { ffmpegPath, ffmpegDir, useBundledFfmpegForVideoCaptioner: true },
-          "configured PATH for videocaptioner to prefer bundled ffmpeg"
-        );
-      } else {
-        videoCaptionerLog.warn(
-          { useBundledFfmpegForVideoCaptioner: true },
-          "useBundledFfmpegForVideoCaptioner is enabled but bundled ffmpeg was not found"
-        );
-      }
-    }
-  } catch (error) {
-    videoCaptionerLog.warn(
-      { error },
-      "failed to read user config for useBundledFfmpegForVideoCaptioner; falling back to default PATH"
-    );
-  }
+  const env = await resolveSpawnEnvForVideoCaptioner();
 
   const asr: VideoCaptionerAsrEngine = options?.asr ?? "bijian";
   // CLI requires subcommand form: videocaptioner transcribe <mediaPath>
@@ -248,6 +277,110 @@ export async function transcribeWithVideoCaptioner(
     });
   } catch (error) {
     videoCaptionerLog.error({ error, executablePath, mediaPath }, "failed to start videocaptioner");
+    return {
+      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+}
+
+export async function translateSubtitleWithVideoCaptioner(
+  subtitlePath: string,
+  options: VideoCaptionerTranslateCliOptions
+): Promise<VideoCaptionerTranscribeResult> {
+  if (!subtitlePath) {
+    return { error: "subtitlePath is required" };
+  }
+  if (!fs.existsSync(subtitlePath)) {
+    return { error: `file not found: ${subtitlePath}` };
+  }
+
+  const executablePath = await discoverVideoCaptioner();
+  if (!executablePath) {
+    return { error: "videocaptioner executable not found" };
+  }
+
+  const env = await resolveSpawnEnvForVideoCaptioner();
+
+  const args = [
+    "subtitle",
+    subtitlePath,
+    "--translator",
+    options.translator,
+    "--target-language",
+    options.targetLanguage.trim(),
+    "--no-optimize",
+    "--no-split",
+  ];
+  if (options.reflect === true) {
+    args.push("--reflect");
+  }
+  if (options.layout !== undefined) {
+    args.push("--layout", options.layout);
+  }
+  if (options.translator === "llm" && options.llm) {
+    args.push("--api-key", options.llm.apiKey);
+    if (options.llm.apiBase?.trim()) {
+      args.push("--api-base", options.llm.apiBase.trim());
+    }
+    if (options.llm.model?.trim()) {
+      args.push("--model", options.llm.model.trim());
+    }
+  }
+
+  const commandForLog = [executablePath, ...args]
+    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+    .join(" ");
+  try {
+    videoCaptionerLog.info(
+      { executablePath, subtitlePath, args, command: commandForLog },
+      "running videocaptioner subtitle translate command"
+    );
+    const child = spawn(executablePath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(env ? { env } : {}),
+    });
+    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
+      let settled = false;
+      let stderrOutput = "";
+      const finish = (result: VideoCaptionerTranscribeResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(result);
+      };
+
+      const timeoutId = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // ignore kill failures and surface timeout error
+        }
+        finish({ error: `videocaptioner timed out after ${TRANSCRIBE_TIMEOUT_MS}ms` });
+      }, TRANSCRIBE_TIMEOUT_MS);
+
+      child.once("error", (error) => {
+        finish({
+          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+        });
+      });
+
+      child.once("close", (code) => {
+        if (code === 0) {
+          finish({ success: true });
+          return;
+        }
+        const trimmedStderr = stderrOutput.trim();
+        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
+      });
+
+      child.stderr?.setEncoding("utf8");
+      child.stderr?.on("data", (chunk: string | Buffer) => {
+        stderrOutput += String(chunk);
+      });
+    });
+  } catch (error) {
+    videoCaptionerLog.error({ error, executablePath, subtitlePath }, "failed to start videocaptioner");
     return {
       error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
     };

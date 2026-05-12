@@ -14,9 +14,12 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions, Languages } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
@@ -34,6 +37,10 @@ export interface MusicFileRow {
   jobId?: string
   /** Subtitle generation task for this file (IndexedDB + Service Worker). */
   transcribeStatus?: "running" | "failed"
+  /** Subtitle translation task for this row's media path (IndexedDB + Service Worker). */
+  translateStatus?: "running" | "failed"
+  /** Sibling `.srt`/`.ass` exists in the media folder (see {@link subtitleTranslationDialogRowsFromMusicFileRows}). */
+  canTranslate?: boolean
 }
 
 interface MusicFileTableProps {
@@ -60,6 +67,12 @@ interface MusicFileTableProps {
   onTrackTranscribe?: (track: MusicFileRow) => void
   /** Stop an in-progress transcribe job for this row's file */
   onTranscribeStop?: (track: MusicFileRow) => void
+  /** VideoCaptioner translate API is available */
+  isTranslateAvailable?: boolean
+  /** Open translate dialog scoped to this row */
+  onTrackTranslate?: (track: MusicFileRow) => void
+  /** Stop an in-progress translate job for this row */
+  onTranslateStop?: (track: MusicFileRow) => void
   /** Whether table is in multi-select mode */
   isMultiSelectMode?: boolean
   /** Selected track ids in multi-select mode */
@@ -120,6 +133,9 @@ export function MusicFileTable({
   isTranscribeAvailable,
   onTrackTranscribe,
   onTranscribeStop,
+  isTranslateAvailable,
+  onTrackTranslate,
+  onTranslateStop,
   isMultiSelectMode = false,
   selectedTrackIds = [],
   onSelectedTrackIdsChange,
@@ -213,6 +229,22 @@ export function MusicFileTable({
               const isActive = currentTrackId === row.id
               const isDownloading = row.status === 'downloading'
               const isTranscribing = row.transcribeStatus === 'running'
+              const isTranslating = row.translateStatus === 'running'
+              const translateDisabled =
+                !row.path ||
+                isDownloading ||
+                !isTranslateAvailable ||
+                !row.canTranslate ||
+                isTranslating
+              const transcribeItemDisabled =
+                !row.path || isDownloading || !isTranscribeAvailable || isTranscribing
+              const subtitleSubmenuDisabled =
+                !(
+                  (row.path && !isDownloading && row.transcribeStatus === 'running') ||
+                  (row.path && !isDownloading && isTranscribeAvailable && !isTranscribing) ||
+                  (row.path && !isDownloading && isTranslateAvailable && row.canTranslate && !isTranslating) ||
+                  (row.path && !isDownloading && row.translateStatus === 'running')
+                )
 
               return (
                 <ContextMenu key={row.id}>
@@ -317,11 +349,15 @@ export function MusicFileTable({
                         <p
                           className={`flex min-w-0 items-center gap-1.5 truncate ${isActive ? "text-green-500 font-medium" : ""}`}
                           title={
-                            isTranscribing
-                              ? t("mediaPlayer.transcribingTooltip")
-                              : row.transcribeStatus === "failed"
-                                ? t("mediaPlayer.transcribeFailedTooltip")
-                                : row.title
+                            isTranslating
+                              ? t("mediaPlayer.translateRunningTooltip")
+                              : row.translateStatus === "failed" && !isTranslating
+                                ? t("mediaPlayer.translateFailedTooltip")
+                                : isTranscribing
+                                  ? t("mediaPlayer.transcribingTooltip")
+                                  : row.transcribeStatus === "failed"
+                                    ? t("mediaPlayer.transcribeFailedTooltip")
+                                    : row.title
                           }
                         >
                           {isTranscribing && (
@@ -331,6 +367,17 @@ export function MusicFileTable({
                           )}
                           {row.transcribeStatus === "failed" && !isTranscribing && (
                             <XCircle
+                              className="size-3.5 shrink-0 text-destructive"
+                              aria-hidden
+                            />
+                          )}
+                          {isTranslating && (
+                            <span className="inline-flex shrink-0 items-center text-primary">
+                              <Languages className="size-3.5 shrink-0 animate-spin" />
+                            </span>
+                          )}
+                          {row.translateStatus === "failed" && !isTranslating && (
+                            <Languages
                               className="size-3.5 shrink-0 text-destructive"
                               aria-hidden
                             />
@@ -407,22 +454,49 @@ export function MusicFileTable({
                       <FileText className="size-4 mr-2" />
                       {t('mediaPlayer.trackContextMenu.formatConvert')}
                     </ContextMenuItem>
-                    {row.transcribeStatus === 'running' && (
-                      <ContextMenuItem
-                        disabled={!row.path || isDownloading}
-                        onClick={() => onTranscribeStop?.(row)}
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger
+                        disabled={subtitleSubmenuDisabled}
+                        className="flex items-center"
                       >
-                        <CircleStop className="size-4 mr-2" />
-                        {t('mediaPlayer.trackContextMenu.transcribeStop')}
-                      </ContextMenuItem>
-                    )}
-                    <ContextMenuItem
-                      disabled={!row.path || isDownloading || !isTranscribeAvailable || isTranscribing}
-                      onClick={() => onTrackTranscribe?.(row)}
-                    >
-                      <Captions className="size-4 mr-2" />
-                      {t('mediaPlayer.trackContextMenu.transcribe')}
-                    </ContextMenuItem>
+                        <Captions className="size-4 mr-2" />
+                        {t("mediaPlayer.trackContextMenu.subtitle")}
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent>
+                        {row.transcribeStatus === "running" && (
+                          <ContextMenuItem
+                            disabled={!row.path || isDownloading}
+                            onClick={() => onTranscribeStop?.(row)}
+                          >
+                            <CircleStop className="size-4 mr-2" />
+                            {t("mediaPlayer.trackContextMenu.transcribeStop")}
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          disabled={transcribeItemDisabled}
+                          onClick={() => onTrackTranscribe?.(row)}
+                        >
+                          <Captions className="size-4 mr-2" />
+                          {t("mediaPlayer.trackContextMenu.transcribe")}
+                        </ContextMenuItem>
+                        {row.translateStatus === "running" && (
+                          <ContextMenuItem
+                            disabled={!row.path || isDownloading}
+                            onClick={() => onTranslateStop?.(row)}
+                          >
+                            <CircleStop className="size-4 mr-2" />
+                            {t("mediaPlayer.trackContextMenu.translateStop")}
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          disabled={translateDisabled}
+                          onClick={() => onTrackTranslate?.(row)}
+                        >
+                          <Languages className="size-4 mr-2" />
+                          {t("mediaPlayer.trackContextMenu.translate")}
+                        </ContextMenuItem>
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
                     <ContextMenuItem
                       variant="destructive"
                       disabled={!row.path || isDownloading}

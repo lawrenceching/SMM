@@ -15,6 +15,8 @@ export { DeleteTrackDialog } from "./delete-track-dialog"
 export { EditMediaFileDialog } from "./edit-media-file-dialog"
 export { TranscribeDialog } from "./TranscribeDialog"
 export { UITranscribeDialog } from "./UITranscribeDialog"
+export { SubtitleTranslationDialog } from "./SubtitleTranslationDialog"
+export { UISubtitleTranslationDialog } from "./UISubtitleTranslationDialog"
 export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
 
 export type {
@@ -45,6 +47,12 @@ export type {
   TranscribeDialogRow,
   TranscribeDialogProps,
   UITranscribeDialogProps,
+  SubtitleTranslationDialogRow,
+  SubtitleTranslationConfirmPayload,
+  SubtitleTranslateTranslator,
+  SubtitleTranslateLayout,
+  SubtitleTranslationDialogProps,
+  UISubtitleTranslationDialogProps,
   ExecuteCmdDialogProps,
   ExecuteCmdLogEntry,
   ExecuteCmdType,

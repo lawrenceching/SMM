@@ -1,4 +1,4 @@
-import type { DownloadVideoBackgroundJob, TranscribeBackgroundJob } from '@/types/background-jobs'
+import type { DownloadVideoBackgroundJob, TranscribeBackgroundJob, TranslateBackgroundJob } from '@/types/background-jobs'
 
 const DB_NAME = 'DownloadTaskDatabase'
 const DB_VERSION = 1
@@ -100,6 +100,23 @@ export function notifyIndexedDbUpdated(): void {
 }
 
 export async function saveDownloadVideoJob(job: DownloadVideoBackgroundJob): Promise<void> {
+  const now = Date.now()
+  const record: TaskJobRecord = {
+    id: job.id,
+    name: job.name,
+    status: job.status,
+    progress: job.progress,
+    type: job.type,
+    folder: job.data.folder,
+    data: JSON.stringify(job.data),
+    createdAt: now,
+    updatedAt: now,
+  }
+  await putJob(record)
+  notifyIndexedDbUpdated()
+}
+
+export async function saveTranslateJob(job: TranslateBackgroundJob): Promise<void> {
   const now = Date.now()
   const record: TaskJobRecord = {
     id: job.id,

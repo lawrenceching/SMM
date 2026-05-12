@@ -178,6 +178,60 @@ export interface UITranscribeDialogProps {
 /** Smart dialog: confirm runs transcribe via background jobs (no external onConfirm). */
 export type TranscribeDialogProps = Omit<UITranscribeDialogProps, "onConfirm">
 
+/** VideoCaptioner `subtitle --translator` values. */
+export type SubtitleTranslateTranslator = "bing" | "google" | "llm"
+
+/** VideoCaptioner `subtitle --layout` values. */
+export type SubtitleTranslateLayout = "target-above" | "source-above" | "target-only" | "source-only"
+
+/** Known i18n keys for ineligible subtitle translation rows (`components` namespace). */
+export type SubtitleTranslationDisabledReasonKey = "subtitleTranslationDialog.noSubtitleFile"
+
+export interface SubtitleTranslationDialogRow {
+  id: string
+  /** POSIX absolute path of source subtitle file; empty when ineligible. */
+  path: string
+  displayPath?: string
+  title?: string
+  /** POSIX absolute path of associated media file (for translate job mapping). */
+  mediaPath?: string
+  eligible: boolean
+  /** i18n key under `components` namespace. */
+  disabledReason?: SubtitleTranslationDisabledReasonKey
+}
+
+export interface SubtitleTranslationConfirmPayload {
+  selectedIds: string[]
+  translator: SubtitleTranslateTranslator
+  targetLanguage: string
+  reflect?: boolean
+  layout?: SubtitleTranslateLayout
+  llm?: {
+    apiKey: string
+    apiBase?: string
+    model?: string
+  }
+}
+
+export interface UISubtitleTranslationDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  rows: SubtitleTranslationDialogRow[]
+  /**
+   * Media library folder (platform path), persisted on translate jobs for IndexedDB filtering.
+   * Required for enqueue when using {@link SubtitleTranslationDialog}.
+   */
+  folder?: string
+  title?: string
+  description?: string
+  defaultSelectedIds?: string[]
+  /** When false, confirm is disabled (VideoCaptioner required for translate). */
+  videoCaptionerAvailable?: boolean
+  onConfirm?: (payload: SubtitleTranslationConfirmPayload) => void | Promise<void>
+}
+
+export type SubtitleTranslationDialogProps = Omit<UISubtitleTranslationDialogProps, "onConfirm">
+
 export interface TrackProperties {
   id: number
   title?: string

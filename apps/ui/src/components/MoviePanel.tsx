@@ -20,10 +20,12 @@ import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
-import { TranscribeDialog } from "@/components/dialogs"
+import { TranscribeDialog, SubtitleTranslationDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
+import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useTranslateManager } from "@/hooks/useTranslateManager"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
 
@@ -143,6 +145,24 @@ function MoviePanel() {
   )
   const hasTranscribeTargets = transcribeDialogRows.length > 0
 
+  const subtitleTranslationDialogRows = useMemo(
+    () => subtitleTranslationDialogRowsFromMediaFiles(mediaMetadata),
+    [mediaMetadata],
+  )
+  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
+  const isTranslateAvailable = isVideoCaptionerReady
+
+  useTranslateManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      const p = mediaMetadata?.mediaFolderPath
+      if (p) void refreshMediaMetadata(p)
+    }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
+  })
+
+  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 
@@ -338,6 +358,14 @@ function MoviePanel() {
     return rows
   }, [movieFiles.files])
 
+  const handleHeaderTranslateClick = useCallback(() => {
+    if (!hasTranslateTargets) {
+      toast.error("No subtitle files available to translate.")
+      return
+    }
+    setIsSubtitleTranslationOpen(true)
+  }, [hasTranslateTargets])
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TranscribeDialog
@@ -350,14 +378,27 @@ function MoviePanel() {
             : undefined
         }
       />
+      <SubtitleTranslationDialog
+        isOpen={isSubtitleTranslationOpen}
+        onClose={() => setIsSubtitleTranslationOpen(false)}
+        rows={subtitleTranslationDialogRows}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
 
       <div className="shrink-0 px-4 pt-4">
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
           onTranscribeClick={() => setIsTranscribeOpen(true)}
+          onTranslateClick={handleHeaderTranslateClick}
           isTranscribeAvailable={isTranscribeAvailable}
           hasTranscribeTargets={hasTranscribeTargets}
+          isTranslateAvailable={isTranslateAvailable}
+          hasTranslateTargets={hasTranslateTargets}
           selectedMediaMetadata={
             mediaMetadata && rawMediaMetadata
               ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)

@@ -18,14 +18,16 @@ function isStartableJob(r: TaskJobRecord): boolean {
   return r.status !== 'stopped' && r.status !== 'aborted'
 }
 
-export type TaskJobMessagePrefix = 'download' | 'transcribe'
+export type TaskJobMessagePrefix = 'download' | 'transcribe' | 'translate'
 
 export interface UseJobManagerOptions {
-  jobType: 'download-video' | 'transcribe'
+  jobType: 'download-video' | 'transcribe' | 'translate'
   messagePrefix: TaskJobMessagePrefix
   platformFolder: string | undefined
   autoStartKey: string
   onJobSucceeded?: () => void
+  /** Optional hook for SW lifecycle events (e.g. translate toasts). */
+  onSwEvent?: (event: string, jobId: string) => void
 }
 
 export function useJobManager({
@@ -34,11 +36,14 @@ export function useJobManager({
   platformFolder,
   autoStartKey,
   onJobSucceeded,
+  onSwEvent,
 }: UseJobManagerOptions) {
   const [autoStart] = useState(() => readAutoStart(autoStartKey))
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const onSucceededRef = useRef(onJobSucceeded)
   onSucceededRef.current = onJobSucceeded
+  const onSwEventRef = useRef(onSwEvent)
+  onSwEventRef.current = onSwEvent
 
   const startEvent = `${messagePrefix}:start`
   const succeededEvent = `${messagePrefix}:succeeded`
@@ -149,6 +154,7 @@ export function useJobManager({
       console.log(`[JobManager:${messagePrefix}] SW message`, { event: msg.event, id: msg.id })
 
       if (msg.event === succeededEvent) {
+        onSwEventRef.current?.(msg.event, msg.id)
         onSucceededRef.current?.()
         void refreshAndAutoStart(platformFolder)
         return
@@ -156,7 +162,11 @@ export function useJobManager({
 
       switch (msg.event) {
         case startedEvent:
+          onSwEventRef.current?.(msg.event, msg.id)
+          void loadJobRecordsFromDb(platformFolder).then(setJobRecords)
+          break
         case failedEvent:
+          onSwEventRef.current?.(msg.event, msg.id)
           void loadJobRecordsFromDb(platformFolder).then(setJobRecords)
           break
         case stoppedEvent:

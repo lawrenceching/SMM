@@ -253,6 +253,8 @@ interface ComponentsResources {
     download: string
     transcribingTooltip: string
     transcribeFailedTooltip: string
+    translateRunningTooltip: string
+    translateFailedTooltip: string
     trackContextMenu: {
       open: string
       delete: string
@@ -262,11 +264,38 @@ interface ComponentsResources {
       downloadStart: string
       downloadStop: string
       downloadRemove: string
+      subtitle: string
       transcribe: string
       transcribeStop: string
+      translate: string
+      translateStop: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
+  }
+  subtitleTranslationDialog: {
+    title: string
+    description: string
+    translator: string
+    translators: {
+      bing: string
+      google: string
+      llm: string
+    }
+    targetLanguage: string
+    reflect: string
+    apiKey: string
+    apiBase: string
+    model: string
+    layout: string
+    layoutOptional: string
+    layoutNone: string
+    confirm: string
+    cancel: string
+    noSubtitleFile: string
+    toastStart: string
+    toastSucceeded: string
+    toastFailed: string
   }
   tvShowEpisodeTable: {
     columns: {

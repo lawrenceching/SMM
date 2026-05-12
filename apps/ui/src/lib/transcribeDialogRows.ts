@@ -4,7 +4,7 @@ import type { MusicFileRow } from "@/components/MusicFileTable"
 import { basename, isAbsPath, join, relative } from "@/lib/path"
 import { Path } from "@core/path"
 
-function labelForMediaFile(
+export function labelForMediaFile(
   mediaMetadata: MediaMetadata,
   mf: MediaFileMetadata
 ): string {

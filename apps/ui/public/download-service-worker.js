@@ -488,6 +488,133 @@ async function removeTranscribe(jobId) {
   await notifyClients('transcribe:removed', { id: jobId, reason: 'user' })
 }
 
+// ─── Translate logic ─────────────────────────────────────────────────────────
+
+async function startTranslate(jobId) {
+  console.log('[SW] startTranslate called', { jobId })
+
+  if (abortControllers.has(jobId)) {
+    console.log('[SW] startTranslate: already running, skipping', { jobId })
+    return
+  }
+
+  const job = await dbGetJob(jobId)
+  if (!job || job.type !== 'translate') {
+    console.warn('[SW] startTranslate: job not found or wrong type', { jobId, type: job?.type })
+    return
+  }
+
+  const controller = new AbortController()
+  abortControllers.set(jobId, controller)
+
+  job.status = 'running'
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+
+  startHeartbeat(jobId, 'translate:heartbeat')
+  await notifyClients('translate:started', { id: jobId })
+
+  let data
+  try {
+    data = JSON.parse(job.data || '{}')
+  } catch (_) {
+    data = {}
+  }
+
+  const subtitlePath = data.subtitlePathPlatform || data.subtitlePath || ''
+  const translator = data.translator || 'bing'
+  const targetLanguage = data.targetLanguage || ''
+
+  let ok = false
+  try {
+    const reqBody = {
+      subtitlePath,
+      translator,
+      targetLanguage,
+    }
+    if (data.reflect === true) reqBody.reflect = true
+    if (data.layout) reqBody.layout = data.layout
+    if (data.llm && typeof data.llm === 'object') reqBody.llm = data.llm
+
+    const res = await fetch('/api/videocaptioner/translate', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reqBody),
+      signal: controller.signal,
+    })
+    const body = await res.json()
+    if (body.error) {
+      console.warn('[SW] startTranslate: videocaptioner error', { jobId, error: body.error })
+    } else {
+      ok = true
+    }
+  } catch (e) {
+    console.log('[SW] startTranslate: fetch threw', {
+      jobId,
+      aborted: controller.signal.aborted,
+      errorMessage: e instanceof Error ? e.message : String(e),
+    })
+    if (controller.signal.aborted) {
+      job.status = 'stopped'
+      job.progress = 0
+      job.updatedAt = Date.now()
+      await dbPutJob(job)
+      abortControllers.delete(jobId)
+      stopHeartbeat(jobId)
+      await notifyClients('translate:stopped', { id: jobId })
+      return
+    }
+    ok = false
+  }
+
+  abortControllers.delete(jobId)
+  stopHeartbeat(jobId)
+
+  if (controller.signal.aborted) {
+    job.status = 'stopped'
+  } else if (ok) {
+    job.status = 'succeeded'
+    job.progress = 100
+    await notifyClients('translate:succeeded', { id: jobId })
+  } else {
+    job.status = 'failed'
+    await notifyClients('translate:failed', { id: jobId })
+  }
+
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+}
+
+async function stopTranslate(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+
+  const job = await dbGetJob(jobId)
+  if (job && job.type === 'translate') {
+    job.status = 'stopped'
+    job.updatedAt = Date.now()
+    await dbPutJob(job)
+  }
+
+  await notifyClients('translate:stopped', { id: jobId })
+}
+
+async function removeTranslate(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+  await dbDeleteJob(jobId)
+  await notifyClients('translate:removed', { id: jobId, reason: 'user' })
+}
+
 // ─── Service Worker lifecycle ─────────────────────────────────────────────────
 
 self.addEventListener('install', () => {
@@ -544,6 +671,21 @@ self.addEventListener('message', (event) => {
     case 'transcribe:remove':
       if (msg.id) {
         removeTranscribe(msg.id)
+      }
+      break
+    case 'translate:start':
+      if (msg.id) {
+        startTranslate(msg.id)
+      }
+      break
+    case 'translate:stop':
+      if (msg.id) {
+        stopTranslate(msg.id)
+      }
+      break
+    case 'translate:remove':
+      if (msg.id) {
+        removeTranslate(msg.id)
       }
       break
   }

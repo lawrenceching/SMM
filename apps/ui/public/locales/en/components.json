@@ -229,6 +229,8 @@
     "download": "Download",
     "transcribingTooltip": "Generating subtitles…",
     "transcribeFailedTooltip": "Subtitle generation failed",
+    "translateRunningTooltip": "Translating subtitles…",
+    "translateFailedTooltip": "Subtitle translation failed",
     "trackContextMenu": {
       "open": "Open",
       "delete": "Delete",
@@ -238,8 +240,11 @@
       "downloadStart": "Start",
       "downloadStop": "Stop",
       "downloadRemove": "Remove",
+      "subtitle": "Subtitle",
       "transcribe": "Transcribe",
-      "transcribeStop": "Stop transcribing"
+      "transcribeStop": "Stop transcribing",
+      "translate": "Translate",
+      "translateStop": "Stop translating"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
@@ -252,6 +257,30 @@
       "artist": "Artist",
       "duration": "Duration"
     }
+  },
+  "subtitleTranslationDialog": {
+    "title": "Translate subtitles",
+    "description": "Choose translator and target language for the selected subtitle files.",
+    "translator": "Translator",
+    "translators": {
+      "bing": "Bing",
+      "google": "Google",
+      "llm": "LLM"
+    },
+    "targetLanguage": "Target language",
+    "reflect": "Reflect bilingual output",
+    "apiKey": "API key",
+    "apiBase": "API base URL",
+    "model": "Model",
+    "layout": "Layout",
+    "layoutOptional": "Optional layout",
+    "layoutNone": "None",
+    "confirm": "Start translation",
+    "cancel": "Cancel",
+    "noSubtitleFile": "No subtitle file linked to this media entry.",
+    "toastStart": "Translation started",
+    "toastSucceeded": "Translation finished",
+    "toastFailed": "Translation failed"
   },
   "tvShowEpisodeTable": {
     "columns": {

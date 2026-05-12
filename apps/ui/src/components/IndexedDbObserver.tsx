@@ -3,12 +3,16 @@ import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import {
   isDownloadVideoJob,
   isTranscribeBackgroundJob,
+  isTranslateBackgroundJob,
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
   type TranscribeBackgroundJob,
   type TranscribeBackgroundJobData,
+  type TranslateBackgroundJob,
+  type TranslateBackgroundJobData,
 } from '@/types/background-jobs'
+import { Path } from '@core/path'
 import { getAllJobs, putJob, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
 
 function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
@@ -48,6 +52,63 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     return job
   }
 
+  if (record.type === 'translate') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const subtitlePathRaw = typeof parsed.subtitlePath === 'string' ? parsed.subtitlePath : ''
+    const subtitlePath = subtitlePathRaw ? Path.posix(subtitlePathRaw) : ''
+    const subtitlePathPlatform =
+      typeof parsed.subtitlePathPlatform === 'string' ? parsed.subtitlePathPlatform : subtitlePath
+    let translator: TranslateBackgroundJobData['translator'] = 'bing'
+    if (parsed.translator === 'google' || parsed.translator === 'llm') {
+      translator = parsed.translator
+    }
+    const data: TranslateBackgroundJobData = {
+      folder: (typeof parsed.folder === 'string' ? parsed.folder : record.folder) || '',
+      subtitlePath,
+      subtitlePathPlatform,
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+      translator,
+      targetLanguage: typeof parsed.targetLanguage === 'string' ? parsed.targetLanguage : '',
+    }
+    if (typeof parsed.mediaPath === 'string' && parsed.mediaPath.trim()) {
+      const mp = Path.posix(parsed.mediaPath.trim())
+      data.mediaPath = mp
+      data.mediaPathPlatform =
+        typeof parsed.mediaPathPlatform === 'string' && parsed.mediaPathPlatform.trim()
+          ? parsed.mediaPathPlatform
+          : Path.toPlatformPath(mp)
+    }
+    if (parsed.reflect === true) {
+      data.reflect = true
+    }
+    const layout = parsed.layout
+    if (
+      layout === 'target-above' ||
+      layout === 'source-above' ||
+      layout === 'target-only' ||
+      layout === 'source-only'
+    ) {
+      data.layout = layout
+    }
+    if (parsed.llm && typeof parsed.llm === 'object') {
+      data.llm = parsed.llm as TranslateBackgroundJobData['llm']
+    }
+    const job: TranslateBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as TranslateBackgroundJob['status'],
+      progress: record.progress,
+      type: 'translate',
+      data,
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -78,7 +139,7 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
 }
 
 function isPersistedFromIdbJob(job: BackgroundJob): boolean {
-  return isDownloadVideoJob(job) || isTranscribeBackgroundJob(job)
+  return isDownloadVideoJob(job) || isTranscribeBackgroundJob(job) || isTranslateBackgroundJob(job)
 }
 
 async function syncJobsToStore(): Promise<void> {
@@ -137,10 +198,16 @@ async function handleSwMessage(data: unknown): Promise<void> {
     case 'transcribe:failed':
     case 'transcribe:stopped':
     case 'transcribe:removed':
+    case 'translate:started':
+    case 'translate:succeeded':
+    case 'translate:failed':
+    case 'translate:stopped':
+    case 'translate:removed':
       await syncJobsToStore()
       break
     case 'download:heartbeat':
     case 'transcribe:heartbeat':
+    case 'translate:heartbeat':
       break
   }
 }
