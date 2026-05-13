@@ -281,6 +281,58 @@ export interface UISynthesizeSubtitleDialogProps {
 
 export type SynthesizeSubtitleDialogProps = Omit<UISynthesizeSubtitleDialogProps, "onConfirm">
 
+/** Rows for {@link UIProcessPipelineDialog} / {@link ProcessPipelineDialog}. */
+export type ProcessPipelineDisabledReasonKey = "processPipelineDialog.noMediaPath"
+
+export interface ProcessPipelineDialogRow {
+  id: string
+  /** POSIX absolute media path for `videocaptioner process`. */
+  mediaPath: string
+  displayPath?: string
+  title?: string
+  eligible: boolean
+  disabledReason?: ProcessPipelineDisabledReasonKey
+}
+
+export interface ProcessPipelineConfirmPayload {
+  selectedIds: string[]
+  asr: TranscribeAsrEngine
+  language: string
+  wordTimestamps: boolean
+  format: TranscribeOutputFormat
+  noOptimize: boolean
+  noTranslate: boolean
+  noSplit: boolean
+  translator?: SubtitleTranslateTranslator
+  targetLanguage?: string
+  reflect: boolean
+  layout?: SubtitleTranslateLayout
+  prompt?: string
+  llm?: { apiKey: string; apiBase?: string; model?: string }
+  noSynthesize: boolean
+  subtitleMode?: SynthesizeSubtitleMode
+  quality?: SynthesizeQuality
+  style?: string
+  renderMode?: SynthesizeRenderMode
+  synthesizeLayout?: SynthesizeSubtitleLayoutOption
+}
+
+export interface UIProcessPipelineDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  rows: ProcessPipelineDialogRow[]
+  folder?: string
+  title?: string
+  description?: string
+  defaultSelectedIds?: string[]
+  videoCaptionerAvailable?: boolean
+  asrOptionsEnabled?: boolean
+  disabledAsrEngines?: readonly TranscribeAsrEngine[]
+  onConfirm?: (payload: ProcessPipelineConfirmPayload) => void | Promise<void>
+}
+
+export type ProcessPipelineDialogProps = Omit<UIProcessPipelineDialogProps, "onConfirm">
+
 export interface TrackProperties {
   id: number
   title?: string

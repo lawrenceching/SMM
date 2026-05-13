@@ -208,3 +208,44 @@ describe("MusicFileTable synthesize action", () => {
     expect(onSynthesizeStop).toHaveBeenCalled();
   });
 });
+
+describe("MusicFileTable process action", () => {
+  it("disables process when capability unavailable", () => {
+    render(
+      <MusicFileTable
+        data={[videoRow]}
+        isProcessAvailable={false}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.process/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("invokes onTrackProcess when enabled", () => {
+    const onTrackProcess = vi.fn();
+    render(
+      <MusicFileTable
+        data={[videoRow]}
+        isProcessAvailable
+        onTrackProcess={onTrackProcess}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.process/i }));
+    expect(onTrackProcess).toHaveBeenCalledWith(expect.objectContaining({ path: videoRow.path }));
+  });
+
+  it("shows stop process while running", () => {
+    const onProcessStop = vi.fn();
+    render(
+      <MusicFileTable
+        data={[{ ...videoRow, processStatus: "running" }]}
+        isProcessAvailable
+        onProcessStop={onProcessStop}
+      />,
+    );
+    const stopBtn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.processStop/i });
+    expect(stopBtn).not.toBeDisabled();
+    fireEvent.click(stopBtn);
+    expect(onProcessStop).toHaveBeenCalled();
+  });
+});

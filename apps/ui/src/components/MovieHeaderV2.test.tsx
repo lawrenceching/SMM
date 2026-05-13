@@ -319,7 +319,7 @@ describe('MovieHeaderV2', () => {
       movie: { id: '789', name: 'Test Movie', database: 'TMDB' as const },
     } as UIMediaMetadata
 
-    it('disables subtitle dropdown when transcribe, translate, and synthesize are all blocked', () => {
+    it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       renderWithQueryClient(
         <MovieHeaderV2
           {...defaultProps}
@@ -344,6 +344,22 @@ describe('MovieHeaderV2', () => {
       )
       fireEvent.click(screen.getByTestId('movie-header-synthesize'))
       expect(onSynthesizeClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('invokes onProcessClick when process menu item is used', () => {
+      const onProcessClick = vi.fn()
+      renderWithQueryClient(
+        <MovieHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okMovie}
+          selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
+          onProcessClick={onProcessClick}
+          isProcessAvailable
+          hasProcessTargets
+        />,
+      )
+      fireEvent.click(screen.getByTestId('movie-header-process'))
+      expect(onProcessClick).toHaveBeenCalledTimes(1)
     })
   })
 })

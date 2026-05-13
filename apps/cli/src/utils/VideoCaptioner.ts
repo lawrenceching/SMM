@@ -11,7 +11,22 @@ export const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
 /** Subtitle mux/burn can exceed transcribe duration. */
 export const SYNTHESIZE_TIMEOUT_MS = 60 * 60 * 1000;
 
-async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.ProcessEnv | undefined> {
+/** Full `videocaptioner process` (transcribe → subtitle → optional synthesize) can run much longer. */
+export const PROCESS_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * videocaptioner CLI incorrectly requires `--api-key` even when the operation does not use an LLM.
+ * Pass this placeholder so validation succeeds; real `--api-key` from LLM flows is preserved (not duplicated).
+ */
+export const VIDEOCAPTIONER_CLI_DUMMY_API_KEY = "dummykey";
+
+function ensureVideoCaptionerCliDummyApiKey(args: string[]): void {
+  if (!args.includes("--api-key")) {
+    args.push("--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY);
+  }
+}
+
+export async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.ProcessEnv | undefined> {
   let env: NodeJS.ProcessEnv | undefined;
   try {
     const userConfig = await getUserConfig();
@@ -214,6 +229,27 @@ export interface VideoCaptionerTranscribeCliOptions {
   format?: VideoCaptionerTranscribeFormat;
 }
 
+/** Options for `videocaptioner process` (combines transcribe, subtitle, and synthesize flags). */
+export interface VideoCaptionerProcessCliOptions {
+  transcribe?: VideoCaptionerTranscribeCliOptions;
+  noOptimize?: boolean;
+  noTranslate?: boolean;
+  noSplit?: boolean;
+  translator?: VideoCaptionerTranslator;
+  targetLanguage?: string;
+  reflect?: boolean;
+  /** Subtitle bilingual layout (`subtitle --layout`). */
+  layout?: VideoCaptionerSubtitleLayout;
+  prompt?: string;
+  llm?: {
+    apiKey: string;
+    apiBase?: string;
+    model?: string;
+  };
+  noSynthesize?: boolean;
+  synthesize?: VideoCaptionerSynthesizeCliOptions;
+}
+
 export async function transcribeWithVideoCaptioner(
   mediaPath: string,
   options?: VideoCaptionerTranscribeCliOptions
@@ -243,6 +279,7 @@ export async function transcribeWithVideoCaptioner(
   }
   const format: VideoCaptionerTranscribeFormat = options?.format ?? "srt";
   args.push("--format", format);
+  ensureVideoCaptionerCliDummyApiKey(args);
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
@@ -347,6 +384,8 @@ export async function translateSubtitleWithVideoCaptioner(
     }
   }
 
+  ensureVideoCaptionerCliDummyApiKey(args);
+
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
@@ -449,6 +488,8 @@ export async function synthesizeWithVideoCaptioner(
     args.push("--layout", options.layout);
   }
 
+  ensureVideoCaptionerCliDummyApiKey(args);
+
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
@@ -516,6 +557,170 @@ export async function synthesizeWithVideoCaptioner(
       { error, executablePath, videoPath, subtitlePath },
       "failed to start videocaptioner synthesize"
     );
+    return {
+      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+}
+
+/** argv for `videocaptioner` executable (subcommand `process` + flags), same contract as POST `/api/executeCmd` with `command: "videocaptioner"`. */
+export function buildProcessVideoCaptionerArgs(
+  mediaPath: string,
+  options?: VideoCaptionerProcessCliOptions,
+): string[] {
+  const args: string[] = ["process", mediaPath];
+
+  const tr = options?.transcribe;
+  const asr: VideoCaptionerAsrEngine = tr?.asr ?? "bijian";
+  args.push("--asr", asr);
+  if (tr?.language !== undefined && tr.language.trim() !== "") {
+    args.push("--language", tr.language.trim());
+  }
+  if (tr?.wordTimestamps === true) {
+    args.push("--word-timestamps");
+  }
+  const format: VideoCaptionerTranscribeFormat = tr?.format ?? "srt";
+  args.push("--format", format);
+
+  if (options?.noOptimize === true) {
+    args.push("--no-optimize");
+  }
+  if (options?.noSplit === true) {
+    args.push("--no-split");
+  }
+  if (options?.noTranslate === true) {
+    args.push("--no-translate");
+  } else if (options?.translator !== undefined && options.targetLanguage?.trim()) {
+    args.push("--translator", options.translator);
+    args.push("--target-language", options.targetLanguage.trim());
+    if (options.reflect === true) {
+      args.push("--reflect");
+    }
+    if (options.layout !== undefined) {
+      args.push("--layout", options.layout);
+    }
+    if (options.prompt?.trim()) {
+      args.push("--prompt", options.prompt.trim());
+    }
+    if (options.translator === "llm" && options.llm) {
+      args.push("--api-key", options.llm.apiKey);
+      if (options.llm.apiBase?.trim()) {
+        args.push("--api-base", options.llm.apiBase.trim());
+      }
+      if (options.llm.model?.trim()) {
+        args.push("--model", options.llm.model.trim());
+      }
+    }
+  }
+
+  if (options?.noSynthesize === true) {
+    args.push("--no-synthesize");
+  } else if (options?.synthesize) {
+    const syn = options.synthesize;
+    if (syn.subtitleMode !== undefined) {
+      args.push("--subtitle-mode", syn.subtitleMode);
+    }
+    if (syn.quality !== undefined) {
+      args.push("--quality", syn.quality);
+    }
+    if (syn.style?.trim()) {
+      args.push("--style", syn.style.trim());
+    }
+    if (syn.renderMode !== undefined) {
+      args.push("--render-mode", syn.renderMode);
+    }
+    if (syn.layout !== undefined) {
+      args.push("--layout", syn.layout);
+    }
+  }
+
+  ensureVideoCaptionerCliDummyApiKey(args);
+  return args;
+}
+
+export async function processWithVideoCaptioner(
+  mediaPath: string,
+  options?: VideoCaptionerProcessCliOptions
+): Promise<VideoCaptionerTranscribeResult> {
+  if (!mediaPath) {
+    return { error: "mediaPath is required" };
+  }
+  if (!fs.existsSync(mediaPath)) {
+    return { error: `file not found: ${mediaPath}` };
+  }
+
+  const executablePath = await discoverVideoCaptioner();
+  if (!executablePath) {
+    return { error: "videocaptioner executable not found" };
+  }
+
+  const env = await resolveSpawnEnvForVideoCaptioner();
+
+  const args = buildProcessVideoCaptionerArgs(mediaPath, options);
+
+  const commandForLog = [executablePath, ...args]
+    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+    .join(" ");
+  try {
+    videoCaptionerLog.info(
+      { executablePath, mediaPath, args, command: commandForLog },
+      "running videocaptioner process command"
+    );
+    const child = spawn(executablePath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(env ? { env } : {}),
+    });
+    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
+      let settled = false;
+      let stderrOutput = "";
+      const finish = (result: VideoCaptionerTranscribeResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(result);
+      };
+
+      const timeoutId = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // ignore kill failures and surface timeout error
+        }
+        finish({ error: `videocaptioner timed out after ${PROCESS_TIMEOUT_MS}ms` });
+      }, PROCESS_TIMEOUT_MS);
+
+      child.once("error", (error) => {
+        finish({
+          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+        });
+      });
+
+      child.once("close", (code) => {
+        if (code === 0) {
+          finish({ success: true });
+          return;
+        }
+        const trimmedStderr = stderrOutput.trim();
+        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+        videoCaptionerLog.warn(
+          {
+            exitCode: code,
+            stderr: trimmedStderr.slice(0, 4000),
+            stderrTruncated: trimmedStderr.length > 4000,
+            mediaPath,
+          },
+          "videocaptioner process exited with non-zero code",
+        );
+        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
+      });
+
+      child.stderr?.setEncoding("utf8");
+      child.stderr?.on("data", (chunk: string | Buffer) => {
+        stderrOutput += String(chunk);
+      });
+    });
+  } catch (error) {
+    videoCaptionerLog.error({ error, executablePath, mediaPath }, "failed to start videocaptioner process");
     return {
       error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
     };

@@ -113,4 +113,27 @@ describe("MusicHeaderV2 multi-select toggle", () => {
     fireEvent.click(screen.getByTestId("music-header-synthesize"));
     expect(onSynthesizeClick).toHaveBeenCalledTimes(1);
   });
+
+  it("calls onProcessClick when process is the only available subtitle action", () => {
+    const onProcessClick = vi.fn();
+    render(
+      <MusicHeaderV2
+        selectedMediaMetadata={
+          { mediaFolderPath: "/media/music", files: [] } as any
+        }
+        isTranscribeAvailable={false}
+        hasTranscribeTargets={false}
+        isTranslateAvailable={false}
+        hasTranslateTargets={false}
+        isSynthesizeAvailable={false}
+        hasSynthesizeTargets={false}
+        isProcessAvailable
+        hasProcessTargets
+        onProcessClick={onProcessClick}
+      />,
+    );
+    expect(screen.getByTestId("music-header-subtitle")).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId("music-header-process"));
+    expect(onProcessClick).toHaveBeenCalledTimes(1);
+  });
 });

@@ -257,6 +257,8 @@ interface ComponentsResources {
     translateFailedTooltip: string
     synthesizeRunningTooltip: string
     synthesizeFailedTooltip: string
+    processRunningTooltip: string
+    processFailedTooltip: string
     trackContextMenu: {
       open: string
       delete: string
@@ -273,6 +275,8 @@ interface ComponentsResources {
       translateStop: string
       synthesize: string
       synthesizeStop: string
+      process: string
+      processStop: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -333,6 +337,37 @@ interface ComponentsResources {
     toastStart: string
     toastSucceeded: string
     toastFailed: string
+  }
+  processPipelineDialog: {
+    title: string
+    description: string
+    noMediaPath: string
+    language: string
+    format: string
+    wordTimestamps: string
+    noOptimize: string
+    noSplit: string
+    noTranslate: string
+    translator: string
+    targetLanguage: string
+    reflect: string
+    subtitleLayout: string
+    layoutOptional: string
+    promptOptional: string
+    llmApiKey: string
+    llmApiBase: string
+    llmModel: string
+    noSynthesize: string
+    subtitleMode: string
+    quality: string
+    styleOptional: string
+    renderMode: string
+    synthesizeLayout: string
+    toastStart: string
+    toastSucceeded: string
+    toastFailed: string
+    noMediaFolder: string
+    notEligible: string
   }
   tvShowEpisodeTable: {
     columns: {
@@ -597,6 +632,11 @@ interface DialogsResources {
     noOutput: string
     execute: string
     stop: string
+    serverCommandLog: string
+    executionId: string
+    logPath: string
+    copy: string
+    commandLogHint: string
   }
 }
 

@@ -230,6 +230,8 @@
     "translateFailedTooltip": "字幕翻譯失敗",
     "synthesizeRunningTooltip": "正在將字幕合成到影片…",
     "synthesizeFailedTooltip": "字幕合成失敗",
+    "processRunningTooltip": "正在執行字幕流程…",
+    "processFailedTooltip": "字幕流程失敗",
     "trackContextMenu": {
       "open": "開啟",
       "delete": "刪除",
@@ -245,7 +247,9 @@
       "translate": "翻譯字幕",
       "translateStop": "停止翻譯字幕",
       "synthesize": "合成字幕",
-      "synthesizeStop": "停止合成字幕"
+      "synthesizeStop": "停止合成字幕",
+      "process": "處理",
+      "processStop": "停止流程"
     },
     "noTracksFound": "未找到音軌",
     "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"
@@ -315,6 +319,37 @@
     "toastStart": "已開始合成",
     "toastSucceeded": "合成完成",
     "toastFailed": "合成失敗"
+  },
+  "processPipelineDialog": {
+    "title": "字幕流程",
+    "description": "使用 VideoCaptioner 對所選檔案進行轉寫、可選翻譯與可選影片合成。",
+    "noMediaPath": "此列沒有可用的媒體路徑。",
+    "language": "語言",
+    "format": "輸出格式",
+    "wordTimestamps": "詞級時間戳",
+    "noOptimize": "跳過字幕最佳化",
+    "noSplit": "跳過分行",
+    "noTranslate": "跳過翻譯",
+    "translator": "翻譯引擎",
+    "targetLanguage": "目標語言",
+    "reflect": "雙語對照輸出",
+    "subtitleLayout": "雙語排版",
+    "layoutOptional": "可選",
+    "promptOptional": "可選翻譯提示詞",
+    "llmApiKey": "LLM API 金鑰",
+    "llmApiBase": "LLM API 基礎網址（可選）",
+    "llmModel": "LLM 模型（可選）",
+    "noSynthesize": "跳過合成",
+    "subtitleMode": "字幕模式",
+    "quality": "畫質",
+    "styleOptional": "樣式（可選）",
+    "renderMode": "渲染模式",
+    "synthesizeLayout": "合成排版",
+    "toastStart": "流程已開始",
+    "toastSucceeded": "流程已完成",
+    "toastFailed": "流程失敗",
+    "noMediaFolder": "媒體資料夾不可用，無法開始流程。",
+    "notEligible": "此項不符合流程條件。"
   },
   "tvShowEpisodeTable": {
     "columns": {

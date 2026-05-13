@@ -19,6 +19,8 @@ export { SubtitleTranslationDialog } from "./SubtitleTranslationDialog"
 export { UISubtitleTranslationDialog } from "./UISubtitleTranslationDialog"
 export { SynthesizeSubtitleDialog } from "./SynthesizeSubtitleDialog"
 export { UISynthesizeSubtitleDialog } from "./UISynthesizeSubtitleDialog"
+export { ProcessPipelineDialog } from "./ProcessPipelineDialog"
+export { UIProcessPipelineDialog } from "./UIProcessPipelineDialog"
 export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
 
 export type {
@@ -59,6 +61,10 @@ export type {
   SynthesizeSubtitleConfirmPayload,
   SynthesizeSubtitleDialogProps,
   UISynthesizeSubtitleDialogProps,
+  ProcessPipelineDialogRow,
+  ProcessPipelineConfirmPayload,
+  ProcessPipelineDialogProps,
+  UIProcessPipelineDialogProps,
   ExecuteCmdDialogProps,
   ExecuteCmdLogEntry,
   ExecuteCmdType,

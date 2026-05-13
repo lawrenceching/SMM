@@ -292,7 +292,7 @@ describe('TvShowHeaderV2', () => {
       tvShow: { id: '123', name: 'Test Show', database: 'TMDB' as const, seasons: [] },
     } as UIMediaMetadata
 
-    it('disables subtitle dropdown when all subtitle actions are blocked', () => {
+    it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       render(
         <TvShowHeaderV2
           {...defaultProps}
@@ -317,6 +317,22 @@ describe('TvShowHeaderV2', () => {
       )
       fireEvent.click(screen.getByTestId('tvshow-header-synthesize'))
       expect(onSynthesizeClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('invokes onProcessClick when process menu item is used', () => {
+      const onProcessClick = vi.fn()
+      render(
+        <TvShowHeaderV2
+          {...defaultProps}
+          selectedMediaMetadata={okTv}
+          selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
+          onProcessClick={onProcessClick}
+          isProcessAvailable
+          hasProcessTargets
+        />,
+      )
+      fireEvent.click(screen.getByTestId('tvshow-header-process'))
+      expect(onProcessClick).toHaveBeenCalledTimes(1)
     })
   })
 })

@@ -19,7 +19,7 @@ import {
   ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions, Languages, FileVideo } from "lucide-react"
+import { Play, FolderOpen, Trash2, FileText, Music, Tag, CirclePlay, CircleStop, CircleX, Clock, CheckCircle2, XCircle, Captions, Languages, FileVideo, Sparkles } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "@/components/Image"
 import { useTranslation } from "@/lib/i18n"
@@ -39,8 +39,11 @@ export interface MusicFileRow {
   transcribeStatus?: "running" | "failed"
   /** Subtitle translation task for this row's media path (IndexedDB + Service Worker). */
   translateStatus?: "running" | "failed"
-  /** Subtitle-to-video synthesis task for this row's media path. */
+  /** Subtitle synthesize / burn-in task (IndexedDB + Service Worker). */
   synthesizeStatus?: "running" | "failed"
+  /** Full VideoCaptioner pipeline (IndexedDB + Service Worker). */
+  processStatus?: "running" | "failed"
+  canProcess?: boolean
   /** Sibling `.srt`/`.ass` exists in the media folder (see {@link subtitleTranslationDialogRowsFromMusicFileRows}). */
   canTranslate?: boolean
   /** Video + sibling subtitle available for synthesize (see {@link synthesizeSubtitleDialogRowsFromMusicFileRows}). */
@@ -81,6 +84,10 @@ interface MusicFileTableProps {
   isSynthesizeAvailable?: boolean
   onTrackSynthesize?: (track: MusicFileRow) => void
   onSynthesizeStop?: (track: MusicFileRow) => void
+  /** VideoCaptioner process pipeline is available (bundled tool ready + feature enabled). */
+  isProcessAvailable?: boolean
+  onTrackProcess?: (track: MusicFileRow) => void
+  onProcessStop?: (track: MusicFileRow) => void
   /** Whether table is in multi-select mode */
   isMultiSelectMode?: boolean
   /** Selected track ids in multi-select mode */
@@ -147,6 +154,9 @@ export function MusicFileTable({
   isSynthesizeAvailable,
   onTrackSynthesize,
   onSynthesizeStop,
+  isProcessAvailable,
+  onTrackProcess,
+  onProcessStop,
   isMultiSelectMode = false,
   selectedTrackIds = [],
   onSelectedTrackIdsChange,
@@ -242,6 +252,7 @@ export function MusicFileTable({
               const isTranscribing = row.transcribeStatus === 'running'
               const isTranslating = row.translateStatus === 'running'
               const isSynthesizing = row.synthesizeStatus === 'running'
+              const isProcessing = row.processStatus === 'running'
               const translateDisabled =
                 !row.path ||
                 isDownloading ||
@@ -256,6 +267,12 @@ export function MusicFileTable({
                 isSynthesizing
               const transcribeItemDisabled =
                 !row.path || isDownloading || !isTranscribeAvailable || isTranscribing
+              const processItemDisabled =
+                !row.path ||
+                isDownloading ||
+                !isProcessAvailable ||
+                row.canProcess === false ||
+                isProcessing
               const subtitleSubmenuDisabled =
                 !(
                   (row.path && !isDownloading && row.transcribeStatus === 'running') ||
@@ -263,7 +280,9 @@ export function MusicFileTable({
                   (row.path && !isDownloading && isTranslateAvailable && row.canTranslate && !isTranslating) ||
                   (row.path && !isDownloading && row.translateStatus === 'running') ||
                   (row.path && !isDownloading && isSynthesizeAvailable && row.canSynthesize && !isSynthesizing) ||
-                  (row.path && !isDownloading && row.synthesizeStatus === 'running')
+                  (row.path && !isDownloading && row.synthesizeStatus === 'running') ||
+                  (row.path && !isDownloading && row.processStatus === 'running') ||
+                  (row.path && !isDownloading && isProcessAvailable && row.canProcess !== false && !isProcessing)
                 )
 
               return (
@@ -369,21 +388,33 @@ export function MusicFileTable({
                         <p
                           className={`flex min-w-0 items-center gap-1.5 truncate ${isActive ? "text-green-500 font-medium" : ""}`}
                           title={
-                            isTranslating
-                              ? t("mediaPlayer.translateRunningTooltip")
-                              : row.translateStatus === "failed" && !isTranslating
-                                ? t("mediaPlayer.translateFailedTooltip")
-                                : isSynthesizing
-                                  ? t("mediaPlayer.synthesizeRunningTooltip")
-                                  : row.synthesizeStatus === "failed" && !isSynthesizing
-                                    ? t("mediaPlayer.synthesizeFailedTooltip")
-                                    : isTranscribing
-                                      ? t("mediaPlayer.transcribingTooltip")
-                                      : row.transcribeStatus === "failed"
-                                        ? t("mediaPlayer.transcribeFailedTooltip")
-                                        : row.title
+                            isProcessing
+                              ? t("mediaPlayer.processRunningTooltip")
+                              : row.processStatus === "failed" && !isProcessing
+                                ? t("mediaPlayer.processFailedTooltip")
+                                : isTranslating
+                                  ? t("mediaPlayer.translateRunningTooltip")
+                                  : row.translateStatus === "failed" && !isTranslating
+                                    ? t("mediaPlayer.translateFailedTooltip")
+                                    : isSynthesizing
+                                      ? t("mediaPlayer.synthesizeRunningTooltip")
+                                      : row.synthesizeStatus === "failed" && !isSynthesizing
+                                        ? t("mediaPlayer.synthesizeFailedTooltip")
+                                        : isTranscribing
+                                          ? t("mediaPlayer.transcribingTooltip")
+                                          : row.transcribeStatus === "failed"
+                                            ? t("mediaPlayer.transcribeFailedTooltip")
+                                            : row.title
                           }
                         >
+                          {isProcessing && (
+                            <span className="inline-flex shrink-0 items-center text-primary">
+                              <Sparkles className="size-3.5 shrink-0 animate-pulse" />
+                            </span>
+                          )}
+                          {row.processStatus === "failed" && !isProcessing && (
+                            <Sparkles className="size-3.5 shrink-0 text-destructive" aria-hidden />
+                          )}
                           {isTranscribing && (
                             <span className="inline-flex shrink-0 items-center text-primary">
                               <Spinner className="size-3.5 shrink-0" />
@@ -542,6 +573,22 @@ export function MusicFileTable({
                         >
                           <FileVideo className="size-4 mr-2" />
                           {t("mediaPlayer.trackContextMenu.synthesize")}
+                        </ContextMenuItem>
+                        {row.processStatus === "running" && (
+                          <ContextMenuItem
+                            disabled={!row.path || isDownloading}
+                            onClick={() => onProcessStop?.(row)}
+                          >
+                            <CircleStop className="size-4 mr-2" />
+                            {t("mediaPlayer.trackContextMenu.processStop")}
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          disabled={processItemDisabled}
+                          onClick={() => onTrackProcess?.(row)}
+                        >
+                          <Sparkles className="size-4 mr-2" />
+                          {t("mediaPlayer.trackContextMenu.process")}
                         </ContextMenuItem>
                       </ContextMenuSubContent>
                     </ContextMenuSub>

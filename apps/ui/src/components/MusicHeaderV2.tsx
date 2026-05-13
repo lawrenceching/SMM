@@ -1,4 +1,4 @@
-import { Captions, ChevronDown, Download, Music } from "lucide-react"
+import { Captions, ChevronDown, Download, Music, Sparkles } from "lucide-react"
 import { Button } from "./ui/button"
 import {
   DropdownMenu,
@@ -22,6 +22,9 @@ export interface MusicHeaderV2Props {
   onSynthesizeClick?: () => void
   isSynthesizeAvailable?: boolean
   hasSynthesizeTargets?: boolean
+  onProcessClick?: () => void
+  isProcessAvailable?: boolean
+  hasProcessTargets?: boolean
   isMultiSelectMode?: boolean
   onToggleMultiSelectMode?: () => void
 }
@@ -38,6 +41,9 @@ export function MusicHeaderV2({
   onSynthesizeClick,
   isSynthesizeAvailable = false,
   hasSynthesizeTargets = false,
+  onProcessClick,
+  isProcessAvailable = false,
+  hasProcessTargets = false,
   isMultiSelectMode = false,
   onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
@@ -51,7 +57,8 @@ export function MusicHeaderV2({
     !folderReady || !isTranscribeAvailable || !hasTranscribeTargets
   const translateDisabled = !folderReady || !isTranslateAvailable || !hasTranslateTargets
   const synthesizeDisabled = !folderReady || !isSynthesizeAvailable || !hasSynthesizeTargets
-  const subtitleDisabled = transcribeDisabled && translateDisabled && synthesizeDisabled
+  const processDisabled = !folderReady || !isProcessAvailable || !hasProcessTargets
+  const subtitleDisabled = transcribeDisabled && translateDisabled && synthesizeDisabled && processDisabled
 
   return (
     <div className="relative w-full space-y-3">
@@ -112,6 +119,14 @@ export function MusicHeaderV2({
                 data-testid="music-header-synthesize"
               >
                 {t("mediaPlayer.trackContextMenu.synthesize")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={processDisabled}
+                onClick={() => onProcessClick?.()}
+                data-testid="music-header-process"
+              >
+                <Sparkles className="size-4 mr-2" />
+                {t("mediaPlayer.trackContextMenu.process")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

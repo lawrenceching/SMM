@@ -20,14 +20,16 @@ import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
-import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog } from "@/components/dialogs"
+import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
 import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
 import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
+import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslateManager } from "@/hooks/useTranslateManager"
 import { useSynthesizeManager } from "@/hooks/useSynthesizeManager"
+import { useProcessManager } from "@/hooks/useProcessManager"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
 
@@ -161,6 +163,13 @@ function MoviePanel() {
   const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
   const isSynthesizeAvailable = isVideoCaptionerReady
 
+  const processPipelineRows = useMemo(
+    () => processPipelineDialogRowsFromMediaFiles(mediaMetadata),
+    [mediaMetadata],
+  )
+  const hasProcessTargets = processPipelineRows.length > 0
+  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
+
   useTranslateManager({
     platformFolder: mediaMetadata?.mediaFolderPath
       ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
@@ -181,8 +190,19 @@ function MoviePanel() {
     }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
   })
 
+  useProcessManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      const p = mediaMetadata?.mediaFolderPath
+      if (p) void refreshMediaMetadata(p)
+    }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
+  })
+
   const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
   const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)
+  const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false)
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 
@@ -394,6 +414,14 @@ function MoviePanel() {
     setIsSynthesizeSubtitleOpen(true)
   }, [hasSynthesizeTargets])
 
+  const handleHeaderProcessClick = useCallback(() => {
+    if (!hasProcessTargets) {
+      toast.error("No media files available for the pipeline.")
+      return
+    }
+    setIsProcessPipelineOpen(true)
+  }, [hasProcessTargets])
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TranscribeDialog
@@ -426,6 +454,16 @@ function MoviePanel() {
             : undefined
         }
       />
+      <ProcessPipelineDialog
+        isOpen={isProcessPipelineOpen}
+        onClose={() => setIsProcessPipelineOpen(false)}
+        rows={processPipelineRows}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
 
       <div className="shrink-0 px-4 pt-4">
         <MovieHeaderV2
@@ -434,12 +472,15 @@ function MoviePanel() {
           onTranscribeClick={() => setIsTranscribeOpen(true)}
           onTranslateClick={handleHeaderTranslateClick}
           onSynthesizeClick={handleHeaderSynthesizeClick}
+          onProcessClick={handleHeaderProcessClick}
           isTranscribeAvailable={isTranscribeAvailable}
           hasTranscribeTargets={hasTranscribeTargets}
           isTranslateAvailable={isTranslateAvailable}
           hasTranslateTargets={hasTranslateTargets}
           isSynthesizeAvailable={isSynthesizeAvailable}
           hasSynthesizeTargets={hasSynthesizeTargets}
+          isProcessAvailable={isProcessAvailable}
+          hasProcessTargets={hasProcessTargets}
           selectedMediaMetadata={
             mediaMetadata && rawMediaMetadata
               ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)

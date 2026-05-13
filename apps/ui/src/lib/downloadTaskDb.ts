@@ -1,5 +1,6 @@
 import type {
   DownloadVideoBackgroundJob,
+  ProcessBackgroundJob,
   SynthesizeBackgroundJob,
   TranscribeBackgroundJob,
   TranslateBackgroundJob,
@@ -139,6 +140,23 @@ export async function saveTranslateJob(job: TranslateBackgroundJob): Promise<voi
 }
 
 export async function saveSynthesizeJob(job: SynthesizeBackgroundJob): Promise<void> {
+  const now = Date.now()
+  const record: TaskJobRecord = {
+    id: job.id,
+    name: job.name,
+    status: job.status,
+    progress: job.progress,
+    type: job.type,
+    folder: job.data.folder,
+    data: JSON.stringify(job.data),
+    createdAt: now,
+    updatedAt: now,
+  }
+  await putJob(record)
+  notifyIndexedDbUpdated()
+}
+
+export async function saveProcessJob(job: ProcessBackgroundJob): Promise<void> {
   const now = Date.now()
   const record: TaskJobRecord = {
     id: job.id,

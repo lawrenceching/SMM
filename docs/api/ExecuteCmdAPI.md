@@ -61,9 +61,30 @@ POST /api/executeCmd
 Returns a streaming response with NDJSON format. Each line is a valid JSON object.
 
 **Response Headers:**
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | `application/x-ndjson` |
+| `X-Command-Execution-Id` | Full UUID for this command run (correlates with on-disk logs). |
+| `X-Command-Log-Path` | Path relative to the app log root: `commands/<uuid>/main.log` (POSIX-style segments). |
+
+Example:
+
 ```
 Content-Type: application/x-ndjson
+X-Command-Execution-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Command-Log-Path: commands/550e8400-e29b-41d4-a716-446655440000/main.log
 ```
+
+##### Server-side command logs
+
+For each successful stream setup, the CLI writes the child process **stdout** and **stderr** (in receive order) to a UTF-8 file under the same log root used for `smm.log` (see `getLogDir()` in `apps/cli/src/utils/config.ts`, overridable with `LOG_DIR`):
+
+```text
+<getLogDir>/commands/<X-Command-Execution-Id>/main.log
+```
+
+Each chunk is preceded by a line such as `--- stream=stdout ts=<ISO8601> ---` or `--- stream=stderr ts=... ---`. System notes (spawn line, exit, timeout, client abort) use `--- system ts=... ---`. Internal callers that use `runWhitelistedCommandSync` (same whitelist and spawn rules, no HTTP stream) get the same on-disk layout and a new UUID per invocation.
 
 **Message Types:**
 

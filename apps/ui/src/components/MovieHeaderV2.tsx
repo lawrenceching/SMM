@@ -1,6 +1,6 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo } from "lucide-react"
+import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "./ui/button"
@@ -18,12 +18,15 @@ export interface MovieHeaderV2Props {
     onTranscribeClick?: () => void
     onTranslateClick?: () => void
     onSynthesizeClick?: () => void
+    onProcessClick?: () => void
     isTranscribeAvailable?: boolean
     hasTranscribeTargets?: boolean
     isTranslateAvailable?: boolean
     hasTranslateTargets?: boolean
     isSynthesizeAvailable?: boolean
     hasSynthesizeTargets?: boolean
+    isProcessAvailable?: boolean
+    hasProcessTargets?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -35,12 +38,15 @@ export function MovieHeaderV2({
     onTranscribeClick,
     onTranslateClick,
     onSynthesizeClick,
+    onProcessClick,
     isTranscribeAvailable = false,
     hasTranscribeTargets = false,
     isTranslateAvailable = false,
     hasTranslateTargets = false,
     isSynthesizeAvailable = false,
     hasSynthesizeTargets = false,
+    isProcessAvailable = false,
+    hasProcessTargets = false,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -81,7 +87,11 @@ export function MovieHeaderV2({
         actionsDisabled ||
         !hasSynthesizeTargets ||
         !isSynthesizeAvailable
-    const subtitleBlocked = transcribeBlocked && translateBlocked && synthesizeBlocked
+    const processBlocked =
+        actionsDisabled ||
+        !hasProcessTargets ||
+        !isProcessAvailable
+    const subtitleBlocked = transcribeBlocked && translateBlocked && synthesizeBlocked && processBlocked
     const hasExternalId = !!mediaId
     const externalUrl = hasExternalId
         ? isTmdb
@@ -182,6 +192,14 @@ export function MovieHeaderV2({
                                     >
                                         <FileVideo className="size-4 mr-2" />
                                         {t('mediaPlayer.trackContextMenu.synthesize', { ns: 'components' })}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        disabled={processBlocked}
+                                        onClick={() => onProcessClick?.()}
+                                        data-testid="movie-header-process"
+                                    >
+                                        <Sparkles className="size-4 mr-2" />
+                                        {t('mediaPlayer.trackContextMenu.process', { ns: 'components' })}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

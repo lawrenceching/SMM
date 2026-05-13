@@ -232,6 +232,8 @@
     "translateFailedTooltip": "字幕翻译失败",
     "synthesizeRunningTooltip": "正在将字幕合成到视频…",
     "synthesizeFailedTooltip": "字幕合成失败",
+    "processRunningTooltip": "正在运行字幕流水线…",
+    "processFailedTooltip": "字幕流水线失败",
     "trackContextMenu": {
       "open": "打开",
       "delete": "删除",
@@ -247,7 +249,9 @@
       "translate": "翻译字幕",
       "translateStop": "停止翻译字幕",
       "synthesize": "合成字幕",
-      "synthesizeStop": "停止合成字幕"
+      "synthesizeStop": "停止合成字幕",
+      "process": "处理",
+      "processStop": "停止流水线"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"
@@ -317,6 +321,37 @@
     "toastStart": "已开始合成",
     "toastSucceeded": "合成完成",
     "toastFailed": "合成失败"
+  },
+  "processPipelineDialog": {
+    "title": "字幕流水线",
+    "description": "使用 VideoCaptioner 对所选文件进行转写、可选翻译与可选视频合成。",
+    "noMediaPath": "此行没有可用的媒体路径。",
+    "language": "语言",
+    "format": "输出格式",
+    "wordTimestamps": "词级时间戳",
+    "noOptimize": "跳过字幕优化",
+    "noSplit": "跳过分行",
+    "noTranslate": "跳过翻译",
+    "translator": "翻译引擎",
+    "targetLanguage": "目标语言",
+    "reflect": "双语对照输出",
+    "subtitleLayout": "双语排版",
+    "layoutOptional": "可选",
+    "promptOptional": "可选翻译提示词",
+    "llmApiKey": "LLM API 密钥",
+    "llmApiBase": "LLM API 基础地址（可选）",
+    "llmModel": "LLM 模型（可选）",
+    "noSynthesize": "跳过合成",
+    "subtitleMode": "字幕模式",
+    "quality": "画质",
+    "styleOptional": "样式（可选）",
+    "renderMode": "渲染模式",
+    "synthesizeLayout": "合成排版",
+    "toastStart": "流水线已开始",
+    "toastSucceeded": "流水线已完成",
+    "toastFailed": "流水线失败",
+    "noMediaFolder": "媒体文件夹不可用，无法开始流水线。",
+    "notEligible": "该项不符合流水线条件。"
   },
   "tvShowEpisodeTable": {
     "columns": {

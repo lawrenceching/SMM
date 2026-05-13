@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import path from 'path';
 import { z } from 'zod/v3';
@@ -48,6 +49,7 @@ import { handleVideoCaptionerDiscover } from './src/route/videocaptioner/Discove
 import { handleVideoCaptionerTranscribe } from './src/route/videocaptioner/Transcribe';
 import { handleVideoCaptionerTranslate } from './src/route/videocaptioner/Translate';
 import { handleVideoCaptionerSynthesize } from './src/route/videocaptioner/Synthesize';
+import { handleVideoCaptionerProcess } from './src/route/videocaptioner/Process';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleFfmpegScreenshots } from './src/route/ffmpeg/Screenshots';
 import { handleFfmpegConvert } from './src/route/ffmpeg/Convert';
@@ -172,6 +174,16 @@ export class Server {
   }
 
   private setupRoutes() {
+    // Allow browser dev (Vite on another origin) to call CLI directly for streaming APIs.
+    this.app.use(
+      '/api/*',
+      cors({
+        origin: '*',
+        allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'X-Timeout'],
+      }),
+    );
+
     // Zod schema for request body validation
     const executeRequestSchema = z.object({
       name: z.enum(['hello', 'system', 'GetSelectedMediaMetadata'], {
@@ -224,6 +236,7 @@ export class Server {
     handleVideoCaptionerTranscribe(this.app);
     handleVideoCaptionerTranslate(this.app);
     handleVideoCaptionerSynthesize(this.app);
+    handleVideoCaptionerProcess(this.app);
     handleTencentAsrTranscribe(this.app);
     handleFfmpegScreenshots(this.app);
     handleFfmpegConvert(this.app);
@@ -323,6 +336,13 @@ export class Server {
       idleTimeout: 30, // must be greater than the "pingInterval" option of the engine, which defaults to 25 seconds
       fetch: (req, server) => {
         const url = new URL(req.url);
+
+        // Bun applies idleTimeout to streaming bodies: if no bytes are written for idleTimeout
+        // seconds, the connection is reset mid-response. executeCmd can be quiet for minutes
+        // (e.g. ffmpeg). Disable per-request idle timeout for this route only.
+        if (url.pathname === '/api/executeCmd' && req.method === 'POST') {
+          server.timeout(req, 0);
+        }
 
         // Handle Socket.IO requests
         if (url.pathname.startsWith('/socket.io/')) {

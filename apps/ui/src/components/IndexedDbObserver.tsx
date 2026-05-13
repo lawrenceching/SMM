@@ -2,12 +2,15 @@ import { useEffect } from 'react'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import {
   isDownloadVideoJob,
+  isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
+  type ProcessBackgroundJob,
+  type ProcessBackgroundJobData,
   type SynthesizeBackgroundJob,
   type SynthesizeBackgroundJobData,
   type TranscribeBackgroundJob,
@@ -183,6 +186,93 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     return job
   }
 
+  if (record.type === 'process') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const mediaPathRaw = typeof parsed.mediaPath === 'string' ? parsed.mediaPath : ''
+    const mediaPath = mediaPathRaw ? Path.posix(mediaPathRaw) : ''
+    const mediaPathPlatform =
+      typeof parsed.mediaPathPlatform === 'string' ? parsed.mediaPathPlatform : mediaPath
+    const data: ProcessBackgroundJobData = {
+      folder: (typeof parsed.folder === 'string' ? parsed.folder : record.folder) || '',
+      mediaPath,
+      mediaPathPlatform,
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+    }
+    const asr = parsed.asr
+    if (asr === 'bijian' || asr === 'jianying' || asr === 'whisper-cpp') {
+      data.asr = asr
+    }
+    if (typeof parsed.language === 'string' && parsed.language.trim()) {
+      data.language = parsed.language.trim()
+    }
+    if (parsed.wordTimestamps === true) {
+      data.wordTimestamps = true
+    }
+    const fmt = parsed.format
+    if (fmt === 'srt' || fmt === 'ass' || fmt === 'txt' || fmt === 'json') {
+      data.format = fmt
+    }
+    if (parsed.noOptimize === true) data.noOptimize = true
+    if (parsed.noTranslate === true) data.noTranslate = true
+    if (parsed.noSplit === true) data.noSplit = true
+    const tr = parsed.translator
+    if (tr === 'bing' || tr === 'google' || tr === 'llm') {
+      data.translator = tr
+    }
+    if (typeof parsed.targetLanguage === 'string' && parsed.targetLanguage.trim()) {
+      data.targetLanguage = parsed.targetLanguage.trim()
+    }
+    if (parsed.reflect === true) data.reflect = true
+    const layout = parsed.layout
+    if (
+      layout === 'target-above' ||
+      layout === 'source-above' ||
+      layout === 'target-only' ||
+      layout === 'source-only'
+    ) {
+      data.layout = layout
+    }
+    if (typeof parsed.prompt === 'string' && parsed.prompt.trim()) {
+      data.prompt = parsed.prompt.trim()
+    }
+    if (parsed.llm && typeof parsed.llm === 'object') {
+      data.llm = parsed.llm as ProcessBackgroundJobData['llm']
+    }
+    if (parsed.noSynthesize === true) data.noSynthesize = true
+    const sm = parsed.subtitleMode
+    if (sm === 'soft' || sm === 'hard') data.subtitleMode = sm
+    const q = parsed.quality
+    if (q === 'ultra' || q === 'high' || q === 'medium' || q === 'low') data.quality = q
+    if (typeof parsed.style === 'string' && parsed.style.trim()) {
+      data.style = parsed.style.trim()
+    }
+    const rm = parsed.renderMode
+    if (rm === 'ass' || rm === 'rounded') data.renderMode = rm
+    const sl = parsed.synthesizeLayout
+    if (
+      sl === 'target-above' ||
+      sl === 'source-above' ||
+      sl === 'target-only' ||
+      sl === 'source-only'
+    ) {
+      data.synthesizeLayout = sl
+    }
+    const job: ProcessBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as ProcessBackgroundJob['status'],
+      progress: record.progress,
+      type: 'process',
+      data,
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -217,7 +307,8 @@ function isPersistedFromIdbJob(job: BackgroundJob): boolean {
     isDownloadVideoJob(job) ||
     isTranscribeBackgroundJob(job) ||
     isTranslateBackgroundJob(job) ||
-    isSynthesizeBackgroundJob(job)
+    isSynthesizeBackgroundJob(job) ||
+    isProcessBackgroundJob(job)
   )
 }
 
@@ -287,12 +378,18 @@ async function handleSwMessage(data: unknown): Promise<void> {
     case 'synthesize:failed':
     case 'synthesize:stopped':
     case 'synthesize:removed':
+    case 'process:started':
+    case 'process:succeeded':
+    case 'process:failed':
+    case 'process:stopped':
+    case 'process:removed':
       await syncJobsToStore()
       break
     case 'download:heartbeat':
     case 'transcribe:heartbeat':
     case 'translate:heartbeat':
     case 'synthesize:heartbeat':
+    case 'process:heartbeat':
       break
   }
 }

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Loader2, Trash2, Plus, X, Play, Square } from "lucide-react"
+import { Loader2, Trash2, Plus, X, Play, Square, Copy } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,10 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
   const [args, setArgs] = useState<string[]>([""])
   const [logs, setLogs] = useState<ExecuteCmdLogEntry[]>([])
   const [isRunning, setIsRunning] = useState(false)
+  const [executionContext, setExecutionContext] = useState<{
+    executionId: string
+    logRelativePath: string | null
+  } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const logIdCounterRef = useRef(0)
@@ -85,6 +89,7 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
 
     if (!command) return
 
+    setExecutionContext(null)
     logIdCounterRef.current = 0
 
     setLogs((prev) => [
@@ -102,6 +107,9 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
     const abortController = executeCmdStream(
       { command, args: filteredArgs },
       {
+        onExecutionContext: (ctx) => {
+          setExecutionContext(ctx)
+        },
         onMessage: (message: ExecuteCmdMessage) => {
           logIdCounterRef.current += 1
           const newLog: ExecuteCmdLogEntry = {
@@ -157,6 +165,7 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
     }
     setLogs([])
     setArgs([""])
+    setExecutionContext(null)
     onClose()
   }, [isRunning, handleStopExecution, onClose])
 
@@ -230,6 +239,51 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
               {t("dialogs:executeCmd.addArgument")}
             </Button>
           </div>
+
+          {executionContext ? (
+            <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-xs">
+              <p className="font-medium text-foreground">{t("dialogs:executeCmd.serverCommandLog")}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground shrink-0">{t("dialogs:executeCmd.executionId")}</span>
+                <code className="min-w-0 flex-1 truncate rounded bg-background px-2 py-1 font-mono">
+                  {executionContext.executionId}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => void navigator.clipboard.writeText(executionContext.executionId)}
+                  data-testid="execute-cmd-copy-execution-id"
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1" />
+                  {t("dialogs:executeCmd.copy")}
+                </Button>
+              </div>
+              {executionContext.logRelativePath ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground shrink-0">{t("dialogs:executeCmd.logPath")}</span>
+                  <code className="min-w-0 flex-1 break-all rounded bg-background px-2 py-1 font-mono">
+                    {executionContext.logRelativePath}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() =>
+                      void navigator.clipboard.writeText(executionContext.logRelativePath ?? "")
+                    }
+                    data-testid="execute-cmd-copy-log-path"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1" />
+                    {t("dialogs:executeCmd.copy")}
+                  </Button>
+                </div>
+              ) : null}
+              <p className="text-muted-foreground leading-relaxed">{t("dialogs:executeCmd.commandLogHint")}</p>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

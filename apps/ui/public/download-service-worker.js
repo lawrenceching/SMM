@@ -823,6 +823,158 @@ async function removeSynthesize(jobId) {
   await notifyClients('synthesize:removed', { id: jobId, reason: 'user' })
 }
 
+// ─── Process (full pipeline) logic ───────────────────────────────────────────
+
+async function startProcess(jobId) {
+  console.log('[SW] startProcess called', { jobId })
+
+  if (abortControllers.has(jobId)) {
+    console.log('[SW] startProcess: already running, skipping', { jobId })
+    return
+  }
+
+  const job = await dbGetJob(jobId)
+  if (!job || job.type !== 'process') {
+    console.warn('[SW] startProcess: job not found or wrong type', { jobId, type: job?.type })
+    return
+  }
+
+  const controller = new AbortController()
+  abortControllers.set(jobId, controller)
+
+  job.status = 'running'
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+
+  startHeartbeat(jobId, 'process:heartbeat')
+  await notifyClients('process:started', { id: jobId })
+
+  let data
+  try {
+    data = JSON.parse(job.data || '{}')
+  } catch (_) {
+    data = {}
+  }
+
+  const mediaPath = data.mediaPathPlatform || data.mediaPath || ''
+
+  const reqBody = { mediaPath }
+  const optionalKeys = [
+    'asr',
+    'language',
+    'wordTimestamps',
+    'format',
+    'noOptimize',
+    'noTranslate',
+    'noSplit',
+    'translator',
+    'targetLanguage',
+    'reflect',
+    'layout',
+    'prompt',
+    'llm',
+    'noSynthesize',
+    'subtitleMode',
+    'quality',
+    'style',
+    'renderMode',
+    'synthesizeLayout',
+  ]
+  for (const k of optionalKeys) {
+    if (data[k] !== undefined && data[k] !== null) {
+      reqBody[k] = data[k]
+    }
+  }
+
+  let ok = false
+  try {
+    const processPath = '/api/videocaptioner/process'
+    const res = await fetch(processPath, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reqBody),
+      signal: controller.signal,
+    })
+    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/process' })
+    if (body.error) {
+      console.warn('[SW] startProcess: videocaptioner error', { jobId, error: body.error })
+    } else {
+      ok = true
+    }
+  } catch (e) {
+    console.log('[SW] startProcess: fetch threw', {
+      jobId,
+      aborted: controller.signal.aborted,
+      errorMessage: e instanceof Error ? e.message : String(e),
+    })
+    if (controller.signal.aborted) {
+      job.status = 'stopped'
+      job.progress = 0
+      job.updatedAt = Date.now()
+      await dbPutJob(job)
+      abortControllers.delete(jobId)
+      stopHeartbeat(jobId)
+      await notifyClients('process:stopped', { id: jobId })
+      return
+    }
+    ok = false
+  }
+
+  abortControllers.delete(jobId)
+  stopHeartbeat(jobId)
+
+  if (controller.signal.aborted) {
+    job.status = 'stopped'
+  } else if (ok) {
+    job.status = 'succeeded'
+    job.progress = 100
+  } else {
+    job.status = 'failed'
+  }
+
+  job.updatedAt = Date.now()
+  await dbPutJob(job)
+
+  if (controller.signal.aborted) {
+    return
+  }
+  if (ok) {
+    await notifyClients('process:succeeded', { id: jobId })
+  } else {
+    await notifyClients('process:failed', { id: jobId })
+  }
+}
+
+async function stopProcess(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+
+  const job = await dbGetJob(jobId)
+  if (job && job.type === 'process') {
+    job.status = 'stopped'
+    job.updatedAt = Date.now()
+    await dbPutJob(job)
+  }
+
+  await notifyClients('process:stopped', { id: jobId })
+}
+
+async function removeProcess(jobId) {
+  const controller = abortControllers.get(jobId)
+  if (controller) {
+    controller.abort()
+    abortControllers.delete(jobId)
+  }
+  stopHeartbeat(jobId)
+  await dbDeleteJob(jobId)
+  await notifyClients('process:removed', { id: jobId, reason: 'user' })
+}
+
 // ─── Service Worker lifecycle ─────────────────────────────────────────────────
 
 self.addEventListener('install', () => {
@@ -909,6 +1061,21 @@ self.addEventListener('message', (event) => {
     case 'synthesize:remove':
       if (msg.id) {
         removeSynthesize(msg.id)
+      }
+      break
+    case 'process:start':
+      if (msg.id) {
+        startProcess(msg.id)
+      }
+      break
+    case 'process:stop':
+      if (msg.id) {
+        stopProcess(msg.id)
+      }
+      break
+    case 'process:remove':
+      if (msg.id) {
+        removeProcess(msg.id)
       }
       break
   }

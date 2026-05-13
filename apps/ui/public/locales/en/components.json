@@ -233,6 +233,8 @@
     "translateFailedTooltip": "Subtitle translation failed",
     "synthesizeRunningTooltip": "Synthesizing subtitles into video…",
     "synthesizeFailedTooltip": "Subtitle synthesis failed",
+    "processRunningTooltip": "Running subtitle pipeline…",
+    "processFailedTooltip": "Subtitle pipeline failed",
     "trackContextMenu": {
       "open": "Open",
       "delete": "Delete",
@@ -248,7 +250,9 @@
       "translate": "Translate",
       "translateStop": "Stop translating",
       "synthesize": "Synthesize",
-      "synthesizeStop": "Stop synthesizing"
+      "synthesizeStop": "Stop synthesizing",
+      "process": "Process",
+      "processStop": "Stop pipeline"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
@@ -318,6 +322,37 @@
     "toastStart": "Synthesis started",
     "toastSucceeded": "Synthesis finished",
     "toastFailed": "Synthesis failed"
+  },
+  "processPipelineDialog": {
+    "title": "Process pipeline",
+    "description": "Transcribe, optionally translate, and optionally synthesize into video for the selected files using VideoCaptioner.",
+    "noMediaPath": "No media path for this row.",
+    "language": "Language",
+    "format": "Output format",
+    "wordTimestamps": "Word timestamps",
+    "noOptimize": "Skip subtitle optimization",
+    "noSplit": "Skip line splitting",
+    "noTranslate": "Skip translation",
+    "translator": "Translator",
+    "targetLanguage": "Target language",
+    "reflect": "Reflect / bilingual output",
+    "subtitleLayout": "Bilingual layout",
+    "layoutOptional": "Optional",
+    "promptOptional": "Optional translation prompt",
+    "llmApiKey": "LLM API key",
+    "llmApiBase": "LLM API base URL (optional)",
+    "llmModel": "LLM model (optional)",
+    "noSynthesize": "Skip synthesis",
+    "subtitleMode": "Subtitle mode",
+    "quality": "Quality",
+    "styleOptional": "Style (optional)",
+    "renderMode": "Render mode",
+    "synthesizeLayout": "Synthesis layout",
+    "toastStart": "Pipeline started",
+    "toastSucceeded": "Pipeline finished",
+    "toastFailed": "Pipeline failed",
+    "noMediaFolder": "Media folder is not available; cannot start pipeline.",
+    "notEligible": "This item is not eligible for the pipeline."
   },
   "tvShowEpisodeTable": {
     "columns": {

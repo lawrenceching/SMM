@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "events";
-import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner, synthesizeWithVideoCaptioner } from "./VideoCaptioner";
+import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner, synthesizeWithVideoCaptioner, processWithVideoCaptioner, VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "./VideoCaptioner";
 
 const h = vi.hoisted(() => ({
   spawn: vi.fn(),
@@ -106,7 +106,7 @@ describe("transcribeWithVideoCaptioner", () => {
     expect(result).toEqual({ success: true });
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt"],
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
       expect.any(Object)
     );
   });
@@ -122,7 +122,7 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "jianying", "--format", "srt"],
+      ["transcribe", "C:/media/a.mp3", "--asr", "jianying", "--format", "srt", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
       expect.any(Object)
     );
   });
@@ -143,7 +143,7 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--language", "zh", "--word-timestamps", "--format", "json"],
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--language", "zh", "--word-timestamps", "--format", "json", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
       expect.any(Object)
     );
   });
@@ -238,6 +238,8 @@ describe("translateSubtitleWithVideoCaptioner", () => {
         "zh-Hans",
         "--no-optimize",
         "--no-split",
+        "--api-key",
+        VIDEOCAPTIONER_CLI_DUMMY_API_KEY,
       ],
       expect.any(Object)
     );
@@ -349,6 +351,8 @@ describe("synthesizeWithVideoCaptioner", () => {
         "ass",
         "--layout",
         "source-only",
+        "--api-key",
+        VIDEOCAPTIONER_CLI_DUMMY_API_KEY,
       ],
       expect.any(Object)
     );
@@ -366,6 +370,75 @@ describe("synthesizeWithVideoCaptioner", () => {
 
     const promise = synthesizeWithVideoCaptioner("C:/media/a.mp4", "C:/media/a.srt");
     await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
+    const result = await promise;
+
+    expect(child.kill).toHaveBeenCalled();
+    expect(result.error).toContain("timed out");
+  });
+});
+
+describe("processWithVideoCaptioner", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("invokes process with media path and pipeline flags", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = processWithVideoCaptioner("C:/media/a.mp4", {
+      transcribe: { asr: "bijian", format: "srt" },
+      translator: "bing",
+      targetLanguage: "en",
+      noSynthesize: true,
+    });
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    expect(h.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining([
+        "process",
+        "C:/media/a.mp4",
+        "--asr",
+        "bijian",
+        "--format",
+        "srt",
+        "--translator",
+        "bing",
+        "--target-language",
+        "en",
+        "--no-synthesize",
+        "--api-key",
+        VIDEOCAPTIONER_CLI_DUMMY_API_KEY,
+      ]),
+      expect.any(Object),
+    );
+  });
+
+  it("returns error when media file is missing", async () => {
+    const result = await processWithVideoCaptioner("C:/missing/foo.mp4", {
+      translator: "bing",
+      targetLanguage: "en",
+    });
+    expect(result.error).toContain("file not found");
+  });
+
+  it("returns timeout error and kills child process", async () => {
+    vi.useFakeTimers();
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+
+    const promise = processWithVideoCaptioner("C:/media/a.mp4", {
+      translator: "bing",
+      targetLanguage: "en",
+    });
+    await vi.advanceTimersByTimeAsync(2 * 60 * 60 * 1000);
     const result = await promise;
 
     expect(child.kill).toHaveBeenCalled();

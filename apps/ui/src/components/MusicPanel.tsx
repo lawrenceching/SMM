@@ -26,18 +26,20 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
-import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog } from "@/components/dialogs";
+import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useTranscribeManager } from "@/hooks/useTranscribeManager";
 import { useTranslateManager } from "@/hooks/useTranslateManager";
 import { useSynthesizeManager } from "@/hooks/useSynthesizeManager";
+import { useProcessManager } from "@/hooks/useProcessManager";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
 } from "@/lib/transcribeDialogRows";
 import { subtitleTranslationDialogRowsFromMusicFileRows } from "@/lib/subtitleTranslationDialogRows";
 import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeSubtitleDialogRows";
+import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelineDialogRows";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 import { useFeatures } from "@/hooks/useFeatures";
 
@@ -220,6 +222,22 @@ export function MusicPanel() {
     }, [mediaMetadata, fetchMediaMetadata]),
   });
 
+  const {
+    processingPaths,
+    processFailedPaths,
+    jobIdByPath: processJobIdByPath,
+    stopProcess,
+  } = useProcessManager({
+    platformFolder: mediaMetadata?.mediaFolderPath
+      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+      : undefined,
+    onJobSucceeded: useCallback(() => {
+      if (mediaMetadata?.mediaFolderPath) {
+        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
+      }
+    }, [mediaMetadata, fetchMediaMetadata]),
+  });
+
   const jobTracks = useMemo(
     () => tracksFromDownloadJobRecords(jobRecords),
     [jobRecords],
@@ -248,6 +266,7 @@ export function MusicPanel() {
     isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled);
   const isTranslateAvailable = isVideoCaptionerReady;
   const isSynthesizeAvailable = isVideoCaptionerReady;
+  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
@@ -258,6 +277,10 @@ export function MusicPanel() {
   const [subtitleTranslationDefaultSelectedIds, setSubtitleTranslationDefaultSelectedIds] =
     useState<string[] | undefined>(undefined);
   const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false);
+  const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false);
+  const [processPipelineDefaultSelectedIds, setProcessPipelineDefaultSelectedIds] = useState<
+    string[] | undefined
+  >(undefined);
   const [synthesizeSubtitleDefaultSelectedIds, setSynthesizeSubtitleDefaultSelectedIds] = useState<
     string[] | undefined
   >(undefined);
@@ -411,6 +434,11 @@ export function MusicPanel() {
         if (synthesizingPaths.has(abs)) synthesizeStatus = "running"
         else if (synthesizeFailedPaths.has(abs)) synthesizeStatus = "failed"
       }
+      let processStatus: MusicFileRow["processStatus"]
+      if (abs) {
+        if (processingPaths.has(abs)) processStatus = "running"
+        else if (processFailedPaths.has(abs)) processStatus = "failed"
+      }
       const canTranslate = abs ? (translateEligibleByMediaPath.get(abs) ?? false) : false
       const canSynthesize = abs ? (synthesizeEligibleByMediaPath.get(abs) ?? false) : false
       return {
@@ -426,6 +454,7 @@ export function MusicPanel() {
         transcribeStatus,
         translateStatus,
         synthesizeStatus,
+        processStatus,
         canTranslate,
         canSynthesize,
       }
@@ -438,6 +467,8 @@ export function MusicPanel() {
     translateFailedPaths,
     synthesizingPaths,
     synthesizeFailedPaths,
+    processingPaths,
+    processFailedPaths,
     mediaMetadata?.mediaFolderPath,
     translateEligibleByMediaPath,
     synthesizeEligibleByMediaPath,
@@ -469,6 +500,15 @@ export function MusicPanel() {
   );
 
   const hasTranscribeTargets = transcribeDialogRows.length > 0;
+  const processPipelineRows = useMemo(
+    () =>
+      processPipelineDialogRowsFromMusicFileRows(
+        musicFileRowsForDialogs,
+        mediaMetadata?.mediaFolderPath,
+      ),
+    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath],
+  );
+  const hasProcessTargets = processPipelineRows.length > 0;
   const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible);
   const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible);
 
@@ -635,6 +675,56 @@ export function MusicPanel() {
       setIsTranscribeOpen(true);
     },
     [mediaMetadata?.mediaFolderPath],
+  );
+
+  const closeProcessPipelineDialog = useCallback(() => {
+    setIsProcessPipelineOpen(false);
+    setProcessPipelineDefaultSelectedIds(undefined);
+  }, []);
+
+  const handleHeaderProcessClick = useCallback(() => {
+    if (!hasProcessTargets) {
+      toast.error("No media files available for the pipeline.");
+      return;
+    }
+    const folder = mediaMetadata?.mediaFolderPath;
+    const selectedWithPath = selectedRows.filter(
+      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
+    );
+    if (selectedWithPath.length > 0) {
+      setProcessPipelineDefaultSelectedIds(
+        selectedWithPath.map((r) => absolutePosixMusicFilePath(r, folder)!),
+      );
+    } else {
+      setProcessPipelineDefaultSelectedIds(undefined);
+    }
+    setIsProcessPipelineOpen(true);
+  }, [hasProcessTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
+
+  const handleTrackProcess = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const pathId = absolutePosixMusicFilePath(row, folder);
+      if (!pathId) {
+        toast.error(`Track "${row.title}" does not have an associated file path.`);
+        return;
+      }
+      setSelectedTrackIds([]);
+      setProcessPipelineDefaultSelectedIds([pathId]);
+      setIsProcessPipelineOpen(true);
+    },
+    [mediaMetadata?.mediaFolderPath],
+  );
+
+  const handleProcessStop = useCallback(
+    (row: MusicFileRow) => {
+      const folder = mediaMetadata?.mediaFolderPath;
+      const abs = absolutePosixMusicFilePath(row, folder);
+      if (!abs) return;
+      const jobId = processJobIdByPath.get(abs);
+      if (jobId) void stopProcess(jobId);
+    },
+    [mediaMetadata?.mediaFolderPath, processJobIdByPath, stopProcess],
   );
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
@@ -866,6 +956,17 @@ export function MusicPanel() {
             : undefined
         }
       />
+      <ProcessPipelineDialog
+        isOpen={isProcessPipelineOpen}
+        onClose={closeProcessPipelineDialog}
+        rows={processPipelineRows}
+        defaultSelectedIds={processPipelineDefaultSelectedIds}
+        folder={
+          mediaMetadata?.mediaFolderPath
+            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+            : undefined
+        }
+      />
       <div className="shrink-0 px-4 pt-4">
         <MusicHeaderV2
           selectedMediaMetadata={mediaMetadata}
@@ -879,6 +980,9 @@ export function MusicPanel() {
           onSynthesizeClick={handleHeaderSynthesizeClick}
           isSynthesizeAvailable={isSynthesizeAvailable}
           hasSynthesizeTargets={hasSynthesizeTargets}
+          onProcessClick={handleHeaderProcessClick}
+          isProcessAvailable={isProcessAvailable}
+          hasProcessTargets={hasProcessTargets}
           isMultiSelectMode={isMultiSelectMode}
           onToggleMultiSelectMode={handleToggleMultiSelectMode}
         />
@@ -907,6 +1011,9 @@ export function MusicPanel() {
             isSynthesizeAvailable={isSynthesizeAvailable}
             onTrackSynthesize={handleTrackSynthesize}
             onSynthesizeStop={handleSynthesizeStop}
+            isProcessAvailable={isProcessAvailable}
+            onTrackProcess={handleTrackProcess}
+            onProcessStop={handleProcessStop}
             isMultiSelectMode={isMultiSelectMode}
             selectedTrackIds={selectedTrackIds}
             onSelectedTrackIdsChange={setSelectedTrackIds}

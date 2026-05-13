@@ -200,7 +200,12 @@
     "clear": "Clear",
     "noOutput": "No output yet. Execute a command to see results.",
     "execute": "Execute",
-    "stop": "Stop"
+    "stop": "Stop",
+    "serverCommandLog": "Server command log",
+    "executionId": "Execution ID",
+    "logPath": "Log file (relative to app log folder)",
+    "copy": "Copy",
+    "commandLogHint": "Full stdout and stderr for this run are written on the server under your app log directory, in the path shown above (folder named with the execution ID, file main.log)."
   }
 }
 

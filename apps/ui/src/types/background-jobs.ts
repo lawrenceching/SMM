@@ -147,12 +147,49 @@ export interface SynthesizeBackgroundJob extends BackgroundJobBase {
   data: SynthesizeBackgroundJobData
 }
 
+/** Full VideoCaptioner `process` pipeline options (flat body for SW → API). */
+export interface ProcessBackgroundJobData {
+  folder: string
+  mediaPath: string
+  mediaPathPlatform: string
+  title: string
+  asr?: TranscribeVideoCaptionerAsr
+  language?: string
+  wordTimestamps?: boolean
+  format?: TranscribeOutputFormat
+  noOptimize?: boolean
+  noTranslate?: boolean
+  noSplit?: boolean
+  translator?: TranslateTranslator
+  targetLanguage?: string
+  reflect?: boolean
+  layout?: TranslateSubtitleLayout
+  prompt?: string
+  llm?: {
+    apiKey: string
+    apiBase?: string
+    model?: string
+  }
+  noSynthesize?: boolean
+  subtitleMode?: SynthesizeSubtitleMode
+  quality?: SynthesizeQuality
+  style?: string
+  renderMode?: SynthesizeRenderMode
+  synthesizeLayout?: SynthesizeSubtitleLayout
+}
+
+export interface ProcessBackgroundJob extends BackgroundJobBase {
+  type: 'process'
+  data: ProcessBackgroundJobData
+}
+
 export type BackgroundJob =
   | GenericBackgroundJob
   | DownloadVideoBackgroundJob
   | TranscribeBackgroundJob
   | TranslateBackgroundJob
   | SynthesizeBackgroundJob
+  | ProcessBackgroundJob
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -172,4 +209,8 @@ export function isTranslateBackgroundJob(job: BackgroundJob): job is TranslateBa
 
 export function isSynthesizeBackgroundJob(job: BackgroundJob): job is SynthesizeBackgroundJob {
   return job.type === 'synthesize'
+}
+
+export function isProcessBackgroundJob(job: BackgroundJob): job is ProcessBackgroundJob {
+  return job.type === 'process'
 }
