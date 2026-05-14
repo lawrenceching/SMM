@@ -227,6 +227,7 @@
   "mediaPlayer": {
     "select": "Select",
     "download": "Download",
+    "downloadingTooltip": "Downloading…",
     "transcribingTooltip": "Generating subtitles…",
     "transcribeFailedTooltip": "Subtitle generation failed",
     "translateRunningTooltip": "Translating subtitles…",

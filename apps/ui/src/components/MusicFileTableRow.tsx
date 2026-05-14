@@ -213,6 +213,45 @@ export function MusicFileTableRow({
     (row.path && !isDownloading && isProcessAvailable && row.canProcess !== false && !isProcessing)
   )
 
+  /** Subtitle / pipeline task shown in index column (same slot as download status). */
+  const subtitleIndexColumn =
+    !row.jobId &&
+    (isProcessing
+      ? ("process-run" as const)
+      : isSynthesizing
+        ? ("synthesize-run" as const)
+        : isTranslating
+          ? ("translate-run" as const)
+          : isTranscribing
+            ? ("transcribe-run" as const)
+            : row.processStatus === "failed" && !isProcessing
+              ? ("subtitle-failed" as const)
+              : row.synthesizeStatus === "failed" && !isSynthesizing
+                ? ("subtitle-failed" as const)
+                : row.translateStatus === "failed" && !isTranslating
+                  ? ("subtitle-failed" as const)
+                  : row.transcribeStatus === "failed" && !isTranscribing
+                    ? ("subtitle-failed" as const)
+                    : null)
+
+  const showIndexColumnPlayback =
+    !row.jobId && !subtitleIndexColumn && !isActive
+
+  const indexColumnRunningTooltip: string | undefined =
+    row.jobId && row.status === "downloading"
+      ? t("mediaPlayer.downloadingTooltip")
+      : subtitleIndexColumn === "transcribe-run"
+        ? t("mediaPlayer.transcribingTooltip")
+        : subtitleIndexColumn === "translate-run"
+          ? t("mediaPlayer.translateRunningTooltip")
+          : subtitleIndexColumn === "synthesize-run"
+            ? t("mediaPlayer.synthesizeRunningTooltip")
+            : subtitleIndexColumn === "process-run"
+              ? t("mediaPlayer.processRunningTooltip")
+              : undefined
+
+  const indexColumnShowsRunningSpinner = indexColumnRunningTooltip !== undefined
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -241,10 +280,16 @@ export function MusicFileTableRow({
           )}
           <TableCell className="w-10 px-2 py-1.5 text-center">
             <div className="flex items-center justify-center">
-              {row.jobId ? (
-                row.status === "downloading" ? (
-                  <Spinner className="size-4 text-blue-500" />
-                ) : row.status === "completed" ? (
+              {indexColumnShowsRunningSpinner ? (
+                <span
+                  className="inline-flex cursor-default"
+                  title={indexColumnRunningTooltip}
+                  aria-label={indexColumnRunningTooltip}
+                >
+                  <Spinner className="size-4 text-primary" />
+                </span>
+              ) : row.jobId ? (
+                row.status === "completed" ? (
                   <CheckCircle2 className="size-4 text-green-500" />
                 ) : row.status === "failed" ? (
                   <XCircle className="size-4 text-red-500" />
@@ -253,12 +298,14 @@ export function MusicFileTableRow({
                 ) : (
                   <Clock className="size-4 text-muted-foreground" />
                 )
+              ) : subtitleIndexColumn === "subtitle-failed" ? (
+                <XCircle className="size-4 text-red-500" aria-hidden />
               ) : isActive && isPlaying ? (
                 <div className="flex h-4 items-center justify-center gap-0.5">
                   {[0, 1, 2, 3].map((i) => (
                     <span
                       key={i}
-                      className="w-0.5 rounded-full bg-green-500 animate-pulse"
+                      className="w-0.5 animate-pulse rounded-full bg-primary"
                       style={{
                         animationDelay: `${i * 0.15}s`,
                         height: `${4 + Math.random() * 12}px`,
@@ -267,13 +314,13 @@ export function MusicFileTableRow({
                   ))}
                 </div>
               ) : isActive ? (
-                <Play className="size-4 text-green-500" />
+                <Play className="size-4 text-primary" />
               ) : (
                 <span className="text-muted-foreground group-hover:hidden">
                   {row.index + 1}
                 </span>
               )}
-              {!row.jobId && !isActive && (
+              {showIndexColumnPlayback && (
                 <Play className="size-4 text-foreground hidden group-hover:block" />
               )}
             </div>
@@ -311,7 +358,7 @@ export function MusicFileTableRow({
 
           <TableCell className="min-w-0 px-2 py-1.5">
             <p
-              className={`flex min-w-0 items-center gap-1.5 truncate ${isActive ? "text-green-500 font-medium" : ""}`}
+              className={`min-w-0 truncate ${isActive ? "font-medium text-primary" : ""}`}
               title={
                 isProcessing
                   ? t("mediaPlayer.processRunningTooltip")
@@ -332,44 +379,6 @@ export function MusicFileTableRow({
                                 : row.title
               }
             >
-              {isProcessing && (
-                <span className="inline-flex shrink-0 items-center text-primary">
-                  <Sparkles className="size-3.5 shrink-0 animate-pulse" />
-                </span>
-              )}
-              {row.processStatus === "failed" && !isProcessing && (
-                <Sparkles className="size-3.5 shrink-0 text-destructive" aria-hidden />
-              )}
-              {isTranscribing && (
-                <span className="inline-flex shrink-0 items-center text-primary">
-                  <Spinner className="size-3.5 shrink-0" />
-                </span>
-              )}
-              {row.transcribeStatus === "failed" && !isTranscribing && (
-                <XCircle
-                  className="size-3.5 shrink-0 text-destructive"
-                  aria-hidden
-                />
-              )}
-              {isTranslating && (
-                <span className="inline-flex shrink-0 items-center text-primary">
-                  <Languages className="size-3.5 shrink-0 animate-spin" />
-                </span>
-              )}
-              {row.translateStatus === "failed" && !isTranslating && (
-                <Languages
-                  className="size-3.5 shrink-0 text-destructive"
-                  aria-hidden
-                />
-              )}
-              {isSynthesizing && (
-                <span className="inline-flex shrink-0 items-center text-primary">
-                  <FileVideo className="size-3.5 shrink-0 animate-pulse" />
-                </span>
-              )}
-              {row.synthesizeStatus === "failed" && !isSynthesizing && (
-                <FileVideo className="size-3.5 shrink-0 text-destructive" aria-hidden />
-              )}
               <span className="truncate">{row.title}</span>
             </p>
           </TableCell>

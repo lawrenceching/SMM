@@ -251,6 +251,7 @@ interface ComponentsResources {
   mediaPlayer: {
     select: string
     download: string
+    downloadingTooltip: string
     transcribingTooltip: string
     transcribeFailedTooltip: string
     translateRunningTooltip: string
