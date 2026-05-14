@@ -5,6 +5,7 @@ import {
   VIDEOCAPTIONER_ASR_ENGINES,
   VIDEOCAPTIONER_TRANSCRIBE_FORMATS,
 } from "../../utils/VideoCaptioner";
+import { parseOptionalXCommandExecutionId } from "../commandLog";
 import { logger } from "../../../lib/logger";
 
 const transcribeRequestSchema = z.object({
@@ -20,10 +21,13 @@ export type TranscribeRequestBody = z.infer<typeof transcribeRequestSchema>;
 export interface VideoCaptionerTranscribeResponseData {
   success?: boolean;
   error?: string;
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export async function processVideoCaptionerTranscribe(
-  body: TranscribeRequestBody
+  body: TranscribeRequestBody,
+  clientExecutionId?: string,
 ): Promise<VideoCaptionerTranscribeResponseData> {
   try {
     const cliOpts =
@@ -38,6 +42,9 @@ export async function processVideoCaptionerTranscribe(
             ...(body.format !== undefined ? { format: body.format } : {}),
           }
         : undefined;
+    if (clientExecutionId !== undefined) {
+      return await transcribeWithVideoCaptioner(body.mediaPath, cliOpts, clientExecutionId);
+    }
     return await transcribeWithVideoCaptioner(body.mediaPath, cliOpts);
   } catch (error) {
     logger.error({ error }, "Error transcribing with videocaptioner");
@@ -58,7 +65,14 @@ export function handleVideoCaptionerTranscribe(app: Hono) {
         return c.json({ error: message }, 400);
       }
 
-      const result = await processVideoCaptionerTranscribe(parseResult.data);
+      const { id: clientExecutionId, error: headerError } = parseOptionalXCommandExecutionId(
+        c.req.header("X-Command-Execution-Id"),
+      );
+      if (headerError) {
+        return c.json({ error: headerError }, 400);
+      }
+
+      const result = await processVideoCaptionerTranscribe(parseResult.data, clientExecutionId);
       if (result.error) {
         return c.json(result, 400);
       }

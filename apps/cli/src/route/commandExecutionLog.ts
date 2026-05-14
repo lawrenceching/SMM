@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync } from 'fs';
 import path from 'path';
-import { getLogDir } from '@/utils/config';
+import { getLogDir } from '../utils/config';
 import { logger } from '../../lib/logger';
 
 export type CommandExecutionLogWriter = {

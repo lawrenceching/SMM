@@ -14,6 +14,7 @@ import {
   VIDEOCAPTIONER_TRANSLATORS,
 } from "../../utils/VideoCaptioner";
 import { runWhitelistedCommandSync } from "../executeCmd";
+import { parseOptionalXCommandExecutionId } from "../commandLog";
 import { logger } from "../../../lib/logger";
 
 const processRequestSchema = z
@@ -79,6 +80,8 @@ export type ProcessRequestBody = z.infer<typeof processRequestSchema>;
 export interface VideoCaptionerProcessResponseData {
   success?: boolean;
   error?: string;
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 function bodyToCliOptions(body: ProcessRequestBody) {
@@ -141,7 +144,8 @@ function bodyToCliOptions(body: ProcessRequestBody) {
 }
 
 export async function processVideoCaptionerProcess(
-  body: ProcessRequestBody
+  body: ProcessRequestBody,
+  clientExecutionId?: string,
 ): Promise<VideoCaptionerProcessResponseData> {
   try {
     if (!fs.existsSync(body.mediaPath)) {
@@ -155,6 +159,7 @@ export async function processVideoCaptionerProcess(
       timeoutMs: PROCESS_TIMEOUT_MS,
       ...(env ? { env } : {}),
       logMeta: { mediaPath: body.mediaPath, route: "/api/videocaptioner/process" },
+      ...(clientExecutionId !== undefined ? { executionId: clientExecutionId } : {}),
     });
   } catch (error) {
     logger.error({ error }, "Error running videocaptioner process");
@@ -179,7 +184,14 @@ export function handleVideoCaptionerProcess(app: Hono) {
         return c.json({ error: message }, 400);
       }
 
-      const result = await processVideoCaptionerProcess(parseResult.data);
+      const { id: clientExecutionId, error: headerError } = parseOptionalXCommandExecutionId(
+        c.req.header("X-Command-Execution-Id"),
+      );
+      if (headerError) {
+        return c.json({ error: headerError }, 400);
+      }
+
+      const result = await processVideoCaptionerProcess(parseResult.data, clientExecutionId);
       if (result.error) {
         logger.warn(
           {

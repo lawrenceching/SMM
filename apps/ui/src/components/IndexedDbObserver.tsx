@@ -21,6 +21,18 @@ import {
 import { Path } from '@core/path'
 import { getAllJobs, putJob, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
 
+function applyCommandLogCorrelation<T extends { executionId?: string; logRelativePath?: string }>(
+  data: T,
+  parsed: Record<string, unknown>,
+): void {
+  if (typeof parsed.executionId === 'string' && parsed.executionId) {
+    data.executionId = parsed.executionId
+  }
+  if (typeof parsed.logRelativePath === 'string' && parsed.logRelativePath) {
+    data.logRelativePath = parsed.logRelativePath
+  }
+}
+
 function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
   if (record.type === 'transcribe') {
     let parsed: Record<string, unknown>
@@ -47,6 +59,7 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     if (parsed.videoCaptioner && typeof parsed.videoCaptioner === 'object') {
       data.videoCaptioner = parsed.videoCaptioner as TranscribeBackgroundJobData['videoCaptioner']
     }
+    applyCommandLogCorrelation(data, parsed)
     const job: TranscribeBackgroundJob = {
       id: record.id,
       name: record.name,
@@ -104,6 +117,7 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     if (parsed.llm && typeof parsed.llm === 'object') {
       data.llm = parsed.llm as TranslateBackgroundJobData['llm']
     }
+    applyCommandLogCorrelation(data, parsed)
     const job: TranslateBackgroundJob = {
       id: record.id,
       name: record.name,
@@ -175,6 +189,7 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     ) {
       data.layout = layout
     }
+    applyCommandLogCorrelation(data, parsed)
     const job: SynthesizeBackgroundJob = {
       id: record.id,
       name: record.name,
@@ -262,6 +277,7 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
     ) {
       data.synthesizeLayout = sl
     }
+    applyCommandLogCorrelation(data, parsed)
     const job: ProcessBackgroundJob = {
       id: record.id,
       name: record.name,

@@ -220,6 +220,19 @@
         "succeeded": "任务已成功完成",
         "failed": "任务失败",
         "aborted": "用户已终止任务"
+      },
+      "logButton": "日志",
+      "logButtonAria": "查看 {{name}} 的命令日志",
+      "logDialog": {
+        "title": "命令日志 — {{jobTitle}}",
+        "raw": "原文",
+        "segments": "分段",
+        "refresh": "刷新",
+        "loading": "加载中…",
+        "truncated": "此视图可能已截断；响应头包含总大小，完整内容请查看磁盘上的日志文件。",
+        "loadError": "无法加载命令日志。",
+        "empty": "日志为空。",
+        "live": "实时"
       }
     }
   },

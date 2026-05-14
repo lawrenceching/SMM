@@ -5,6 +5,7 @@ import {
   VIDEOCAPTIONER_SUBTITLE_LAYOUTS,
   VIDEOCAPTIONER_TRANSLATORS,
 } from "../../utils/VideoCaptioner";
+import { parseOptionalXCommandExecutionId } from "../commandLog";
 import { logger } from "../../../lib/logger";
 
 const translateRequestSchema = z
@@ -40,10 +41,13 @@ export type TranslateRequestBody = z.infer<typeof translateRequestSchema>;
 export interface VideoCaptionerTranslateResponseData {
   success?: boolean;
   error?: string;
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export async function processVideoCaptionerTranslate(
-  body: TranslateRequestBody
+  body: TranslateRequestBody,
+  clientExecutionId?: string,
 ): Promise<VideoCaptionerTranslateResponseData> {
   try {
     const cliOpts = {
@@ -61,6 +65,9 @@ export async function processVideoCaptionerTranslate(
           }
         : {}),
     };
+    if (clientExecutionId !== undefined) {
+      return await translateSubtitleWithVideoCaptioner(body.subtitlePath, cliOpts, clientExecutionId);
+    }
     return await translateSubtitleWithVideoCaptioner(body.subtitlePath, cliOpts);
   } catch (error) {
     logger.error({ error }, "Error translating subtitle with videocaptioner");
@@ -81,7 +88,14 @@ export function handleVideoCaptionerTranslate(app: Hono) {
         return c.json({ error: message }, 400);
       }
 
-      const result = await processVideoCaptionerTranslate(parseResult.data);
+      const { id: clientExecutionId, error: headerError } = parseOptionalXCommandExecutionId(
+        c.req.header("X-Command-Execution-Id"),
+      );
+      if (headerError) {
+        return c.json({ error: headerError }, 400);
+      }
+
+      const result = await processVideoCaptionerTranslate(parseResult.data, clientExecutionId);
       if (result.error) {
         return c.json(result, 400);
       }

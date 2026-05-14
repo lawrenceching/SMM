@@ -22,6 +22,7 @@ export { UISynthesizeSubtitleDialog } from "./UISynthesizeSubtitleDialog"
 export { ProcessPipelineDialog } from "./ProcessPipelineDialog"
 export { UIProcessPipelineDialog } from "./UIProcessPipelineDialog"
 export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
+export { LogDialog } from "./LogDialog"
 
 export type {
   DialogConfig,

@@ -63,7 +63,7 @@ describe("POST /api/videocaptioner/transcribe", () => {
       body: JSON.stringify({ mediaPath: "C:/a.mp4" }),
     });
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ success: true });
+    await expect(res.json()).resolves.toEqual(expect.objectContaining({ success: true }));
   });
 
   it("returns 200 when asr is whisper-cpp", async () => {
@@ -109,5 +109,31 @@ describe("POST /api/videocaptioner/transcribe", () => {
       wordTimestamps: true,
       format: "ass",
     });
+  });
+
+  it("returns 400 when X-Command-Execution-Id is invalid", async () => {
+    const res = await app.request("/api/videocaptioner/transcribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": "not-a-uuid",
+      },
+      body: JSON.stringify({ mediaPath: "C:/a.mp4" }),
+    });
+    expect(res.status).toBe(400);
+    expect(h.transcribeWithVideoCaptioner).not.toHaveBeenCalled();
+  });
+
+  it("forwards valid X-Command-Execution-Id to transcribeWithVideoCaptioner", async () => {
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await app.request("/api/videocaptioner/transcribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": id,
+      },
+      body: JSON.stringify({ mediaPath: "C:/a.mp4" }),
+    });
+    expect(h.transcribeWithVideoCaptioner).toHaveBeenCalledWith("C:/a.mp4", undefined, id);
   });
 });

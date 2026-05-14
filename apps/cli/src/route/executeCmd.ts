@@ -8,6 +8,7 @@ import { discoverVideoCaptioner, type VideoCaptionerTranscribeResult } from '../
 import {
   createCommandExecutionLogWriter,
 } from './commandExecutionLog';
+import { isCommandExecutionId } from './commandLog';
 
 const COMMAND_WHITELIST = ['ffmpeg', 'ffprobe', 'yt-dlp', 'videocaptioner'] as const;
 
@@ -365,6 +366,8 @@ export async function runWhitelistedCommandSync(input: {
   timeoutMs: number;
   env?: NodeJS.ProcessEnv;
   logMeta?: Record<string, unknown>;
+  /** When set and valid UUID v4, used as command log directory id. */
+  executionId?: string;
 }): Promise<VideoCaptionerTranscribeResult> {
   const executablePath = await resolveCommandPath(input.command);
   if (!executablePath) {
@@ -376,7 +379,17 @@ export async function runWhitelistedCommandSync(input: {
     .join(' ');
 
   const run = async (): Promise<VideoCaptionerTranscribeResult> => {
-    const cmdLog = await createCommandExecutionLogWriter();
+    const writerId =
+      input.executionId !== undefined && isCommandExecutionId(input.executionId)
+        ? input.executionId.trim()
+        : undefined;
+    const cmdLog = await createCommandExecutionLogWriter(writerId);
+
+    const withCorrelation = (result: VideoCaptionerTranscribeResult): VideoCaptionerTranscribeResult => ({
+      ...result,
+      executionId: cmdLog.executionId,
+      logRelativePath: cmdLog.logRelativePath,
+    });
 
     logger.info(
       {
@@ -424,7 +437,7 @@ export async function runWhitelistedCommandSync(input: {
           } else {
             safeEndCmdLog();
           }
-          resolve(result);
+          resolve(withCorrelation(result));
         };
 
         const timeoutId = setTimeout(() => {
@@ -497,9 +510,9 @@ export async function runWhitelistedCommandSync(input: {
         },
         '[executeCmd] failed to spawn synchronous command'
       );
-      return {
+      return withCorrelation({
         error: `failed to start ${input.command}: ${error instanceof Error ? error.message : 'unknown error'}`,
-      };
+      });
     }
   };
 

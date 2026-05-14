@@ -221,6 +221,19 @@
         "succeeded": "Completed successfully",
         "failed": "Job failed",
         "aborted": "Aborted by user"
+      },
+      "logButton": "Log",
+      "logButtonAria": "View command log for {{name}}",
+      "logDialog": {
+        "title": "Command log — {{jobTitle}}",
+        "raw": "Raw",
+        "segments": "Segments",
+        "refresh": "Refresh",
+        "loading": "Loading…",
+        "truncated": "This view may be truncated. Headers report total size; open the log file on disk for the full output.",
+        "loadError": "Could not load the command log.",
+        "empty": "Log is empty.",
+        "live": "Live"
       }
     }
   },

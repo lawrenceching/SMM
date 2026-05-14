@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "events";
+import { mkdtempSync } from "fs";
+import { tmpdir } from "os";
+import path from "path";
 import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner, synthesizeWithVideoCaptioner, processWithVideoCaptioner, VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "./VideoCaptioner";
 
 const h = vi.hoisted(() => ({
@@ -12,9 +15,13 @@ vi.mock("child_process", () => ({
   spawn: h.spawn,
 }));
 
-vi.mock("./config", () => ({
-  getUserConfig: h.getUserConfig,
-}));
+vi.mock("./config", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./config")>();
+  return {
+    ...actual,
+    getUserConfig: h.getUserConfig,
+  };
+});
 
 vi.mock("./Ffmpeg", () => ({
   discoverFfmpeg: h.discoverFfmpeg,
@@ -61,16 +68,47 @@ vi.mock("fs", async () => {
 
 type MockChild = EventEmitter & { once: EventEmitter["once"]; kill: ReturnType<typeof vi.fn> };
 
+function createStreamStub() {
+  let onData: ((chunk: string | Buffer) => void) | undefined;
+  return {
+    setEncoding: vi.fn(),
+    on: vi.fn((ev: string, cb: (chunk: string | Buffer) => void) => {
+      if (ev === "data") onData = cb;
+    }),
+    pushData: (chunk: string) => onData?.(chunk),
+  };
+}
+
 function createMockChild(): MockChild {
   const emitter = new EventEmitter() as MockChild;
   emitter.kill = vi.fn();
-  // Minimal stream-like shape for stderr listener in production code.
-  (emitter as unknown as { stderr?: { setEncoding: (enc: string) => void; on: (event: string, cb: (data: string) => void) => void } }).stderr = {
-    setEncoding: vi.fn(),
-    on: vi.fn(),
-  };
+  const stderrStub = createStreamStub();
+  const stdoutStub = createStreamStub();
+  (emitter as unknown as { stderr: typeof stderrStub; stdout: typeof stdoutStub }).stderr = stderrStub;
+  (emitter as unknown as { stderr: typeof stderrStub; stdout: typeof stdoutStub }).stdout = stdoutStub;
   return emitter;
 }
+
+let logDirEnvPrev: string | undefined;
+let logDirTmpRoot: string;
+
+beforeEach(() => {
+  logDirEnvPrev = process.env.LOG_DIR;
+  logDirTmpRoot = mkdtempSync(path.join(tmpdir(), "smm-vc-test-"));
+  process.env.LOG_DIR = logDirTmpRoot;
+});
+
+afterEach(async () => {
+  if (logDirEnvPrev === undefined) {
+    delete process.env.LOG_DIR;
+  } else {
+    process.env.LOG_DIR = logDirEnvPrev;
+  }
+  const fsActual = await vi.importActual<typeof import("fs")>("fs");
+  if (fsActual.existsSync(logDirTmpRoot)) {
+    fsActual.rmSync(logDirTmpRoot, { recursive: true, force: true });
+  }
+});
 
 describe("getPythonScriptsCandidatePaths", () => {
   it("includes windows Python Scripts candidates for .exe", () => {
@@ -103,7 +141,11 @@ describe("transcribeWithVideoCaptioner", () => {
     child.emit("close", 0);
     const result = await promise;
 
-    expect(result).toEqual({ success: true });
+    expect(result.success).toBe(true);
+    expect(result.executionId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(result.logRelativePath).toContain("commands/");
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
       ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],

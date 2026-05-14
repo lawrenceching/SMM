@@ -1,15 +1,45 @@
-import { CheckCircle2, XCircle, Clock, StopCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, StopCircle, FileText } from 'lucide-react';
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import type { JobStatus } from '@/types/background-jobs';
+import type { BackgroundJob, JobStatus } from '@/types/background-jobs';
+import {
+  isProcessBackgroundJob,
+  isSynthesizeBackgroundJob,
+  isTranscribeBackgroundJob,
+  isTranslateBackgroundJob,
+} from '@/types/background-jobs';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { useDialogs } from '@/providers/dialog-provider';
+
+function getSubtitleJobExecutionId(job: BackgroundJob): string | undefined {
+  if (isTranscribeBackgroundJob(job)) return job.data.executionId
+  if (isTranslateBackgroundJob(job)) return job.data.executionId
+  if (isSynthesizeBackgroundJob(job)) return job.data.executionId
+  if (isProcessBackgroundJob(job)) return job.data.executionId
+  return undefined
+}
+
+function canOpenCommandLog(job: BackgroundJob): boolean {
+  if (
+    !isTranscribeBackgroundJob(job) &&
+    !isTranslateBackgroundJob(job) &&
+    !isSynthesizeBackgroundJob(job) &&
+    !isProcessBackgroundJob(job)
+  ) {
+    return false
+  }
+  const id = getSubtitleJobExecutionId(job)
+  return typeof id === 'string' && id.length > 0
+}
 
 export function BackgroundJobsPopoverContent() {
   const { t } = useTranslation("components")
   const { jobs, abortJob } = useBackgroundJobsStore();
+  const { logDialog } = useDialogs();
+  const [openLogDialog] = logDialog;
 
    const getStatusIcon = (status: JobStatus) => {
     switch (status) {
@@ -127,18 +157,41 @@ export function BackgroundJobsPopoverContent() {
                   )}
                 </div>
 
-                 {job.status === 'running' && (
-                  <Button
-                    data-testid={`background-job-${job.id}-abort-button`}
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => abortJob(job.id)}
-                    className="shrink-0"
-                    aria-label={t("statusBar.backgroundJobs.abortAriaLabel", { name: job.name })}
-                  >
-                    <StopCircle className="h-4 w-4" />
-                  </Button>
-                )}
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  {canOpenCommandLog(job) && (
+                    <Button
+                      data-testid={`background-job-${job.id}-log-button`}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      aria-label={t("statusBar.backgroundJobs.logButtonAria", { name: job.name })}
+                      onClick={() => {
+                        const executionId = getSubtitleJobExecutionId(job)
+                        if (!executionId) return
+                        openLogDialog({
+                          executionId,
+                          jobTitle: job.name,
+                          isRunning: job.status === 'running',
+                        })
+                      }}
+                    >
+                      <FileText className="h-4 w-4" />
+                      {t("statusBar.backgroundJobs.logButton")}
+                    </Button>
+                  )}
+                  {job.status === 'running' && (
+                    <Button
+                      data-testid={`background-job-${job.id}-abort-button`}
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => abortJob(job.id)}
+                      aria-label={t("statusBar.backgroundJobs.abortAriaLabel", { name: job.name })}
+                    >
+                      <StopCircle className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ))

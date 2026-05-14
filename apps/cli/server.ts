@@ -58,6 +58,7 @@ import { handleFfmpegWriteTags } from './src/route/ffmpeg/WriteTags';
 import { handleFfmpegDiscover } from './src/route/ffmpeg/Discover';
 import { handleFfmpegVersion } from './src/route/ffmpeg/Version';
 import { handleExecuteCmd } from './src/route/executeCmd';
+import { handleCommandLog } from './src/route/commandLog';
 import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
@@ -245,6 +246,7 @@ export class Server {
     handleFfmpegDiscover(this.app);
     handleFfmpegVersion(this.app);
     handleExecuteCmd(this.app);
+    handleCommandLog(this.app);
     handleLog(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks

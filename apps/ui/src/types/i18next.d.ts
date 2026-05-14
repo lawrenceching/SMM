@@ -234,6 +234,19 @@ interface ComponentsResources {
       triggerAriaLabel_one: string
       triggerAriaLabel_other: string
       abortAriaLabel: string
+      logButton: string
+      logButtonAria: string
+      logDialog: {
+        title: string
+        live: string
+        raw: string
+        segments: string
+        refresh: string
+        truncated: string
+        loading: string
+        loadError: string
+        empty: string
+      }
       status: {
         pending: string
         running: string

@@ -17,6 +17,7 @@ import {
   FormatConverterDialog,
   EditMediaFileDialog,
   ExecuteCmdDialog,
+  LogDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
@@ -109,6 +110,10 @@ interface DialogContextValue {
     openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
     closeExecuteCmd: () => void
   ]
+  logDialog: [
+    openLogDialog: (options: { executionId: string; jobTitle: string; isRunning?: boolean }) => void,
+    closeLogDialog: () => void
+  ]
 }
 
 const DialogContext = createContext<DialogContextValue | undefined>(undefined)
@@ -179,6 +184,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Execute command dialog state
   const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
   const [executeCmdInitialCommand, setExecuteCmdInitialCommand] = useState<ExecuteCmdType | undefined>(undefined)
+
+  const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
+  const [logDialogExecutionId, setLogDialogExecutionId] = useState('')
+  const [logDialogJobTitle, setLogDialogJobTitle] = useState('')
+  const [logDialogIsRunning, setLogDialogIsRunning] = useState(false)
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -389,6 +399,22 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openLogDialog = useCallback((options: { executionId: string; jobTitle: string; isRunning?: boolean }) => {
+    setLogDialogExecutionId(options.executionId)
+    setLogDialogJobTitle(options.jobTitle)
+    setLogDialogIsRunning(options.isRunning ?? false)
+    setIsLogDialogOpen(true)
+  }, [])
+
+  const closeLogDialog = useCallback(() => {
+    setIsLogDialogOpen(false)
+    setTimeout(() => {
+      setLogDialogExecutionId('')
+      setLogDialogJobTitle('')
+      setLogDialogIsRunning(false)
+    }, 200)
+  }, [])
+
   const value: DialogContextValue = {
     confirmationDialog: [openConfirmation, closeConfirmation],
     spinnerDialog: [openSpinner, closeSpinner],
@@ -404,6 +430,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
     editMediaFileDialog: [openEditMediaFile, closeEditMediaFile],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
+    logDialog: [openLogDialog, closeLogDialog],
   }
 
   return (
@@ -501,6 +528,15 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isExecuteCmdOpen}
         onClose={closeExecuteCmd}
         initialCommand={executeCmdInitialCommand}
+      />
+      <LogDialog
+        open={isLogDialogOpen}
+        onOpenChange={(next) => {
+          if (!next) closeLogDialog()
+        }}
+        executionId={logDialogExecutionId}
+        jobTitle={logDialogJobTitle}
+        isRunning={logDialogIsRunning}
       />
     </DialogContext.Provider>
   )

@@ -139,6 +139,22 @@ async function parseApiResponseBody(res, logContext) {
   }
 }
 
+/** Merge CLI correlation fields from videocaptioner JSON responses into job payload (mutates `data`). */
+function mergeVideocaptionerCommandLogFields(data, body) {
+  if (!body || typeof body !== 'object') return
+  if (typeof body.executionId === 'string' && body.executionId) {
+    data.executionId = body.executionId
+  }
+  if (typeof body.logRelativePath === 'string' && body.logRelativePath) {
+    data.logRelativePath = body.logRelativePath
+  }
+}
+
+async function persistJobDataJson(job, data) {
+  job.data = JSON.stringify(data)
+  await dbPutJob(job)
+}
+
 // ─── Heartbeat ────────────────────────────────────────────────────────────────
 
 function startHeartbeat(jobId, heartbeatEvent) {
@@ -464,14 +480,22 @@ async function startTranscribe(jobId) {
       if (vc.language !== undefined) reqBody.language = vc.language
       if (vc.wordTimestamps !== undefined) reqBody.wordTimestamps = vc.wordTimestamps
       if (vc.format !== undefined) reqBody.format = vc.format
+      const executionId = self.crypto.randomUUID()
+      data.executionId = executionId
+      await persistJobDataJson(job, data)
       const res = await fetch('/api/videocaptioner/transcribe', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Command-Execution-Id': executionId,
+        },
         body: JSON.stringify(reqBody),
         signal: controller.signal,
       })
       const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/transcribe' })
+      mergeVideocaptionerCommandLogFields(data, body)
+      await persistJobDataJson(job, data)
       if (body.error) {
         console.warn('[SW] startTranscribe: videocaptioner error', { jobId, error: body.error })
       } else {
@@ -592,14 +616,23 @@ async function startTranslate(jobId) {
     if (data.layout) reqBody.layout = data.layout
     if (data.llm && typeof data.llm === 'object') reqBody.llm = data.llm
 
+    const executionId = self.crypto.randomUUID()
+    data.executionId = executionId
+    await persistJobDataJson(job, data)
+
     const res = await fetch('/api/videocaptioner/translate', {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Command-Execution-Id': executionId,
+      },
       body: JSON.stringify(reqBody),
       signal: controller.signal,
     })
     const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/translate' })
+    mergeVideocaptionerCommandLogFields(data, body)
+    await persistJobDataJson(job, data)
     if (body.error) {
       console.warn('[SW] startTranslate: videocaptioner error', { jobId, error: body.error })
     } else {
@@ -739,14 +772,23 @@ async function startSynthesize(jobId) {
       },
     })
 
+    const executionId = self.crypto.randomUUID()
+    data.executionId = executionId
+    await persistJobDataJson(job, data)
+
     const res = await fetch(synthesizePath, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Command-Execution-Id': executionId,
+      },
       body: JSON.stringify(reqBody),
       signal: controller.signal,
     })
     const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/synthesize' })
+    mergeVideocaptionerCommandLogFields(data, body)
+    await persistJobDataJson(job, data)
     if (body.error) {
       console.warn('[SW] startSynthesize: videocaptioner error', {
         jobId,
@@ -888,15 +930,24 @@ async function startProcess(jobId) {
 
   let ok = false
   try {
+    const executionId = self.crypto.randomUUID()
+    data.executionId = executionId
+    await persistJobDataJson(job, data)
+
     const processPath = '/api/videocaptioner/process'
     const res = await fetch(processPath, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Command-Execution-Id': executionId,
+      },
       body: JSON.stringify(reqBody),
       signal: controller.signal,
     })
     const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/process' })
+    mergeVideocaptionerCommandLogFields(data, body)
+    await persistJobDataJson(job, data)
     if (body.error) {
       console.warn('[SW] startProcess: videocaptioner error', { jobId, error: body.error })
     } else {

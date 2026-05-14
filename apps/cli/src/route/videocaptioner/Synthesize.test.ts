@@ -64,6 +64,19 @@ describe("processVideoCaptionerSynthesize", () => {
     });
     expect(result.error).toBe("boom");
   });
+
+  it("passes client executionId to synthesizeWithVideoCaptioner", async () => {
+    h.synthesizeWithVideoCaptioner.mockResolvedValue({ success: true });
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await processVideoCaptionerSynthesize(
+      {
+        videoPath: "C:/v.mp4",
+        subtitlePath: "C:/v.srt",
+      },
+      id,
+    );
+    expect(h.synthesizeWithVideoCaptioner).toHaveBeenCalledWith("C:/v.mp4", "C:/v.srt", {}, id);
+  });
 });
 
 describe("POST /api/videocaptioner/synthesize", () => {
@@ -86,7 +99,7 @@ describe("POST /api/videocaptioner/synthesize", () => {
       }),
     });
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ success: true });
+    await expect(res.json()).resolves.toEqual(expect.objectContaining({ success: true }));
   });
 
   it("returns 400 when subtitleMode is invalid", async () => {
@@ -113,5 +126,37 @@ describe("POST /api/videocaptioner/synthesize", () => {
       }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when X-Command-Execution-Id is invalid", async () => {
+    const res = await app.request("/api/videocaptioner/synthesize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": "x",
+      },
+      body: JSON.stringify({
+        videoPath: "C:/v.mp4",
+        subtitlePath: "C:/v.srt",
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(h.synthesizeWithVideoCaptioner).not.toHaveBeenCalled();
+  });
+
+  it("forwards valid X-Command-Execution-Id to synthesizeWithVideoCaptioner", async () => {
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await app.request("/api/videocaptioner/synthesize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": id,
+      },
+      body: JSON.stringify({
+        videoPath: "C:/v.mp4",
+        subtitlePath: "C:/v.srt",
+      }),
+    });
+    expect(h.synthesizeWithVideoCaptioner).toHaveBeenCalledWith("C:/v.mp4", "C:/v.srt", {}, id);
   });
 });

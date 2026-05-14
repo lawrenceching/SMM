@@ -218,6 +218,19 @@
         "succeeded": "已成功完成",
         "failed": "工作失敗",
         "aborted": "使用者已中止"
+      },
+      "logButton": "記錄",
+      "logButtonAria": "檢視 {{name}} 的命令記錄",
+      "logDialog": {
+        "title": "命令記錄 — {{jobTitle}}",
+        "raw": "原文",
+        "segments": "分段",
+        "refresh": "重新整理",
+        "loading": "載入中…",
+        "truncated": "此檢視可能已截斷；回應標頭含總大小，完整內容請查看磁碟上的記錄檔。",
+        "loadError": "無法載入命令記錄。",
+        "empty": "記錄為空。",
+        "live": "即時"
       }
     }
   },

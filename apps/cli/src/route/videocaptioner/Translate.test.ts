@@ -66,6 +66,27 @@ describe("processVideoCaptionerTranslate", () => {
     });
     expect(result.error).toBe("boom");
   });
+
+  it("passes client executionId to translateSubtitleWithVideoCaptioner", async () => {
+    h.translateSubtitleWithVideoCaptioner.mockResolvedValue({ success: true });
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await processVideoCaptionerTranslate(
+      {
+        subtitlePath: "C:/a.srt",
+        translator: "bing",
+        targetLanguage: "en",
+      },
+      id,
+    );
+    expect(h.translateSubtitleWithVideoCaptioner).toHaveBeenCalledWith(
+      "C:/a.srt",
+      {
+        translator: "bing",
+        targetLanguage: "en",
+      },
+      id,
+    );
+  });
 });
 
 describe("POST /api/videocaptioner/translate", () => {
@@ -89,7 +110,7 @@ describe("POST /api/videocaptioner/translate", () => {
       }),
     });
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ success: true });
+    await expect(res.json()).resolves.toEqual(expect.objectContaining({ success: true }));
   });
 
   it("returns 400 when translator is invalid", async () => {
@@ -143,5 +164,46 @@ describe("POST /api/videocaptioner/translate", () => {
       }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when X-Command-Execution-Id is invalid", async () => {
+    const res = await app.request("/api/videocaptioner/translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": "nope",
+      },
+      body: JSON.stringify({
+        subtitlePath: "C:/a.srt",
+        translator: "bing",
+        targetLanguage: "en",
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(h.translateSubtitleWithVideoCaptioner).not.toHaveBeenCalled();
+  });
+
+  it("forwards valid X-Command-Execution-Id to translateSubtitleWithVideoCaptioner", async () => {
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await app.request("/api/videocaptioner/translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": id,
+      },
+      body: JSON.stringify({
+        subtitlePath: "C:/a.srt",
+        translator: "bing",
+        targetLanguage: "en",
+      }),
+    });
+    expect(h.translateSubtitleWithVideoCaptioner).toHaveBeenCalledWith(
+      "C:/a.srt",
+      {
+        translator: "bing",
+        targetLanguage: "en",
+      },
+      id,
+    );
   });
 });

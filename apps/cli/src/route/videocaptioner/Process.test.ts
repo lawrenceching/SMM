@@ -50,6 +50,25 @@ describe("processVideoCaptionerProcess", () => {
     expect(call.args[1]).toBe("C:/v.mp4");
   });
 
+  it("passes client executionId to runWhitelistedCommandSync", async () => {
+    h.runWhitelistedCommandSync.mockResolvedValue({ success: true });
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    await processVideoCaptionerProcess(
+      {
+        mediaPath: "C:/v.mp4",
+        translator: "bing",
+        targetLanguage: "en",
+      },
+      id,
+    );
+    expect(h.runWhitelistedCommandSync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "videocaptioner",
+        executionId: id,
+      }),
+    );
+  });
+
   it("passes transcribe and synthesize flags in argv", async () => {
     h.runWhitelistedCommandSync.mockResolvedValue({ success: true });
     await processVideoCaptionerProcess({
@@ -164,5 +183,44 @@ describe("POST /api/videocaptioner/process", () => {
       }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when X-Command-Execution-Id is invalid", async () => {
+    const res = await app.request("/api/videocaptioner/process", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": "bad",
+      },
+      body: JSON.stringify({
+        mediaPath: "C:/v.mp4",
+        translator: "bing",
+        targetLanguage: "en",
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(h.runWhitelistedCommandSync).not.toHaveBeenCalled();
+  });
+
+  it("forwards valid X-Command-Execution-Id to runWhitelistedCommandSync", async () => {
+    const id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    const res = await app.request("/api/videocaptioner/process", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Command-Execution-Id": id,
+      },
+      body: JSON.stringify({
+        mediaPath: "C:/v.mp4",
+        translator: "bing",
+        targetLanguage: "en",
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(h.runWhitelistedCommandSync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionId: id,
+      }),
+    );
   });
 });

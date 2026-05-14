@@ -76,6 +76,9 @@ export interface TranscribeBackgroundJobData {
     baseUrl: string;
     apiKey: string;
   };
+  /** CLI command log correlation when available (VideoCaptioner API). */
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export interface TranscribeBackgroundJob extends BackgroundJobBase {
@@ -110,6 +113,8 @@ export interface TranslateBackgroundJobData {
     apiBase?: string;
     model?: string;
   };
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export interface TranslateBackgroundJob extends BackgroundJobBase {
@@ -140,6 +145,8 @@ export interface SynthesizeBackgroundJobData {
   style?: string
   renderMode?: SynthesizeRenderMode
   layout?: SynthesizeSubtitleLayout
+  executionId?: string
+  logRelativePath?: string
 }
 
 export interface SynthesizeBackgroundJob extends BackgroundJobBase {
@@ -176,6 +183,8 @@ export interface ProcessBackgroundJobData {
   style?: string
   renderMode?: SynthesizeRenderMode
   synthesizeLayout?: SynthesizeSubtitleLayout
+  executionId?: string
+  logRelativePath?: string
 }
 
 export interface ProcessBackgroundJob extends BackgroundJobBase {

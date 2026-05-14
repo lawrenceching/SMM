@@ -4,6 +4,8 @@ import os from "os";
 import fs from "fs";
 import { spawn } from "child_process";
 import { logger } from "../../lib/logger";
+import { createCommandExecutionLogWriter } from "../route/commandExecutionLog";
+import { isCommandExecutionId } from "../route/commandLog";
 import { discoverFfmpeg } from "./Ffmpeg";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
@@ -171,6 +173,138 @@ export async function discoverVideoCaptioner(): Promise<string | undefined> {
 export interface VideoCaptionerTranscribeResult {
   success?: boolean;
   error?: string;
+  /** Present when a command execution log was created for this run. */
+  executionId?: string;
+  /** Relative to application log root (POSIX), e.g. `commands/<id>/main.log`. */
+  logRelativePath?: string;
+}
+
+type VideocaptionerSpawnLogMeta = {
+  op: string;
+  mediaPath?: string;
+  subtitlePath?: string;
+  videoPath?: string;
+  onNonZeroExit?: (ctx: {
+    code: number | null;
+    trimmedStderr: string;
+  }) => void;
+};
+
+async function runVideocaptionerSpawnWithCommandLog(input: {
+  executablePath: string;
+  args: string[];
+  env: NodeJS.ProcessEnv | undefined;
+  timeoutMs: number;
+  logMeta: VideocaptionerSpawnLogMeta;
+  /** When set and valid UUID v4, used as command log directory id (must be validated by caller). */
+  executionId?: string;
+}): Promise<VideoCaptionerTranscribeResult> {
+  const writerId =
+    input.executionId !== undefined && isCommandExecutionId(input.executionId)
+      ? input.executionId.trim()
+      : undefined;
+  const cmdLog = await createCommandExecutionLogWriter(writerId);
+  const correlation: Pick<VideoCaptionerTranscribeResult, "executionId" | "logRelativePath"> = {
+    executionId: cmdLog.executionId,
+    logRelativePath: cmdLog.logRelativePath,
+  };
+
+  const commandForLog = [input.executablePath, ...input.args]
+    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+    .join(" ");
+
+  cmdLog.appendSystemNote(
+    JSON.stringify({
+      tool: "videocaptioner",
+      commandLine: commandForLog,
+      ...input.logMeta,
+    }),
+  );
+
+  let cmdLogEnded = false;
+  const safeEndCmdLog = (note?: string) => {
+    if (cmdLogEnded) return;
+    cmdLogEnded = true;
+    if (note) {
+      cmdLog.appendSystemNote(note);
+    }
+    cmdLog.close();
+  };
+
+  const merge = (result: VideoCaptionerTranscribeResult): VideoCaptionerTranscribeResult => ({
+    ...result,
+    ...correlation,
+  });
+
+  try {
+    const child = spawn(input.executablePath, input.args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(input.env ? { env: input.env } : {}),
+    });
+
+    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
+      let settled = false;
+      let stderrOutput = "";
+      const finish = (result: VideoCaptionerTranscribeResult, logNote?: string) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        safeEndCmdLog(logNote);
+        resolve(merge(result));
+      };
+
+      const timeoutId = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // ignore kill failures and surface timeout error
+        }
+        finish(
+          { error: `videocaptioner timed out after ${input.timeoutMs}ms` },
+          `timeout after ${input.timeoutMs}ms`,
+        );
+      }, input.timeoutMs);
+
+      child.once("error", (error) => {
+        finish(
+          {
+            error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+          },
+          `process error: ${error instanceof Error ? error.message : "unknown error"}`,
+        );
+      });
+
+      child.once("close", (code) => {
+        if (code === 0) {
+          finish({ success: true }, `exit code=${code}`);
+          return;
+        }
+        const trimmedStderr = stderrOutput.trim();
+        input.logMeta.onNonZeroExit?.({ code, trimmedStderr });
+        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+        finish(
+          { error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` },
+          `exit code=${code ?? "null"}`,
+        );
+      });
+
+      child.stdout?.setEncoding("utf8");
+      child.stdout?.on("data", (chunk: string | Buffer) => {
+        cmdLog.appendStdout(chunk);
+      });
+
+      child.stderr?.setEncoding("utf8");
+      child.stderr?.on("data", (chunk: string | Buffer) => {
+        cmdLog.appendStderr(chunk);
+        stderrOutput += String(chunk);
+      });
+    });
+  } catch (error) {
+    safeEndCmdLog(`spawn failed: ${error instanceof Error ? error.message : "unknown error"}`);
+    return merge({
+      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
+    });
+  }
 }
 
 export const VIDEOCAPTIONER_ASR_ENGINES = ["bijian", "jianying", "whisper-cpp"] as const;
@@ -252,7 +386,8 @@ export interface VideoCaptionerProcessCliOptions {
 
 export async function transcribeWithVideoCaptioner(
   mediaPath: string,
-  options?: VideoCaptionerTranscribeCliOptions
+  options?: VideoCaptionerTranscribeCliOptions,
+  executionId?: string,
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!mediaPath) {
     return { error: "mediaPath is required" };
@@ -283,66 +418,24 @@ export async function transcribeWithVideoCaptioner(
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
-  try {
-    videoCaptionerLog.info(
-      { executablePath, mediaPath, args, command: commandForLog },
-      "running videocaptioner transcribe command"
-    );
-    const child = spawn(executablePath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(env ? { env } : {}),
-    });
-    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
-      let settled = false;
-      let stderrOutput = "";
-      const finish = (result: VideoCaptionerTranscribeResult) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(result);
-      };
-
-      const timeoutId = setTimeout(() => {
-        try {
-          child.kill();
-        } catch {
-          // ignore kill failures and surface timeout error
-        }
-        finish({ error: `videocaptioner timed out after ${TRANSCRIBE_TIMEOUT_MS}ms` });
-      }, TRANSCRIBE_TIMEOUT_MS);
-
-      child.once("error", (error) => {
-        finish({
-          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-        });
-      });
-
-      child.once("close", (code) => {
-        if (code === 0) {
-          finish({ success: true });
-          return;
-        }
-        const trimmedStderr = stderrOutput.trim();
-        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
-        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
-      });
-
-      child.stderr?.setEncoding("utf8");
-      child.stderr?.on("data", (chunk: string | Buffer) => {
-        stderrOutput += String(chunk);
-      });
-    });
-  } catch (error) {
-    videoCaptionerLog.error({ error, executablePath, mediaPath }, "failed to start videocaptioner");
-    return {
-      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-    };
-  }
+  videoCaptionerLog.info(
+    { executablePath, mediaPath, args, command: commandForLog },
+    "running videocaptioner transcribe command",
+  );
+  return runVideocaptionerSpawnWithCommandLog({
+    executablePath,
+    args,
+    env,
+    timeoutMs: TRANSCRIBE_TIMEOUT_MS,
+    logMeta: { op: "transcribe", mediaPath },
+    ...(executionId !== undefined ? { executionId } : {}),
+  });
 }
 
 export async function translateSubtitleWithVideoCaptioner(
   subtitlePath: string,
-  options: VideoCaptionerTranslateCliOptions
+  options: VideoCaptionerTranslateCliOptions,
+  executionId?: string,
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!subtitlePath) {
     return { error: "subtitlePath is required" };
@@ -389,67 +482,25 @@ export async function translateSubtitleWithVideoCaptioner(
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
-  try {
-    videoCaptionerLog.info(
-      { executablePath, subtitlePath, args, command: commandForLog },
-      "running videocaptioner subtitle translate command"
-    );
-    const child = spawn(executablePath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(env ? { env } : {}),
-    });
-    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
-      let settled = false;
-      let stderrOutput = "";
-      const finish = (result: VideoCaptionerTranscribeResult) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(result);
-      };
-
-      const timeoutId = setTimeout(() => {
-        try {
-          child.kill();
-        } catch {
-          // ignore kill failures and surface timeout error
-        }
-        finish({ error: `videocaptioner timed out after ${TRANSCRIBE_TIMEOUT_MS}ms` });
-      }, TRANSCRIBE_TIMEOUT_MS);
-
-      child.once("error", (error) => {
-        finish({
-          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-        });
-      });
-
-      child.once("close", (code) => {
-        if (code === 0) {
-          finish({ success: true });
-          return;
-        }
-        const trimmedStderr = stderrOutput.trim();
-        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
-        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
-      });
-
-      child.stderr?.setEncoding("utf8");
-      child.stderr?.on("data", (chunk: string | Buffer) => {
-        stderrOutput += String(chunk);
-      });
-    });
-  } catch (error) {
-    videoCaptionerLog.error({ error, executablePath, subtitlePath }, "failed to start videocaptioner");
-    return {
-      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-    };
-  }
+  videoCaptionerLog.info(
+    { executablePath, subtitlePath, args, command: commandForLog },
+    "running videocaptioner subtitle translate command",
+  );
+  return runVideocaptionerSpawnWithCommandLog({
+    executablePath,
+    args,
+    env,
+    timeoutMs: TRANSCRIBE_TIMEOUT_MS,
+    logMeta: { op: "translate", subtitlePath },
+    ...(executionId !== undefined ? { executionId } : {}),
+  });
 }
 
 export async function synthesizeWithVideoCaptioner(
   videoPath: string,
   subtitlePath: string,
-  options?: VideoCaptionerSynthesizeCliOptions
+  options?: VideoCaptionerSynthesizeCliOptions,
+  executionId?: string,
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!videoPath) {
     return { error: "videoPath is required" };
@@ -493,47 +544,20 @@ export async function synthesizeWithVideoCaptioner(
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
-  try {
-    videoCaptionerLog.info(
-      { executablePath, videoPath, subtitlePath, args, command: commandForLog },
-      "running videocaptioner synthesize command"
-    );
-    const child = spawn(executablePath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(env ? { env } : {}),
-    });
-    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
-      let settled = false;
-      let stderrOutput = "";
-      const finish = (result: VideoCaptionerTranscribeResult) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(result);
-      };
-
-      const timeoutId = setTimeout(() => {
-        try {
-          child.kill();
-        } catch {
-          // ignore kill failures and surface timeout error
-        }
-        finish({ error: `videocaptioner timed out after ${SYNTHESIZE_TIMEOUT_MS}ms` });
-      }, SYNTHESIZE_TIMEOUT_MS);
-
-      child.once("error", (error) => {
-        finish({
-          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-        });
-      });
-
-      child.once("close", (code) => {
-        if (code === 0) {
-          finish({ success: true });
-          return;
-        }
-        const trimmedStderr = stderrOutput.trim();
-        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+  videoCaptionerLog.info(
+    { executablePath, videoPath, subtitlePath, args, command: commandForLog },
+    "running videocaptioner synthesize command",
+  );
+  return runVideocaptionerSpawnWithCommandLog({
+    executablePath,
+    args,
+    env,
+    timeoutMs: SYNTHESIZE_TIMEOUT_MS,
+    logMeta: {
+      op: "synthesize",
+      videoPath,
+      subtitlePath,
+      onNonZeroExit: ({ code, trimmedStderr }) => {
         videoCaptionerLog.warn(
           {
             exitCode: code,
@@ -544,23 +568,10 @@ export async function synthesizeWithVideoCaptioner(
           },
           "videocaptioner synthesize exited with non-zero code",
         );
-        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
-      });
-
-      child.stderr?.setEncoding("utf8");
-      child.stderr?.on("data", (chunk: string | Buffer) => {
-        stderrOutput += String(chunk);
-      });
-    });
-  } catch (error) {
-    videoCaptionerLog.error(
-      { error, executablePath, videoPath, subtitlePath },
-      "failed to start videocaptioner synthesize"
-    );
-    return {
-      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-    };
-  }
+      },
+    },
+    ...(executionId !== undefined ? { executionId } : {}),
+  });
 }
 
 /** argv for `videocaptioner` executable (subcommand `process` + flags), same contract as POST `/api/executeCmd` with `command: "videocaptioner"`. */
@@ -640,7 +651,8 @@ export function buildProcessVideoCaptionerArgs(
 
 export async function processWithVideoCaptioner(
   mediaPath: string,
-  options?: VideoCaptionerProcessCliOptions
+  options?: VideoCaptionerProcessCliOptions,
+  executionId?: string,
 ): Promise<VideoCaptionerTranscribeResult> {
   if (!mediaPath) {
     return { error: "mediaPath is required" };
@@ -661,47 +673,19 @@ export async function processWithVideoCaptioner(
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");
-  try {
-    videoCaptionerLog.info(
-      { executablePath, mediaPath, args, command: commandForLog },
-      "running videocaptioner process command"
-    );
-    const child = spawn(executablePath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(env ? { env } : {}),
-    });
-    return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {
-      let settled = false;
-      let stderrOutput = "";
-      const finish = (result: VideoCaptionerTranscribeResult) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(result);
-      };
-
-      const timeoutId = setTimeout(() => {
-        try {
-          child.kill();
-        } catch {
-          // ignore kill failures and surface timeout error
-        }
-        finish({ error: `videocaptioner timed out after ${PROCESS_TIMEOUT_MS}ms` });
-      }, PROCESS_TIMEOUT_MS);
-
-      child.once("error", (error) => {
-        finish({
-          error: `failed to run videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-        });
-      });
-
-      child.once("close", (code) => {
-        if (code === 0) {
-          finish({ success: true });
-          return;
-        }
-        const trimmedStderr = stderrOutput.trim();
-        const stderrSuffix = trimmedStderr ? `: ${trimmedStderr.slice(0, 500)}` : "";
+  videoCaptionerLog.info(
+    { executablePath, mediaPath, args, command: commandForLog },
+    "running videocaptioner process command",
+  );
+  return runVideocaptionerSpawnWithCommandLog({
+    executablePath,
+    args,
+    env,
+    timeoutMs: PROCESS_TIMEOUT_MS,
+    logMeta: {
+      op: "process",
+      mediaPath,
+      onNonZeroExit: ({ code, trimmedStderr }) => {
         videoCaptionerLog.warn(
           {
             exitCode: code,
@@ -711,18 +695,8 @@ export async function processWithVideoCaptioner(
           },
           "videocaptioner process exited with non-zero code",
         );
-        finish({ error: `videocaptioner exited with code ${code ?? "unknown"}${stderrSuffix}` });
-      });
-
-      child.stderr?.setEncoding("utf8");
-      child.stderr?.on("data", (chunk: string | Buffer) => {
-        stderrOutput += String(chunk);
-      });
-    });
-  } catch (error) {
-    videoCaptionerLog.error({ error, executablePath, mediaPath }, "failed to start videocaptioner process");
-    return {
-      error: `failed to start videocaptioner: ${error instanceof Error ? error.message : "unknown error"}`,
-    };
-  }
+      },
+    },
+    ...(executionId !== undefined ? { executionId } : {}),
+  });
 }

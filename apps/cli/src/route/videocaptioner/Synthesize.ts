@@ -7,6 +7,7 @@ import {
   VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES,
   VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES,
 } from "../../utils/VideoCaptioner";
+import { parseOptionalXCommandExecutionId } from "../commandLog";
 import { logger } from "../../../lib/logger";
 
 const synthesizeRequestSchema = z.object({
@@ -24,10 +25,13 @@ export type SynthesizeRequestBody = z.infer<typeof synthesizeRequestSchema>;
 export interface VideoCaptionerSynthesizeResponseData {
   success?: boolean;
   error?: string;
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export async function processVideoCaptionerSynthesize(
-  body: SynthesizeRequestBody
+  body: SynthesizeRequestBody,
+  clientExecutionId?: string,
 ): Promise<VideoCaptionerSynthesizeResponseData> {
   try {
     const cliOpts = {
@@ -37,6 +41,9 @@ export async function processVideoCaptionerSynthesize(
       ...(body.renderMode !== undefined ? { renderMode: body.renderMode } : {}),
       ...(body.layout !== undefined ? { layout: body.layout } : {}),
     };
+    if (clientExecutionId !== undefined) {
+      return await synthesizeWithVideoCaptioner(body.videoPath, body.subtitlePath, cliOpts, clientExecutionId);
+    }
     return await synthesizeWithVideoCaptioner(body.videoPath, body.subtitlePath, cliOpts);
   } catch (error) {
     logger.error({ error }, "Error synthesizing subtitle with videocaptioner");
@@ -61,7 +68,14 @@ export function handleVideoCaptionerSynthesize(app: Hono) {
         return c.json({ error: message }, 400);
       }
 
-      const result = await processVideoCaptionerSynthesize(parseResult.data);
+      const { id: clientExecutionId, error: headerError } = parseOptionalXCommandExecutionId(
+        c.req.header("X-Command-Execution-Id"),
+      );
+      if (headerError) {
+        return c.json({ error: headerError }, 400);
+      }
+
+      const result = await processVideoCaptionerSynthesize(parseResult.data, clientExecutionId);
       if (result.error) {
         logger.warn(
           {
