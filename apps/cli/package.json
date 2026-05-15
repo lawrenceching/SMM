@@ -1,6 +1,6 @@
 {
   "name": "cli",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "module": "index.ts",
   "type": "module",
   "private": true,
