@@ -366,7 +366,8 @@
     "toastSucceeded": "流程已完成",
     "toastFailed": "流程失敗",
     "noMediaFolder": "媒體資料夾不可用，無法開始流程。",
-    "notEligible": "此項不符合流程條件。"
+    "notEligible": "此項不符合流程條件。",
+    "partialFailure": "{{count}} 個流程任務未能加入佇列。"
   },
   "tvShowEpisodeTable": {
     "columns": {

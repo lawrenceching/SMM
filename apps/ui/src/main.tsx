@@ -21,7 +21,7 @@ import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlist
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { BackgroundJobsProvider } from './components/background-jobs/BackgroundJobsProvider.tsx'
-import { IndexedDbObserver } from './components/IndexedDbObserver'
+import { JobOrchestratorProvider } from './components/JobOrchestratorProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
 import { logger } from './lib/log'
@@ -226,15 +226,16 @@ async function bootstrap() {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-            <DialogProvider>
-              <BackgroundJobsProvider>
-                <IndexedDbObserver />
+            <JobOrchestratorProvider>
+              <DialogProvider>
+                <BackgroundJobsProvider>
                 <AppLanguageSync />
                 <UIMediaFolderStoreInitializer />
                 <AppInitializer />
                 <AppSwitcher />
-              </BackgroundJobsProvider>
-            </DialogProvider>
+                </BackgroundJobsProvider>
+              </DialogProvider>
+            </JobOrchestratorProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>,

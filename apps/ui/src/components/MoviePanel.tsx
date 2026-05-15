@@ -2,7 +2,7 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { Path } from "@core/path"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { FileProps } from "@/lib/types"
 import { newFileName } from "@/api/newFileName"
 import { join } from "@/lib/path"
@@ -27,9 +27,7 @@ import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubt
 import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useTranslateManager } from "@/hooks/useTranslateManager"
-import { useSynthesizeManager } from "@/hooks/useSynthesizeManager"
-import { useProcessManager } from "@/hooks/useProcessManager"
+import { useJobs } from "@/hooks/useJobOrchestrator"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
 
@@ -170,35 +168,28 @@ function MoviePanel() {
   const hasProcessTargets = processPipelineRows.length > 0
   const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
 
-  useTranslateManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void refreshMediaMetadata(p)
-    }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
-  })
+  const allJobRecords = useJobs()
+  const runningJobIdsRef = useRef(new Set<string>())
+  const refreshMediaMetadataRef = useRef(refreshMediaMetadata)
+  refreshMediaMetadataRef.current = refreshMediaMetadata
+  const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath)
+  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath
 
-  useSynthesizeManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void refreshMediaMetadata(p)
-    }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
-  })
-
-  useProcessManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void refreshMediaMetadata(p)
-    }, [mediaMetadata?.mediaFolderPath, refreshMediaMetadata]),
-  })
+  useEffect(() => {
+    const mfp = mediaFolderPathRef.current
+    if (!mfp) { runningJobIdsRef.current = new Set(); return }
+    const platformFolder = Path.toPlatformPath(mfp)
+    const hadCompletion = allJobRecords.some(
+      (r) =>
+        r.folder === platformFolder &&
+        (r.status === "succeeded" || r.status === "failed") &&
+        runningJobIdsRef.current.has(r.id),
+    )
+    if (hadCompletion) void refreshMediaMetadataRef.current(mfp)
+    runningJobIdsRef.current = new Set(
+      allJobRecords.filter((r) => r.folder === platformFolder && r.status === "running").map((r) => r.id),
+    )
+  }, [allJobRecords])
 
   const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
   const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { MusicPanel, syncTracks } from './MusicPanel';
+import { MusicPanel } from './MusicPanel';
 import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore';
 import { useMediaMetadataQuery } from '@/hooks/mediaMetadata';
 import { useDialogs } from '@/providers/dialog-provider';
@@ -16,7 +16,69 @@ import { useFeatures } from '@/hooks/useFeatures';
 const h = vi.hoisted(() => ({
   mockFetchMediaMetadata: vi.fn(),
   mockSaveMediaMetadata: vi.fn(),
+  emptyJobRecords: [] as const,
+  emptyJobTracks: [] as const,
+  emptyFileStatuses: {
+    runningPaths: new Set<string>(),
+    pendingPaths: new Set<string>(),
+    failedPaths: new Set<string>(),
+    jobIdsByPath: new Map<string, string[]>(),
+    primaryJobIdByPath: new Map<string, string>(),
+  },
+  libraryTracks: [
+    {
+      id: 1,
+      title: 'Test Song',
+      artist: 'Test Artist',
+      duration: 180,
+      thumbnail: 'https://example.com/thumbnail.jpg',
+      addedDate: new Date('2024-01-01'),
+      path: '/path/to/song.mp3',
+    },
+  ],
 }));
+
+vi.mock('@/lib/mediaMetadataQueryKeys', () => ({
+  normalizeMediaFolderPathForQuery: (p: string) => p,
+  mediaMetadataQueryKey: (p: string) => ['mediaMetadata', p] as const,
+  mediaMetadataReadQueryOptions: vi.fn(() => ({
+    queryKey: ['mediaMetadata', ''] as const,
+    queryFn: vi.fn(),
+  })),
+}))
+
+vi.mock('@/lib/music', () => ({
+  convertMusicFilesToTracks: vi.fn(() => h.libraryTracks),
+  newMusicMediaMetadata: vi.fn((mm: { files?: string[] }) => ({
+    ...mm,
+    musicFiles: [],
+  })),
+}))
+
+vi.mock('@/lib/tracksFromDownloadVideoJobs', () => ({
+  mergeLibraryTracksWithJobTracks: (libraryTracks: unknown[], jobTracks: unknown[]) => [
+    ...libraryTracks,
+    ...jobTracks,
+  ],
+  tracksFromDownloadJobRecords: () => h.emptyJobTracks,
+}))
+
+vi.mock('@/lib/transcribeDialogRows', () => ({
+  transcribeDialogRowsFromMusicFileRows: vi.fn(() => []),
+  absolutePosixMusicFilePath: vi.fn((p: string) => p),
+}))
+
+vi.mock('@/lib/subtitleTranslationDialogRows', () => ({
+  subtitleTranslationDialogRowsFromMusicFileRows: vi.fn(() => []),
+}))
+
+vi.mock('@/lib/synthesizeSubtitleDialogRows', () => ({
+  synthesizeSubtitleDialogRowsFromMusicFileRows: vi.fn(() => []),
+}))
+
+vi.mock('@/lib/processPipelineDialogRows', () => ({
+  processPipelineDialogRowsFromMusicFileRows: vi.fn(() => []),
+}))
 
 vi.mock('@/stores/uiMediaFolderStore', () => ({
   useUIMediaFolderStoreState: vi.fn(),
@@ -38,10 +100,18 @@ vi.mock('@/hooks/mediaMetadata/useUpdateMediaMetadataMutation', () => ({
   }),
 }));
 
-vi.mock('@/providers/dialog-provider');
-vi.mock('@/api/openFile');
-vi.mock('@/api/deleteFile');
-vi.mock('@/api/ffmpeg');
+vi.mock('@/providers/dialog-provider', () => ({
+  useDialogs: vi.fn(),
+}))
+vi.mock('@/api/openFile', () => ({
+  openFile: vi.fn(),
+}))
+vi.mock('@/api/deleteFile', () => ({
+  deleteFile: vi.fn(),
+}))
+vi.mock('@/api/ffmpeg', () => ({
+  getMediaTags: vi.fn(),
+}))
 vi.mock('@/api/videocaptioner', () => ({
   transcribeWithVideoCaptioner: vi.fn(),
 }));
@@ -58,6 +128,37 @@ vi.mock('@/hooks/useFeatures', () => ({
   })),
 }));
 vi.mock('sonner');
+vi.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+vi.mock('./MusicFileTable', () => ({
+  MusicFileTable: () => null,
+}));
+vi.mock('./MusicHeaderV2', () => ({
+  MusicHeaderV2: () => null,
+}));
+vi.mock('./MediaPanelInitializingHint', () => ({
+  MediaPanelInitializingHint: () => null,
+}));
+vi.mock('@/components/dialogs', () => ({
+  DeleteTrackDialog: () => null,
+  TranscribeDialog: () => null,
+  SubtitleTranslationDialog: () => null,
+  SynthesizeSubtitleDialog: () => null,
+  ProcessPipelineDialog: () => null,
+}));
+vi.mock('@/hooks/useJobOrchestrator', () => ({
+  useJobOrchestrator: () => ({
+    isReady: true,
+    createJob: vi.fn(),
+    createJobs: vi.fn(),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
+  useFileStatuses: () => h.emptyFileStatuses,
+  useJobs: () => h.emptyJobRecords,
+}));
 
 const mockTrack: Track = {
   id: 1,
@@ -644,7 +745,7 @@ describe('MusicPanel', () => {
       });
 
       expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to open dialog')
+        expect.stringContaining('Failed to open dialog'),
       );
     });
   });
@@ -825,433 +926,6 @@ describe('MusicPanel', () => {
       });
 
       consoleSpy.mockRestore();
-    });
-  });
-
-  describe('syncTracks', () => {
-    it('scenario 1: should return same tracks when prev tracks is same as localTracks', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Song 2',
-          artist: 'Artist 2',
-          duration: 200,
-          thumbnail: 'thumb2.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 3,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 4,
-          title: 'Song 2',
-          artist: 'Artist 2',
-          duration: 200,
-          thumbnail: 'thumb2.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(1);
-      expect(result[0].path).toBe('/music/song1.mp3');
-      expect(result[1].id).toBe(2);
-      expect(result[1].path).toBe('/music/song2.mp3');
-    });
-
-    it('scenario 2: should remove deleted tracks when one item in prev tracks is not in localTracks', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Song 2',
-          artist: 'Artist 2',
-          duration: 200,
-          thumbnail: 'thumb2.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-        {
-          id: 3,
-          title: 'Downloading Song',
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date('2024-01-03'),
-          path: '',
-          url: 'https://example.com/video',
-          status: 'downloading',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 4,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      
-      const song1 = result.find((t) => t.path === '/music/song1.mp3');
-      expect(song1).toBeDefined();
-      expect(song1?.id).toBe(1);
-      
-      const downloadingTrack = result.find((t) => t.status === 'downloading');
-      expect(downloadingTrack).toBeDefined();
-      expect(downloadingTrack?.url).toBe('https://example.com/video');
-    });
-
-    it('scenario 3: should add new tracks when one item in localTracks is not in prev tracks', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 2,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 3,
-          title: 'Song 2',
-          artist: 'Artist 2',
-          duration: 200,
-          thumbnail: 'thumb2.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(1);
-      expect(result[0].path).toBe('/music/song1.mp3');
-      expect(result[1].id).toBe(3);
-      expect(result[1].path).toBe('/music/song2.mp3');
-      expect(result[1].title).toBe('Song 2');
-    });
-
-    it('scenario 4: should update track properties when item with same path has changed metadata', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Old Title',
-          artist: 'Old Artist',
-          duration: 100,
-          thumbnail: 'old-thumb.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 3,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 4,
-          title: 'New Title',
-          artist: 'New Artist',
-          duration: 250,
-          thumbnail: 'new-thumb.jpg',
-          addedDate: new Date('2024-01-05'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(1);
-      expect(result[0].title).toBe('Song 1');
-      
-      expect(result[1].id).toBe(2);
-      expect(result[1].title).toBe('New Title');
-      expect(result[1].artist).toBe('New Artist');
-      expect(result[1].duration).toBe(250);
-      expect(result[1].thumbnail).toBe('new-thumb.jpg');
-      expect(result[1].addedDate).toEqual(new Date('2024-01-05'));
-    });
-
-    it('scenario 5: should replace completed temporary track with local track', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Downloading Song',
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date('2024-01-03'),
-          path: '/music/downloaded.mp3',
-          url: 'https://example.com/video',
-          status: 'completed',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 3,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 4,
-          title: 'Downloaded Song',
-          artist: 'Real Artist',
-          duration: 220,
-          thumbnail: 'downloaded-thumb.jpg',
-          addedDate: new Date('2024-01-04'),
-          path: '/music/downloaded.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      
-      const completedTrack = result.find((t) => t.id === 2);
-      expect(completedTrack).toBeDefined();
-      expect(completedTrack?.title).toBe('Downloaded Song');
-      expect(completedTrack?.artist).toBe('Real Artist');
-      expect(completedTrack?.duration).toBe(220);
-      expect(completedTrack?.path).toBe('/music/downloaded.mp3');
-      expect(completedTrack?.status).toBeUndefined();
-      expect(completedTrack?.url).toBeUndefined();
-    });
-
-    it('should keep pending temporary tracks when local track is not loaded yet', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Pending Download',
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date('2024-01-03'),
-          path: '',
-          url: 'https://example.com/video',
-          status: 'pending',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 3,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      
-      const pendingTrack = result.find((t) => t.status === 'pending');
-      expect(pendingTrack).toBeDefined();
-      expect(pendingTrack?.url).toBe('https://example.com/video');
-    });
-
-    it('should keep downloading temporary tracks', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Downloading Song',
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date('2024-01-03'),
-          path: '',
-          url: 'https://example.com/video',
-          status: 'downloading',
-        },
-      ];
-
-      const localTracks: Track[] = [
-        {
-          id: 3,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      
-      const downloadingTrack = result.find((t) => t.status === 'downloading');
-      expect(downloadingTrack).toBeDefined();
-      expect(downloadingTrack?.url).toBe('https://example.com/video');
-    });
-
-    it('should handle empty prev tracks', () => {
-      const prev: Track[] = [];
-
-      const localTracks: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Song 2',
-          artist: 'Artist 2',
-          duration: 200,
-          thumbnail: 'thumb2.jpg',
-          addedDate: new Date('2024-01-02'),
-          path: '/music/song2.mp3',
-        },
-      ];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(1);
-      expect(result[1].id).toBe(2);
-    });
-
-    it('should handle empty localTracks and keep only temporary tracks', () => {
-      const prev: Track[] = [
-        {
-          id: 1,
-          title: 'Song 1',
-          artist: 'Artist 1',
-          duration: 180,
-          thumbnail: 'thumb1.jpg',
-          addedDate: new Date('2024-01-01'),
-          path: '/music/song1.mp3',
-        },
-        {
-          id: 2,
-          title: 'Downloading Song',
-          artist: 'Unknown',
-          duration: 0,
-          thumbnail: '',
-          addedDate: new Date('2024-01-03'),
-          path: '',
-          url: 'https://example.com/video',
-          status: 'downloading',
-        },
-      ];
-
-      const localTracks: Track[] = [];
-
-      const result = syncTracks(prev, localTracks);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(2);
-      expect(result[0].status).toBe('downloading');
-      expect(result[0].url).toBe('https://example.com/video');
     });
   });
 });

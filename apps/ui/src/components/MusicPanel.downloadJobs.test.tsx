@@ -82,28 +82,23 @@ const mockJobRecords = [
   },
 ]
 
-vi.mock('@/hooks/useDownloadManager', () => ({
-  useDownloadManager: () => ({
-    jobRecords: mockJobRecords,
-    hasRunningDownload: false,
-    startDownload: vi.fn(),
-    stopDownload: vi.fn(),
-    removeDownload: vi.fn(),
+vi.mock('@/hooks/useJobOrchestrator', () => ({
+  useJobOrchestrator: () => ({
+    isReady: true,
+    createJob: vi.fn(),
+    createJobs: vi.fn(),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
   }),
-}))
-
-vi.mock('@/hooks/useTranscribeManager', () => ({
-  useTranscribeManager: () => ({
-    transcribingPaths: new Set<string>(),
-    transcribeFailedPaths: new Set<string>(),
-    pendingTranscribePaths: new Set<string>(),
-    jobIdByPath: new Map<string, string>(),
-    stopTranscribe: vi.fn(),
-    hasRunningTranscribe: false,
-    jobRecords: [],
-    startTranscribe: vi.fn(),
-    removeTranscribe: vi.fn(),
+  useFileStatuses: () => ({
+    runningPaths: new Set<string>(),
+    pendingPaths: new Set<string>(),
+    failedPaths: new Set<string>(),
+    jobIdsByPath: new Map<string, string[]>(),
+    primaryJobIdByPath: new Map<string, string>(),
   }),
+  useJobs: () => mockJobRecords,
 }))
 
 vi.mock('@/stores/backgroundJobsStore', () => {

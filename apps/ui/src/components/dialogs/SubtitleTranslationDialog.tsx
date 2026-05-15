@@ -4,11 +4,12 @@ import { basename } from "@/lib/path"
 import { UISubtitleTranslationDialog } from "./UISubtitleTranslationDialog"
 import type { SubtitleTranslationDialogProps, SubtitleTranslationConfirmPayload } from "./types"
 import { buildTranslateJob } from "@/lib/translateJobFactory"
-import { saveTranslateJob } from "@/lib/downloadTaskDb"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
 
 export function SubtitleTranslationDialog({ rows, onClose, folder, ...rest }: SubtitleTranslationDialogProps) {
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
+  const { createJob } = useJobOrchestrator()
 
   const handleConfirm = useCallback(
     async (payload: SubtitleTranslationConfirmPayload) => {
@@ -39,7 +40,7 @@ export function SubtitleTranslationDialog({ rows, onClose, folder, ...rest }: Su
           ...(payload.translator === "llm" && payload.llm ? { llm: payload.llm } : {}),
         })
 
-        await saveTranslateJob(job)
+        await createJob(job)
         saved += 1
       }
 

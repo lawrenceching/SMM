@@ -8,7 +8,7 @@ import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
-import { useEffect, useCallback, useState, useMemo } from "react";
+import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
 import { deleteFile } from "@/api/deleteFile";
@@ -28,11 +28,7 @@ import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
-import { useDownloadManager } from "@/hooks/useDownloadManager";
-import { useTranscribeManager } from "@/hooks/useTranscribeManager";
-import { useTranslateManager } from "@/hooks/useTranslateManager";
-import { useSynthesizeManager } from "@/hooks/useSynthesizeManager";
-import { useProcessManager } from "@/hooks/useProcessManager";
+import { useJobOrchestrator, useFileStatuses, useJobs } from "@/hooks/useJobOrchestrator";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
@@ -42,60 +38,13 @@ import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeS
 import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelineDialogRows";
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
 import { useFeatures } from "@/hooks/useFeatures";
+import { syncTracks } from "@/lib/musicPanelSyncTracks";
 
 interface PendingDelete {
   trackPath: string;
   trackTitle: string;
   currentFiles: string[];
   fileIndex: number;
-}
-
-export function syncTracks(prev: Track[], localTracks: Track[]) {
-  let tracks = prev;
-
-  const prevPermanentTracks = tracks.filter((track) => track.status === undefined);
-  const deletedTracks = prevPermanentTracks.filter(
-    (prevTrack) => !localTracks.some((newTrack) => newTrack.path === prevTrack.path),
-  );
-  tracks = tracks.filter(
-    (track) => track.status !== undefined || !deletedTracks.some((dt) => dt.path === track.path),
-  );
-
-  tracks = tracks.map((track) => {
-    if (track.status !== undefined) {
-      return track;
-    }
-
-    const localMatch = localTracks.find((lt) => lt.path === track.path);
-    return localMatch ? { ...localMatch, id: track.id } : track;
-  });
-
-  const newTracks = localTracks.filter(
-    (newTrack) => !prev.some((prevTrack) => prevTrack.path === newTrack.path),
-  );
-  tracks = [...tracks, ...newTracks];
-
-  tracks = tracks.map((track) => {
-    if (track.status === undefined) {
-      return track;
-    }
-
-    if (track.status === "completed") {
-      const localMatch = localTracks.find((lt) => lt.path === track.path);
-      if (localMatch) {
-        return {
-          ...localMatch,
-          id: track.id,
-          status: undefined,
-          url: undefined,
-        };
-      }
-    }
-
-    return track;
-  });
-
-  return tracks;
 }
 
 export function MusicPanel() {
@@ -156,87 +105,89 @@ export function MusicPanel() {
     [fetchMediaMetadata, saveMediaMetadata],
   );
 
+  const platformFolder = mediaMetadata?.mediaFolderPath
+    ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
+    : undefined;
+
+  const { startJob, stopJob, removeJob } = useJobOrchestrator();
+  const allJobRecords = useJobs();
+
+  // Download job records for this folder (for rendering download tracks).
+  // Only show active jobs (pending / running); completed, failed, and aborted
+  // jobs are removed from the list so they don't clutter the track view.
+  const jobRecords = useMemo(
+    () =>
+      allJobRecords.filter(
+        (r) =>
+          r.type === "download-video" &&
+          r.folder === platformFolder &&
+          (r.status === "pending" || r.status === "running"),
+      ),
+    [allJobRecords, platformFolder],
+  );
+  const hasRunningDownload = useMemo(
+    () => jobRecords.some((r) => r.status === "running"),
+    [jobRecords],
+  );
+  const startDownload = useCallback((jobId: string) => void startJob(jobId), [startJob]);
+  const stopDownload = useCallback((jobId: string) => stopJob(jobId), [stopJob]);
+  const removeDownload = useCallback((jobId: string) => void removeJob(jobId), [removeJob]);
+
+  // Per-type file status from the orchestrator
   const {
-    jobRecords,
-    hasRunningDownload,
-    startDownload,
-    stopDownload,
-    removeDownload,
-  } = useDownloadManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    onDownloadSucceeded: useCallback(() => {
-      if (mediaMetadata?.mediaFolderPath) {
-        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
-      }
-    }, [mediaMetadata, fetchMediaMetadata]),
-  });
+    runningPaths: transcribingPaths,
+    failedPaths: transcribeFailedPaths,
+    primaryJobIdByPath: jobIdByPath,
+  } = useFileStatuses(platformFolder ?? "", "transcribe");
 
   const {
-    transcribingPaths,
-    transcribeFailedPaths,
-    jobIdByPath,
-    stopTranscribe,
-  } = useTranscribeManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      if (mediaMetadata?.mediaFolderPath) {
-        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
-      }
-    }, [mediaMetadata, fetchMediaMetadata]),
-  });
+    runningPaths: translatingPaths,
+    failedPaths: translateFailedPaths,
+    primaryJobIdByPath: translateJobIdByPath,
+  } = useFileStatuses(platformFolder ?? "", "translate");
 
   const {
-    translatingPaths,
-    translateFailedPaths,
-    jobIdByPath: translateJobIdByPath,
-    stopTranslate,
-  } = useTranslateManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      if (mediaMetadata?.mediaFolderPath) {
-        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
-      }
-    }, [mediaMetadata, fetchMediaMetadata]),
-  });
+    runningPaths: synthesizingPaths,
+    failedPaths: synthesizeFailedPaths,
+    primaryJobIdByPath: synthesizeJobIdByPath,
+  } = useFileStatuses(platformFolder ?? "", "synthesize");
 
   const {
-    synthesizingPaths,
-    synthesizeFailedPaths,
-    jobIdByPath: synthesizeJobIdByPath,
-    stopSynthesize,
-  } = useSynthesizeManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      if (mediaMetadata?.mediaFolderPath) {
-        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
-      }
-    }, [mediaMetadata, fetchMediaMetadata]),
-  });
+    runningPaths: processingPaths,
+    failedPaths: processFailedPaths,
+    primaryJobIdByPath: processJobIdByPath,
+  } = useFileStatuses(platformFolder ?? "", "process");
 
-  const {
-    processingPaths,
-    processFailedPaths,
-    jobIdByPath: processJobIdByPath,
-    stopProcess,
-  } = useProcessManager({
-    platformFolder: mediaMetadata?.mediaFolderPath
-      ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-      : undefined,
-    onJobSucceeded: useCallback(() => {
-      if (mediaMetadata?.mediaFolderPath) {
-        void fetchMediaMetadata({ path: mediaMetadata.mediaFolderPath });
-      }
-    }, [mediaMetadata, fetchMediaMetadata]),
-  });
+  // When a job completes for this folder, refresh media metadata to pick up new files.
+  const runningJobIdsRef = useRef(new Set<string>());
+  const fetchMediaMetadataRef = useRef(fetchMediaMetadata);
+  fetchMediaMetadataRef.current = fetchMediaMetadata;
+  const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath);
+  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath;
+  const platformFolderRef = useRef(platformFolder);
+  platformFolderRef.current = platformFolder;
+
+  useEffect(() => {
+    const pf = platformFolderRef.current;
+    const mfp = mediaFolderPathRef.current;
+    if (!pf || !mfp) {
+      runningJobIdsRef.current = new Set();
+      return;
+    }
+    const prevRunning = runningJobIdsRef.current;
+    const hadCompletion = allJobRecords.some(
+      (r) =>
+        r.folder === pf &&
+        (r.status === "succeeded" || r.status === "failed") &&
+        prevRunning.has(r.id),
+    );
+    if (hadCompletion) {
+      void fetchMediaMetadataRef.current({ path: mfp });
+    }
+    runningJobIdsRef.current = new Set(
+      allJobRecords.filter((r) => r.folder === pf && r.status === "running").map((r) => r.id),
+    );
+  }, [allJobRecords]);
 
   const jobTracks = useMemo(
     () => tracksFromDownloadJobRecords(jobRecords),
@@ -480,9 +431,9 @@ export function MusicPanel() {
       const abs = absolutePosixMusicFilePath(row, folder)
       if (!abs) return
       const jobId = jobIdByPath.get(abs)
-      if (jobId) void stopTranscribe(jobId)
+      if (jobId) stopJob(jobId)
     },
-    [mediaMetadata?.mediaFolderPath, jobIdByPath, stopTranscribe],
+    [mediaMetadata?.mediaFolderPath, jobIdByPath, stopJob],
   );
 
   const selectedRows = useMemo(
@@ -594,9 +545,9 @@ export function MusicPanel() {
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;
       const jobId = translateJobIdByPath.get(abs);
-      if (jobId) void stopTranslate(jobId);
+      if (jobId) stopJob(jobId);
     },
-    [mediaMetadata?.mediaFolderPath, translateJobIdByPath, stopTranslate],
+    [mediaMetadata?.mediaFolderPath, translateJobIdByPath, stopJob],
   );
 
   const closeSynthesizeSubtitleDialog = useCallback(() => {
@@ -657,9 +608,9 @@ export function MusicPanel() {
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;
       const jobId = synthesizeJobIdByPath.get(abs);
-      if (jobId) void stopSynthesize(jobId);
+      if (jobId) stopJob(jobId);
     },
-    [mediaMetadata?.mediaFolderPath, synthesizeJobIdByPath, stopSynthesize],
+    [mediaMetadata?.mediaFolderPath, synthesizeJobIdByPath, stopJob],
   );
 
   const handleTrackTranscribe = useCallback(
@@ -722,9 +673,9 @@ export function MusicPanel() {
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;
       const jobId = processJobIdByPath.get(abs);
-      if (jobId) void stopProcess(jobId);
+      if (jobId) stopJob(jobId);
     },
-    [mediaMetadata?.mediaFolderPath, processJobIdByPath, stopProcess],
+    [mediaMetadata?.mediaFolderPath, processJobIdByPath, stopJob],
   );
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {

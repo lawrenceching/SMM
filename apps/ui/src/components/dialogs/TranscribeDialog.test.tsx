@@ -20,6 +20,25 @@ vi.mock("@/lib/downloadTaskDb", async (importOriginal) => {
   }
 })
 
+vi.mock("@/hooks/useJobOrchestrator", () => ({
+  useJobOrchestrator: () => ({
+    isReady: true,
+    createJob: h.saveTranscribeJob,
+    createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
+  useFileStatuses: vi.fn(() => ({
+    runningPaths: new Set<string>(),
+    pendingPaths: new Set<string>(),
+    failedPaths: new Set<string>(),
+    jobIdsByPath: new Map<string, string[]>(),
+    primaryJobIdByPath: new Map<string, string>(),
+  })),
+  useJobs: vi.fn(() => []),
+}))
+
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { ns?: string }) => {

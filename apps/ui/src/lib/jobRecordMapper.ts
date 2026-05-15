@@ -1,11 +1,5 @@
-import { useEffect } from 'react'
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { Path } from '@core/path'
 import {
-  isDownloadVideoJob,
-  isProcessBackgroundJob,
-  isSynthesizeBackgroundJob,
-  isTranscribeBackgroundJob,
-  isTranslateBackgroundJob,
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
@@ -17,9 +11,14 @@ import {
   type TranscribeBackgroundJobData,
   type TranslateBackgroundJob,
   type TranslateBackgroundJobData,
+  isDownloadVideoJob,
+  isProcessBackgroundJob,
+  isSynthesizeBackgroundJob,
+  isTranscribeBackgroundJob,
+  isTranslateBackgroundJob,
 } from '@/types/background-jobs'
-import { Path } from '@core/path'
-import { getAllJobs, putJob, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
+import { getAllJobs, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
+import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 
 function applyCommandLogCorrelation<T extends { executionId?: string; logRelativePath?: string }>(
   data: T,
@@ -33,7 +32,7 @@ function applyCommandLogCorrelation<T extends { executionId?: string; logRelativ
   }
 }
 
-function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
+export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
   if (record.type === 'transcribe') {
     let parsed: Record<string, unknown>
     try {
@@ -295,16 +294,13 @@ function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob | null {
 
   let data: DownloadVideoBackgroundJobData
   try {
-    const parsed = JSON.parse(record.data || '{}')
+    const parsed = JSON.parse(record.data || '{}') as { folder?: string; videos?: unknown[] }
     data = {
       folder: parsed.folder || record.folder || '',
-      videos: parsed.videos || [],
+      videos: (parsed.videos || []) as DownloadVideoBackgroundJobData['videos'],
     }
   } catch {
-    data = {
-      folder: record.folder || '',
-      videos: [],
-    }
+    data = { folder: record.folder || '', videos: [] }
   }
 
   const job: DownloadVideoBackgroundJob = {
@@ -328,14 +324,16 @@ function isPersistedFromIdbJob(job: BackgroundJob): boolean {
   )
 }
 
-async function syncJobsToStore(): Promise<void> {
+/**
+ * Sync a set of fresh `TaskJobRecord`s to the Zustand `useBackgroundJobsStore`.
+ * Adds new jobs, updates existing ones, and removes stale ones.
+ */
+export function syncJobRecordsToStore(records: TaskJobRecord[]): void {
   const store = useBackgroundJobsStore.getState()
-  const records = await getAllJobs()
   const storeJobIds = new Set(store.jobs.filter(isPersistedFromIdbJob).map((j) => j.id))
   const dbJobIds = new Set<string>()
 
   for (const record of records) {
-    if (!isWithinOneHour(record.createdAt)) continue
     const job = jobRecordToBackgroundJob(record)
     if (!job) continue
     dbJobIds.add(job.id)
@@ -354,101 +352,13 @@ async function syncJobsToStore(): Promise<void> {
   }
 }
 
-async function startupSync(): Promise<void> {
+/**
+ * Load all jobs from IndexedDB, filter to within-one-hour, and return.
+ * Also syncs to the Zustand store as a side-effect.
+ */
+export async function loadAndSyncJobs(): Promise<TaskJobRecord[]> {
   const records = await getAllJobs()
-
-  for (const record of records) {
-    if (record.status === 'running') {
-      record.status = 'aborted'
-      record.updatedAt = Date.now()
-      await putJob(record)
-    }
-  }
-
-  await syncJobsToStore()
-}
-
-async function handleSwMessage(data: unknown): Promise<void> {
-  if (!data || typeof data !== 'object' || !('event' in data)) return
-  const msg = data as { event: string; id?: string }
-  if (!msg.id) return
-
-  switch (msg.event) {
-    case 'download:started':
-    case 'download:succeeded':
-    case 'download:failed':
-    case 'download:stopped':
-    case 'download:removed':
-    case 'transcribe:started':
-    case 'transcribe:succeeded':
-    case 'transcribe:failed':
-    case 'transcribe:stopped':
-    case 'transcribe:removed':
-    case 'translate:started':
-    case 'translate:succeeded':
-    case 'translate:failed':
-    case 'translate:stopped':
-    case 'translate:removed':
-    case 'synthesize:started':
-    case 'synthesize:succeeded':
-    case 'synthesize:failed':
-    case 'synthesize:stopped':
-    case 'synthesize:removed':
-    case 'process:started':
-    case 'process:succeeded':
-    case 'process:failed':
-    case 'process:stopped':
-    case 'process:removed':
-      await syncJobsToStore()
-      break
-    case 'download:heartbeat':
-    case 'transcribe:heartbeat':
-    case 'translate:heartbeat':
-    case 'synthesize:heartbeat':
-    case 'process:heartbeat':
-      break
-  }
-}
-
-async function registerDownloadServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!navigator.serviceWorker) return null
-  try {
-    const registration = await navigator.serviceWorker.register('/download-service-worker.js')
-    await navigator.serviceWorker.ready
-    return registration
-  } catch (e) {
-    console.warn('[IndexedDbObserver] SW registration failed', e)
-    return null
-  }
-}
-
-export function IndexedDbObserver() {
-  useEffect(() => {
-    let cancelled = false
-
-    async function init() {
-      const registration = await registerDownloadServiceWorker()
-      if (cancelled) return
-
-      if (registration) {
-        await startupSync()
-      }
-
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        void handleSwMessage(event.data)
-      })
-
-      window.addEventListener('indexed-updated', () => {
-        void syncJobsToStore()
-      })
-    }
-
-    void init()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return null
+  const filtered = records.filter((r) => isWithinOneHour(r.createdAt))
+  syncJobRecordsToStore(filtered)
+  return filtered
 }

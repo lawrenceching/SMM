@@ -369,7 +369,8 @@
     "toastSucceeded": "Pipeline finished",
     "toastFailed": "Pipeline failed",
     "noMediaFolder": "Media folder is not available; cannot start pipeline.",
-    "notEligible": "This item is not eligible for the pipeline."
+    "notEligible": "This item is not eligible for the pipeline.",
+    "partialFailure": "{{count}} pipeline job(s) could not be enqueued."
   },
   "tvShowEpisodeTable": {
     "columns": {

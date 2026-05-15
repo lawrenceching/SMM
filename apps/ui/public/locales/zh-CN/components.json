@@ -368,7 +368,8 @@
     "toastSucceeded": "流水线已完成",
     "toastFailed": "流水线失败",
     "noMediaFolder": "媒体文件夹不可用，无法开始流水线。",
-    "notEligible": "该项不符合流水线条件。"
+    "notEligible": "该项不符合流水线条件。",
+    "partialFailure": "{{count}} 个流水线任务未能加入队列。"
   },
   "tvShowEpisodeTable": {
     "columns": {

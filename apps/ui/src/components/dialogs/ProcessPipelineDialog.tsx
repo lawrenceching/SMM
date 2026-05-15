@@ -8,10 +8,10 @@ import type {
   TranscribeAsrEngine,
 } from "./types"
 import { buildProcessJob } from "@/lib/processJobFactory"
-import { saveProcessJob } from "@/lib/downloadTaskDb"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation } from "@/lib/i18n"
+import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
 
 const PROCESS_PIPELINE_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
 
@@ -19,6 +19,7 @@ export function ProcessPipelineDialog({ rows, onClose, folder, ...rest }: Proces
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
   const { isVideoCaptionerAsrOptionsEnabled } = useFeatures()
   const { t } = useTranslation("components")
+  const { createJobs } = useJobOrchestrator()
 
   const handleConfirm = useCallback(
     async (payload: ProcessPipelineConfirmPayload) => {
@@ -28,7 +29,7 @@ export function ProcessPipelineDialog({ rows, onClose, folder, ...rest }: Proces
         return
       }
       const byId = new Map(rows.map((r) => [r.id, r]))
-      let saved = 0
+      const jobs = []
       for (const id of payload.selectedIds) {
         const row = byId.get(id)
         if (!row?.eligible || !row.mediaPath) {
@@ -37,7 +38,7 @@ export function ProcessPipelineDialog({ rows, onClose, folder, ...rest }: Proces
         }
         const displayTitle = row.title?.trim() || basename(row.mediaPath) || row.mediaPath
 
-        const job = buildProcessJob({
+        jobs.push(buildProcessJob({
           folder: folderTrimmed,
           mediaPath: row.mediaPath,
           title: displayTitle,
@@ -73,16 +74,18 @@ export function ProcessPipelineDialog({ rows, onClose, folder, ...rest }: Proces
                   : {}),
               }
             : {}),
-        })
-
-        await saveProcessJob(job)
-        saved += 1
+        }))
       }
 
-      if (saved === 0) return
+      if (jobs.length === 0) return
+
+      const result = await createJobs(jobs)
+      if (result.failures.length > 0) {
+        toast.error(t("processPipelineDialog.partialFailure", { count: result.failures.length }))
+      }
       onClose()
     },
-    [rows, onClose, folder, t],
+    [rows, onClose, folder, t, createJobs],
   )
 
   return (

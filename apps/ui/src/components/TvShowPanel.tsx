@@ -2,7 +2,7 @@ import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMe
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { TMDBTVShow } from "@core/types"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
@@ -37,9 +37,7 @@ import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubt
 import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useTranslateManager } from "@/hooks/useTranslateManager"
-import { useSynthesizeManager } from "@/hooks/useSynthesizeManager"
-import { useProcessManager } from "@/hooks/useProcessManager"
+import { useJobs } from "@/hooks/useJobOrchestrator"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
@@ -189,38 +187,28 @@ function TvShowPanel() {
   const hasProcessTargets = processPipelineRows.length > 0
   const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
 
-  useTranslateManager({
-    platformFolder:
-      mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
-        ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-        : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void fetchMediaMetadata({ path: p })
-    }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
-  })
+  const allJobRecords = useJobs()
+  const runningJobIdsRef = useRef(new Set<string>())
+  const fetchMediaMetadataRef = useRef(fetchMediaMetadata)
+  fetchMediaMetadataRef.current = fetchMediaMetadata
+  const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath)
+  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath
 
-  useSynthesizeManager({
-    platformFolder:
-      mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
-        ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-        : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void fetchMediaMetadata({ path: p })
-    }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
-  })
-
-  useProcessManager({
-    platformFolder:
-      mediaMetadata?.mediaFolderPath?.trim() && mediaMetadata.status === "ok"
-        ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-        : undefined,
-    onJobSucceeded: useCallback(() => {
-      const p = mediaMetadata?.mediaFolderPath
-      if (p) void fetchMediaMetadata({ path: p })
-    }, [mediaMetadata?.mediaFolderPath, fetchMediaMetadata]),
-  })
+  useEffect(() => {
+    const mfp = mediaFolderPathRef.current
+    if (!mfp) { runningJobIdsRef.current = new Set(); return }
+    const platformFolder = Path.toPlatformPath(mfp)
+    const hadCompletion = allJobRecords.some(
+      (r) =>
+        r.folder === platformFolder &&
+        (r.status === "succeeded" || r.status === "failed") &&
+        runningJobIdsRef.current.has(r.id),
+    )
+    if (hadCompletion) void fetchMediaMetadataRef.current({ path: mfp })
+    runningJobIdsRef.current = new Set(
+      allJobRecords.filter((r) => r.folder === platformFolder && r.status === "running").map((r) => r.id),
+    )
+  }, [allJobRecords])
 
   const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
   const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)

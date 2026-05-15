@@ -23,7 +23,7 @@ import {
   useExtractYtdlpVideoDataMutation,
 } from "@/hooks/ytdlp/useYtdlpMutations"
 import { buildDownloadVideoJob } from "@/lib/downloadVideoJobFactory"
-import { saveDownloadVideoJob } from "@/lib/downloadTaskDb"
+import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
 import { ListItem } from "@/components/dialogs/download-video-list-item"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
@@ -66,6 +66,7 @@ function ytdlpVideosToEpisodeItems(videos: YtdlpVideo[]): EpisodeItem[] {
 export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destinationFolder }: DownloadVideoDialogProps) {
   const { t } = useTranslation('dialogs')
   const { t: tCommon } = useTranslation('common')
+  const { createJob } = useJobOrchestrator()
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
   const [urlError, setUrlError] = useState<string | null>(null)
@@ -309,15 +310,15 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
       setIsEnqueueing(true)
       try {
-        for (const u of selectedCollectionUrls) {
-          const job = buildDownloadVideoJob({
+        const collectionJobs = Array.from(selectedCollectionUrls).map((u) =>
+          buildDownloadVideoJob({
             name: "Download Video",
             folder: downloadFolder,
             urls: [u],
             itemMeta: [{ title: u, artist: "" }],
-          })
-          void saveDownloadVideoJob(job)
-        }
+          }),
+        )
+        await Promise.all(collectionJobs.map((job) => createJob(job)))
         onClose()
       } catch (error) {
         console.error("[DownloadVideoDialog] Failed to enqueue download job:", error)
@@ -358,10 +359,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
         })
       })
 
-      for (const job of jobs) {
-        void saveDownloadVideoJob(job)
-      }
-
+      await Promise.all(jobs.map((job) => createJob(job)))
       onClose()
     } catch (error) {
       console.error('[DownloadVideoDialog] Failed to enqueue download job:', error)

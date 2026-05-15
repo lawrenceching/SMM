@@ -10,7 +10,7 @@ import type {
 import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { buildTranscribeJob } from "@/lib/transcribeJobFactory"
-import { saveTranscribeJob } from "@/lib/downloadTaskDb"
+import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
 
 /** Not selectable in the dialog UI (still listed). */
 const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
@@ -21,6 +21,7 @@ const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfie
 export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeDialogProps) {
   const { isVideoCaptionerAsrOptionsEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
+  const { createJob } = useJobOrchestrator()
 
   const handleConfirm = useCallback(
     async (payload: TranscribeDialogConfirmPayload) => {
@@ -64,7 +65,7 @@ export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeD
             : {}),
         })
 
-        await saveTranscribeJob(job)
+        await createJob(job)
         saved += 1
       }
 

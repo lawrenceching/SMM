@@ -385,6 +385,7 @@ interface ComponentsResources {
     toastFailed: string
     noMediaFolder: string
     notEligible: string
+    partialFailure: string
   }
   tvShowEpisodeTable: {
     columns: {
