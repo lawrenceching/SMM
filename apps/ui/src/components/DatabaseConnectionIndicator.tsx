@@ -3,10 +3,8 @@ import { useTranslation } from "@/lib/i18n"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import {
-  useDatabaseConnectionStatus,
-  type DatabaseConnectionStatus,
-} from "@/hooks/useDatabaseConnectionStatus"
+import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
+import type { DatabaseConnectionStatus } from "@/lib/databaseConnectionCheck"
 
 function StatusDot({ status }: { status: DatabaseConnectionStatus }) {
   return (
@@ -15,6 +13,7 @@ function StatusDot({ status }: { status: DatabaseConnectionStatus }) {
         "inline-block h-2 w-2 shrink-0 rounded-full",
         status === "connected" && "bg-green-500",
         status === "disconnected" && "bg-red-500",
+        status === "checkFailed" && "bg-yellow-500",
         status === "checking" && "bg-yellow-500 animate-pulse"
       )}
     />
@@ -30,6 +29,8 @@ function databaseConnectionStatusText(
       return t("statusBar.database.connected")
     case "disconnected":
       return t("statusBar.database.disconnected")
+    case "checkFailed":
+      return t("statusBar.database.checkFailed")
     case "checking":
       return t("statusBar.database.checking")
   }

@@ -213,14 +213,17 @@ interface ComponentsResources {
       tvdb: string
       connected: string
       disconnected: string
+      checkFailed: string
       checking: string
       warningAriaLabel: string
     }
     messages: {
       tmdbAvailable: string
       tmdbUnavailable: string
+      tmdbCheckFailed: string
       tvdbAvailable: string
       tvdbUnavailable: string
+      tvdbCheckFailed: string
       videoCaptionerAvailable: string
       videoCaptionerNotFound: string
       transcribeUnavailableOnOs: string

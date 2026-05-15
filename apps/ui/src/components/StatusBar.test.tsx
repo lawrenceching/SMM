@@ -69,8 +69,10 @@ vi.mock("@/lib/i18n", () => ({
             const messages: Record<string, string> = {
                 "statusBar.messages.tmdbUnavailable": "TMDB is unavailable",
                 "statusBar.messages.tmdbAvailable": "TMDB is available",
+                "statusBar.messages.tmdbCheckFailed": "TMDB check failed",
                 "statusBar.messages.tvdbUnavailable": "TVDB is unavailable",
                 "statusBar.messages.tvdbAvailable": "TVDB is available",
+                "statusBar.messages.tvdbCheckFailed": "TVDB check failed",
                 "statusBar.messages.videoCaptionerAvailable": "VideoCaptioner is available",
                 "statusBar.messages.videoCaptionerNotFound": "videocaptioner not found",
                 "statusBar.messages.transcribeUnavailableOnOs":
@@ -211,6 +213,25 @@ describe("StatusBar", () => {
             JSON.stringify([
                 { title: "TMDB is available", type: "info" },
                 { title: "TVDB is unavailable", type: "error" },
+                { title: "VideoCaptioner is available", type: "info" },
+            ]),
+        )
+    })
+
+    it("renders TMDB check failed as warning message", () => {
+        mockUseDatabaseConnectionStatus.mockReturnValue({
+            tmdbStatus: "checkFailed",
+            tvdbStatus: "connected",
+            hasWarning: true,
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB check failed", type: "warning" },
+                { title: "TVDB is available", type: "info" },
                 { title: "VideoCaptioner is available", type: "info" },
             ]),
         )

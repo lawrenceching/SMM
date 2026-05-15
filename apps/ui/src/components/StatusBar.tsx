@@ -9,6 +9,7 @@ import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicat
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
+import type { DatabaseConnectionStatus } from "@/lib/databaseConnectionCheck"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 
@@ -16,6 +17,16 @@ export { mapWebSocketStatusToConnectionStatus }
 
 const VIDEO_CAPTIONER_CLI_HELP_LINK =
     "https://github.com/WEIFENG2333/VideoCaptioner#cli-%E5%91%BD%E4%BB%A4%E8%A1%8C"
+
+function databaseStatusMessage(
+    status: DatabaseConnectionStatus,
+    labels: { available: string; unavailable: string; checkFailed: string },
+): Message | null {
+    if (status === "checking") return null
+    if (status === "connected") return { title: labels.available, type: "info" }
+    if (status === "checkFailed") return { title: labels.checkFailed, type: "warning" }
+    return { title: labels.unavailable, type: "error" }
+}
 
 interface StatusBarProps {
     className?: string
@@ -42,22 +53,22 @@ export function StatusBar({
     const displayMessage = message !== undefined ? message : folderPathMessage
 
     const { version } = useStatusBar({ versionOverride })
-    const statusMessages = useMemo<Message[]>(
-        () => [
-            {
-                title:
-                    tmdbStatus === "disconnected"
-                        ? t("statusBar.messages.tmdbUnavailable")
-                        : t("statusBar.messages.tmdbAvailable"),
-                type: tmdbStatus === "disconnected" ? "error" : "info",
-            },
-            {
-                title:
-                    tvdbStatus === "disconnected"
-                        ? t("statusBar.messages.tvdbUnavailable")
-                        : t("statusBar.messages.tvdbAvailable"),
-                type: tvdbStatus === "disconnected" ? "error" : "info",
-            },
+    const statusMessages = useMemo<Message[]>(() => {
+        const messages: Message[] = []
+        const tmdbMessage = databaseStatusMessage(tmdbStatus, {
+            available: t("statusBar.messages.tmdbAvailable"),
+            unavailable: t("statusBar.messages.tmdbUnavailable"),
+            checkFailed: t("statusBar.messages.tmdbCheckFailed"),
+        })
+        if (tmdbMessage) messages.push(tmdbMessage)
+        const tvdbMessage = databaseStatusMessage(tvdbStatus, {
+            available: t("statusBar.messages.tvdbAvailable"),
+            unavailable: t("statusBar.messages.tvdbUnavailable"),
+            checkFailed: t("statusBar.messages.tvdbCheckFailed"),
+        })
+        if (tvdbMessage) messages.push(tvdbMessage)
+        return [
+            ...messages,
             isTranscribeEnabled
                 ? {
                       title: isVideoCaptionerAvailable
@@ -72,9 +83,8 @@ export function StatusBar({
                       title: t("statusBar.messages.transcribeUnavailableOnOs"),
                       type: "warning",
                   },
-        ],
-        [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isTranscribeEnabled, t],
-    )
+        ]
+    }, [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isTranscribeEnabled, t])
 
     return (
         <div

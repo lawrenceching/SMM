@@ -190,14 +190,17 @@
       "tvdb": "TVDB",
       "connected": "Connected",
       "disconnected": "Disconnected",
+      "checkFailed": "Check failed",
       "checking": "Checking...",
       "warningAriaLabel": "Database connection warning"
     },
     "messages": {
       "tmdbAvailable": "TMDB is available",
       "tmdbUnavailable": "TMDB is unavailable",
+      "tmdbCheckFailed": "TMDB check failed",
       "tvdbAvailable": "TVDB is available",
       "tvdbUnavailable": "TVDB is unavailable",
+      "tvdbCheckFailed": "TVDB check failed",
       "videoCaptionerAvailable": "VideoCaptioner is available",
       "videoCaptionerNotFound": "videocaptioner not found",
       "transcribeUnavailableOnOs": "Subtitle generation is not available on this operating system.",

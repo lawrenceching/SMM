@@ -188,14 +188,17 @@
       "tvdb": "TVDB",
       "connected": "已連線",
       "disconnected": "連線失敗",
+      "checkFailed": "檢查失敗",
       "checking": "檢測中...",
       "warningAriaLabel": "資料庫連線警告"
     },
     "messages": {
       "tmdbAvailable": "TMDB 可用",
       "tmdbUnavailable": "TMDB 不可用",
+      "tmdbCheckFailed": "TMDB 檢查失敗",
       "tvdbAvailable": "TVDB 可用",
       "tvdbUnavailable": "TVDB 不可用",
+      "tvdbCheckFailed": "TVDB 檢查失敗",
       "videoCaptionerAvailable": "VideoCaptioner 可用",
       "videoCaptionerNotFound": "找不到 videocaptioner",
       "transcribeUnavailableOnOs": "生成字幕功能在目前作業系統上不可用",
