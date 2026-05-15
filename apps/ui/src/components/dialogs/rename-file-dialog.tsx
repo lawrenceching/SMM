@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -71,14 +74,15 @@ export function RenameFileDialog({
         }
       }}
     >
-      <DialogContent
+      <ScrollableDialogContent
         className="max-w-md"
         data-testid="rename-dialog"
       >
-        <DialogHeader>
+        <ScrollableDialogHeader>
           <DialogTitle>{defaultTitle}</DialogTitle>
           <DialogDescription>{defaultDescription}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="newName">{t("rename.newNameLabel")}</Label>
@@ -112,7 +116,8 @@ export function RenameFileDialog({
             </div>
           )}
         </div>
-        <DialogFooter>
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
           <Button
             variant="outline"
             onClick={handleCancel}
@@ -127,8 +132,8 @@ export function RenameFileDialog({
           >
             {t("confirm", { ns: "common" })}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

@@ -1,12 +1,15 @@
 import { useEffect, useState, useMemo } from "react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -173,44 +176,46 @@ export function FormatConverterDialog({
   if (!track && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent
+        <ScrollableDialogContent
           showCloseButton
-          className="max-w-lg max-h-[80vh] flex flex-col"
+          className="max-w-lg max-h-[80vh]"
           data-testid="format-converter-dialog"
         >
-          <DialogHeader>
+          <ScrollableDialogHeader>
             <DialogTitle>{t("formatConverter.title")}</DialogTitle>
             <DialogDescription>{t("formatConverter.description")}</DialogDescription>
-          </DialogHeader>
+          </ScrollableDialogHeader>
+          <ScrollableDialogBody>
           <div className="py-4 text-sm text-muted-foreground">
             {t("formatConverter.noSourceHint", "Please select a file to convert first.")}
           </div>
-          <DialogFooter>
+          </ScrollableDialogBody>
+          <ScrollableDialogFooter>
             <Button variant="outline" onClick={handleCancel}>
               {t("cancel", { ns: "common" })}
             </Button>
             <Button onClick={handleSelectVideo} disabled={!onOpenFilePicker || !onSelectSource}>
               {t("formatConverter.selectVideo")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
+          </ScrollableDialogFooter>
+        </ScrollableDialogContent>
       </Dialog>
     )
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
+      <ScrollableDialogContent
         showCloseButton
-        className="max-w-lg max-h-[80vh] flex flex-col"
+        className="max-w-lg max-h-[80vh]"
         data-testid="format-converter-dialog"
       >
-        <DialogHeader className="min-w-0 shrink-0">
+        <ScrollableDialogHeader className="min-w-0">
           <DialogTitle>{t("formatConverter.title")}</DialogTitle>
           <DialogDescription>{t("formatConverter.description")}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
 
-        <div className="py-4 min-w-0 min-h-0 flex-1 overflow-y-auto space-y-4">
+        <ScrollableDialogBody className="min-w-0 py-4">
           {/* Source video */}
           <div className="flex flex-col gap-2">
             <Label>{t("formatConverter.sourceLabel")}</Label>
@@ -295,17 +300,17 @@ export function FormatConverterDialog({
               className="min-w-0"
             />
           </div>
-        </div>
+        </ScrollableDialogBody>
 
-        <DialogFooter className="shrink-0">
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={handleCancel} disabled={isConverting}>
             {t("cancel", { ns: "common" })}
           </Button>
           <Button onClick={handleStart} disabled={isConverting}>
             {t("formatConverter.start")}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

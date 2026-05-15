@@ -2,13 +2,16 @@ import { useMemo, useState, useEffect } from "react"
 import { Loader2, CheckCircle2, XCircle, Circle } from "lucide-react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Table,
   TableBody,
@@ -560,16 +563,16 @@ export function ScrapeDialog({
         }
       }}
     >
-      <DialogContent
+      <ScrollableDialogContent
         showCloseButton={canClose}
         className="max-w-2xl"
         data-testid="scrape-dialog"
       >
-        <DialogHeader>
+        <ScrollableDialogHeader>
           <DialogTitle>{defaultTitle}</DialogTitle>
           <DialogDescription>{defaultDescription}</DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[400px] w-full">
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
           {tasks.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
               {t('scrape.noTasks')}
@@ -593,9 +596,9 @@ export function ScrapeDialog({
               </TableBody>
             </Table>
           )}
-        </ScrollArea>
+        </ScrollableDialogBody>
         {showButtons && (
-          <div className="flex justify-end gap-2 pt-4">
+          <ScrollableDialogFooter>
             <Button
               variant="outline"
               onClick={handleClose}
@@ -610,9 +613,9 @@ export function ScrapeDialog({
             >
               {allTasksDone ? (t as any)('scrape.done') : t('scrape.start')}
             </Button>
-          </div>
+          </ScrollableDialogFooter>
         )}
-      </DialogContent>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

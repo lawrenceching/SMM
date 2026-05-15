@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FilePickerDialogProps, FileItem } from "./types"
@@ -105,7 +105,7 @@ export function FilePickerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent 
+      <ScrollableDialogContent 
         showCloseButton={true} 
         className="max-w-2xl overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
@@ -113,13 +113,13 @@ export function FilePickerDialog({
 
         {
           !hideDialogHeader && (
-            <DialogHeader>
+            <ScrollableDialogHeader>
               <DialogTitle>{defaultTitle}</DialogTitle>
               <DialogDescription>{defaultDescription}</DialogDescription>
-            </DialogHeader>
+            </ScrollableDialogHeader>
           )
         }
-        <div className="flex flex-col gap-2 overflow-hidden">
+        <ScrollableDialogBody className="min-h-0 space-y-2">
           <div className="h-[400px] w-full flex flex-col min-h-0">
             <FileExplorer
               currentPath={currentPath}
@@ -134,16 +134,16 @@ export function FilePickerDialog({
               onlyFolders={selectFolder}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2 shrink-0">
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
             <Button variant="outline" onClick={handleCancel}>
               {t('cancel', { ns: 'common' })}
             </Button>
             <Button onClick={handleConfirm}>
               {t('confirm', { ns: 'common' })}
             </Button>
-          </div>
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

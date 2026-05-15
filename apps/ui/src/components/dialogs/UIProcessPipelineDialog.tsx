@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -310,17 +309,17 @@ export function UIProcessPipelineDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="process-pipeline-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent className="max-w-2xl sm:max-w-2xl" data-testid="process-pipeline-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
 
-        <ScrollArea className="max-h-[40vh] pr-3">
-          <Table data-testid="process-pipeline-dialog-table">
+        <ScrollableDialogBody>
+          <Table className="table-fixed" data-testid="process-pipeline-dialog-table">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">
+                <TableHead className="w-10 max-w-10">
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
@@ -332,13 +331,15 @@ export function UIProcessPipelineDialog({
                     data-testid="process-pipeline-dialog-select-all"
                   />
                 </TableHead>
-                <TableHead>{tDialogs("transcribe.columns.filePath")}</TableHead>
+                <TableHead className="min-w-0">
+                  {tDialogs("transcribe.columns.filePath")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.id} data-testid={`process-pipeline-dialog-row-${row.id.slice(0, 40)}`}>
-                  <TableCell>
+                  <TableCell className="w-10 max-w-10 align-top">
                     <input
                       type="checkbox"
                       role="checkbox"
@@ -348,10 +349,10 @@ export function UIProcessPipelineDialog({
                       data-testid={`process-pipeline-dialog-check-${row.id.slice(0, 40)}`}
                     />
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="min-w-0 whitespace-normal wrap-break-word text-sm align-top">
                     {row.displayPath ?? row.mediaPath}
                     {!row.eligible && row.disabledReason ? (
-                      <span className="block text-xs text-muted-foreground">
+                      <span className="mt-1 block text-xs text-muted-foreground">
                         {t(row.disabledReason as "processPipelineDialog.noMediaPath")}
                       </span>
                     ) : null}
@@ -360,9 +361,8 @@ export function UIProcessPipelineDialog({
               ))}
             </TableBody>
           </Table>
-        </ScrollArea>
 
-        <div className="space-y-3 border-t pt-3">
+          <div className="space-y-3 border-t pt-3">
           {asrOptionsEnabled ? (
             <div className="space-y-1">
               <Label>{tDialogs("transcribe.asr.label")}</Label>
@@ -605,16 +605,17 @@ export function UIProcessPipelineDialog({
             </div>
           ) : null}
         </div>
+        </ScrollableDialogBody>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={onClose}>
             {tCommon("cancel")}
           </Button>
           <Button onClick={handleConfirm} disabled={!canConfirm} data-testid="process-pipeline-confirm">
             {tDialogs("transcribe.confirm")}
           </Button>
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

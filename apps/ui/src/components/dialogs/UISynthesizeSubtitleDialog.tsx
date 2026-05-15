@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -193,13 +192,13 @@ export function UISynthesizeSubtitleDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl" data-testid="synthesize-subtitle-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent className="max-w-2xl" data-testid="synthesize-subtitle-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
 
-        <ScrollArea className="max-h-[50vh] pr-3">
+        <ScrollableDialogBody>
           <Table data-testid="synthesize-subtitle-dialog-table">
             <TableHeader>
               <TableRow>
@@ -252,7 +251,6 @@ export function UISynthesizeSubtitleDialog({
               )}
             </TableBody>
           </Table>
-        </ScrollArea>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -350,16 +348,17 @@ export function UISynthesizeSubtitleDialog({
             </Select>
           </div>
         </div>
+        </ScrollableDialogBody>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={onClose}>
             {t("synthesizeSubtitleDialog.cancel")}
           </Button>
           <Button onClick={handleConfirm} disabled={!canConfirm} data-testid="synthesize-subtitle-dialog-confirm">
             {t("synthesizeSubtitleDialog.confirm")}
           </Button>
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

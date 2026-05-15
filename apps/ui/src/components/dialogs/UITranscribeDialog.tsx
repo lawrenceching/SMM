@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -215,12 +214,12 @@ export function UITranscribeDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl" data-testid="transcribe-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent className="max-w-2xl" data-testid="transcribe-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[400px] w-full">
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
           {rows.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
               {t("transcribe.noFiles")}
@@ -270,7 +269,6 @@ export function UITranscribeDialog({
               </TableBody>
             </Table>
           )}
-        </ScrollArea>
         {showProviderControls ? (
           <div className="flex flex-col gap-3 pt-2">
             <div className="flex flex-col gap-2">
@@ -421,7 +419,8 @@ export function UITranscribeDialog({
             ) : null}
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 pt-4">
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={onClose} data-testid="transcribe-dialog-cancel">
             {tCommon("cancel")}
           </Button>
@@ -434,8 +433,8 @@ export function UITranscribeDialog({
               {t("transcribe.confirm")}
             </Button>
           ) : null}
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

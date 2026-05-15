@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { FolderOpen } from "lucide-react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -433,18 +433,18 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent
+      <ScrollableDialogContent
         data-testid="download-video-dialog"
         showCloseButton={true}
-        className="max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+        className="max-w-2xl overflow-hidden"
       >
-        <DialogHeader>
+        <ScrollableDialogHeader>
           <DialogTitle>{t('downloadVideo.title')}</DialogTitle>
           <DialogDescription>
             {t('downloadVideo.description')}
           </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="h-full min-h-0">
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
           <div className="flex flex-col gap-4 px-1 py-2 pr-4">
           {!hasAgreed && (
             <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
@@ -616,8 +616,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             </div>
           </div>
           </div>
-        </ScrollArea>
-        <div className="flex shrink-0 justify-end gap-2 border-t pt-3">
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
           <Button data-testid="download-video-dialog-cancel" variant="outline" onClick={handleCancel} disabled={formBusy}>
             {tCommon('cancel')}
           </Button>
@@ -643,11 +643,11 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               onClick={() => void handleStart()}
               disabled={!isUrlValid || !downloadFolder.trim() || formBusy || !hasAgreed}
             >
-              {isEnqueueing ? t('downloadVideo.downloading') : t('downloadVideo.start')}
+              {isEnqueueing ? t('downloadVideo.downloading') : t("downloadVideo.start")}
             </Button>
           )}
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

@@ -1,9 +1,10 @@
 import { useState } from "react"
+import { Dialog } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { MediaSearch } from "@/components/MediaSearch"
 import type { MediaSearchDialogProps } from "./types"
@@ -20,20 +21,22 @@ export function MediaSearchDialog({ isOpen, onClose, onSelect }: MediaSearchDial
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
+      <ScrollableDialogContent
         className="max-w-3xl overflow-hidden"
         showCloseButton={true}
       >
+        <ScrollableDialogBody className="min-h-0">
         <MediaSearch onSelect={(id) => setSelectedTmdbId(id)} />
-        <DialogFooter>
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleConfirm} disabled={!selectedTmdbId}>
             Confirm
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

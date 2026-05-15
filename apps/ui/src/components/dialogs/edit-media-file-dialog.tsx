@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -101,11 +104,12 @@ export function EditMediaFileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent showCloseButton className="max-w-md" data-testid="edit-media-file-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent showCloseButton className="max-w-md" data-testid="edit-media-file-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{t("editMediaFile.title")}</DialogTitle>
           <DialogDescription>{t("editMediaFile.description")}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
         <div className="py-4">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
@@ -135,7 +139,8 @@ export function EditMediaFileDialog({
             </Table>
           )}
         </div>
-        <DialogFooter>
+        </ScrollableDialogBody>
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={handleCancel} disabled={saving} data-testid="edit-media-file-cancel">
             {t("cancel", { ns: "common" })}
           </Button>
@@ -149,8 +154,8 @@ export function EditMediaFileDialog({
               t("editMediaFile.save")
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

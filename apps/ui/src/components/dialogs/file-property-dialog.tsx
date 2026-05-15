@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { ImageViewer } from "@/components/ImageViewer"
 import { useTranslation } from "@/lib/i18n"
@@ -266,17 +269,17 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent 
+        <ScrollableDialogContent 
           showCloseButton={true} 
-          className="max-w-lg max-h-[80vh] flex flex-col"
+          className="max-w-lg max-h-[80vh]"
           data-testid="file-property-dialog"
         >
-          <DialogHeader className="min-w-0 shrink-0">
+          <ScrollableDialogHeader className="min-w-0">
             <DialogTitle className="text-xl line-clamp-2 min-w-0 wrap-break-word">{track.title ?? ''}</DialogTitle>
             <DialogDescription className="truncate min-w-0">{track.artist ?? ''}</DialogDescription>
-          </DialogHeader>
+          </ScrollableDialogHeader>
 
-          <div className="py-4 min-w-0 min-h-0 flex-1 overflow-y-auto" role="list" aria-label="File properties">
+          <ScrollableDialogBody className="min-w-0 py-4" role="list" aria-label="File properties">
             <PropertyRow
               icon={Music}
               label={t('fileProperty.title')}
@@ -308,9 +311,9 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
               isLoading={isLoadingScreenshots}
               onPreviewClick={(url) => setViewerImageUrl(url)}
             />
-          </div>
+          </ScrollableDialogBody>
           {fileType === 'video' && (
-            <DialogFooter className="shrink-0">
+            <ScrollableDialogFooter>
               <Button
                 onClick={() => {
                   openFormatConverter(track)
@@ -319,9 +322,9 @@ export function FilePropertyDialog({ isOpen, onClose, track }: FilePropertyDialo
               >
                 {t('fileProperty.convertFormat', 'Convert format')}
               </Button>
-            </DialogFooter>
+            </ScrollableDialogFooter>
           )}
-        </DialogContent>
+        </ScrollableDialogContent>
       </Dialog>
 
       <ImageViewer

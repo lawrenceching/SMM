@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -197,13 +196,13 @@ export function UISubtitleTranslationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl" data-testid="subtitle-translation-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent className="max-w-2xl" data-testid="subtitle-translation-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
 
-        <ScrollArea className="max-h-[50vh] pr-3">
+        <ScrollableDialogBody>
           <Table data-testid="subtitle-translation-dialog-table">
             <TableHeader>
               <TableRow>
@@ -260,7 +259,6 @@ export function UISubtitleTranslationDialog({
               )}
             </TableBody>
           </Table>
-        </ScrollArea>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -355,16 +353,17 @@ export function UISubtitleTranslationDialog({
             </Select>
           </div>
         </div>
+        </ScrollableDialogBody>
 
-        <div className="flex justify-end gap-2">
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={onClose} data-testid="subtitle-translation-dialog-cancel">
             {tCommon("cancel")}
           </Button>
           <Button onClick={handleConfirm} disabled={!canConfirm} data-testid="subtitle-translation-dialog-confirm">
             {t("subtitleTranslationDialog.confirm")}
           </Button>
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

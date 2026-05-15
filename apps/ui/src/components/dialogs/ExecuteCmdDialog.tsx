@@ -2,11 +2,15 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Loader2, Trash2, Plus, X, Play, Square, Copy } from "lucide-react"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogFooter,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -174,12 +178,13 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-3xl" data-testid="execute-cmd-dialog">
-        <DialogHeader>
+      <ScrollableDialogContent className="max-w-3xl" data-testid="execute-cmd-dialog">
+        <ScrollableDialogHeader>
           <DialogTitle>{t("dialogs:executeCmd.title")}</DialogTitle>
           <DialogDescription>{t("dialogs:executeCmd.description")}</DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
 
+        <ScrollableDialogBody>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>{t("dialogs:executeCmd.command")}</Label>
@@ -338,8 +343,9 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
             </ScrollArea>
           </div>
         </div>
+        </ScrollableDialogBody>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <ScrollableDialogFooter>
           <Button variant="outline" onClick={handleClose} data-testid="execute-cmd-close">
             {t("close", { ns: "common" })}
           </Button>
@@ -362,8 +368,8 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
               {t("dialogs:executeCmd.execute")}
             </Button>
           )}
-        </div>
-      </DialogContent>
+        </ScrollableDialogFooter>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }

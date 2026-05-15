@@ -1,11 +1,10 @@
 import { FolderOpen } from "lucide-react"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ScrollableDialogBody,
+  ScrollableDialogContent,
+  ScrollableDialogHeader,
+} from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
 import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
@@ -36,13 +35,14 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showCloseButton={true}>
-        <DialogHeader>
+      <ScrollableDialogContent showCloseButton={true}>
+        <ScrollableDialogHeader>
           <DialogTitle>{t('openFolder.title')}</DialogTitle>
           <DialogDescription>
             {t('openFolder.description')}
           </DialogDescription>
-        </DialogHeader>
+        </ScrollableDialogHeader>
+        <ScrollableDialogBody>
         {folderPath && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-muted border min-w-0 overflow-hidden">
             <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -84,7 +84,8 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
             </div>
           </Button>
         </div>
-      </DialogContent>
+        </ScrollableDialogBody>
+      </ScrollableDialogContent>
     </Dialog>
   )
 }
