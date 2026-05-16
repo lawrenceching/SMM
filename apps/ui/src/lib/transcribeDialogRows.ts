@@ -23,7 +23,7 @@ export function labelForMediaFile(
   return base ?? mf.absolutePath
 }
 
-function displayPathForFile(
+export function displayPathForFile(
   mediaFolderPath: string | undefined,
   absolutePath: string
 ): string | undefined {

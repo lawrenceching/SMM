@@ -32,7 +32,9 @@ import { useJobOrchestrator, useFileStatuses, useJobs } from "@/hooks/useJobOrch
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
+  displayPathForFile,
 } from "@/lib/transcribeDialogRows";
+import { isAbsPath } from "@/lib/path";
 import { subtitleTranslationDialogRowsFromMusicFileRows } from "@/lib/subtitleTranslationDialogRows";
 import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeSubtitleDialogRows";
 import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelineDialogRows";
@@ -42,7 +44,7 @@ import { syncTracks } from "@/lib/musicPanelSyncTracks";
 
 interface PendingDelete {
   trackPath: string;
-  trackTitle: string;
+  displayPath: string;
   currentFiles: string[];
   fileIndex: number;
 }
@@ -717,12 +719,12 @@ export function MusicPanel() {
         }),
       );
 
-      toast.success(`"${pendingDelete.trackTitle}" has been deleted.`);
+      toast.success(`"${pendingDelete.displayPath}" has been deleted.`);
       setPendingDelete(null);
       closeConfirmation();
     } catch (error) {
       console.error('[MusicPanel] Failed to delete track:', error);
-      toast.error(`Could not delete "${pendingDelete.trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Could not delete "${pendingDelete.displayPath}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [pendingDelete, mediaMetadata, updateMediaMetadata, closeConfirmation]);
 
@@ -754,9 +756,19 @@ export function MusicPanel() {
         return;
       }
 
+      const mediaFolderPath = mediaMetadata.mediaFolderPath;
+      const fileEntry = currentFiles[fileIndex];
+      const fileEntryPosix = fileEntry ? Path.posix(fileEntry) : undefined;
+      const absolutePath =
+        absolutePosixMusicFilePath({ path: trackPath }, mediaFolderPath) ?? trackPathPosix;
+      const displayPath =
+        (fileEntryPosix && !isAbsPath(fileEntryPosix) ? fileEntryPosix : undefined) ??
+        displayPathForFile(mediaFolderPath, absolutePath) ??
+        absolutePath;
+
       setPendingDelete({
         trackPath,
-        trackTitle,
+        displayPath,
         currentFiles,
         fileIndex,
       });
@@ -766,7 +778,7 @@ export function MusicPanel() {
         showCloseButton: false,
         content: (
           <DeleteTrackDialog
-            trackTitle={trackTitle}
+            displayPath={displayPath}
             onConfirm={handleDeleteConfirm}
             onCancel={handleDeleteCancel}
           />

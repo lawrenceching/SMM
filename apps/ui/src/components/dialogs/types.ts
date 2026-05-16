@@ -94,7 +94,8 @@ export interface OpenFolderDialogProps {
 }
 
 export interface DeleteTrackDialogProps {
-  trackTitle: string
+  /** File path relative to the media folder when possible. */
+  displayPath: string
   onConfirm: () => void
   onCancel: () => void
 }

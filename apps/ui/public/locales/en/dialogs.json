@@ -188,6 +188,9 @@
     "invalidParams": "Please set output folder and file name.",
     "success": "Conversion completed."
   },
+  "deleteTrack": {
+    "message": "Are you sure you want to delete \"{{path}}\"? This action cannot be undone."
+  },
   "executeCmd": {
     "title": "Execute Command",
     "description": "Run command-line tools and view output in real time",

@@ -188,6 +188,9 @@
     "invalidParams": "請設定輸出資料夾與檔名。",
     "success": "轉換完成。"
   },
+  "deleteTrack": {
+    "message": "確定要刪除「{{path}}」嗎？此操作無法復原。"
+  },
   "executeCmd": {
     "title": "執行命令",
     "description": "執行命令列工具並即時檢視輸出",

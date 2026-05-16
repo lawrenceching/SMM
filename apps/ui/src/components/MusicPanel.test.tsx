@@ -63,10 +63,13 @@ vi.mock('@/lib/tracksFromDownloadVideoJobs', () => ({
   tracksFromDownloadJobRecords: () => h.emptyJobTracks,
 }))
 
-vi.mock('@/lib/transcribeDialogRows', () => ({
-  transcribeDialogRowsFromMusicFileRows: vi.fn(() => []),
-  absolutePosixMusicFilePath: vi.fn((p: string) => p),
-}))
+vi.mock('@/lib/transcribeDialogRows', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/transcribeDialogRows')>();
+  return {
+    ...actual,
+    transcribeDialogRowsFromMusicFileRows: vi.fn(() => []),
+  };
+})
 
 vi.mock('@/lib/subtitleTranslationDialogRows', () => ({
   subtitleTranslationDialogRowsFromMusicFileRows: vi.fn(() => []),
@@ -626,7 +629,7 @@ describe('MusicPanel', () => {
       );
 
       const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
-      expect(dialogConfig.content.props.trackTitle).toBe(mockTrack.title);
+      expect(dialogConfig.content.props.displayPath).toBe('song1.mp3');
     });
   });
 

@@ -188,6 +188,9 @@
     "invalidParams": "请设置输出文件夹和文件名。",
     "success": "转换完成。"
   },
+  "deleteTrack": {
+    "message": "确定要删除「{{path}}」吗？此操作无法撤销。"
+  },
   "executeCmd": {
     "title": "执行命令",
     "description": "运行命令行工具并实时查看输出",
