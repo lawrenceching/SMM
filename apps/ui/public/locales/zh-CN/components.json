@@ -267,7 +267,7 @@
       "translateStop": "停止翻译字幕",
       "synthesize": "合成字幕",
       "synthesizeStop": "停止合成字幕",
-      "process": "处理",
+      "process": "全流程处理",
       "processStop": "停止流水线"
     },
     "noTracksFound": "未找到音轨",

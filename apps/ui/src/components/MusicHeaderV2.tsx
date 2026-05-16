@@ -1,4 +1,4 @@
-import { Captions, ChevronDown, Download, Music, Sparkles } from "lucide-react"
+import { Captions, ChevronDown, Download, FileVideo, Languages, Music, Sparkles } from "lucide-react"
 import { Button } from "./ui/button"
 import {
   DropdownMenu,
@@ -92,9 +92,9 @@ export function MusicHeaderV2({
                 disabled={!folderReady || subtitleDisabled}
                 data-testid="music-header-subtitle"
               >
-                <Captions className="size-4 mr-2" />
+                <Captions className="mr-2 size-4" />
                 {t("mediaPlayer.trackContextMenu.subtitle")}
-                <ChevronDown className="size-4 ml-1 opacity-60" />
+                <ChevronDown className="ml-1 size-4 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -103,7 +103,7 @@ export function MusicHeaderV2({
                 onClick={() => onTranscribeClick?.()}
                 data-testid="music-multi-select-transcribe"
               >
-                <Captions className="size-4 mr-2" />
+                <Captions className="mr-2 size-4" />
                 {t("mediaPlayer.trackContextMenu.transcribe", { defaultValue: "Transcribe" })}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -111,6 +111,7 @@ export function MusicHeaderV2({
                 onClick={() => onTranslateClick?.()}
                 data-testid="music-header-translate"
               >
+                <Languages className="mr-2 size-4" />
                 {t("mediaPlayer.trackContextMenu.translate")}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -118,6 +119,7 @@ export function MusicHeaderV2({
                 onClick={() => onSynthesizeClick?.()}
                 data-testid="music-header-synthesize"
               >
+                <FileVideo className="mr-2 size-4" />
                 {t("mediaPlayer.trackContextMenu.synthesize")}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -125,7 +127,7 @@ export function MusicHeaderV2({
                 onClick={() => onProcessClick?.()}
                 data-testid="music-header-process"
               >
-                <Sparkles className="size-4 mr-2" />
+                <Sparkles className="mr-2 size-4" />
                 {t("mediaPlayer.trackContextMenu.process")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -137,7 +139,7 @@ export function MusicHeaderV2({
             disabled={!folderReady}
             data-testid="music-download-button"
           >
-            <Download className="size-4 mr-2" />
+            <Download className="mr-2 size-4" />
             {t("mediaPlayer.download")}
           </Button>
         </div>

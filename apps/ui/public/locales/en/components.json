@@ -268,7 +268,7 @@
       "translateStop": "Stop translating",
       "synthesize": "Synthesize",
       "synthesizeStop": "Stop synthesizing",
-      "process": "Process",
+      "process": "Pipeline",
       "processStop": "Stop pipeline"
     },
     "noTracksFound": "No tracks found",
