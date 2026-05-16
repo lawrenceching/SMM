@@ -485,6 +485,12 @@ interface DialogsResources {
     downloadEpisodesLabel: string
     getVideos: string
     collectionVideosLoading: string
+    formatLabel: string
+    formatDefault: string
+    formatBest: string
+    format1080p: string
+    format720p: string
+    formatAudioOnly: string
     episodesLoading: string
     episodesNoneSelected: string
     episodesNoVideoUrls: string
@@ -761,6 +767,9 @@ interface SettingsResources {
     ai: string
     renameRules: string
     feedback: string
+  }
+  deleteTrack: {
+    message: string
   }
 }
 

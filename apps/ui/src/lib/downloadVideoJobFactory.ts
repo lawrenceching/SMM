@@ -15,6 +15,8 @@ export interface CreateDownloadVideoJobInput {
   urls: string[]
   /** Per-URL display metadata (e.g. episode titles) */
   itemMeta?: Array<{ title?: string; artist?: string }>
+  /** yt-dlp `-f` format selector for all videos in the job. */
+  ytdlpFormat?: string
 }
 
 export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): DownloadVideoBackgroundJob {
@@ -25,9 +27,11 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
     status: 'pending' as const,
   }))
 
+  const format = input.ytdlpFormat?.trim()
   const data: DownloadVideoBackgroundJobData = {
     folder: input.folder,
     videos,
+    ...(format ? { ytdlpFormat: format } : {}),
   }
 
   return {

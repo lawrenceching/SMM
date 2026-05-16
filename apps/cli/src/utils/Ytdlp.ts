@@ -172,6 +172,8 @@ export interface YtdlpDownloadRequestData {
   url: string;
   args?: string[];
   folder?: string;
+  /** yt-dlp `-f` format selector (e.g. `137`, `best`). */
+  format?: string;
 }
 
 /**
@@ -334,6 +336,11 @@ export async function downloadYtdlpVideo(
     );
   }
 
+  const format = request.format?.trim();
+  if (format) {
+    cmdArgs.push("-f", format);
+  }
+
   cmdArgs.push(request.url);
   if (request.args && request.args.length > 0) {
     cmdArgs.push(...request.args);
@@ -347,6 +354,7 @@ export async function downloadYtdlpVideo(
       tempDir,
       finalDir,
       tempOutputTemplate,
+      format: format ?? null,
       extraArgs: request.args ?? [],
       spawnArgs,
       url: request.url,

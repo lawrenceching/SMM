@@ -34,6 +34,12 @@
     "downloadEpisodesLabel": "下载分集",
     "getVideos": "获取视频列表",
     "collectionVideosLoading": "正在加载视频列表…",
+    "formatLabel": "视频格式",
+    "formatDefault": "默认（自动）",
+    "formatBest": "最佳画质",
+    "format1080p": "1080p",
+    "format720p": "720p",
+    "formatAudioOnly": "仅音频",
     "episodesLoading": "正在加载分集…",
     "episodesNoneSelected": "请至少选择一集。",
     "episodesNoVideoUrls": "所选分集缺少可播放链接。",
@@ -189,7 +195,7 @@
     "success": "转换完成。"
   },
   "deleteTrack": {
-    "message": "确定要删除「{{path}}」吗？此操作无法撤销。"
+    "message": "确定要删除「{{filePath}}」吗？此操作无法撤销。"
   },
   "executeCmd": {
     "title": "执行命令",

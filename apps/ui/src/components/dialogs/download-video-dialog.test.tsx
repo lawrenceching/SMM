@@ -106,6 +106,12 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.downloadEpisodesLabel': 'Download episodes',
         'downloadVideo.getVideos': 'Get videos',
         'downloadVideo.collectionVideosLoading': 'Loading video list…',
+        'downloadVideo.formatLabel': 'Video format',
+        'downloadVideo.formatDefault': 'Default (automatic)',
+        'downloadVideo.formatBest': 'Best quality',
+        'downloadVideo.format1080p': '1080p',
+        'downloadVideo.format720p': '720p',
+        'downloadVideo.formatAudioOnly': 'Audio only',
         'downloadVideo.episodesLoading': 'Loading episodes…',
         'downloadVideo.episodesNoneSelected': 'Select at least one item.',
       }
@@ -137,6 +143,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   }
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn()
     vi.clearAllMocks()
     h.mutateEpisodesMetadata.mockReset()
     h.resetEpisodesMetadata.mockReset()
@@ -387,6 +394,36 @@ describe('DownloadVideoDialog - user agreement', () => {
       )
     })
     expect(mockOnClose).toHaveBeenCalled()
+    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
+    expect(job?.data?.ytdlpFormat).toBeUndefined()
+  })
+
+  it('passes 1080p format expression when that preset is selected', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByRole('option', { name: '1080p' })
+    fireEvent.click(option1080)
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.saveDownloadVideoJob).toHaveBeenCalled()
+    })
+    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ytdlpFormat: 'bv*[height<=1080]+ba/b[height<=1080]/best',
+        }),
+      })
+    )
   })
 
   it('does not show Download episodes checkbox for YouTube URL', () => {
@@ -628,7 +665,11 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByLabelText('Download episodes'))
     await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('Episode 2'))
+    fireEvent.click(
+      screen.getByTestId(
+        'download-video-dialog-episode-checkbox-https://www.bilibili.com/video/BV2/'
+      )
+    )
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
@@ -686,7 +727,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.change(screen.getByLabelText('Download Folder'), { target: { value: 'C:\\downloads' } })
     fireEvent.click(screen.getByLabelText('Download episodes'))
     await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('cancel'))
+    fireEvent.click(screen.getByTestId('download-video-dialog-cancel'))
 
     expect(mockOnClose).toHaveBeenCalled()
     expect(h.resetEpisodesMetadata).toHaveBeenCalled()

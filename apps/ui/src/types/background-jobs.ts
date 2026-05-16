@@ -44,6 +44,8 @@ export interface DownloadVideoJobVideo {
 export interface DownloadVideoBackgroundJobData {
   folder: string;
   videos: DownloadVideoJobVideo[];
+  /** yt-dlp `-f` format applied to every video in this job. */
+  ytdlpFormat?: string;
 }
 
 export interface DownloadVideoBackgroundJob extends BackgroundJobBase {

@@ -259,15 +259,19 @@ async function startDownload(jobId) {
     console.log('[SW] startDownload: fetching /api/ytdlp/download', { jobId, videoIndex: i, url: video.url })
 
     try {
+      const downloadBody = {
+        url: video.url,
+        folder: folder,
+        args: YTDLP_DOWNLOAD_DEFAULT_ARGS,
+      }
+      if (data.ytdlpFormat) {
+        downloadBody.format = data.ytdlpFormat
+      }
       const res = await fetch('/api/ytdlp/download', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: video.url,
-          folder: folder,
-          args: YTDLP_DOWNLOAD_DEFAULT_ARGS,
-        }),
+        body: JSON.stringify(downloadBody),
         signal: controller.signal,
       })
       const body = await parseApiResponseBody(res, { jobId, op: 'ytdlp/download', videoIndex: i })

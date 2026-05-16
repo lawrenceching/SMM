@@ -7,6 +7,8 @@ export interface YtdlpDownloadRequest {
   url: string;
   args?: string[];
   folder?: string;
+  /** yt-dlp `-f` format selector; omit for yt-dlp default. */
+  format?: string;
 }
 
 export interface YtdlpDownloadResponse {

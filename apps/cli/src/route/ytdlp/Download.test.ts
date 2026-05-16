@@ -1,8 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { processYtdlpDownload } from './Download'
 
+const h = vi.hoisted(() => ({
+  downloadYtdlpVideo: vi.fn().mockResolvedValue({ success: true, path: '/tmp/video.mp4' }),
+}))
+
 vi.mock('../../utils/Ytdlp', () => ({
-  downloadYtdlpVideo: async () => ({ success: true, path: '/tmp/video.mp4' }),
+  downloadYtdlpVideo: h.downloadYtdlpVideo,
 }))
 
 vi.mock('../../../lib/logger', () => ({
@@ -35,5 +39,17 @@ describe('processYtdlpDownload', () => {
     const result = await processYtdlpDownload({ url: 'https://www.bilibili.com/video/BV1xx411c7mD' })
     expect(result.error).toBeUndefined()
     expect(result.success).toBe(true)
+  })
+
+  it('should pass format to downloadYtdlpVideo', async () => {
+    h.downloadYtdlpVideo.mockClear()
+    await processYtdlpDownload({
+      url: 'https://www.youtube.com/watch?v=abc123',
+      format: '137',
+    })
+    expect(h.downloadYtdlpVideo).toHaveBeenCalledWith(
+      expect.objectContaining({ format: '137' }),
+      undefined
+    )
   })
 })

@@ -23,8 +23,21 @@ import {
   useExtractYtdlpVideoDataMutation,
 } from "@/hooks/ytdlp/useYtdlpMutations"
 import { buildDownloadVideoJob } from "@/lib/downloadVideoJobFactory"
+import {
+  resolveYtdlpFormatFromPreset,
+  YTDLP_FORMAT_PRESETS,
+  ytdlpFormatPresetLabelKey,
+  type YtdlpFormatPresetId,
+} from "@/lib/ytdlpFormatPresets"
 import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
 import { ListItem } from "@/components/dialogs/download-video-list-item"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
@@ -87,6 +100,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     Set<string>
   >(new Set())
   const [collectionError, setCollectionError] = useState<string | null>(null)
+  const [selectedFormatPresetId, setSelectedFormatPresetId] =
+    useState<YtdlpFormatPresetId>("default")
   const episodesFetchGen = useRef(0)
   const previousUrlRef = useRef("")
 
@@ -103,10 +118,13 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const isCollectionUrl =
     isBilibiliCollectionUrl(url.trim()) && isUrlValid
 
+  const resolvedYtdlpFormat = resolveYtdlpFormatFromPreset(selectedFormatPresetId)
+
   const formBusy =
     isEnqueueing ||
     (downloadEpisodes && episodesLoading) ||
     (downloadCollectionVideos && collectionMetadataLoading)
+
   const canDownloadEpisodes = isBilibiliUrl(url) && !isCollectionUrl
 
   const resetEpisodesState = useCallback(() => {
@@ -316,6 +334,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             folder: downloadFolder,
             urls: [u],
             itemMeta: [{ title: u, artist: "" }],
+            ytdlpFormat: resolvedYtdlpFormat,
           }),
         )
         await Promise.all(collectionJobs.map((job) => createJob(job)))
@@ -356,6 +375,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
           folder: downloadFolder,
           urls: [u],
           itemMeta: episode ? [{ title: episode.title, artist: episode.artist }] : undefined,
+          ytdlpFormat: resolvedYtdlpFormat,
         })
       })
 
@@ -383,6 +403,7 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     setIsEnqueueing(false)
     resetEpisodesMetadata()
     resetCollectionState()
+    setSelectedFormatPresetId("default")
     extractMutation.reset()
     onClose()
   }
@@ -486,6 +507,33 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               <p className="text-sm text-destructive">{urlError}</p>
             )}
           </div>
+          {hasAgreed && isUrlValid && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="download-format">{t("downloadVideo.formatLabel")}</Label>
+              <Select
+                value={selectedFormatPresetId}
+                onValueChange={(value) =>
+                  setSelectedFormatPresetId(value as YtdlpFormatPresetId)
+                }
+                disabled={formBusy}
+              >
+                <SelectTrigger
+                  id="download-format"
+                  data-testid="download-video-dialog-format-select"
+                  className="w-full max-w-full"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YTDLP_FORMAT_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      {t(ytdlpFormatPresetLabelKey(preset.id))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {canDownloadEpisodes && (
             <label className="inline-flex items-center gap-2 text-sm">
               <input
@@ -639,7 +687,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             <Button
               data-testid="download-video-dialog-start"
               onClick={() => void handleStart()}
-              disabled={!isUrlValid || !downloadFolder.trim() || formBusy || !hasAgreed}
+              disabled={
+                !isUrlValid ||
+                !downloadFolder.trim() ||
+                formBusy ||
+                !hasAgreed
+              }
             >
               {isEnqueueing ? t('downloadVideo.downloading') : t("downloadVideo.start")}
             </Button>

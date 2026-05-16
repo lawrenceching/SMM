@@ -12,6 +12,10 @@ Document: docs/api/IsFolderAvailableAPI.md
 Source Code: apps/cli/src/route/executeCmd.ts
 Document: docs/api/ExecuteCmdAPI.md
 
+## YtdlpDownload
+Source Code: apps/cli/src/route/ytdlp/Download.ts
+HTTP: `POST /api/ytdlp/download` — body `{ url, folder?, args?, format? }`; optional `format` maps to yt-dlp `-f`.
+
 ## VideoCaptionerTranscribe
 Source Code: apps/cli/src/route/videocaptioner/Transcribe.ts
 HTTP: `POST /api/videocaptioner/transcribe` — request body validated with Zod (`mediaPath`, optional `asr`, `language`, `wordTimestamps`, `format`).

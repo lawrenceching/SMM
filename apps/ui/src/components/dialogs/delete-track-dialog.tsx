@@ -14,7 +14,7 @@ export function DeleteTrackDialog({ displayPath, onConfirm, onCancel }: DeleteTr
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {t("deleteTrack.message", { path: displayPath })}
+        {t("deleteTrack.message", "", { filePath: displayPath })}
       </p>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>
