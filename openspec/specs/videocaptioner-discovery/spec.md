@@ -1,34 +1,19 @@
 ## Purpose
 Define how the application discovers VideoCaptioner executables and presents discovery results in the UI.
 ## Requirements
-### Requirement: Python Scripts folder discovery for VideoCaptioner
-The system SHALL include Python `Scripts` installation path candidates when discovering VideoCaptioner executables, including pip-installed layout patterns on supported operating systems.
-
-#### Scenario: Windows pip-installed executable is discovered
-- **WHEN** VideoCaptioner is installed at a Python `Scripts` path such as `.../Python310/Scripts/videocaptioner.exe`
-- **THEN** discovery returns that executable path as available
-
-#### Scenario: Python Scripts candidates are not present
-- **WHEN** no VideoCaptioner executable exists in configured, bundled, install, or Python `Scripts` candidate paths
-- **THEN** discovery returns an unavailable result with an error message
-
-### Requirement: Existing discovery sources remain supported
-The system SHALL preserve existing VideoCaptioner discovery sources while adding Python `Scripts` candidate checks.
-
-#### Scenario: Existing configured path still takes precedence
-- **WHEN** user-configured executable path exists and is valid
-- **THEN** discovery returns the configured executable path without requiring Python `Scripts` lookup success
-
 ### Requirement: Settings UI displays discovered VideoCaptioner path
-The system SHALL display the discovered VideoCaptioner path as a settings item in `GeneralSettings`.
+
+The system SHALL display VideoCaptioner availability in `GeneralSettings` based on the executeCmd availability probe (or user-configured path when set), not on `GET /api/videocaptioner/discover`.
 
 #### Scenario: Path is available
-- **WHEN** discovery returns a valid VideoCaptioner path
+
+- **WHEN** the probe reports a resolvable VideoCaptioner executable or user config provides a valid path
 - **THEN** `GeneralSettings` shows the resolved executable path value
 
 #### Scenario: Path is unavailable
-- **WHEN** discovery returns an unavailable result
-- **THEN** `GeneralSettings` shows an explicit unavailable state for VideoCaptioner path
+
+- **WHEN** the probe reports unavailable and no valid configured path exists
+- **THEN** `GeneralSettings` shows the unavailable state with guidance consistent with existing UX
 
 ### Requirement: Status bar surfaces TMDB and TVDB availability issues
 The system SHALL present TMDB/TVDB/VideoCaptioner availability issues as `MessageIndicator` messages in the status bar with severity-based message typing.

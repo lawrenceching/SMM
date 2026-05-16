@@ -16,11 +16,13 @@ export const SYNTHESIZE_TIMEOUT_MS = 60 * 60 * 1000;
 /** Full `videocaptioner process` (transcribe → subtitle → optional synthesize) can run much longer. */
 export const PROCESS_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
-/**
- * videocaptioner CLI incorrectly requires `--api-key` even when the operation does not use an LLM.
- * Pass this placeholder so validation succeeds; real `--api-key` from LLM flows is preserved (not duplicated).
- */
-export const VIDEOCAPTIONER_CLI_DUMMY_API_KEY = "dummykey";
+import {
+  buildVideoCaptionerProcessArgs,
+  type VideoCaptionerProcessCliOptions as CoreVideoCaptionerProcessCliOptions,
+} from "@core/whitelistedCmd/videocaptioner";
+import { VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "@core/whitelistedCmd/constants";
+
+export { VIDEOCAPTIONER_CLI_DUMMY_API_KEY };
 
 function ensureVideoCaptionerCliDummyApiKey(args: string[]): void {
   if (!args.includes("--api-key")) {
@@ -574,79 +576,12 @@ export async function synthesizeWithVideoCaptioner(
   });
 }
 
-/** argv for `videocaptioner` executable (subcommand `process` + flags), same contract as POST `/api/executeCmd` with `command: "videocaptioner"`. */
+/** argv for `videocaptioner` executable (subcommand `process` + flags). */
 export function buildProcessVideoCaptionerArgs(
   mediaPath: string,
   options?: VideoCaptionerProcessCliOptions,
 ): string[] {
-  const args: string[] = ["process", mediaPath];
-
-  const tr = options?.transcribe;
-  const asr: VideoCaptionerAsrEngine = tr?.asr ?? "bijian";
-  args.push("--asr", asr);
-  if (tr?.language !== undefined && tr.language.trim() !== "") {
-    args.push("--language", tr.language.trim());
-  }
-  if (tr?.wordTimestamps === true) {
-    args.push("--word-timestamps");
-  }
-  const format: VideoCaptionerTranscribeFormat = tr?.format ?? "srt";
-  args.push("--format", format);
-
-  if (options?.noOptimize === true) {
-    args.push("--no-optimize");
-  }
-  if (options?.noSplit === true) {
-    args.push("--no-split");
-  }
-  if (options?.noTranslate === true) {
-    args.push("--no-translate");
-  } else if (options?.translator !== undefined && options.targetLanguage?.trim()) {
-    args.push("--translator", options.translator);
-    args.push("--target-language", options.targetLanguage.trim());
-    if (options.reflect === true) {
-      args.push("--reflect");
-    }
-    if (options.layout !== undefined) {
-      args.push("--layout", options.layout);
-    }
-    if (options.prompt?.trim()) {
-      args.push("--prompt", options.prompt.trim());
-    }
-    if (options.translator === "llm" && options.llm) {
-      args.push("--api-key", options.llm.apiKey);
-      if (options.llm.apiBase?.trim()) {
-        args.push("--api-base", options.llm.apiBase.trim());
-      }
-      if (options.llm.model?.trim()) {
-        args.push("--model", options.llm.model.trim());
-      }
-    }
-  }
-
-  if (options?.noSynthesize === true) {
-    args.push("--no-synthesize");
-  } else if (options?.synthesize) {
-    const syn = options.synthesize;
-    if (syn.subtitleMode !== undefined) {
-      args.push("--subtitle-mode", syn.subtitleMode);
-    }
-    if (syn.quality !== undefined) {
-      args.push("--quality", syn.quality);
-    }
-    if (syn.style?.trim()) {
-      args.push("--style", syn.style.trim());
-    }
-    if (syn.renderMode !== undefined) {
-      args.push("--render-mode", syn.renderMode);
-    }
-    if (syn.layout !== undefined) {
-      args.push("--layout", syn.layout);
-    }
-  }
-
-  ensureVideoCaptionerCliDummyApiKey(args);
-  return args;
+  return buildVideoCaptionerProcessArgs(mediaPath, options as CoreVideoCaptionerProcessCliOptions | undefined);
 }
 
 export async function processWithVideoCaptioner(

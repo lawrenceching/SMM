@@ -1,9 +1,7 @@
 ## Purpose
 
 Define UI feedback for **`process`** background jobs: queue semantics, toasts, and gating when VideoCaptioner is unavailable.
-
 ## Requirements
-
 ### Requirement: Process background job lifecycle feedback
 
 The system SHALL create and maintain a **`process`** background job lifecycle in the UI when a user confirms **`ProcessPipelineDialog`** from any panel, including multi-job queue execution semantics that mirror **`translate`** / **`synthesize`** (at most one **`running`** job at a time per batch from the service worker for that batch, remaining jobs **`pending`** until prior jobs reach a terminal state).
@@ -17,7 +15,7 @@ The system SHALL create and maintain a **`process`** background job lifecycle in
 #### Scenario: Sequential execution preserved
 
 - **WHEN** multiple **`process`** jobs are confirmed in one batch
-- **THEN** **`POST /api/videocaptioner/process`** invocations driven by the service worker for that batch remain non-concurrent
+- **THEN** **`POST /api/executeCmd`** process invocations driven by the service worker for that batch remain non-concurrent
 
 ### Requirement: Process toast sequence
 
@@ -63,3 +61,4 @@ The system SHALL apply the same **`process`** background job lifecycle and toast
 - **WHEN** a user confirms **`ProcessPipelineDialog`** with multiple eligible rows selected
 - **THEN** the UI creates one **`process`** background job per selected eligible row
 - **AND** start and completion toasts are shown per the **process** feedback rules
+

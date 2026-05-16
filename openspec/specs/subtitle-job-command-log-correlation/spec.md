@@ -1,9 +1,7 @@
 # subtitle-job-command-log-correlation
 
 End-to-end correlation of CLI command execution logs with subtitle pipeline background jobs and synchronous videocaptioner routes.
-
 ## Requirements
-
 ### Requirement: Synchronous whitelisted commands expose execution correlation
 
 The system SHALL extend the structured result of `runWhitelistedCommandSync` so that every completed or failed invocation includes `executionId` and `logRelativePath` when a command execution log writer was created for that run.
@@ -20,26 +18,26 @@ The system SHALL extend the structured result of `runWhitelistedCommandSync` so 
 
 ### Requirement: Videocaptioner JSON routes echo correlation fields
 
-The system SHALL include `executionId` and `logRelativePath` in JSON responses for `POST /api/videocaptioner/transcribe`, `translate`, `synthesize`, and `process` whenever those routes delegate to `runWhitelistedCommandSync`, for both HTTP 200 and HTTP 400 outcomes that still produced a log writer.
+The system SHALL obtain **`executionId`** and **`logRelativePath`** from **`POST /api/executeCmd`** response headers (`X-Command-Execution-Id`, `X-Command-Log-Path`) when the Service Worker or UI runs VideoCaptioner via executeCmd. Dedicated `POST /api/videocaptioner/*` JSON routes SHALL NOT be used.
 
 #### Scenario: Error JSON still carries ids
 
-- **WHEN** the route returns `400` with `{ "error": "..." }` after a logged invocation
-- **THEN** the JSON body also contains `executionId` and `logRelativePath` fields when the underlying synchronous runner populated them
+- **WHEN** executeCmd completes with correlation headers after a logged invocation
+- **THEN** the client SHALL persist `executionId` and `logRelativePath` from those headers
 
 ### Requirement: Service worker persists correlation on subtitle jobs
 
-The system SHALL update `apps/ui/public/download-service-worker.js` handlers for `transcribe`, `translate`, `synthesize`, and `process` jobs so that after receiving the videocaptioner JSON response, the job’s serialized `data` includes `executionId` and optional `logRelativePath` before the job transitions to a terminal status, and the record is written with `dbPutJob`.
+The system SHALL update `apps/ui/public/download-service-worker.js` handlers for `transcribe`, `translate`, `synthesize`, and `process` jobs so that after completing executeCmd, the job's serialized `data` includes `executionId` and optional `logRelativePath` before the job transitions to a terminal status, and the record is written with `dbPutJob`.
 
-#### Scenario: Successful videocaptioner call stores ids
+#### Scenario: Successful videocaptioner executeCmd stores ids
 
-- **WHEN** the service worker completes `POST /api/videocaptioner/<op>` with HTTP 200 and a JSON body containing `executionId`
-- **THEN** the corresponding IndexedDB job record’s `data` field contains that `executionId` (and `logRelativePath` when provided) prior to marking the job `succeeded`
+- **WHEN** the service worker completes a VideoCaptioner executeCmd invocation with correlation headers present
+- **THEN** the corresponding IndexedDB job record's `data` field contains that `executionId` (and `logRelativePath` when provided) prior to marking the job `succeeded`
 
-#### Scenario: Failed videocaptioner call still stores ids when returned
+#### Scenario: Failed videocaptioner executeCmd still stores ids when returned
 
-- **WHEN** the service worker receives HTTP 400 with JSON containing `executionId`
-- **THEN** the job record’s `data` field is updated with those correlation fields before marking the job `failed`
+- **WHEN** executeCmd fails but response headers included `executionId`
+- **THEN** the job record's `data` field is updated with those correlation fields before marking the job `failed`
 
 ### Requirement: IndexedDbObserver maps correlation into BackgroundJob
 
@@ -49,3 +47,4 @@ The system SHALL extend `IndexedDbObserver` deserialization for `transcribe`, `t
 
 - **WHEN** a persisted job record includes `executionId` in its JSON `data`
 - **THEN** the mapped `BackgroundJob` exposed through `backgroundJobsStore` exposes the same values on the job’s typed `data` object for UI consumers
+

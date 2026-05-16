@@ -12,22 +12,8 @@ Document: docs/api/IsFolderAvailableAPI.md
 Source Code: apps/cli/src/route/executeCmd.ts
 Document: docs/api/ExecuteCmdAPI.md
 
-## YtdlpDownload
-Source Code: apps/cli/src/route/ytdlp/Download.ts
-HTTP: `POST /api/ytdlp/download` — body `{ url, folder?, args?, format? }`; optional `format` maps to yt-dlp `-f`.
+Whitelisted commands: `ffmpeg`, `ffprobe`, `yt-dlp`, `videocaptioner`. The UI builds CLI args client-side (`packages/core/whitelistedCmd`, `apps/ui/src/lib/whitelistedCmd`) and invokes tools through this endpoint. Optional headers: `X-Timeout`, `X-Command-Execution-Id` (UUID v4 for log correlation).
 
-## VideoCaptionerTranscribe
-Source Code: apps/cli/src/route/videocaptioner/Transcribe.ts
-HTTP: `POST /api/videocaptioner/transcribe` — request body validated with Zod (`mediaPath`, optional `asr`, `language`, `wordTimestamps`, `format`).
-
-## VideoCaptionerTranslate
-Source Code: apps/cli/src/route/videocaptioner/Translate.ts
-HTTP: `POST /api/videocaptioner/translate` — request body validated with Zod (`subtitlePath`, `translator`, `targetLanguage`, optional `reflect`, `layout`, `llm`).
-
-## VideoCaptionerSynthesize
-Source Code: apps/cli/src/route/videocaptioner/Synthesize.ts
-HTTP: `POST /api/videocaptioner/synthesize` — request body validated with Zod (`videoPath`, `subtitlePath`, optional `subtitleMode`, `quality`, `style`, `renderMode`, `layout`).
-
-## VideoCaptionerProcess
-Source Code: apps/cli/src/route/videocaptioner/Process.ts
-HTTP: `POST /api/videocaptioner/process` — request body validated with Zod (`mediaPath`, optional transcribe fields `asr` / `language` / `wordTimestamps` / `format`, optional subtitle leg `noOptimize` / `noSplit` / `noTranslate` / `translator` / `targetLanguage` / `reflect` / `layout` / `prompt` / `llm`, optional `noSynthesize`, optional synthesize fields `subtitleMode` / `quality` / `style` / `renderMode` / `synthesizeLayout`).
+## TencentAsrTranscribe
+Source Code: apps/cli/src/route/tencentAsr/Transcribe.ts
+HTTP: `POST /api/tencent-asr/transcribe`

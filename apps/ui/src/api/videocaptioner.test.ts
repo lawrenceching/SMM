@@ -2,46 +2,60 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { discoverVideoCaptioner, transcribeWithVideoCaptioner } from "./videocaptioner";
 
+vi.mock("@/lib/whitelistedCmd/probeWhitelistedCommand", () => ({
+  probeWhitelistedCommand: vi.fn(),
+}));
+
+vi.mock("@/lib/whitelistedCmd/executeCmdToCompletion", () => ({
+  executeCmdToCompletionWithHeaders: vi.fn(),
+}));
+
+import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
+import { executeCmdToCompletionWithHeaders } from "@/lib/whitelistedCmd/executeCmdToCompletion";
+
 describe("videocaptioner api", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("calls discover endpoint", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      json: async () => ({ path: "C:/bin/videocaptioner.exe" }),
-    } as Response);
+  it("probes videocaptioner availability", async () => {
+    vi.mocked(probeWhitelistedCommand).mockResolvedValue({ available: true });
     const result = await discoverVideoCaptioner();
-    expect(result.path).toBe("C:/bin/videocaptioner.exe");
-    expect(fetch).toHaveBeenCalledWith("/api/videocaptioner/discover", { method: "GET" });
+    expect(result.path).toBe("videocaptioner");
+    expect(probeWhitelistedCommand).toHaveBeenCalledWith("videocaptioner");
   });
 
-  it("calls transcribe endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      json: async () => ({ success: true }),
-    } as Response);
+  it("runs transcribe via executeCmd", async () => {
+    vi.mocked(executeCmdToCompletionWithHeaders).mockResolvedValue({
+      success: true,
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    });
     const result = await transcribeWithVideoCaptioner({ mediaPath: "C:/a.mp4" });
     expect(result.success).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/videocaptioner/transcribe",
+    expect(executeCmdToCompletionWithHeaders).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ mediaPath: "C:/a.mp4" }),
+        command: "videocaptioner",
+        args: expect.arrayContaining(["transcribe", "C:/a.mp4"]),
       }),
+      expect.any(Object)
     );
   });
 
-  it("includes asr in body when provided", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      json: async () => ({ success: true }),
-    } as Response);
+  it("includes asr in args when provided", async () => {
+    vi.mocked(executeCmdToCompletionWithHeaders).mockResolvedValue({
+      success: true,
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    });
     await transcribeWithVideoCaptioner({ mediaPath: "C:/a.mp4", asr: "jianying" });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/videocaptioner/transcribe",
+    expect(executeCmdToCompletionWithHeaders).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ mediaPath: "C:/a.mp4", asr: "jianying" }),
+        args: expect.arrayContaining(["--asr", "jianying"]),
       }),
+      expect.any(Object)
     );
   });
 });

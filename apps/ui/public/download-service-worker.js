@@ -1,6 +1,9 @@
 /// <reference lib="webworker" />
 /* global self, clients, caches, indexedDB */
 
+importScripts('/whitelisted-cmd-sw.js')
+const wc = self.whitelistedCmdSw
+
 const DB_NAME = 'DownloadTaskDatabase'
 const DB_VERSION = 1
 const STORE_NAME = 'jobs'
@@ -139,14 +142,14 @@ async function parseApiResponseBody(res, logContext) {
   }
 }
 
-/** Merge CLI correlation fields from videocaptioner JSON responses into job payload (mutates `data`). */
-function mergeVideocaptionerCommandLogFields(data, body) {
-  if (!body || typeof body !== 'object') return
-  if (typeof body.executionId === 'string' && body.executionId) {
-    data.executionId = body.executionId
+/** Merge executeCmd correlation from SW helper result into job payload (mutates `data`). */
+function mergeExecuteCmdCorrelation(data, cmdResult) {
+  if (!cmdResult || typeof cmdResult !== 'object') return
+  if (cmdResult.executionId) {
+    data.executionId = cmdResult.executionId
   }
-  if (typeof body.logRelativePath === 'string' && body.logRelativePath) {
-    data.logRelativePath = body.logRelativePath
+  if (cmdResult.logRelativePath) {
+    data.logRelativePath = cmdResult.logRelativePath
   }
 }
 
@@ -256,31 +259,26 @@ async function startDownload(jobId) {
     job.updatedAt = Date.now()
     await dbPutJob(job)
 
-    console.log('[SW] startDownload: fetching /api/ytdlp/download', { jobId, videoIndex: i, url: video.url })
+    console.log('[SW] startDownload: executeCmd yt-dlp', { jobId, videoIndex: i, url: video.url })
 
     try {
-      const downloadBody = {
+      const dlArgs = wc.buildYtdlpDownloadArgs({
         url: video.url,
-        folder: folder,
+        folder,
         args: YTDLP_DOWNLOAD_DEFAULT_ARGS,
-      }
-      if (data.ytdlpFormat) {
-        downloadBody.format = data.ytdlpFormat
-      }
-      const res = await fetch('/api/ytdlp/download', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(downloadBody),
-        signal: controller.signal,
+        format: data.ytdlpFormat,
       })
-      const body = await parseApiResponseBody(res, { jobId, op: 'ytdlp/download', videoIndex: i })
-      if (body.error) {
-        console.warn('[SW] startDownload: fetch returned error', { jobId, videoIndex: i, error: body.error })
+      const cmd = await wc.executeCmdViaFetch('yt-dlp', dlArgs, {
+        signal: controller.signal,
+        timeoutMs: 60 * 60 * 1000,
+      })
+      if (!cmd.success) {
+        console.warn('[SW] startDownload: executeCmd error', { jobId, videoIndex: i, error: cmd.error })
         video.status = 'failed'
         allSucceeded = false
       } else {
-        console.log('[SW] startDownload: fetch succeeded', { jobId, videoIndex: i, path: body.path })
+        const path = wc.parseYtdlpDownloadStdout(cmd.stdout || '')
+        console.log('[SW] startDownload: succeeded', { jobId, videoIndex: i, path })
         video.status = 'succeeded'
       }
     } catch (e) {
@@ -479,29 +477,19 @@ async function startTranscribe(jobId) {
       }
     } else {
       const vc = data.videoCaptioner || {}
-      const reqBody = { mediaPath }
-      if (vc.asr !== undefined) reqBody.asr = vc.asr
-      if (vc.language !== undefined) reqBody.language = vc.language
-      if (vc.wordTimestamps !== undefined) reqBody.wordTimestamps = vc.wordTimestamps
-      if (vc.format !== undefined) reqBody.format = vc.format
       const executionId = self.crypto.randomUUID()
       data.executionId = executionId
       await persistJobDataJson(job, data)
-      const res = await fetch('/api/videocaptioner/transcribe', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Command-Execution-Id': executionId,
-        },
-        body: JSON.stringify(reqBody),
+      const args = wc.buildVcTranscribeArgs(mediaPath, vc)
+      const cmd = await wc.executeCmdViaFetch('videocaptioner', args, {
         signal: controller.signal,
+        timeoutMs: 10 * 60 * 1000,
+        executionId,
       })
-      const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/transcribe' })
-      mergeVideocaptionerCommandLogFields(data, body)
+      mergeExecuteCmdCorrelation(data, cmd)
       await persistJobDataJson(job, data)
-      if (body.error) {
-        console.warn('[SW] startTranscribe: videocaptioner error', { jobId, error: body.error })
+      if (!cmd.success) {
+        console.warn('[SW] startTranscribe: videocaptioner error', { jobId, error: cmd.error })
       } else {
         ok = true
       }
@@ -611,34 +599,29 @@ async function startTranslate(jobId) {
 
   let ok = false
   try {
-    const reqBody = {
-      subtitlePath,
-      translator,
-      targetLanguage,
-    }
-    if (data.reflect === true) reqBody.reflect = true
-    if (data.layout) reqBody.layout = data.layout
-    if (data.llm && typeof data.llm === 'object') reqBody.llm = data.llm
-
     const executionId = self.crypto.randomUUID()
     data.executionId = executionId
     await persistJobDataJson(job, data)
 
-    const res = await fetch('/api/videocaptioner/translate', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Command-Execution-Id': executionId,
-      },
-      body: JSON.stringify(reqBody),
+    const translateBody = {
+      subtitlePath,
+      translator,
+      targetLanguage,
+    }
+    if (data.reflect === true) translateBody.reflect = true
+    if (data.layout) translateBody.layout = data.layout
+    if (data.llm && typeof data.llm === 'object') translateBody.llm = data.llm
+
+    const args = wc.buildVcTranslateArgs(translateBody)
+    const cmd = await wc.executeCmdViaFetch('videocaptioner', args, {
       signal: controller.signal,
+      timeoutMs: 10 * 60 * 1000,
+      executionId,
     })
-    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/translate' })
-    mergeVideocaptionerCommandLogFields(data, body)
+    mergeExecuteCmdCorrelation(data, cmd)
     await persistJobDataJson(job, data)
-    if (body.error) {
-      console.warn('[SW] startTranslate: videocaptioner error', { jobId, error: body.error })
+    if (!cmd.success) {
+      console.warn('[SW] startTranslate: videocaptioner error', { jobId, error: cmd.error })
     } else {
       ok = true
     }
@@ -746,60 +729,27 @@ async function startSynthesize(jobId) {
 
   let ok = false
   try {
-    const reqBody = {
-      videoPath,
-      subtitlePath,
-    }
-    if (data.subtitleMode) reqBody.subtitleMode = data.subtitleMode
-    if (data.quality) reqBody.quality = data.quality
-    if (data.style) reqBody.style = data.style
-    if (data.renderMode) reqBody.renderMode = data.renderMode
-    if (data.layout) reqBody.layout = data.layout
-
-    const synthesizePath = '/api/videocaptioner/synthesize'
-    const requestUrl = new URL(synthesizePath, self.location.origin).href
-    const pathLen = (s) => (typeof s === 'string' ? s.length : 0)
-    const pathHead = (s, n) => (typeof s === 'string' ? `${s.slice(0, n)}${s.length > n ? '…' : ''}` : String(s))
-    console.log('[SW] startSynthesize: outgoing request', {
-      jobId,
-      synthesizePath,
-      requestUrl,
-      swScope: self.registration?.scope,
-      serviceWorkerUrl: self.location?.href,
-      jobFolder: job.folder,
-      jobType: job.type,
-      dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
-      reqBody: {
-        ...reqBody,
-        videoPath: `${pathHead(videoPath, 160)} (len=${pathLen(videoPath)})`,
-        subtitlePath: `${pathHead(subtitlePath, 160)} (len=${pathLen(subtitlePath)})`,
-      },
-    })
+    const synthesizeBody = { videoPath, subtitlePath }
+    if (data.subtitleMode) synthesizeBody.subtitleMode = data.subtitleMode
+    if (data.quality) synthesizeBody.quality = data.quality
+    if (data.style) synthesizeBody.style = data.style
+    if (data.renderMode) synthesizeBody.renderMode = data.renderMode
+    if (data.layout) synthesizeBody.layout = data.layout
 
     const executionId = self.crypto.randomUUID()
     data.executionId = executionId
     await persistJobDataJson(job, data)
 
-    const res = await fetch(synthesizePath, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Command-Execution-Id': executionId,
-      },
-      body: JSON.stringify(reqBody),
+    const args = wc.buildVcSynthesizeArgs(synthesizeBody)
+    const cmd = await wc.executeCmdViaFetch('videocaptioner', args, {
       signal: controller.signal,
+      timeoutMs: 60 * 60 * 1000,
+      executionId,
     })
-    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/synthesize' })
-    mergeVideocaptionerCommandLogFields(data, body)
+    mergeExecuteCmdCorrelation(data, cmd)
     await persistJobDataJson(job, data)
-    if (body.error) {
-      console.warn('[SW] startSynthesize: videocaptioner error', {
-        jobId,
-        error: body.error,
-        responseUrl: res.url,
-        httpStatus: res.status,
-      })
+    if (!cmd.success) {
+      console.warn('[SW] startSynthesize: videocaptioner error', { jobId, error: cmd.error })
     } else {
       ok = true
     }
@@ -904,56 +854,22 @@ async function startProcess(jobId) {
 
   const mediaPath = data.mediaPathPlatform || data.mediaPath || ''
 
-  const reqBody = { mediaPath }
-  const optionalKeys = [
-    'asr',
-    'language',
-    'wordTimestamps',
-    'format',
-    'noOptimize',
-    'noTranslate',
-    'noSplit',
-    'translator',
-    'targetLanguage',
-    'reflect',
-    'layout',
-    'prompt',
-    'llm',
-    'noSynthesize',
-    'subtitleMode',
-    'quality',
-    'style',
-    'renderMode',
-    'synthesizeLayout',
-  ]
-  for (const k of optionalKeys) {
-    if (data[k] !== undefined && data[k] !== null) {
-      reqBody[k] = data[k]
-    }
-  }
-
   let ok = false
   try {
     const executionId = self.crypto.randomUUID()
     data.executionId = executionId
     await persistJobDataJson(job, data)
 
-    const processPath = '/api/videocaptioner/process'
-    const res = await fetch(processPath, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Command-Execution-Id': executionId,
-      },
-      body: JSON.stringify(reqBody),
+    const args = wc.buildVcProcessArgs(mediaPath, data)
+    const cmd = await wc.executeCmdViaFetch('videocaptioner', args, {
       signal: controller.signal,
+      timeoutMs: 2 * 60 * 60 * 1000,
+      executionId,
     })
-    const body = await parseApiResponseBody(res, { jobId, op: 'videocaptioner/process' })
-    mergeVideocaptionerCommandLogFields(data, body)
+    mergeExecuteCmdCorrelation(data, cmd)
     await persistJobDataJson(job, data)
-    if (body.error) {
-      console.warn('[SW] startProcess: videocaptioner error', { jobId, error: body.error })
+    if (!cmd.success) {
+      console.warn('[SW] startProcess: videocaptioner error', { jobId, error: cmd.error })
     } else {
       ok = true
     }

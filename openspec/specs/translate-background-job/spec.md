@@ -1,9 +1,7 @@
 ## Purpose
 
 Define **translate** background jobs: IndexedDB persistence, service worker messaging, **`useTranslateManager`**, **`IndexedDbObserver`** integration, and auto-start semantics aligned with transcribe.
-
 ## Requirements
-
 ### Requirement: Translate job persistence in IndexedDB
 
 The system SHALL persist subtitle-translation jobs as records in the existing `DownloadTaskDatabase/jobs` IndexedDB object store using `type: 'translate'`. Each record SHALL store the originating media folder (platform path), the JSON-serialized translate payload, the lifecycle status, and `createdAt`/`updatedAt` timestamps, consistent with the shape used by `download-video` and `transcribe` records.
@@ -29,24 +27,19 @@ The system SHALL extend the existing service worker (`apps/ui/public/download-se
 
 - **WHEN** the service worker receives `translate:start` for a known `translate` job
 - **THEN** it marks the record as `running` with an updated timestamp and broadcasts `translate:started` to all clients
-- **AND** it issues `POST /api/videocaptioner/translate` with body fields derived from the job's data (`subtitlePath` set to `subtitlePathPlatform`, `translator`, `targetLanguage`, optional `reflect`, optional `layout`, optional `llm`)
-- **AND** when the request resolves successfully, it marks the record as `succeeded` (progress = 100) and broadcasts `translate:succeeded`
-- **AND** when the request returns an error or rejects (not due to abort), it marks the record as `failed` and broadcasts `translate:failed`
+- **AND** it issues **`POST /api/executeCmd`** with `command: "videocaptioner"` and args from the translate adapter derived from job data (`subtitlePathPlatform`, `translator`, `targetLanguage`, optional `reflect`, `layout`, optional `llm`)
+- **AND** when the command completes successfully, it marks the record as `succeeded` (progress = 100) and broadcasts `translate:succeeded`
+- **AND** when the command fails or rejects (not due to abort), it marks the record as `failed` and broadcasts `translate:failed`
 
 #### Scenario: Stop a running translate job
 
 - **WHEN** the service worker receives `translate:stop` for a running `translate` job
-- **THEN** it aborts the in-flight fetch, marks the record as `stopped`, and broadcasts `translate:stopped`
+- **THEN** it aborts the in-flight executeCmd request, marks the record as `stopped`, and broadcasts `translate:stopped`
 
 #### Scenario: Remove a translate job
 
 - **WHEN** the service worker receives `translate:remove` for a `translate` job
-- **THEN** it aborts any in-flight fetch, deletes the record, and broadcasts `translate:removed` with `reason: 'user'`
-
-#### Scenario: Stale running translate jobs are recovered on activate
-
-- **WHEN** the service worker activates and finds `translate` records with `status === 'running'`
-- **THEN** it rewrites those records to `status === 'stopped'` so the UI can recover or restart them
+- **THEN** it aborts any in-flight executeCmd request, deletes the record, and broadcasts `translate:removed` with `reason: 'user'`
 
 ### Requirement: useTranslateManager hook
 
@@ -94,3 +87,4 @@ The system SHALL respect the same auto-start semantics for `translate` jobs as f
 
 - **WHEN** `translate.autoStart` is set to `'false'` in localStorage
 - **THEN** the manager does not auto-start `pending` translate jobs; a user-initiated `startTranslate(jobId)` is required to start one
+

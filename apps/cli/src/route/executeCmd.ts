@@ -4,11 +4,11 @@ import { spawn, type ChildProcess } from 'child_process';
 import { logger } from '../../lib/logger';
 import { discoverFfmpeg, discoverFfprobe } from '../utils/Ffmpeg';
 import { discoverYtdlp } from '../utils/Ytdlp';
-import { discoverVideoCaptioner, type VideoCaptionerTranscribeResult } from '../utils/VideoCaptioner';
+import { discoverVideoCaptioner, resolveSpawnEnvForVideoCaptioner, type VideoCaptionerTranscribeResult } from '../utils/VideoCaptioner';
 import {
   createCommandExecutionLogWriter,
 } from './commandExecutionLog';
-import { isCommandExecutionId } from './commandLog';
+import { isCommandExecutionId, parseOptionalXCommandExecutionId } from './commandLog';
 
 const COMMAND_WHITELIST = ['ffmpeg', 'ffprobe', 'yt-dlp', 'videocaptioner'] as const;
 
@@ -52,6 +52,31 @@ type NdjsonMessage = NdjsonStdoutStderrMessage | NdjsonSystemMessage;
 function encodeNdjson(message: NdjsonMessage): Uint8Array {
   const encoder = new TextEncoder();
   return encoder.encode(JSON.stringify(message) + '\n');
+}
+
+function argsIncludeFfmpegLocation(args: string[]): boolean {
+  return args.includes('--ffmpeg-location');
+}
+
+async function resolveSpawnArgsAndEnv(
+  command: ExecuteCmdRequestBody['command'],
+  args: string[]
+): Promise<{ args: string[]; env?: NodeJS.ProcessEnv }> {
+  let spawnArgs = args;
+  let env: NodeJS.ProcessEnv | undefined;
+
+  if (command === 'videocaptioner') {
+    env = await resolveSpawnEnvForVideoCaptioner();
+  }
+
+  if (command === 'yt-dlp' && !argsIncludeFfmpegLocation(args)) {
+    const ffmpegPath = await discoverFfmpeg();
+    if (ffmpegPath) {
+      spawnArgs = ['--ffmpeg-location', ffmpegPath, ...args];
+    }
+  }
+
+  return { args: spawnArgs, env };
 }
 
 async function resolveCommandPath(command: ExecuteCmdRequestBody['command']): Promise<string | undefined> {
@@ -109,8 +134,17 @@ export function handleExecuteCmd(app: Hono) {
       const timeoutMs = timeoutHeader ? parseInt(timeoutHeader, 10) : DEFAULT_TIMEOUT_MS;
       const validTimeout = isNaN(timeoutMs) || timeoutMs <= 0 ? DEFAULT_TIMEOUT_MS : timeoutMs;
 
-      const commandExecutionId = crypto.randomUUID();
+      const { id: clientExecutionId, error: headerError } = parseOptionalXCommandExecutionId(
+        c.req.header('X-Command-Execution-Id'),
+      );
+      if (headerError) {
+        return c.json({ error: headerError }, 400);
+      }
+
+      const commandExecutionId = clientExecutionId ?? crypto.randomUUID();
       const cmdLog = await createCommandExecutionLogWriter(commandExecutionId);
+
+      const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args);
 
       logger.info(
         {
@@ -193,13 +227,14 @@ export function handleExecuteCmd(app: Hono) {
               };
 
               try {
-                child = spawn(executablePath, args, {
+                child = spawn(executablePath, spawnArgs, {
                   stdio: ['ignore', 'pipe', 'pipe'],
                   shell: false,
+                  ...(spawnEnv ? { env: spawnEnv } : {}),
                 });
 
                 cmdLog.appendSystemNote(
-                  `spawn command=${command} executablePath=${executablePath} args=${JSON.stringify(args)}`
+                  `spawn command=${command} executablePath=${executablePath} args=${JSON.stringify(spawnArgs)}`
                 );
 
                 timeoutTimer = setTimeout(() => {
@@ -374,7 +409,10 @@ export async function runWhitelistedCommandSync(input: {
     return { error: `${input.command} executable not found` };
   }
 
-  const commandForLog = [executablePath, ...input.args]
+  const { args: spawnArgs, env: mergedEnv } = await resolveSpawnArgsAndEnv(input.command, input.args);
+  const spawnEnv = input.env ?? mergedEnv;
+
+  const commandForLog = [executablePath, ...spawnArgs]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(' ');
 
@@ -415,14 +453,14 @@ export async function runWhitelistedCommandSync(input: {
     };
 
     try {
-      const child = spawn(executablePath, input.args, {
+      const child = spawn(executablePath, spawnArgs, {
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
-        ...(input.env ? { env: input.env } : {}),
+        ...(spawnEnv ? { env: spawnEnv } : {}),
       });
 
       cmdLog.appendSystemNote(
-        `sync spawn command=${input.command} executablePath=${executablePath} args=${JSON.stringify(input.args)} commandLine=${commandForLog}`
+        `sync spawn command=${input.command} executablePath=${executablePath} args=${JSON.stringify(spawnArgs)} commandLine=${commandForLog}`
       );
 
       return await new Promise<VideoCaptionerTranscribeResult>((resolve) => {

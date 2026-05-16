@@ -99,7 +99,7 @@ export interface TranslateBackgroundJobData {
   folder: string;
   /** Absolute source subtitle path (POSIX); used for job identity and API. */
   subtitlePath: string;
-  /** Platform path for `/api/videocaptioner/translate` request body. */
+  /** Platform path for VideoCaptioner translate executeCmd args. */
   subtitlePathPlatform: string;
   /** Associated media file path (POSIX); used for row-status mapping in MusicPanel. */
   mediaPath?: string;

@@ -1,9 +1,7 @@
 ## Purpose
 
 Define user-visible feedback for **`synthesize`** background jobs: lifecycle, toasts, sequential execution, and gating when VideoCaptioner is unavailable.
-
 ## Requirements
-
 ### Requirement: Synthesize background job lifecycle feedback
 
 The system SHALL create and maintain a **`synthesize`** background job lifecycle in the UI when a user confirms **`SynthesizeSubtitleDialog`** from any panel, including multi-job queue execution semantics that mirror **`translate`** (one **`running`** job at a time per batch, remaining jobs **`pending`** until prior jobs reach a terminal state).
@@ -17,7 +15,7 @@ The system SHALL create and maintain a **`synthesize`** background job lifecycle
 #### Scenario: Sequential execution preserved
 
 - **WHEN** multiple **`synthesize`** jobs are confirmed in one batch
-- **THEN** **`POST /api/videocaptioner/synthesize`** invocations driven by the service worker for that batch remain non-concurrent
+- **THEN** **`POST /api/executeCmd`** synthesize invocations driven by the service worker for that batch remain non-concurrent
 
 ### Requirement: Synthesize toast sequence
 
@@ -63,3 +61,4 @@ The system SHALL apply the same **`synthesize`** background job lifecycle and to
 - **WHEN** a user confirms **`SynthesizeSubtitleDialog`** with multiple eligible rows selected
 - **THEN** the UI creates one **`synthesize`** background job per selected eligible row
 - **AND** start and completion toasts are shown per the synthesize feedback rules
+

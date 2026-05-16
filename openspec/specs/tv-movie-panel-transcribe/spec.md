@@ -1,9 +1,7 @@
 ## Purpose
 
 Define transcribe entry points for **TvShowPanel** and **MoviePanel**: header **Subtitle** control, **`TranscribeDialog`** filled from **`MediaMetadata.mediaFiles`**, and gating when neither VideoCaptioner nor Tencent ASR is available.
-
 ## Requirements
-
 ### Requirement: TV show panel header exposes Transcribe
 
 The system SHALL provide a **Subtitle** control in the TV show panel header when the panel has loaded media metadata for the selected folder. The **Subtitle** control SHALL open a menu containing a **Transcribe** item that opens **`TranscribeDialog`** with the same behavior as the prior flat **Transcribe** control.
@@ -50,4 +48,5 @@ The system SHALL populate **`TranscribeDialog`** rows from **`MediaMetadata.medi
 #### Scenario: Row path resolves for API
 
 - **WHEN** the user confirms **`TranscribeDialog`** with one or more rows selected
-- **THEN** each selected row maps to a **`path`** that the transcribe pipeline can convert to a platform path for **`/api/videocaptioner/transcribe`** when **VideoCaptioner** is selected **or** for the Tencent ASR transcribe API when **Tencent ASR** is selected
+- **THEN** each selected row maps to a **`path`** that the transcribe pipeline can convert to a platform path for **executeCmd VideoCaptioner transcribe** when **VideoCaptioner** is selected **or** for the Tencent ASR transcribe API when **Tencent ASR** is selected
+

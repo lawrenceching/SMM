@@ -1,9 +1,7 @@
 ## Purpose
 
 Define transcribe entry points for **MusicPanel**: **`MusicHeaderV2`** **Subtitle** menu and **`MusicFileTable`** **Subtitle** submenu opening **`TranscribeDialog`**, row mapping from music files, default selection rules, and gating when neither VideoCaptioner nor Tencent ASR is available.
-
 ## Requirements
-
 ### Requirement: Music panel header opens TranscribeDialog
 
 The system SHALL provide a **Subtitle** control in **`MusicHeaderV2`** when **`MusicPanel`** has loaded tracks for the selected folder. The **Subtitle** control SHALL open a menu containing **Transcribe** and **Translate** items. Activating **Transcribe** SHALL open **`TranscribeDialog`** instead of starting transcription immediately, preserving the prior single-button behavior of the flat **Transcribe** control.
@@ -64,4 +62,5 @@ The system SHALL populate **`TranscribeDialog`** rows from **`MusicPanel`** musi
 #### Scenario: Row path resolves for API
 
 - **WHEN** the user confirms **`TranscribeDialog`** opened from **`MusicPanel`** with one or more rows selected
-- **THEN** each selected row maps to a **`path`** that the transcribe pipeline can convert to a platform path for **`/api/videocaptioner/transcribe`** when **VideoCaptioner** is selected **or** for the Tencent ASR transcribe API when **Tencent ASR** is selected
+- **THEN** each selected row maps to a **`path`** that the transcribe pipeline can convert to a platform path for **executeCmd VideoCaptioner transcribe** when **VideoCaptioner** is selected **or** for the Tencent ASR transcribe API when **Tencent ASR** is selected
+

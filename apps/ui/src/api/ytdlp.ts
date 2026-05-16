@@ -1,6 +1,12 @@
 import type { YtdlpVideo } from "@core/types/YtdlpTypes";
 import { validateDownloadUrl } from "@core/download-video-validators";
-import { executeCmdStream, type ExecuteCmdRequest } from "@/api/executeCmd";
+import {
+  buildYtdlpDownloadArgs,
+  parseYtdlpDownloadStdout,
+  validateYtdlpDownloadExtraArgs,
+} from "@core/whitelistedCmd/ytdlp";
+import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
+import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
 
 export interface YtdlpDownloadRequest {
@@ -17,35 +23,67 @@ export interface YtdlpDownloadResponse {
   path?: string;
 }
 
+const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
+
 export async function downloadYtdlpVideo(
   request: YtdlpDownloadRequest
 ): Promise<YtdlpDownloadResponse> {
-  const resp = await fetch("/api/ytdlp/download", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
+  const validation = validateDownloadUrl(request.url ?? "");
+  if (!validation.valid) {
+    return { error: validation.error };
+  }
+
+  const argsError = validateYtdlpDownloadExtraArgs(request.args);
+  if (argsError) {
+    return { error: argsError };
+  }
+
+  const folder = request.folder ?? "";
+  if (!folder) {
+    return { error: "folder is required" };
+  }
+
+  const args = buildYtdlpDownloadArgs({
+    url: request.url,
+    folder,
+    args: request.args,
+    format: request.format,
   });
 
-  const body = (await resp.json()) as YtdlpDownloadResponse;
-  return body;
+  const result = await executeCmdToCompletion(
+    { command: "yt-dlp", args },
+    { timeoutMs: YTDLP_DOWNLOAD_TIMEOUT_MS }
+  );
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  const path = parseYtdlpDownloadStdout(result.stdout);
+  return { success: true, path };
 }
 
 export async function discoverYtdlp(): Promise<{ path?: string; error?: string }> {
-  const resp = await fetch("/api/ytdlp/discover", {
-    method: "GET",
-  });
-
-  return (await resp.json()) as { path?: string; error?: string };
+  const probe = await probeWhitelistedCommand("yt-dlp");
+  if (probe.available) {
+    return { path: "yt-dlp" };
+  }
+  return { error: probe.error ?? "yt-dlp not found" };
 }
 
 export async function getYtdlpVersion(): Promise<{ version?: string; error?: string }> {
-  const resp = await fetch("/api/ytdlp/version", {
-    method: "GET",
-  });
-
-  return (await resp.json()) as { version?: string; error?: string };
+  const probe = await probeWhitelistedCommand("yt-dlp");
+  if (!probe.available) {
+    return { error: probe.error ?? "yt-dlp not found" };
+  }
+  const result = await executeCmdToCompletion(
+    { command: "yt-dlp", args: ["--version"] },
+    { timeoutMs: 15_000 }
+  );
+  if (!result.success) {
+    return { error: result.error };
+  }
+  return { version: result.stdout.trim().split("\n")[0] };
 }
 
 export interface YtdlpExtractDataResponse {
@@ -55,20 +93,48 @@ export interface YtdlpExtractDataResponse {
 }
 
 export async function extractYtdlpVideoData(url: string): Promise<YtdlpExtractDataResponse> {
-  const resp = await fetch(`/api/ytdlp/extract-data?url=${encodeURIComponent(url)}`, {
-    method: "GET",
-  });
+  if (!url) {
+    return { error: "url is required" };
+  }
 
-  return (await resp.json()) as YtdlpExtractDataResponse;
+  const result = await executeCmdToCompletion(
+    {
+      command: "yt-dlp",
+      args: ["--skip-download", "--print", "title=%(title)s ___ artist=%(uploader)s", url],
+    },
+    { timeoutMs: 60_000 }
+  );
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  const lines = result.stdout.trim().split("\n");
+  const dataLine = lines.find((line) => line.includes("title=") && line.includes("___ artist="));
+  if (!dataLine) {
+    return { error: "failed to parse video data from output" };
+  }
+
+  const parts = dataLine.split("___");
+  let title: string | undefined;
+  let artist: string | undefined;
+  for (const part of parts) {
+    const trimmedPart = part.trim();
+    if (trimmedPart.startsWith("title=")) {
+      title = trimmedPart.substring(6).trim();
+    } else if (trimmedPart.startsWith("artist=")) {
+      artist = trimmedPart.substring(7).trim();
+    }
+  }
+
+  if (!title) {
+    return { error: "title not found in yt-dlp output" };
+  }
+  return { title, artist };
 }
 
 export interface YtdlpBilibiliEpisodesResponse {
   videos?: YtdlpVideo[];
-  error?: string;
-}
-
-interface YtdlpBilibiliEpisodesRawResponse {
-  stdout?: string;
   error?: string;
 }
 
@@ -78,19 +144,21 @@ interface YtdlpBilibiliEpisodesRawResponse {
 export async function getBilibiliEpisodesMetadata(
   url: string
 ): Promise<YtdlpBilibiliEpisodesResponse> {
-  const resp = await fetch("/api/ytdlp/bilibili/episodes", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ url }),
-  });
-
-  const body = (await resp.json()) as YtdlpBilibiliEpisodesRawResponse;
-  if (body.error) {
-    return { error: body.error };
+  const validation = validateDownloadUrl(url.trim());
+  if (!validation.valid) {
+    return { error: validation.error };
   }
-  const parsed = parseYtdlpPlaylistStdout(body.stdout ?? "");
+
+  const result = await executeCmdToCompletion(
+    { command: "yt-dlp", args: ["-j", url.trim()] },
+    { timeoutMs: YTDLP_COLLECTION_CMD_TIMEOUT_MS }
+  );
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  const parsed = parseYtdlpPlaylistStdout(result.stdout);
   if ("error" in parsed) {
     return { error: parsed.error };
   }
@@ -200,59 +268,16 @@ export function isBilibiliCollectionUrl(url: string): boolean {
   }
 }
 
-function collectExecuteCmdOutput(
-  request: ExecuteCmdRequest,
+async function collectExecuteCmdOutput(
+  request: { command: "yt-dlp"; args: string[] },
   timeoutMs?: number
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
-  return new Promise((resolve, reject) => {
-    let stdout = "";
-    let stderr = "";
-    let exitCode: number | null = null;
-    let settled = false;
-
-    const settle = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      fn();
-    };
-
-    executeCmdStream(
-      request,
-      {
-        onMessage: (message) => {
-          if (message.type === "stdout") {
-            stdout += message.data;
-            return;
-          }
-          if (message.type === "stderr") {
-            stderr += message.data;
-            return;
-          }
-          if (message.type === "system") {
-            const { event, code, message: sysMsg } = message.data;
-            if (event === "error") {
-              settle(() => reject(new Error(sysMsg ?? "command failed to start")));
-              return;
-            }
-            if (event === "timeout") {
-              settle(() => reject(new Error("yt-dlp command timed out")));
-              return;
-            }
-            if (event === "exit") {
-              exitCode = code ?? null;
-            }
-          }
-        },
-        onComplete: () => {
-          settle(() => resolve({ stdout, stderr, exitCode }));
-        },
-        onError: (err) => {
-          settle(() => reject(err));
-        },
-      },
-      timeoutMs
-    );
-  });
+  const result = await executeCmdToCompletion(request, { timeoutMs });
+  return {
+    stdout: result.stdout,
+    stderr: result.stderr,
+    exitCode: result.exitCode,
+  };
 }
 
 const YTDLP_COLLECTION_CMD_TIMEOUT_MS = 180_000;

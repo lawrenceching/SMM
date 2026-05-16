@@ -1,19 +1,20 @@
 ## Purpose
 
 Define VideoCaptioner availability discovery, **Transcribe**, **Translate**, **Synthesize**, and **Process** UI gating, and the transcription API trigger.
-
 ## Requirements
-
 ### Requirement: VideoCaptioner availability discovery
-The system SHALL perform VideoCaptioner executable presence discovery during application startup and expose an availability result to the UI.
+
+The system SHALL perform VideoCaptioner availability checks using the executeCmd probe helper during application startup (and on demand), not via `GET /api/videocaptioner/discover`.
 
 #### Scenario: Executable discovered successfully
-- **WHEN** the application startup sequence performs VideoCaptioner discovery and an executable is resolvable
-- **THEN** the system returns an availability result indicating transcription is enabled
+
+- **WHEN** startup probe succeeds
+- **THEN** the system exposes availability indicating transcription-related actions may be enabled
 
 #### Scenario: Executable is not discovered
-- **WHEN** the application startup sequence performs VideoCaptioner discovery and no executable is resolvable
-- **THEN** the system returns an availability result indicating transcription is disabled
+
+- **WHEN** startup probe fails
+- **THEN** the system exposes availability indicating transcription is disabled
 
 ### Requirement: Translate action gating in UI
 
@@ -83,39 +84,10 @@ The system SHALL enable or disable the `Transcribe` action exposed through the p
 
 ### Requirement: Transcription command trigger
 
-The system SHALL provide an API operation that triggers VideoCaptioner transcription for a selected media file and waits for command completion before returning success/failure outcome. The request SHALL include **`mediaPath`**. The request MAY include **`asr`** with one of **`bijian`**, **`jianying`**, or **`whisper-cpp`**; when **`asr`** is omitted, the system SHALL use **`bijian`**. The request MAY include **`language`** as a non-empty string (`auto` or an ISO 639-1 language code); when omitted, the system SHALL use the same default as **`videocaptioner transcribe`** for language (`auto`). The request MAY include **`wordTimestamps`** as a boolean; when true, the CLI SHALL be invoked with **`--word-timestamps`**; when false or omitted, the CLI SHALL NOT pass **`--word-timestamps`**. The request MAY include **`format`** as one of **`srt`**, **`ass`**, **`txt`**, **`json`**; when omitted, the system SHALL default to **`srt`**. The CLI invocation SHALL pass **`--asr`**, resolved **`--language`** (when specified by implementation rules above), optional **`--word-timestamps`**, and **`--format`** to **`videocaptioner transcribe`**.
+When the user triggers VideoCaptioner transcribe (dialog or direct pipeline), the system SHALL invoke **`POST /api/executeCmd`** with the transcribe adapter args rather than `POST /api/videocaptioner/transcribe`.
 
-#### Scenario: Transcription completes successfully
+#### Scenario: Transcribe from dialog
 
-- **WHEN** a user triggers `Transcribe` for a supported media file and VideoCaptioner exits successfully
-- **THEN** the API returns a success response indicating transcription completed
+- **WHEN** the user confirms transcribe with VideoCaptioner provider and valid media path
+- **THEN** the UI or Service Worker issues executeCmd with transcribe args including optional ASR and format flags
 
-#### Scenario: Transcription completes with failure
-
-- **WHEN** a user triggers `Transcribe` and VideoCaptioner exits with a failure status or runtime execution error
-- **THEN** the API returns an error response that can be surfaced to the user as transcription failure
-
-#### Scenario: Request omits ASR
-
-- **WHEN** the transcription API is called without an **`asr`** field
-- **THEN** the system SHALL invoke VideoCaptioner with **`--asr bijian`**
-
-#### Scenario: Request includes valid ASR
-
-- **WHEN** the transcription API is called with **`asr`** equal to **`bijian`**, **`jianying`**, or **`whisper-cpp`**
-- **THEN** the system SHALL invoke VideoCaptioner with **`--asr`** set to that value
-
-#### Scenario: Invalid ASR rejected
-
-- **WHEN** the transcription API is called with **`asr`** outside the allowed set
-- **THEN** the API returns a client error response indicating invalid input
-
-#### Scenario: Optional VideoCaptioner flags forwarded
-
-- **WHEN** the transcription API is called with valid **`language`**, **`wordTimestamps`**, and **`format`** fields
-- **THEN** the system SHALL invoke **`videocaptioner transcribe`** with CLI arguments consistent with those fields
-
-#### Scenario: Invalid format rejected
-
-- **WHEN** the transcription API is called with **`format`** outside **`srt`**, **`ass`**, **`txt`**, **`json`**
-- **THEN** the API returns a client error response indicating invalid input
