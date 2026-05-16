@@ -108,6 +108,23 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       if (record.status === 'running') {
         record.status = 'aborted'
         record.updatedAt = Date.now()
+        if (record.type === 'download-video' && record.data) {
+          try {
+            const data = JSON.parse(record.data) as {
+              videos?: Array<{ status?: string }>
+            }
+            if (Array.isArray(data.videos)) {
+              for (const v of data.videos) {
+                if (v.status === 'downloading') {
+                  v.status = 'pending'
+                }
+              }
+              record.data = JSON.stringify(data)
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
         await putJob(record)
       }
     }

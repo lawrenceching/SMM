@@ -15,6 +15,8 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
   const runningJobs = jobs.filter((job) => {
     if (job.status === 'running') return true
     if (!isDownloadVideoJob(job)) return false
+    // Per-video `downloading` only applies while the job is still active (not aborted/succeeded/failed).
+    if (job.status !== 'pending' && job.status !== 'running') return false
     return job.data.videos.some((item) => item.status === 'downloading')
   })
   const runningCount = runningJobs.length

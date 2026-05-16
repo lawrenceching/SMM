@@ -204,4 +204,34 @@ describe('useBackgroundJobsIndicator', () => {
     expect(result.current.runningCount).toBe(1)
     expect(result.current.statusVariant).toBe('running')
   })
+
+  it('should not treat aborted download-video with stale downloading video as running', () => {
+    const jobs: BackgroundJob[] = [
+      {
+        id: '1',
+        name: 'Aborted Download',
+        status: 'aborted',
+        progress: 50,
+        type: 'download-video',
+        data: {
+          folder: '/tmp',
+          videos: [
+            { url: 'https://a', artist: 'A', title: 'T', status: 'downloading' },
+          ],
+        },
+      },
+    ]
+
+    mockUseBackgroundJobsStore.mockReturnValue({
+      getRunningJobs: () => [],
+      jobs,
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+    })
+
+    const { result } = renderHook(() => useBackgroundJobsIndicator())
+
+    expect(result.current.runningCount).toBe(0)
+    expect(result.current.statusVariant).toBe('warning')
+  })
 })

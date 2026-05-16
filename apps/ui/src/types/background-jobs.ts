@@ -46,6 +46,9 @@ export interface DownloadVideoBackgroundJobData {
   videos: DownloadVideoJobVideo[];
   /** yt-dlp `-f` format applied to every video in this job. */
   ytdlpFormat?: string;
+  /** CLI command log correlation (executeCmd yt-dlp). */
+  executionId?: string;
+  logRelativePath?: string;
 }
 
 export interface DownloadVideoBackgroundJob extends BackgroundJobBase {

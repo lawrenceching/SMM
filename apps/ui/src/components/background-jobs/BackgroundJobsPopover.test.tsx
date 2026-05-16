@@ -110,4 +110,35 @@ describe('BackgroundJobsPopoverContent', () => {
     })
     expect(screen.getByTestId('background-job-j2-abort-button')).toBeInTheDocument()
   })
+
+  it('shows log button when download-video job has executionId', () => {
+    mockStore.mockReturnValue({
+      jobs: [
+        {
+          id: 'j3',
+          name: 'Download Video',
+          status: 'running',
+          progress: 30,
+          type: 'download-video',
+          data: {
+            folder: 'C:/music',
+            videos: [{ url: 'https://example.com/v', title: 't', artist: 'a', status: 'downloading' }],
+            executionId: '00000000-0000-4000-8000-000000000003',
+          },
+        },
+      ],
+      abortJob: vi.fn(),
+    })
+
+    render(<BackgroundJobsPopoverContent />)
+
+    const logBtn = screen.getByTestId('background-job-j3-log-button')
+    expect(logBtn).toBeInTheDocument()
+    fireEvent.click(logBtn)
+    expect(openLogDialog).toHaveBeenCalledWith({
+      executionId: '00000000-0000-4000-8000-000000000003',
+      jobTitle: 'Download Video',
+      isRunning: true,
+    })
+  })
 })

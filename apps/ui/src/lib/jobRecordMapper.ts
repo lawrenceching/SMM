@@ -294,11 +294,15 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
 
   let data: DownloadVideoBackgroundJobData
   try {
-    const parsed = JSON.parse(record.data || '{}') as { folder?: string; videos?: unknown[] }
+    const parsed = JSON.parse(record.data || '{}') as Record<string, unknown> & {
+      folder?: string
+      videos?: unknown[]
+    }
     data = {
       folder: parsed.folder || record.folder || '',
       videos: (parsed.videos || []) as DownloadVideoBackgroundJobData['videos'],
     }
+    applyCommandLogCorrelation(data, parsed)
   } catch {
     data = { folder: record.folder || '', videos: [] }
   }

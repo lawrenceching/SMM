@@ -262,6 +262,9 @@ async function startDownload(jobId) {
     console.log('[SW] startDownload: executeCmd yt-dlp', { jobId, videoIndex: i, url: video.url })
 
     try {
+      const executionId = self.crypto.randomUUID()
+      data.executionId = executionId
+      await persistJobDataJson(job, data)
       const dlArgs = wc.buildYtdlpDownloadArgs({
         url: video.url,
         folder,
@@ -271,7 +274,10 @@ async function startDownload(jobId) {
       const cmd = await wc.executeCmdViaFetch('yt-dlp', dlArgs, {
         signal: controller.signal,
         timeoutMs: 60 * 60 * 1000,
+        executionId,
       })
+      mergeExecuteCmdCorrelation(data, cmd)
+      await persistJobDataJson(job, data)
       if (!cmd.success) {
         console.warn('[SW] startDownload: executeCmd error', { jobId, videoIndex: i, error: cmd.error })
         video.status = 'failed'

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs';
 import {
+  isDownloadVideoJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
@@ -14,11 +15,12 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { useDialogs } from '@/providers/dialog-provider';
 
-function getSubtitleJobExecutionId(job: BackgroundJob): string | undefined {
+function getJobExecutionId(job: BackgroundJob): string | undefined {
   if (isTranscribeBackgroundJob(job)) return job.data.executionId
   if (isTranslateBackgroundJob(job)) return job.data.executionId
   if (isSynthesizeBackgroundJob(job)) return job.data.executionId
   if (isProcessBackgroundJob(job)) return job.data.executionId
+  if (isDownloadVideoJob(job)) return job.data.executionId
   return undefined
 }
 
@@ -27,11 +29,12 @@ function canOpenCommandLog(job: BackgroundJob): boolean {
     !isTranscribeBackgroundJob(job) &&
     !isTranslateBackgroundJob(job) &&
     !isSynthesizeBackgroundJob(job) &&
-    !isProcessBackgroundJob(job)
+    !isProcessBackgroundJob(job) &&
+    !isDownloadVideoJob(job)
   ) {
     return false
   }
-  const id = getSubtitleJobExecutionId(job)
+  const id = getJobExecutionId(job)
   return typeof id === 'string' && id.length > 0
 }
 
@@ -167,7 +170,7 @@ export function BackgroundJobsPopoverContent() {
                       className="gap-1"
                       aria-label={t("statusBar.backgroundJobs.logButtonAria", { name: job.name })}
                       onClick={() => {
-                        const executionId = getSubtitleJobExecutionId(job)
+                        const executionId = getJobExecutionId(job)
                         if (!executionId) return
                         openLogDialog({
                           executionId,
