@@ -5,11 +5,11 @@ import { UISynthesizeSubtitleDialog } from "./UISynthesizeSubtitleDialog"
 import type { SynthesizeSubtitleDialogProps, SynthesizeSubtitleConfirmPayload } from "./types"
 import { buildSynthesizeJob } from "@/lib/synthesizeJobFactory"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
-import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
+import { useJobManager } from "@/hooks/useJobManager"
 
 export function SynthesizeSubtitleDialog({ rows, onClose, folder, ...rest }: SynthesizeSubtitleDialogProps) {
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
-  const { createJob } = useJobOrchestrator()
+  const { createJob } = useJobManager()
 
   const handleConfirm = useCallback(
     async (payload: SynthesizeSubtitleConfirmPayload) => {

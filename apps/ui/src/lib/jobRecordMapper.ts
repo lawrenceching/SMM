@@ -17,7 +17,11 @@ import {
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
 } from '@/types/background-jobs'
-import { getAllJobs, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
+import {
+  getAllJobs,
+  selectRecordsForBackgroundJobsUi,
+  type TaskJobRecord,
+} from '@/lib/downloadTaskDb'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 
 function applyCommandLogCorrelation<T extends { executionId?: string; logRelativePath?: string }>(
@@ -333,27 +337,23 @@ function isPersistedFromIdbJob(job: BackgroundJob): boolean {
  * Adds new jobs, updates existing ones, and removes stale ones.
  */
 export function syncJobRecordsToStore(records: TaskJobRecord[]): void {
-  const store = useBackgroundJobsStore.getState()
-  const storeJobIds = new Set(store.jobs.filter(isPersistedFromIdbJob).map((j) => j.id))
-  const dbJobIds = new Set<string>()
+  if (records.length === 0) {
+    return
+  }
 
+  const mapped: BackgroundJob[] = []
   for (const record of records) {
     const job = jobRecordToBackgroundJob(record)
-    if (!job) continue
-    dbJobIds.add(job.id)
-
-    if (storeJobIds.has(job.id)) {
-      store.updateJob(job.id, job)
-    } else {
-      store.addJob(job)
-    }
+    if (job) mapped.push(job)
   }
 
-  for (const id of storeJobIds) {
-    if (!dbJobIds.has(id)) {
-      store.removeJob(id)
-    }
+  if (mapped.length === 0) {
+    return
   }
+
+  useBackgroundJobsStore.setState((state) => ({
+    jobs: [...state.jobs.filter((j) => !isPersistedFromIdbJob(j)), ...mapped],
+  }))
 }
 
 /**
@@ -362,7 +362,7 @@ export function syncJobRecordsToStore(records: TaskJobRecord[]): void {
  */
 export async function loadAndSyncJobs(): Promise<TaskJobRecord[]> {
   const records = await getAllJobs()
-  const filtered = records.filter((r) => isWithinOneHour(r.createdAt))
+  const filtered = selectRecordsForBackgroundJobsUi(records)
   syncJobRecordsToStore(filtered)
   return filtered
 }

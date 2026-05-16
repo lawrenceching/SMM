@@ -46,8 +46,13 @@ export async function getAllJobs(): Promise<TaskJobRecord[]> {
     const tx = db.transaction(STORE_NAME, 'readonly')
     const store = tx.objectStore(STORE_NAME)
     const request = store.getAll()
-    request.onsuccess = () => resolve(request.result || [])
+    let records: TaskJobRecord[] = []
+    request.onsuccess = () => {
+      records = (request.result as TaskJobRecord[]) || []
+    }
     request.onerror = () => reject(request.error)
+    tx.oncomplete = () => resolve(records)
+    tx.onerror = () => reject(tx.error)
   })
 }
 
@@ -75,8 +80,30 @@ export async function deleteJob(id: string): Promise<void> {
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 
+/** Jobs shown in the status-bar popover (wider than orchestrator auto-start window). */
+export const BACKGROUND_JOBS_UI_WINDOW_MS = 24 * 60 * 60 * 1000
+
 export function isWithinOneHour(createdAt: number): boolean {
   return Date.now() - createdAt < ONE_HOUR_MS
+}
+
+export function jobRecordActivityTime(record: TaskJobRecord): number {
+  return record.updatedAt || record.createdAt || 0
+}
+
+export function isWithinBackgroundJobsUiWindow(record: TaskJobRecord): boolean {
+  const ts = jobRecordActivityTime(record)
+  if (!ts) return false
+  return Date.now() - ts < BACKGROUND_JOBS_UI_WINDOW_MS
+}
+
+const MAX_BACKGROUND_JOBS_UI = 100
+
+/** Newest persisted jobs for the status-bar popover (no 1h cap). */
+export function selectRecordsForBackgroundJobsUi(records: TaskJobRecord[]): TaskJobRecord[] {
+  return [...records]
+    .sort((a, b) => jobRecordActivityTime(b) - jobRecordActivityTime(a))
+    .slice(0, MAX_BACKGROUND_JOBS_UI)
 }
 
 export interface GetJobsByTypeAndFolderOptions {

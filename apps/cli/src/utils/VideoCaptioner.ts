@@ -416,7 +416,6 @@ export async function transcribeWithVideoCaptioner(
   }
   const format: VideoCaptionerTranscribeFormat = options?.format ?? "srt";
   args.push("--format", format);
-  ensureVideoCaptionerCliDummyApiKey(args);
   const commandForLog = [executablePath, ...args]
     .map((part) => (/\s/.test(part) ? `"${part}"` : part))
     .join(" ");

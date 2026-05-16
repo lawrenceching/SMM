@@ -1,4 +1,7 @@
+import { useCallback } from 'react'
+import { useJobManager } from '@/hooks/useJobManager'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { useStatusbarStore } from '@/stores/statusbarStore'
 import { isDownloadVideoJob } from '@/types/background-jobs'
 
 interface UseBackgroundJobsIndicatorResult {
@@ -11,7 +14,27 @@ interface UseBackgroundJobsIndicatorResult {
 }
 
 export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
-  const { jobs, isPopoverOpen, setPopoverOpen } = useBackgroundJobsStore()
+  const { jobs, refreshFromIndexedDB } = useJobManager()
+  const isPopoverOpen = useStatusbarStore((s) => s.isBackgroundJobsPopoverOpen)
+  const setBackgroundJobsPopoverOpen = useStatusbarStore((s) => s.setBackgroundJobsPopoverOpen)
+
+  const setPopoverOpen = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setBackgroundJobsPopoverOpen(false)
+        return
+      }
+      const run = async () => {
+        if (useBackgroundJobsStore.getState().jobs.length === 0) {
+          await refreshFromIndexedDB('popover-open')
+        }
+        setBackgroundJobsPopoverOpen(true)
+      }
+      void run()
+    },
+    [setBackgroundJobsPopoverOpen, refreshFromIndexedDB],
+  )
+
   const runningJobs = jobs.filter((job) => {
     if (job.status === 'running') return true
     if (!isDownloadVideoJob(job)) return false

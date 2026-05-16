@@ -1,5 +1,5 @@
 import { useLatest } from "react-use";
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
+import { useJobManager } from "@/hooks/useJobManager";
 import { useConfig } from "@/hooks/userConfig";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
@@ -44,7 +44,7 @@ export function useInitializeImportedMediaFolder() {
     const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const { mutateAsync: initializeMediaMetadata } = useInitializeMediaMetadataMutation()
     
-    const backgroundJobs = useBackgroundJobsStore();
+    const { addJob, updateJob } = useJobManager();
     const { mutateAsync: recognizeTvShowByNfo } = useRecognizeTvShowByNfoMutation();
     const { mutateAsync: recognizeTvShowByTmdbIdInFolderName } =
         useRecognizeTvShowByTmdbIdInFolderNameMutation();
@@ -68,8 +68,8 @@ export function useInitializeImportedMediaFolder() {
     const jobId = useRef<string | null>(null);
 
     const onStart = useCallback((folder: string) => {
-        const _jobId = backgroundJobs.addJob(`初始化 ${new Path(folder).name()}`);
-        backgroundJobs.updateJob(_jobId, { status: "running", progress: 50 });
+        const _jobId = addJob(`初始化 ${new Path(folder).name()}`);
+        updateJob(_jobId, { status: "running", progress: 50 });
         jobId.current = _jobId;
         upsertFolder({
             path: folder,
@@ -381,7 +381,7 @@ export function useInitializeImportedMediaFolder() {
         if (!jobId.current) {
             return;
         }
-        backgroundJobs.updateJob(jobId.current, { status: "succeeded" });
+        updateJob(jobId.current, { status: "succeeded" });
     }, [])
 
     const onError = useCallback((_folder: string, error: Error) => {
@@ -392,14 +392,14 @@ export function useInitializeImportedMediaFolder() {
 
         if (error instanceof Error && error.name === 'TimeoutError') {
             toast.error('初始化目录超时');
-            backgroundJobs.updateJob(jobId.current, { status: "aborted" });
+            updateJob(jobId.current, { status: "aborted" });
         } else {
             const unknownErrorStack = error instanceof Error
                 ? (error.stack || error.message)
                 : String(error);
             console.error(`Unknown error during media folder initialization:\n${unknownErrorStack}`);
             toast.error(`因未知原因, 目录初始化失败:\n${error instanceof Error ? error.message : String(error)}`);
-            backgroundJobs.updateJob(jobId.current, { status: "failed" });
+            updateJob(jobId.current, { status: "failed" });
         }
 
     }, [])

@@ -82,7 +82,31 @@ const mockJobRecords = [
   },
 ]
 
+vi.mock('@/hooks/useJobManager', () => ({
+  useJobManager: () => ({
+    isReady: true,
+    jobs: h.jobs,
+    createJob: vi.fn(),
+    createJobs: vi.fn(),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+    addJob: vi.fn(),
+    updateJob: vi.fn(),
+    patchJob: vi.fn(),
+    refreshFromIndexedDB: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
 vi.mock('@/hooks/useJobOrchestrator', () => ({
+  useJobManager: () => ({
+    isReady: true,
+    createJob: vi.fn(),
+    createJobs: vi.fn(),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
   useJobOrchestrator: () => ({
     isReady: true,
     createJob: vi.fn(),

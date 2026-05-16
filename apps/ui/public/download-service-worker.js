@@ -1,7 +1,9 @@
 /// <reference lib="webworker" />
 /* global self, clients, caches, indexedDB */
 
-importScripts('/whitelisted-cmd-sw.js')
+// Bump rev when `whitelisted-cmd-sw.js` changes (importScripts is cached per full URL).
+const WHITELISTED_CMD_SW_REV = 2
+importScripts(`/whitelisted-cmd-sw.js?rev=${WHITELISTED_CMD_SW_REV}`)
 const wc = self.whitelistedCmdSw
 
 const DB_NAME = 'DownloadTaskDatabase'

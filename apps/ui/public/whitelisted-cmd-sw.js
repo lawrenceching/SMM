@@ -1,5 +1,6 @@
 /* global self */
-/** Shared arg builders + executeCmd fetch helper for download-service-worker.js */
+/** Shared arg builders + executeCmd fetch helper for download-service-worker.js.
+ *  When this file changes, bump WHITELISTED_CMD_SW_REV in download-service-worker.js. */
 
 const VIDEOCAPTIONER_DUMMY_API_KEY = 'dummykey'
 const YTDLP_DOWNLOAD_ALLOWED_ARGS = ['--write-thumbnail', '--embed-thumbnail', '--embed-metadata']
@@ -38,7 +39,6 @@ function buildVcTranscribeArgs(mediaPath, vc) {
   if (vc?.language) args.push('--language', String(vc.language).trim())
   if (vc?.wordTimestamps === true) args.push('--word-timestamps')
   args.push('--format', vc?.format || 'srt')
-  ensureVcApiKey(args)
   return args
 }
 

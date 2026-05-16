@@ -29,6 +29,16 @@ vi.mock('@/lib/downloadTaskDb', () => ({
   saveDownloadVideoJob: h.saveDownloadVideoJob,
 }))
 
+vi.mock('@/hooks/useJobManager', () => ({
+  useJobManager: () => ({
+    isReady: true,
+    createJob: h.saveDownloadVideoJob,
+    createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
+}))
 vi.mock('@/hooks/useJobOrchestrator', () => ({
   useJobOrchestrator: () => ({
     isReady: true,

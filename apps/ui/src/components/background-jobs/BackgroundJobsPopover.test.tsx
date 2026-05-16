@@ -5,6 +5,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover'
 
 const openLogDialog = vi.fn()
+const mockStopJob = vi.fn()
+const mockRefreshFromIndexedDB = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/providers/dialog-provider', () => ({
   useDialogs: () => ({
@@ -12,8 +14,12 @@ vi.mock('@/providers/dialog-provider', () => ({
   }),
 }))
 
-vi.mock('@/stores/backgroundJobsStore', () => ({
-  useBackgroundJobsStore: vi.fn(),
+vi.mock('@/hooks/useJobManager', () => ({
+  useJobManager: vi.fn(),
+}))
+
+vi.mock('@/stores/statusbarStore', () => ({
+  useStatusbarStore: vi.fn(),
 }))
 
 vi.mock('@/lib/i18n', () => ({
@@ -32,9 +38,24 @@ vi.mock('@/lib/i18n', () => ({
   }),
 }))
 
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { useJobManager } from '@/hooks/useJobManager'
+import { useStatusbarStore } from '@/stores/statusbarStore'
+import type { BackgroundJob } from '@/types/background-jobs'
 
-const mockStore = useBackgroundJobsStore as unknown as ReturnType<typeof vi.fn>
+const mockUseJobManager = useJobManager as unknown as ReturnType<typeof vi.fn>
+const mockUseStatusbarStore = useStatusbarStore as unknown as ReturnType<typeof vi.fn>
+
+function mockPopoverJobs(jobs: BackgroundJob[], isPopoverOpen = true) {
+  mockUseJobManager.mockReturnValue({
+    jobs,
+    stopJob: mockStopJob,
+    refreshFromIndexedDB: mockRefreshFromIndexedDB,
+  })
+  mockUseStatusbarStore.mockImplementation((selector?: (s: { isBackgroundJobsPopoverOpen: boolean }) => unknown) => {
+    const state = { isBackgroundJobsPopoverOpen: isPopoverOpen }
+    return typeof selector === 'function' ? selector(state) : state
+  })
+}
 
 describe('BackgroundJobsPopoverContent', () => {
   beforeEach(() => {
@@ -42,8 +63,7 @@ describe('BackgroundJobsPopoverContent', () => {
   })
 
   it('shows log button when subtitle job has executionId and is not running', () => {
-    mockStore.mockReturnValue({
-      jobs: [
+    mockPopoverJobs([
         {
           id: 'j1',
           name: 'My job',
@@ -59,9 +79,7 @@ describe('BackgroundJobsPopoverContent', () => {
             executionId: '00000000-0000-4000-8000-000000000001',
           },
         },
-      ],
-      abortJob: vi.fn(),
-    })
+      ])
 
     render(<BackgroundJobsPopoverContent />)
 
@@ -76,8 +94,7 @@ describe('BackgroundJobsPopoverContent', () => {
   })
 
   it('shows log button when running job has executionId and passes isRunning true to openLogDialog', () => {
-    mockStore.mockReturnValue({
-      jobs: [
+    mockPopoverJobs([
         {
           id: 'j2',
           name: 'Run',
@@ -94,9 +111,7 @@ describe('BackgroundJobsPopoverContent', () => {
             executionId: '00000000-0000-4000-8000-000000000002',
           },
         },
-      ],
-      abortJob: vi.fn(),
-    })
+      ])
 
     render(<BackgroundJobsPopoverContent />)
 
@@ -108,12 +123,14 @@ describe('BackgroundJobsPopoverContent', () => {
       jobTitle: 'Run',
       isRunning: true,
     })
-    expect(screen.getByTestId('background-job-j2-abort-button')).toBeInTheDocument()
+    const abortBtn = screen.getByTestId('background-job-j2-abort-button')
+    expect(abortBtn).toBeInTheDocument()
+    fireEvent.click(abortBtn)
+    expect(mockStopJob).toHaveBeenCalledWith('j2')
   })
 
   it('shows log button when download-video job has executionId', () => {
-    mockStore.mockReturnValue({
-      jobs: [
+    mockPopoverJobs([
         {
           id: 'j3',
           name: 'Download Video',
@@ -126,9 +143,7 @@ describe('BackgroundJobsPopoverContent', () => {
             executionId: '00000000-0000-4000-8000-000000000003',
           },
         },
-      ],
-      abortJob: vi.fn(),
-    })
+      ])
 
     render(<BackgroundJobsPopoverContent />)
 

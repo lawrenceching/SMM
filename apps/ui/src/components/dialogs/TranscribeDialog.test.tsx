@@ -20,6 +20,16 @@ vi.mock("@/lib/downloadTaskDb", async (importOriginal) => {
   }
 })
 
+vi.mock("@/hooks/useJobManager", () => ({
+  useJobManager: () => ({
+    isReady: true,
+    createJob: h.saveTranscribeJob,
+    createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
+}))
 vi.mock("@/hooks/useJobOrchestrator", () => ({
   useJobOrchestrator: () => ({
     isReady: true,

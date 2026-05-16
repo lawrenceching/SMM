@@ -148,7 +148,7 @@ describe("transcribeWithVideoCaptioner", () => {
     expect(result.logRelativePath).toContain("commands/");
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--format", "srt"],
       expect.any(Object)
     );
   });
@@ -164,7 +164,7 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "jianying", "--format", "srt", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
+      ["transcribe", "C:/media/a.mp3", "--asr", "jianying", "--format", "srt"],
       expect.any(Object)
     );
   });
@@ -185,7 +185,7 @@ describe("transcribeWithVideoCaptioner", () => {
 
     expect(h.spawn).toHaveBeenCalledWith(
       expect.any(String),
-      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--language", "zh", "--word-timestamps", "--format", "json", "--api-key", VIDEOCAPTIONER_CLI_DUMMY_API_KEY],
+      ["transcribe", "C:/media/a.mp3", "--asr", "bijian", "--language", "zh", "--word-timestamps", "--format", "json"],
       expect.any(Object)
     );
   });

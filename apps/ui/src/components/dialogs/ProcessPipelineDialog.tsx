@@ -11,7 +11,7 @@ import { buildProcessJob } from "@/lib/processJobFactory"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation } from "@/lib/i18n"
-import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
+import { useJobManager } from "@/hooks/useJobManager"
 
 const PROCESS_PIPELINE_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
 
@@ -19,7 +19,7 @@ export function ProcessPipelineDialog({ rows, onClose, folder, ...rest }: Proces
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
   const { isVideoCaptionerAsrOptionsEnabled } = useFeatures()
   const { t } = useTranslation("components")
-  const { createJobs } = useJobOrchestrator()
+  const { createJobs } = useJobManager()
 
   const handleConfirm = useCallback(
     async (payload: ProcessPipelineConfirmPayload) => {

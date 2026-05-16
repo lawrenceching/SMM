@@ -34,7 +34,6 @@ export function buildVideoCaptionerTranscribeArgs(input: VideoCaptionerTranscrib
   }
   const format: VideoCaptionerTranscribeFormat = input.format ?? "srt";
   args.push("--format", format);
-  ensureVideoCaptionerCliDummyApiKey(args);
   return args;
 }
 

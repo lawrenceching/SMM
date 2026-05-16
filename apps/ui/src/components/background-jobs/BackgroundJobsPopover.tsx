@@ -1,5 +1,7 @@
-import { CheckCircle2, XCircle, Clock, StopCircle, FileText } from 'lucide-react';
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, Clock, StopCircle, FileText, Loader2 } from 'lucide-react';
+import { useJobManager } from '@/hooks/useJobManager';
+import { useStatusbarStore } from '@/stores/statusbarStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -40,9 +42,21 @@ function canOpenCommandLog(job: BackgroundJob): boolean {
 
 export function BackgroundJobsPopoverContent() {
   const { t } = useTranslation("components")
-  const { jobs, abortJob } = useBackgroundJobsStore();
+  const { jobs, stopJob, refreshFromIndexedDB } = useJobManager()
+  const isPopoverOpen = useStatusbarStore((s) => s.isBackgroundJobsPopoverOpen)
   const { logDialog } = useDialogs();
   const [openLogDialog] = logDialog;
+  const [isLoading, setIsLoading] = useState(() => jobs.length === 0)
+
+  useEffect(() => {
+    if (!isPopoverOpen) return
+    if (jobs.length > 0) {
+      setIsLoading(false)
+      return
+    }
+    setIsLoading(true)
+    void refreshFromIndexedDB('popover-mount').finally(() => setIsLoading(false))
+  }, [isPopoverOpen, jobs.length, refreshFromIndexedDB])
 
    const getStatusIcon = (status: JobStatus) => {
     switch (status) {
@@ -117,7 +131,15 @@ export function BackgroundJobsPopoverContent() {
       </div>
 
       <div data-testid="background-jobs-list" className="max-h-80 overflow-y-auto">
-        {jobs.length === 0 ? (
+        {isLoading ? (
+          <div
+            data-testid="background-jobs-loading"
+            className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{t("statusBar.backgroundJobs.loading", { defaultValue: "Loading…" })}</span>
+          </div>
+        ) : jobs.length === 0 ? (
           <div data-testid="background-jobs-empty" className="p-4 text-center text-sm text-muted-foreground">
             {t("statusBar.backgroundJobs.empty")}
           </div>
@@ -188,7 +210,7 @@ export function BackgroundJobsPopoverContent() {
                       data-testid={`background-job-${job.id}-abort-button`}
                       variant="ghost"
                       size="icon-sm"
-                      onClick={() => abortJob(job.id)}
+                      onClick={() => stopJob(job.id)}
                       aria-label={t("statusBar.backgroundJobs.abortAriaLabel", { name: job.name })}
                     >
                       <StopCircle className="h-4 w-4" />

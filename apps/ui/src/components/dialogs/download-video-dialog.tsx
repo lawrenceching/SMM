@@ -29,7 +29,7 @@ import {
   ytdlpFormatPresetLabelKey,
   type YtdlpFormatPresetId,
 } from "@/lib/ytdlpFormatPresets"
-import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
+import { useJobManager } from "@/hooks/useJobManager"
 import { ListItem } from "@/components/dialogs/download-video-list-item"
 import {
   Select,
@@ -79,7 +79,7 @@ function ytdlpVideosToEpisodeItems(videos: YtdlpVideo[]): EpisodeItem[] {
 export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destinationFolder }: DownloadVideoDialogProps) {
   const { t } = useTranslation('dialogs')
   const { t: tCommon } = useTranslation('common')
-  const { createJob } = useJobOrchestrator()
+  const { createJob } = useJobManager()
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
   const [urlError, setUrlError] = useState<string | null>(null)

@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { GenericBackgroundJob } from '@/types/background-jobs'
 import { useBackgroundJobsStore } from './backgroundJobsStore'
+import { useStatusbarStore } from './statusbarStore'
 
 describe('backgroundJobsStore', () => {
   beforeEach(() => {
-    useBackgroundJobsStore.setState({ jobs: [], isPopoverOpen: false })
+    useBackgroundJobsStore.setState({ jobs: [] })
+    useStatusbarStore.setState({ isBackgroundJobsPopoverOpen: false })
   })
 
   it('addJob(name) creates a generic job', () => {
@@ -13,6 +15,7 @@ describe('backgroundJobsStore', () => {
     expect(j.type).toBe('generic')
     expect(j.name).toBe('Init')
     expect(j.data).toEqual({})
+    expect(useStatusbarStore.getState().isBackgroundJobsPopoverOpen).toBe(true)
   })
 
   it('addJob(full job) appends the job and returns its id', () => {

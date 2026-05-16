@@ -28,7 +28,7 @@ import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
-import { useJobOrchestrator, useFileStatuses, useJobs } from "@/hooks/useJobOrchestrator";
+import { useJobManager, useFileStatuses, useJobs } from "@/hooks/useJobOrchestrator";
 import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
@@ -111,7 +111,7 @@ export function MusicPanel() {
     ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
     : undefined;
 
-  const { startJob, stopJob, removeJob } = useJobOrchestrator();
+  const { startJob, stopJob, removeJob } = useJobManager();
   const allJobRecords = useJobs();
 
   // Download job records for this folder (for rendering download tracks).

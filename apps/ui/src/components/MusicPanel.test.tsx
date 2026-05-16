@@ -151,6 +151,14 @@ vi.mock('@/components/dialogs', () => ({
   ProcessPipelineDialog: () => null,
 }));
 vi.mock('@/hooks/useJobOrchestrator', () => ({
+  useJobManager: () => ({
+    isReady: true,
+    createJob: vi.fn(),
+    createJobs: vi.fn(),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
   useJobOrchestrator: () => ({
     isReady: true,
     createJob: vi.fn(),

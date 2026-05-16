@@ -1,7 +1,7 @@
 import { useRef } from "react"
 import { useLatest, useMount, useUnmount } from "react-use"
 import { listFiles } from "@/api/listFiles"
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
+import { useJobManager } from "@/hooks/useJobManager"
 import { nextTraceId } from "@/lib/utils"
 import { Path } from "@core/path"
 import { basename } from "@/lib/path"
@@ -47,7 +47,7 @@ export function MediaLibraryImportedEventHandler() {
   const { mutateAsync: saveUserConfig } = useSaveUserConfigMutation()
   const { userConfig } = useConfig()
   const latestUserConfig = useLatest(userConfig)
-  const backgroundJobs = useBackgroundJobsStore()
+  const { addJob, updateJob } = useJobManager()
 
   const doImportMediaLibrary = async (event: Event) => {
 
@@ -57,9 +57,9 @@ export function MediaLibraryImportedEventHandler() {
     debug(`start to process ${UI_MediaLibraryImportedEvent} event`, data)
     const traceIdBase = data.traceId || `MediaLibraryImportedEventHandler:${nextTraceId()}`
 
-    const jobId = backgroundJobs.addJob("Importing Media Library")
+    const jobId = addJob("Importing Media Library")
     let progress = 0;
-    backgroundJobs.updateJob(jobId, { status: "running", progress: 0 })
+    updateJob(jobId, { status: "running", progress: 0 })
     debug(`add background job in running status`)
 
     try {
@@ -75,7 +75,7 @@ export function MediaLibraryImportedEventHandler() {
       const updateProgress = () => {
         const delta = ~~(100 / foldersToImport.length)
         progress += delta
-        backgroundJobs.updateJob(jobId, { progress: progress })
+        updateJob(jobId, { progress: progress })
       }
 
       const uiMediaFolders = foldersToImport.map((folder) => ({
@@ -114,11 +114,11 @@ export function MediaLibraryImportedEventHandler() {
         updateProgress()
       }
 
-      backgroundJobs.updateJob(jobId, { status: "succeeded", progress: 100 })
+      updateJob(jobId, { status: "succeeded", progress: 100 })
 
     } catch (error) {
       console.error(`[${traceIdBase}] Import media library failed:`, error)
-      backgroundJobs.updateJob(jobId, { status: "failed" })
+      updateJob(jobId, { status: "failed" })
       debug(`failed to import media library`, error)
     }
   }

@@ -1,16 +1,15 @@
 /**
- * Primary hook for consuming the JobOrchestratorProvider context.
- *
- * Re-exports the reactive hooks so callers can import everything from one place:
+ * Job orchestration hooks.
  *
  * ```ts
- * import { useJobOrchestrator, useFileStatuses, useJobIndicatorState } from '@/hooks/useJobOrchestrator'
+ * import { useJobManager, useJobOrchestrator, useFileStatuses, useJobs } from '@/hooks/useJobOrchestrator'
  * ```
  */
+export { useJobManager } from './useJobManager'
+export type { UseJobManagerResult } from './useJobManager'
 export {
   useJobOrchestratorContext as useJobOrchestrator,
   useFileStatuses,
-  useJobIndicatorState,
   useJobs,
   type JobOrchestratorContextValue,
   type StartJobResult,

@@ -11,11 +11,20 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
 import type { BackgroundJob } from '@/types/background-jobs'
-import { getAllJobs, putJob, deleteJob, isWithinOneHour, type TaskJobRecord } from '@/lib/downloadTaskDb'
+import {
+  getAllJobs,
+  putJob,
+  deleteJob,
+  isWithinOneHour,
+  selectRecordsForBackgroundJobsUi,
+  type TaskJobRecord,
+} from '@/lib/downloadTaskDb'
 import { JOB_TYPE_REGISTRY, ALL_JOB_TYPES, swEventNames } from '@/lib/jobTypeRegistry'
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
-
+import {
+  attachDownloadServiceWorkerUpdateChecks,
+  DOWNLOAD_SERVICE_WORKER_URL,
+} from '@/lib/downloadServiceWorker'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -28,10 +37,14 @@ export type StartJobResult =
     }
 
 export interface JobOrchestratorContextValue {
-  /** Raw IDB records, filtered to within-one-hour. */
+  /** Raw IDB records, filtered to within-one-hour (orchestrator / auto-start). */
   jobRecords: TaskJobRecord[]
+  /** Newest IDB records for the status-bar popover (up to 100). */
+  popoverJobRecords: TaskJobRecord[]
   /** Whether the Service Worker has registered and is ready. */
   isReady: boolean
+  /** Re-read IndexedDB and sync into the background-jobs store. */
+  refreshFromIndexedDB: (source?: string) => Promise<void>
 
   createJob(job: BackgroundJob): Promise<string>
   createJobs(jobs: BackgroundJob[]): Promise<{
@@ -49,6 +62,9 @@ export interface JobOrchestratorContextValue {
 
 const JobOrchestratorContext = createContext<JobOrchestratorContextValue | null>(null)
 
+/** Serializes IDB→store sync across parallel callers (StrictMode, SW update, popover). */
+let syncFromIndexedDBChain: Promise<unknown> = Promise.resolve()
+
 export function useJobOrchestratorContext(): JobOrchestratorContextValue {
   const ctx = useContext(JobOrchestratorContext)
   if (!ctx) throw new Error('useJobOrchestratorContext must be used inside <JobOrchestratorProvider>')
@@ -65,6 +81,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   tRef.current = t
 
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
+  const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
   const [swReady, setSwReady] = useState(false)
 
   // Mutable refs so callbacks always see the latest values without stale closures.
@@ -78,14 +95,42 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   // ---------------------------------------------------------------------------
 
   /** Read all IDB jobs, update local state + Zustand store. Returns fresh records. */
-  const syncFromIndexedDB = useCallback(async (): Promise<TaskJobRecord[]> => {
-    const records = await getAllJobs()
-    const filtered = records.filter((r) => isWithinOneHour(r.createdAt))
-    jobRecordsRef.current = filtered
-    setJobRecords(filtered)
-    syncJobRecordsToStore(filtered)
-    return filtered
+  const syncFromIndexedDB = useCallback(async (_source = 'unknown'): Promise<TaskJobRecord[]> => {
+    const run = async (): Promise<TaskJobRecord[]> => {
+      let records: TaskJobRecord[] = []
+      try {
+        records = await getAllJobs()
+      } catch {
+        return jobRecordsRef.current
+      }
+      const orchestratorRecords = records.filter((r) => isWithinOneHour(r.createdAt))
+      const uiRecords = selectRecordsForBackgroundJobsUi(records)
+      jobRecordsRef.current = orchestratorRecords
+      setJobRecords(orchestratorRecords)
+      setPopoverJobRecords(uiRecords)
+      syncJobRecordsToStore(uiRecords)
+      return orchestratorRecords
+    }
+
+    const queued = syncFromIndexedDBChain.then(run, run)
+    syncFromIndexedDBChain = queued.then(
+      () => {},
+      () => {},
+    )
+    return queued
   }, [])
+
+  const refreshFromIndexedDB = useCallback(
+    async (source = 'refresh') => {
+      await syncFromIndexedDB(source)
+    },
+    [syncFromIndexedDB],
+  )
+
+  // Load persisted jobs on mount without waiting for Service Worker registration.
+  useEffect(() => {
+    void syncFromIndexedDB('mount:eager')
+  }, [syncFromIndexedDB])
 
   // ---------------------------------------------------------------------------
   // SW plumbing
@@ -219,13 +264,13 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           toast.error(config.toasts.failed(tRef.current))
         }
         const prevFolder = jobRecordsRef.current.find((r) => r.id === msg.id)?.folder
-        const fresh = await syncFromIndexedDB()
+        const fresh = await syncFromIndexedDB(`sw:${msg.event}`)
         if (prevFolder) tryAutoStart(matchedType, prevFolder, fresh)
         return
       }
 
       // started / removed → just re-sync
-      await syncFromIndexedDB()
+      await syncFromIndexedDB(`sw:${msg.event}`)
     }
 
     navigator.serviceWorker?.addEventListener('message', handler)
@@ -238,7 +283,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handler = async () => {
-      const fresh = await syncFromIndexedDB()
+      const fresh = await syncFromIndexedDB('indexed-updated')
       tryAutoStartAll(fresh)
     }
     window.addEventListener('indexed-updated', handler)
@@ -251,19 +296,26 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
+    let detachSwUpdateChecks: (() => void) | undefined
+
+    const activateServiceWorker = async (source: string) => {
+      swRegistrationRef.current = await navigator.serviceWorker.ready
+      await handleSwReactivate()
+      const fresh = await syncFromIndexedDB(`activate:${source}`)
+      swReadyRef.current = true
+      setSwReady(true)
+      tryAutoStartAll(fresh)
+    }
 
     async function init() {
       if (!navigator.serviceWorker) {
         // No SW support — still sync so UI shows persisted jobs.
-        await syncFromIndexedDB()
+        await syncFromIndexedDB('init:no-sw')
         return
       }
       try {
-        const registration = await navigator.serviceWorker.register('/download-service-worker.js')
-        const readyReg = await navigator.serviceWorker.ready
+        const registration = await navigator.serviceWorker.register(DOWNLOAD_SERVICE_WORKER_URL)
         if (cancelled) return
-
-        swRegistrationRef.current = readyReg
 
         // Wait for this page to be controlled (needed on first SW install when
         // clients.claim() hasn't fired yet — registration.active exists but
@@ -284,24 +336,23 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         }
         if (cancelled) return
 
-        void registration // prevent unused-var lint
+        await activateServiceWorker('init')
+        if (cancelled) return
 
-        await handleSwReactivate()
-        const fresh = await syncFromIndexedDB()
-
-        swReadyRef.current = true
-        setSwReady(true)
-
-        tryAutoStartAll(fresh)
+        detachSwUpdateChecks = attachDownloadServiceWorkerUpdateChecks(registration, () => {
+          if (cancelled) return
+          void activateServiceWorker('sw-update')
+        })
       } catch (e) {
         console.warn('[JobOrchestrator] SW registration failed', e)
-        await syncFromIndexedDB()
+        await syncFromIndexedDB('init:sw-register-failed')
       }
     }
 
     void init()
     return () => {
       cancelled = true
+      detachSwUpdateChecks?.()
     }
   }, [handleSwReactivate, syncFromIndexedDB, tryAutoStartAll])
 
@@ -325,7 +376,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       }
       await putJob(record)
-      const fresh = await syncFromIndexedDB()
+      const fresh = await syncFromIndexedDB('createJob')
       tryAutoStart(job.type, folder, fresh)
       return job.id
     },
@@ -361,7 +412,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const fresh = await syncFromIndexedDB()
+      const fresh = await syncFromIndexedDB('createJobs')
 
       // Trigger auto-start for each unique (type, folder) of successfully created jobs.
       const seen = new Set<string>()
@@ -421,7 +472,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         if (config) postSw(`${config.messagePrefix}:stop`, id)
       }
       await deleteJob(id)
-      await syncFromIndexedDB()
+      await syncFromIndexedDB('removeJob')
     },
     [postSw, syncFromIndexedDB],
   )
@@ -451,14 +502,26 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const contextValue = useMemo<JobOrchestratorContextValue>(
     () => ({
       jobRecords,
+      popoverJobRecords,
       isReady: swReady,
+      refreshFromIndexedDB,
       createJob,
       createJobs,
       startJob,
       stopJob,
       removeJob,
     }),
-    [jobRecords, swReady, createJob, createJobs, startJob, stopJob, removeJob],
+    [
+      jobRecords,
+      popoverJobRecords,
+      swReady,
+      refreshFromIndexedDB,
+      createJob,
+      createJobs,
+      startJob,
+      stopJob,
+      removeJob,
+    ],
   )
 
   return (
@@ -522,25 +585,6 @@ export function useFileStatuses(folder: string, type: string) {
 
     return { runningPaths, pendingPaths, failedPaths, jobIdsByPath, primaryJobIdByPath }
   }, [jobRecords, folder, type, config])
-}
-
-/**
- * Returns aggregated indicator state for the StatusBar.
- * Counts come from `jobRecords`; popover state is delegated to `useBackgroundJobsStore`
- * for Phase 1 compatibility.
- */
-export function useJobIndicatorState() {
-  const { jobRecords } = useJobOrchestratorContext()
-  const { isPopoverOpen, setPopoverOpen } = useBackgroundJobsStore()
-
-  return useMemo(() => {
-    const runningCount = jobRecords.filter((r) => r.status === 'running').length
-    const pendingCount = jobRecords.filter((r) => r.status === 'pending').length
-    const failedCount = jobRecords.filter((r) => r.status === 'failed').length
-    const statusVariant: 'running' | 'warning' | 'success' =
-      runningCount > 0 ? 'running' : failedCount > 0 ? 'warning' : 'success'
-    return { runningCount, pendingCount, failedCount, statusVariant, isPopoverOpen, setPopoverOpen }
-  }, [jobRecords, isPopoverOpen, setPopoverOpen])
 }
 
 /** All jobs in the store (convenience alias over `jobRecords`). */

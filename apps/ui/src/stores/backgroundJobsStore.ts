@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { BackgroundJob, GenericBackgroundJob } from '@/types/background-jobs'
+import { useStatusbarStore } from '@/stores/statusbarStore'
 
 function newJobId(): string {
   return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
@@ -7,7 +8,6 @@ function newJobId(): string {
 
 interface BackgroundJobsState {
   jobs: BackgroundJob[]
-  isPopoverOpen: boolean
   /**
    * Append a job: pass a display name for a generic placeholder job, or a full {@link BackgroundJob}.
    */
@@ -19,12 +19,10 @@ interface BackgroundJobsState {
   getRunningJobs: () => BackgroundJob[]
   getJobsByType: (type: string) => BackgroundJob[]
   removeJob: (id: string) => void
-  setPopoverOpen: (open: boolean) => void
 }
 
 export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) => ({
   jobs: [],
-  isPopoverOpen: false,
 
   addJob: (nameOrJob: string | BackgroundJob) => {
     if (typeof nameOrJob === 'string') {
@@ -39,15 +37,15 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
       }
       set((state) => ({
         jobs: [...state.jobs, newJob],
-        isPopoverOpen: true,
       }))
+      useStatusbarStore.getState().setBackgroundJobsPopoverOpen(true)
       return id
     }
     const job = nameOrJob
     set((state) => ({
       jobs: [...state.jobs, job],
-      isPopoverOpen: true,
     }))
+    useStatusbarStore.getState().setBackgroundJobsPopoverOpen(true)
     return job.id
   },
 
@@ -78,6 +76,4 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
     set((state) => ({
       jobs: state.jobs.filter((j) => j.id !== id),
     })),
-
-  setPopoverOpen: (open) => set({ isPopoverOpen: open }),
 }))

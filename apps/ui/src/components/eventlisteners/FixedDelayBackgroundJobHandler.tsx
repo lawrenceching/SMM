@@ -1,10 +1,10 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
+import { useJobManager } from "@/hooks/useJobManager";
 import { UI_FixedDelayBackgroundJobEvent, type OnFixedDelayBackgroundJobEventData } from "@/types/eventTypes";
 
 export function FixedDelayBackgroundJobHandler() {
-    const backgroundJobs = useBackgroundJobsStore()
+    const { addJob, updateJob } = useJobManager()
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {
@@ -17,14 +17,14 @@ export function FixedDelayBackgroundJobHandler() {
             console.log(`[${traceId}] FixedDelayBackgroundJob: Creating job "${jobName}" with delay ${delay}ms`)
 
             // Create background job
-            const jobId = backgroundJobs.addJob(jobName)
+            const jobId = addJob(jobName)
             if (!jobId) {
                 console.error(`[${traceId}] Failed to create background job`)
                 return
             }
 
             // Update job status to running
-            backgroundJobs.updateJob(jobId, {
+            updateJob(jobId, {
                 status: 'running',
                 progress: 0,
             })
@@ -34,7 +34,7 @@ export function FixedDelayBackgroundJobHandler() {
             const updateProgress = () => {
                 const elapsed = Date.now() - startTime
                 const progress = Math.min((elapsed / delay) * 100, 90)
-                backgroundJobs.updateJob(jobId, { progress })
+                updateJob(jobId, { progress })
             }
 
             const progressInterval = setInterval(updateProgress, 50)
@@ -42,7 +42,7 @@ export function FixedDelayBackgroundJobHandler() {
             // Set up completion
             setTimeout(() => {
                 clearInterval(progressInterval)
-                backgroundJobs.updateJob(jobId, {
+                updateJob(jobId, {
                     status: 'succeeded',
                     progress: 100,
                 })

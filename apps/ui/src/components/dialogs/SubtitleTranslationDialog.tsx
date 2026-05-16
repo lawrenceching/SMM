@@ -5,11 +5,11 @@ import { UISubtitleTranslationDialog } from "./UISubtitleTranslationDialog"
 import type { SubtitleTranslationDialogProps, SubtitleTranslationConfirmPayload } from "./types"
 import { buildTranslateJob } from "@/lib/translateJobFactory"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
-import { useJobOrchestrator } from "@/hooks/useJobOrchestrator"
+import { useJobManager } from "@/hooks/useJobManager"
 
 export function SubtitleTranslationDialog({ rows, onClose, folder, ...rest }: SubtitleTranslationDialogProps) {
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
-  const { createJob } = useJobOrchestrator()
+  const { createJob } = useJobManager()
 
   const handleConfirm = useCallback(
     async (payload: SubtitleTranslationConfirmPayload) => {

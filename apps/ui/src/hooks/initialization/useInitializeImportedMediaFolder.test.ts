@@ -94,8 +94,8 @@ vi.mock("../mediaMetadata", () => ({
     }),
 }));
 
-vi.mock("@/stores/backgroundJobsStore", () => ({
-    useBackgroundJobsStore: () => ({
+vi.mock("@/hooks/useJobManager", () => ({
+    useJobManager: () => ({
         addJob: h.addJob,
         updateJob: h.updateJob,
     }),
