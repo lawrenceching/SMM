@@ -74,17 +74,9 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-export const ActivePlaying: Story = {
+export const Selected: Story = {
   args: {
-    currentTrackId: baseRow.id,
-    isPlaying: true,
-  },
-}
-
-export const ActivePaused: Story = {
-  args: {
-    currentTrackId: baseRow.id,
-    isPlaying: false,
+    selectedTrackIds: [baseRow.id],
   },
 }
 
@@ -186,14 +178,7 @@ export const ProcessFailed: Story = {
   },
 }
 
-export const MultiSelectSelected: Story = {
-  args: {
-    isMultiSelectMode: true,
-    selectedTrackIds: [baseRow.id],
-  },
-}
-
-export const MultiSelectUnselected: Story = {
+export const MultiSelectMode: Story = {
   args: {
     isMultiSelectMode: true,
     selectedTrackIds: [],

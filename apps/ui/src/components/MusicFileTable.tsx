@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Music } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "@/lib/i18n"
 import {
   emitTrackOpenEvent,
@@ -93,6 +94,23 @@ export function MusicFileTable({
   onSelectedTrackIdsChange,
 }: MusicFileTableProps) {
   const { t } = useTranslation(["components"])
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
+
+  const allRowIds = useMemo(() => data.map((row) => row.id), [data])
+  const allSelected =
+    data.length > 0 && allRowIds.every((id) => selectedTrackIds.includes(id))
+  const someSelected = selectedTrackIds.length > 0 && !allSelected
+
+  useEffect(() => {
+    const el = headerCheckboxRef.current
+    if (!el) return
+    el.indeterminate = isMultiSelectMode && someSelected
+  }, [isMultiSelectMode, someSelected])
+
+  const toggleSelectAll = useCallback(() => {
+    if (!onSelectedTrackIdsChange) return
+    onSelectedTrackIdsChange(allSelected ? [] : allRowIds)
+  }, [allSelected, allRowIds, onSelectedTrackIdsChange])
 
   const handleOpen = (track: MusicFileRow) => {
     if (!track.path) return
@@ -146,13 +164,24 @@ export function MusicFileTable({
       <Table className="w-full table-fixed text-xs">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {isMultiSelectMode && (
-              <TableHead
-                className="h-8 w-10 px-2 py-1 text-center"
-                data-testid="music-file-table-selection-header"
-              />
-            )}
-            <TableHead className="h-8 w-10 px-2 py-1 text-center">{t("musicFileTable.columns.index")}</TableHead>
+            <TableHead className="h-8 w-10 px-2 py-1 text-center">
+              {isMultiSelectMode ? (
+                <div className="flex items-center justify-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    className="size-4 cursor-pointer"
+                    checked={allSelected}
+                    disabled={data.length === 0}
+                    onChange={toggleSelectAll}
+                    data-testid="music-file-table-select-all"
+                    aria-label={t("musicFileTable.selectAllAria")}
+                  />
+                </div>
+              ) : (
+                t("musicFileTable.columns.index")
+              )}
+            </TableHead>
             <TableHead className="h-8 w-16 px-0 py-1 text-center">{t("musicFileTable.columns.cover")}</TableHead>
             <TableHead className="h-8 min-w-0 px-2 py-1">{t("musicFileTable.columns.title")}</TableHead>
             <TableHead className="h-8 w-32 px-2 py-1">{t("musicFileTable.columns.artist")}</TableHead>
@@ -162,7 +191,7 @@ export function MusicFileTable({
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isMultiSelectMode ? 6 : 5} className="py-12 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
                   <Music className="size-8 text-muted-foreground/50" />
                   <p>{t("mediaPlayer.noTracksFound")}</p>

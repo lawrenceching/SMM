@@ -95,17 +95,71 @@ describe("MusicFileTable transcribe action", () => {
   });
 });
 
+const row2: MusicFileRow = {
+  id: 2,
+  index: 1,
+  title: "Song B",
+  artist: "Artist B",
+  duration: 90,
+  path: "/tmp/song-b.mp3",
+};
+
 describe("MusicFileTable multi-select mode", () => {
-  it("shows selection checkbox column only in multi-select mode", () => {
+  it("shows select-all checkbox in index header when multi-select mode is on", () => {
+    const { rerender } = render(
+      <MusicFileTable data={[row]} isMultiSelectMode={false} />,
+    );
+
+    expect(screen.getByText("musicFileTable.columns.index")).toBeInTheDocument();
+    expect(screen.queryByTestId("music-file-table-select-all")).not.toBeInTheDocument();
+
+    rerender(<MusicFileTable data={[row]} isMultiSelectMode={true} />);
+
+    expect(screen.queryByText("musicFileTable.columns.index")).not.toBeInTheDocument();
+    expect(screen.getByTestId("music-file-table-select-all")).toBeInTheDocument();
+  });
+
+  it("selects all rows when header checkbox is checked", () => {
+    const onSelectedTrackIdsChange = vi.fn();
+    render(
+      <MusicFileTable
+        data={[row, row2]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[]}
+        onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("music-file-table-select-all"));
+    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([1, 2]);
+  });
+
+  it("clears selection when header checkbox is unchecked", () => {
+    const onSelectedTrackIdsChange = vi.fn();
+    render(
+      <MusicFileTable
+        data={[row, row2]}
+        isMultiSelectMode={true}
+        selectedTrackIds={[1, 2]}
+        onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("music-file-table-select-all"));
+    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([]);
+  });
+
+  it("shows checkbox in index column for every row in multi-select mode", () => {
     const { rerender } = render(
       <MusicFileTable
         data={[row]}
         isMultiSelectMode={false}
+        selectedTrackIds={[]}
       />
     );
 
-    expect(screen.queryByTestId("music-file-table-selection-header")).not.toBeInTheDocument();
     expect(screen.queryByTestId("music-file-row-checkbox-1")).not.toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
 
     rerender(
       <MusicFileTable
@@ -115,8 +169,12 @@ describe("MusicFileTable multi-select mode", () => {
       />
     );
 
-    expect(screen.getByTestId("music-file-table-selection-header")).toBeInTheDocument();
-    expect(screen.getByTestId("music-file-row-checkbox-1")).toBeInTheDocument();
+    const checkbox = screen.getByTestId(
+      "music-file-row-checkbox-1",
+    ) as HTMLInputElement;
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox.checked).toBe(false);
+    expect(screen.queryByText("1")).not.toBeInTheDocument();
   });
 
   it("calls selected ids change callback when checkbox is toggled", () => {
@@ -125,13 +183,13 @@ describe("MusicFileTable multi-select mode", () => {
       <MusicFileTable
         data={[row]}
         isMultiSelectMode={true}
-        selectedTrackIds={[]}
+        selectedTrackIds={[1]}
         onSelectedTrackIdsChange={onSelectedTrackIdsChange}
       />
     );
 
     fireEvent.click(screen.getByTestId("music-file-row-checkbox-1"));
-    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([1]);
+    expect(onSelectedTrackIdsChange).toHaveBeenCalledWith([]);
   });
 
   it("toggles row selection when clicking the row in multi-select mode", () => {

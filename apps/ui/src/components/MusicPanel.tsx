@@ -846,14 +846,12 @@ export function MusicPanel() {
     if (isMultiSelectMode) return;
     const track = tracks.find((t) => t.id === trackId);
     if (!track || track.status === 'downloading') return;
+    if (selectedTrackIds.includes(trackId)) return;
 
-    if (currentTrackId === trackId) {
-      setIsPlaying((prev) => !prev);
-    } else {
-      setCurrentTrackId(trackId);
-      setIsPlaying(true);
-    }
-  }, [tracks, currentTrackId, isMultiSelectMode]);
+    setSelectedTrackIds([trackId]);
+    setCurrentTrackId(trackId);
+    setIsPlaying(true);
+  }, [tracks, selectedTrackIds, isMultiSelectMode]);
 
   useEffect(() => {
     const subscriptions: Array<() => void> = [

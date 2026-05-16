@@ -274,6 +274,7 @@
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"
   },
   "musicFileTable": {
+    "selectAllAria": "全选",
     "columns": {
       "index": "#",
       "cover": "封面",

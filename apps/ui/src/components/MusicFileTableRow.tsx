@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/context-menu"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import {
-  Play,
   FolderOpen,
   Trash2,
   FileText,
@@ -138,8 +137,6 @@ function ThumbnailPreview({
 export function MusicFileTableRow({
   row,
   mediaFolderPath,
-  currentTrackId,
-  isPlaying,
   onTrackClick,
   hasRunningDownload,
   onDownloadStart,
@@ -169,14 +166,13 @@ export function MusicFileTableRow({
   const { t } = useTranslation(["components"])
 
   const toggleTrackSelection = (trackId: number) => {
-    if (!isMultiSelectMode) return
     const next = selectedTrackIds.includes(trackId)
       ? selectedTrackIds.filter((id) => id !== trackId)
       : [...selectedTrackIds, trackId]
     onSelectedTrackIdsChange?.(next)
   }
 
-  const isActive = currentTrackId === row.id
+  const isSelected = selectedTrackIds.includes(row.id)
   const isDownloading = row.status === "downloading"
   const isTranscribing = row.transcribeStatus === "running"
   const isTranslating = row.translateStatus === "running"
@@ -234,9 +230,6 @@ export function MusicFileTableRow({
                     ? ("subtitle-failed" as const)
                     : null)
 
-  const showIndexColumnPlayback =
-    !row.jobId && !subtitleIndexColumn && !isActive
-
   const indexColumnRunningTooltip: string | undefined =
     row.jobId && row.status === "downloading"
       ? t("mediaPlayer.downloadingTooltip")
@@ -256,28 +249,23 @@ export function MusicFileTableRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <TableRow
-          className={`cursor-pointer group ${isActive ? "bg-muted" : ""}`}
+          className={`cursor-pointer group ${isSelected ? "bg-muted" : ""}`}
           onClick={() => {
             if (isDownloading) return
             if (isMultiSelectMode) {
-              toggleTrackSelection(row.id)
+              if (isSelected) {
+                onSelectedTrackIdsChange?.(
+                  selectedTrackIds.filter((id) => id !== row.id),
+                )
+              } else {
+                onSelectedTrackIdsChange?.([...selectedTrackIds, row.id])
+              }
               return
             }
+            if (isSelected) return
             onTrackClick?.(row.id)
           }}
         >
-          {isMultiSelectMode && (
-            <TableCell className="w-10 px-2 py-1.5 text-center">
-              <input
-                type="checkbox"
-                checked={selectedTrackIds.includes(row.id)}
-                onClick={(event) => event.stopPropagation()}
-                onChange={() => toggleTrackSelection(row.id)}
-                data-testid={`music-file-row-checkbox-${row.id}`}
-                aria-label={`select-row-${row.id}`}
-              />
-            </TableCell>
-          )}
           <TableCell className="w-10 px-2 py-1.5 text-center">
             <div className="flex items-center justify-center">
               {indexColumnShowsRunningSpinner ? (
@@ -300,28 +288,18 @@ export function MusicFileTableRow({
                 )
               ) : subtitleIndexColumn === "subtitle-failed" ? (
                 <XCircle className="size-4 text-red-500" aria-hidden />
-              ) : isActive && isPlaying ? (
-                <div className="flex h-4 items-center justify-center gap-0.5">
-                  {[0, 1, 2, 3].map((i) => (
-                    <span
-                      key={i}
-                      className="w-0.5 animate-pulse rounded-full bg-primary"
-                      style={{
-                        animationDelay: `${i * 0.15}s`,
-                        height: `${4 + Math.random() * 12}px`,
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : isActive ? (
-                <Play className="size-4 text-primary" />
+              ) : isMultiSelectMode || isSelected ? (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={() => toggleTrackSelection(row.id)}
+                  data-testid={`music-file-row-checkbox-${row.id}`}
+                  aria-label={`select-row-${row.id}`}
+                  className="size-4 cursor-pointer"
+                />
               ) : (
-                <span className="text-muted-foreground group-hover:hidden">
-                  {row.index + 1}
-                </span>
-              )}
-              {showIndexColumnPlayback && (
-                <Play className="size-4 text-foreground hidden group-hover:block" />
+                <span className="text-muted-foreground">{row.index + 1}</span>
               )}
             </div>
           </TableCell>
@@ -358,7 +336,7 @@ export function MusicFileTableRow({
 
           <TableCell className="min-w-0 px-2 py-1.5">
             <p
-              className={`min-w-0 truncate ${isActive ? "font-medium text-primary" : ""}`}
+              className={`min-w-0 truncate ${isSelected ? "font-medium text-primary" : ""}`}
               title={
                 isProcessing
                   ? t("mediaPlayer.processRunningTooltip")

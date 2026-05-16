@@ -275,6 +275,7 @@
     "tryAdjustingFilter": "Try adjusting your search or filter"
   },
   "musicFileTable": {
+    "selectAllAria": "Select all",
     "columns": {
       "index": "#",
       "cover": "Cover",

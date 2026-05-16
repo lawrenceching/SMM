@@ -413,6 +413,7 @@ interface ComponentsResources {
     noFile: string
   }
   musicFileTable: {
+    selectAllAria: string
     columns: {
       index: string
       cover: string
