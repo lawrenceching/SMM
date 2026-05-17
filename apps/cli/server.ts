@@ -26,7 +26,6 @@ import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFil
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
 import { handleDeleteFile } from './src/route/DeleteFile';
-import { handleScrapeRequest } from './src/route/Scrape';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
