@@ -477,6 +477,10 @@ interface DialogsResources {
     defaultTitle: string
     defaultDescription: string
   }
+  textDialog: {
+    defaultTitle: string
+    defaultDescription: string
+  }
   downloadVideo: {
     title: string
     description: string
@@ -505,6 +509,18 @@ interface DialogsResources {
     episodesDownloadsFinished: string
     backgroundQueued: string
     backgroundJobEpisodesName: string
+    cookiesConfigure: string
+    useCookiesLabel: string
+    useCookiesFromBrowserLabel: string
+    cookiesBrowserSelectLabel: string
+    cookiesBrowserChrome: string
+    cookiesBrowserEdge: string
+    cookiesBrowserFirefox: string
+    cookiesEmpty: string
+    cookiesWriteFailed: string
+    cookiesDialogTitle: string
+    cookiesDialogDescription: string
+    cookiesDialogLabel: string
     validation: {
       URL_EMPTY: string
       URL_INVALID: string

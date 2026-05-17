@@ -2,7 +2,7 @@
 /* global self, clients, caches, indexedDB */
 
 // Bump rev when `whitelisted-cmd-sw.js` changes (importScripts is cached per full URL).
-const WHITELISTED_CMD_SW_REV = 2
+const WHITELISTED_CMD_SW_REV = 4
 importScripts(`/whitelisted-cmd-sw.js?rev=${WHITELISTED_CMD_SW_REV}`)
 const wc = self.whitelistedCmdSw
 
@@ -209,6 +209,26 @@ async function handleSwReactivate() {
 
 // ─── Download logic ───────────────────────────────────────────────────────────
 
+async function deleteYtdlpCookiesFileIfPresent(cookiesFile) {
+  const path = typeof cookiesFile === 'string' ? cookiesFile.trim() : ''
+  if (!path) return
+  try {
+    const resp = await fetch('/api/deleteFile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    })
+    if (!resp.ok) {
+      console.warn('[SW] deleteYtdlpCookiesFile: HTTP error', { path, status: resp.status })
+    }
+  } catch (e) {
+    console.warn('[SW] deleteYtdlpCookiesFile: failed', {
+      path,
+      error: e instanceof Error ? e.message : String(e),
+    })
+  }
+}
+
 async function startDownload(jobId) {
   console.log('[SW] startDownload called', { jobId })
 
@@ -272,6 +292,8 @@ async function startDownload(jobId) {
         folder,
         args: YTDLP_DOWNLOAD_DEFAULT_ARGS,
         format: data.ytdlpFormat,
+        cookiesFile: data.ytdlpCookiesFile,
+        cookiesFromBrowser: data.ytdlpCookiesFromBrowser,
       })
       const cmd = await wc.executeCmdViaFetch('yt-dlp', dlArgs, {
         signal: controller.signal,
@@ -325,6 +347,8 @@ async function startDownload(jobId) {
     job.status = 'failed'
     await notifyClients('download:failed', { id: jobId })
   }
+
+  await deleteYtdlpCookiesFileIfPresent(data.ytdlpCookiesFile)
 
   job.updatedAt = Date.now()
   await dbPutJob(job)

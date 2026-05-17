@@ -59,6 +59,10 @@ export interface DownloadVideoBackgroundJobData {
   videos: DownloadVideoJobVideo[];
   /** yt-dlp `-f` format applied to every video in this job. */
   ytdlpFormat?: string;
+  /** Absolute path to Netscape cookies file for `--cookies` on every video. */
+  ytdlpCookiesFile?: string;
+  /** Browser profile for `--cookies-from-browser` (chrome, edge, firefox). */
+  ytdlpCookiesFromBrowser?: string;
   /** CLI command log correlation (executeCmd yt-dlp). */
   executionId?: string;
   logRelativePath?: string;

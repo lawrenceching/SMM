@@ -22,7 +22,19 @@ import {
   useBilibiliEpisodesMetadataMutation,
   useExtractYtdlpVideoDataMutation,
 } from "@/hooks/ytdlp/useYtdlpMutations"
-import { buildDownloadVideoJob } from "@/lib/downloadVideoJobFactory"
+import {
+  buildDownloadVideoJob,
+  createDownloadVideoJobId,
+} from "@/lib/downloadVideoJobFactory"
+import { writeYtdlpCookiesFile } from "@/lib/ytdlpCookiesFile"
+import {
+  DEFAULT_YTDLP_COOKIES_BROWSER_ID,
+  YTDLP_COOKIES_BROWSER_IDS,
+  ytdlpCookiesBrowserLabelKey,
+  type YtdlpCookiesBrowserId,
+} from "@/lib/ytdlpCookiesBrowsers"
+import { useConfig } from "@/hooks/userConfig/useConfig"
+import { useDialogs } from "@/providers/dialog-provider"
 import {
   resolveYtdlpFormatFromPreset,
   YTDLP_FORMAT_PRESETS,
@@ -79,6 +91,8 @@ function ytdlpVideosToEpisodeItems(videos: YtdlpVideo[]): EpisodeItem[] {
 export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destinationFolder }: DownloadVideoDialogProps) {
   const { t } = useTranslation('dialogs')
   const { t: tCommon } = useTranslation('common')
+  const { appConfig } = useConfig()
+  const { textDialog: [openTextDialog] } = useDialogs()
   const { createJob } = useJobManager()
   const [url, setUrl] = useState("")
   const [downloadFolder, setDownloadFolder] = useState("")
@@ -102,6 +116,12 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const [collectionError, setCollectionError] = useState<string | null>(null)
   const [selectedFormatPresetId, setSelectedFormatPresetId] =
     useState<YtdlpFormatPresetId>("default")
+  const [cookiesText, setCookiesText] = useState("")
+  const [useCookies, setUseCookies] = useState(false)
+  const [useCookiesFromBrowser, setUseCookiesFromBrowser] = useState(false)
+  const [cookiesBrowser, setCookiesBrowser] = useState<YtdlpCookiesBrowserId>(
+    DEFAULT_YTDLP_COOKIES_BROWSER_ID,
+  )
   const episodesFetchGen = useRef(0)
   const previousUrlRef = useRef("")
 
@@ -306,6 +326,49 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     fetchCollectionMetadata()
   }
 
+  const prepareYtdlpCookiesFileForJob = async (
+    jobId: string,
+  ): Promise<string | undefined> => {
+    if (!useCookies) {
+      return undefined
+    }
+    const trimmed = cookiesText.trim()
+    if (!trimmed) {
+      return undefined
+    }
+    const userDataDir = appConfig.userDataDir
+    if (!userDataDir) {
+      throw new Error(t("downloadVideo.cookiesWriteFailed"))
+    }
+    return writeYtdlpCookiesFile(userDataDir, jobId, trimmed)
+  }
+
+  const buildJobInput = async (
+    input: Omit<
+      Parameters<typeof buildDownloadVideoJob>[0],
+      "ytdlpFormat" | "ytdlpCookiesFile" | "ytdlpCookiesFromBrowser" | "id"
+    >,
+  ) => {
+    const id = createDownloadVideoJobId()
+    const ytdlpCookiesFile = await prepareYtdlpCookiesFileForJob(id)
+    return buildDownloadVideoJob({
+      ...input,
+      id,
+      ytdlpFormat: resolvedYtdlpFormat,
+      ...(ytdlpCookiesFile ? { ytdlpCookiesFile } : {}),
+      ...(useCookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesBrowser } : {}),
+    })
+  }
+
+  const handleOpenCookiesEditor = () => {
+    openTextDialog((text) => setCookiesText(text), {
+      initialValue: cookiesText,
+      title: t("downloadVideo.cookiesDialogTitle"),
+      description: t("downloadVideo.cookiesDialogDescription"),
+      label: t("downloadVideo.cookiesDialogLabel"),
+    })
+  }
+
   const handleStart = async () => {
     if (!hasAgreed) {
       return
@@ -320,6 +383,11 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
       return
     }
 
+    if (useCookies && !cookiesText.trim()) {
+      toast.error(t("downloadVideo.cookiesEmpty"))
+      return
+    }
+
     if (isCollectionUrl) {
       if (selectedCollectionUrls.size === 0) {
         toast.error(t("downloadVideo.episodesNoneSelected"))
@@ -328,14 +396,15 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
       setIsEnqueueing(true)
       try {
-        const collectionJobs = Array.from(selectedCollectionUrls).map((u) =>
-          buildDownloadVideoJob({
-            name: "Download Video",
-            folder: downloadFolder,
-            urls: [u],
-            itemMeta: [{ title: u, artist: "" }],
-            ytdlpFormat: resolvedYtdlpFormat,
-          }),
+        const collectionJobs = await Promise.all(
+          Array.from(selectedCollectionUrls).map((u) =>
+            buildJobInput({
+              name: "Download Video",
+              folder: downloadFolder,
+              urls: [u],
+              itemMeta: [{ title: u, artist: "" }],
+            }),
+          ),
         )
         await Promise.all(collectionJobs.map((job) => createJob(job)))
         onClose()
@@ -368,16 +437,17 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
 
       }
 
-      const jobs = urls.map((u) => {
-        const episode = episodes.find((e) => e.url === u)
-        return buildDownloadVideoJob({
-          name: episode?.title || 'Download Video',
-          folder: downloadFolder,
-          urls: [u],
-          itemMeta: episode ? [{ title: episode.title, artist: episode.artist }] : undefined,
-          ytdlpFormat: resolvedYtdlpFormat,
-        })
-      })
+      const jobs = await Promise.all(
+        urls.map((u) => {
+          const episode = episodes.find((e) => e.url === u)
+          return buildJobInput({
+            name: episode?.title || 'Download Video',
+            folder: downloadFolder,
+            urls: [u],
+            itemMeta: episode ? [{ title: episode.title, artist: episode.artist }] : undefined,
+          })
+        }),
+      )
 
       await Promise.all(jobs.map((job) => createJob(job)))
       onClose()
@@ -404,6 +474,10 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     resetEpisodesMetadata()
     resetCollectionState()
     setSelectedFormatPresetId("default")
+    setCookiesText("")
+    setUseCookies(false)
+    setUseCookiesFromBrowser(false)
+    setCookiesBrowser(DEFAULT_YTDLP_COOKIES_BROWSER_ID)
     extractMutation.reset()
     onClose()
   }
@@ -507,6 +581,67 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               <p className="text-sm text-destructive">{urlError}</p>
             )}
           </div>
+          {hasAgreed && (
+            <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  data-testid="download-video-dialog-use-cookies-checkbox"
+                  type="checkbox"
+                  className="h-3.5 w-3.5"
+                  checked={useCookies}
+                  onChange={(e) => setUseCookies(e.target.checked)}
+                  disabled={formBusy}
+                />
+                <span>{t("downloadVideo.useCookiesLabel")}</span>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="download-video-dialog-cookies-button"
+                onClick={handleOpenCookiesEditor}
+                disabled={formBusy}
+              >
+                {t("downloadVideo.cookiesConfigure")}
+              </Button>
+            </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    data-testid="download-video-dialog-use-cookies-from-browser-checkbox"
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={useCookiesFromBrowser}
+                    onChange={(e) => setUseCookiesFromBrowser(e.target.checked)}
+                    disabled={formBusy}
+                  />
+                  <span>{t("downloadVideo.useCookiesFromBrowserLabel")}</span>
+                </label>
+                <Select
+                  value={cookiesBrowser}
+                  onValueChange={(value) => setCookiesBrowser(value as YtdlpCookiesBrowserId)}
+                  disabled={formBusy || !useCookiesFromBrowser}
+                >
+                  <SelectTrigger
+                    id="download-cookies-browser"
+                    data-testid="download-video-dialog-cookies-browser-select"
+                    className="h-8 w-[140px]"
+                    aria-label={t("downloadVideo.cookiesBrowserSelectLabel")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YTDLP_COOKIES_BROWSER_IDS.map((id) => (
+                      <SelectItem key={id} value={id}>
+                        {t(ytdlpCookiesBrowserLabelKey(id))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           {hasAgreed && isUrlValid && (
             <div className="flex flex-col gap-2">
               <Label htmlFor="download-format">{t("downloadVideo.formatLabel")}</Label>

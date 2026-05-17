@@ -5,11 +5,12 @@ import type {
   JobStatus,
 } from '@/types/background-jobs'
 
-function newJobId(): string {
+export function createDownloadVideoJobId(): string {
   return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
 export interface CreateDownloadVideoJobInput {
+  id?: string
   name: string
   folder: string
   urls: string[]
@@ -17,6 +18,10 @@ export interface CreateDownloadVideoJobInput {
   itemMeta?: Array<{ title?: string; artist?: string }>
   /** yt-dlp `-f` format selector for all videos in the job. */
   ytdlpFormat?: string
+  /** Absolute path to cookies file for `--cookies`. */
+  ytdlpCookiesFile?: string
+  /** Browser profile for `--cookies-from-browser`. */
+  ytdlpCookiesFromBrowser?: string
 }
 
 export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): DownloadVideoBackgroundJob {
@@ -28,14 +33,18 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
   }))
 
   const format = input.ytdlpFormat?.trim()
+  const cookiesFile = input.ytdlpCookiesFile?.trim()
+  const cookiesFromBrowser = input.ytdlpCookiesFromBrowser?.trim().toLowerCase()
   const data: DownloadVideoBackgroundJobData = {
     folder: input.folder,
     videos,
     ...(format ? { ytdlpFormat: format } : {}),
+    ...(cookiesFile ? { ytdlpCookiesFile: cookiesFile } : {}),
+    ...(cookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesFromBrowser } : {}),
   }
 
   return {
-    id: newJobId(),
+    id: input.id ?? createDownloadVideoJobId(),
     name: input.name,
     status: 'pending',
     progress: 0,

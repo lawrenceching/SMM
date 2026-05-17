@@ -17,6 +17,13 @@ function buildYtdlpDownloadArgs(input) {
   if (input.format && String(input.format).trim()) {
     args.push('-f', String(input.format).trim())
   }
+  if (input.cookiesFile && String(input.cookiesFile).trim()) {
+    args.push('--cookies', String(input.cookiesFile).trim())
+  }
+  const browser = input.cookiesFromBrowser && String(input.cookiesFromBrowser).trim().toLowerCase()
+  if (browser === 'chrome' || browser === 'edge' || browser === 'firefox') {
+    args.push('--cookies-from-browser', browser)
+  }
   args.push(input.url)
   if (input.args && input.args.length) {
     for (const a of input.args) {

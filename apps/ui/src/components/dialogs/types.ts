@@ -78,6 +78,16 @@ export interface RenameFileDialogProps {
   suggestions?: string[]
 }
 
+export interface TextDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: (text: string) => void
+  initialValue?: string
+  title?: string
+  description?: string
+  label?: string
+}
+
 export interface RenameFolderDialogProps {
   isOpen: boolean
   onClose: () => void

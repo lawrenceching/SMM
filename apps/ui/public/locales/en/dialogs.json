@@ -15,6 +15,10 @@
     "placeholder": "Enter new name...",
     "suggestions": "Suggestions"
   },
+  "textDialog": {
+    "defaultTitle": "Edit text",
+    "defaultDescription": "Enter or paste text below."
+  },
   "filePicker": {
     "defaultTitle": "Select File or Folder",
     "defaultDescription": "Choose a file or folder from the list"
@@ -47,6 +51,18 @@
     "episodesDownloadsFinished": "Completed {{count}} download(s).",
     "backgroundQueued": "Download added to background tasks.",
     "backgroundJobEpisodesName": "Episodes ({{count}} videos)",
+    "cookiesConfigure": "Configure",
+    "useCookiesLabel": "Use cookies",
+    "useCookiesFromBrowserLabel": "From browser",
+    "cookiesBrowserSelectLabel": "Select browser",
+    "cookiesBrowserChrome": "Chrome",
+    "cookiesBrowserEdge": "Edge",
+    "cookiesBrowserFirefox": "Firefox",
+    "cookiesEmpty": "Enter cookie file content or disable Use cookies.",
+    "cookiesWriteFailed": "Could not save cookies file.",
+    "cookiesDialogTitle": "Cookies",
+    "cookiesDialogDescription": "Paste a Netscape-format cookie file (first line: # HTTP Cookie File or # Netscape HTTP Cookie File). See yt-dlp FAQ for details.",
+    "cookiesDialogLabel": "Cookie file content",
     "validation": {
       "URL_EMPTY": "Please enter a video URL",
       "URL_INVALID": "Please enter a valid URL",

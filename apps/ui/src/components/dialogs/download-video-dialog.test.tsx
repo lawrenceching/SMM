@@ -15,6 +15,8 @@ const h = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   validateDownloadUrl: vi.fn(),
   getBilibiliVideoMetadata: vi.fn(),
+  openTextDialog: vi.fn(),
+  writeYtdlpCookiesFile: vi.fn().mockResolvedValue('/data/user/temp/ytdlp-cookies-job-1.txt'),
 }))
 
 vi.mock('@/api/ytdlp', async (importOriginal) => {
@@ -124,6 +126,15 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.formatAudioOnly': 'Audio only',
         'downloadVideo.episodesLoading': 'Loading episodes…',
         'downloadVideo.episodesNoneSelected': 'Select at least one item.',
+        'downloadVideo.cookiesConfigure': 'Configure',
+        'downloadVideo.useCookiesLabel': 'Use cookies',
+        'downloadVideo.useCookiesFromBrowserLabel': 'From browser',
+        'downloadVideo.cookiesBrowserSelectLabel': 'Select browser',
+        'downloadVideo.cookiesBrowserChrome': 'Chrome',
+        'downloadVideo.cookiesBrowserEdge': 'Edge',
+        'downloadVideo.cookiesBrowserFirefox': 'Firefox',
+        'downloadVideo.cookiesEmpty': 'Enter cookie file content.',
+        'downloadVideo.cookiesWriteFailed': 'Could not save cookies file.',
       }
       return dialogsTranslations[key] || key
     },
@@ -141,6 +152,35 @@ vi.mock('sonner', () => ({
     success: h.toastSuccess,
   },
 }))
+
+vi.mock('@/providers/dialog-provider', () => ({
+  useDialogs: () => ({
+    textDialog: [h.openTextDialog, vi.fn()],
+  }),
+}))
+
+vi.mock('@/hooks/userConfig/useConfig', () => ({
+  useConfig: () => ({
+    appConfig: { userDataDir: '/data/user', version: 'test', reverseProxyUrl: null },
+    userConfig: {},
+    setUserConfig: vi.fn(),
+    isLoading: false,
+    isUserConfigLoaded: true,
+    error: null,
+    setAndSaveUserConfig: vi.fn(),
+    reload: vi.fn(),
+    refreshUserConfig: vi.fn(),
+    addMediaFolderInUserConfig: vi.fn(),
+  }),
+}))
+
+vi.mock('@/lib/ytdlpCookiesFile', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ytdlpCookiesFile')>()
+  return {
+    ...actual,
+    writeYtdlpCookiesFile: h.writeYtdlpCookiesFile,
+  }
+})
 
 describe('DownloadVideoDialog - user agreement', () => {
   const mockOnClose = vi.fn()
@@ -635,7 +675,11 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByLabelText('Download episodes'))
     await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('checkbox')[1]) // episode row checkbox
+    fireEvent.click(
+      screen.getByTestId(
+        'download-video-dialog-episode-checkbox-https://www.bilibili.com/video/BV1/',
+      ),
+    )
     fireEvent.click(screen.getByText('Start'))
 
     expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
@@ -765,5 +809,128 @@ describe('DownloadVideoDialog - user agreement', () => {
       callback({ path: 'D:\\music' })
     })
     expect((screen.getByLabelText('Download Folder') as HTMLInputElement).value).toBe('D:\\music')
+  })
+
+  it('opens TextDialog when Cookies button is clicked', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
+    expect(h.openTextDialog).toHaveBeenCalled()
+  })
+
+  it('does not set ytdlpCookiesFile when Use cookies is unchecked', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
+    expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
+    expect(h.saveDownloadVideoJob.mock.calls[0]?.[0]?.data?.ytdlpCookiesFile).toBeUndefined()
+  })
+
+  it('writes cookies file and sets ytdlpCookiesFile when Use cookies is enabled', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
+      onConfirm('# HTTP Cookie File\n.example.com\tTRUE\t/\tFALSE\t0\tcookie\tvalue')
+    })
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
+    fireEvent.click(screen.getByLabelText('Use cookies'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.writeYtdlpCookiesFile).toHaveBeenCalled())
+    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ytdlpCookiesFile: '/data/user/temp/ytdlp-cookies-job-1.txt',
+        }),
+      }),
+    )
+  })
+
+  it('shows error when Use cookies is enabled but content is empty', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByLabelText('Use cookies'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('Enter cookie file content.'))
+    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+  })
+
+  it('sets ytdlpCookiesFromBrowser when From browser is enabled', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByLabelText('From browser'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
+    expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
+    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
+    expect(job?.data?.ytdlpCookiesFromBrowser).toBe('chrome')
+    expect(job?.data?.ytdlpCookiesFile).toBeUndefined()
+  })
+
+  it('allows both manual cookies and From browser on the same job', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
+      onConfirm('# HTTP Cookie File\n')
+    })
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
+    fireEvent.click(screen.getByLabelText('Use cookies'))
+    fireEvent.click(screen.getByLabelText('From browser'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
+    expect(h.writeYtdlpCookiesFile).toHaveBeenCalled()
+    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
+    expect(job?.data?.ytdlpCookiesFromBrowser).toBe('chrome')
+    expect(job?.data?.ytdlpCookiesFile).toBe('/data/user/temp/ytdlp-cookies-job-1.txt')
+  })
+
+  it('shows error when writeFile fails for cookies', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
+      onConfirm('cookie data')
+    })
+    h.writeYtdlpCookiesFile.mockRejectedValueOnce(new Error('write failed'))
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
+    fireEvent.click(screen.getByLabelText('Use cookies'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('write failed'))
+    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
   })
 })

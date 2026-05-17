@@ -9,6 +9,7 @@ import {
   DownloadVideoDialog,
   MediaSearchDialog,
   RenameFileDialog,
+  TextDialog,
   RenameFolderDialog,
   OpenFolderDialog,
   ScrapeDialog,
@@ -87,6 +88,10 @@ interface DialogContextValue {
     openRenameFile: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
     closeRenameFile: () => void
   ]
+  textDialog: [
+    openTextDialog: (onConfirm: (text: string) => void, options?: { initialValue?: string; title?: string; description?: string; label?: string }) => void,
+    closeTextDialog: () => void
+  ]
   renameFolderDialog: [
     openRenameFolder: (mediaFolderPath: string, options?: { title?: string; description?: string }) => void,
     closeRenameFolder: () => void
@@ -164,6 +169,15 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isRenameFileOpen, setIsRenameFileOpen] = useState(false)
   const [renameFileOnConfirm, setRenameFileOnConfirm] = useState<((newName: string) => void) | null>(null)
   const [renameFileOptions, setRenameFileOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
+
+  const [isTextDialogOpen, setIsTextDialogOpen] = useState(false)
+  const [textDialogOnConfirm, setTextDialogOnConfirm] = useState<((text: string) => void) | null>(null)
+  const [textDialogOptions, setTextDialogOptions] = useState<{
+    initialValue?: string
+    title?: string
+    description?: string
+    label?: string
+  }>({})
 
   // Rename folder dialog state
   const [isRenameFolderOpen, setIsRenameFolderOpen] = useState(false)
@@ -326,6 +340,34 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openTextDialog = useCallback(
+    (
+      onConfirm: (text: string) => void,
+      options?: { initialValue?: string; title?: string; description?: string; label?: string },
+    ) => {
+      setTextDialogOnConfirm(() => onConfirm)
+      setTextDialogOptions(options || {})
+      setIsTextDialogOpen(true)
+    },
+    [],
+  )
+
+  const closeTextDialog = useCallback(() => {
+    setIsTextDialogOpen(false)
+    setTimeout(() => {
+      setTextDialogOnConfirm(null)
+      setTextDialogOptions({})
+    }, 200)
+  }, [])
+
+  const handleTextDialogConfirm = useCallback(
+    (text: string) => {
+      textDialogOnConfirm?.(text)
+      closeTextDialog()
+    },
+    [textDialogOnConfirm, closeTextDialog],
+  )
+
   const closeRenameFolder = useCallback(() => {
     setIsRenameFolderOpen(false)
     setTimeout(() => {
@@ -439,6 +481,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
     renameFileDialog: [openRenameFile, closeRenameFile],
+    textDialog: [openTextDialog, closeTextDialog],
     renameFolderDialog: [openRenameFolder, closeRenameFolder],
     scrapeDialog: [openScrape, closeScrape],
     filePropertyDialog: [openFileProperty, closeFileProperty],
@@ -500,6 +543,15 @@ export function DialogProvider({ children }: DialogProviderProps) {
         title={renameFileOptions.title}
         description={renameFileOptions.description}
         suggestions={renameFileOptions.suggestions}
+      />
+      <TextDialog
+        isOpen={isTextDialogOpen}
+        onClose={closeTextDialog}
+        onConfirm={handleTextDialogConfirm}
+        initialValue={textDialogOptions.initialValue}
+        title={textDialogOptions.title}
+        description={textDialogOptions.description}
+        label={textDialogOptions.label}
       />
       {renameFolderPath && (
         <RenameFolderDialog

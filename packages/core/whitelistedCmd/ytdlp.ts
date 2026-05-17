@@ -1,10 +1,23 @@
 import { YTDLP_DOWNLOAD_ALLOWED_ARGS } from "./constants";
 
+export const YTDLP_COOKIES_FROM_BROWSER_NAMES = ["chrome", "edge", "firefox"] as const;
+export type YtdlpCookiesFromBrowserName = (typeof YTDLP_COOKIES_FROM_BROWSER_NAMES)[number];
+
+export function isYtdlpCookiesFromBrowserName(
+  value: string,
+): value is YtdlpCookiesFromBrowserName {
+  return (YTDLP_COOKIES_FROM_BROWSER_NAMES as readonly string[]).includes(value);
+}
+
 export interface YtdlpDownloadRequestInput {
   url: string;
   folder: string;
   args?: string[];
   format?: string;
+  /** Absolute path to Netscape-format cookies file for `--cookies`. */
+  cookiesFile?: string;
+  /** Browser profile for `--cookies-from-browser` (e.g. chrome, edge, firefox). */
+  cookiesFromBrowser?: string;
 }
 
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
@@ -29,6 +42,16 @@ export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string
   const format = input.format?.trim();
   if (format) {
     args.push("-f", format);
+  }
+
+  const cookiesFile = input.cookiesFile?.trim();
+  if (cookiesFile) {
+    args.push("--cookies", cookiesFile);
+  }
+
+  const browser = input.cookiesFromBrowser?.trim().toLowerCase();
+  if (browser && isYtdlpCookiesFromBrowserName(browser)) {
+    args.push("--cookies-from-browser", browser);
   }
 
   args.push(input.url);

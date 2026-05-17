@@ -15,6 +15,10 @@
     "placeholder": "請輸入新名稱...",
     "suggestions": "建議"
   },
+  "textDialog": {
+    "defaultTitle": "編輯文字",
+    "defaultDescription": "在下方輸入或貼上文字。"
+  },
   "filePicker": {
     "defaultTitle": "選擇檔案或資料夾",
     "defaultDescription": "從清單中選擇檔案或資料夾"
@@ -47,6 +51,18 @@
     "episodesDownloadsFinished": "搞掂 {{count}} 個下載。",
     "backgroundQueued": "已加入後台下載任務。",
     "backgroundJobEpisodesName": "分集（{{count}} 條片）",
+    "cookiesConfigure": "配置",
+    "useCookiesLabel": "使用 Cookies",
+    "useCookiesFromBrowserLabel": "從瀏覽器獲取",
+    "cookiesBrowserSelectLabel": "選擇瀏覽器",
+    "cookiesBrowserChrome": "Chrome",
+    "cookiesBrowserEdge": "Edge",
+    "cookiesBrowserFirefox": "Firefox",
+    "cookiesEmpty": "請填寫 Cookie 檔案內容，或取消勾選「使用 Cookie」。",
+    "cookiesWriteFailed": "無法儲存 Cookie 檔案。",
+    "cookiesDialogTitle": "Cookie",
+    "cookiesDialogDescription": "請貼上 Netscape 格式的 Cookie 檔案（首行須為 # HTTP Cookie File 或 # Netscape HTTP Cookie File）。詳見 yt-dlp 常見問題。",
+    "cookiesDialogLabel": "Cookie 檔案內容",
     "validation": {
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效嘅 URL",

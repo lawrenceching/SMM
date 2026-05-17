@@ -1,16 +1,13 @@
-# execute-cmd-client-adapters Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change deprecate-ffmpeg-ytdlp-videocaptioner-api. Update Purpose after archive.
-## Requirements
 ### Requirement: Shared whitelisted command adapters
 
 The system SHALL provide shared frontend modules that construct `POST /api/executeCmd` request bodies (`command` + `args`) for `ffmpeg`, `ffprobe`, `yt-dlp`, and `videocaptioner` operations currently served by dedicated routes. React code and `download-service-worker.js` SHALL use these adapters instead of calling removed `/api/ffmpeg/*`, `/api/ytdlp/*`, or `/api/videocaptioner/*` endpoints.
 
 #### Scenario: Download adapter builds yt-dlp invocation
 
-- **WHEN** a caller requests a video download with URL, output folder, allow-listed extra args, optional format selector, optional cookies file path, and optional cookies-from-browser profile
-- **THEN** the adapter returns `{ command: "yt-dlp", args: [...] }` equivalent to the former download route invocation including `-f` when format is set, `--cookies` when cookies file path is set, and `--cookies-from-browser` when browser profile is set
+- **WHEN** a caller requests a video download with URL, output folder, allow-listed extra args, optional format selector, and optional cookies file path
+- **THEN** the adapter returns `{ command: "yt-dlp", args: [...] }` equivalent to the former download route invocation including `-f` when format is set and `--cookies` when cookies file path is set
 
 #### Scenario: VideoCaptioner pipeline adapter builds subcommand args
 
@@ -44,4 +41,3 @@ The system SHALL determine whether a whitelisted binary is available by attempti
 
 - **WHEN** executeCmd returns an error indicating the videocaptioner executable was not found
 - **THEN** the probe reports VideoCaptioner as unavailable without calling a discover route
-
