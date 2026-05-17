@@ -4,7 +4,7 @@ import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { Path } from "@core/path"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { FileProps } from "@/lib/types"
-import { newFileName } from "@/api/newFileName"
+import { generateNewFileName } from "@/lib/renameRules"
 import { join } from "@/lib/path"
 import { useLatest } from "react-use"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -253,53 +253,46 @@ function MoviePanel() {
       return
     }
 
-    (async () => {
-      const videoFile = latestMovieFiles.current.files.find(file => file.type === "video")
+    const videoFile = latestMovieFiles.current.files.find(file => file.type === "video")
 
-      if(videoFile === undefined) {
-        console.error(`Video file is undefined for movie`)
-        return
-      }
+    if (videoFile === undefined) {
+      console.error(`Video file is undefined for movie`)
+      return
+    }
 
-      const releaseYear =
-        movie.airDate && movie.airDate.length >= 4
-          ? movie.airDate.slice(0, 4)
-          : ""
+    const releaseYear =
+      movie.airDate && movie.airDate.length >= 4
+        ? movie.airDate.slice(0, 4)
+        : ""
 
-      const response = await newFileName({
-        ruleName: selectedNamingRule,
-        type: "movie",
-        seasonNumber: 0,
-        episodeNumber: 0,
-        episodeName: "",
-        tvshowName: movie.name || "",
-        file: videoFile.path,
-        tmdbId: movie.id?.toString() || "",
-        releaseYear,
-        movieName: movie.name || "",
-      })
+    const generatedFileRelativePath = generateNewFileName(selectedNamingRule, {
+      type: "movie",
+      seasonNumber: 0,
+      episodeNumber: 0,
+      episodeName: "",
+      tvshowName: movie.name || "",
+      file: videoFile.path,
+      tmdbId: movie.id?.toString() || "",
+      releaseYear,
+      movieName: movie.name || "",
+    })
 
-      const generatedFileRelativePath = response.data;
-      const generatedFilePath = join(mediaMetadata.mediaFolderPath!, generatedFileRelativePath);
+    const generatedFilePath = join(mediaMetadata.mediaFolderPath!, generatedFileRelativePath)
 
-      if(videoFile.path === generatedFilePath) {
-        console.log(`[MoviePanel] the current file has been named follow the ${selectedNamingRule} rule, don't need to regenerate`)
-        return;
-      }
+    if (videoFile.path === generatedFilePath) {
+      console.log(`[MoviePanel] the current file has been named follow the ${selectedNamingRule} rule, don't need to regenerate`)
+      return
+    }
 
-      setMovieFiles(prev => {
-        return {
-          ...prev,
-          files: prev.files.map(file => {
-            if(file.type === "video") {
-              return { ...file, newPath: generatedFilePath }
-            }
-            return file
-          })
+    setMovieFiles(prev => ({
+      ...prev,
+      files: prev.files.map(file => {
+        if (file.type === "video") {
+          return { ...file, newPath: generatedFilePath }
         }
-      })
-
-    })()
+        return file
+      }),
+    }))
   }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule])
 
   useEffect(() => {

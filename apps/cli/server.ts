@@ -11,7 +11,6 @@ import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
-import { handleNewFileName } from './src/route/NewFileName';
 import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
 import { handleListDrives } from './src/route/ListDrives';
@@ -183,7 +182,6 @@ export class Server {
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);
-    handleNewFileName(this.app);
     handleReadImage(this.app);
     handleDownloadImage(this.app);
     handleListFiles(this.app);

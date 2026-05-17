@@ -915,7 +915,7 @@ function TvShowPanel() {
                   // Generate new file names based on selected rule
 
                   // TODO: update plan to loading status
-                  const renamePlan = await generateNewFileNames(rule)
+                  const renamePlan = generateNewFileNames(rule)
                   console.log(`[TvShowPanel] generated rename plan by naming rule ${rule}: `, structuredClone(renamePlan))
 
                   
