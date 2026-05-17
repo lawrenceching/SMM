@@ -215,6 +215,17 @@
     "logPath": "Log file (relative to app log folder)",
     "copy": "Copy",
     "commandLogHint": "Full stdout and stderr for this run are written on the server under your app log directory, in the path shown above (folder named with the execution ID, file main.log)."
+  },
+  "addTestBackgroundJob": {
+    "title": "Add test background job",
+    "description": "Create a fake background job to test the status bar and job list.",
+    "duration": "Duration",
+    "durationSeconds": "{{seconds}} seconds",
+    "outcome": "Result",
+    "outcomeSucceeded": "Success",
+    "outcomeFailed": "Failure",
+    "submit": "Add job",
+    "jobName": "Test job ({{seconds}}s → {{outcome}})"
   }
 }
 

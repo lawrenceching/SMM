@@ -27,10 +27,14 @@ export interface OnMediaLibraryImportedEventData {
 
 export const UI_FixedDelayBackgroundJobEvent = 'ui.fixedDelayBackgroundJob'
 
+export type FixedDelayBackgroundJobOutcome = 'succeeded' | 'failed'
+
 export interface OnFixedDelayBackgroundJobEventData {
     delay: number;
     name?: string;
     traceId?: string;
+    /** Final job status after delay; defaults to `succeeded`. */
+    outcome?: FixedDelayBackgroundJobOutcome;
 }
 
 /** Fired when a download-video background job finishes an item; MusicPanel may refresh metadata for `folder`. */

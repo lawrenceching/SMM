@@ -9,6 +9,7 @@
     "developer": "開發者",
     "openAppDataFolder": "開啟應用程式資料資料夾",
     "openLogFolder": "開啟日誌資料夾",
+    "addTestBackgroundJob": "新增測試任務",
     "config": "設定",
     "cleanUp": "清理",
     "exit": "結束",
@@ -222,6 +223,12 @@
         "failed": "工作失敗",
         "aborted": "使用者已中止"
       },
+      "delete": "刪除",
+      "deleteDisabledRunning": "執行中的任務無法刪除",
+      "clearFinished": "清理",
+      "clearFinishedTooltip": "清理除執行中以外的任務",
+      "clearFinishedAria": "清理除執行中以外的任務",
+      "clearFailed": "未能刪除 {{count}} 個任務",
       "logButton": "記錄",
       "logButtonAria": "檢視 {{name}} 的命令記錄",
       "logDialog": {

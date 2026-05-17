@@ -10,6 +10,7 @@
     "openAppDataFolder": "Open App Data Folder",
     "openLogFolder": "Open Log Folder",
     "openExecuteCmd": "Execute Command",
+    "addTestBackgroundJob": "Add test background job",
     "config": "Config",
     "cleanUp": "Clean Up",
     "exit": "Exit",
@@ -225,6 +226,12 @@
         "failed": "Job failed",
         "aborted": "Aborted by user"
       },
+      "delete": "Delete",
+      "deleteDisabledRunning": "Cannot delete while running",
+      "clearFinished": "Clear",
+      "clearFinishedTooltip": "Remove all jobs except those currently running",
+      "clearFinishedAria": "Remove all jobs except those currently running",
+      "clearFailed": "Failed to remove {{count}} job(s)",
       "logButton": "Log",
       "logButtonAria": "View command log for {{name}}",
       "logDialog": {

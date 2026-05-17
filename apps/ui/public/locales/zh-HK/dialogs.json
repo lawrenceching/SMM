@@ -215,6 +215,17 @@
     "logPath": "日誌路徑（相對於應用程式日誌資料夾）",
     "copy": "複製",
     "commandLogHint": "本次執行的標準輸出與錯誤輸出會寫入應用程式日誌目錄下對應路徑（以執行 ID 命名的資料夾內的 main.log）。"
+  },
+  "addTestBackgroundJob": {
+    "title": "新增測試任務",
+    "description": "建立虛假背景任務，用於測試狀態列與任務清單。",
+    "duration": "等待時長",
+    "durationSeconds": "{{seconds}} 秒",
+    "outcome": "結果",
+    "outcomeSucceeded": "成功",
+    "outcomeFailed": "失敗",
+    "submit": "新增任務",
+    "jobName": "測試任務（{{seconds}}秒 → {{outcome}}）"
   }
 }
 

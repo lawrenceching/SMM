@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { syncJobRecordsToStore } from './jobRecordMapper'
+import { jobRecordToBackgroundJob, syncJobRecordsToStore } from './jobRecordMapper'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import type { TaskJobRecord } from '@/lib/downloadTaskDb'
 
@@ -17,18 +17,53 @@ function makeDownloadRecord(id: string): TaskJobRecord {
   }
 }
 
+describe('jobRecordToBackgroundJob', () => {
+  it('maps test-delay records', () => {
+    const job = jobRecordToBackgroundJob({
+      id: 't1',
+      name: 'Test',
+      status: 'running',
+      progress: 40,
+      type: 'test-delay',
+      folder: '',
+      data: JSON.stringify({ delayMs: 30_000, outcome: 'failed', startedAt: 1_000 }),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    expect(job).toMatchObject({
+      id: 't1',
+      type: 'test-delay',
+      data: { delayMs: 30_000, outcome: 'failed', startedAt: 1_000 },
+    })
+  })
+})
+
 describe('syncJobRecordsToStore', () => {
   beforeEach(() => {
     useBackgroundJobsStore.setState({ jobs: [] })
   })
 
-  it('does not remove persisted jobs when records array is empty', () => {
+  it('removes persisted jobs when records array is empty but keeps generic jobs', () => {
     syncJobRecordsToStore([makeDownloadRecord('job-a')])
-    expect(useBackgroundJobsStore.getState().jobs).toHaveLength(1)
+    useBackgroundJobsStore.setState((state) => ({
+      jobs: [
+        ...state.jobs,
+        {
+          id: 'generic-1',
+          name: 'Import',
+          status: 'running',
+          progress: 0,
+          type: 'generic',
+          data: {},
+        },
+      ],
+    }))
+    expect(useBackgroundJobsStore.getState().jobs).toHaveLength(2)
 
     syncJobRecordsToStore([])
-    expect(useBackgroundJobsStore.getState().jobs).toHaveLength(1)
-    expect(useBackgroundJobsStore.getState().jobs[0]?.id).toBe('job-a')
+    const remaining = useBackgroundJobsStore.getState().jobs
+    expect(remaining).toHaveLength(1)
+    expect(remaining[0]?.id).toBe('generic-1')
   })
 
   it('replaces persisted jobs atomically on each sync', () => {

@@ -1,159 +1,226 @@
 import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { BackgroundJobsPopoverContent } from './BackgroundJobsPopover'
+import { render, screen } from '@testing-library/react'
+import { BackgroundJobsPopover } from './BackgroundJobsPopover'
 
-const openLogDialog = vi.fn()
-const mockStopJob = vi.fn()
-const mockRefreshFromIndexedDB = vi.fn().mockResolvedValue(undefined)
-
-vi.mock('@/providers/dialog-provider', () => ({
-  useDialogs: () => ({
-    logDialog: [openLogDialog, vi.fn()],
-  }),
+vi.mock('../hooks/useBackgroundJobsIndicator', () => ({
+  useBackgroundJobsIndicator: vi.fn(),
 }))
 
-vi.mock('@/hooks/useJobManager', () => ({
-  useJobManager: vi.fn(),
+vi.mock('@/components/ui/popover', () => ({
+  Popover: ({ children, open, onOpenChange }: any) => (
+    <div data-testid="popover" data-open={open} onClick={() => onOpenChange?.(!open)}>
+      {children}
+    </div>
+  ),
+  PopoverTrigger: ({ children }: any) => (
+    <div data-testid="popover-trigger">{children}</div>
+  ),
+  PopoverContent: ({ children }: any) => (
+    <div data-testid="popover-content">{children}</div>
+  ),
 }))
 
-vi.mock('@/stores/statusbarStore', () => ({
-  useStatusbarStore: vi.fn(),
+vi.mock('./BackgroundJobsPopoverContent', () => ({
+  BackgroundJobsPopoverContent: () => <div data-testid="popover-content-inner" />,
 }))
 
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: Record<string, string>) => {
-      if (key === 'statusBar.backgroundJobs.title') return 'Background Jobs'
-      if (key === 'statusBar.backgroundJobs.subtitle') return 'subtitle'
-      if (key === 'statusBar.backgroundJobs.empty') return 'empty'
-      if (key === 'statusBar.backgroundJobs.logButton') return 'Log'
-      if (key === 'statusBar.backgroundJobs.logButtonAria') return `log-${opts?.name ?? ''}`
-      if (key.startsWith('statusBar.backgroundJobs.status.')) return 'status'
-      if (key.startsWith('statusBar.backgroundJobs.messages.')) return 'msg'
-      if (key === 'statusBar.backgroundJobs.abortAriaLabel') return 'abort'
+    t: (key: string, options?: { count?: number }) => {
+      if (key === 'statusBar.backgroundJobs.triggerAriaLabel') {
+        const count = options?.count ?? 0
+        return count === 1 ? `View ${count} background job` : `View ${count} background jobs`
+      }
       return key
     },
   }),
 }))
 
-import { useJobManager } from '@/hooks/useJobManager'
-import { useStatusbarStore } from '@/stores/statusbarStore'
-import type { BackgroundJob } from '@/types/background-jobs'
+import { useBackgroundJobsIndicator } from '../hooks/useBackgroundJobsIndicator'
 
-const mockUseJobManager = useJobManager as unknown as ReturnType<typeof vi.fn>
-const mockUseStatusbarStore = useStatusbarStore as unknown as ReturnType<typeof vi.fn>
+const mockUseBackgroundJobsIndicator = useBackgroundJobsIndicator as ReturnType<typeof vi.fn>
 
-function mockPopoverJobs(jobs: BackgroundJob[], isPopoverOpen = true) {
-  mockUseJobManager.mockReturnValue({
-    jobs,
-    stopJob: mockStopJob,
-    refreshFromIndexedDB: mockRefreshFromIndexedDB,
-  })
-  mockUseStatusbarStore.mockImplementation((selector?: (s: { isBackgroundJobsPopoverOpen: boolean }) => unknown) => {
-    const state = { isBackgroundJobsPopoverOpen: isPopoverOpen }
-    return typeof selector === 'function' ? selector(state) : state
-  })
-}
-
-describe('BackgroundJobsPopoverContent', () => {
+describe('BackgroundJobsPopover', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('shows log button when subtitle job has executionId and is not running', () => {
-    mockPopoverJobs([
-        {
-          id: 'j1',
-          name: 'My job',
-          status: 'succeeded',
-          progress: 100,
-          type: 'transcribe',
-          data: {
-            folder: '/f',
-            mediaPath: '/m.mp3',
-            mediaPathPlatform: 'C:/m.mp3',
-            title: 't',
-            provider: 'videoCaptioner',
-            executionId: '00000000-0000-4000-8000-000000000001',
-          },
-        },
-      ])
-
-    render(<BackgroundJobsPopoverContent />)
-
-    const logBtn = screen.getByTestId('background-job-j1-log-button')
-    expect(logBtn).toBeInTheDocument()
-    fireEvent.click(logBtn)
-    expect(openLogDialog).toHaveBeenCalledWith({
-      executionId: '00000000-0000-4000-8000-000000000001',
-      jobTitle: 'My job',
-      isRunning: false,
+  it('should return null when shouldRender is false', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: false,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
     })
+
+    const { container } = render(<BackgroundJobsPopover />)
+    expect(container.firstChild).toBeNull()
   })
 
-  it('shows log button when running job has executionId and passes isRunning true to openLogDialog', () => {
-    mockPopoverJobs([
-        {
-          id: 'j2',
-          name: 'Run',
-          status: 'running',
-          progress: 50,
-          type: 'translate',
-          data: {
-            folder: '/f',
-            subtitlePath: '/a.srt',
-            subtitlePathPlatform: 'C:/a.srt',
-            title: 't',
-            translator: 'bing',
-            targetLanguage: 'en',
-            executionId: '00000000-0000-4000-8000-000000000002',
-          },
-        },
-      ])
-
-    render(<BackgroundJobsPopoverContent />)
-
-    const logBtn = screen.getByTestId('background-job-j2-log-button')
-    expect(logBtn).toBeInTheDocument()
-    fireEvent.click(logBtn)
-    expect(openLogDialog).toHaveBeenCalledWith({
-      executionId: '00000000-0000-4000-8000-000000000002',
-      jobTitle: 'Run',
-      isRunning: true,
+  it('should return null when jobs array is empty', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: false,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
     })
-    const abortBtn = screen.getByTestId('background-job-j2-abort-button')
-    expect(abortBtn).toBeInTheDocument()
-    fireEvent.click(abortBtn)
-    expect(mockStopJob).toHaveBeenCalledWith('j2')
+
+    const { container } = render(<BackgroundJobsPopover />)
+    expect(container.firstChild).toBeNull()
   })
 
-  it('shows log button when download-video job has executionId', () => {
-    mockPopoverJobs([
-        {
-          id: 'j3',
-          name: 'Download Video',
-          status: 'running',
-          progress: 30,
-          type: 'download-video',
-          data: {
-            folder: 'C:/music',
-            videos: [{ url: 'https://example.com/v', title: 't', artist: 'a', status: 'downloading' }],
-            executionId: '00000000-0000-4000-8000-000000000003',
-          },
-        },
-      ])
-
-    render(<BackgroundJobsPopoverContent />)
-
-    const logBtn = screen.getByTestId('background-job-j3-log-button')
-    expect(logBtn).toBeInTheDocument()
-    fireEvent.click(logBtn)
-    expect(openLogDialog).toHaveBeenCalledWith({
-      executionId: '00000000-0000-4000-8000-000000000003',
-      jobTitle: 'Download Video',
-      isRunning: true,
+  it('should render trigger button when there are running jobs', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'running',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 2,
+      activeCount: 3,
     })
+
+    render(<BackgroundJobsPopover />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-loading-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('2')
+  })
+
+  it('should render check icon when all jobs are successful', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 2,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-completed-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('2')
+  })
+
+  it('should render warning icon when there are failed or aborted jobs', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'warning',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-warning-icon')).toBeInTheDocument()
+  })
+
+  it('should render with custom className', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'running',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 1,
+      activeCount: 1,
+    })
+
+    render(<BackgroundJobsPopover className="custom-class" />)
+
+    const button = screen.getByTestId('background-jobs-trigger-button')
+    expect(button).toHaveClass('custom-class')
+  })
+
+  it('should have correct aria-label', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'running',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 1,
+      activeCount: 1,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    const button = screen.getByTestId('background-jobs-trigger-button')
+    expect(button).toHaveAttribute('aria-label', 'View 1 background job')
+  })
+
+  it('should have correct aria-label for multiple jobs', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'running',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 3,
+      activeCount: 5,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    const button = screen.getByTestId('background-jobs-trigger-button')
+    expect(button).toHaveAttribute('aria-label', 'View 5 background jobs')
+  })
+
+  it('should pass isPopoverOpen to Popover', () => {
+    const mockSetPopoverOpen = vi.fn()
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'success',
+      isPopoverOpen: true,
+      setPopoverOpen: mockSetPopoverOpen,
+      runningCount: 0,
+      activeCount: 1,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    const popover = screen.getByTestId('popover')
+    expect(popover).toHaveAttribute('data-open', 'true')
+  })
+
+  it('should render popover content when trigger is clicked', () => {
+    const mockSetPopoverOpen = vi.fn()
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: mockSetPopoverOpen,
+      runningCount: 0,
+      activeCount: 1,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    expect(screen.getByTestId('popover-content')).toBeInTheDocument()
+    expect(screen.getByTestId('popover-content-inner')).toBeInTheDocument()
+  })
+
+  it('should show success icon even when jobs list is empty', () => {
+    mockUseBackgroundJobsIndicator.mockReturnValue({
+      shouldRender: true,
+      statusVariant: 'success',
+      isPopoverOpen: false,
+      setPopoverOpen: vi.fn(),
+      runningCount: 0,
+      activeCount: 0,
+    })
+
+    render(<BackgroundJobsPopover />)
+
+    expect(screen.getByTestId('background-jobs-trigger-button')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-completed-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('background-jobs-count')).toHaveTextContent('0')
   })
 })

@@ -198,8 +198,10 @@ All jobs start as `pending`, transition to `running` when started, and end as `s
 | `public/download-service-worker.js` | Service Worker (executes all download/transcribe/translate/synthesize/process jobs) |
 | `src/components/IndexedDbObserver.tsx` | SW ↔ React store sync bridge |
 | `src/components/background-jobs/BackgroundJobsProvider.tsx` | React context provider |
-| `src/components/background-jobs/BackgroundJobsIndicator.tsx` | Status bar indicator button |
-| `src/components/background-jobs/BackgroundJobsPopover.tsx` | Job list popover |
+| `src/components/background-jobs/BackgroundJobsPopover.tsx` | Status bar popover (trigger + shell) |
+| `src/components/background-jobs/BackgroundJobsPopoverContent.tsx` | Popover body (header + list) |
+| `src/components/background-jobs/BackgroundJobsPopoverHeader.tsx` | Title, subtitle, clear button |
+| `src/components/background-jobs/BackgroundJobsPopoverList.tsx` | Job rows (loading / empty / list) |
 | `src/components/hooks/useBackgroundJobsIndicator.ts` | Indicator state hook |
 | `src/components/eventlisteners/MediaLibraryImportedEventHandler.tsx` | Media library import handler |
 | `src/components/eventlisteners/FixedDelayBackgroundJobHandler.tsx` | Fixed-delay test job handler |

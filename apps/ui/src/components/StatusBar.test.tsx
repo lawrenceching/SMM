@@ -28,8 +28,8 @@ vi.mock("./ConnectionStatusIndicator", () => ({
     ),
 }))
 
-vi.mock("./background-jobs/BackgroundJobsIndicator", () => ({
-    BackgroundJobsIndicator: () => <div data-testid="bg-jobs" />,
+vi.mock("./background-jobs/BackgroundJobsPopover", () => ({
+    BackgroundJobsPopover: () => <div data-testid="bg-jobs" />,
 }))
 
 vi.mock("./mcp/McpIndicator", () => ({

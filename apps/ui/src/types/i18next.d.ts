@@ -44,6 +44,7 @@ interface ComponentsResources {
     openAppDataFolder: string
     openLogFolder: string
     openExecuteCmd: string
+    addTestBackgroundJob: string
     config: string
     cleanUp: string
     exit: string
@@ -237,6 +238,12 @@ interface ComponentsResources {
       triggerAriaLabel_one: string
       triggerAriaLabel_other: string
       abortAriaLabel: string
+      delete: string
+      deleteDisabledRunning: string
+      clearFinished: string
+      clearFinishedTooltip: string
+      clearFinishedAria: string
+      clearFailed: string
       logButton: string
       logButtonAria: string
       logDialog: {
@@ -662,6 +669,17 @@ interface DialogsResources {
     logPath: string
     copy: string
     commandLogHint: string
+  }
+  addTestBackgroundJob: {
+    title: string
+    description: string
+    duration: string
+    durationSeconds: string
+    outcome: string
+    outcomeSucceeded: string
+    outcomeFailed: string
+    submit: string
+    jobName: string
   }
 }
 

@@ -17,6 +17,7 @@ import {
   FormatConverterDialog,
   EditMediaFileDialog,
   ExecuteCmdDialog,
+  AddTestBackgroundJobDialog,
   LogDialog,
   type DialogConfig,
   type FolderType,
@@ -110,6 +111,10 @@ interface DialogContextValue {
     openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
     closeExecuteCmd: () => void
   ]
+  addTestBackgroundJobDialog: [
+    openAddTestBackgroundJob: () => void,
+    closeAddTestBackgroundJob: () => void
+  ]
   logDialog: [
     openLogDialog: (options: { executionId: string; jobTitle: string; isRunning?: boolean }) => void,
     closeLogDialog: () => void
@@ -184,6 +189,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Execute command dialog state
   const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
   const [executeCmdInitialCommand, setExecuteCmdInitialCommand] = useState<ExecuteCmdType | undefined>(undefined)
+
+  const [isAddTestBackgroundJobOpen, setIsAddTestBackgroundJobOpen] = useState(false)
 
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
   const [logDialogExecutionId, setLogDialogExecutionId] = useState('')
@@ -399,6 +406,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openAddTestBackgroundJob = useCallback(() => {
+    setIsAddTestBackgroundJobOpen(true)
+  }, [])
+
+  const closeAddTestBackgroundJob = useCallback(() => {
+    setIsAddTestBackgroundJobOpen(false)
+  }, [])
+
   const openLogDialog = useCallback((options: { executionId: string; jobTitle: string; isRunning?: boolean }) => {
     setLogDialogExecutionId(options.executionId)
     setLogDialogJobTitle(options.jobTitle)
@@ -430,6 +445,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
     editMediaFileDialog: [openEditMediaFile, closeEditMediaFile],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
+    addTestBackgroundJobDialog: [openAddTestBackgroundJob, closeAddTestBackgroundJob],
     logDialog: [openLogDialog, closeLogDialog],
   }
 
@@ -528,6 +544,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
         isOpen={isExecuteCmdOpen}
         onClose={closeExecuteCmd}
         initialCommand={executeCmdInitialCommand}
+      />
+      <AddTestBackgroundJobDialog
+        isOpen={isAddTestBackgroundJobOpen}
+        onClose={closeAddTestBackgroundJob}
       />
       <LogDialog
         open={isLogDialogOpen}

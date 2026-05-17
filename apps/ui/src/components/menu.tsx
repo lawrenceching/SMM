@@ -159,7 +159,15 @@ interface MenuProps {
 }
 
 export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuProps) {
-  const { configDialog, downloadVideoDialog, formatConverterDialog, openFolderDialog, filePickerDialog, executeCmdDialog } = useDialogs()
+  const {
+    configDialog,
+    downloadVideoDialog,
+    formatConverterDialog,
+    openFolderDialog,
+    filePickerDialog,
+    executeCmdDialog,
+    addTestBackgroundJobDialog,
+  } = useDialogs()
   const { t } = useTranslation('components')
 
   const [openConfig] = configDialog
@@ -168,6 +176,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const [openExecuteCmd] = executeCmdDialog
+  const [openAddTestBackgroundJob] = addTestBackgroundJobDialog
 
   const logMenuAction = (action: string, context?: Record<string, unknown>) => {
     void writeFrontendLog({
@@ -316,6 +325,14 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
                   logMenuError("open-log-folder.exception", error)
                 }
               }
+            },
+            {
+              name: t('menu.addTestBackgroundJob'),
+              id: 'add-test-background-job',
+              onClick: () => {
+                logMenuAction('add-test-background-job.click')
+                openAddTestBackgroundJob()
+              },
             },
             {
               type: "separator"

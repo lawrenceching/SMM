@@ -1,68 +1,61 @@
-import { useRef } from "react";
-import { useMount, useUnmount } from "react-use";
-import { useJobManager } from "@/hooks/useJobManager";
-import { UI_FixedDelayBackgroundJobEvent, type OnFixedDelayBackgroundJobEventData } from "@/types/eventTypes";
+import { useRef } from 'react'
+import { useMount, useUnmount } from 'react-use'
+import { useJobOrchestratorContext } from '@/components/JobOrchestratorProvider'
+import {
+  buildTestDelayBackgroundJob,
+  jobToTaskRecord,
+  resumeAllTestDelayJobs,
+  runTestDelayJob,
+} from '@/lib/testDelayJobRunner'
+import { useStatusbarStore } from '@/stores/statusbarStore'
+import {
+  UI_FixedDelayBackgroundJobEvent,
+  type OnFixedDelayBackgroundJobEventData,
+} from '@/types/eventTypes'
 
 export function FixedDelayBackgroundJobHandler() {
-    const { addJob, updateJob } = useJobManager()
-    const eventListener = useRef<((event: any) => void) | null>(null);
+  const { createJob } = useJobOrchestratorContext()
+  const createJobRef = useRef(createJob)
+  createJobRef.current = createJob
+  const eventListener = useRef<((event: Event) => void) | null>(null)
 
-    useMount(() => {
+  useMount(() => {
+    void resumeAllTestDelayJobs()
 
-        eventListener.current = (event) => {
-            const data = event.detail as OnFixedDelayBackgroundJobEventData
-            const { delay, name, traceId } = data
+    eventListener.current = (event) => {
+      void (async () => {
+        const data = (event as CustomEvent<OnFixedDelayBackgroundJobEventData>).detail
+        const { delay, name, traceId, outcome = 'succeeded' } = data
 
-            const jobName = name || `延迟任务 (${delay}ms)`
-            console.log(`[${traceId}] FixedDelayBackgroundJob: Creating job "${jobName}" with delay ${delay}ms`)
+        const jobName = name || `延迟任务 (${delay}ms)`
+        console.log(
+          `[${traceId}] FixedDelayBackgroundJob: Creating job "${jobName}" with delay ${delay}ms, outcome ${outcome}`,
+        )
 
-            // Create background job
-            const jobId = addJob(jobName)
-            if (!jobId) {
-                console.error(`[${traceId}] Failed to create background job`)
-                return
-            }
+        const job = buildTestDelayBackgroundJob({
+          name: jobName,
+          delayMs: delay,
+          outcome,
+        })
 
-            // Update job status to running
-            updateJob(jobId, {
-                status: 'running',
-                progress: 0,
-            })
-
-            // Set up progress animation
-            const startTime = Date.now()
-            const updateProgress = () => {
-                const elapsed = Date.now() - startTime
-                const progress = Math.min((elapsed / delay) * 100, 90)
-                updateJob(jobId, { progress })
-            }
-
-            const progressInterval = setInterval(updateProgress, 50)
-
-            // Set up completion
-            setTimeout(() => {
-                clearInterval(progressInterval)
-                updateJob(jobId, {
-                    status: 'succeeded',
-                    progress: 100,
-                })
-                console.log(`[${traceId}] FixedDelayBackgroundJob: Job "${jobName}" completed`)
-            }, delay)
-        };
-
-        document.addEventListener(UI_FixedDelayBackgroundJobEvent, eventListener.current);
-
-    })
-
-    useUnmount(() => {
-
-        if (eventListener.current) {
-            document.removeEventListener(UI_FixedDelayBackgroundJobEvent, eventListener.current);
+        try {
+          await createJobRef.current(job)
+          useStatusbarStore.getState().setBackgroundJobsPopoverOpen(true)
+          await runTestDelayJob(jobToTaskRecord(job), traceId)
+        } catch (error) {
+          console.error(`[${traceId}] Failed to create test delay job`, error)
         }
+      })()
+    }
 
-    })
+    document.addEventListener(UI_FixedDelayBackgroundJobEvent, eventListener.current)
+  })
 
-    return (
-        <></>
-    )
+  useUnmount(() => {
+    if (eventListener.current) {
+      document.removeEventListener(UI_FixedDelayBackgroundJobEvent, eventListener.current)
+    }
+  })
+
+  return null
 }

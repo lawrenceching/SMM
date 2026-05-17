@@ -9,11 +9,14 @@ import {
   type SynthesizeBackgroundJobData,
   type TranscribeBackgroundJob,
   type TranscribeBackgroundJobData,
+  type TestDelayBackgroundJob,
+  type TestDelayBackgroundJobData,
   type TranslateBackgroundJob,
   type TranslateBackgroundJobData,
   isDownloadVideoJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
+  isTestDelayBackgroundJob,
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
 } from '@/types/background-jobs'
@@ -292,6 +295,28 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
     return job
   }
 
+  if (record.type === 'test-delay') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const delayMs = typeof parsed.delayMs === 'number' ? parsed.delayMs : 0
+    const outcome: TestDelayBackgroundJobData['outcome'] =
+      parsed.outcome === 'failed' ? 'failed' : 'succeeded'
+    const startedAt = typeof parsed.startedAt === 'number' ? parsed.startedAt : undefined
+    const job: TestDelayBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as TestDelayBackgroundJob['status'],
+      progress: record.progress,
+      type: 'test-delay',
+      data: { delayMs, outcome, startedAt },
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -328,27 +353,20 @@ function isPersistedFromIdbJob(job: BackgroundJob): boolean {
     isTranscribeBackgroundJob(job) ||
     isTranslateBackgroundJob(job) ||
     isSynthesizeBackgroundJob(job) ||
-    isProcessBackgroundJob(job)
+    isProcessBackgroundJob(job) ||
+    isTestDelayBackgroundJob(job)
   )
 }
 
 /**
  * Sync a set of fresh `TaskJobRecord`s to the Zustand `useBackgroundJobsStore`.
- * Adds new jobs, updates existing ones, and removes stale ones.
+ * Persisted IDB jobs are replaced wholesale; in-memory generic jobs are preserved.
  */
 export function syncJobRecordsToStore(records: TaskJobRecord[]): void {
-  if (records.length === 0) {
-    return
-  }
-
   const mapped: BackgroundJob[] = []
   for (const record of records) {
     const job = jobRecordToBackgroundJob(record)
     if (job) mapped.push(job)
-  }
-
-  if (mapped.length === 0) {
-    return
   }
 
   useBackgroundJobsStore.setState((state) => ({

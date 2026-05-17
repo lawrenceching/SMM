@@ -76,6 +76,7 @@ export function executeCmdToCompletion(
             stderr += message.data;
             return;
           }
+          if (message.type !== "system") return;
           const { event, code, message: msg } = message.data;
           if (event === "error") {
             systemMessage = msg ?? "command failed to start";

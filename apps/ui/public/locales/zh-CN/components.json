@@ -10,6 +10,7 @@
     "openAppDataFolder": "打开应用数据文件夹",
     "openLogFolder": "打开日志文件夹",
     "openExecuteCmd": "执行命令",
+    "addTestBackgroundJob": "添加测试任务",
     "config": "设置",
     "cleanUp": "清理",
     "exit": "退出",
@@ -224,6 +225,12 @@
         "failed": "任务失败",
         "aborted": "用户已终止任务"
       },
+      "delete": "删除",
+      "deleteDisabledRunning": "运行中的任务无法删除",
+      "clearFinished": "清理",
+      "clearFinishedTooltip": "清理除运行中以外的任务",
+      "clearFinishedAria": "清理除运行中以外的任务",
+      "clearFailed": "未能删除 {{count}} 个任务",
       "logButton": "日志",
       "logButtonAria": "查看 {{name}} 的命令日志",
       "logDialog": {

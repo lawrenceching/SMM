@@ -5,7 +5,7 @@ import { useTranslation } from "@/lib/i18n"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { MessageIndicator, type Message } from "./ConnectionStatusIndicator"
-import { BackgroundJobsIndicator } from "./background-jobs/BackgroundJobsIndicator"
+import { BackgroundJobsPopover } from "./background-jobs/BackgroundJobsPopover"
 import { McpIndicator } from "./mcp/McpIndicator"
 import { Separator } from "@/components/ui/separator"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
@@ -106,7 +106,7 @@ export function StatusBar({
             <div className="flex items-center gap-2">
                 <McpIndicator />
                 <div data-testid="background-jobs-indicator">
-                    <BackgroundJobsIndicator />
+                    <BackgroundJobsPopover />
                 </div>
                 <Separator orientation="vertical" className="h-4" />
                 <span className="font-medium" data-testid="app-version">{version}</span>

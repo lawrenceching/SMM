@@ -150,6 +150,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const handleSwReactivate = useCallback(async (): Promise<void> => {
     const records = await getAllJobs()
     for (const record of records) {
+      if (record.type === 'test-delay') continue
       if (record.status === 'running') {
         record.status = 'aborted'
         record.updatedAt = Date.now()
@@ -469,7 +470,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       const record = jobRecordsRef.current.find((r) => r.id === id)
       if (record) {
         const config = JOB_TYPE_REGISTRY[record.type]
-        if (config) postSw(`${config.messagePrefix}:stop`, id)
+        if (config) postSw(swEventNames(config.messagePrefix).remove, id)
       }
       await deleteJob(id)
       await syncFromIndexedDB('removeJob')

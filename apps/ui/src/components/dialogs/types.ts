@@ -389,3 +389,8 @@ export interface ExecuteCmdLogEntry {
   content: string
 }
 
+export interface AddTestBackgroundJobDialogProps {
+  isOpen: boolean
+  onClose: () => void
+}
+

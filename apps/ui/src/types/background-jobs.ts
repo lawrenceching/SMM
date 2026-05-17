@@ -32,6 +32,19 @@ export interface GenericBackgroundJob extends BackgroundJobBase {
   data: Record<string, never>;
 }
 
+/** Developer test job with configurable delay and outcome (persisted in IndexedDB). */
+export interface TestDelayBackgroundJobData {
+  delayMs: number;
+  outcome: 'succeeded' | 'failed';
+  /** Set when the job enters `running`; used to resume after page refresh. */
+  startedAt?: number;
+}
+
+export interface TestDelayBackgroundJob extends BackgroundJobBase {
+  type: 'test-delay';
+  data: TestDelayBackgroundJobData;
+}
+
 /** One row in {@link DownloadVideoBackgroundJobData.videos} */
 export interface DownloadVideoJobVideo {
   url: string;
@@ -199,6 +212,7 @@ export interface ProcessBackgroundJob extends BackgroundJobBase {
 
 export type BackgroundJob =
   | GenericBackgroundJob
+  | TestDelayBackgroundJob
   | DownloadVideoBackgroundJob
   | TranscribeBackgroundJob
   | TranslateBackgroundJob
@@ -211,6 +225,10 @@ export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBack
 
 export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgroundJob {
   return job.type === 'generic';
+}
+
+export function isTestDelayBackgroundJob(job: BackgroundJob): job is TestDelayBackgroundJob {
+  return job.type === 'test-delay';
 }
 
 export function isTranscribeBackgroundJob(job: BackgroundJob): job is TranscribeBackgroundJob {
