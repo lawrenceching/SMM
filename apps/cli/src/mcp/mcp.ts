@@ -38,15 +38,15 @@ import {
 import {
   registerHowToRecognizeEpisodeVideoFilesTool,
 } from "./tools/howToRecognizeEpisodeVideoFilesTool";
-import {
-  registerTmdbSearchTool,
-} from "./tools/tmdbSearchTool";
-import {
-  registerTmdbGetMovieTool,
-} from "./tools/tmdbGetMovieTool";
-import {
-  registerTmdbGetTvShowTool,
-} from "./tools/tmdbGetTvShowTool";
+// import {
+//   registerTmdbSearchTool,
+// } from "./tools/tmdbSearchTool";
+// import {
+//   registerTmdbGetMovieTool,
+// } from "./tools/tmdbGetMovieTool";
+// import {
+//   registerTmdbGetTvShowTool,
+// } from "./tools/tmdbGetTvShowTool";
 import { registerGetMediaMetadataTool } from "./tools";
 
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;

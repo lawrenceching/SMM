@@ -20,13 +20,10 @@ import {
   createEndRecognizeTaskTool,
 } from './recognizeMediaFilesTask';
 import { createGetEpisodesTool, getEpisodesMcpTool } from './getEpisodes';
-import { createGetEpisodeTool, getEpisodeAgentTool, getEpisodeMcpTool } from './getEpisode';
+import { createGetEpisodeTool, getEpisodeMcpTool } from './getEpisode';
 import { howToRenameEpisodeVideoFilesMcpTool } from './howToRenameEpisodeVideoFiles';
 import { readmeMcpTool } from './readme';
 import { howToRecognizeEpisodeVideoFilesMcpTool } from './howToRecognizeEpisodeVideoFiles';
-import { tmdbSearchMcpTool } from './tmdbSearch';
-import { tmdbGetMovieMcpTool } from './tmdbGetMovie';
-import { tmdbGetTvShowMcpTool } from './tmdbGetTvShow';
 export {
   isFolderExistTool,
   createGetSelectedMediaMetadataTool,

@@ -196,7 +196,6 @@ export class Server {
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);
     handleDeleteFile(this.app);
-    handleScrapeRequest(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugRenameFilesTaskRoutes(this.app);
