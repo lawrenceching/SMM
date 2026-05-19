@@ -63,6 +63,18 @@
     "cookiesDialogTitle": "Cookies",
     "cookiesDialogDescription": "Paste a Netscape-format cookie file (first line: # HTTP Cookie File or # Netscape HTTP Cookie File). See yt-dlp FAQ for details.",
     "cookiesDialogLabel": "Cookie file content",
+    "moreOptions": {
+      "label": "More options..."
+    },
+    "writeThumbnail": {
+      "label": "Download thumbnail"
+    },
+    "embedThumbnail": {
+      "label": "Embed thumbnail in audio/video file"
+    },
+    "embedMetadata": {
+      "label": "Embed metadata"
+    },
     "validation": {
       "URL_EMPTY": "Please enter a video URL",
       "URL_INVALID": "Please enter a valid URL",

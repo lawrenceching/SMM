@@ -63,6 +63,8 @@ export interface DownloadVideoBackgroundJobData {
   ytdlpCookiesFile?: string;
   /** Browser profile for `--cookies-from-browser` (chrome, edge, firefox). */
   ytdlpCookiesFromBrowser?: string;
+  /** Allow-listed yt-dlp flags (--write-thumbnail, --embed-thumbnail, --embed-metadata). */
+  ytdlpExtraArgs?: string[];
   /** CLI command log correlation (executeCmd yt-dlp). */
   executionId?: string;
   logRelativePath?: string;

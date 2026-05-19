@@ -22,6 +22,8 @@ export interface CreateDownloadVideoJobInput {
   ytdlpCookiesFile?: string
   /** Browser profile for `--cookies-from-browser`. */
   ytdlpCookiesFromBrowser?: string
+  /** Allow-listed yt-dlp extra flags. */
+  ytdlpExtraArgs?: string[]
 }
 
 export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): DownloadVideoBackgroundJob {
@@ -35,12 +37,15 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
   const format = input.ytdlpFormat?.trim()
   const cookiesFile = input.ytdlpCookiesFile?.trim()
   const cookiesFromBrowser = input.ytdlpCookiesFromBrowser?.trim().toLowerCase()
+  const extraArgs =
+    input.ytdlpExtraArgs && input.ytdlpExtraArgs.length > 0 ? input.ytdlpExtraArgs : undefined
   const data: DownloadVideoBackgroundJobData = {
     folder: input.folder,
     videos,
     ...(format ? { ytdlpFormat: format } : {}),
     ...(cookiesFile ? { ytdlpCookiesFile: cookiesFile } : {}),
     ...(cookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesFromBrowser } : {}),
+    ...(extraArgs ? { ytdlpExtraArgs: extraArgs } : {}),
   }
 
   return {

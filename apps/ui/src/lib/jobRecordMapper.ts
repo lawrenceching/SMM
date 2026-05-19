@@ -331,6 +331,23 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       folder: parsed.folder || record.folder || '',
       videos: (parsed.videos || []) as DownloadVideoBackgroundJobData['videos'],
     }
+    if (typeof parsed.ytdlpFormat === 'string' && parsed.ytdlpFormat) {
+      data.ytdlpFormat = parsed.ytdlpFormat
+    }
+    if (typeof parsed.ytdlpCookiesFile === 'string' && parsed.ytdlpCookiesFile) {
+      data.ytdlpCookiesFile = parsed.ytdlpCookiesFile
+    }
+    if (
+      typeof parsed.ytdlpCookiesFromBrowser === 'string' &&
+      parsed.ytdlpCookiesFromBrowser
+    ) {
+      data.ytdlpCookiesFromBrowser = parsed.ytdlpCookiesFromBrowser
+    }
+    if (Array.isArray(parsed.ytdlpExtraArgs) && parsed.ytdlpExtraArgs.length > 0) {
+      data.ytdlpExtraArgs = parsed.ytdlpExtraArgs.filter(
+        (a): a is string => typeof a === 'string',
+      )
+    }
     applyCommandLogCorrelation(data, parsed)
   } catch {
     data = { folder: record.folder || '', videos: [] }

@@ -58,6 +58,8 @@ describe('MusicPanel - Download', () => {
 
         expect(dvd.urlInput).toBeDisplayed();
         await dvd.setUrl("https://www.bilibili.com/video/BV17NrWBaE87/");
+        await dvd.setMoreOptions(true);
+        await dvd.setWriteThumbnail(true);
         await dvd.clickStart();
 
         await waitForFolderVideosReady(folder.path!, {

@@ -63,6 +63,18 @@
     "cookiesDialogTitle": "Cookie",
     "cookiesDialogDescription": "請貼上 Netscape 格式的 Cookie 檔案（首行須為 # HTTP Cookie File 或 # Netscape HTTP Cookie File）。詳見 yt-dlp 常見問題。",
     "cookiesDialogLabel": "Cookie 檔案內容",
+    "moreOptions": {
+      "label": "更多選項..."
+    },
+    "writeThumbnail": {
+      "label": "下載封面"
+    },
+    "embedThumbnail": {
+      "label": "嵌入封面到音訊/影片檔案"
+    },
+    "embedMetadata": {
+      "label": "嵌入元數據"
+    },
     "validation": {
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效嘅 URL",

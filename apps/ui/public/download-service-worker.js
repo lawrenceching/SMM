@@ -9,7 +9,6 @@ const wc = self.whitelistedCmdSw
 const DB_NAME = 'DownloadTaskDatabase'
 const DB_VERSION = 1
 const STORE_NAME = 'jobs'
-const YTDLP_DOWNLOAD_DEFAULT_ARGS = ['--write-thumbnail', '--embed-thumbnail', '--embed-metadata']
 const HEARTBEAT_INTERVAL_MS = 20_000
 
 const abortControllers = new Map()
@@ -290,7 +289,7 @@ async function startDownload(jobId) {
       const dlArgs = wc.buildYtdlpDownloadArgs({
         url: video.url,
         folder,
-        args: YTDLP_DOWNLOAD_DEFAULT_ARGS,
+        args: Array.isArray(data.ytdlpExtraArgs) ? data.ytdlpExtraArgs : [],
         format: data.ytdlpFormat,
         cookiesFile: data.ytdlpCookiesFile,
         cookiesFromBrowser: data.ytdlpCookiesFromBrowser,

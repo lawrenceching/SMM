@@ -135,6 +135,10 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.cookiesBrowserFirefox': 'Firefox',
         'downloadVideo.cookiesEmpty': 'Enter cookie file content.',
         'downloadVideo.cookiesWriteFailed': 'Could not save cookies file.',
+        'downloadVideo.moreOptions.label': 'More options...',
+        'downloadVideo.writeThumbnail.label': 'Download thumbnail',
+        'downloadVideo.embedThumbnail.label': 'Embed thumbnail in audio/video file',
+        'downloadVideo.embedMetadata.label': 'Embed metadata',
       }
       return dialogsTranslations[key] || key
     },
@@ -446,6 +450,34 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(mockOnClose).toHaveBeenCalled()
     const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
     expect(job?.data?.ytdlpFormat).toBeUndefined()
+    expect(job?.data?.ytdlpExtraArgs).toBeUndefined()
+  })
+
+  it('passes selected ytdlp extra args when more options are enabled', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+
+    fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
+    fireEvent.click(screen.getByTestId('download-video-dialog-write-thumbnail-checkbox'))
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.saveDownloadVideoJob).toHaveBeenCalled()
+    })
+    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ytdlpExtraArgs: ['--write-thumbnail'],
+        }),
+      }),
+    )
   })
 
   it('passes 1080p format expression when that preset is selected', async () => {

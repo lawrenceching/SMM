@@ -36,6 +36,14 @@ import {
 import { useConfig } from "@/hooks/userConfig/useConfig"
 import { useDialogs } from "@/providers/dialog-provider"
 import {
+  buildYtdlpExtraArgsFromSelection,
+  DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION,
+  YTDLP_DOWNLOAD_EXTRA_ARG_IDS,
+  ytdlpDownloadExtraArgLabelKey,
+  type YtdlpDownloadExtraArgId,
+  type YtdlpDownloadExtraArgSelection,
+} from "@/lib/ytdlpDownloadExtraArgs"
+import {
   resolveYtdlpFormatFromPreset,
   YTDLP_FORMAT_PRESETS,
   ytdlpFormatPresetLabelKey,
@@ -121,6 +129,10 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const [useCookiesFromBrowser, setUseCookiesFromBrowser] = useState(false)
   const [cookiesBrowser, setCookiesBrowser] = useState<YtdlpCookiesBrowserId>(
     DEFAULT_YTDLP_COOKIES_BROWSER_ID,
+  )
+  const [showMoreOptions, setShowMoreOptions] = useState(false)
+  const [extraArgSelection, setExtraArgSelection] = useState<YtdlpDownloadExtraArgSelection>(
+    () => ({ ...DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION }),
   )
   const episodesFetchGen = useRef(0)
   const previousUrlRef = useRef("")
@@ -343,10 +355,18 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     return writeYtdlpCookiesFile(userDataDir, jobId, trimmed)
   }
 
+  const resolvedYtdlpExtraArgs = showMoreOptions
+    ? buildYtdlpExtraArgsFromSelection(extraArgSelection)
+    : undefined
+
+  const setExtraArgEnabled = (id: YtdlpDownloadExtraArgId, enabled: boolean) => {
+    setExtraArgSelection((prev) => ({ ...prev, [id]: enabled }))
+  }
+
   const buildJobInput = async (
     input: Omit<
       Parameters<typeof buildDownloadVideoJob>[0],
-      "ytdlpFormat" | "ytdlpCookiesFile" | "ytdlpCookiesFromBrowser" | "id"
+      "ytdlpFormat" | "ytdlpCookiesFile" | "ytdlpCookiesFromBrowser" | "ytdlpExtraArgs" | "id"
     >,
   ) => {
     const id = createDownloadVideoJobId()
@@ -357,6 +377,9 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
       ytdlpFormat: resolvedYtdlpFormat,
       ...(ytdlpCookiesFile ? { ytdlpCookiesFile } : {}),
       ...(useCookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesBrowser } : {}),
+      ...(resolvedYtdlpExtraArgs && resolvedYtdlpExtraArgs.length > 0
+        ? { ytdlpExtraArgs: resolvedYtdlpExtraArgs }
+        : {}),
     })
   }
 
@@ -681,6 +704,58 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               />
               <span>{t('downloadVideo.downloadEpisodesLabel')}</span>
             </label>
+          )}
+          {hasAgreed && isUrlValid && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  id="download-video-more-options"
+                  data-testid="download-video-dialog-more-options-checkbox"
+                  type="checkbox"
+                  role="checkbox"
+                  className="h-4 w-4 cursor-pointer"
+                  checked={showMoreOptions}
+                  onChange={(e) => setShowMoreOptions(e.target.checked)}
+                  disabled={formBusy}
+                />
+                <Label
+                  htmlFor="download-video-more-options"
+                  className="cursor-pointer font-normal"
+                >
+                  {t("downloadVideo.moreOptions.label")}
+                </Label>
+              </div>
+              {showMoreOptions ? (
+                <div className="ml-6 flex flex-col gap-2">
+                  {YTDLP_DOWNLOAD_EXTRA_ARG_IDS.map((argId) => {
+                    const inputId = `download-video-extra-${argId.slice(2)}`
+                    const testIdSuffix =
+                      argId === "--write-thumbnail"
+                        ? "write-thumbnail"
+                        : argId === "--embed-thumbnail"
+                          ? "embed-thumbnail"
+                          : "embed-metadata"
+                    return (
+                      <div key={argId} className="flex items-center gap-2">
+                        <input
+                          id={inputId}
+                          data-testid={`download-video-dialog-${testIdSuffix}-checkbox`}
+                          type="checkbox"
+                          role="checkbox"
+                          className="h-4 w-4 cursor-pointer"
+                          checked={extraArgSelection[argId]}
+                          onChange={(e) => setExtraArgEnabled(argId, e.target.checked)}
+                          disabled={formBusy}
+                        />
+                        <Label htmlFor={inputId} className="cursor-pointer font-normal">
+                          {t(ytdlpDownloadExtraArgLabelKey(argId))}
+                        </Label>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
           )}
           {isCollectionUrl && (
             <label className="inline-flex items-center gap-2 text-sm">

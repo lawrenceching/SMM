@@ -67,6 +67,22 @@ class DownloadVideoDialogCO {
         return $('[data-testid="download-video-dialog-cookies-browser-select"]')
     }
 
+    get moreOptionsCheckbox() {
+        return $('[data-testid="download-video-dialog-more-options-checkbox"]')
+    }
+
+    get writeThumbnailCheckbox() {
+        return $('[data-testid="download-video-dialog-write-thumbnail-checkbox"]')
+    }
+
+    get embedThumbnailCheckbox() {
+        return $('[data-testid="download-video-dialog-embed-thumbnail-checkbox"]')
+    }
+
+    get embedMetadataCheckbox() {
+        return $('[data-testid="download-video-dialog-embed-metadata-checkbox"]')
+    }
+
     get downloadEpisodesCheckbox() {
         return $('[data-testid="download-video-dialog-episodes-checkbox"]')
     }
@@ -219,6 +235,42 @@ class DownloadVideoDialogCO {
 
     async setGetVideos(checked: boolean): Promise<void> {
         const checkbox = await this.getVideosCheckbox
+        await checkbox.waitForExist({ timeout: 5000 })
+        const currentValue = await checkbox.isSelected()
+        if (currentValue !== checked) {
+            await checkbox.click()
+        }
+    }
+
+    async setMoreOptions(checked: boolean): Promise<void> {
+        const checkbox = await this.moreOptionsCheckbox
+        await checkbox.waitForExist({ timeout: 5000 })
+        const currentValue = await checkbox.isSelected()
+        if (currentValue !== checked) {
+            await checkbox.click()
+        }
+    }
+
+    async setWriteThumbnail(checked: boolean): Promise<void> {
+        const checkbox = await this.writeThumbnailCheckbox
+        await checkbox.waitForExist({ timeout: 5000 })
+        const currentValue = await checkbox.isSelected()
+        if (currentValue !== checked) {
+            await checkbox.click()
+        }
+    }
+
+    async setEmbedThumbnail(checked: boolean): Promise<void> {
+        const checkbox = await this.embedThumbnailCheckbox
+        await checkbox.waitForExist({ timeout: 5000 })
+        const currentValue = await checkbox.isSelected()
+        if (currentValue !== checked) {
+            await checkbox.click()
+        }
+    }
+
+    async setEmbedMetadata(checked: boolean): Promise<void> {
+        const checkbox = await this.embedMetadataCheckbox
         await checkbox.waitForExist({ timeout: 5000 })
         const currentValue = await checkbox.isSelected()
         if (currentValue !== checked) {
