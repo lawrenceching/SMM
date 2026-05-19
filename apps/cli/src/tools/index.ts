@@ -45,9 +45,6 @@ export {
   howToRenameEpisodeVideoFilesMcpTool,
   readmeMcpTool,
   howToRecognizeEpisodeVideoFilesMcpTool,
-  tmdbSearchMcpTool,
-  tmdbGetMovieMcpTool,
-  tmdbGetTvShowMcpTool,
 };
 
 export const agentTools = {
@@ -70,8 +67,5 @@ export const mcpTools = {
   getEpisodes: getEpisodesMcpTool,
   howToRenameEpisodeVideoFiles: howToRenameEpisodeVideoFilesMcpTool,
   readme: readmeMcpTool,
-  howToRecognizeEpisodeVideoFiles: howToRecognizeEpisodeVideoFilesMcpTool,
-  tmdbSearch: tmdbSearchMcpTool,
-  tmdbGetMovie: tmdbGetMovieMcpTool,
-  tmdbGetTvShow: tmdbGetTvShowMcpTool,
+  howToRecognizeEpisodeVideoFiles: howToRecognizeEpisodeVideoFilesMcpTool
 }

@@ -76,18 +76,75 @@ export function setupTestMediaFolders(): {
 
 const TEST_MEDIA_TMP_DIR = path.join(os.tmpdir(), 'smm-test-media')
 
+function hasPartialDownloadFilesUnder(dir: string): boolean {
+    if (!fs.existsSync(dir)) {
+        return false
+    }
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (ent.name.includes('.part')) {
+            return true
+        }
+        if (ent.isDirectory()) {
+            const child = path.join(dir, ent.name)
+            if (hasPartialDownloadFilesUnder(child)) {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export type RemoveTestMediaTmpDirOptions = {
+    /**
+     * On Windows, yt-dlp may still hold `.part` files after a failed or timed-out test.
+     * Wait for partial files to disappear before deleting the tree.
+     */
+    waitForUnlockMs?: number
+}
+
 /**
  * Remove the test media tmp directory created by setupTestMediaFolders().
  * Does not require the app or hello() API to be running.
  * @returns The path that was removed, or null if the directory did not exist
  */
-export function removeTestMediaTmpDir(): string | null {
-    if (fs.existsSync(TEST_MEDIA_TMP_DIR)) {
-        fs.rmSync(TEST_MEDIA_TMP_DIR, { recursive: true, force: true })
-        console.log(`Removed test media tmp directory: ${TEST_MEDIA_TMP_DIR}`)
-        return TEST_MEDIA_TMP_DIR
+export async function removeTestMediaTmpDir(
+    options?: RemoveTestMediaTmpDirOptions,
+): Promise<string | null> {
+    if (!fs.existsSync(TEST_MEDIA_TMP_DIR)) {
+        return null
     }
-    return null
+
+    const waitForUnlockMs = options?.waitForUnlockMs ?? 30_000
+    const deadline = Date.now() + waitForUnlockMs
+    while (Date.now() < deadline && hasPartialDownloadFilesUnder(TEST_MEDIA_TMP_DIR)) {
+        await delay(500)
+    }
+
+    try {
+        fs.rmSync(TEST_MEDIA_TMP_DIR, {
+            recursive: true,
+            force: true,
+            maxRetries: 10,
+            retryDelay: 300,
+        })
+    } catch (error) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code
+        if (code === 'EPERM' || code === 'EBUSY') {
+            console.warn(
+                `Could not remove test media tmp directory (${code}); files may still be locked by yt-dlp:`,
+                TEST_MEDIA_TMP_DIR,
+            )
+            return null
+        }
+        throw error
+    }
+
+    console.log(`Removed test media tmp directory: ${TEST_MEDIA_TMP_DIR}`)
+    return TEST_MEDIA_TMP_DIR
 }
 
 /**

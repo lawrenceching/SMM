@@ -65,6 +65,9 @@ const JobOrchestratorContext = createContext<JobOrchestratorContextValue | null>
 /** Serializes IDB→store sync across parallel callers (StrictMode, SW update, popover). */
 let syncFromIndexedDBChain: Promise<unknown> = Promise.resolve()
 
+/** Poll IndexedDB while jobs are pending/running (safety net if SW postMessage is missed). */
+const ACTIVE_JOB_POLL_INTERVAL_MS = 5_000
+
 export function useJobOrchestratorContext(): JobOrchestratorContextValue {
   const ctx = useContext(JobOrchestratorContext)
   if (!ctx) throw new Error('useJobOrchestratorContext must be used inside <JobOrchestratorProvider>')
@@ -290,6 +293,19 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     window.addEventListener('indexed-updated', handler)
     return () => window.removeEventListener('indexed-updated', handler)
   }, [syncFromIndexedDB, tryAutoStartAll])
+
+  const hasActiveJobs = useMemo(
+    () => jobRecords.some((r) => r.status === 'running' || r.status === 'pending'),
+    [jobRecords],
+  )
+
+  useEffect(() => {
+    if (!hasActiveJobs) return
+    const id = setInterval(() => {
+      void syncFromIndexedDB('poll')
+    }, ACTIVE_JOB_POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [hasActiveJobs, syncFromIndexedDB])
 
   // ---------------------------------------------------------------------------
   // Mount: register SW, startup reconciliation, initial auto-start

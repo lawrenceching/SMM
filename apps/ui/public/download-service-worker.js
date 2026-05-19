@@ -335,23 +335,24 @@ async function startDownload(jobId) {
   abortControllers.delete(jobId)
   stopHeartbeat(jobId)
 
+  await deleteYtdlpCookiesFileIfPresent(data.ytdlpCookiesFile)
+
+  job.updatedAt = Date.now()
   if (controller.signal.aborted) {
     console.log('[SW] startDownload: job stopped (aborted)', { jobId })
     job.status = 'stopped'
+    await dbPutJob(job)
   } else if (allSucceeded) {
     console.log('[SW] startDownload: job succeeded', { jobId })
     job.status = 'succeeded'
+    await dbPutJob(job)
     await notifyClients('download:succeeded', { id: jobId })
   } else {
     console.log('[SW] startDownload: job failed', { jobId })
     job.status = 'failed'
+    await dbPutJob(job)
     await notifyClients('download:failed', { id: jobId })
   }
-
-  await deleteYtdlpCookiesFileIfPresent(data.ytdlpCookiesFile)
-
-  job.updatedAt = Date.now()
-  await dbPutJob(job)
 }
 
 async function stopDownload(jobId) {
@@ -548,19 +549,20 @@ async function startTranscribe(jobId) {
   abortControllers.delete(jobId)
   stopHeartbeat(jobId)
 
+  job.updatedAt = Date.now()
   if (controller.signal.aborted) {
     job.status = 'stopped'
+    await dbPutJob(job)
   } else if (ok) {
     job.status = 'succeeded'
     job.progress = 100
+    await dbPutJob(job)
     await notifyClients('transcribe:succeeded', { id: jobId })
   } else {
     job.status = 'failed'
+    await dbPutJob(job)
     await notifyClients('transcribe:failed', { id: jobId })
   }
-
-  job.updatedAt = Date.now()
-  await dbPutJob(job)
 }
 
 async function stopTranscribe(jobId) {
@@ -679,19 +681,20 @@ async function startTranslate(jobId) {
   abortControllers.delete(jobId)
   stopHeartbeat(jobId)
 
+  job.updatedAt = Date.now()
   if (controller.signal.aborted) {
     job.status = 'stopped'
+    await dbPutJob(job)
   } else if (ok) {
     job.status = 'succeeded'
     job.progress = 100
+    await dbPutJob(job)
     await notifyClients('translate:succeeded', { id: jobId })
   } else {
     job.status = 'failed'
+    await dbPutJob(job)
     await notifyClients('translate:failed', { id: jobId })
   }
-
-  job.updatedAt = Date.now()
-  await dbPutJob(job)
 }
 
 async function stopTranslate(jobId) {
@@ -807,19 +810,20 @@ async function startSynthesize(jobId) {
   abortControllers.delete(jobId)
   stopHeartbeat(jobId)
 
+  job.updatedAt = Date.now()
   if (controller.signal.aborted) {
     job.status = 'stopped'
+    await dbPutJob(job)
   } else if (ok) {
     job.status = 'succeeded'
     job.progress = 100
+    await dbPutJob(job)
     await notifyClients('synthesize:succeeded', { id: jobId })
   } else {
     job.status = 'failed'
+    await dbPutJob(job)
     await notifyClients('synthesize:failed', { id: jobId })
   }
-
-  job.updatedAt = Date.now()
-  await dbPutJob(job)
 }
 
 async function stopSynthesize(jobId) {

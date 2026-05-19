@@ -193,7 +193,7 @@ export async function cleanup(options?: {
         removeMetadataDir: true,
     };
     if (isToRemoveMediaFolders) {
-        removeTestMediaTmpDir()
+        await removeTestMediaTmpDir({ waitForUnlockMs: 30_000 })
     }
     if (isToRemovePlansDir) {
         await removePlansDir()

@@ -103,6 +103,49 @@ class MusicPanelComponentObject {
 
         throw new Error(`[MusicPanel] Context menu item [${labels.join(", ")}] not found`)
     }
+
+    /** Title column text for each data row (skips empty-state placeholder row). */
+    async getTrackRowTitles(): Promise<string[]> {
+        const rows = await $$("tbody tr")
+        const titles: string[] = []
+
+        for (const row of rows) {
+            const cells = await row.$$("td")
+            if ((await cells.length) < 4) {
+                continue
+            }
+            const titleCell = cells[2]
+            if (titleCell) {
+                titles.push((await titleCell.getText()).trim())
+            }
+        }
+
+        return titles
+    }
+
+    async waitForRowTitleContaining(
+        keyword: string,
+        options?: { timeout?: number; interval?: number },
+    ): Promise<void> {
+        const timeout = options?.timeout ?? 120_000
+        const interval = options?.interval ?? 1000
+
+        await browser.waitUntil(
+            async () => {
+                const titles = await this.getTrackRowTitles()
+                return titles.some((title) => title.includes(keyword))
+            },
+            {
+                timeout,
+                interval,
+                timeoutMsg: async () => {
+                    const titles = await this.getTrackRowTitles()
+                    const displayed = titles.length > 0 ? titles.join(" | ") : "(no data rows)"
+                    return `[MusicPanel] No row title containing "${keyword}" after ${timeout}ms. Titles: ${displayed}`
+                },
+            },
+        )
+    }
 }
 
 const MusicPanelCO = new MusicPanelComponentObject()

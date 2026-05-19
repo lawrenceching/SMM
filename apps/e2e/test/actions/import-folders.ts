@@ -176,4 +176,3 @@ export function renameFileInFolder(folderName: string, oldFileName: string, newF
   fs.renameSync(oldPath, newPath)
   console.log(`Renamed "${oldFileName}" to "${newFileName}" in ${folderName}`)
 }
-

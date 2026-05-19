@@ -214,5 +214,15 @@ pnpm ci               # 构建 + 测试 + 类型检查
 pnpm run wdio --spec ./test/specs/[test file].e2e.ts
 ```
 
+### 编写测试
+
+关键辅助测试函数
+* `apps\e2e\test\lib\testbed.ts` 创建和清理测试环境
+* `apps\e2e\test\actions\import-folders.ts` 创建和导入测试媒体目录
+  
+模板
+* 测试音乐和视频目录: `apps\e2e\test\specs\music\MusicPanel.template.ts`
+
+
 ## apps/cli API 列表
 API列表可查阅文件: `docs/api/index.md`.
