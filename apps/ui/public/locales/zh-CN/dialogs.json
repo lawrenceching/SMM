@@ -44,6 +44,8 @@
     "format1080p": "1080p",
     "format720p": "720p",
     "formatAudioOnly": "仅音频",
+    "formatUnavailableSuffix": "（不可用）",
+    "format1080pAuthRequired": "此格式需要登录后下载。请勾选「使用 Cookies」或「从浏览器获取」。",
     "episodesLoading": "正在加载分集…",
     "episodesNoneSelected": "请至少选择一集。",
     "episodesNoVideoUrls": "所选分集缺少可播放链接。",

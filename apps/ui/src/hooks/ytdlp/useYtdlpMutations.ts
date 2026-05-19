@@ -4,6 +4,8 @@ import {
   extractYtdlpVideoData,
   getBilibiliCollectionMetadata,
   getBilibiliEpisodesMetadata,
+  listYtdlpFormats,
+  type YtdlpListFormatsRequest,
 } from "@/api/ytdlp";
 
 export function useBilibiliEpisodesMetadataMutation() {
@@ -21,6 +23,12 @@ export function useBilibiliCollectionMetadataMutation() {
 export function useExtractYtdlpVideoDataMutation() {
   return useMutation({
     mutationFn: (url: string) => extractYtdlpVideoData(url),
+  });
+}
+
+export function useListYtdlpFormatsMutation() {
+  return useMutation({
+    mutationFn: (req: YtdlpListFormatsRequest) => listYtdlpFormats(req),
   });
 }
 

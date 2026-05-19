@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   resetEpisodesMetadata: vi.fn(),
   mutateCollectionMetadata: vi.fn(),
   resetCollectionMetadata: vi.fn(),
+  mutateListFormats: vi.fn(),
   extractReset: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
@@ -75,6 +76,9 @@ vi.mock('@/hooks/ytdlp/useYtdlpMutations', () => ({
     reset: h.extractReset,
     isPending: false,
   }),
+  useListYtdlpFormatsMutation: () => ({
+    mutate: h.mutateListFormats,
+  }),
 }))
 
 function renderWithQueryClient(ui: ReactElement) {
@@ -139,6 +143,7 @@ vi.mock('@/lib/i18n', () => ({
         'downloadVideo.writeThumbnail.label': 'Download thumbnail',
         'downloadVideo.embedThumbnail.label': 'Embed thumbnail in audio/video file',
         'downloadVideo.embedMetadata.label': 'Embed metadata',
+        'downloadVideo.formatUnavailableSuffix': ' (unavailable)',
       }
       return dialogsTranslations[key] || key
     },
@@ -248,14 +253,15 @@ describe('DownloadVideoDialog - user agreement', () => {
 
     const checkbox = screen.getByLabelText(
       'I understand and agree that I will not use this feature to download illegal or unlicensed content.'
-    ) as HTMLInputElement
+    )
 
     fireEvent.click(checkbox)
 
     const urlInput = screen.getByLabelText('Video URL') as HTMLInputElement
     const folderInput = screen.getByLabelText('Download Folder') as HTMLInputElement
 
-    expect(checkbox.checked).toBe(true)
+    // The agreement block is removed from DOM after checking (hasAgreed=true hides it),
+    // so we verify the side effects instead of aria-checked on the removed element.
     expect(urlInput.disabled).toBe(false)
     expect(folderInput.disabled).toBe(false)
     expect(window.localStorage.getItem('DownloadVideoDialog.userAgreed')).toBe('true')
@@ -554,20 +560,20 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'https://www.bilibili.com/video/BV1xx411c7mD/' },
     })
 
-    const downloadEpisodesCheckbox = screen.getByLabelText('Download episodes') as HTMLInputElement
+    const downloadEpisodesCheckbox = screen.getByLabelText('Download episodes')
     fireEvent.click(downloadEpisodesCheckbox)
 
     await waitFor(() => {
       expect(screen.getByText('Episode 1')).toBeInTheDocument()
     })
-    expect(downloadEpisodesCheckbox.checked).toBe(true)
+    expect(downloadEpisodesCheckbox).toHaveAttribute('aria-checked', 'true')
 
     fireEvent.change(screen.getByLabelText('Video URL'), {
       target: { value: 'https://www.bilibili.com/video/BV9xx411c7mD/' },
     })
 
     await waitFor(() => {
-      expect((screen.getByLabelText('Download episodes') as HTMLInputElement).checked).toBe(false)
+      expect(screen.getByLabelText('Download episodes')).toHaveAttribute('aria-checked', 'false')
       expect(screen.queryByText('Episode 1')).not.toBeInTheDocument()
     })
   })
@@ -964,5 +970,145 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
     await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('write failed'))
     expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+  })
+})
+
+describe('DownloadVideoDialog - 1080p availability probe', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onOpenFilePicker: vi.fn(),
+    destinationFolder: 'C:\\downloads',
+  }
+
+  beforeEach(() => {
+    h.validateDownloadUrl.mockReturnValue({ valid: true })
+    h.mutateListFormats.mockReset()
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+  })
+
+  it('shows "1080p (unavailable)" label when probe returns no 1080 height', async () => {
+    // Simulate probe completing with only 360 and 480
+    h.mutateListFormats.mockImplementation(
+      (_req: unknown, { onSuccess }: { onSuccess: (r: unknown) => void }) => {
+        onSuccess({ availableHeights: [360, 480], hasAudioOnly: true })
+      },
+    )
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.blur(screen.getByLabelText('Video URL'))
+
+    await waitFor(() =>
+      expect(h.mutateListFormats).toHaveBeenCalled()
+    )
+
+    // Open format select and check 1080p option label
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByTestId('download-video-dialog-format-option-1080p')
+    expect(option1080.textContent).toContain('unavailable')
+  })
+
+  it('shows "1080p" label (no suffix) when probe returns 1080 in heights', async () => {
+    h.mutateListFormats.mockImplementation(
+      (_req: unknown, { onSuccess }: { onSuccess: (r: unknown) => void }) => {
+        onSuccess({ availableHeights: [720, 1080], hasAudioOnly: false })
+      },
+    )
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.blur(screen.getByLabelText('Video URL'))
+
+    await waitFor(() => expect(h.mutateListFormats).toHaveBeenCalled())
+
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByTestId('download-video-dialog-format-option-1080p')
+    expect(option1080.textContent).not.toContain('unavailable')
+  })
+
+  it('disables Start when 1080p selected but unavailable and no cookies configured', async () => {
+    h.mutateListFormats.mockImplementation(
+      (_req: unknown, { onSuccess }: { onSuccess: (r: unknown) => void }) => {
+        onSuccess({ availableHeights: [360, 480], hasAudioOnly: true })
+      },
+    )
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.blur(screen.getByLabelText('Video URL'))
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    await waitFor(() => expect(h.mutateListFormats).toHaveBeenCalled())
+
+    // Select 1080p
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByTestId('download-video-dialog-format-option-1080p')
+    fireEvent.click(option1080)
+
+    const startButton = screen.getByTestId('download-video-dialog-start')
+    expect(startButton).toBeDisabled()
+  })
+
+  it('enables Start when 1080p selected, unavailable, but "From browser" is checked', async () => {
+    h.mutateListFormats.mockImplementation(
+      (_req: unknown, { onSuccess }: { onSuccess: (r: unknown) => void }) => {
+        onSuccess({ availableHeights: [360, 480], hasAudioOnly: true })
+      },
+    )
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.blur(screen.getByLabelText('Video URL'))
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    await waitFor(() => expect(h.mutateListFormats).toHaveBeenCalled())
+
+    // Enable "From browser"
+    fireEvent.click(screen.getByLabelText('From browser'))
+
+    // Select 1080p
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByTestId('download-video-dialog-format-option-1080p')
+    fireEvent.click(option1080)
+
+    const startButton = screen.getByTestId('download-video-dialog-start')
+    expect(startButton).not.toBeDisabled()
+  })
+
+  it('does not block Start when probe fails (unknown = available)', async () => {
+    h.mutateListFormats.mockImplementation(
+      (_req: unknown, { onError }: { onError: () => void }) => {
+        onError()
+      },
+    )
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.blur(screen.getByLabelText('Video URL'))
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    await waitFor(() => expect(h.mutateListFormats).toHaveBeenCalled())
+
+    // Select 1080p — should still be enabled since probe failed = unknown
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-select'))
+    const option1080 = await screen.findByTestId('download-video-dialog-format-option-1080p')
+    fireEvent.click(option1080)
+
+    const startButton = screen.getByTestId('download-video-dialog-start')
+    expect(startButton).not.toBeDisabled()
   })
 })

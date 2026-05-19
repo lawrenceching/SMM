@@ -4,10 +4,16 @@ import {
   buildYtdlpDownloadArgs,
   parseYtdlpDownloadStdout,
   validateYtdlpDownloadExtraArgs,
+  type YtdlpCookiesFromBrowserName,
+  isYtdlpCookiesFromBrowserName,
 } from "@core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
+import {
+  parseYtdlpListFormatsStdout,
+  type YtdlpListFormatsResult,
+} from "@/lib/parseYtdlpListFormats";
 
 export interface YtdlpDownloadRequest {
   url: string;
@@ -131,6 +137,47 @@ export async function extractYtdlpVideoData(url: string): Promise<YtdlpExtractDa
     return { error: "title not found in yt-dlp output" };
   }
   return { title, artist };
+}
+
+export interface YtdlpListFormatsRequest {
+  url: string;
+  /** Absolute path to a Netscape-format cookies file. */
+  cookiesFile?: string;
+  /** Browser profile name for `--cookies-from-browser`. */
+  cookiesFromBrowser?: string;
+}
+
+export type { YtdlpListFormatsResult };
+
+/**
+ * Runs `yt-dlp -F [--cookies-from-browser <browser>] <url>` and returns the parsed format list.
+ * Cookies-file is intentionally not supported here to avoid writing temp files on every URL blur.
+ */
+export async function listYtdlpFormats(
+  req: YtdlpListFormatsRequest
+): Promise<YtdlpListFormatsResult> {
+  const args: string[] = [];
+
+  const cookiesFile = req.cookiesFile?.trim();
+  if (cookiesFile) {
+    args.push("--cookies", cookiesFile);
+  }
+
+  const browser = req.cookiesFromBrowser?.trim().toLowerCase();
+  if (browser && isYtdlpCookiesFromBrowserName(browser)) {
+    args.push("--cookies-from-browser", browser as YtdlpCookiesFromBrowserName);
+  }
+
+  args.push("-F", req.url.trim());
+
+  const result = await executeCmdToCompletion(
+    { command: "yt-dlp", args },
+    { timeoutMs: 30_000 }
+  );
+
+  // yt-dlp outputs the table to stderr (or combined) on some versions; merge both.
+  const combined = [result.stdout, result.stderr].join("\n");
+  return parseYtdlpListFormatsStdout(combined);
 }
 
 export interface YtdlpBilibiliEpisodesResponse {

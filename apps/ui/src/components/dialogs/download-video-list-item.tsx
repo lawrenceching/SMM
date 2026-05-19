@@ -6,6 +6,7 @@ import {
   bilibiliVideoDisplayTitle,
   getBilibiliVideoMetadata,
 } from "@/api/ytdlp"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -176,15 +177,12 @@ export function ListItem({
       data-testid={listItemTestId}
       {...(shouldFetch && isPending ? { "aria-busy": true as const } : {})}
     >
-      <label className="flex cursor-pointer items-start gap-2 text-sm">
-        <input
+      <div className="flex cursor-pointer items-start gap-2 text-sm">
+        <Checkbox
           data-testid={checkboxTestId}
-          type="checkbox"
-          className="mt-0.5 h-3.5 w-3.5 shrink-0"
+          className="mt-0.5 shrink-0"
           checked={checked}
-          onChange={() => {
-            onToggle()
-          }}
+          onCheckedChange={() => onToggle()}
           disabled={disabled}
         />
         <span
@@ -192,10 +190,11 @@ export function ListItem({
             labelClassName,
             shouldFetch && (isPending || data || isError) && "min-w-0 flex-1"
           )}
+          onClick={() => !disabled && onToggle()}
         >
           {textContent}
         </span>
-      </label>
+      </div>
     </li>
   )
 }

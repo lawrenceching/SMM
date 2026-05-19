@@ -8,6 +8,7 @@ import {
   ScrollableDialogHeader,
 } from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,6 +22,7 @@ import {
   useBilibiliCollectionMetadataMutation,
   useBilibiliEpisodesMetadataMutation,
   useExtractYtdlpVideoDataMutation,
+  useListYtdlpFormatsMutation,
 } from "@/hooks/ytdlp/useYtdlpMutations"
 import {
   buildDownloadVideoJob,
@@ -134,6 +136,9 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
   const [extraArgSelection, setExtraArgSelection] = useState<YtdlpDownloadExtraArgSelection>(
     () => ({ ...DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION }),
   )
+  /** null = unknown (probe not yet run or in-flight); array = known result */
+  const [availableHeights, setAvailableHeights] = useState<number[] | null>(null)
+  const listFormatsGen = useRef(0)
   const episodesFetchGen = useRef(0)
   const previousUrlRef = useRef("")
 
@@ -145,12 +150,23 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     isPending: collectionMetadataLoading,
   } = useBilibiliCollectionMetadataMutation()
   const extractMutation = useExtractYtdlpVideoDataMutation()
+  const { mutate: mutateListFormats } = useListYtdlpFormatsMutation()
 
   const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
   const isCollectionUrl =
     isBilibiliCollectionUrl(url.trim()) && isUrlValid
 
   const resolvedYtdlpFormat = resolveYtdlpFormatFromPreset(selectedFormatPresetId)
+
+  // null = unknown (probe not yet run); treat unknown as available to avoid false blocking
+  const is1080pAvailable =
+    availableHeights === null ? true : availableHeights.includes(1080)
+
+  const has1080pAuth =
+    (useCookies && cookiesText.trim().length > 0) || useCookiesFromBrowser
+
+  const start1080pBlocked =
+    selectedFormatPresetId === "1080p" && !is1080pAvailable && !has1080pAuth
 
   const formBusy =
     isEnqueueing ||
@@ -288,11 +304,48 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
     if (urlTouched) {
       runUrlValidation(value)
     }
+    // If URL changes to invalid, clear probe result immediately
+    if (validateDownloadUrl(value.trim()).valid === false) {
+      setAvailableHeights(null)
+    }
   }
+
+  const probeFormats = useCallback((urlValue: string) => {
+    const trimmed = urlValue.trim()
+    if (!trimmed || !validateDownloadUrl(trimmed).valid) {
+      return
+    }
+    const gen = ++listFormatsGen.current
+    // Pass cookies-from-browser if enabled; skip file cookies to avoid disk writes on blur
+    const cookiesFromBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
+    mutateListFormats(
+      { url: trimmed, cookiesFromBrowser },
+      {
+        onSuccess: (result) => {
+          if (gen !== listFormatsGen.current) return
+          setAvailableHeights(result.availableHeights)
+        },
+        onError: () => {
+          if (gen !== listFormatsGen.current) return
+          // On error treat as unknown — don't block the user
+          setAvailableHeights(null)
+        },
+      },
+    )
+  }, [mutateListFormats, useCookiesFromBrowser, cookiesBrowser])
+
+  // Re-probe when cookies-from-browser setting changes and URL is already valid
+  useEffect(() => {
+    if (!isUrlValid) return
+    probeFormats(url)
+    // url is a captured dep via isUrlValid; probeFormats captures cookies settings
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useCookiesFromBrowser, cookiesBrowser])
 
   const handleUrlBlur = () => {
     setUrlTouched(true)
     runUrlValidation(url)
+    probeFormats(url)
   }
 
   const handleAgreementChange = (checked: boolean) => {
@@ -570,16 +623,17 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               <p className="text-muted-foreground">
                 {t('downloadVideo.agreementDescription')}
               </p>
-              <label className="mt-1 inline-flex items-center gap-2 text-sm">
-                <input
+              <div className="mt-1 flex items-center gap-2">
+                <Checkbox
+                  id="download-video-agreement"
                   data-testid="download-video-dialog-agreement-checkbox"
-                  type="checkbox"
-                  className="h-3.5 w-3.5"
                   checked={isAgreementChecked}
-                  onChange={(e) => handleAgreementChange(e.target.checked)}
+                  onCheckedChange={(checked) => handleAgreementChange(checked === true)}
                 />
-                <span>{t('downloadVideo.agreementCheckboxLabel')}</span>
-              </label>
+                <Label htmlFor="download-video-agreement" className="cursor-pointer font-normal">
+                  {t('downloadVideo.agreementCheckboxLabel')}
+                </Label>
+              </div>
               {!isAgreementChecked && (
                 <p className="text-xs text-destructive">
                   {t('downloadVideo.agreementRequiredNotice')}
@@ -607,17 +661,19 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
           {hasAgreed && (
             <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="download-video-use-cookies"
                   data-testid="download-video-dialog-use-cookies-checkbox"
-                  type="checkbox"
-                  className="h-3.5 w-3.5"
+                  aria-invalid={start1080pBlocked}
                   checked={useCookies}
-                  onChange={(e) => setUseCookies(e.target.checked)}
+                  onCheckedChange={(checked) => setUseCookies(checked === true)}
                   disabled={formBusy}
                 />
-                <span>{t("downloadVideo.useCookiesLabel")}</span>
-              </label>
+                <Label htmlFor="download-video-use-cookies" className="cursor-pointer font-normal">
+                  {t("downloadVideo.useCookiesLabel")}
+                </Label>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -630,17 +686,19 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
               </Button>
             </div>
               <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="download-video-use-cookies-from-browser"
                     data-testid="download-video-dialog-use-cookies-from-browser-checkbox"
-                    type="checkbox"
-                    className="h-3.5 w-3.5"
+                    aria-invalid={start1080pBlocked}
                     checked={useCookiesFromBrowser}
-                    onChange={(e) => setUseCookiesFromBrowser(e.target.checked)}
+                    onCheckedChange={(checked) => setUseCookiesFromBrowser(checked === true)}
                     disabled={formBusy}
                   />
-                  <span>{t("downloadVideo.useCookiesFromBrowserLabel")}</span>
-                </label>
+                  <Label htmlFor="download-video-use-cookies-from-browser" className="cursor-pointer font-normal">
+                    {t("downloadVideo.useCookiesFromBrowserLabel")}
+                  </Label>
+                </div>
                 <Select
                   value={cookiesBrowser}
                   onValueChange={(value) => setCookiesBrowser(value as YtdlpCookiesBrowserId)}
@@ -663,6 +721,11 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                   </SelectContent>
                 </Select>
               </div>
+              {start1080pBlocked && (
+                <p className="text-xs text-destructive" data-testid="download-video-dialog-1080p-auth-hint">
+                  {t("downloadVideo.format1080pAuthRequired")}
+                </p>
+              )}
             </div>
           )}
           {hasAgreed && isUrlValid && (
@@ -683,39 +746,48 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {YTDLP_FORMAT_PRESETS.map((preset) => (
-                    <SelectItem key={preset.id} value={preset.id}>
-                      {t(ytdlpFormatPresetLabelKey(preset.id))}
-                    </SelectItem>
-                  ))}
+                  {YTDLP_FORMAT_PRESETS.map((preset) => {
+                    const baseLabel = t(ytdlpFormatPresetLabelKey(preset.id))
+                    const label =
+                      preset.id === "1080p" && !is1080pAvailable
+                        ? `${baseLabel}${t("downloadVideo.formatUnavailableSuffix")}`
+                        : baseLabel
+                    return (
+                      <SelectItem
+                        key={preset.id}
+                        value={preset.id}
+                        data-testid={`download-video-dialog-format-option-${preset.id}`}
+                      >
+                        {label}
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
           )}
           {canDownloadEpisodes && (
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="download-video-episodes"
                 data-testid="download-video-dialog-episodes-checkbox"
-                type="checkbox"
-                className="h-3.5 w-3.5"
                 checked={downloadEpisodes}
-                onChange={(e) => handleDownloadEpisodesChange(e.target.checked)}
+                onCheckedChange={(checked) => handleDownloadEpisodesChange(checked === true)}
                 disabled={formBusy || !hasAgreed}
               />
-              <span>{t('downloadVideo.downloadEpisodesLabel')}</span>
-            </label>
+              <Label htmlFor="download-video-episodes" className="cursor-pointer font-normal">
+                {t('downloadVideo.downloadEpisodesLabel')}
+              </Label>
+            </div>
           )}
           {hasAgreed && isUrlValid && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <input
+                <Checkbox
                   id="download-video-more-options"
                   data-testid="download-video-dialog-more-options-checkbox"
-                  type="checkbox"
-                  role="checkbox"
-                  className="h-4 w-4 cursor-pointer"
                   checked={showMoreOptions}
-                  onChange={(e) => setShowMoreOptions(e.target.checked)}
+                  onCheckedChange={(checked) => setShowMoreOptions(checked === true)}
                   disabled={formBusy}
                 />
                 <Label
@@ -737,14 +809,11 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                           : "embed-metadata"
                     return (
                       <div key={argId} className="flex items-center gap-2">
-                        <input
+                        <Checkbox
                           id={inputId}
                           data-testid={`download-video-dialog-${testIdSuffix}-checkbox`}
-                          type="checkbox"
-                          role="checkbox"
-                          className="h-4 w-4 cursor-pointer"
                           checked={extraArgSelection[argId]}
-                          onChange={(e) => setExtraArgEnabled(argId, e.target.checked)}
+                          onCheckedChange={(checked) => setExtraArgEnabled(argId, checked === true)}
                           disabled={formBusy}
                         />
                         <Label htmlFor={inputId} className="cursor-pointer font-normal">
@@ -758,19 +827,20 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
             </div>
           )}
           {isCollectionUrl && (
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="download-video-get-videos"
                 data-testid="download-video-dialog-get-videos-checkbox"
-                type="checkbox"
-                className="h-3.5 w-3.5"
                 checked={downloadCollectionVideos}
-                onChange={(e) =>
-                  handleDownloadCollectionVideosChange(e.target.checked)
+                onCheckedChange={(checked) =>
+                  handleDownloadCollectionVideosChange(checked === true)
                 }
                 disabled={formBusy || !hasAgreed}
               />
-              <span>{t("downloadVideo.getVideos")}</span>
-            </label>
+              <Label htmlFor="download-video-get-videos" className="cursor-pointer font-normal">
+                {t("downloadVideo.getVideos")}
+              </Label>
+            </div>
           )}
           {downloadEpisodes && hasAgreed && (
             <div data-testid="download-video-dialog-episodes-panel" className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
@@ -887,7 +957,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                   !downloadFolder.trim() ||
                   formBusy ||
                   !hasAgreed ||
-                  selectedCollectionUrls.size === 0
+                  selectedCollectionUrls.size === 0 ||
+                  start1080pBlocked
                 }
               >
                 {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
@@ -901,7 +972,8 @@ export function DownloadVideoDialog({ isOpen, onClose, onOpenFilePicker, destina
                 !isUrlValid ||
                 !downloadFolder.trim() ||
                 formBusy ||
-                !hasAgreed
+                !hasAgreed ||
+                start1080pBlocked
               }
             >
               {isEnqueueing ? t('downloadVideo.downloading') : t("downloadVideo.start")}
