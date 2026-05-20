@@ -46,7 +46,7 @@ vi.mock('@/components/ui/context-menu', () => ({
 
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: Record<string, string>) => {
+    t: (key: string, opts?: Record<string, unknown>) => {
       if (key === 'statusBar.backgroundJobs.title') return 'Background Jobs'
       if (key === 'statusBar.backgroundJobs.subtitle') return 'subtitle'
       if (key === 'statusBar.backgroundJobs.empty') return 'empty'
@@ -56,6 +56,17 @@ vi.mock('@/lib/i18n', () => ({
       if (key === 'statusBar.backgroundJobs.clearFinishedAria') return 'Remove completed jobs'
       if (key === 'statusBar.backgroundJobs.logButton') return 'Log'
       if (key === 'statusBar.backgroundJobs.logButtonAria') return `log-${opts?.name ?? ''}`
+      if (key === 'statusBar.backgroundJobs.jobNames.transcribe') return 'Transcribe'
+      if (key === 'statusBar.backgroundJobs.jobNames.translate') return 'Translate'
+      if (key === 'statusBar.backgroundJobs.jobNames.synthesize') return 'Synthesize'
+      if (key === 'statusBar.backgroundJobs.jobNames.process') return 'Process'
+      if (key === 'statusBar.backgroundJobs.jobNames.downloadVideo') return 'Download Video'
+      if (key === 'statusBar.backgroundJobs.jobNames.downloadVideoEpisodes') {
+        return `Download ${opts?.count} episodes`
+      }
+      if (key === 'statusBar.backgroundJobs.jobNames.typedJob') {
+        return `${opts?.type}: ${opts?.detail}`
+      }
       if (key.startsWith('statusBar.backgroundJobs.status.')) return 'status'
       if (key.startsWith('statusBar.backgroundJobs.messages.')) return 'msg'
       if (key === 'statusBar.backgroundJobs.abortAriaLabel') return 'abort'
@@ -94,7 +105,7 @@ describe('BackgroundJobsPopoverContent', () => {
     mockPopoverJobs([
         {
           id: 'j1',
-          name: 'My job',
+          name: 'Transcribe: My job',
           status: 'succeeded',
           progress: 100,
           type: 'transcribe',
@@ -116,7 +127,7 @@ describe('BackgroundJobsPopoverContent', () => {
     fireEvent.click(logBtn)
     expect(openLogDialog).toHaveBeenCalledWith({
       executionId: '00000000-0000-4000-8000-000000000001',
-      jobTitle: 'My job',
+      jobTitle: 'Transcribe: My job',
       isRunning: false,
     })
   })
@@ -125,7 +136,7 @@ describe('BackgroundJobsPopoverContent', () => {
     mockPopoverJobs([
         {
           id: 'j2',
-          name: 'Run',
+          name: 'Translate: Run',
           status: 'running',
           progress: 50,
           type: 'translate',
@@ -148,7 +159,7 @@ describe('BackgroundJobsPopoverContent', () => {
     fireEvent.click(logBtn)
     expect(openLogDialog).toHaveBeenCalledWith({
       executionId: '00000000-0000-4000-8000-000000000002',
-      jobTitle: 'Run',
+      jobTitle: 'Translate: Run',
       isRunning: true,
     })
     const abortBtn = screen.getByTestId('background-job-j2-abort-button')
@@ -167,7 +178,7 @@ describe('BackgroundJobsPopoverContent', () => {
           type: 'download-video',
           data: {
             folder: 'C:/music',
-            videos: [{ url: 'https://example.com/v', title: 't', artist: 'a', status: 'downloading' }],
+            videos: [{ url: 'https://example.com/v', title: 'My Video', artist: 'a', status: 'downloading' }],
             executionId: '00000000-0000-4000-8000-000000000003',
           },
         },
@@ -180,7 +191,7 @@ describe('BackgroundJobsPopoverContent', () => {
     fireEvent.click(logBtn)
     expect(openLogDialog).toHaveBeenCalledWith({
       executionId: '00000000-0000-4000-8000-000000000003',
-      jobTitle: 'Download Video',
+      jobTitle: 'My Video',
       isRunning: true,
     })
   })
