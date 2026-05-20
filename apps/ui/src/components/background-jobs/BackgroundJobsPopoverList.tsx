@@ -9,10 +9,49 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
+import type { BackgroundJob, DownloadVideoJobVideo, JobStatus } from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
 import { canOpenCommandLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
+
+function parseJobNameDetail(name: string): string | null {
+  const idx = name.indexOf(': ')
+  if (idx === -1) return null
+  return name.slice(idx + 2)
+}
+
+type JobTypeLabelKey = 'transcribe' | 'translate' | 'synthesize' | 'process'
+
+function getJobDisplayName(
+  job: BackgroundJob,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  switch (job.type) {
+    case 'download-video': {
+      const videos = (job.data as { videos?: DownloadVideoJobVideo[] } | undefined)?.videos
+      if (videos && videos.length > 1) {
+        return t('statusBar.backgroundJobs.jobNames.downloadVideoEpisodes', { count: videos.length })
+      }
+      if (videos && videos.length === 1 && videos[0].title && videos[0].title !== 'Download Video') {
+        return videos[0].title
+      }
+      return t('statusBar.backgroundJobs.jobNames.downloadVideo')
+    }
+    case 'transcribe':
+    case 'translate':
+    case 'synthesize':
+    case 'process': {
+      const typeLabel = t(`statusBar.backgroundJobs.jobNames.${job.type}` as `statusBar.backgroundJobs.jobNames.${JobTypeLabelKey}`)
+      const detail = parseJobNameDetail(job.name)
+      if (detail) {
+        return t('statusBar.backgroundJobs.jobNames.typedJob', { type: typeLabel, detail })
+      }
+      return typeLabel
+    }
+    default:
+      return job.name
+  }
+}
 
 export interface BackgroundJobsPopoverListProps {
   jobs: BackgroundJob[]
@@ -34,6 +73,7 @@ export function BackgroundJobsPopoverList({
   openLogDialog,
 }: BackgroundJobsPopoverListProps) {
   const { t } = useTranslation('components')
+  const td = t as unknown as (key: string, options?: Record<string, unknown>) => string
 
   const getStatusIcon = (status: JobStatus) => {
     switch (status) {
@@ -135,7 +175,7 @@ export function BackgroundJobsPopoverList({
                         data-testid={`background-job-${job.id}-name`}
                         className="text-sm font-medium truncate"
                       >
-                        {job.name}
+                        {getJobDisplayName(job, td)}
                       </h4>
                       <Badge
                         data-testid={`background-job-${job.id}-status-badge`}
@@ -189,13 +229,13 @@ export function BackgroundJobsPopoverList({
                         variant="outline"
                         size="sm"
                         className="gap-1"
-                        aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: job.name })}
+                        aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: getJobDisplayName(job, td) })}
                         onClick={() => {
                           const executionId = getJobExecutionId(job)
                           if (!executionId) return
                           openLogDialog({
                             executionId,
-                            jobTitle: job.name,
+                            jobTitle: getJobDisplayName(job, td),
                             isRunning: job.status === 'running',
                           })
                         }}
@@ -210,7 +250,7 @@ export function BackgroundJobsPopoverList({
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => stopJob(job.id)}
-                        aria-label={t('statusBar.backgroundJobs.abortAriaLabel', { name: job.name })}
+                        aria-label={t('statusBar.backgroundJobs.abortAriaLabel', { name: getJobDisplayName(job, td) })}
                       >
                         <StopCircle className="h-4 w-4" />
                       </Button>

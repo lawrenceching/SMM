@@ -269,6 +269,15 @@ interface ComponentsResources {
         failed: string
         aborted: string
       }
+      jobNames: {
+        downloadVideo: string
+        downloadVideoEpisodes: string
+        transcribe: string
+        translate: string
+        synthesize: string
+        process: string
+        typedJob: string
+      }
     }
   }
   mediaPlayer: {

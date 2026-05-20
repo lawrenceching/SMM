@@ -234,6 +234,15 @@
       "clearFailed": "Failed to remove {{count}} job(s)",
       "logButton": "Log",
       "logButtonAria": "View command log for {{name}}",
+      "jobNames": {
+        "downloadVideo": "Download Video",
+        "downloadVideoEpisodes": "Episodes ({{count}} videos)",
+        "transcribe": "Transcribe",
+        "translate": "Translate",
+        "synthesize": "Synthesize",
+        "process": "Process",
+        "typedJob": "{{type}}: {{detail}}"
+      },
       "logDialog": {
         "title": "Command log — {{jobTitle}}",
         "raw": "Raw",

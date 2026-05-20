@@ -231,6 +231,15 @@
       "clearFailed": "未能刪除 {{count}} 個任務",
       "logButton": "記錄",
       "logButtonAria": "檢視 {{name}} 的命令記錄",
+      "jobNames": {
+        "downloadVideo": "下載影片",
+        "downloadVideoEpisodes": "劇集 ({{count}} 個影片)",
+        "transcribe": "生成字幕",
+        "translate": "翻譯字幕",
+        "synthesize": "合成字幕",
+        "process": "字幕流程",
+        "typedJob": "{{type}}：{{detail}}"
+      },
       "logDialog": {
         "title": "命令記錄 — {{jobTitle}}",
         "raw": "原文",

@@ -233,6 +233,15 @@
       "clearFailed": "未能删除 {{count}} 个任务",
       "logButton": "日志",
       "logButtonAria": "查看 {{name}} 的命令日志",
+      "jobNames": {
+        "downloadVideo": "下载视频",
+        "downloadVideoEpisodes": "剧集 ({{count}} 个视频)",
+        "transcribe": "生成字幕",
+        "translate": "翻译字幕",
+        "synthesize": "合成字幕",
+        "process": "字幕流水线",
+        "typedJob": "{{type}}：{{detail}}"
+      },
       "logDialog": {
         "title": "命令日志 — {{jobTitle}}",
         "raw": "原文",
