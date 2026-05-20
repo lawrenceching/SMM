@@ -1,23 +1,10 @@
-import type { ReactNode } from "react"
+import type { SettingsTab } from "@/components/ui/config-panel"
+import type { MediaMetadata } from "@core/types"
+import type { DialogConfig, FileItem, FolderType } from "./common"
 
-export interface DialogConfig {
-  title?: string
-  description?: string
-  content?: ReactNode
-  onClose?: () => void
-  showCloseButton?: boolean
-  className?: string
-}
-
-export type FolderType = "tvshow" | "movie" | "music"
-
-export interface FileItem {
-  name: string
-  path: string
-  isDirectory?: boolean
-  size?: number
-  mtime?: number
-}
+// Re-export types that were split out
+export type { DialogConfig, FileItem, FolderType } from "./common"
+export type { DownloadVideoDialogProps, EpisodeItem } from "./download-video"
 
 export interface ConfirmationDialogProps {
   isOpen: boolean
@@ -29,8 +16,6 @@ export interface SpinnerDialogProps {
   isOpen: boolean
   message?: string
 }
-
-import type { SettingsTab } from "@/components/ui/config-panel"
 
 export interface ConfigDialogProps {
   isOpen: boolean
@@ -47,19 +32,6 @@ export interface FilePickerDialogProps {
   hideDialogHeader?: boolean
   selectFolder?: boolean
   initialPath?: string
-}
-
-export interface DownloadVideoDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onOpenFilePicker: (
-    onSelect: (file: FileItem) => void,
-    options?: { selectFolder?: boolean; initialPath?: string }
-  ) => void
-  /**
-   * The absolute path in platform-specific format
-   */
-  destinationFolder?: string
 }
 
 export interface MediaSearchDialogProps {
@@ -115,8 +87,6 @@ export interface Task {
   status: "pending" | "running" | "completed" | "failed"
   subTasks?: Task[]
 }
-
-import type { MediaMetadata } from "@core/types"
 
 export interface ScrapeDialogProps {
   isOpen: boolean
@@ -367,7 +337,7 @@ export interface FormatConverterDialogProps {
   track?: TrackProperties
   onOpenFilePicker?: (
     onSelect: (file: FileItem) => void,
-    options?: { selectFolder?: boolean; initialPath?: string }
+    options?: { selectFolder?: boolean; initialPath?: string },
   ) => void
   onSelectSource?: (track: TrackProperties) => void
 }
@@ -384,7 +354,7 @@ export interface EditMediaFileDialogProps {
   path: string | undefined
 }
 
-export type ExecuteCmdType = 'ffmpeg' | 'ffprobe' | 'yt-dlp' | 'videocaptioner'
+export type ExecuteCmdType = "ffmpeg" | "ffprobe" | "yt-dlp" | "videocaptioner"
 
 export interface ExecuteCmdDialogProps {
   isOpen: boolean
@@ -395,7 +365,7 @@ export interface ExecuteCmdDialogProps {
 export interface ExecuteCmdLogEntry {
   id: number
   timestamp: number
-  type: 'stdout' | 'stderr' | 'system'
+  type: "stdout" | "stderr" | "system"
   content: string
 }
 
@@ -403,4 +373,3 @@ export interface AddTestBackgroundJobDialogProps {
   isOpen: boolean
   onClose: () => void
 }
-
