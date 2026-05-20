@@ -8,7 +8,7 @@
     "deploy": "convex deploy -y",
     "codegen": "convex codegen",
     "seed": "convex run settings:seedDefaults",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No tests yet\""
   },
   "keywords": [],
   "author": "",

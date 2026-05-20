@@ -230,6 +230,15 @@ interface ComponentsResources {
       transcribeUnavailableOnOs: string
       learnMore: string
     }
+    versionUpdate: {
+      title: string
+      description: string
+      currentLabel: string
+      latestLabel: string
+      download: string
+      later: string
+      ariaLabel: string
+    }
     backgroundJobs: {
       title: string
       subtitle: string
