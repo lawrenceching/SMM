@@ -32,8 +32,14 @@ function getJobDisplayName(
       if (videos && videos.length > 1) {
         return t('statusBar.backgroundJobs.jobNames.downloadVideoEpisodes', { count: videos.length })
       }
-      if (videos && videos.length === 1 && videos[0].title && videos[0].title !== 'Download Video') {
-        return videos[0].title
+      if (videos && videos.length === 1) {
+        const title = videos[0].title
+        if (title && title !== 'Download Video') {
+          return title
+        }
+        if (videos[0].url) {
+          return videos[0].url
+        }
       }
       return t('statusBar.backgroundJobs.jobNames.downloadVideo')
     }
@@ -155,7 +161,9 @@ export function BackgroundJobsPopoverList({
           {t('statusBar.backgroundJobs.empty')}
         </div>
       ) : (
-        jobs.map((job) => (
+        jobs.map((job) => {
+          const displayName = getJobDisplayName(job, td)
+          return (
           <ContextMenu key={job.id}>
             <ContextMenuTrigger asChild>
               <div
@@ -174,8 +182,9 @@ export function BackgroundJobsPopoverList({
                       <h4
                         data-testid={`background-job-${job.id}-name`}
                         className="text-sm font-medium truncate"
+                        title={displayName}
                       >
-                        {getJobDisplayName(job, td)}
+                        {displayName}
                       </h4>
                       <Badge
                         data-testid={`background-job-${job.id}-status-badge`}
@@ -229,13 +238,13 @@ export function BackgroundJobsPopoverList({
                         variant="outline"
                         size="sm"
                         className="gap-1"
-                        aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: getJobDisplayName(job, td) })}
+                        aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: displayName })}
                         onClick={() => {
                           const executionId = getJobExecutionId(job)
                           if (!executionId) return
                           openLogDialog({
                             executionId,
-                            jobTitle: getJobDisplayName(job, td),
+                            jobTitle: displayName,
                             isRunning: job.status === 'running',
                           })
                         }}
@@ -250,7 +259,7 @@ export function BackgroundJobsPopoverList({
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => stopJob(job.id)}
-                        aria-label={t('statusBar.backgroundJobs.abortAriaLabel', { name: getJobDisplayName(job, td) })}
+                        aria-label={t('statusBar.backgroundJobs.abortAriaLabel', { name: displayName })}
                       >
                         <StopCircle className="h-4 w-4" />
                       </Button>
@@ -275,7 +284,8 @@ export function BackgroundJobsPopoverList({
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
-        ))
+        )
+      })
       )}
     </div>
   )
