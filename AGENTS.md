@@ -99,6 +99,10 @@ Electron 桌面应用, 主要目录结构:
 - electron-vite
 - electron-builder
 
+### apps/convex
+
+基于 Convex 的后台 API 服务
+
 ### apps/e2e
 端到端测试, 主要目录结构:
 - `test/specs/` - 测试用例

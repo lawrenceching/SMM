@@ -193,6 +193,15 @@
       "checking": "檢測中...",
       "warningAriaLabel": "資料庫連線警告"
     },
+    "versionUpdate": {
+      "title": "發現新版本",
+      "description": "SMM 有新版本（{{latest}}），目前為 {{current}}。",
+      "currentLabel": "目前版本",
+      "latestLabel": "最新版本",
+      "download": "前往下載",
+      "later": "稍後",
+      "ariaLabel": "有新版本可用，點擊查看詳情"
+    },
     "messages": {
       "tmdbAvailable": "TMDB 可用",
       "tmdbUnavailable": "TMDB 不可用",

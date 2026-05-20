@@ -1,5 +1,6 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Path } from "@core/path"
+import { isVersionGreater } from "@core/versionCompare"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
@@ -12,6 +13,8 @@ import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus
 import type { DatabaseConnectionStatus } from "@/lib/databaseConnectionCheck"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useConvexSettings } from "@/hooks/useConvexSettings"
+import { NewVersionDialog } from "./dialogs/NewVersionDialog"
 
 export { mapWebSocketStatusToConnectionStatus }
 
@@ -46,6 +49,8 @@ export function StatusBar({
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isTranscribeEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
+    const { data: convexSettings } = useConvexSettings()
+    const [newVersionDialogOpen, setNewVersionDialogOpen] = useState(false)
     const folderPathMessage = useMemo(
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
@@ -53,6 +58,11 @@ export function StatusBar({
     const displayMessage = message !== undefined ? message : folderPathMessage
 
     const { version } = useStatusBar({ versionOverride })
+    const latestVersion = convexSettings?.latestVersion
+    const hasUpdate = Boolean(
+        latestVersion && isVersionGreater(latestVersion, version),
+    )
+
     const statusMessages = useMemo<Message[]>(() => {
         const messages: Message[] = []
         const tmdbMessage = databaseStatusMessage(tmdbStatus, {
@@ -86,6 +96,12 @@ export function StatusBar({
         ]
     }, [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isTranscribeEnabled, t])
 
+    const handleVersionClick = () => {
+        if (hasUpdate && latestVersion) {
+            setNewVersionDialogOpen(true)
+        }
+    }
+
     return (
         <div
             data-testid="status-bar"
@@ -109,8 +125,39 @@ export function StatusBar({
                     <BackgroundJobsPopover />
                 </div>
                 <Separator orientation="vertical" className="h-4" />
-                <span className="font-medium" data-testid="app-version">{version}</span>
+                <button
+                    type="button"
+                    data-testid="app-version-button"
+                    onClick={handleVersionClick}
+                    disabled={!hasUpdate}
+                    aria-label={
+                        hasUpdate
+                            ? t("statusBar.versionUpdate.ariaLabel")
+                            : undefined
+                    }
+                    className={cn(
+                        "relative font-medium rounded p-0.5 -m-0.5",
+                        hasUpdate && "cursor-pointer hover:bg-muted",
+                        !hasUpdate && "cursor-default",
+                    )}
+                >
+                    <span data-testid="app-version">{version}</span>
+                    {hasUpdate ? (
+                        <span
+                            data-testid="app-version-update-dot"
+                            className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500"
+                        />
+                    ) : null}
+                </button>
             </div>
+            {hasUpdate && latestVersion ? (
+                <NewVersionDialog
+                    open={newVersionDialogOpen}
+                    onOpenChange={setNewVersionDialogOpen}
+                    currentVersion={version}
+                    latestVersion={latestVersion}
+                />
+            ) : null}
         </div>
     )
 }

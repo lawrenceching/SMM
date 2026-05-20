@@ -3,6 +3,9 @@ import { useConfig } from "@/hooks/userConfig";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { useRef } from "react";
 import Debug from "debug"
+import { fetchConvexSettings, getConvexSiteUrl } from "@/api/convexSettings"
+import { convexSettingsQueryKey } from "@/lib/appQueryKeys"
+import { queryClient } from "@/lib/queryClient"
 const debug = Debug("AppInitializer")
 
 export async function buildMediaMetadata(
@@ -40,6 +43,14 @@ export function AppInitializer() {
         initialized.current = true;
 
         debug(`start to initialize app`)
+
+        if (getConvexSiteUrl()) {
+            void queryClient.prefetchQuery({
+                queryKey: convexSettingsQueryKey,
+                queryFn: fetchConvexSettings,
+            })
+        }
+
         reload({
             onSuccess: async () => {
                 // TODO: recover UI state

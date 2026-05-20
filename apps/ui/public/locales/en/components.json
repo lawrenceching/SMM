@@ -195,6 +195,15 @@
       "checking": "Checking...",
       "warningAriaLabel": "Database connection warning"
     },
+    "versionUpdate": {
+      "title": "New version available",
+      "description": "A newer version of SMM is available ({{latest}}). You are running {{current}}.",
+      "currentLabel": "Current version",
+      "latestLabel": "Latest version",
+      "download": "Go to download",
+      "later": "Later",
+      "ariaLabel": "New version available, click for details"
+    },
     "messages": {
       "tmdbAvailable": "TMDB is available",
       "tmdbUnavailable": "TMDB is unavailable",
