@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@core/types"
 import type { SynthesizeSubtitleDialogRow } from "@/components/dialogs/types"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { basename, relative } from "@/lib/path"
 import { Path } from "@core/path"
 import { absolutePosixMusicFilePath, labelForMediaFile } from "@/lib/transcribeDialogRows"
@@ -117,7 +117,7 @@ export function synthesizeSubtitleDialogRowsFromMediaFiles(
  * Builds rows from music table data; eligible when file is a supported video container and a sibling subtitle exists in `folderFiles`.
  */
 export function synthesizeSubtitleDialogRowsFromMusicFileRows(
-  rows: MusicFileRow[],
+  rows: LocalFileTableRowData[],
   mediaFolderPath: string | undefined,
   folderFiles: string[] | null | undefined,
 ): SynthesizeSubtitleDialogRow[] {

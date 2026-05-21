@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { MediaMetadata } from "@core/types"
 import { processPipelineDialogRowsFromMediaFiles, processPipelineDialogRowsFromMusicFileRows } from "./processPipelineDialogRows"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 
 describe("processPipelineDialogRowsFromMediaFiles", () => {
   it("returns empty when metadata is undefined", () => {
@@ -23,15 +23,15 @@ describe("processPipelineDialogRowsFromMediaFiles", () => {
 
 describe("processPipelineDialogRowsFromMusicFileRows", () => {
   it("skips rows without a resolvable path", () => {
-    const rows: MusicFileRow[] = [
-      { id: 1, index: 0, title: "A", artist: "", duration: 0, path: undefined },
+    const rows: LocalFileTableRowData[] = [
+      { kind: "local", id: 1, index: 0, title: "A", artist: "", duration: 0, path: "" },
     ]
     expect(processPipelineDialogRowsFromMusicFileRows(rows, "/music")).toEqual([])
   })
 
   it("uses POSIX absolute path as id", () => {
-    const rows: MusicFileRow[] = [
-      { id: 1, index: 0, title: "A", artist: "", duration: 0, path: "song.mkv" },
+    const rows: LocalFileTableRowData[] = [
+      { kind: "local", id: 1, index: 0, title: "A", artist: "", duration: 0, path: "song.mkv" },
     ]
     const out = processPipelineDialogRowsFromMusicFileRows(rows, "/music")
     expect(out).toHaveLength(1)

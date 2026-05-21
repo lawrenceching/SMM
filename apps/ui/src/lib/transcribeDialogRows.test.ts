@@ -5,7 +5,7 @@ import {
   absolutePosixMusicFilePath,
 } from "./transcribeDialogRows"
 import type { MediaMetadata } from "@core/types"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 
 describe("transcribeDialogRowsFromMediaFiles", () => {
   it("returns empty array when no metadata or no mediaFiles", () => {
@@ -86,18 +86,20 @@ describe("absolutePosixMusicFilePath", () => {
 })
 
 describe("transcribeDialogRowsFromMusicFileRows", () => {
-  const baseRow = (overrides: Partial<MusicFileRow>): MusicFileRow => ({
+  const baseRow = (overrides: Partial<LocalFileTableRowData>): LocalFileTableRowData => ({
+    kind: "local",
     id: 1,
     index: 0,
     title: "T",
     artist: "A",
     duration: 60,
+    path: "/z/default.mp3",
     ...overrides,
   })
 
   it("skips rows without resolvable path", () => {
     const rows = [
-      baseRow({ id: 1, path: undefined }),
+      baseRow({ id: 1, path: "" }),
       baseRow({ id: 2, path: "/z/b.mp3", title: "B" }),
     ]
     const out = transcribeDialogRowsFromMusicFileRows(rows)

@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
+import { MusicFileTable, type LocalFileTableRowData } from "./MusicFileTable";
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
@@ -44,7 +44,8 @@ vi.mock("@/components/Image", () => ({
   default: () => <div />,
 }));
 
-const row: MusicFileRow = {
+const row: LocalFileTableRowData = {
+  kind: "local",
   id: 1,
   index: 0,
   title: "Song A",
@@ -95,7 +96,8 @@ describe("MusicFileTable transcribe action", () => {
   });
 });
 
-const row2: MusicFileRow = {
+const row2: LocalFileTableRowData = {
+  kind: "local",
   id: 2,
   index: 1,
   title: "Song B",
@@ -220,7 +222,7 @@ describe("MusicFileTable multi-select mode", () => {
   });
 });
 
-const videoRow: MusicFileRow = {
+const videoRow: LocalFileTableRowData = {
   ...row,
   path: "/tmp/track.mp4",
 };

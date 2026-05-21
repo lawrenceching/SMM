@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@core/types"
 import type { SubtitleTranslationDialogRow } from "@/components/dialogs/types"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { basename, relative } from "@/lib/path"
 import { Path } from "@core/path"
 import { absolutePosixMusicFilePath, labelForMediaFile } from "@/lib/transcribeDialogRows"
@@ -80,7 +80,7 @@ export function subtitleTranslationDialogRowsFromMediaFiles(
  * Builds rows from music table data; a row is eligible when a sibling `.srt` or `.ass` exists in `folderFiles`.
  */
 export function subtitleTranslationDialogRowsFromMusicFileRows(
-  rows: MusicFileRow[],
+  rows: LocalFileTableRowData[],
   mediaFolderPath: string | undefined,
   folderFiles: string[] | null | undefined,
 ): SubtitleTranslationDialogRow[] {

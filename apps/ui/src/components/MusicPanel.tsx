@@ -5,7 +5,12 @@ import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateM
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import type { MediaMetadata } from "@core/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
-import { MusicFileTable, type MusicFileRow } from "./MusicFileTable";
+import {
+  MusicFileTable,
+  type LocalFileTableRowData,
+  type MusicTableRow,
+  type JobTableRowStatus,
+} from "./MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
@@ -316,19 +321,20 @@ export function MusicPanel() {
     return () => controller.abort();
   }, [mediaMetadata, pathSignature]);
 
-  const musicFileRowsForDialogs = useMemo<MusicFileRow[]>(
+  const musicFileRowsForDialogs = useMemo<LocalFileTableRowData[]>(
     () =>
-      tracks.map((track, index) => ({
-        id: track.id,
-        index,
-        title: track.title,
-        artist: track.artist ?? "",
-        duration: track.duration ?? 0,
-        thumbnail: track.thumbnail,
-        path: track.path,
-        status: track.status,
-        jobId: track.jobId,
-      })),
+      tracks
+        .filter((t) => !t.jobId && t.path)
+        .map((track, index) => ({
+          kind: "local" as const,
+          id: track.id,
+          index,
+          path: track.path!,
+          title: track.title,
+          artist: track.artist ?? "",
+          duration: track.duration ?? 0,
+          thumbnail: track.thumbnail,
+        })),
     [tracks],
   );
 
@@ -368,49 +374,67 @@ export function MusicPanel() {
     return m;
   }, [synthesizeSubtitleDialogRows]);
 
-  const tableData = useMemo<MusicFileRow[]>(() => {
+  const tableData = useMemo<MusicTableRow[]>(() => {
     const folder = mediaMetadata?.mediaFolderPath
-    return tracks.map((track, index) => {
+    return tracks.flatMap((track, index): MusicTableRow[] => {
+      if (track.jobId) {
+        const status = (track.status ?? "pending") as JobTableRowStatus
+        return [
+          {
+            kind: "job",
+            id: track.id,
+            index,
+            jobId: track.jobId,
+            status,
+            title: track.title,
+            artist: track.artist ?? "",
+            duration: track.duration ?? 0,
+            thumbnail: track.thumbnail,
+          },
+        ]
+      }
+      if (!track.path) return []
       const abs = absolutePosixMusicFilePath({ path: track.path }, folder)
-      let transcribeStatus: MusicFileRow["transcribeStatus"]
+      let transcribeStatus: LocalFileTableRowData["transcribeStatus"]
       if (abs) {
         if (transcribingPaths.has(abs)) transcribeStatus = "running"
         else if (transcribeFailedPaths.has(abs)) transcribeStatus = "failed"
       }
-      let translateStatus: MusicFileRow["translateStatus"]
+      let translateStatus: LocalFileTableRowData["translateStatus"]
       if (abs) {
         if (translatingPaths.has(abs)) translateStatus = "running"
         else if (translateFailedPaths.has(abs)) translateStatus = "failed"
       }
-      let synthesizeStatus: MusicFileRow["synthesizeStatus"]
+      let synthesizeStatus: LocalFileTableRowData["synthesizeStatus"]
       if (abs) {
         if (synthesizingPaths.has(abs)) synthesizeStatus = "running"
         else if (synthesizeFailedPaths.has(abs)) synthesizeStatus = "failed"
       }
-      let processStatus: MusicFileRow["processStatus"]
+      let processStatus: LocalFileTableRowData["processStatus"]
       if (abs) {
         if (processingPaths.has(abs)) processStatus = "running"
         else if (processFailedPaths.has(abs)) processStatus = "failed"
       }
       const canTranslate = abs ? (translateEligibleByMediaPath.get(abs) ?? false) : false
       const canSynthesize = abs ? (synthesizeEligibleByMediaPath.get(abs) ?? false) : false
-      return {
-        id: track.id,
-        index,
-        title: track.title,
-        artist: track.artist,
-        duration: track.duration,
-        thumbnail: track.thumbnail,
-        path: track.path,
-        status: track.status,
-        jobId: track.jobId,
-        transcribeStatus,
-        translateStatus,
-        synthesizeStatus,
-        processStatus,
-        canTranslate,
-        canSynthesize,
-      }
+      return [
+        {
+          kind: "local",
+          id: track.id,
+          index,
+          path: track.path,
+          title: track.title,
+          artist: track.artist ?? "",
+          duration: track.duration ?? 0,
+          thumbnail: track.thumbnail,
+          transcribeStatus,
+          translateStatus,
+          synthesizeStatus,
+          processStatus,
+          canTranslate,
+          canSynthesize,
+        },
+      ]
     })
   }, [
     tracks,
@@ -428,7 +452,7 @@ export function MusicPanel() {
   ]);
 
   const handleTranscribeStop = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath
       const abs = absolutePosixMusicFilePath(row, folder)
       if (!abs) return
@@ -439,7 +463,11 @@ export function MusicPanel() {
   );
 
   const selectedRows = useMemo(
-    () => tableData.filter((row) => selectedTrackIds.includes(row.id)),
+    () =>
+      tableData.filter(
+        (row): row is LocalFileTableRowData =>
+          row.kind === "local" && selectedTrackIds.includes(row.id),
+      ),
     [tableData, selectedTrackIds],
   );
 
@@ -520,13 +548,9 @@ export function MusicPanel() {
   }, [hasTranslateTargets, selectedRows, mediaMetadata?.mediaFolderPath, subtitleTranslationDialogRows]);
 
   const handleTrackTranslate = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
       const pathId = absolutePosixMusicFilePath(row, folder);
-      if (!pathId) {
-        toast.error(`Track "${row.title}" does not have an associated file path.`);
-        return;
-      }
       const match = subtitleTranslationDialogRows.find(
         (r) => r.mediaPath === pathId && r.eligible && r.path,
       );
@@ -542,7 +566,7 @@ export function MusicPanel() {
   );
 
   const handleTranslateStop = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;
@@ -583,13 +607,9 @@ export function MusicPanel() {
   }, [hasSynthesizeTargets, selectedRows, mediaMetadata?.mediaFolderPath, synthesizeSubtitleDialogRows]);
 
   const handleTrackSynthesize = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
       const pathId = absolutePosixMusicFilePath(row, folder);
-      if (!pathId) {
-        toast.error(`Track "${row.title}" does not have an associated file path.`);
-        return;
-      }
       const match = synthesizeSubtitleDialogRows.find(
         (r) => r.videoPath === pathId && r.eligible && r.subtitlePath,
       );
@@ -605,7 +625,7 @@ export function MusicPanel() {
   );
 
   const handleSynthesizeStop = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;
@@ -616,13 +636,9 @@ export function MusicPanel() {
   );
 
   const handleTrackTranscribe = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder);
-      if (!pathId) {
-        toast.error(`Track "${row.title}" does not have an associated file path.`);
-        return;
-      }
+      const pathId = absolutePosixMusicFilePath(row, folder)!;
       setSelectedTrackIds([]);
       setTranscribeDialogDefaultSelectedIds([pathId]);
       setIsTranscribeOpen(true);
@@ -655,13 +671,9 @@ export function MusicPanel() {
   }, [hasProcessTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
 
   const handleTrackProcess = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder);
-      if (!pathId) {
-        toast.error(`Track "${row.title}" does not have an associated file path.`);
-        return;
-      }
+      const pathId = absolutePosixMusicFilePath(row, folder)!;
       setSelectedTrackIds([]);
       setProcessPipelineDefaultSelectedIds([pathId]);
       setIsProcessPipelineOpen(true);
@@ -670,7 +682,7 @@ export function MusicPanel() {
   );
 
   const handleProcessStop = useCallback(
-    (row: MusicFileRow) => {
+    (row: LocalFileTableRowData) => {
       const folder = mediaMetadata?.mediaFolderPath;
       const abs = absolutePosixMusicFilePath(row, folder);
       if (!abs) return;

@@ -1,11 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { action } from "storybook/actions"
 import { Table, TableBody } from "@/components/ui/table"
-import { MusicFileTableRow, type MusicFileRow } from "./MusicFileTableRow"
+import { LocalFileTableRow } from "./LocalFileTableRow"
+import type { LocalFileTableRowData } from "./MusicFileTable"
 
 const placeholderThumb = "https://picsum.photos/seed/smm-music-row/112/64"
 
-const baseRow: MusicFileRow = {
+const baseRow: LocalFileTableRowData = {
+  kind: "local",
   id: 1,
   index: 0,
   title: "Example Track Title",
@@ -20,9 +22,6 @@ const baseRow: MusicFileRow = {
 
 const callbackArgs = {
   onTrackClick: action("onTrackClick"),
-  onDownloadStart: action("onDownloadStart"),
-  onDownloadStop: action("onDownloadStop"),
-  onDownloadRemove: action("onDownloadRemove"),
   onTrackTranscribe: action("onTrackTranscribe"),
   onTranscribeStop: action("onTranscribeStop"),
   onTrackTranslate: action("onTrackTranslate"),
@@ -40,8 +39,8 @@ const callbackArgs = {
 }
 
 const meta = {
-  title: "Components/MusicFileTableRow",
-  component: MusicFileTableRow,
+  title: "Components/LocalFileTableRow",
+  component: LocalFileTableRow,
   decorators: [
     (Story) => (
       <div className="w-[720px] rounded-md border bg-card p-4">
@@ -56,18 +55,15 @@ const meta = {
   args: {
     row: baseRow,
     mediaFolderPath: "/media/library",
-    currentTrackId: null,
-    isPlaying: false,
     isMultiSelectMode: false,
     selectedTrackIds: [],
-    hasRunningDownload: false,
     isTranscribeAvailable: true,
     isTranslateAvailable: true,
     isSynthesizeAvailable: true,
     isProcessAvailable: true,
     ...callbackArgs,
   },
-} satisfies Meta<typeof MusicFileTableRow>
+} satisfies Meta<typeof LocalFileTableRow>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -77,56 +73,6 @@ export const Default: Story = {}
 export const Selected: Story = {
   args: {
     selectedTrackIds: [baseRow.id],
-  },
-}
-
-export const DownloadPending: Story = {
-  args: {
-    row: {
-      ...baseRow,
-      jobId: "job-1",
-      status: "pending",
-    },
-  },
-}
-
-export const Downloading: Story = {
-  args: {
-    row: {
-      ...baseRow,
-      jobId: "job-1",
-      status: "downloading",
-    },
-  },
-}
-
-export const DownloadCompleted: Story = {
-  args: {
-    row: {
-      ...baseRow,
-      jobId: "job-1",
-      status: "completed",
-    },
-  },
-}
-
-export const DownloadFailed: Story = {
-  args: {
-    row: {
-      ...baseRow,
-      jobId: "job-1",
-      status: "failed",
-    },
-  },
-}
-
-export const DownloadStopped: Story = {
-  args: {
-    row: {
-      ...baseRow,
-      jobId: "job-1",
-      status: "stopped",
-    },
   },
 }
 
@@ -188,11 +134,5 @@ export const MultiSelectMode: Story = {
 export const NoThumbnail: Story = {
   args: {
     row: { ...baseRow, thumbnail: undefined },
-  },
-}
-
-export const NoPath: Story = {
-  args: {
-    row: { ...baseRow, path: undefined },
   },
 }

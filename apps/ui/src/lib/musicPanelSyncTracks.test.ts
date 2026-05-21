@@ -157,6 +157,48 @@ describe('syncTracks', () => {
     expect(result[1].title).toBe('Song 2')
   })
 
+  it('assigns a fresh id when a new local track id collides with a preserved id', () => {
+    const prev: Track[] = [
+      {
+        id: 1,
+        title: 'Song 2',
+        artist: 'Artist 2',
+        duration: 200,
+        thumbnail: 'thumb2.jpg',
+        addedDate: new Date('2024-01-02'),
+        path: '/music/song2.mp3',
+      },
+    ]
+
+    const localTracks: Track[] = [
+      {
+        id: 0,
+        title: 'Song 2',
+        artist: 'Artist 2',
+        duration: 200,
+        thumbnail: 'thumb2.jpg',
+        addedDate: new Date('2024-01-02'),
+        path: '/music/song2.mp3',
+      },
+      {
+        id: 1,
+        title: 'Song 3',
+        artist: 'Artist 3',
+        duration: 210,
+        thumbnail: 'thumb3.jpg',
+        addedDate: new Date('2024-01-03'),
+        path: '/music/song3.mp3',
+      },
+    ]
+
+    const result = syncTracks(prev, localTracks)
+    const ids = result.map((t) => t.id)
+
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(result.find((t) => t.path === '/music/song2.mp3')?.id).toBe(1)
+    expect(result.find((t) => t.path === '/music/song3.mp3')?.id).toBe(2)
+  })
+
   it('scenario 4: should update track properties when item with same path has changed metadata', () => {
     const prev: Track[] = [
       {

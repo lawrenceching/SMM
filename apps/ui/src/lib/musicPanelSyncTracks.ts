@@ -1,5 +1,29 @@
 import type { Track } from '@/components/MediaPlayer'
 
+/**
+ * Reassigns colliding track ids so row selection and React keys stay stable per file.
+ * New files from {@link convertMusicFilesToTracks} use array indices that can duplicate
+ * ids preserved from a previous folder snapshot after files are added or removed.
+ */
+function assignUniqueTrackIds(tracks: Track[]): Track[] {
+  const used = new Set<number>()
+  let maxId = -1
+  for (const t of tracks) {
+    if (t.id > maxId) maxId = t.id
+  }
+  return tracks.map((track) => {
+    if (!used.has(track.id)) {
+      used.add(track.id)
+      return track
+    }
+    let newId = maxId + 1
+    while (used.has(newId)) newId += 1
+    used.add(newId)
+    maxId = newId
+    return { ...track, id: newId }
+  })
+}
+
 /** Merge library tracks with in-flight download job tracks for MusicPanel. */
 export function syncTracks(prev: Track[], localTracks: Track[]) {
   let tracks = prev
@@ -46,5 +70,5 @@ export function syncTracks(prev: Track[], localTracks: Track[]) {
     return track
   })
 
-  return tracks
+  return assignUniqueTrackIds(tracks)
 }

@@ -4,7 +4,7 @@ import {
   synthesizeSubtitleDialogRowsFromMediaFiles,
   synthesizeSubtitleDialogRowsFromMusicFileRows,
 } from "./synthesizeSubtitleDialogRows"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 
 describe("isPosixPathVideoForSynthesize", () => {
   it("returns true for common video extensions", () => {
@@ -17,7 +17,8 @@ describe("isPosixPathVideoForSynthesize", () => {
 })
 
 describe("synthesizeSubtitleDialogRowsFromMusicFileRows", () => {
-  const baseRow = (over: Partial<MusicFileRow>): MusicFileRow => ({
+  const baseRow = (over: Partial<LocalFileTableRowData>): LocalFileTableRowData => ({
+    kind: "local",
     id: 1,
     index: 0,
     title: "t",

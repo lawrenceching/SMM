@@ -1,5 +1,5 @@
 import type { MediaMetadata } from "@core/types"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import type { ProcessPipelineDialogRow } from "@/components/dialogs/types"
 import { transcribeDialogRowsFromMediaFiles, transcribeDialogRowsFromMusicFileRows } from "@/lib/transcribeDialogRows"
 
@@ -23,7 +23,7 @@ export function processPipelineDialogRowsFromMediaFiles(
  * Builds rows from music table data (same path rules as {@link transcribeDialogRowsFromMusicFileRows}).
  */
 export function processPipelineDialogRowsFromMusicFileRows(
-  rows: MusicFileRow[],
+  rows: LocalFileTableRowData[],
   mediaFolderPath?: string,
 ): ProcessPipelineDialogRow[] {
   return transcribeDialogRowsFromMusicFileRows(rows, mediaFolderPath).map((r) => ({

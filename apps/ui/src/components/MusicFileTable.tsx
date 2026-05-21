@@ -16,62 +16,78 @@ import {
   emitTrackFormatConvertEvent,
   emitTrackEditTagsEvent,
 } from "@/lib/musicEvents"
-import { MusicFileTableRow } from "./MusicFileTableRow"
-import type { MusicFileRow } from "./MusicFileTableRow"
+import { LocalFileTableRow } from "./LocalFileTableRow"
+import { JobTableRow } from "./JobTableRow"
 
-export type { MusicFileRow } from "./MusicFileTableRow"
+export interface LocalFileTableRowData {
+  kind: "local"
+  id: number
+  index: number
+  path: string
+  title: string
+  artist: string
+  duration: number
+  thumbnail?: string
+  transcribeStatus?: "running" | "failed"
+  translateStatus?: "running" | "failed"
+  synthesizeStatus?: "running" | "failed"
+  processStatus?: "running" | "failed"
+  canProcess?: boolean
+  canTranslate?: boolean
+  canSynthesize?: boolean
+}
+
+export type JobTableRowStatus =
+  | "pending"
+  | "downloading"
+  | "completed"
+  | "failed"
+  | "stopped"
+
+export interface JobTableRowData {
+  kind: "job"
+  id: number
+  index: number
+  jobId: string
+  status: JobTableRowStatus
+  title: string
+  artist: string
+  duration: number
+  thumbnail?: string
+}
+
+export type MusicTableRow = LocalFileTableRowData | JobTableRowData
 
 interface MusicFileTableProps {
-  data: MusicFileRow[]
-  /** When set, paths are shown relative to this path. */
+  data: MusicTableRow[]
   mediaFolderPath?: string
-  /** Currently playing track ID */
   currentTrackId?: number | null
-  /** Whether audio is currently playing */
   isPlaying?: boolean
-  /** Called when a track is clicked to play */
   onTrackClick?: (trackId: number) => void
-  /** Whether a download job is currently running (disables "Start" menu) */
   hasRunningDownload?: boolean
-  /** Start a pending/stopped/failed download job */
   onDownloadStart?: (jobId: string) => void
-  /** Stop a running download job */
   onDownloadStop?: (jobId: string) => void
-  /** Remove a download job */
   onDownloadRemove?: (jobId: string) => void
-  /** Whether videocaptioner is available for transcribing */
   isTranscribeAvailable?: boolean
-  /** Trigger transcribe for a track path */
-  onTrackTranscribe?: (track: MusicFileRow) => void
-  /** Stop an in-progress transcribe job for this row's file */
-  onTranscribeStop?: (track: MusicFileRow) => void
-  /** VideoCaptioner translate API is available */
+  onTrackTranscribe?: (track: LocalFileTableRowData) => void
+  onTranscribeStop?: (track: LocalFileTableRowData) => void
   isTranslateAvailable?: boolean
-  /** Open translate dialog scoped to this row */
-  onTrackTranslate?: (track: MusicFileRow) => void
-  /** Stop an in-progress translate job for this row */
-  onTranslateStop?: (track: MusicFileRow) => void
-  /** VideoCaptioner synthesize is available */
+  onTrackTranslate?: (track: LocalFileTableRowData) => void
+  onTranslateStop?: (track: LocalFileTableRowData) => void
   isSynthesizeAvailable?: boolean
-  onTrackSynthesize?: (track: MusicFileRow) => void
-  onSynthesizeStop?: (track: MusicFileRow) => void
-  /** VideoCaptioner process pipeline is available (bundled tool ready + feature enabled). */
+  onTrackSynthesize?: (track: LocalFileTableRowData) => void
+  onSynthesizeStop?: (track: LocalFileTableRowData) => void
   isProcessAvailable?: boolean
-  onTrackProcess?: (track: MusicFileRow) => void
-  onProcessStop?: (track: MusicFileRow) => void
-  /** Whether table is in multi-select mode */
+  onTrackProcess?: (track: LocalFileTableRowData) => void
+  onProcessStop?: (track: LocalFileTableRowData) => void
   isMultiSelectMode?: boolean
-  /** Selected track ids in multi-select mode */
   selectedTrackIds?: number[]
-  /** Callback when selected track ids change */
   onSelectedTrackIdsChange?: (ids: number[]) => void
 }
 
 export function MusicFileTable({
   data,
   mediaFolderPath,
-  currentTrackId,
-  isPlaying,
   onTrackClick,
   hasRunningDownload,
   onDownloadStart,
@@ -112,8 +128,7 @@ export function MusicFileTable({
     onSelectedTrackIdsChange(allSelected ? [] : allRowIds)
   }, [allSelected, allRowIds, onSelectedTrackIdsChange])
 
-  const handleOpen = (track: MusicFileRow) => {
-    if (!track.path) return
+  const handleOpen = (track: LocalFileTableRowData) => {
     emitTrackOpenEvent({
       id: track.id,
       title: track.title,
@@ -125,7 +140,7 @@ export function MusicFileTable({
     })
   }
 
-  const handleDelete = (track: MusicFileRow) => {
+  const handleDelete = (track: LocalFileTableRowData) => {
     emitTrackDeleteEvent({
       id: track.id,
       title: track.title,
@@ -137,7 +152,7 @@ export function MusicFileTable({
     })
   }
 
-  const toTrack = (track: MusicFileRow) => ({
+  const toTrack = (track: LocalFileTableRowData) => ({
     id: track.id,
     title: track.title,
     artist: track.artist,
@@ -147,16 +162,22 @@ export function MusicFileTable({
     path: track.path,
   })
 
-  const handleProperties = (track: MusicFileRow) => {
+  const handleProperties = (track: LocalFileTableRowData) => {
     emitTrackPropertiesEvent(toTrack(track))
   }
 
-  const handleFormatConvert = (track: MusicFileRow) => {
+  const handleFormatConvert = (track: LocalFileTableRowData) => {
     emitTrackFormatConvertEvent(toTrack(track))
   }
 
-  const handleEditTags = (track: MusicFileRow) => {
+  const handleEditTags = (track: LocalFileTableRowData) => {
     emitTrackEditTagsEvent(toTrack(track))
+  }
+
+  const selectionProps = {
+    isMultiSelectMode,
+    selectedTrackIds,
+    onSelectedTrackIdsChange,
   }
 
   return (
@@ -199,40 +220,45 @@ export function MusicFileTable({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((row) => (
-              <MusicFileTableRow
-                key={row.id}
-                row={row}
-                mediaFolderPath={mediaFolderPath}
-                currentTrackId={currentTrackId}
-                isPlaying={isPlaying}
-                onTrackClick={onTrackClick}
-                hasRunningDownload={hasRunningDownload}
-                onDownloadStart={onDownloadStart}
-                onDownloadStop={onDownloadStop}
-                onDownloadRemove={onDownloadRemove}
-                isTranscribeAvailable={isTranscribeAvailable}
-                onTrackTranscribe={onTrackTranscribe}
-                onTranscribeStop={onTranscribeStop}
-                isTranslateAvailable={isTranslateAvailable}
-                onTrackTranslate={onTrackTranslate}
-                onTranslateStop={onTranslateStop}
-                isSynthesizeAvailable={isSynthesizeAvailable}
-                onTrackSynthesize={onTrackSynthesize}
-                onSynthesizeStop={onSynthesizeStop}
-                isProcessAvailable={isProcessAvailable}
-                onTrackProcess={onTrackProcess}
-                onProcessStop={onProcessStop}
-                isMultiSelectMode={isMultiSelectMode}
-                selectedTrackIds={selectedTrackIds}
-                onSelectedTrackIdsChange={onSelectedTrackIdsChange}
-                onTrackOpen={handleOpen}
-                onTrackDelete={handleDelete}
-                onTrackProperties={handleProperties}
-                onTrackFormatConvert={handleFormatConvert}
-                onTrackEditTags={handleEditTags}
-              />
-            ))
+            data.map((row) =>
+              row.kind === "local" ? (
+                <LocalFileTableRow
+                  key={row.id}
+                  row={row}
+                  mediaFolderPath={mediaFolderPath}
+                  onTrackClick={onTrackClick}
+                  isTranscribeAvailable={isTranscribeAvailable}
+                  onTrackTranscribe={onTrackTranscribe}
+                  onTranscribeStop={onTranscribeStop}
+                  isTranslateAvailable={isTranslateAvailable}
+                  onTrackTranslate={onTrackTranslate}
+                  onTranslateStop={onTranslateStop}
+                  isSynthesizeAvailable={isSynthesizeAvailable}
+                  onTrackSynthesize={onTrackSynthesize}
+                  onSynthesizeStop={onSynthesizeStop}
+                  isProcessAvailable={isProcessAvailable}
+                  onTrackProcess={onTrackProcess}
+                  onProcessStop={onProcessStop}
+                  onTrackOpen={handleOpen}
+                  onTrackDelete={handleDelete}
+                  onTrackProperties={handleProperties}
+                  onTrackFormatConvert={handleFormatConvert}
+                  onTrackEditTags={handleEditTags}
+                  {...selectionProps}
+                />
+              ) : (
+                <JobTableRow
+                  key={row.id}
+                  row={row}
+                  mediaFolderPath={mediaFolderPath}
+                  hasRunningDownload={hasRunningDownload}
+                  onDownloadStart={onDownloadStart}
+                  onDownloadStop={onDownloadStop}
+                  onDownloadRemove={onDownloadRemove}
+                  {...selectionProps}
+                />
+              ),
+            )
           )}
         </TableBody>
       </Table>

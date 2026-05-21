@@ -1,6 +1,6 @@
 import type { MediaFileMetadata, MediaMetadata } from "@core/types"
 import type { TranscribeDialogRow } from "@/components/dialogs/types"
-import type { MusicFileRow } from "@/components/MusicFileTable"
+import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { basename, isAbsPath, join, relative } from "@/lib/path"
 import { Path } from "@core/path"
 
@@ -63,7 +63,7 @@ export function transcribeDialogRowsFromMediaFiles(
  * Returns POSIX absolute path for a music table row, or `undefined` if not resolvable.
  */
 export function absolutePosixMusicFilePath(
-  row: Pick<MusicFileRow, "path">,
+  row: Pick<LocalFileTableRowData, "path">,
   mediaFolderPath?: string,
 ): string | undefined {
   const raw = row.path?.trim()
@@ -81,7 +81,7 @@ export function absolutePosixMusicFilePath(
  * Skips rows without a resolvable path. `id` matches POSIX absolute path.
  */
 export function transcribeDialogRowsFromMusicFileRows(
-  rows: MusicFileRow[],
+  rows: LocalFileTableRowData[],
   mediaFolderPath?: string,
 ): TranscribeDialogRow[] {
   const folder = mediaFolderPath?.trim() || undefined
