@@ -6,6 +6,10 @@ import { mkdir, rename, rm, readdir } from "fs/promises";
 import { spawn, execSync } from "child_process";
 import { logger } from "../../lib/logger";
 import { discoverFfmpeg } from "./Ffmpeg";
+import {
+  resolveAutoToolPath,
+  resolveEffectiveToolPath,
+} from "./toolExecutableDiscovery";
 
 const ytdlpLog = logger.child({ module: "ytdlp" });
 
@@ -39,95 +43,50 @@ function getSmmDataDir(): string {
   }
 }
 
-/**
- * Gets the project root directory.
- * Goes up from src/utils/ (3 levels) to reach workspace root: utils -> src -> cli -> apps -> root.
- */
-function getProjectRoot(): string {
-  return path.resolve(__dirname, "../../../../");
+function ytdlpExeName(): string {
+  return os.platform() === "win32" ? "yt-dlp.exe" : "yt-dlp";
+}
+
+async function readYtdlpConfiguredPath(): Promise<string | undefined> {
+  try {
+    const userConfig = await getUserConfig();
+    const configured = userConfig.ytdlpExecutablePath?.trim();
+    return configured || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** App auto-discovery (no user config): SMM_RESOURCES_PATH → project bin → install dir. */
+export function discoverYtdlpAuto(): string | undefined {
+  const path = resolveAutoToolPath("yt-dlp", ytdlpExeName());
+  if (path) {
+    ytdlpLog.debug({ path }, "resolved yt-dlp via app auto-discovery");
+  }
+  return path;
 }
 
 /**
- * Discovers yt-dlp binary executable path.
- * Searches in sequence:
- * 1. ytdlpExecutablePath in user config
- * 2. bin/yt-dlp/yt-dlp.exe in project root
- * 3. bin/yt-dlp/yt-dlp.exe in SMM installation path
+ * Runtime yt-dlp path: SMM_RESOURCES_PATH → user config → project bin → install dir.
  */
 export async function discoverYtdlp(): Promise<string | undefined> {
-  // 1. Check user config for custom path
-  try {
-    const userConfig = await getUserConfig();
-    if (userConfig.ytdlpExecutablePath) {
-      const customPath = userConfig.ytdlpExecutablePath;
-      if (fs.existsSync(customPath)) {
-        ytdlpLog.debug(
-          { source: "userConfig", path: customPath },
-          "resolved yt-dlp executable"
-        );
-        return customPath;
-      }
-      ytdlpLog.debug(
-        { source: "userConfig", path: customPath, exists: false },
-        "ytdlpExecutablePath in config but file missing"
-      );
-    }
-  } catch {
-    // User config doesn't exist or is invalid, continue to next step
+  const configured = await readYtdlpConfiguredPath();
+  const resolved = resolveEffectiveToolPath("yt-dlp", ytdlpExeName(), configured);
+  if (resolved) {
+    ytdlpLog.debug({ resolved, configured: configured ?? null }, "resolved yt-dlp executable");
+    return resolved;
   }
-
-  const exeName = os.platform() === "win32" ? "yt-dlp.exe" : "yt-dlp";
-
-  // 2. Check bundled resources (when running under Electron)
-  const resourcesPath = process.env.SMM_RESOURCES_PATH;
-  if (resourcesPath) {
-    const bundledPath = path.join(resourcesPath, "bin", "yt-dlp", exeName);
-    if (fs.existsSync(bundledPath)) {
-      ytdlpLog.debug(
-        { source: "SMM_RESOURCES_PATH", path: bundledPath },
-        "resolved yt-dlp executable"
-      );
-      return bundledPath;
-    }
-    ytdlpLog.debug(
-      { source: "SMM_RESOURCES_PATH", path: bundledPath, exists: false },
-      "bundled yt-dlp path missing"
-    );
-  }
-
-  // 3. Check project root bin folder
-  const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin/yt-dlp", exeName);
-  if (fs.existsSync(devBinPath)) {
-    ytdlpLog.debug(
-      { source: "projectRoot", path: devBinPath },
-      "resolved yt-dlp executable"
-    );
-    return devBinPath;
-  }
-
-  // 4. Check SMM installation path
-  const smmDataDir = getSmmDataDir();
-  const installBinPath = path.join(smmDataDir, "bin/yt-dlp", exeName);
-  if (fs.existsSync(installBinPath)) {
-    ytdlpLog.debug(
-      { source: "installDataDir", path: installBinPath },
-      "resolved yt-dlp executable"
-    );
-    return installBinPath;
-  }
-
-  ytdlpLog.debug(
-    {
-      checked: {
-        devBinPath,
-        installBinPath,
-        resourcesPath: resourcesPath ?? null,
-      },
-    },
-    "yt-dlp executable not found in any location"
-  );
+  ytdlpLog.debug("yt-dlp executable not found in any location");
   return undefined;
+}
+
+export async function resolveYtdlpPathInfo(): Promise<{
+  configuredPath: string | null;
+  discoveredPath: string | null;
+}> {
+  const configured = (await readYtdlpConfiguredPath()) ?? null;
+  const discovered = discoverYtdlpAuto() ?? null;
+  return { configuredPath: configured, discoveredPath: discovered };
 }
 
 /**

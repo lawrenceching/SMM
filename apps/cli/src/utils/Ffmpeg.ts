@@ -79,8 +79,37 @@ function getSmmDataDir(): string {
   }
 }
 
+import {
+  getCliProjectRoot,
+  resolveAutoToolPath,
+  resolveEffectiveToolPath,
+} from "./toolExecutableDiscovery";
+
 function getProjectRoot(): string {
-  return path.resolve(__dirname, "../../../../");
+  return getCliProjectRoot();
+}
+
+function ffmpegExeName(): string {
+  return os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
+}
+
+async function readFfmpegConfiguredPath(): Promise<string | undefined> {
+  try {
+    const userConfig = await getUserConfig();
+    const configured = userConfig.ffmpegExecutablePath?.trim();
+    return configured || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** App auto-discovery (no user config): SMM_RESOURCES_PATH → project bin → install dir. */
+export function discoverFfmpegAuto(): string | undefined {
+  const resolved = resolveAutoToolPath("ffmpeg", ffmpegExeName());
+  if (resolved) {
+    logger.info({ resolved }, "discoverFfmpegAuto: resolved ffmpeg");
+  }
+  return resolved;
 }
 
 export async function discoverFfmpeg(): Promise<string | undefined> {
@@ -95,88 +124,23 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
     "discoverFfmpeg: start"
   );
 
-  try {
-    const userConfig = await getUserConfig();
-    if (userConfig.ffmpegExecutablePath) {
-      const customPath = userConfig.ffmpegExecutablePath;
-      if (fs.existsSync(customPath)) {
-        logger.info(
-          {
-            customPath,
-          },
-          "discoverFfmpeg: using user-configured ffmpeg path"
-        );
-        return customPath;
-      }
-      logger.warn(
-        {
-          customPath,
-        },
-        "discoverFfmpeg: user-configured ffmpeg path does not exist"
-      );
-    }
-  } catch {
+  const configured = await readFfmpegConfiguredPath();
+  const resolved = resolveEffectiveToolPath("ffmpeg", ffmpegExeName(), configured);
+  if (resolved) {
+    logger.info({ resolved, configured: configured ?? null }, "discoverFfmpeg: resolved ffmpeg");
+    return resolved;
   }
-
-  const exeName = os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
-
-  const resourcesPath = process.env.SMM_RESOURCES_PATH;
-  if (resourcesPath) {
-    const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
-    if (fs.existsSync(bundledPath)) {
-      logger.info(
-        {
-          bundledPath,
-        },
-        "discoverFfmpeg: using bundled ffmpeg in resources path"
-      );
-      return bundledPath;
-    }
-    logger.debug(
-      {
-        bundledPath,
-      },
-      "discoverFfmpeg: bundled ffmpeg not found at expected path"
-    );
-  }
-
-  const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin/ffmpeg", exeName);
-  if (fs.existsSync(devBinPath)) {
-    logger.info(
-      {
-        devBinPath,
-      },
-      "discoverFfmpeg: using dev ffmpeg from project bin directory"
-    );
-    return devBinPath;
-  }
-  logger.debug(
-    {
-      devBinPath,
-    },
-    "discoverFfmpeg: dev ffmpeg not found at expected path"
-  );
-
-  const smmDataDir = getSmmDataDir();
-  const installBinPath = path.join(smmDataDir, "bin/ffmpeg", exeName);
-  if (fs.existsSync(installBinPath)) {
-    logger.info(
-      {
-        installBinPath,
-      },
-      "discoverFfmpeg: using ffmpeg from installed data directory"
-    );
-    return installBinPath;
-  }
-  logger.warn(
-    {
-      installBinPath,
-    },
-    "discoverFfmpeg: ffmpeg not found in any known location"
-  );
-
+  logger.warn("discoverFfmpeg: ffmpeg not found in any known location");
   return undefined;
+}
+
+export async function resolveFfmpegPathInfo(): Promise<{
+  configuredPath: string | null;
+  discoveredPath: string | null;
+}> {
+  const configured = (await readFfmpegConfiguredPath()) ?? null;
+  const discovered = discoverFfmpegAuto() ?? null;
+  return { configuredPath: configured, discoveredPath: discovered };
 }
 
 export interface FfmpegVersionResult {

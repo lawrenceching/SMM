@@ -12,6 +12,8 @@ export interface ExecuteCmdCompletionResult {
   exitCode: number | null;
   executionId?: string;
   logRelativePath?: string | null;
+  /** Absolute path resolved by CLI `executeCmd` (response header). */
+  resolvedExecutablePath?: string | null;
 }
 
 const STDERR_EXCERPT_MAX = 500;
@@ -52,6 +54,7 @@ export function executeCmdToCompletion(
     let systemMessage: string | undefined;
     let executionId: string | undefined;
     let logRelativePath: string | null | undefined;
+    let resolvedExecutablePath: string | null | undefined;
     let settled = false;
 
     const settle = (fn: () => void) => {
@@ -66,6 +69,7 @@ export function executeCmdToCompletion(
         onExecutionContext: (ctx) => {
           executionId = ctx.executionId;
           logRelativePath = ctx.logRelativePath;
+          resolvedExecutablePath = ctx.resolvedExecutablePath;
         },
         onMessage: (message: ExecuteCmdMessage) => {
           if (message.type === "stdout") {
@@ -103,6 +107,7 @@ export function executeCmdToCompletion(
               exitCode,
               executionId,
               logRelativePath,
+              resolvedExecutablePath,
             })
           );
         },
@@ -190,8 +195,10 @@ export async function executeCmdToCompletionWithHeaders(
 
         const hdrId = response.headers.get("X-Command-Execution-Id");
         const hdrLog = response.headers.get("X-Command-Log-Path");
+        const hdrResolved = response.headers.get("X-Resolved-Executable-Path");
         if (hdrId) executionId = hdrId;
         logRelativePath = hdrLog?.trim() ? hdrLog : null;
+        const resolvedExecutablePath = hdrResolved?.trim() ? hdrResolved : null;
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -239,6 +246,7 @@ export async function executeCmdToCompletionWithHeaders(
             exitCode,
             executionId,
             logRelativePath,
+            resolvedExecutablePath,
           })
         );
       } catch (e) {

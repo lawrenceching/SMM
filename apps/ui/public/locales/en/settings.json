@@ -39,6 +39,8 @@
     "externalToolsDescription": "Configure paths to external executable tools",
     "ytdlpExecutablePath": "yt-dlp Executable Path",
     "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "executablePathHintAppDiscovery": "Using the app-discovered path (shown in the field placeholder). Leave empty and save to keep using it, or enter a custom path to override.",
+    "executablePathHintUserConfig": "Using your saved custom path from settings.",
     "selectYtdlpExecutable": "Select yt-dlp Executable",
     "selectYtdlpExecutableDescription": "Choose the yt-dlp executable file",
     "ffmpegExecutablePath": "ffmpeg Executable Path",

@@ -40,6 +40,7 @@ import { handleGetPendingPlans } from './src/route/GetPendingPlans';
 import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
+import { handleDiscoverExecutables } from './src/route/discoverExecutables';
 import { handleCommandLog } from './src/route/commandLog';
 import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
@@ -163,7 +164,12 @@ export class Server {
       cors({
         origin: '*',
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'X-Timeout'],
+        allowHeaders: ['Content-Type', 'X-Timeout', 'X-Command-Execution-Id'],
+        exposeHeaders: [
+          'X-Command-Execution-Id',
+          'X-Command-Log-Path',
+          'X-Resolved-Executable-Path',
+        ],
       }),
     );
 
@@ -210,6 +216,7 @@ export class Server {
     handleUpdatePlan(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
+    handleDiscoverExecutables(this.app);
     handleCommandLog(this.app);
     handleLog(this.app);
 

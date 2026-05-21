@@ -5,22 +5,23 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { GeneralSettings } from "./GeneralSettings";
 
 const h = vi.hoisted(() => ({
-  discoverYtdlp: vi.fn(),
+  fetchDiscoverExecutables: vi.fn(),
   getYtdlpVersion: vi.fn(),
-  discoverFfmpeg: vi.fn(),
   getFfmpegVersion: vi.fn(),
   discoverVideoCaptioner: vi.fn(),
 }));
 
+const defaultUserConfig = {
+  applicationLanguage: "en",
+  tmdb: {},
+  folders: [],
+  renameRules: [],
+  dryRun: false,
+  selectedRenameRule: "",
+};
+
 const mockUseConfig = vi.fn(() => ({
-  userConfig: {
-    applicationLanguage: "en",
-    tmdb: {},
-    folders: [],
-    renameRules: [],
-    dryRun: false,
-    selectedRenameRule: "",
-  },
+  userConfig: defaultUserConfig,
   setAndSaveUserConfig: vi.fn(),
 }));
 
@@ -49,13 +50,15 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }));
 
+vi.mock("@/api/discoverExecutables", () => ({
+  fetchDiscoverExecutables: h.fetchDiscoverExecutables,
+}));
+
 vi.mock("@/api/ytdlp", () => ({
-  discoverYtdlp: h.discoverYtdlp,
   getYtdlpVersion: h.getYtdlpVersion,
 }));
 
 vi.mock("@/api/ffmpeg", () => ({
-  discoverFfmpeg: h.discoverFfmpeg,
   getFfmpegVersion: h.getFfmpegVersion,
 }));
 
@@ -66,9 +69,14 @@ vi.mock("@/api/videocaptioner", () => ({
 describe("GeneralSettings VideoCaptioner path display", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    h.discoverYtdlp.mockResolvedValue({});
+    delete defaultUserConfig.ffmpegExecutablePath;
+    delete defaultUserConfig.ytdlpExecutablePath;
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+    });
     h.getYtdlpVersion.mockResolvedValue({});
-    h.discoverFfmpeg.mockResolvedValue({});
     h.getFfmpegVersion.mockResolvedValue({});
   });
 
@@ -86,6 +94,46 @@ describe("GeneralSettings VideoCaptioner path display", () => {
     await waitFor(() => {
       expect(screen.getByTestId("setting-videocaptioner-path")).toHaveTextContent("general.videoCaptionerExecutablePathUnavailable");
     });
+  });
+
+  it("shows app-discovered yt-dlp path as placeholder with empty value", async () => {
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: {
+        configuredPath: null,
+        discoveredPath: "/app/Resources/bin/yt-dlp/yt-dlp",
+      },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+    });
+    render(<GeneralSettings />);
+    const input = await screen.findByTestId("setting-ytdlp-executable-path");
+    expect((input as HTMLInputElement).value).toBe("");
+    expect((input as HTMLInputElement).placeholder).toBe(
+      "/app/Resources/bin/yt-dlp/yt-dlp",
+    );
+    expect(screen.getByTestId("setting-ytdlp-path-hint")).toHaveTextContent(
+      "general.executablePathHintAppDiscovery",
+    );
+  });
+
+  it("shows user-configured ffmpeg path as input value", async () => {
+    defaultUserConfig.ffmpegExecutablePath = "/custom/ffmpeg";
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: {
+        configuredPath: "/custom/ffmpeg",
+        discoveredPath: "/app/Resources/bin/ffmpeg/ffmpeg",
+      },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+    });
+    render(<GeneralSettings />);
+    const input = await screen.findByTestId("setting-ffmpeg-executable-path");
+    await waitFor(() => {
+      expect((input as HTMLInputElement).value).toBe("/custom/ffmpeg");
+    });
+    expect(screen.getByTestId("setting-ffmpeg-path-hint")).toHaveTextContent(
+      "general.executablePathHintUserConfig",
+    );
   });
 
   it("defaults useBundledFfmpegForVideoCaptioner to checked when config field is missing", async () => {

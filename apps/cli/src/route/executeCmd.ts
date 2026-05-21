@@ -375,6 +375,7 @@ export function handleExecuteCmd(app: Hono) {
           'Cache-Control': 'no-store',
           'X-Command-Execution-Id': commandExecutionId,
           'X-Command-Log-Path': cmdLog.logRelativePath,
+          'X-Resolved-Executable-Path': executablePath,
         },
       });
 

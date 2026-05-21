@@ -181,9 +181,19 @@ export async function writeMediaTags(
 }
 
 export async function discoverFfmpeg(): Promise<{ path?: string; error?: string }> {
+  try {
+    const { fetchDiscoverExecutables } = await import("@/api/discoverExecutables");
+    const { ffmpeg } = await fetchDiscoverExecutables();
+    const path = ffmpeg.configuredPath ?? ffmpeg.discoveredPath;
+    if (path) {
+      return { path };
+    }
+  } catch {
+    /* fall through to probe */
+  }
   const probe = await probeWhitelistedCommand("ffmpeg");
   if (probe.available) {
-    return { path: "ffmpeg" };
+    return { path: probe.resolvedPath ?? "ffmpeg" };
   }
   return { error: probe.error ?? "ffmpeg not found" };
 }

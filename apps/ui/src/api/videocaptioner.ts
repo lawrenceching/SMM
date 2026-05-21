@@ -32,9 +32,20 @@ export interface VideoCaptionerTranscribeResponse {
 }
 
 export async function discoverVideoCaptioner(): Promise<VideoCaptionerDiscoverResponse> {
+  try {
+    const { fetchDiscoverExecutables } = await import("@/api/discoverExecutables");
+    const data = await fetchDiscoverExecutables();
+    const path =
+      data.videocaptioner.configuredPath ?? data.videocaptioner.discoveredPath;
+    if (path) {
+      return { path };
+    }
+  } catch {
+    /* fall through to probe */
+  }
   const probe = await probeWhitelistedCommand("videocaptioner");
   if (probe.available) {
-    return { path: "videocaptioner" };
+    return { path: probe.resolvedPath ?? "videocaptioner" };
   }
   return { error: probe.error ?? "videocaptioner not found" };
 }

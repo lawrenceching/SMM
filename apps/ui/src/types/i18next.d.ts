@@ -758,6 +758,8 @@ interface SettingsResources {
     externalToolsDescription: string
     ytdlpExecutablePath: string
     ytdlpExecutablePathPlaceholder: string
+    executablePathHintAppDiscovery: string
+    executablePathHintUserConfig: string
     selectYtdlpExecutable: string
     selectYtdlpExecutableDescription: string
     ffmpegExecutablePath: string

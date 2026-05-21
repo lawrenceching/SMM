@@ -70,9 +70,19 @@ export async function downloadYtdlpVideo(
 }
 
 export async function discoverYtdlp(): Promise<{ path?: string; error?: string }> {
+  try {
+    const { fetchDiscoverExecutables } = await import("@/api/discoverExecutables");
+    const { ytdlp } = await fetchDiscoverExecutables();
+    const path = ytdlp.configuredPath ?? ytdlp.discoveredPath;
+    if (path) {
+      return { path };
+    }
+  } catch {
+    /* fall through to probe */
+  }
   const probe = await probeWhitelistedCommand("yt-dlp");
   if (probe.available) {
-    return { path: "yt-dlp" };
+    return { path: probe.resolvedPath ?? "yt-dlp" };
   }
   return { error: probe.error ?? "yt-dlp not found" };
 }

@@ -53,7 +53,11 @@ export interface ExecuteCmdStreamCallbacks {
   onComplete: () => void;
   onError: (error: Error) => void;
   /** Fired once after a successful response, before NDJSON lines are parsed. */
-  onExecutionContext?: (ctx: { executionId: string; logRelativePath: string | null }) => void;
+  onExecutionContext?: (ctx: {
+    executionId: string;
+    logRelativePath: string | null;
+    resolvedExecutablePath: string | null;
+  }) => void;
 }
 
 export function executeCmdStream(
@@ -88,10 +92,12 @@ export function executeCmdStream(
 
       const executionId = response.headers.get('X-Command-Execution-Id');
       const logRelativePath = response.headers.get('X-Command-Log-Path');
-      if (executionId && callbacks.onExecutionContext) {
+      const resolvedExecutablePath = response.headers.get('X-Resolved-Executable-Path');
+      if (callbacks.onExecutionContext && (executionId || resolvedExecutablePath)) {
         callbacks.onExecutionContext({
-          executionId,
+          executionId: executionId ?? '',
           logRelativePath: logRelativePath?.trim() ? logRelativePath : null,
+          resolvedExecutablePath: resolvedExecutablePath?.trim() ? resolvedExecutablePath : null,
         });
       }
 

@@ -6,4 +6,8 @@ export {
   truncateStderr,
   type ExecuteCmdCompletionResult,
 } from "./executeCmdToCompletion";
-export { probeWhitelistedCommand, type ProbeWhitelistedCommandResult } from "./probeWhitelistedCommand";
+export {
+  probeWhitelistedCommand,
+  versionProbeArgs,
+  type ProbeWhitelistedCommandResult,
+} from "./probeWhitelistedCommand";

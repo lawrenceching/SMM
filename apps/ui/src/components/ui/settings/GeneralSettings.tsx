@@ -9,9 +9,13 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem } from "@/components/dialogs/types"
-import { discoverYtdlp, getYtdlpVersion } from "@/api/ytdlp"
-import { discoverFfmpeg, getFfmpegVersion } from "@/api/ffmpeg"
+import { getYtdlpVersion } from "@/api/ytdlp"
+import { getFfmpegVersion } from "@/api/ffmpeg"
 import { discoverVideoCaptioner } from "@/api/videocaptioner"
+import {
+  fetchDiscoverExecutables,
+  type ExecutablePathInfo,
+} from "@/api/discoverExecutables"
 import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
@@ -77,7 +81,11 @@ export function GeneralSettings() {
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
   const [ytdlpExecutablePath, setYtdlpExecutablePath] = useState(initialValues.ytdlpExecutablePath)
+  const [ytdlpDiscoveredPlaceholder, setYtdlpDiscoveredPlaceholder] = useState("")
+  const [ytdlpUsesAppDiscovery, setYtdlpUsesAppDiscovery] = useState(!initialValues.ytdlpExecutablePath)
   const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
+  const [ffmpegDiscoveredPlaceholder, setFfmpegDiscoveredPlaceholder] = useState("")
+  const [ffmpegUsesAppDiscovery, setFfmpegUsesAppDiscovery] = useState(!initialValues.ffmpegExecutablePath)
   const [useBundledFfmpegForVideoCaptioner, setUseBundledFfmpegForVideoCaptioner] = useState(
     initialValues.useBundledFfmpegForVideoCaptioner,
   )
@@ -99,45 +107,73 @@ export function GeneralSettings() {
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
     setYtdlpExecutablePath(initialValues.ytdlpExecutablePath)
+    setYtdlpUsesAppDiscovery(!initialValues.ytdlpExecutablePath)
     setFfmpegExecutablePath(initialValues.ffmpegExecutablePath)
+    setFfmpegUsesAppDiscovery(!initialValues.ffmpegExecutablePath)
     setUseBundledFfmpegForVideoCaptioner(initialValues.useBundledFfmpegForVideoCaptioner)
   }, [initialValues])
 
   // Discover ytdlp and ffmpeg paths when component mounts
   useEffect(() => {
+    const applyExecutablePathFields = (
+      info: ExecutablePathInfo,
+      setValue: (path: string) => void,
+      setPlaceholder: (path: string) => void,
+      setUsesAppDiscovery: (uses: boolean) => void,
+      defaultPlaceholder: string,
+    ) => {
+      const discovered = info.discoveredPath ?? ""
+      if (info.configuredPath) {
+        setValue(info.configuredPath)
+        setPlaceholder(discovered || defaultPlaceholder)
+        setUsesAppDiscovery(false)
+      } else {
+        setValue("")
+        setPlaceholder(discovered || defaultPlaceholder)
+        setUsesAppDiscovery(Boolean(discovered))
+      }
+    }
+
     const discoverPaths = async () => {
       try {
-        // Discover ytdlp path
-        const ytdlpResult = await discoverYtdlp()
-        if (ytdlpResult.path) {
-          setYtdlpExecutablePath(ytdlpResult.path)
-          // Get ytdlp version
-          const ytdlpVersionResult = await getYtdlpVersion()
-          if (ytdlpVersionResult.version) {
-            setYtdlpVersion(ytdlpVersionResult.version)
-          }
+        const paths = await fetchDiscoverExecutables()
+
+        applyExecutablePathFields(
+          paths.ytdlp,
+          setYtdlpExecutablePath,
+          setYtdlpDiscoveredPlaceholder,
+          setYtdlpUsesAppDiscovery,
+          t("general.ytdlpExecutablePathPlaceholder"),
+        )
+        applyExecutablePathFields(
+          paths.ffmpeg,
+          setFfmpegExecutablePath,
+          setFfmpegDiscoveredPlaceholder,
+          setFfmpegUsesAppDiscovery,
+          t("general.ffmpegExecutablePathPlaceholder"),
+        )
+
+        const ytdlpVersionResult = await getYtdlpVersion()
+        if (ytdlpVersionResult.version) {
+          setYtdlpVersion(ytdlpVersionResult.version)
         }
 
-        // Discover ffmpeg path
-        const ffmpegResult = await discoverFfmpeg()
-        if (ffmpegResult.path) {
-          setFfmpegExecutablePath(ffmpegResult.path)
-          // Get ffmpeg version
-          const ffmpegVersionResult = await getFfmpegVersion()
-          if (ffmpegVersionResult.version) {
-            setFfmpegVersion(ffmpegVersionResult.version)
-          }
+        const ffmpegVersionResult = await getFfmpegVersion()
+        if (ffmpegVersionResult.version) {
+          setFfmpegVersion(ffmpegVersionResult.version)
         }
 
-        // Discover videocaptioner path for read-only display
         const videoCaptionerResult = await discoverVideoCaptioner()
-        setVideoCaptionerPath(videoCaptionerResult.path ?? null)
+        setVideoCaptionerPath(
+          videoCaptionerResult.path ?? paths.videocaptioner.discoveredPath ?? null,
+        )
       } catch (error) {
-        console.error('Error discovering tool paths:', error)
+        console.error("Error discovering tool paths:", error)
       }
     }
 
     discoverPaths()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, [])
 
   // Detect changes
@@ -416,8 +452,13 @@ export function GeneralSettings() {
               <Input
                 id="ytdlp-executable-path"
                 value={ytdlpExecutablePath}
-                onChange={(e) => setYtdlpExecutablePath(e.target.value)}
-                placeholder={t('general.ytdlpExecutablePathPlaceholder')}
+                onChange={(e) => {
+                  setYtdlpExecutablePath(e.target.value)
+                  setYtdlpUsesAppDiscovery(false)
+                }}
+                placeholder={
+                  ytdlpDiscoveredPlaceholder || t("general.ytdlpExecutablePathPlaceholder")
+                }
                 data-testid="setting-ytdlp-executable-path"
                 className="flex-1"
               />
@@ -437,6 +478,21 @@ export function GeneralSettings() {
                 {t('general.browse')}
               </Button>
             </div>
+            {ytdlpUsesAppDiscovery && ytdlpDiscoveredPlaceholder ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="setting-ytdlp-path-hint"
+              >
+                {t("general.executablePathHintAppDiscovery")}
+              </p>
+            ) : ytdlpExecutablePath ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="setting-ytdlp-path-hint"
+              >
+                {t("general.executablePathHintUserConfig")}
+              </p>
+            ) : null}
             {ytdlpVersion && (
               <p className="text-sm text-muted-foreground" data-testid="setting-ytdlp-version">
                 Version: {ytdlpVersion}
@@ -449,8 +505,13 @@ export function GeneralSettings() {
               <Input
                 id="ffmpeg-executable-path"
                 value={ffmpegExecutablePath}
-                onChange={(e) => setFfmpegExecutablePath(e.target.value)}
-                placeholder={t('general.ffmpegExecutablePathPlaceholder')}
+                onChange={(e) => {
+                  setFfmpegExecutablePath(e.target.value)
+                  setFfmpegUsesAppDiscovery(false)
+                }}
+                placeholder={
+                  ffmpegDiscoveredPlaceholder || t("general.ffmpegExecutablePathPlaceholder")
+                }
                 data-testid="setting-ffmpeg-executable-path"
                 className="flex-1"
               />
@@ -470,6 +531,21 @@ export function GeneralSettings() {
                 {t('general.browse')}
               </Button>
             </div>
+            {ffmpegUsesAppDiscovery && ffmpegDiscoveredPlaceholder ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="setting-ffmpeg-path-hint"
+              >
+                {t("general.executablePathHintAppDiscovery")}
+              </p>
+            ) : ffmpegExecutablePath ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="setting-ffmpeg-path-hint"
+              >
+                {t("general.executablePathHintUserConfig")}
+              </p>
+            ) : null}
             {ffmpegVersion && (
               <p className="text-sm text-muted-foreground" data-testid="setting-ffmpeg-version">
                 Version: {ffmpegVersion}
