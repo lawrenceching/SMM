@@ -1,0 +1,21 @@
+$ ./yt-dlp.exe --list-formats 'https://www.bilibili.com/video/BV174421S7tZ?spm_id_from=333.788.player.player_end_recomme
+nd&trackid=web_related_0.router-related-2589621-2nm2w.1779207613105.172&vd_source=3c26ab71aea3361663e8d90d502ac593'
+[BiliBili] Extracting URL: https://www.bilibili.com/video/BV174421S7tZ?spm_id_from=333.788.player.player_end_recommend&track...361663e8d90d502ac593
+[BiliBili] 174421S7tZ: Downloading webpage
+[BiliBili] BV174421S7tZ: Extracting videos in anthology
+[BiliBili] BV174421S7tZ: Downloading wbi sign
+[BiliBili] BV174421S7tZ: Downloading video formats for cid 1639913629
+[BiliBili] Format(s) 1080P 高码率, 1080P 高清, 720P 准高清 are missing; you have to become a premium member to download them. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies
+[BiliBili] 1756357537: Extracting chapters
+[info] Available formats for BV174421S7tZ:
+ID     EXT RESOLUTION FPS │ FILESIZE  TBR PROTO │ VCODEC         VBR ACODEC      ABR
+────────────────────────────────────────────────────────────────────────────────────
+30216  m4a audio only     │ ≈1.59MiB  55k https │ audio only         mp4a.40.5   55k
+30232  m4a audio only     │ ≈3.46MiB 121k https │ audio only         mp4a.40.2  121k
+30280  m4a audio only     │ ≈6.18MiB 215k https │ audio only         mp4a.40.2  215k
+100046 mp4 640x360     30 │ ≈6.00MiB 209k https │ avc1.64001E   209k video only
+100109 mp4 640x360     30 │ ≈3.86MiB 135k https │ hev1.1.6.L120 135k video only
+100022 mp4 640x360     30 │ ≈3.92MiB 137k https │ av01.0.00M.10 137k video only
+100047 mp4 852x480     30 │ ≈9.71MiB 339k https │ avc1.64001F   339k video only
+100110 mp4 852x480     30 │ ≈5.31MiB 185k https │ hev1.1.6.L120 185k video only
+100023 mp4 852x480     30 │ ≈5.38MiB 188k https │ av01.0.00M.10 188k video only
