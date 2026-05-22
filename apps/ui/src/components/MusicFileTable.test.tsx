@@ -1,8 +1,25 @@
 /** @vitest-environment jsdom */
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MusicFileTable, type LocalFileTableRowData } from "./MusicFileTable";
+import {
+  createMockLocalFileSubtitleContext,
+  type LocalFileSubtitleContextValue,
+} from "./LocalFileSubtitleScope";
+
+const mockUseLocalFileSubtitle = vi.fn<() => LocalFileSubtitleContextValue>();
+
+vi.mock("./LocalFileSubtitleScope", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./LocalFileSubtitleScope")>();
+  return {
+    ...actual,
+    LocalFileSubtitleScope: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    useLocalFileSubtitle: () => mockUseLocalFileSubtitle(),
+  };
+});
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
@@ -54,45 +71,88 @@ const row: LocalFileTableRowData = {
   path: "/tmp/song-a.mp3",
 };
 
-/** Context-menu Transcribe invokes parent; parent opens TranscribeDialog. */
+beforeEach(() => {
+  mockUseLocalFileSubtitle.mockReturnValue(createMockLocalFileSubtitleContext());
+});
+
+/** Context-menu Transcribe invokes subtitle context row actions. */
 describe("MusicFileTable transcribe action", () => {
   it("disables transcribe action when capability unavailable", () => {
-    render(
-      <MusicFileTable
-        data={[row]}
-        isTranscribeAvailable={false}
-      />
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "index",
+          titleTooltip: row.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          canTranslate: false,
+          canSynthesize: false,
+          canProcess: false,
+        }),
+      }),
     );
+    render(<MusicFileTable data={[row]} />);
     const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.transcribe/i });
     expect(btn).toBeDisabled();
   });
 
   it("does not trigger callback when transcribe action is disabled", () => {
-    const onTrackTranscribe = vi.fn();
-    render(
-      <MusicFileTable
-        data={[row]}
-        isTranscribeAvailable={false}
-        onTrackTranscribe={onTrackTranscribe}
-      />
+    const onTranscribe = vi.fn();
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "index",
+          titleTooltip: row.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          canTranslate: false,
+          canSynthesize: false,
+          canProcess: false,
+        }),
+        bindRowActions: () => ({
+          onTranscribe,
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize: vi.fn(),
+          onSynthesizeStop: vi.fn(),
+          onProcess: vi.fn(),
+          onProcessStop: vi.fn(),
+        }),
+      }),
     );
+    render(<MusicFileTable data={[row]} />);
     const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.transcribe/i });
     fireEvent.click(btn);
-    expect(onTrackTranscribe).not.toHaveBeenCalled();
+    expect(onTranscribe).not.toHaveBeenCalled();
   });
 
   it("triggers callback when transcribe is enabled", () => {
-    const onTrackTranscribe = vi.fn();
-    render(
-      <MusicFileTable
-        data={[row]}
-        isTranscribeAvailable={true}
-        onTrackTranscribe={onTrackTranscribe}
-      />
+    const onTranscribe = vi.fn();
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        bindRowActions: () => ({
+          onTranscribe,
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize: vi.fn(),
+          onSynthesizeStop: vi.fn(),
+          onProcess: vi.fn(),
+          onProcessStop: vi.fn(),
+        }),
+      }),
     );
+    render(<MusicFileTable data={[row]} />);
     const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.transcribe/i });
     fireEvent.click(btn);
-    expect(onTrackTranscribe).toHaveBeenCalledWith(row);
+    expect(onTranscribe).toHaveBeenCalled();
   });
 });
 
@@ -228,40 +288,79 @@ const videoRow: LocalFileTableRowData = {
 };
 
 describe("MusicFileTable synthesize action", () => {
-  it("disables synthesize when capability or canSynthesize is false", () => {
-    render(
-      <MusicFileTable
-        data={[{ ...videoRow, canSynthesize: true }]}
-        isSynthesizeAvailable={false}
-      />,
+  it("disables synthesize when capability or eligibility is false", () => {
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "index",
+          titleTooltip: videoRow.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          canTranslate: false,
+          canSynthesize: false,
+          canProcess: false,
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesize/i });
     expect(btn).toBeDisabled();
   });
 
-  it("invokes onTrackSynthesize when enabled", () => {
-    const onTrackSynthesize = vi.fn();
-    render(
-      <MusicFileTable
-        data={[{ ...videoRow, canSynthesize: true }]}
-        isSynthesizeAvailable
-        canSynthesize
-        onTrackSynthesize={onTrackSynthesize}
-      />,
+  it("invokes onSynthesize when enabled", () => {
+    const onSynthesize = vi.fn();
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        bindRowActions: () => ({
+          onTranscribe: vi.fn(),
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize,
+          onSynthesizeStop: vi.fn(),
+          onProcess: vi.fn(),
+          onProcessStop: vi.fn(),
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     fireEvent.click(screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesize/i }));
-    expect(onTrackSynthesize).toHaveBeenCalledWith(expect.objectContaining({ path: videoRow.path }));
+    expect(onSynthesize).toHaveBeenCalled();
   });
 
   it("shows stop synthesize while running", () => {
     const onSynthesizeStop = vi.fn();
-    render(
-      <MusicFileTable
-        data={[{ ...videoRow, canSynthesize: true, synthesizeStatus: "running" }]}
-        isSynthesizeAvailable
-        onSynthesizeStop={onSynthesizeStop}
-      />,
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "spinner",
+          titleTooltip: videoRow.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          synthesizeStatus: "running",
+          canTranslate: false,
+          canSynthesize: true,
+          canProcess: false,
+        }),
+        bindRowActions: () => ({
+          onTranscribe: vi.fn(),
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize: vi.fn(),
+          onSynthesizeStop,
+          onProcess: vi.fn(),
+          onProcessStop: vi.fn(),
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     const stopBtn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.synthesizeStop/i });
     expect(stopBtn).not.toBeDisabled();
     fireEvent.click(stopBtn);
@@ -271,38 +370,78 @@ describe("MusicFileTable synthesize action", () => {
 
 describe("MusicFileTable process action", () => {
   it("disables process when capability unavailable", () => {
-    render(
-      <MusicFileTable
-        data={[videoRow]}
-        isProcessAvailable={false}
-      />,
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "index",
+          titleTooltip: videoRow.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          canTranslate: false,
+          canSynthesize: false,
+          canProcess: false,
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     const btn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.process/i });
     expect(btn).toBeDisabled();
   });
 
-  it("invokes onTrackProcess when enabled", () => {
-    const onTrackProcess = vi.fn();
-    render(
-      <MusicFileTable
-        data={[videoRow]}
-        isProcessAvailable
-        onTrackProcess={onTrackProcess}
-      />,
+  it("invokes onProcess when enabled", () => {
+    const onProcess = vi.fn();
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        bindRowActions: () => ({
+          onTranscribe: vi.fn(),
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize: vi.fn(),
+          onSynthesizeStop: vi.fn(),
+          onProcess,
+          onProcessStop: vi.fn(),
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     fireEvent.click(screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.process/i }));
-    expect(onTrackProcess).toHaveBeenCalledWith(expect.objectContaining({ path: videoRow.path }));
+    expect(onProcess).toHaveBeenCalled();
   });
 
   it("shows stop process while running", () => {
     const onProcessStop = vi.fn();
-    render(
-      <MusicFileTable
-        data={[{ ...videoRow, processStatus: "running" }]}
-        isProcessAvailable
-        onProcessStop={onProcessStop}
-      />,
+    mockUseLocalFileSubtitle.mockReturnValue(
+      createMockLocalFileSubtitleContext({
+        getRowSubtitleUi: () => ({
+          indexColumnVariant: "spinner",
+          titleTooltip: videoRow.title,
+          submenuDisabled: false,
+          transcribeStartDisabled: true,
+          translateStartDisabled: true,
+          synthesizeStartDisabled: true,
+          processStartDisabled: true,
+          processStatus: "running",
+          canTranslate: false,
+          canSynthesize: false,
+          canProcess: true,
+        }),
+        bindRowActions: () => ({
+          onTranscribe: vi.fn(),
+          onTranscribeStop: vi.fn(),
+          onTranslate: vi.fn(),
+          onTranslateStop: vi.fn(),
+          onSynthesize: vi.fn(),
+          onSynthesizeStop: vi.fn(),
+          onProcess: vi.fn(),
+          onProcessStop,
+        }),
+      }),
     );
+    render(<MusicFileTable data={[videoRow]} />);
     const stopBtn = screen.getByRole("button", { name: /mediaPlayer.trackContextMenu.processStop/i });
     expect(stopBtn).not.toBeDisabled();
     fireEvent.click(stopBtn);

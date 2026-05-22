@@ -7,6 +7,11 @@ import { logger } from "../../lib/logger";
 import { createCommandExecutionLogWriter } from "../route/commandExecutionLog";
 import { isCommandExecutionId } from "../route/commandLog";
 import { discoverFfmpeg } from "./Ffmpeg";
+import {
+  readConfiguredToolPath,
+  resolveAutoToolPathWithExtras,
+  resolveEffectiveToolPath,
+} from "./toolExecutableDiscovery";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
 export const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -65,28 +70,15 @@ export async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.Process
   return env;
 }
 
-function getSmmDataDir(): string {
-  const platform = os.platform();
-  const homedir = os.homedir();
-
-  switch (platform) {
-    case "win32":
-      return process.env.LOCALAPPDATA
-        ? path.join(process.env.LOCALAPPDATA, "SMM")
-        : path.join(homedir, "AppData", "Local", "SMM");
-    case "darwin":
-      return path.join(homedir, "Library", "Application Support", "SMM");
-    case "linux":
-      return process.env.XDG_DATA_HOME
-        ? path.join(process.env.XDG_DATA_HOME, "SMM")
-        : path.join(homedir, ".local", "share", "SMM");
-    default:
-      return path.join(homedir, ".local", "share", "SMM");
-  }
+function videoCaptionerExeName(): string {
+  return os.platform() === "win32" ? "videocaptioner.exe" : "videocaptioner";
 }
 
-function getProjectRoot(): string {
-  return path.resolve(__dirname, "../../../../");
+async function readVideoCaptionerConfiguredPath(): Promise<string | undefined> {
+  return readConfiguredToolPath(async () => {
+    const userConfig = await getUserConfig();
+    return userConfig.videoCaptionerExecutablePath;
+  });
 }
 
 function getWindowsDriveRootFromPosixHome(homeDir: string): string | undefined {
@@ -132,44 +124,35 @@ export function getPythonScriptsCandidatePaths(exeName: string): string[] {
   return [...candidates];
 }
 
+/** App auto-discovery (no user config): bundled → project bin → install dir → PATH → Python Scripts. */
+export function discoverVideoCaptionerAuto(): string | undefined {
+  const exeName = videoCaptionerExeName();
+  return resolveAutoToolPathWithExtras(
+    "videocaptioner",
+    exeName,
+    getPythonScriptsCandidatePaths(exeName)
+  );
+}
+
+/** Runtime: user config → bundled → project bin → install dir → PATH → Python Scripts. */
 export async function discoverVideoCaptioner(): Promise<string | undefined> {
-  try {
-    const userConfig = await getUserConfig();
-    const customPath = userConfig.videoCaptionerExecutablePath;
-    if (customPath && fs.existsSync(customPath)) {
-      return customPath;
-    }
-  } catch {
-    // ignore config read failures
-  }
+  const exeName = videoCaptionerExeName();
+  const configured = await readVideoCaptionerConfiguredPath();
+  return resolveEffectiveToolPath(
+    "videocaptioner",
+    exeName,
+    configured,
+    getPythonScriptsCandidatePaths(exeName)
+  );
+}
 
-  const exeName = os.platform() === "win32" ? "videocaptioner.exe" : "videocaptioner";
-  const resourcesPath = process.env.SMM_RESOURCES_PATH;
-  if (resourcesPath) {
-    const bundledPath = path.join(resourcesPath, "bin", "videocaptioner", exeName);
-    if (fs.existsSync(bundledPath)) {
-      return bundledPath;
-    }
-  }
-
-  const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin", "videocaptioner", exeName);
-  if (fs.existsSync(devBinPath)) {
-    return devBinPath;
-  }
-
-  const installBinPath = path.join(getSmmDataDir(), "bin", "videocaptioner", exeName);
-  if (fs.existsSync(installBinPath)) {
-    return installBinPath;
-  }
-
-  for (const candidate of getPythonScriptsCandidatePaths(exeName)) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return undefined;
+export async function resolveVideoCaptionerPathInfo(): Promise<{
+  configuredPath: string | null;
+  discoveredPath: string | null;
+}> {
+  const configured = (await readVideoCaptionerConfiguredPath()) ?? null;
+  const discovered = discoverVideoCaptionerAuto() ?? null;
+  return { configuredPath: configured, discoveredPath: discovered };
 }
 
 export interface VideoCaptionerTranscribeResult {

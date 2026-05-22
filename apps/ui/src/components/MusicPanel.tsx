@@ -31,21 +31,13 @@ import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
-import { DeleteTrackDialog, TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs";
+import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "./MediaPlayer";
-import { useJobManager, useFileStatuses, useJobs } from "@/hooks/useJobOrchestrator";
-import {
-  transcribeDialogRowsFromMusicFileRows,
-  absolutePosixMusicFilePath,
-  displayPathForFile,
-} from "@/lib/transcribeDialogRows";
+import { useJobManager, useJobs } from "@/hooks/useJobOrchestrator";
+import { absolutePosixMusicFilePath, displayPathForFile } from "@/lib/transcribeDialogRows";
 import { isAbsPath } from "@/lib/path";
-import { subtitleTranslationDialogRowsFromMusicFileRows } from "@/lib/subtitleTranslationDialogRows";
-import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeSubtitleDialogRows";
-import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelineDialogRows";
-import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus";
-import { useFeatures } from "@/hooks/useFeatures";
 import { syncTracks } from "@/lib/musicPanelSyncTracks";
+import { LocalFileSubtitleScope, useLocalFileSubtitle } from "./LocalFileSubtitleScope";
 
 interface PendingDelete {
   trackPath: string;
@@ -140,31 +132,6 @@ export function MusicPanel() {
   const stopDownload = useCallback((jobId: string) => stopJob(jobId), [stopJob]);
   const removeDownload = useCallback((jobId: string) => void removeJob(jobId), [removeJob]);
 
-  // Per-type file status from the orchestrator
-  const {
-    runningPaths: transcribingPaths,
-    failedPaths: transcribeFailedPaths,
-    primaryJobIdByPath: jobIdByPath,
-  } = useFileStatuses(platformFolder ?? "", "transcribe");
-
-  const {
-    runningPaths: translatingPaths,
-    failedPaths: translateFailedPaths,
-    primaryJobIdByPath: translateJobIdByPath,
-  } = useFileStatuses(platformFolder ?? "", "translate");
-
-  const {
-    runningPaths: synthesizingPaths,
-    failedPaths: synthesizeFailedPaths,
-    primaryJobIdByPath: synthesizeJobIdByPath,
-  } = useFileStatuses(platformFolder ?? "", "synthesize");
-
-  const {
-    runningPaths: processingPaths,
-    failedPaths: processFailedPaths,
-    primaryJobIdByPath: processJobIdByPath,
-  } = useFileStatuses(platformFolder ?? "", "process");
-
   // When a job completes for this folder, refresh media metadata to pick up new files.
   const runningJobIdsRef = useRef(new Set<string>());
   const fetchMediaMetadataRef = useRef(fetchMediaMetadata);
@@ -218,30 +185,8 @@ export function MusicPanel() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures();
-  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus();
-  const isTranscribeAvailable =
-    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled);
-  const isTranslateAvailable = isVideoCaptionerReady;
-  const isSynthesizeAvailable = isVideoCaptionerReady;
-  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady;
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<number[]>([]);
-  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
-  const [transcribeDialogDefaultSelectedIds, setTranscribeDialogDefaultSelectedIds] = useState<
-    string[] | undefined
-  >(undefined);
-  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false);
-  const [subtitleTranslationDefaultSelectedIds, setSubtitleTranslationDefaultSelectedIds] =
-    useState<string[] | undefined>(undefined);
-  const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false);
-  const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false);
-  const [processPipelineDefaultSelectedIds, setProcessPipelineDefaultSelectedIds] = useState<
-    string[] | undefined
-  >(undefined);
-  const [synthesizeSubtitleDefaultSelectedIds, setSynthesizeSubtitleDefaultSelectedIds] = useState<
-    string[] | undefined
-  >(undefined);
 
   const handleToggleMultiSelectMode = useCallback(() => {
     setIsMultiSelectMode((prev) => {
@@ -338,44 +283,7 @@ export function MusicPanel() {
     [tracks],
   );
 
-  const subtitleTranslationDialogRows = useMemo(
-    () =>
-      subtitleTranslationDialogRowsFromMusicFileRows(
-        musicFileRowsForDialogs,
-        mediaMetadata?.mediaFolderPath,
-        mediaMetadata?.files,
-      ),
-    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath, mediaMetadata?.files],
-  );
-
-  const synthesizeSubtitleDialogRows = useMemo(
-    () =>
-      synthesizeSubtitleDialogRowsFromMusicFileRows(
-        musicFileRowsForDialogs,
-        mediaMetadata?.mediaFolderPath,
-        mediaMetadata?.files,
-      ),
-    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath, mediaMetadata?.files],
-  );
-
-  const translateEligibleByMediaPath = useMemo(() => {
-    const m = new Map<string, boolean>();
-    for (const r of subtitleTranslationDialogRows) {
-      if (r.mediaPath) m.set(r.mediaPath, r.eligible);
-    }
-    return m;
-  }, [subtitleTranslationDialogRows]);
-
-  const synthesizeEligibleByMediaPath = useMemo(() => {
-    const m = new Map<string, boolean>();
-    for (const r of synthesizeSubtitleDialogRows) {
-      if (r.videoPath) m.set(r.videoPath, r.eligible);
-    }
-    return m;
-  }, [synthesizeSubtitleDialogRows]);
-
   const tableData = useMemo<MusicTableRow[]>(() => {
-    const folder = mediaMetadata?.mediaFolderPath
     return tracks.flatMap((track, index): MusicTableRow[] => {
       if (track.jobId) {
         const status = (track.status ?? "pending") as JobTableRowStatus
@@ -394,29 +302,6 @@ export function MusicPanel() {
         ]
       }
       if (!track.path) return []
-      const abs = absolutePosixMusicFilePath({ path: track.path }, folder)
-      let transcribeStatus: LocalFileTableRowData["transcribeStatus"]
-      if (abs) {
-        if (transcribingPaths.has(abs)) transcribeStatus = "running"
-        else if (transcribeFailedPaths.has(abs)) transcribeStatus = "failed"
-      }
-      let translateStatus: LocalFileTableRowData["translateStatus"]
-      if (abs) {
-        if (translatingPaths.has(abs)) translateStatus = "running"
-        else if (translateFailedPaths.has(abs)) translateStatus = "failed"
-      }
-      let synthesizeStatus: LocalFileTableRowData["synthesizeStatus"]
-      if (abs) {
-        if (synthesizingPaths.has(abs)) synthesizeStatus = "running"
-        else if (synthesizeFailedPaths.has(abs)) synthesizeStatus = "failed"
-      }
-      let processStatus: LocalFileTableRowData["processStatus"]
-      if (abs) {
-        if (processingPaths.has(abs)) processStatus = "running"
-        else if (processFailedPaths.has(abs)) processStatus = "failed"
-      }
-      const canTranslate = abs ? (translateEligibleByMediaPath.get(abs) ?? false) : false
-      const canSynthesize = abs ? (synthesizeEligibleByMediaPath.get(abs) ?? false) : false
       return [
         {
           kind: "local",
@@ -427,269 +312,18 @@ export function MusicPanel() {
           artist: track.artist ?? "",
           duration: track.duration ?? 0,
           thumbnail: track.thumbnail,
-          transcribeStatus,
-          translateStatus,
-          synthesizeStatus,
-          processStatus,
-          canTranslate,
-          canSynthesize,
         },
       ]
     })
-  }, [
-    tracks,
-    transcribingPaths,
-    transcribeFailedPaths,
-    translatingPaths,
-    translateFailedPaths,
-    synthesizingPaths,
-    synthesizeFailedPaths,
-    processingPaths,
-    processFailedPaths,
-    mediaMetadata?.mediaFolderPath,
-    translateEligibleByMediaPath,
-    synthesizeEligibleByMediaPath,
-  ]);
+  }, [tracks]);
 
-  const handleTranscribeStop = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath
-      const abs = absolutePosixMusicFilePath(row, folder)
-      if (!abs) return
-      const jobId = jobIdByPath.get(abs)
-      if (jobId) stopJob(jobId)
-    },
-    [mediaMetadata?.mediaFolderPath, jobIdByPath, stopJob],
-  );
-
-  const selectedRows = useMemo(
+  const selectedLocalRows = useMemo(
     () =>
       tableData.filter(
         (row): row is LocalFileTableRowData =>
           row.kind === "local" && selectedTrackIds.includes(row.id),
       ),
     [tableData, selectedTrackIds],
-  );
-
-  const transcribeDialogRows = useMemo(
-    () =>
-      transcribeDialogRowsFromMusicFileRows(
-        musicFileRowsForDialogs,
-        mediaMetadata?.mediaFolderPath,
-      ),
-    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath],
-  );
-
-  const hasTranscribeTargets = transcribeDialogRows.length > 0;
-  const processPipelineRows = useMemo(
-    () =>
-      processPipelineDialogRowsFromMusicFileRows(
-        musicFileRowsForDialogs,
-        mediaMetadata?.mediaFolderPath,
-      ),
-    [musicFileRowsForDialogs, mediaMetadata?.mediaFolderPath],
-  );
-  const hasProcessTargets = processPipelineRows.length > 0;
-  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible);
-  const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible);
-
-  const closeTranscribeDialog = useCallback(() => {
-    setIsTranscribeOpen(false);
-    setTranscribeDialogDefaultSelectedIds(undefined);
-  }, []);
-
-  const handleHeaderTranscribeClick = useCallback(() => {
-    if (!hasTranscribeTargets) {
-      toast.error("No media files available to transcribe.");
-      return;
-    }
-    const folder = mediaMetadata?.mediaFolderPath;
-    const selectedWithPath = selectedRows.filter(
-      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
-    );
-    if (selectedWithPath.length > 0) {
-      setTranscribeDialogDefaultSelectedIds(
-        selectedWithPath.map((r) => absolutePosixMusicFilePath(r, folder)!),
-      );
-    } else {
-      setTranscribeDialogDefaultSelectedIds(undefined);
-    }
-    setIsTranscribeOpen(true);
-  }, [hasTranscribeTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
-
-  const closeSubtitleTranslationDialog = useCallback(() => {
-    setIsSubtitleTranslationOpen(false);
-    setSubtitleTranslationDefaultSelectedIds(undefined);
-  }, []);
-
-  const handleHeaderTranslateClick = useCallback(() => {
-    if (!hasTranslateTargets) {
-      toast.error("No subtitle files available to translate.");
-      return;
-    }
-    const folder = mediaMetadata?.mediaFolderPath;
-    const selectedWithPath = selectedRows.filter(
-      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
-    );
-    if (selectedWithPath.length > 0) {
-      const ids: string[] = [];
-      for (const sel of selectedWithPath) {
-        const abs = absolutePosixMusicFilePath(sel, folder)!;
-        const match = subtitleTranslationDialogRows.find(
-          (r) => r.mediaPath === abs && r.eligible && r.path,
-        );
-        if (match) ids.push(match.id);
-      }
-      setSubtitleTranslationDefaultSelectedIds(ids.length > 0 ? ids : undefined);
-    } else {
-      setSubtitleTranslationDefaultSelectedIds(undefined);
-    }
-    setIsSubtitleTranslationOpen(true);
-  }, [hasTranslateTargets, selectedRows, mediaMetadata?.mediaFolderPath, subtitleTranslationDialogRows]);
-
-  const handleTrackTranslate = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder);
-      const match = subtitleTranslationDialogRows.find(
-        (r) => r.mediaPath === pathId && r.eligible && r.path,
-      );
-      if (!match) {
-        toast.error(`Track "${row.title}" does not have a sidecar subtitle to translate.`);
-        return;
-      }
-      setSelectedTrackIds([]);
-      setSubtitleTranslationDefaultSelectedIds([match.id]);
-      setIsSubtitleTranslationOpen(true);
-    },
-    [mediaMetadata?.mediaFolderPath, subtitleTranslationDialogRows],
-  );
-
-  const handleTranslateStop = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const abs = absolutePosixMusicFilePath(row, folder);
-      if (!abs) return;
-      const jobId = translateJobIdByPath.get(abs);
-      if (jobId) stopJob(jobId);
-    },
-    [mediaMetadata?.mediaFolderPath, translateJobIdByPath, stopJob],
-  );
-
-  const closeSynthesizeSubtitleDialog = useCallback(() => {
-    setIsSynthesizeSubtitleOpen(false);
-    setSynthesizeSubtitleDefaultSelectedIds(undefined);
-  }, []);
-
-  const handleHeaderSynthesizeClick = useCallback(() => {
-    if (!hasSynthesizeTargets) {
-      toast.error("No video and subtitle pairs available to synthesize.");
-      return;
-    }
-    const folder = mediaMetadata?.mediaFolderPath;
-    const selectedWithPath = selectedRows.filter(
-      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
-    );
-    if (selectedWithPath.length > 0) {
-      const ids: string[] = [];
-      for (const sel of selectedWithPath) {
-        const abs = absolutePosixMusicFilePath(sel, folder)!;
-        const match = synthesizeSubtitleDialogRows.find(
-          (r) => r.videoPath === abs && r.eligible && r.subtitlePath,
-        );
-        if (match) ids.push(match.id);
-      }
-      setSynthesizeSubtitleDefaultSelectedIds(ids.length > 0 ? ids : undefined);
-    } else {
-      setSynthesizeSubtitleDefaultSelectedIds(undefined);
-    }
-    setIsSynthesizeSubtitleOpen(true);
-  }, [hasSynthesizeTargets, selectedRows, mediaMetadata?.mediaFolderPath, synthesizeSubtitleDialogRows]);
-
-  const handleTrackSynthesize = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder);
-      const match = synthesizeSubtitleDialogRows.find(
-        (r) => r.videoPath === pathId && r.eligible && r.subtitlePath,
-      );
-      if (!match) {
-        toast.error(`Track "${row.title}" is not eligible for subtitle synthesis.`);
-        return;
-      }
-      setSelectedTrackIds([]);
-      setSynthesizeSubtitleDefaultSelectedIds([match.id]);
-      setIsSynthesizeSubtitleOpen(true);
-    },
-    [mediaMetadata?.mediaFolderPath, synthesizeSubtitleDialogRows],
-  );
-
-  const handleSynthesizeStop = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const abs = absolutePosixMusicFilePath(row, folder);
-      if (!abs) return;
-      const jobId = synthesizeJobIdByPath.get(abs);
-      if (jobId) stopJob(jobId);
-    },
-    [mediaMetadata?.mediaFolderPath, synthesizeJobIdByPath, stopJob],
-  );
-
-  const handleTrackTranscribe = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder)!;
-      setSelectedTrackIds([]);
-      setTranscribeDialogDefaultSelectedIds([pathId]);
-      setIsTranscribeOpen(true);
-    },
-    [mediaMetadata?.mediaFolderPath],
-  );
-
-  const closeProcessPipelineDialog = useCallback(() => {
-    setIsProcessPipelineOpen(false);
-    setProcessPipelineDefaultSelectedIds(undefined);
-  }, []);
-
-  const handleHeaderProcessClick = useCallback(() => {
-    if (!hasProcessTargets) {
-      toast.error("No media files available for the pipeline.");
-      return;
-    }
-    const folder = mediaMetadata?.mediaFolderPath;
-    const selectedWithPath = selectedRows.filter(
-      (r) => absolutePosixMusicFilePath(r, folder) !== undefined,
-    );
-    if (selectedWithPath.length > 0) {
-      setProcessPipelineDefaultSelectedIds(
-        selectedWithPath.map((r) => absolutePosixMusicFilePath(r, folder)!),
-      );
-    } else {
-      setProcessPipelineDefaultSelectedIds(undefined);
-    }
-    setIsProcessPipelineOpen(true);
-  }, [hasProcessTargets, selectedRows, mediaMetadata?.mediaFolderPath]);
-
-  const handleTrackProcess = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const pathId = absolutePosixMusicFilePath(row, folder)!;
-      setSelectedTrackIds([]);
-      setProcessPipelineDefaultSelectedIds([pathId]);
-      setIsProcessPipelineOpen(true);
-    },
-    [mediaMetadata?.mediaFolderPath],
-  );
-
-  const handleProcessStop = useCallback(
-    (row: LocalFileTableRowData) => {
-      const folder = mediaMetadata?.mediaFolderPath;
-      const abs = absolutePosixMusicFilePath(row, folder);
-      if (!abs) return;
-      const jobId = processJobIdByPath.get(abs);
-      if (jobId) stopJob(jobId);
-    },
-    [mediaMetadata?.mediaFolderPath, processJobIdByPath, stopJob],
   );
 
   const handleTrackOpen = useCallback(async (event: CustomEvent<TrackOpenEventDetail>) => {
@@ -894,105 +528,86 @@ export function MusicPanel() {
     };
   }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackEditTags]);
 
+  const clearSelection = useCallback(() => setSelectedTrackIds([]), []);
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
-      <TranscribeDialog
-        isOpen={isTranscribeOpen}
-        onClose={closeTranscribeDialog}
-        rows={transcribeDialogRows}
-        defaultSelectedIds={transcribeDialogDefaultSelectedIds}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SubtitleTranslationDialog
-        isOpen={isSubtitleTranslationOpen}
-        onClose={closeSubtitleTranslationDialog}
-        rows={subtitleTranslationDialogRows}
-        defaultSelectedIds={subtitleTranslationDefaultSelectedIds}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SynthesizeSubtitleDialog
-        isOpen={isSynthesizeSubtitleOpen}
-        onClose={closeSynthesizeSubtitleDialog}
-        rows={synthesizeSubtitleDialogRows}
-        defaultSelectedIds={synthesizeSubtitleDefaultSelectedIds}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <ProcessPipelineDialog
-        isOpen={isProcessPipelineOpen}
-        onClose={closeProcessPipelineDialog}
-        rows={processPipelineRows}
-        defaultSelectedIds={processPipelineDefaultSelectedIds}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <div className="shrink-0 px-4 pt-4">
-        <MusicHeaderV2
-          selectedMediaMetadata={mediaMetadata}
-          onDownloadClick={handleDownloadClick}
-          onTranscribeClick={handleHeaderTranscribeClick}
-          onTranslateClick={handleHeaderTranslateClick}
-          isTranscribeAvailable={isTranscribeAvailable}
-          hasTranscribeTargets={hasTranscribeTargets}
-          isTranslateAvailable={isTranslateAvailable}
-          hasTranslateTargets={hasTranslateTargets}
-          onSynthesizeClick={handleHeaderSynthesizeClick}
-          isSynthesizeAvailable={isSynthesizeAvailable}
-          hasSynthesizeTargets={hasSynthesizeTargets}
-          onProcessClick={handleHeaderProcessClick}
-          isProcessAvailable={isProcessAvailable}
-          hasProcessTargets={hasProcessTargets}
-          isMultiSelectMode={isMultiSelectMode}
-          onToggleMultiSelectMode={handleToggleMultiSelectMode}
-        />
-      </div>
-      <div className="flex-1 min-h-0 overflow-auto">
-        {folderStatus === "initializing" ? (
-          <MediaPanelInitializingHint />
-        ) : (
-          <MusicFileTable
-            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-            data={tableData}
-            mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            currentTrackId={currentTrackId}
-            isPlaying={isPlaying}
-            onTrackClick={handleTrackClick}
-            hasRunningDownload={hasRunningDownload}
-            onDownloadStart={startDownload}
-            onDownloadStop={stopDownload}
-            onDownloadRemove={(jobId) => void removeDownload(jobId)}
-            isTranscribeAvailable={isTranscribeAvailable}
-            onTrackTranscribe={handleTrackTranscribe}
-            onTranscribeStop={handleTranscribeStop}
-            isTranslateAvailable={isTranslateAvailable}
-            onTrackTranslate={handleTrackTranslate}
-            onTranslateStop={handleTranslateStop}
-            isSynthesizeAvailable={isSynthesizeAvailable}
-            onTrackSynthesize={handleTrackSynthesize}
-            onSynthesizeStop={handleSynthesizeStop}
-            isProcessAvailable={isProcessAvailable}
-            onTrackProcess={handleTrackProcess}
-            onProcessStop={handleProcessStop}
+      <LocalFileSubtitleScope
+        platformFolder={platformFolder ?? ""}
+        mediaFolderPath={mediaMetadata?.mediaFolderPath}
+        folderFiles={mediaMetadata?.files}
+        localRows={musicFileRowsForDialogs}
+        selectedLocalRows={selectedLocalRows}
+        onClearSelection={clearSelection}
+      >
+        <div className="shrink-0 px-4 pt-4">
+          <MusicPanelSubtitleHeader
+            mediaMetadata={mediaMetadata}
+            onDownloadClick={handleDownloadClick}
             isMultiSelectMode={isMultiSelectMode}
-            selectedTrackIds={selectedTrackIds}
-            onSelectedTrackIdsChange={setSelectedTrackIds}
+            onToggleMultiSelectMode={handleToggleMultiSelectMode}
           />
-        )}
-      </div>
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto">
+          {folderStatus === "initializing" ? (
+            <MediaPanelInitializingHint />
+          ) : (
+            <MusicFileTable
+              key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+              data={tableData}
+              mediaFolderPath={mediaMetadata?.mediaFolderPath}
+              currentTrackId={currentTrackId}
+              isPlaying={isPlaying}
+              onTrackClick={handleTrackClick}
+              hasRunningDownload={hasRunningDownload}
+              onDownloadStart={startDownload}
+              onDownloadStop={stopDownload}
+              onDownloadRemove={(jobId) => void removeDownload(jobId)}
+              isMultiSelectMode={isMultiSelectMode}
+              selectedTrackIds={selectedTrackIds}
+              onSelectedTrackIdsChange={setSelectedTrackIds}
+            />
+          )}
+        </div>
+      </LocalFileSubtitleScope>
     </div>
   );
+}
+
+interface MusicPanelSubtitleHeaderProps {
+  mediaMetadata?: MediaMetadata
+  onDownloadClick?: () => void
+  isMultiSelectMode: boolean
+  onToggleMultiSelectMode: () => void
+}
+
+function MusicPanelSubtitleHeader({
+  mediaMetadata,
+  onDownloadClick,
+  isMultiSelectMode,
+  onToggleMultiSelectMode,
+}: MusicPanelSubtitleHeaderProps) {
+  const subtitle = useLocalFileSubtitle()
+  const { availability, headerActions } = subtitle
+
+  return (
+    <MusicHeaderV2
+      selectedMediaMetadata={mediaMetadata}
+      onDownloadClick={onDownloadClick}
+      onTranscribeClick={headerActions.onTranscribeClick}
+      onTranslateClick={headerActions.onTranslateClick}
+      isTranscribeAvailable={availability.isTranscribeAvailable}
+      hasTranscribeTargets={subtitle.hasTranscribeTargets}
+      isTranslateAvailable={availability.isTranslateAvailable}
+      hasTranslateTargets={subtitle.hasTranslateTargets}
+      onSynthesizeClick={headerActions.onSynthesizeClick}
+      isSynthesizeAvailable={availability.isSynthesizeAvailable}
+      hasSynthesizeTargets={subtitle.hasSynthesizeTargets}
+      onProcessClick={headerActions.onProcessClick}
+      isProcessAvailable={availability.isProcessAvailable}
+      hasProcessTargets={subtitle.hasProcessTargets}
+      isMultiSelectMode={isMultiSelectMode}
+      onToggleMultiSelectMode={onToggleMultiSelectMode}
+    />
+  )
 }

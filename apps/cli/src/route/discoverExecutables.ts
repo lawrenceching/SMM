@@ -1,7 +1,7 @@
 import type { Hono } from 'hono';
 import { resolveFfmpegPathInfo } from '../utils/Ffmpeg';
 import { resolveYtdlpPathInfo } from '../utils/Ytdlp';
-import { discoverVideoCaptioner } from '../utils/VideoCaptioner';
+import { resolveVideoCaptionerPathInfo } from '../utils/VideoCaptioner';
 
 export interface ExecutablePathInfo {
   configuredPath: string | null;
@@ -20,19 +20,16 @@ export interface DiscoverExecutablesResponseBody {
 }
 
 export async function resolveDiscoverExecutables(): Promise<DiscoverExecutablesResponseBody> {
-  const [ffmpeg, ytdlp, videocaptionerPath] = await Promise.all([
+  const [ffmpeg, ytdlp, videocaptioner] = await Promise.all([
     resolveFfmpegPathInfo(),
     resolveYtdlpPathInfo(),
-    discoverVideoCaptioner(),
+    resolveVideoCaptionerPathInfo(),
   ]);
   return {
     data: {
       ffmpeg,
       ytdlp,
-      videocaptioner: {
-        configuredPath: null,
-        discoveredPath: videocaptionerPath ?? null,
-      },
+      videocaptioner,
     },
   };
 }

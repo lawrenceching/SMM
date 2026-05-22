@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const h = vi.hoisted(() => ({
   resolveFfmpegPathInfo: vi.fn(),
   resolveYtdlpPathInfo: vi.fn(),
-  discoverVideoCaptioner: vi.fn(),
+  resolveVideoCaptionerPathInfo: vi.fn(),
 }));
 
 vi.mock("../utils/Ffmpeg", () => ({
@@ -15,7 +15,7 @@ vi.mock("../utils/Ytdlp", () => ({
 }));
 
 vi.mock("../utils/VideoCaptioner", () => ({
-  discoverVideoCaptioner: h.discoverVideoCaptioner,
+  resolveVideoCaptionerPathInfo: h.resolveVideoCaptionerPathInfo,
 }));
 
 import { resolveDiscoverExecutables } from "./discoverExecutables";
@@ -25,7 +25,7 @@ describe("resolveDiscoverExecutables", () => {
     vi.clearAllMocks();
   });
 
-  it("returns configured and discovered paths separately", async () => {
+  it("returns configured and discovered paths separately for all tools", async () => {
     h.resolveFfmpegPathInfo.mockResolvedValue({
       configuredPath: null,
       discoveredPath: "/proj/bin/ffmpeg/ffmpeg",
@@ -34,7 +34,10 @@ describe("resolveDiscoverExecutables", () => {
       configuredPath: "/custom/yt-dlp",
       discoveredPath: "/app/Resources/bin/yt-dlp/yt-dlp",
     });
-    h.discoverVideoCaptioner.mockResolvedValue(undefined);
+    h.resolveVideoCaptionerPathInfo.mockResolvedValue({
+      configuredPath: "/custom/videocaptioner.exe",
+      discoveredPath: "/python/Scripts/videocaptioner.exe",
+    });
 
     const result = await resolveDiscoverExecutables();
 
@@ -45,6 +48,10 @@ describe("resolveDiscoverExecutables", () => {
     expect(result.data?.ytdlp).toEqual({
       configuredPath: "/custom/yt-dlp",
       discoveredPath: "/app/Resources/bin/yt-dlp/yt-dlp",
+    });
+    expect(result.data?.videocaptioner).toEqual({
+      configuredPath: "/custom/videocaptioner.exe",
+      discoveredPath: "/python/Scripts/videocaptioner.exe",
     });
   });
 });

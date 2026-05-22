@@ -7,68 +7,34 @@ import { spawn, execSync } from "child_process";
 import { logger } from "../../lib/logger";
 import { discoverFfmpeg } from "./Ffmpeg";
 import {
+  readConfiguredToolPath,
   resolveAutoToolPath,
   resolveEffectiveToolPath,
 } from "./toolExecutableDiscovery";
 
 const ytdlpLog = logger.child({ module: "ytdlp" });
 
-/**
- * Returns the SMM installation data directory path.
- * This is where bundled binaries like yt-dlp are stored.
- * - Windows: %LOCALAPPDATA%\SMM
- * - macOS: ~/Library/Application Support/SMM
- * - Linux: ~/.local/share/SMM
- */
-function getSmmDataDir(): string {
-  const platform = os.platform();
-  const homedir = os.homedir();
-
-  switch (platform) {
-    case "win32":
-      // Windows: %LOCALAPPDATA%\SMM
-      return process.env.LOCALAPPDATA
-        ? path.join(process.env.LOCALAPPDATA, "SMM")
-        : path.join(homedir, "AppData", "Local", "SMM");
-    case "darwin":
-      // macOS: ~/Library/Application Support/SMM
-      return path.join(homedir, "Library", "Application Support", "SMM");
-    case "linux":
-      // Linux: ~/.local/share/SMM
-      return process.env.XDG_DATA_HOME
-        ? path.join(process.env.XDG_DATA_HOME, "SMM")
-        : path.join(homedir, ".local", "share", "SMM");
-    default:
-      return path.join(homedir, ".local", "share", "SMM");
-  }
-}
-
 function ytdlpExeName(): string {
   return os.platform() === "win32" ? "yt-dlp.exe" : "yt-dlp";
 }
 
 async function readYtdlpConfiguredPath(): Promise<string | undefined> {
-  try {
+  return readConfiguredToolPath(async () => {
     const userConfig = await getUserConfig();
-    const configured = userConfig.ytdlpExecutablePath?.trim();
-    return configured || undefined;
-  } catch {
-    return undefined;
-  }
+    return userConfig.ytdlpExecutablePath;
+  });
 }
 
-/** App auto-discovery (no user config): SMM_RESOURCES_PATH → project bin → install dir. */
+/** App auto-discovery (no user config): bundled → project bin → install dir → PATH. */
 export function discoverYtdlpAuto(): string | undefined {
-  const path = resolveAutoToolPath("yt-dlp", ytdlpExeName());
-  if (path) {
-    ytdlpLog.debug({ path }, "resolved yt-dlp via app auto-discovery");
+  const resolved = resolveAutoToolPath("yt-dlp", ytdlpExeName());
+  if (resolved) {
+    ytdlpLog.debug({ resolved }, "resolved yt-dlp via app auto-discovery");
   }
-  return path;
+  return resolved;
 }
 
-/**
- * Runtime yt-dlp path: SMM_RESOURCES_PATH → user config → project bin → install dir.
- */
+/** Runtime: user config → bundled → project bin → install dir → PATH. */
 export async function discoverYtdlp(): Promise<string | undefined> {
   const configured = await readYtdlpConfiguredPath();
   const resolved = resolveEffectiveToolPath("yt-dlp", ytdlpExeName(), configured);

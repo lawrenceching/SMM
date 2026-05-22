@@ -17,6 +17,7 @@ import {
   emitTrackEditTagsEvent,
 } from "@/lib/musicEvents"
 import { LocalFileTableRow } from "./LocalFileTableRow"
+import type { LocalFileTableRowFileMenu, MusicTableSelection } from "./UILocalFileTableRow"
 import { JobTableRow } from "./JobTableRow"
 
 export interface LocalFileTableRowData {
@@ -28,13 +29,6 @@ export interface LocalFileTableRowData {
   artist: string
   duration: number
   thumbnail?: string
-  transcribeStatus?: "running" | "failed"
-  translateStatus?: "running" | "failed"
-  synthesizeStatus?: "running" | "failed"
-  processStatus?: "running" | "failed"
-  canProcess?: boolean
-  canTranslate?: boolean
-  canSynthesize?: boolean
 }
 
 export type JobTableRowStatus =
@@ -58,6 +52,10 @@ export interface JobTableRowData {
 
 export type MusicTableRow = LocalFileTableRowData | JobTableRowData
 
+/**
+ * Must be rendered inside {@link LocalFileSubtitleScope} so local file rows can
+ * resolve subtitle pipeline state and actions.
+ */
 interface MusicFileTableProps {
   data: MusicTableRow[]
   mediaFolderPath?: string
@@ -68,18 +66,6 @@ interface MusicFileTableProps {
   onDownloadStart?: (jobId: string) => void
   onDownloadStop?: (jobId: string) => void
   onDownloadRemove?: (jobId: string) => void
-  isTranscribeAvailable?: boolean
-  onTrackTranscribe?: (track: LocalFileTableRowData) => void
-  onTranscribeStop?: (track: LocalFileTableRowData) => void
-  isTranslateAvailable?: boolean
-  onTrackTranslate?: (track: LocalFileTableRowData) => void
-  onTranslateStop?: (track: LocalFileTableRowData) => void
-  isSynthesizeAvailable?: boolean
-  onTrackSynthesize?: (track: LocalFileTableRowData) => void
-  onSynthesizeStop?: (track: LocalFileTableRowData) => void
-  isProcessAvailable?: boolean
-  onTrackProcess?: (track: LocalFileTableRowData) => void
-  onProcessStop?: (track: LocalFileTableRowData) => void
   isMultiSelectMode?: boolean
   selectedTrackIds?: number[]
   onSelectedTrackIdsChange?: (ids: number[]) => void
@@ -93,18 +79,6 @@ export function MusicFileTable({
   onDownloadStart,
   onDownloadStop,
   onDownloadRemove,
-  isTranscribeAvailable,
-  onTrackTranscribe,
-  onTranscribeStop,
-  isTranslateAvailable,
-  onTrackTranslate,
-  onTranslateStop,
-  isSynthesizeAvailable,
-  onTrackSynthesize,
-  onSynthesizeStop,
-  isProcessAvailable,
-  onTrackProcess,
-  onProcessStop,
   isMultiSelectMode = false,
   selectedTrackIds = [],
   onSelectedTrackIdsChange,
@@ -128,57 +102,70 @@ export function MusicFileTable({
     onSelectedTrackIdsChange(allSelected ? [] : allRowIds)
   }, [allSelected, allRowIds, onSelectedTrackIdsChange])
 
-  const handleOpen = (track: LocalFileTableRowData) => {
-    emitTrackOpenEvent({
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      duration: track.duration,
-      thumbnail: track.thumbnail,
-      addedDate: new Date(),
-      path: track.path,
-    })
-  }
+  const selectionProps: MusicTableSelection = useMemo(
+    () => ({
+      isMultiSelectMode,
+      selectedTrackIds,
+      onSelectedTrackIdsChange,
+    }),
+    [isMultiSelectMode, selectedTrackIds, onSelectedTrackIdsChange],
+  )
 
-  const handleDelete = (track: LocalFileTableRowData) => {
-    emitTrackDeleteEvent({
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      duration: track.duration,
-      thumbnail: track.thumbnail,
-      addedDate: new Date(),
-      path: track.path,
-    })
-  }
-
-  const toTrack = (track: LocalFileTableRowData) => ({
-    id: track.id,
-    title: track.title,
-    artist: track.artist,
-    duration: track.duration,
-    thumbnail: track.thumbnail,
-    addedDate: new Date(),
-    path: track.path,
-  })
-
-  const handleProperties = (track: LocalFileTableRowData) => {
-    emitTrackPropertiesEvent(toTrack(track))
-  }
-
-  const handleFormatConvert = (track: LocalFileTableRowData) => {
-    emitTrackFormatConvertEvent(toTrack(track))
-  }
-
-  const handleEditTags = (track: LocalFileTableRowData) => {
-    emitTrackEditTagsEvent(toTrack(track))
-  }
-
-  const selectionProps = {
-    isMultiSelectMode,
-    selectedTrackIds,
-    onSelectedTrackIdsChange,
-  }
+  const fileMenuForRow = useCallback(
+    (track: LocalFileTableRowData): LocalFileTableRowFileMenu => ({
+      onOpen: () =>
+        emitTrackOpenEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+      onDelete: () =>
+        emitTrackDeleteEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+      onProperties: () =>
+        emitTrackPropertiesEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+      onFormatConvert: () =>
+        emitTrackFormatConvertEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+      onEditTags: () =>
+        emitTrackEditTagsEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+    }),
+    [],
+  )
 
   return (
     <section className="bg-card">
@@ -226,25 +213,9 @@ export function MusicFileTable({
                   key={row.id}
                   row={row}
                   mediaFolderPath={mediaFolderPath}
+                  selection={selectionProps}
+                  fileMenu={fileMenuForRow(row)}
                   onTrackClick={onTrackClick}
-                  isTranscribeAvailable={isTranscribeAvailable}
-                  onTrackTranscribe={onTrackTranscribe}
-                  onTranscribeStop={onTranscribeStop}
-                  isTranslateAvailable={isTranslateAvailable}
-                  onTrackTranslate={onTrackTranslate}
-                  onTranslateStop={onTranslateStop}
-                  isSynthesizeAvailable={isSynthesizeAvailable}
-                  onTrackSynthesize={onTrackSynthesize}
-                  onSynthesizeStop={onSynthesizeStop}
-                  isProcessAvailable={isProcessAvailable}
-                  onTrackProcess={onTrackProcess}
-                  onProcessStop={onProcessStop}
-                  onTrackOpen={handleOpen}
-                  onTrackDelete={handleDelete}
-                  onTrackProperties={handleProperties}
-                  onTrackFormatConvert={handleFormatConvert}
-                  onTrackEditTags={handleEditTags}
-                  {...selectionProps}
                 />
               ) : (
                 <JobTableRow
@@ -255,7 +226,9 @@ export function MusicFileTable({
                   onDownloadStart={onDownloadStart}
                   onDownloadStop={onDownloadStop}
                   onDownloadRemove={onDownloadRemove}
-                  {...selectionProps}
+                  isMultiSelectMode={isMultiSelectMode}
+                  selectedTrackIds={selectedTrackIds}
+                  onSelectedTrackIdsChange={onSelectedTrackIdsChange}
                 />
               ),
             )

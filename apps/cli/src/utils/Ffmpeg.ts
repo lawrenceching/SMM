@@ -59,51 +59,37 @@ function isScreenshotCacheValid(cacheDir: string, mtimeMs: number): boolean {
   return true;
 }
 
-function getSmmDataDir(): string {
-  const platform = os.platform();
-  const homedir = os.homedir();
-
-  switch (platform) {
-    case "win32":
-      return process.env.LOCALAPPDATA
-        ? path.join(process.env.LOCALAPPDATA, "SMM")
-        : path.join(homedir, "AppData", "Local", "SMM");
-    case "darwin":
-      return path.join(homedir, "Library", "Application Support", "SMM");
-    case "linux":
-      return process.env.XDG_DATA_HOME
-        ? path.join(process.env.XDG_DATA_HOME, "SMM")
-        : path.join(homedir, ".local", "share", "SMM");
-    default:
-      return path.join(homedir, ".local", "share", "SMM");
-  }
-}
-
 import {
   getCliProjectRoot,
+  getSmmDataDir,
+  readConfiguredToolPath,
   resolveAutoToolPath,
   resolveEffectiveToolPath,
 } from "./toolExecutableDiscovery";
-
-function getProjectRoot(): string {
-  return getCliProjectRoot();
-}
 
 function ffmpegExeName(): string {
   return os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg";
 }
 
-async function readFfmpegConfiguredPath(): Promise<string | undefined> {
-  try {
-    const userConfig = await getUserConfig();
-    const configured = userConfig.ffmpegExecutablePath?.trim();
-    return configured || undefined;
-  } catch {
-    return undefined;
-  }
+function ffprobeExeName(): string {
+  return os.platform() === "win32" ? "ffprobe.exe" : "ffprobe";
 }
 
-/** App auto-discovery (no user config): SMM_RESOURCES_PATH → project bin → install dir. */
+async function readFfmpegConfiguredPath(): Promise<string | undefined> {
+  return readConfiguredToolPath(async () => {
+    const userConfig = await getUserConfig();
+    return userConfig.ffmpegExecutablePath;
+  });
+}
+
+async function readFfprobeConfiguredPath(): Promise<string | undefined> {
+  return readConfiguredToolPath(async () => {
+    const userConfig = await getUserConfig();
+    return userConfig.ffprobeExecutablePath;
+  });
+}
+
+/** App auto-discovery (no user config): bundled → project bin → install dir → PATH. */
 export function discoverFfmpegAuto(): string | undefined {
   const resolved = resolveAutoToolPath("ffmpeg", ffmpegExeName());
   if (resolved) {
@@ -118,7 +104,7 @@ export async function discoverFfmpeg(): Promise<string | undefined> {
       platform: os.platform(),
       cwd: process.cwd(),
       resourcesPath: process.env.SMM_RESOURCES_PATH,
-      projectRoot: getProjectRoot(),
+      projectRoot: getCliProjectRoot(),
       smmDataDir: getSmmDataDir(),
     },
     "discoverFfmpeg: start"
@@ -465,40 +451,8 @@ export async function convertVideo(
 }
 
 export async function discoverFfprobe(): Promise<string | undefined> {
-  try {
-    const userConfig = await getUserConfig();
-    if (userConfig.ffprobeExecutablePath) {
-      const customPath = userConfig.ffprobeExecutablePath;
-      if (fs.existsSync(customPath)) {
-        return customPath;
-      }
-    }
-  } catch {
-  }
-
-  const exeName = os.platform() === "win32" ? "ffprobe.exe" : "ffprobe";
-
-  const resourcesPath = process.env.SMM_RESOURCES_PATH;
-  if (resourcesPath) {
-    const bundledPath = path.join(resourcesPath, "bin", "ffmpeg", exeName);
-    if (fs.existsSync(bundledPath)) {
-      return bundledPath;
-    }
-  }
-
-  const projectRoot = getProjectRoot();
-  const devBinPath = path.join(projectRoot, "bin/ffmpeg", exeName);
-  if (fs.existsSync(devBinPath)) {
-    return devBinPath;
-  }
-
-  const smmDataDir = getSmmDataDir();
-  const installBinPath = path.join(smmDataDir, "bin/ffmpeg", exeName);
-  if (fs.existsSync(installBinPath)) {
-    return installBinPath;
-  }
-
-  return undefined;
+  const configured = await readFfprobeConfiguredPath();
+  return resolveEffectiveToolPath("ffmpeg", ffprobeExeName(), configured);
 }
 
 export interface MediaTagsResult {

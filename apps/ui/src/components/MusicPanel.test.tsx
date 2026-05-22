@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { MusicPanel } from './MusicPanel';
@@ -140,6 +141,14 @@ vi.mock('./MusicFileTable', () => ({
 vi.mock('./MusicHeaderV2', () => ({
   MusicHeaderV2: () => null,
 }));
+vi.mock('./LocalFileSubtitleScope', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./LocalFileSubtitleScope')>();
+  return {
+    ...actual,
+    LocalFileSubtitleScope: ({ children }: { children: React.ReactNode }) => children,
+    useLocalFileSubtitle: () => actual.createMockLocalFileSubtitleContext(),
+  };
+});
 vi.mock('./MediaPanelInitializingHint', () => ({
   MediaPanelInitializingHint: () => null,
 }));
