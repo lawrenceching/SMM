@@ -93,6 +93,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           ARCH: ${{ matrix.arch }}
           PLUGINS_VERSION: v1.0.0
+          VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli
         run: pnpm --filter cli run build

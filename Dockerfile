@@ -26,11 +26,13 @@ RUN apt-get update && \
     ca-certificates \
     wget \
     curl \
+    tar \
+    bash \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && wget -O /usr/local/bin/tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-amd64 \
     && chmod +x /usr/local/bin/tini \
-    && apt-get purge -y wget curl \
+    && apt-get purge -y wget \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -43,11 +45,23 @@ RUN chmod +x /app/cli
 # Copy UI static files
 COPY --from=builder /build/apps/ui/dist/ /app/public/
 
+# Bundled ffmpeg, yt-dlp, and VideoCaptioner (same layout as Electron extraResources)
+COPY ci/download-3pp-binary.sh /build/ci/download-3pp-binary.sh
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+      amd64) export PLATFORM=linux ARCH=x64 ;; \
+      arm64) export PLATFORM=linux ARCH=arm64 ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    cd /build && bash ci/download-3pp-binary.sh && \
+    mkdir -p /app/resources && mv bin /app/resources/
+
 # Set working directory
 WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
+ENV SMM_RESOURCES_PATH=/app/resources
 
 # Expose port
 EXPOSE 30000

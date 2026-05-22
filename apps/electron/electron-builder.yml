@@ -32,6 +32,8 @@ win:
       to: 'bin/yt-dlp'
       filter:
         - '**/*.exe'
+    - from: '../../bin/videocaptioner'
+      to: 'bin/videocaptioner'
 nsis:
   # ${arch} distinguishes x64 vs arm64 when both Windows installers are published
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
@@ -58,6 +60,10 @@ mac:
         - '**/*'
     - from: '../../bin/yt-dlp/yt-dlp'
       to: 'bin/yt-dlp/yt-dlp'
+    - from: '../../bin/videocaptioner'
+      to: 'bin/videocaptioner'
+      filter:
+        - '**/*'
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -78,6 +84,10 @@ linux:
         - '**/*'
     - from: '../../bin/yt-dlp/yt-dlp'
       to: 'bin/yt-dlp/yt-dlp'
+    - from: '../../bin/videocaptioner'
+      to: 'bin/videocaptioner'
+      filter:
+        - '**/*'
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

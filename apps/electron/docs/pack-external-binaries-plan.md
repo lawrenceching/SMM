@@ -1,4 +1,4 @@
-# 打包外部可执行文件（yt-dlp / ffmpeg / ffprobe）开发计划
+# 打包外部可执行文件（yt-dlp / ffmpeg / ffprobe / videocaptioner）开发计划
 
 ## 1. 现状与目标
 
@@ -26,8 +26,11 @@
 
 ## 2. 方案概述
 
-- **打包**：用 electron-builder 的 `extraResources` 把 `bin/ffmpeg/`、`bin/yt-dlp/` 放入应用 `resources`（例如 `resources/bin/ffmpeg/`、`resources/bin/yt-dlp/`）。
-- **发现**：CLI 在“用户配置”之后、“项目根 / 安装数据目录”之前，增加一步：若存在环境变量 `SMM_RESOURCES_PATH`，则先在该路径下的 `bin/ffmpeg/`、`bin/yt-dlp/` 中查找可执行文件。
+- **打包**：用 electron-builder 的 `extraResources` 把 `bin/ffmpeg/`、`bin/yt-dlp/`、`bin/videocaptioner/` 放入应用 `resources`（例如 `resources/bin/ffmpeg/`、`resources/bin/yt-dlp/`、`resources/bin/videocaptioner/`）。
+- **CI 下载**（[`ci/download-3pp-binary.sh`](../../../ci/download-3pp-binary.sh)）：
+  - **ffmpeg / yt-dlp**：从 SMM release 的 `plugins.tar.gz` 按 `PLATFORM`/`ARCH` 解压。
+  - **videocaptioner**：从 [VideoCaptioner release](https://github.com/lawrenceching/VideoCaptioner/releases) 下载 `videocaptioner-<version>-<platform>-<arch>.tar.gz`（含 PyInstaller 的 `_internal/`、`resource/`），解压到 `bin/videocaptioner/`。
+- **发现**：CLI 在“用户配置”之后、“项目根 / 安装数据目录”之前，若存在环境变量 `SMM_RESOURCES_PATH`，则先在该路径下的 `bin/ffmpeg/`、`bin/yt-dlp/`、`bin/videocaptioner/` 中查找可执行文件（`VideoCaptioner.ts` 使用 `toolExecutableDiscovery`）。
 - **Electron**：在启动 CLI 时设置 `SMM_RESOURCES_PATH = process.resourcesPath`，使 CLI 使用随包安装的 bin。
 
 这样无需在首次启动时复制文件到 `smmDataDir`，也无需改用户数据目录结构；多平台时只需在 builder 中按平台选择不同二进制（见 5.2）。
@@ -107,7 +110,7 @@
 
 ## 6. 小结
 
-- 通过 **extraResources** 把 `bin/ffmpeg`（ffmpeg + ffprobe）和 `bin/yt-dlp` 打进 Electron 的 resources。
+- 通过 **extraResources** 把 `bin/ffmpeg`（ffmpeg + ffprobe）、`bin/yt-dlp` 和 `bin/videocaptioner` 打进 Electron 的 resources。
 - 通过 **SMM_RESOURCES_PATH** 让 CLI 在“用户配置”之后优先使用 resources 下的 bin。
 - 改动集中在：`electron-builder.yml`、`apps/electron/src/main/index.ts`、`apps/cli/src/utils/Ffmpeg.ts`、`apps/cli/src/utils/Ytdlp.ts`，以及文档与验证。
 

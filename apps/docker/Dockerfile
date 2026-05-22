@@ -22,11 +22,13 @@ RUN apt-get update && \
     ca-certificates \
     wget \
     curl \
+    tar \
+    bash \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && wget -O /usr/local/bin/tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-amd64 \
     && chmod +x /usr/local/bin/tini \
-    && apt-get purge -y wget curl \
+    && apt-get purge -y wget \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,11 +37,20 @@ RUN chmod +x /app/cli
 
 COPY --from=builder /build/apps/ui/dist/ /app/public/
 
-# TODO(development-plan): Add /app/resources/bin (ffmpeg, yt-dlp) and set SMM_RESOURCES_PATH
-# See apps/docker/docs/development-plan.md
+# Bundled ffmpeg, yt-dlp, and VideoCaptioner (same layout as Electron extraResources)
+COPY ci/download-3pp-binary.sh /build/ci/download-3pp-binary.sh
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+      amd64) export PLATFORM=linux ARCH=x64 ;; \
+      arm64) export PLATFORM=linux ARCH=arm64 ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    cd /build && bash ci/download-3pp-binary.sh && \
+    mkdir -p /app/resources && mv bin /app/resources/
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV SMM_RESOURCES_PATH=/app/resources
 EXPOSE 30000
 
 ENTRYPOINT ["/usr/local/bin/tini", "--"]

@@ -203,14 +203,15 @@ function getLoadingPageDataUrl(): string {
 }
 
 /**
- * Log diagnostics for bundled ffmpeg/yt-dlp (extraResources) to help troubleshoot packaging.
- * Call in production only; logs resources path and whether bin/ffmpeg and bin/yt-dlp exist.
+ * Log diagnostics for bundled ffmpeg/yt-dlp/videocaptioner (extraResources) to help troubleshoot packaging.
+ * Call in production only; logs resources path and whether bundled bin tools exist.
  */
 function logBundledBinariesDiagnostics(): void {
   const resourcesPath = process.resourcesPath
   const isWin = process.platform === 'win32'
   const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg'
   const ytdlpExe = isWin ? 'yt-dlp.exe' : 'yt-dlp'
+  const videoCaptionerExe = isWin ? 'videocaptioner.exe' : 'videocaptioner'
 
   console.log('[SMM] Bundled binaries diagnostics:')
   console.log('[SMM]   process.resourcesPath:', resourcesPath)
@@ -243,6 +244,21 @@ function logBundledBinariesDiagnostics(): void {
       console.log('[SMM]   bin/yt-dlp contents:', entries.join(', ') || '(empty)')
     } catch (e) {
       console.log('[SMM]   bin/yt-dlp readdir error:', e)
+    }
+  }
+
+  const binVideoCaptionerDir = join(resourcesPath, 'bin', 'videocaptioner')
+  const binVideoCaptionerPath = join(binVideoCaptionerDir, videoCaptionerExe)
+  const binVideoCaptionerDirExists = existsSync(binVideoCaptionerDir)
+  const binVideoCaptionerExists = existsSync(binVideoCaptionerPath)
+  console.log('[SMM]   bin/videocaptioner directory:', binVideoCaptionerDir, 'exists:', binVideoCaptionerDirExists)
+  console.log('[SMM]   bin/videocaptioner executable:', binVideoCaptionerPath, 'exists:', binVideoCaptionerExists)
+  if (binVideoCaptionerDirExists) {
+    try {
+      const entries = readdirSync(binVideoCaptionerDir)
+      console.log('[SMM]   bin/videocaptioner contents:', entries.join(', ') || '(empty)')
+    } catch (e) {
+      console.log('[SMM]   bin/videocaptioner readdir error:', e)
     }
   }
 }

@@ -15,11 +15,12 @@
 |----------------|------------------------------------|------------------------|-----------------------------------|
 | CLI            | `../cli/dist/cli.exe`              | `cli.exe`              | `apps/cli/dist/cli`（Linux 单文件）|
 | UI             | `../ui/dist`                       | `public`               | `apps/ui/dist` → `/app/public`    |
-| ffmpeg         | `../../bin/ffmpeg` (ffmpeg.exe 等)  | `bin/ffmpeg`           | Linux 版 ffmpeg/ffprobe            |
-| yt-dlp         | `../../bin/yt-dlp` (yt-dlp.exe)     | `bin/yt-dlp`           | Linux 版 yt-dlp                    |
+| ffmpeg         | `../../bin/ffmpeg` (ffmpeg.exe 等)  | `bin/ffmpeg`           | `ci/download-3pp-binary.sh` → `/app/resources/bin/ffmpeg` |
+| yt-dlp         | `../../bin/yt-dlp` (yt-dlp.exe)     | `bin/yt-dlp`           | 同上 → `/app/resources/bin/yt-dlp` |
+| videocaptioner | `../../bin/videocaptioner`          | `bin/videocaptioner`   | VideoCaptioner release tar.gz → `/app/resources/bin/videocaptioner` |
 | openlist       | `../../bin/openlist` (openlist.exe) | `bin/openlist`         | 可选，若 CLI 使用则提供 Linux 版   |
 
-- 仓库中 `bin/` 目前为 **Windows 可执行文件**（.exe），Docker 镜像是 **Linux 环境**，因此 bin 需在镜像内通过系统包或官方 Linux 发行版提供，而不是直接 COPY 仓库 `bin/`。
+- 仓库 `bin/` 由 **CI / Docker build** 通过 [`ci/download-3pp-binary.sh`](../../../ci/download-3pp-binary.sh) 生成（不提交二进制）；Docker 最终阶段按 `TARGETARCH` 下载 Linux x64/arm64 资产，并设置 `SMM_RESOURCES_PATH=/app/resources`。
 
 ---
 

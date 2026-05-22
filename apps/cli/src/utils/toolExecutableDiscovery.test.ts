@@ -99,6 +99,25 @@ describe("resolveAutoToolPathWithExtras", () => {
     delete process.env.PATH;
   });
 
+  it("prefers bundled videocaptioner over Python Scripts extras", () => {
+    process.env.SMM_RESOURCES_PATH = "/app/Resources";
+    vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = String(p).replace(/\\/g, "/");
+      if (s.endsWith("/app/Resources/bin/videocaptioner/videocaptioner.exe")) return true;
+      if (s.endsWith("/python/Scripts/videocaptioner.exe")) return true;
+      return false;
+    });
+
+    const result = resolveAutoToolPathWithExtras(
+      "videocaptioner",
+      "videocaptioner.exe",
+      ["C:/python/Scripts/videocaptioner.exe"]
+    );
+    expect(result?.replace(/\\/g, "/")).toBe(
+      "/app/Resources/bin/videocaptioner/videocaptioner.exe"
+    );
+  });
+
   it("tries extra candidates after standard auto discovery", () => {
     vi.spyOn(fs, "existsSync").mockImplementation((p) => {
       const s = String(p).replace(/\\/g, "/");
