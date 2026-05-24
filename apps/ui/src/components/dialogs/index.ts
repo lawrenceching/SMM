@@ -2,7 +2,8 @@ export { ConfirmationDialog } from "./confirmation-dialog"
 export { SpinnerDialog } from "./spinner-dialog"
 export { ConfigDialog } from "./config-dialog"
 export { FilePickerDialog } from "./file-picker-dialog"
-export { DownloadVideoDialog } from "./download-video-dialog"
+export { DownloadVideoDialog, DownloadVideoDialogContent } from "./download-video-dialog"
+export { UIDownloadVideoDialogContent } from "./UIDownloadVideoDialogContent"
 export { MediaSearchDialog } from "./media-search-dialog"
 export { RenameFileDialog } from "./rename-file-dialog"
 export { TextDialog } from "./text-dialog"
@@ -74,4 +75,5 @@ export type {
   ExecuteCmdType,
   AddTestBackgroundJobDialogProps,
 } from "./types"
+export type { UIDownloadVideoDialogContentProps } from "./UIDownloadVideoDialogContent"
 
