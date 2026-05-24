@@ -4,6 +4,7 @@ import { pathToFileURL } from "@core/url"
 import { TableCell } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Music } from "lucide-react"
+import { cn } from "@/lib/utils"
 import Image from "@/components/Image"
 
 export function formatDuration(seconds: number): string {
@@ -59,6 +60,7 @@ export interface MusicRowMediaCellsProps {
   isSelected?: boolean
   titleTooltip?: string
   durationLabel?: string
+  as?: "td" | "div"
 }
 
 export function MusicRowMediaCells({
@@ -70,10 +72,15 @@ export function MusicRowMediaCells({
   isSelected = false,
   titleTooltip,
   durationLabel,
+  as = "td",
 }: MusicRowMediaCellsProps) {
+  const Cell = as === "div" ? "div" : TableCell
+  const cellProps =
+    as === "div" ? ({ role: "cell" } as Record<string, string>) : {}
+
   return (
     <>
-      <TableCell className="w-16 px-0 py-1.5">
+      <Cell className={cn("w-16 px-0 py-1.5", as === "div" && "flex items-center")} {...cellProps}>
         {thumbnail ? (
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
@@ -101,26 +108,26 @@ export function MusicRowMediaCells({
             <Music className="size-3 text-muted-foreground/50" />
           </div>
         )}
-      </TableCell>
+      </Cell>
 
-      <TableCell className="min-w-0 px-2 py-1.5">
+      <Cell className={cn("min-w-0 px-2 py-1.5", as === "div" && "flex items-center")} {...cellProps}>
         <p
           className={`min-w-0 truncate ${isSelected ? "font-medium text-primary" : ""}`}
           title={titleTooltip ?? title}
         >
           <span className="truncate">{title}</span>
         </p>
-      </TableCell>
+      </Cell>
 
-      <TableCell className="w-32 px-2 py-1.5">
+      <Cell className={cn("w-32 px-2 py-1.5", as === "div" && "flex items-center")} {...cellProps}>
         <p className="truncate text-muted-foreground" title={artist}>
           {artist || "-"}
         </p>
-      </TableCell>
+      </Cell>
 
-      <TableCell className="w-16 px-2 py-1.5 text-right text-muted-foreground">
+      <Cell className={cn("w-16 px-2 py-1.5 text-muted-foreground", as === "div" ? "flex items-center justify-end" : "text-right")} {...cellProps}>
         {durationLabel ?? formatDuration(duration)}
-      </TableCell>
+      </Cell>
     </>
   )
 }

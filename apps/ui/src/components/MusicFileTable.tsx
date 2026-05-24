@@ -1,11 +1,3 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Music } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "@/lib/i18n"
@@ -17,7 +9,7 @@ import {
   emitTrackEditTagsEvent,
 } from "@/lib/musicEvents"
 import { LocalFileTableRow } from "./LocalFileTableRow"
-import type { LocalFileTableRowFileMenu, MusicTableSelection } from "./UILocalFileTableRow"
+import type { LocalFileTableRowFileMenu, MusicTableSelection } from "@/types/music-table"
 import { JobTableRow } from "./JobTableRow"
 
 export interface LocalFileTableRowData {
@@ -168,73 +160,87 @@ export function MusicFileTable({
   )
 
   return (
-    <section className="bg-card">
-      <Table className="w-full table-fixed text-xs">
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-8 w-10 px-2 py-1 text-center">
-              {isMultiSelectMode ? (
-                <div className="flex items-center justify-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    className="size-4 cursor-pointer"
-                    checked={allSelected}
-                    disabled={data.length === 0}
-                    onChange={toggleSelectAll}
-                    data-testid="music-file-table-select-all"
-                    aria-label={t("musicFileTable.selectAllAria")}
-                  />
-                </div>
-              ) : (
-                t("musicFileTable.columns.index")
-              )}
-            </TableHead>
-            <TableHead className="h-8 w-16 px-0 py-1 text-center">{t("musicFileTable.columns.cover")}</TableHead>
-            <TableHead className="h-8 min-w-0 px-2 py-1">{t("musicFileTable.columns.title")}</TableHead>
-            <TableHead className="h-8 w-32 px-2 py-1">{t("musicFileTable.columns.artist")}</TableHead>
-            <TableHead className="h-8 w-16 px-2 py-1 text-right">{t("musicFileTable.columns.duration")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Music className="size-8 text-muted-foreground/50" />
-                  <p>{t("mediaPlayer.noTracksFound")}</p>
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.map((row) =>
-              row.kind === "local" ? (
-                <LocalFileTableRow
-                  key={row.id}
-                  row={row}
-                  mediaFolderPath={mediaFolderPath}
-                  selection={selectionProps}
-                  fileMenu={fileMenuForRow(row)}
-                  onTrackClick={onTrackClick}
+    <section className="bg-card text-xs">
+      <div
+        role="table"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "40px 64px 1fr 128px 64px 32px",
+        }}
+        className="w-full"
+      >
+        <div
+          role="row"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "subgrid",
+            gridColumn: "1 / -1",
+          }}
+          className="hover:bg-transparent"
+        >
+          <div role="columnheader" className="h-8 px-2 py-1 flex items-center justify-center text-center">
+            {isMultiSelectMode ? (
+              <div className="flex items-center justify-center">
+                <input
+                  ref={headerCheckboxRef}
+                  type="checkbox"
+                  className="size-4 cursor-pointer"
+                  checked={allSelected}
+                  disabled={data.length === 0}
+                  onChange={toggleSelectAll}
+                  data-testid="music-file-table-select-all"
+                  aria-label={t("musicFileTable.selectAllAria")}
                 />
-              ) : (
-                <JobTableRow
-                  key={row.id}
-                  row={row}
-                  mediaFolderPath={mediaFolderPath}
-                  hasRunningDownload={hasRunningDownload}
-                  onDownloadStart={onDownloadStart}
-                  onDownloadStop={onDownloadStop}
-                  onDownloadRemove={onDownloadRemove}
-                  isMultiSelectMode={isMultiSelectMode}
-                  selectedTrackIds={selectedTrackIds}
-                  onSelectedTrackIdsChange={onSelectedTrackIdsChange}
-                />
-              ),
-            )
-          )}
-        </TableBody>
-      </Table>
+              </div>
+            ) : (
+              t("musicFileTable.columns.index")
+            )}
+          </div>
+          <div role="columnheader" className="h-8 px-0 py-1 text-center">{t("musicFileTable.columns.cover")}</div>
+          <div role="columnheader" className="h-8 min-w-0 px-2 py-1">{t("musicFileTable.columns.title")}</div>
+          <div role="columnheader" className="h-8 px-2 py-1">{t("musicFileTable.columns.artist")}</div>
+          <div role="columnheader" className="h-8 px-2 py-1 text-right">{t("musicFileTable.columns.duration")}</div>
+          <div role="columnheader" className="h-8 px-2 py-1" aria-label={t("localFileTableRow.expand")} />
+        </div>
+        {data.length === 0 ? (
+          <div
+            role="row"
+            style={{ gridColumn: "1 / -1" }}
+            className="py-12 text-center text-muted-foreground"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <Music className="size-8 text-muted-foreground/50" />
+              <p>{t("mediaPlayer.noTracksFound")}</p>
+            </div>
+          </div>
+        ) : (
+          data.map((row) =>
+            row.kind === "local" ? (
+              <LocalFileTableRow
+                key={row.id}
+                row={row}
+                mediaFolderPath={mediaFolderPath}
+                selection={selectionProps}
+                fileMenu={fileMenuForRow(row)}
+                onTrackClick={onTrackClick}
+              />
+            ) : (
+              <JobTableRow
+                key={row.id}
+                row={row}
+                mediaFolderPath={mediaFolderPath}
+                hasRunningDownload={hasRunningDownload}
+                onDownloadStart={onDownloadStart}
+                onDownloadStop={onDownloadStop}
+                onDownloadRemove={onDownloadRemove}
+                isMultiSelectMode={isMultiSelectMode}
+                selectedTrackIds={selectedTrackIds}
+                onSelectedTrackIdsChange={onSelectedTrackIdsChange}
+              />
+            ),
+          )
+        )}
+      </div>
     </section>
   )
 }

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { action } from "storybook/actions"
-import { UILocalFileTableRow } from "./UILocalFileTableRow"
+import { LocalFileRow } from "./LocalFileRow"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import {
   buildRowSubtitleUi,
@@ -85,8 +85,8 @@ const fileMenu = {
 }
 
 const meta = {
-  title: "Components/UILocalFileTableRow",
-  component: UILocalFileTableRow,
+  title: "Components/LocalFileRow",
+  component: LocalFileRow,
   decorators: [
     (Story) => (
       <div className="w-[720px] rounded-md border bg-card p-4">
@@ -118,86 +118,17 @@ const meta = {
     fileMenu,
     onTrackClick: action("onTrackClick"),
     onToggleExpand: action("onToggleExpand"),
-    associatedFiles: [],
-    matchingJobs: [],
   },
-} satisfies Meta<typeof UILocalFileTableRow>
+} satisfies Meta<typeof LocalFileRow>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-export const ExpandedWithAssociatedFiles: Story = {
+export const Expanded: Story = {
   args: {
     isExpanded: true,
-    associatedFiles: [
-      { type: "subtitle", path: "/media/library/Example Track.srt" },
-      { type: "subtitle", path: "/media/library/Example Track.en-US.ass" },
-      { type: "thumbnail", path: "/media/library/Example Track.jpg" },
-    ],
-  },
-}
-
-export const ExpandedNoAssociatedFiles: Story = {
-  args: {
-    isExpanded: true,
-    associatedFiles: [],
-  },
-}
-
-export const TranscribeRunning: Story = {
-  args: {
-    isExpanded: true,
-    subtitleUi: rowSubtitleUi(false, false, { transcribeStatus: "running" }),
-    matchingJobs: [{ id: "job-1", jobType: "transcribing" as const }],
-  },
-}
-
-export const TranscribeFailed: Story = {
-  args: {
-    subtitleUi: rowSubtitleUi(false, false, { transcribeStatus: "failed" }),
-  },
-}
-
-export const TranslateRunning: Story = {
-  args: {
-    isExpanded: true,
-    subtitleUi: rowSubtitleUi(false, false, { translateStatus: "running" }),
-    matchingJobs: [{ id: "job-1", jobType: "translating" as const }],
-  },
-}
-
-export const SynthesizeRunning: Story = {
-  args: {
-    isExpanded: true,
-    subtitleUi: rowSubtitleUi(false, false, { synthesizeStatus: "running" }),
-    matchingJobs: [{ id: "job-1", jobType: "synthesising" as const }],
-  },
-}
-
-export const ProcessRunning: Story = {
-  args: {
-    isExpanded: true,
-    subtitleUi: rowSubtitleUi(false, false, { processStatus: "running" }),
-    matchingJobs: [{ id: "job-1", jobType: "processing" as const }],
-  },
-}
-
-export const WithRunningJob: Story = {
-  args: {
-    isExpanded: true,
-    matchingJobs: [{ id: "job-1", jobType: "transcribing" as const }],
-  },
-}
-
-export const ExpandedWithJobAndFiles: Story = {
-  args: {
-    isExpanded: true,
-    associatedFiles: [
-      { type: "subtitle", path: "/media/library/Example Track.srt" },
-    ],
-    matchingJobs: [{ id: "job-1", jobType: "translating" as const }],
   },
 }
 
@@ -209,6 +140,36 @@ export const Selected: Story = {
       selectedTrackIds: [baseRow.id],
     },
     subtitleUi: rowSubtitleUi(false, true),
+  },
+}
+
+export const TranscribeRunning: Story = {
+  args: {
+    subtitleUi: rowSubtitleUi(false, false, { transcribeStatus: "running" }),
+  },
+}
+
+export const TranscribeFailed: Story = {
+  args: {
+    subtitleUi: rowSubtitleUi(false, false, { transcribeStatus: "failed" }),
+  },
+}
+
+export const TranslateRunning: Story = {
+  args: {
+    subtitleUi: rowSubtitleUi(false, false, { translateStatus: "running" }),
+  },
+}
+
+export const SynthesizeRunning: Story = {
+  args: {
+    subtitleUi: rowSubtitleUi(false, false, { synthesizeStatus: "running" }),
+  },
+}
+
+export const ProcessRunning: Story = {
+  args: {
+    subtitleUi: rowSubtitleUi(false, false, { processStatus: "running" }),
   },
 }
 

@@ -306,6 +306,25 @@
       "duration": "時長"
     }
   },
+  "associatedFiles": {
+    "type": {
+      "subtitle": "字幕",
+      "audio": "音頻",
+      "thumbnail": "封面",
+      "summary": "摘要"
+    }
+  },
+  "localFileTableRow": {
+    "expand": "展開",
+    "collapse": "收縮",
+    "noAssociatedFiles": "沒有找到任何字幕、封面、音頻等關聯文件",
+    "job": {
+      "transcribing": "正在生成字幕",
+      "translating": "正在翻譯字幕",
+      "synthesising": "正在合成字幕",
+      "processing": "正在處理字幕"
+    }
+  },
   "subtitleTranslationDialog": {
     "title": "翻譯字幕",
     "description": "為所選字幕選擇翻譯引擎與目標語言。",

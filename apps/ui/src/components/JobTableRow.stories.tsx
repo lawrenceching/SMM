@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { action } from "storybook/actions"
-import { Table, TableBody } from "@/components/ui/table"
 import { JobTableRow } from "./JobTableRow"
 import type { JobTableRowData } from "./MusicFileTable"
 
@@ -28,11 +27,16 @@ const meta = {
   decorators: [
     (Story) => (
       <div className="w-[720px] rounded-md border bg-card p-4">
-        <Table className="w-full table-fixed text-xs">
-          <TableBody>
-            <Story />
-          </TableBody>
-        </Table>
+        <div
+          role="table"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "40px 64px 1fr 128px 64px 32px",
+          }}
+          className="w-full text-xs"
+        >
+          <Story />
+        </div>
       </div>
     ),
   ],

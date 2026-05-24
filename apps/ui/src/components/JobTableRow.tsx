@@ -1,8 +1,4 @@
 import {
-  TableCell,
-  TableRow,
-} from "@/components/ui/table"
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -35,6 +31,12 @@ export interface JobTableRowProps {
   onSelectedTrackIdsChange?: (ids: number[]) => void
 }
 
+const subgridRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "subgrid",
+  gridColumn: "1 / -1",
+}
+
 export function JobTableRow({
   row,
   mediaFolderPath,
@@ -64,7 +66,9 @@ export function JobTableRow({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <TableRow
+        <div
+          style={subgridRowStyle}
+          role="row"
           className={`cursor-pointer group ${isSelected ? "bg-muted" : ""}`}
           onClick={() => {
             if (isDownloading) return
@@ -79,7 +83,10 @@ export function JobTableRow({
             }
           }}
         >
-          <TableCell className="w-10 px-2 py-1.5 text-center">
+          <div
+            role="cell"
+            className="w-10 px-2 py-1.5 text-center flex items-center justify-center"
+          >
             <div className="flex items-center justify-center">
               {downloadingTooltip ? (
                 <span
@@ -109,7 +116,7 @@ export function JobTableRow({
                 <Clock className="size-4 text-muted-foreground" />
               )}
             </div>
-          </TableCell>
+          </div>
 
           <MusicRowMediaCells
             title={row.title}
@@ -119,8 +126,11 @@ export function JobTableRow({
             mediaFolderPath={mediaFolderPath}
             isSelected={isSelected}
             durationLabel={isDownloading ? "..." : undefined}
+            as="div"
           />
-        </TableRow>
+
+          <div role="cell" />
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         {row.status !== "downloading" && row.status !== "completed" && (

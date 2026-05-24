@@ -309,6 +309,25 @@
       "duration": "Duration"
     }
   },
+  "associatedFiles": {
+    "type": {
+      "subtitle": "Subtitle",
+      "audio": "Audio",
+      "thumbnail": "Cover",
+      "summary": "Summary"
+    }
+  },
+  "localFileTableRow": {
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noAssociatedFiles": "No associated files found (subtitles, covers, audio, etc.)",
+    "job": {
+      "transcribing": "Transcribing",
+      "translating": "Translating subtitles",
+      "synthesising": "Synthesizing subtitles",
+      "processing": "Processing subtitles"
+    }
+  },
   "subtitleTranslationDialog": {
     "title": "Translate subtitles",
     "description": "Choose translator and target language for the selected subtitle files.",

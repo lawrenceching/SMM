@@ -128,6 +128,7 @@ vi.mock('@/hooks/useJobOrchestrator', () => ({
 vi.mock('@/stores/backgroundJobsStore', () => {
   const state = {
     jobs: h.jobs,
+    getRunningJobs: () => h.jobs.filter((j: any) => j.status === 'running'),
   }
   const store = {
     getState: () => state,
@@ -135,7 +136,7 @@ vi.mock('@/stores/backgroundJobsStore', () => {
   return {
     useBackgroundJobsStore: Object.assign(
       (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
-      store
+      store,
     ),
   }
 })

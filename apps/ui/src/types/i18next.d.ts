@@ -447,6 +447,25 @@ interface ComponentsResources {
       duration: string
     }
   }
+  associatedFiles: {
+    type: {
+      subtitle: string
+      audio: string
+      thumbnail: string
+      summary: string
+    }
+  }
+  localFileTableRow: {
+    expand: string
+    collapse: string
+    noAssociatedFiles: string
+    job: {
+      transcribing: string
+      translating: string
+      synthesising: string
+      processing: string
+    }
+  }
   movieEpisodeTable: {
     columns: {
       file: string

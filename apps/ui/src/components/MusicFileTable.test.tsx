@@ -27,6 +27,17 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useGetAssociatedFiles", () => ({
+  useGetAssociatedFiles: () => [],
+}));
+
+vi.mock("@/stores/backgroundJobsStore", () => ({
+  useBackgroundJobsStore: (selector: (state: any) => any) => {
+    const store = { jobs: [] }
+    return selector(store)
+  },
+}));
+
 vi.mock("@/components/ui/context-menu", () => {
   const React = require("react");
   return {
