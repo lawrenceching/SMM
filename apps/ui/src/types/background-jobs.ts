@@ -24,6 +24,13 @@ export interface BackgroundJobBase {
 
   /** Type-specific payload */
   data: unknown;
+
+  /**
+   * Batch identifier shared by jobs created together.
+   * When one job in a batch fails, all pending siblings with the same
+   * parentId are automatically cancelled before the next job starts.
+   */
+  parentId?: string;
 }
 
 /** Legacy / generic jobs (e.g. folder initialization) */

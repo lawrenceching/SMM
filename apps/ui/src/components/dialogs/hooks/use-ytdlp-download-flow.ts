@@ -368,6 +368,7 @@ export function useYtdlpDownloadFlow(
       }
       setIsEnqueueing(true)
       try {
+        const parentId = createDownloadVideoJobId()
         const collectionJobs = await Promise.all(
           Array.from(selectedCollectionUrls).map((u) =>
             buildJobInput({
@@ -375,6 +376,7 @@ export function useYtdlpDownloadFlow(
               folder: downloadFolder,
               urls: [u],
               itemMeta: [{ title: u, artist: "" }],
+              parentId,
             }),
           ),
         )
@@ -402,6 +404,7 @@ export function useYtdlpDownloadFlow(
         urls = [url.trim()]
       }
 
+      const parentId = urls.length > 1 ? createDownloadVideoJobId() : undefined
       const jobs = await Promise.all(
         urls.map((u) => {
           const episode = episodes.find((e) => e.url === u)
@@ -410,6 +413,7 @@ export function useYtdlpDownloadFlow(
             folder: downloadFolder,
             urls: [u],
             itemMeta: episode ? [{ title: episode.title, artist: episode.artist }] : undefined,
+            parentId,
           })
         }),
       )

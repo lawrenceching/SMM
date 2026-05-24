@@ -17,6 +17,7 @@ import {
   deleteJob,
   isWithinOneHour,
   selectRecordsForBackgroundJobsUi,
+  cancelPendingJobsByParentId,
   type TaskJobRecord,
 } from '@/lib/downloadTaskDb'
 import { JOB_TYPE_REGISTRY, ALL_JOB_TYPES, swEventNames } from '@/lib/jobTypeRegistry'
@@ -267,8 +268,17 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         } else if (msg.event === evts.failed && config.toasts?.failed) {
           toast.error(config.toasts.failed(tRef.current))
         }
-        const prevFolder = jobRecordsRef.current.find((r) => r.id === msg.id)?.folder
-        const fresh = await syncFromIndexedDB(`sw:${msg.event}`)
+        const failedJob = jobRecordsRef.current.find((r) => r.id === msg.id)
+        const prevFolder = failedJob?.folder
+        const prevParentId = failedJob?.parentId
+
+        let fresh = await syncFromIndexedDB(`sw:${msg.event}`)
+
+        if (msg.event === evts.failed && prevParentId) {
+          await cancelPendingJobsByParentId(prevParentId)
+          fresh = await syncFromIndexedDB(`sw:${msg.event}:cancel-siblings`)
+        }
+
         if (prevFolder) tryAutoStart(matchedType, prevFolder, fresh)
         return
       }
@@ -389,6 +399,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         type: job.type,
         folder,
         data: JSON.stringify(job.data),
+        parentId: job.parentId,
         createdAt: now,
         updatedAt: now,
       }
@@ -419,6 +430,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
             type: job.type,
             folder,
             data: JSON.stringify(job.data),
+            parentId: job.parentId,
             createdAt: now,
             updatedAt: now,
           }

@@ -73,6 +73,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       progress: record.progress,
       type: 'transcribe',
       data,
+      parentId: record.parentId,
     }
     return job
   }
@@ -131,6 +132,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       progress: record.progress,
       type: 'translate',
       data,
+      parentId: record.parentId,
     }
     return job
   }
@@ -203,6 +205,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       progress: record.progress,
       type: 'synthesize',
       data,
+      parentId: record.parentId,
     }
     return job
   }
@@ -291,6 +294,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       progress: record.progress,
       type: 'process',
       data,
+      parentId: record.parentId,
     }
     return job
   }
@@ -313,6 +317,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
       progress: record.progress,
       type: 'test-delay',
       data: { delayMs, outcome, startedAt },
+      parentId: record.parentId,
     }
     return job
   }
@@ -360,6 +365,7 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
     progress: record.progress,
     type: 'download-video',
     data,
+    parentId: record.parentId,
   }
   return job
 }

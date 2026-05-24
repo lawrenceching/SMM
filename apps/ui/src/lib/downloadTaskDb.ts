@@ -19,6 +19,7 @@ export interface TaskJobRecord {
   type: string
   folder: string
   data?: string
+  parentId?: string
   createdAt: number
   updatedAt: number
 }
@@ -214,5 +215,23 @@ export async function saveTranscribeJob(job: TranscribeBackgroundJob): Promise<v
     updatedAt: now,
   }
   await putJob(record)
+  notifyIndexedDbUpdated()
+}
+
+/**
+ * Find all pending jobs that share the given parentId and mark them as
+ * aborted. Used when a batch job fails so remaining queued siblings are
+ * cancelled before the orchestrator auto-starts the next one.
+ */
+export async function cancelPendingJobsByParentId(parentId: string): Promise<void> {
+  if (!parentId) return
+  const records = await getAllJobs()
+  for (const record of records) {
+    if (record.parentId === parentId && record.status === 'pending') {
+      record.status = 'aborted'
+      record.updatedAt = Date.now()
+      await putJob(record)
+    }
+  }
   notifyIndexedDbUpdated()
 }

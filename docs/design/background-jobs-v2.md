@@ -1,80 +1,74 @@
-# Background Jobs — v2 Architecture
+# Background Jobs — v2 Architecture (LIVE)
 
-## Problem statement
+The UI tracks long-running async operations as typed **background jobs** with a shared lifecycle (`pending` → `running` → `succeeded` / `failed` / `aborted`). A Zustand store holds in-memory state, IndexedDB provides persistence, and a Service Worker executes backend API work.
 
-The current background job system has structural issues that make it fragile and hard to extend:
-
-1. **Auto-start is coupled to MusicPanel's lifecycle.** `useJobManager` (and all per-type managers wrapping it) are only instantiated when MusicPanel is mounted. Jobs created from the menu, MCP, or any other source while MusicPanel is unmounted are saved to IndexedDB but never picked up.
-
-2. **Auto-start is scoped to a single folder.** `useJobManager` queries `getJobsByTypeAndFolder(jobType, platformFolder)` — where `platformFolder` is the MusicPanel's currently selected folder. A job saved for a different folder is invisible to the manager and never starts.
-
-3. **Five nearly-identical manager hooks** (`useDownloadManager`, `useTranscribeManager`, `useTranslateManager`, `useSynthesizeManager`, `useProcessManager`) each call `useJobManager` with different parameters and parse `jobRecords` into per-file status sets. This duplication is noise — they differ only in the `mediaPath` extraction logic.
-
-4. **No imperative API for external consumers.** Menu, MCP tools, and tests have no way to create or start jobs except by writing directly to IndexedDB and dispatching `indexed-updated` — a fire-and-hope pattern with no feedback.
-
-5. **Tight coupling between UI and plumbing.** Components that only need to know "is file X currently being transcribed?" must import and instantiate a full `useTranscribeManager` with SW listeners and auto-start logic — even if they never start jobs themselves.
-
-6. **Adding a new job type is invasive.** It requires changes across hook files, manager files, the orchestrator's type definitions, and duplicate SW message handling logic. There is no single, isolated extension point.
+The v1 system coupled auto-start to MusicPanel's lifecycle — jobs created while MusicPanel was unmounted were saved to IndexedDB but never started. v2 centralizes orchestration in a single app-level provider (`JobOrchestratorProvider`), mounted once in `main.tsx`, always alive.
 
 ---
 
-## Goals
-
-1. **Decouple job creation from job execution.** Any source (MusicPanel, menu, MCP, test) can create a job and it will reliably start.
-2. **Centralize orchestration.** A single, app-level component owns the IndexedDB ↔ Zustand ↔ Service Worker bridge, mounted once, always alive.
-3. **Unify per-type management.** One orchestrator handles all job types, eliminating duplicated SW message handling and `indexed-updated` event listeners.
-4. **Provide a clean API surface.** A React context exposes imperative methods for creating, starting, aborting, and removing jobs. A companion hook provides reactive per-folder status queries for UI rendering.
-5. **Keep the existing persistence layer.** IndexedDB (`downloadTaskDb.ts`) and the Service Worker (`download-service-worker.js`) remain unchanged — the refactor is above them.
-6. **Make new job types a data-level change.** Adding a job type should only require: (a) a new factory function, (b) a new registry entry, (c) the SW handler for that type, and (d) the UI dialog. No changes to the orchestrator, store, or IndexedDB layer.
-
----
-
-## Architecture overview
-
-> 2026-05-15 决策更新：本版补充了 `startJob(id, options)` 强制启动语义、`createJobs` 非事务语义，以及 `useFileStatuses` 对“同一路径多任务”的支持。若与旧段落冲突，以本版更新为准。
+## Architecture
 
 ```
+main.tsx
 ┌──────────────────────────────────────────────────────────────────┐
-│                      App Root (always mounted)                    │
+│  <JobOrchestratorProvider>                                        │
 │                                                                   │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                 JobOrchestratorProvider                       │ │
-│  │                                                               │ │
-│  │  Imports:                                                     │ │
-│  │   • jobTypeRegistry          — type metadata (data only)     │ │
-│  │   • backgroundJobsStore      — Zustand                       │ │
-│  │   • downloadTaskDb functions — IndexedDB                     │ │
-│  │                                                               │ │
-│  │  Does NOT import:                                            │ │
-│  │   • Any job factory                                         │ │
-│  │   • Any job-type-specific types                              │ │
-│  │   • Any per-type hook or manager                             │ │
+│  │  JobOrchestratorProvider                                     │ │
 │  │                                                               │ │
 │  │  Owns:                                                        │ │
-│  │   • IndexedDB ↔ Zustand sync                                 │ │
-│  │   • SW message bridge (generic, driven by registry)          │ │
+│  │   • IndexedDB ↔ Zustand sync (TaskJobRecord → BackgroundJob) │ │
+│  │   • SW message bridge (generic, driven by jobTypeRegistry)   │ │
 │  │   • Auto-start queue — one running job per (type, folder)    │ │
 │  │   • Lifecycle — startup reconciliation, SW reactivation     │ │
+│  │   • parentId batch cancellation on failure                   │ │
 │  │                                                               │ │
-│  │  Exposes via React Context:                                   │ │
-│  │   • Imperative: createJob(job), startJob(id, options),        │ │
-│  │     createJobs(jobs), stopJob(id),                            │ │
-│  │     removeJob(id)                                             │ │
-│  │   • Reactive: useFileStatuses(folder, type), useJobs(),      │ │
-│  │     useJobIndicatorState()                                    │ │
+│  │  Exposes via React Context + window.__jobOrchestrator:        │ │
+│  │   • Imperative: createJob, createJobs, startJob, stopJob,    │ │
+│  │     removeJob                                                 │ │
+│  │   • Reactive: useFileStatuses(folder, type), useJobs()       │ │
 │  └──────────────────────┬──────────────────────────────────────┘ │
-│                         │ React Context                            │
-│         ┌───────────────┼───────────────┬──────────────┐          │
-│         │               │               │              │          │
-│  ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐ ┌─────▼──────┐ │
-│  │ MusicPanel  │ │    Menu     │ │  MCP Tool   │ │ Any future │ │
-│  │ (reads      │ │ (creates    │ │ (creates    │ │ consumer   │ │
-│  │  status +   │ │  download   │ │  any job    │ │            │ │
-│  │  creates    │ │  jobs)      │ │  type)      │ │            │ │
-│  │  jobs)      │ │             │ │             │ │            │ │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └────────────┘ │
+│                         │                                          │
+│  ┌──────────────────────┼──────────────────────────────────────┐ │
+│  │              Consumers (via useJobManager / context)          │ │
+│  │         ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌───────────┐  │ │
+│  │         │MusicPanel│ │ Dialogs │ │  Menu   │ │   MCP     │  │ │
+│  │         └─────────┘ └─────────┘ └─────────┘ └───────────┘  │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                         │                                          │
+│  ┌──────────────────────┼──────────────────────────────────────┐ │
+│  │              Persistence Layer                                │ │
+│  │  ┌──────────────────┐  ┌──────────────────────────────────┐ │ │
+│  │  │  Zustand Store   │  │  IndexedDB (DownloadTaskDatabase) │ │ │
+│  │  │  (in-memory)     │  │  (durable, synced on events)      │ │ │
+│  │  └──────────────────┘  └──────────────────────────────────┘ │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                         │ postMessage                              │
+│  ┌──────────────────────┼──────────────────────────────────────┐ │
+│  │     Service Worker (download-service-worker.js)              │ │
+│  │     startDownload / startTranscribe / startTranslate /       │ │
+│  │     startSynthesize / startProcess / startTestDelay          │ │
+│  └──────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+### Mount point
+
+`JobOrchestratorProvider` wraps the entire app in `main.tsx`:
+
+```
+<QueryClientProvider>
+  <ThemeProvider>
+    <JobOrchestratorProvider>   ← always mounted
+      <DialogProvider>
+        <AppSwitcher />
+      </DialogProvider>
+    </JobOrchestratorProvider>
+  </ThemeProvider>
+</QueryClientProvider>
+```
+
+This guarantees jobs are auto-started regardless of which panel is active.
 
 ---
 
@@ -82,28 +76,21 @@ The current background job system has structural issues that make it fragile and
 
 ### 1. `JobTypeRegistry` — the single extension point
 
+**File:** `src/lib/jobTypeRegistry.ts`
+
 A standalone data module. Adding a new job type means adding one entry here. The orchestrator reads this registry generically — it never references specific types.
 
 ```typescript
-// src/lib/jobTypeRegistry.ts
-
-import type { BackgroundJob } from '@/types/background-jobs'
-
-/** Everything the orchestrator needs to handle a job type generically. */
 export interface JobTypeConfig {
   /** SW message prefix: `${prefix}:start`, `${prefix}:stop`, `${prefix}:remove` */
   messagePrefix: string
-
-  /** localStorage key for auto-start preference; e.g. 'download.autoStart' */
+  /** localStorage key for auto-start toggle */
   autoStartKey: string
-
   /**
    * Extracts a stable file/entity path from job data.
-   * Used by useFileStatuses() to answer "is file X currently processing?"
-   * Returns empty string when no path association is needed.
+   * Used by useFileStatuses() for "is file X currently processing?" queries.
    */
   extractPath: (data: unknown) => string
-
   /** Optional lifecycle toasts for this type. */
   toasts?: {
     started?: (t: TFunction) => string
@@ -113,566 +100,380 @@ export interface JobTypeConfig {
 }
 
 export const JOB_TYPE_REGISTRY: Record<string, JobTypeConfig> = {
-
-  'download-video': {
-    messagePrefix: 'download',
-    autoStartKey: 'download.autoStart',
-    extractPath: (data) => (data as any)?.videos?.[0]?.url ?? '',
-  },
-
-  'transcribe': {
-    messagePrefix: 'transcribe',
-    autoStartKey: 'transcribe.autoStart',
-    extractPath: (data) => (data as any)?.mediaPath ?? '',
-  },
-
-  'translate': {
-    messagePrefix: 'translate',
-    autoStartKey: 'translate.autoStart',
-    extractPath: (data) => {
-      const d = data as any
-      return d.mediaPath || d.subtitlePath || ''
-    },
-    toasts: {
-      started: (t) => t('subtitleTranslationDialog.toastStart'),
-      succeeded: (t) => t('subtitleTranslationDialog.toastSucceeded'),
-      failed: (t) => t('subtitleTranslationDialog.toastFailed'),
-    },
-  },
-
-  'synthesize': {
-    messagePrefix: 'synthesize',
-    autoStartKey: 'synthesize.autoStart',
-    extractPath: (data) => {
-      const d = data as any
-      return d.mediaPath || d.videoPath || ''
-    },
-    toasts: {
-      started: (t) => t('synthesizeSubtitleDialog.toastStart'),
-      succeeded: (t) => t('synthesizeSubtitleDialog.toastSucceeded'),
-      failed: (t) => t('synthesizeSubtitleDialog.toastFailed'),
-    },
-  },
-
-  'process': {
-    messagePrefix: 'process',
-    autoStartKey: 'process.autoStart',
-    extractPath: (data) => (data as any)?.mediaPath ?? '',
-    toasts: {
-      started: (t) => t('processPipelineDialog.toastStart'),
-      succeeded: (t) => t('processPipelineDialog.toastSucceeded'),
-      failed: (t) => t('processPipelineDialog.toastFailed'),
-    },
-  },
+  'download-video': { ... },
+  'transcribe':     { ... },
+  'translate':      { ... },
+  'synthesize':     { ... },
+  'process':        { ... },
 }
 
-/** All registered job type keys. */
 export const ALL_JOB_TYPES = Object.keys(JOB_TYPE_REGISTRY)
-
-/**
- * Derive the SW event names for a given type.
- * e.g. for 'download' → { start: 'download:start', stop: 'download:stop', ... }
- */
-export function swEventNames(prefix: string) {
-  return {
-    start: `${prefix}:start`,
-    stop: `${prefix}:stop`,
-    remove: `${prefix}:remove`,
-    started: `${prefix}:started`,
-    succeeded: `${prefix}:succeeded`,
-    failed: `${prefix}:failed`,
-    stopped: `${prefix}:stopped`,
-    removed: `${prefix}:removed`,
-    heartbeat: `${prefix}:heartbeat`,
-  }
-}
 ```
 
-**Adding a new job type `trim-video` requires:**
-1. A factory `buildTrimVideoJob()` that returns a `BackgroundJob` with `type: 'trim-video'`
-2. A `'trim-video'` entry in `JOB_TYPE_REGISTRY`
-3. A `startTrimVideo` handler in the SW
-4. The UI dialog
+`swEventNames(prefix)` derives the full set of SW channel names from the prefix (e.g. `'download'` → `{ start: 'download:start', succeeded: 'download:succeeded', ... }`).
 
-**Does NOT require changing:**
-- `JobOrchestratorProvider.tsx` (zero changes)
-- `backgroundJobsStore.ts` (zero changes)
-- `downloadTaskDb.ts` (zero changes)
-- `useJobOrchestrator.ts` (zero changes)
+### 2. `JobOrchestratorProvider` — app-level orchestrator
 
----
+**File:** `src/components/JobOrchestratorProvider.tsx`
 
-### 2. `JobOrchestratorProvider` (new, app-level)
+The single source of truth for all background job operations. It has **no per-type branches** — all type-specific behavior comes from the registry.
 
-A React component wrapping the entire app. It is the single source of truth for all background job operations. It has **no per-type branches** — all type-specific behavior comes from the registry.
-
-#### What it imports (and what it doesn't)
-
-```typescript
-// Allowed imports:
-import { JOB_TYPE_REGISTRY, ALL_JOB_TYPES, swEventNames } from '@/lib/jobTypeRegistry'
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
-import {
-  getAllJobs, getJobsByTypeAndFolder, putJob, deleteJob,
-  notifyIndexedDbUpdated, type TaskJobRecord,
-} from '@/lib/downloadTaskDb'
-
-// NEVER imports:
-// - Any *JobFactory file
-// - Any type-specific types (TranscribeBackgroundJob, etc.)
-// - useJobManager, useDownloadManager, or any per-type hook
-```
-
-#### State it owns
+#### State
 
 | State | Source | Purpose |
 |---|---|---|
-| `jobRecords: TaskJobRecord[]` | IndexedDB, synced on events | Persisted records — the durable source of truth |
-| `swReady: boolean` | SW registration | Whether the Service Worker is ready to accept messages |
-| `runningSet: Map<string, Set<string>>` | Derived: `folder → Set<jobType>` | Concurrency guard: one running job per (type, folder) |
+| `jobRecords: TaskJobRecord[]` | IndexedDB, synced on events | Durable source of truth, filtered to within-1-hour |
+| `popoverJobRecords: TaskJobRecord[]` | IndexedDB | Status-bar popover (24h window, up to 100 records) |
+| `swReady: boolean` | SW registration | Whether the SW is ready to accept messages |
+| `jobRecordsRef` | Mutable ref mirroring `jobRecords` | Avoids stale closures in callbacks |
+
+All concurrency checks are inline against `jobRecordsRef.current` (there is no separate `runningSet` map; the guard checks `records.some(r => r.status === 'running')` for the same `(type, folder)`).
 
 #### Lifecycle
 
 ```
 On mount:
-  1. Register the SW, wait for 'ready'
-  2. Call handleSwReactivate() → mark leftover running jobs as stopped/aborted
-  3. Load all jobs from IndexedDB, sync to Zustand store
-  4. Attach a single SW onmessage listener (driven by ALL_JOB_TYPES)
-  5. For each combination of (registered_type × distinct_folder), try auto-start
+  1. Eager-load IndexedDB records (no SW dependency)
+  2. Register the SW, wait for 'ready' + controllerchange
+  3. handleSwReactivate() → mark leftover running jobs as aborted
+  4. Sync all jobs, set swReady=true
+  5. tryAutoStartAll() for every (type, folder) combination
 
-On SW message (download:started, transcribe:succeeded, ...):
-  1. Re-sync IndexedDB → Zustand
-  2. If a job succeeded/failed/stopped, detect the type via registry,
-     dequeue, and auto-start the next pending job of the same (type, folder)
+On SW message (download:succeeded, transcribe:failed, ...):
+  1. Match message to job type via registry
+  2. Show toast if configured
+  3. Sync from IndexedDB → get fresh records
+  4. On failed: cancel pending siblings by parentId (see §Batch cancellation)
+  5. tryAutoStart for the same (type, folder)
 
 On indexed-updated event:
-  1. Re-sync IndexedDB → Zustand
-  2. For any new pending jobs, try auto-start
+  1. Sync from IndexedDB
+  2. tryAutoStartAll()
+
+Poll safety net:
+  - While pending or running jobs exist, poll IndexedDB every 5 seconds
 ```
 
-#### SW message handler (generic, no per-type branches)
+#### SW message handler
+
+A single `navigator.serviceWorker.addEventListener('message', handler)` in a `useEffect`. The handler is **generic** — it matches any event to a registered type via `ALL_JOB_TYPES.find(t => swEventNames(registry[t].messagePrefix) includes msg.event)`. No per-type `if` / `switch` branches.
+
+### 3. `useJobManager` — unified facade hook
+
+**File:** `src/hooks/useJobManager.ts`
+
+The public API for React components. Combines Zustand store (for in-memory `generic` jobs and reactive state) with JobOrchestrator context (for IndexedDB-backed persisted jobs).
 
 ```typescript
-// Inside the orchestrator, the single SW message listener:
-
-function handleSwMessage(msg: { event: string; id?: string }) {
-  if (!msg.id) return
-
-  // Heartbeats are no-ops on the client side
-  if (msg.event.endsWith(':heartbeat')) return
-
-  // Determine the job type from the message event
-  // e.g. "download:started" → type = "download-video"
-  const matchedType = ALL_JOB_TYPES.find(t => {
-    const events = swEventNames(JOB_TYPE_REGISTRY[t].messagePrefix)
-    return Object.values(events).includes(msg.event)
-  })
-
-  if (!matchedType) return  // unknown event, ignore
-
-  const prefix = JOB_TYPE_REGISTRY[matchedType].messagePrefix
-  const events = swEventNames(prefix)
-
-  // Handle completion events
-  if (msg.event === events.succeeded || msg.event === events.failed || msg.event === events.stopped) {
-    // Show toast if configured
-    if (matchedType && JOB_TYPE_REGISTRY[matchedType].toasts) {
-      const toastFn = msg.event === events.succeeded
-        ? JOB_TYPE_REGISTRY[matchedType].toasts!.succeeded
-        : msg.event === events.failed
-          ? JOB_TYPE_REGISTRY[matchedType].toasts!.failed
-          : null
-      if (toastFn) toast[msg.event === events.succeeded ? 'success' : 'error'](toastFn(t))
-    }
-
-    // Find job to determine its folder, then auto-start next
-    const job = jobRecords.find(r => r.id === msg.id)
-    if (job) {
-      syncFromIndexedDB()
-      tryAutoStart(matchedType, job.folder)
-    }
-    return
-  }
-
-  // For 'started' events, just re-sync
-  if (msg.event === events.started) {
-    if (matchedType && JOB_TYPE_REGISTRY[matchedType].toasts?.started) {
-      toast.info(JOB_TYPE_REGISTRY[matchedType].toasts!.started!(t))
-    }
-    syncFromIndexedDB()
-    return
-  }
-
-  // For 'removed' events
-  if (msg.event === events.removed) {
-    syncFromIndexedDB()
-  }
-}
-```
-
-#### Auto-start algorithm (generic, driven by registry)
-
-```typescript
-function tryAutoStart(type: string, folder: string): void {
-  if (!swReady) return
-
-  const config = JOB_TYPE_REGISTRY[type]
-  if (!config) return
-
-  // Check auto-start preference
-  const autoStart = localStorage.getItem(config.autoStartKey) !== 'false'
-  if (!autoStart) return
-
-  // Concurrency guard: max 1 running per (type, folder)
-  const running = runningSet.get(folder)
-  if (running?.has(type)) return
-
-  // Find next pending job
-  const records = await getJobsByTypeAndFolder(type, folder, { excludeSucceeded: true })
-  const next = records.find(r => r.status === 'pending' && r.status !== 'stopped' && r.status !== 'aborted')
-  if (!next) return
-
-  // Dispatch to SW
-  const { start } = swEventNames(config.messagePrefix)
-  navigator.serviceWorker?.controller?.postMessage({ event: start, id: next.id })
-}
-
-function tryAutoStartAll(): void {
-  // On startup or after a large sync, try every (type, folder) combination
-  for (const type of ALL_JOB_TYPES) {
-    const records = await getAllJobs()
-    const folders = new Set(records.filter(r => r.type === type).map(r => r.folder))
-    for (const folder of folders) {
-      tryAutoStart(type, folder)
-    }
-  }
-}
-```
-
-#### Imperative API（通过 context 暴露）
-
-```typescript
-interface JobOrchestratorAPI {
-  /**
-   * Persist a pre-built BackgroundJob to IndexedDB, sync to Zustand,
-   * and trigger auto-start for its (type, folder).
-   *
-   * The caller is responsible for building the job using the appropriate
-   * factory (e.g. buildDownloadVideoJob, buildTranscribeJob).
-   */
-  createJob(job: BackgroundJob): Promise<string>
-
-  /**
-   * 批量写入任务（非事务）。
-   * - 不保证 all-or-nothing
-   * - 单条写入失败不回滚已成功写入项
-   * - 返回逐项结果，便于调用方重试失败项
-   */
-  createJobs(jobs: BackgroundJob[]): Promise<{
-    successIds: string[]
-    failures: Array<{ job: BackgroundJob; error: string }>
-  }>
-
-  /**
-   * 启动指定任务。
-   *
-   * 默认（forceStart=false）不抢占：若同(type, folder)已有running任务，
-   * 直接返回 concurrency-blocked，由调度器后续自动启动。
-   *
-   * forceStart=true 时强制启动：
-   * - 绕过 auto-start 开关
-   * - 即使已有同(type, folder) running任务也允许启动
-   */
-  startJob(
-    id: string,
-    options?: { forceStart?: boolean },
-  ): Promise<
-    | { started: true }
-    | {
-        started: false
-        reason:
-          | 'sw-not-ready'
-          | 'job-not-found'
-          | 'invalid-job-type'
-          | 'concurrency-blocked'
-      }
-  >
-
-  /** Stop (abort) a running job. */
-  stopJob(id: string): void
-
-  /** Remove a job from IndexedDB and the store. */
-  removeJob(id: string): Promise<void>
-
-  /** SW 是否已就绪并可接收消息。 */
-  isReady: boolean
-}
-```
-
-**关键设计决策：`createJob` 接受 `BackgroundJob`，而不是 params union。**
-
-This means the orchestrator has zero knowledge of job-type-specific parameters. A caller builds the job:
-
-```typescript
-// In a dialog:
-import { buildDownloadVideoJob } from '@/lib/downloadVideoJobFactory'
-
-const job = buildDownloadVideoJob({
-  name: 'Download Video',
-  folder: downloadFolder,
-  urls: [url],
-  itemMeta: [{ title, artist }],
-})
-await createJob(job)
-```
-
-If a new job type is added, the orchestrator's `createJob` signature never changes. New callers just import the new factory and build the job the same way.
-
-```typescript
-// Adding a hypothetical 'trim-video' type:
-import { buildTrimVideoJob } from '@/lib/trimVideoJobFactory'
-
-const job = buildTrimVideoJob({ videoPath, startTime, endTime, folder })
-await createJob(job)  // orchestrator.handleJob() works without any change
-```
-
-#### Reactive selectors（通过 context 暴露）
-
-```typescript
-interface JobOrchestratorState {
-  /** All jobs in the store (for the StatusBar popover). */
+export interface UseJobManagerResult {
   jobs: BackgroundJob[]
-
-  /**
-   * 响应式 hook：查询指定 folder + type 下，哪些路径有 running/pending/failed 任务。
-   * type 参数为 JOB_TYPE_REGISTRY 中注册的类型。
-   */
-  useFileStatuses(folder: string, type: string): {
-    runningPaths: Set<string>
-    pendingPaths: Set<string>
-    failedPaths: Set<string>
-    /** 支持同一路径多任务：path -> 多个 jobId（按创建时间升序） */
-    jobIdsByPath: Map<string, string[]>
-    /** 快速操作入口：每个 path 当前优先操作的 jobId */
-    primaryJobIdByPath: Map<string, string>
-  }
-
-  /** Aggregated indicator state for the StatusBar. */
-  useJobIndicatorState(): {
-    runningCount: number
-    pendingCount: number
-    failedCount: number
-    statusVariant: 'running' | 'warning' | 'success'
-    isPopoverOpen: boolean
-    setPopoverOpen: (open: boolean) => void
-  }
+  refreshFromIndexedDB: (source?: string) => Promise<void>
+  isReady: boolean
+  createJob: (job: BackgroundJob) => Promise<string>
+  createJobs: (jobs: BackgroundJob[]) => Promise<{ successIds, failures }>
+  startJob: (id: string, options?: { forceStart?: boolean }) => Promise<StartJobResult>
+  stopJob: (id: string) => void
+  removeJob: (id: string) => Promise<void>
+  clearRemovableJobs: () => Promise<void>
+  addJob: (nameOrJob: string | BackgroundJob) => string
+  updateJob: (id: string, updates: Partial<BackgroundJob>) => void
+  patchJob: (id: string, fn: (job: BackgroundJob) => BackgroundJob) => void
 }
 ```
 
-**`useFileStatuses` 实现（泛型、由 registry 驱动）：**
+`stopJob` and `removeJob` dispatch by job type:
+- `generic` → Zustand store directly (in-memory only)
+- `test-delay` → `testDelayJobRunner` helpers
+- All others → orchestrator (IndexedDB + SW)
+
+### 4. `useJobOrchestrator` — re-export barrel
+
+**File:** `src/hooks/useJobOrchestrator.ts`
+
+Thin re-export module providing a single import namespace for the orchestrator ecosystem:
 
 ```typescript
-function useFileStatuses(folder: string, type: string) {
-  const config = JOB_TYPE_REGISTRY[type]
-  const jobRecords = useJobRecords() // from orchestrator state
+export { useJobManager } from './useJobManager'
+export { useJobOrchestratorContext as useJobOrchestrator, useFileStatuses, useJobs } from '@/components/JobOrchestratorProvider'
+```
 
-  return useMemo(() => {
-    const runningPaths = new Set<string>()
-    const pendingPaths = new Set<string>()
-    const failedPaths = new Set<string>()
-    const jobIdsByPath = new Map<string, string[]>()
-    const primaryJobIdByPath = new Map<string, string>()
+### 5. `backgroundJobsStore` — Zustand store
 
-    for (const r of jobRecords) {
-      if (r.type !== type || r.folder !== folder) continue
-      let data: unknown
-      try { data = JSON.parse(r.data || '{}') } catch { continue }
-      const path = config?.extractPath(data)
-      if (!path) continue
+**File:** `src/stores/backgroundJobsStore.ts`
 
-      const ids = jobIdsByPath.get(path) ?? []
-      ids.push(r.id)
-      jobIdsByPath.set(path, ids)
-      if (r.status === 'running') runningPaths.add(path)
-      else if (r.status === 'pending') pendingPaths.add(path)
-      else if (r.status === 'failed') failedPaths.add(path)
-    }
+In-memory job list. Handles `generic` job lifecycle directly (add, abort, remove). For persisted jobs, the store is synced from IndexedDB by `syncJobRecordsToStore()` — persisted jobs are replaced wholesale while in-memory generic jobs are preserved.
 
-    // 选出每个 path 的 primary job（优先 running > pending > failed > 其他）
-    for (const [path, ids] of jobIdsByPath) {
-      const primary = ids.find((id) => {
-        const r = jobRecords.find((j) => j.id === id)
-        return r?.status === 'running'
-      }) ?? ids.find((id) => {
-        const r = jobRecords.find((j) => j.id === id)
-        return r?.status === 'pending'
-      }) ?? ids.find((id) => {
-        const r = jobRecords.find((j) => j.id === id)
-        return r?.status === 'failed'
-      }) ?? ids[0]
+### 6. `downloadTaskDb` — IndexedDB persistence layer
 
-      if (primary) primaryJobIdByPath.set(path, primary)
-    }
+**File:** `src/lib/downloadTaskDb.ts`
 
-    return { runningPaths, pendingPaths, failedPaths, jobIdsByPath, primaryJobIdByPath }
-  }, [jobRecords, folder, type, config])
+Schema (`DownloadTaskDatabase` / `jobs` store):
+
+```typescript
+export interface TaskJobRecord {
+  id: string
+  name: string
+  status: string        // pending | running | failed | succeeded | aborted
+  progress: number      // 0–100
+  type: string          // discriminator (download-video, transcribe, …)
+  folder: string        // filesystem folder for (type, folder) scoping
+  data?: string         // JSON-serialized type-specific payload
+  parentId?: string     // batch identifier for failure cascading
+  createdAt: number
+  updatedAt: number
 }
 ```
 
-没有 per-type 分支。路径归属由 registry 的 `extractPath` 定义。  
-同一路径多任务不再覆盖：UI 可展示完整队列（`jobIdsByPath`），也可用 `primaryJobIdByPath` 做“单击操作”。
+Key functions: `getAllJobs()`, `putJob()`, `deleteJob()`, `getJobsByTypeAndFolder()`, `cancelPendingJobsByParentId()`, `notifyIndexedDbUpdated()`.
+
+Auto-start window: jobs created within the last hour (`isWithinOneHour`). UI popover window: 24 hours, up to 100 jobs.
+
+### 7. `jobRecordMapper` — IndexedDB → BackgroundJob conversion
+
+**File:** `src/lib/jobRecordMapper.ts`
+
+`jobRecordToBackgroundJob(record)` — converts a `TaskJobRecord` to the appropriate typed `BackgroundJob` based on `record.type`. Each type has its own deserialization logic for `data` (JSON.parse + field mapping). `syncJobRecordsToStore(records)` replaces all persisted jobs in the Zustand store, preserving in-memory `generic` jobs.
+
+### 8. `window.__jobOrchestrator` bridge
+
+**File:** `src/components/JobOrchestratorProvider.tsx` (lines 513–525)
+**Type declaration:** `src/types/global.d.ts`
+
+Exposes the imperative API on `window` for non-React consumers (MCP tools, tests):
+
+```typescript
+window.__jobOrchestrator = {
+  createJob(job: BackgroundJob): Promise<string>
+  createJobs(jobs: BackgroundJob[]): Promise<{ successIds, failures }>
+  startJob(id: string, options?: { forceStart?: boolean }): Promise<StartJobResult>
+  stopJob(id: string): void
+  removeJob(id: string): Promise<void>
+  isReady(): boolean
+}
+```
 
 ---
 
-## How consumers change
+## Job types
 
-### MusicPanel
+### 1. `download-video`
 
-**Current:** Instantiates 5 manager hooks, each with its own SW listener, `indexed-updated` listener, and auto-start logic.
+Download media files via yt-dlp. Tracks each video in a multi-video job with per-item sub-statuses.
 
-**v2:** Uses two things from the orchestrator:
+- **Interface:** `DownloadVideoBackgroundJob` (type: `'download-video'`)
+- **Data:** `{ folder, videos: [{ url, artist, title, status }], ytdlpFormat?, ytdlpCookiesFile?, ytdlpCookiesFromBrowser?, ytdlpExtraArgs?, executionId?, logRelativePath? }`
+- **Factory:** `lib/downloadVideoJobFactory.ts` — `buildDownloadVideoJob()`
+- **SW handler:** `startDownload` → `POST /api/ytdlp/download`
+- **Sub-status:** `DownloadVideoItemStatus` — `pending → downloading → succeeded | failed`
+- **Heartbeat:** `download:heartbeat` every 20s
+- **Registry `extractPath`:** `data.videos[0].url`
 
-```typescript
-function MusicPanel() {
-  const { createJob, startJob, stopJob, removeJob, useFileStatuses } = useJobOrchestrator()
+### 2. `transcribe`
 
-  const platformFolder = mediaMetadata?.mediaFolderPath
-    ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-    : undefined
+Speech-to-text via VideoCaptioner CLI or Tencent ASR.
 
-  // Reactive status for each job type — replace 5 separate manager hooks
-  const downloadStatus  = useFileStatuses(platformFolder, 'download-video')
-  const transcribeStatus = useFileStatuses(platformFolder, 'transcribe')
-  const translateStatus  = useFileStatuses(platformFolder, 'translate')
-  const synthesizeStatus = useFileStatuses(platformFolder, 'synthesize')
-  const processStatus    = useFileStatuses(platformFolder, 'process')
+- **Interface:** `TranscribeBackgroundJob` (type: `'transcribe'`)
+- **Data:** `{ folder, mediaPath, mediaPathPlatform, title, provider, videoCaptioner?, tencentAsr?, executionId?, logRelativePath? }`
+- **Factory:** `lib/transcribeJobFactory.ts` — `buildTranscribeJob()`
+- **SW handler:** `startTranscribe` → `POST /api/videocaptioner/transcribe` or Tencent ASR API
+- **Registry `extractPath`:** `data.mediaPath`
 
-  // To create jobs (caller builds with factory):
-  const handleDownload = async () => {
-    const job = buildDownloadVideoJob({ name, folder, urls, itemMeta })
-    await createJob(job)
-  }
+### 3. `translate`
 
-  // 手动启动：默认不抢占；必要时可 forceStart
-  const handleStart = async (jobId: string, forceStart = false) => {
-    const result = await startJob(jobId, { forceStart })
-    if (!result.started && result.reason === 'concurrency-blocked') {
-      // 可提示：当前同类型任务正在执行，已进入调度队列
-    }
-  }
+Translate subtitle files via VideoCaptioner.
 
-  // To stop/remove:
-  const handleStop = (jobId: string) => stopJob(jobId)
-  const handleRemove = (jobId: string) => removeJob(jobId)
+- **Interface:** `TranslateBackgroundJob` (type: `'translate'`)
+- **Data:** `{ folder, subtitlePath, subtitlePathPlatform, title, translator, targetLanguage, mediaPath?, reflect?, layout?, llm?, executionId?, logRelativePath? }`
+- **Factory:** `lib/translateJobFactory.ts` — `buildTranslateJob()`
+- **SW handler:** `startTranslate` → `POST /api/videocaptioner/translate`
+- **Registry `extractPath`:** `data.mediaPath || data.subtitlePath`
 
-  // ... render table using downloadStatus.runningPaths,
-  //     transcribeStatus.jobIdsByPath / primaryJobIdByPath, etc.
-}
+### 4. `synthesize`
+
+Burn subtitles into video (soft/hard) via VideoCaptioner.
+
+- **Interface:** `SynthesizeBackgroundJob` (type: `'synthesize'`)
+- **Data:** `{ folder, videoPath, videoPathPlatform, subtitlePath, subtitlePathPlatform, title, subtitleMode?, quality?, style?, renderMode?, layout?, executionId?, logRelativePath? }`
+- **Factory:** `lib/synthesizeJobFactory.ts` — `buildSynthesizeJob()`
+- **SW handler:** `startSynthesize` → `POST /api/videocaptioner/synthesize`
+- **Registry `extractPath`:** `data.mediaPath || data.videoPath`
+
+### 5. `process`
+
+Full pipeline: transcribe → translate → synthesize in one API call.
+
+- **Interface:** `ProcessBackgroundJob` (type: `'process'`)
+- **Data:** Includes all transcribe + translate + synthesize options plus pipeline flags (`noOptimize`, `noTranslate`, `noSplit`, `noSynthesize`)
+- **Factory:** `lib/processJobFactory.ts` — `buildProcessJob()`
+- **SW handler:** `startProcess` → `POST /api/videocaptioner/process`
+- **Registry `extractPath`:** `data.mediaPath`
+
+### 6. `generic`
+
+In-memory-only placeholder jobs for simple named operations.
+
+- **Interface:** `GenericBackgroundJob` (type: `'generic'`)
+- **Data:** `Record<string, never>` (empty object)
+- **Persistence:** Not persisted to IndexedDB
+- **Execution:** In-process (no SW)
+- **Example:** `addJob("Importing Media Library")`
+
+### 7. `test-delay`
+
+Developer test job with configurable delay and outcome. Persisted in IndexedDB and executed by a dedicated in-process runner (not the SW).
+
+- **Interface:** `TestDelayBackgroundJob` (type: `'test-delay'`)
+- **Data:** `{ delayMs: number, outcome: 'succeeded' | 'failed', startedAt?: number }`
+- **Runner:** `src/lib/testDelayJobRunner.ts` (in-process `setTimeout`)
+- **Persistence:** Persisted to IndexedDB, survives page refresh via `startedAt` resume
+
+---
+
+## Job lifecycle
+
+```
+         ┌──────────┐
+         │  pending  │
+         └─────┬─────┘
+               │ start (SW message)
+         ┌─────▼──────┐
+         │   running   │
+         └──┬──────┬───┘
+            │      │
+     ┌──────▼─┐ ┌──▼───────┐
+     │succeeded│ │  failed   │
+     └────────┘ └─────┬─────┘
+                      │
+            ┌─────────▼──────────┐
+            │ cancelPendingJobs  │  ← if parentId is set, cancel siblings
+            │ ByParentId()       │
+            └────────────────────┘
 ```
 
-No SW listeners. No `indexed-updated` handlers. No `useJobManager` instances. MusicPanel is a pure consumer.
-
-### DownloadVideoDialog
-
-**Current:** Calls `saveDownloadVideoJob` → dispatches `indexed-updated` → hopes MusicPanel's `useJobManager` catches it.
-
-**v2:** Calls `createJob` from context:
-
-```typescript
-const { createJob, createJobs } = useJobOrchestrator()
-
-const handleStart = async () => {
-  const jobs = urls.map(u => {
-    const episode = episodes.find(e => e.url === u)
-    return buildDownloadVideoJob({
-      name: episode?.title || 'Download Video',
-      folder: downloadFolder,
-      urls: [u],
-      itemMeta: episode ? [{ title: episode.title, artist: episode.artist }] : undefined,
-    })
-  })
-
-  const result = await createJobs(jobs)
-  if (result.failures.length > 0) {
-    // 按需提示部分失败并提供重试
-  }
-  onClose() // jobs will auto-start regardless of active panel
-}
-```
-
-The orchestrator persists and auto-starts — no dependency on MusicPanel.
-
-### Menu
-
-**Current:** Calls `openDownloadVideo()` — just opens the dialog. The bug is downstream.
-
-**v2:** No change to Menu. It only opens dialogs. The dialogs use `createJob`, which works everywhere.
-
-### MCP / external tools
-
-**v2:** The orchestrator exposes a global handle for non-React consumers:
-
-```typescript
-// In JobOrchestratorProvider, on mount:
-window.__jobOrchestrator = {
-  createJob,
-  createJobs,
-  startJob, // startJob(id, { forceStart?: boolean })
-  stopJob,
-  removeJob,
-  isReady: () => swReady,
-}
-```
-
-MCP tools can call `window.__jobOrchestrator.createJob(job)` directly. The job object can be built from any factory — the orchestrator doesn't care about the type.
+All jobs start as `pending`, transition to `running` when the SW picks them up, and end as `succeeded`, `failed`, or `aborted` (user-initiated cancel). The SW also has a `stopped` state used when the SW itself stops mid-job.
 
 ---
 
 ## Concurrency model
 
 ```
-                    ┌──────────────────────────────┐
-                    │      JobOrchestrator          │
-                    │                               │
-                    │  runningSet:                   │
-                    │    "C:/Music"  → { download }  │
-                    │    "D:/Videos" → { transcribe } │
-                    │    "E:/Shows"  → { process }    │
-                    │    "D:/Videos" → { download }    │  ← OK: different type, same folder
-                    │                               │
-                    │  Rules:                        │
-                    │   • Max 1 running job per      │
-                    │     (type, folder) pair        │
-                    │   • Different types can run    │
-                    │     concurrently in the same   │
-                    │     folder                     │
-                    │   • Different folders are      │
-                    │     fully independent          │
-                    │   • Unknown types (not in      │
-                    │     registry) are persisted    │
-                    │     but never auto-started     │
-                    └──────────────────────────────┘
+Rules:
+  • Max 1 running job per (type, folder) pair
+  • Different types can run concurrently in the same folder
+  • Different folders are fully independent
+  • Unknown types (not in registry) are persisted but never auto-started
+
+Examples:
+  "C:/Music"  → { download }            ← 1 running
+  "C:/Music"  → { download, transcribe } ← OK: different types
+  "D:/Videos" → { download }            ← OK: different folder
+  "D:/Videos" → { download }            ← BLOCKED: same type+folder has running
 ```
 
-When a job finishes, the orchestrator checks the pending queue for the same (type, folder) and auto-starts the next one.
+When a job finishes (`succeeded`, `failed`, or `stopped`), the orchestrator calls `tryAutoStart(type, folder)` to start the next `pending` job in the same `(type, folder)` queue.
 
-### `startJob` 与 auto-start 开关关系（新增约束）
+### `startJob` semantics
 
-- `startJob(id, { forceStart: false })`
-  - 不绕过并发保护；
-  - 若同 `(type, folder)` 已有 running，返回 `concurrency-blocked`；
-  - 此时任务仍由调度器负责后续自动启动。
-- `startJob(id, { forceStart: true })`
-  - 强制启动，绕过 auto-start 开关；
-  - 即使已有同 `(type, folder)` 的 running 任务也允许启动。
-- 设计原则：默认保持调度稳定，只有用户显式操作才允许“强制并行/抢占”。
+- `startJob(id, { forceStart: false })` — default. Respects concurrency: returns `concurrency-blocked` if same `(type, folder)` already has a running job. The job stays pending and will be picked up by the scheduler.
+- `startJob(id, { forceStart: true })` — bypasses concurrency guard and auto-start toggle. For explicit user-initiated starts.
 
 ---
 
-## What adding a new job type looks like
+## Batch cancellation (`parentId`)
 
-Say you want to add `trim-video` — a job that trims a video to a time range.
+When a batch of jobs is created together, they share a `parentId`. If one job in the batch fails, all pending siblings are automatically cancelled **before** the orchestrator starts the next job in the queue.
+
+### How it works
+
+1. **Creation:** The caller generates a `parentId` (e.g. `createDownloadVideoJobId()`) and sets it on each job before calling `createJob()` / `createJobs()`.
+2. **Persistence:** `parentId` is stored in the `TaskJobRecord` in IndexedDB.
+3. **Failure handling:** When the SW reports a job failure, the orchestrator:
+   - Looks up the failed job's `parentId` from `jobRecordsRef.current`
+   - Calls `cancelPendingJobsByParentId(parentId)` — finds all `pending` records with the same `parentId` and marks them `aborted`
+   - Re-syncs from IndexedDB (so the cancelled jobs are reflected)
+   - Calls `tryAutoStart()` — which finds no more pending jobs for that batch
+
+### Scope
+
+`parentId` is a **generic** field on `BackgroundJobBase` — any job type can use it. The cancellation logic lives in the orchestrator's SW message handler (not in any type-specific code), so all job types get batch-cancellation behavior automatically.
+
+### Current usage
+
+`useYtdlpDownloadFlow` (download video dialog) sets a `parentId` when creating multiple download jobs (multi-episode or collection downloads). A single-video download does not set `parentId`.
+
+### Types
+
+```typescript
+// BackgroundJobBase
+parentId?: string
+
+// TaskJobRecord (IndexedDB)
+parentId?: string
+```
+
+### Key files
+
+| File | Role |
+|---|---|
+| `src/types/background-jobs.ts` | `parentId` on `BackgroundJobBase` |
+| `src/lib/downloadTaskDb.ts` | `parentId` on `TaskJobRecord`; `cancelPendingJobsByParentId()` |
+| `src/lib/jobRecordMapper.ts` | Maps `parentId` from record → job |
+| `src/components/JobOrchestratorProvider.tsx` | Cancellation logic in SW message handler |
+| `src/lib/downloadVideoJobFactory.ts` | Accepts `parentId` in `CreateDownloadVideoJobInput` |
+| `src/components/dialogs/hooks/use-ytdlp-download-flow.ts` | Generates `parentId` for batch downloads |
+
+---
+
+## SW message protocol
+
+The client and Service Worker communicate via `postMessage` with a standard event naming convention:
+
+```
+<prefix>:start     — client → SW: start a job
+<prefix>:stop      — client → SW: stop a running job
+<prefix>:remove    — client → SW: remove a job
+
+<prefix>:started   — SW → client: job has started
+<prefix>:succeeded — SW → client: job completed successfully
+<prefix>:failed    — SW → client: job failed
+<prefix>:stopped   — SW → client: job was stopped
+<prefix>:removed   — SW → client: job was removed
+<prefix>:heartbeat — SW → client: periodic progress ping (every 20s)
+```
+
+Each registered type has its own prefix (e.g. `download`, `transcribe`, `translate`, `synthesize`, `process`).
+
+---
+
+## Reactive hooks
+
+### `useFileStatuses(folder, type)`
+
+Provided by `JobOrchestratorProvider`. Answers "is file X currently running/pending/failed?" for UI rendering (e.g. MusicPanel table row status indicators).
+
+```typescript
+function useFileStatuses(folder: string, type: string): {
+  runningPaths: Set<string>
+  pendingPaths: Set<string>
+  failedPaths: Set<string>
+  /** All job IDs per path (supports multiple jobs on the same file) */
+  jobIdsByPath: Map<string, string[]>
+  /** Preferred job ID per path: running > pending > failed > first */
+  primaryJobIdByPath: Map<string, string>
+}
+```
+
+Driven entirely by the registry's `extractPath` — no per-type branches.
+
+### `useJobs()`
+
+Convenience alias for `useJobOrchestratorContext().jobRecords`.
+
+---
+
+## Adding a new job type
+
+Adding `trim-video` requires exactly **4 steps**. No changes to the orchestrator, store, or IndexedDB layer.
 
 ### Step 1: Create the factory (`lib/trimVideoJobFactory.ts`)
 
@@ -684,7 +485,14 @@ export function buildTrimVideoJob(input: {
   startTime: number
   endTime: number
 }): BackgroundJob {
-  // ... build and return a BackgroundJob with type: 'trim-video'
+  return {
+    id: createTrimVideoJobId(),
+    name: input.title,
+    status: 'pending',
+    progress: 0,
+    type: 'trim-video',
+    data: { folder: input.folder, videoPath: input.videoPath, startTime: input.startTime, endTime: input.endTime },
+  }
 }
 ```
 
@@ -703,12 +511,12 @@ export function buildTrimVideoJob(input: {
 },
 ```
 
-### Step 3: Add SW handler (`download-service-worker.js`)
+### Step 3: Add SW handler (`public/download-service-worker.js`)
 
 ```javascript
 async function startTrimVideo(jobId) { /* POST /api/trim */ }
 
-// In the message handler:
+// In the message dispatch:
 case 'trim-video:start':  startTrimVideo(msg.id); break
 case 'trim-video:stop':   stopTrimVideo(msg.id); break
 case 'trim-video:remove': removeTrimVideo(msg.id); break
@@ -716,7 +524,11 @@ case 'trim-video:remove': removeTrimVideo(msg.id); break
 
 ### Step 4: Build the UI dialog
 
-Import `useJobOrchestrator`, call `createJob(buildTrimVideoJob(...))`.
+Import `useJobManager`, call `createJob(buildTrimVideoJob(...))`.
+
+### Step 5: Add type definition and job record mapping
+
+Add the new interface to `types/background-jobs.ts` (extending `BackgroundJobBase`) and add a deserialization branch in `jobRecordMapper.ts`.
 
 ### Files NOT touched
 
@@ -724,100 +536,41 @@ Import `useJobOrchestrator`, call `createJob(buildTrimVideoJob(...))`.
 - `stores/backgroundJobsStore.ts`
 - `lib/downloadTaskDb.ts`
 - `hooks/useJobOrchestrator.ts`
-- `components/MusicPanel.tsx`
-- `components/StatusBar.tsx`
-- The SW's heartbeat, message routing, or lifecycle logic (only the type-specific handler)
+- `hooks/useJobManager.ts`
 
 ---
 
-## Per-type file responsibilities
+## Key files
 
-| Concern | Where it lives | Changes with new type? |
-|---|---|---|
-| Job data structure | `types/background-jobs.ts` | Add new interface (extends `BackgroundJob`) |
-| Job construction | `lib/<name>JobFactory.ts` | New file |
-| Type metadata | `lib/jobTypeRegistry.ts` | One new entry |
-| Execution | `public/download-service-worker.js` | New start/stop/remove handler |
-| UI | `<Something>Dialog.tsx` | New dialog |
-| **Everything else** | — | **Zero changes** |
-
----
-
-## Migration strategy
-
-The migration is incremental. Each step is independently testable.
-
-### Phase 1: Create `jobTypeRegistry.ts` and `JobOrchestratorProvider`
-
-- Extract current type metadata into the registry
-- Create the orchestrator at app root, mounted alongside `DialogProvider`
-- Owns the Zustand store sync and SW message bridge
-- Exposes context (`createJob`, `createJobs`, `startJob(id, options)`, `stopJob`, `removeJob`, `useFileStatuses`)
-- 引入单调度器开关：默认仅保留一个“可执行调度器”（建议先关闭旧 managers 的 auto-start，仅保留状态读取）
-- **目标是零重复调度**：避免新旧调度器并行导致同任务重复启动
-
-### Phase 2: Migrate job creators
-
-- `DownloadVideoDialog`: replace `saveDownloadVideoJob` → `createJob(buildDownloadVideoJob(...))`
-- `TranscribeDialog`: replace direct IDB save → `createJob(buildTranscribeJob(...))`
-- `SubtitleTranslationDialog`: same pattern
-- `SynthesizeSubtitleDialog`: same pattern
-- `ProcessPipelineDialog`: same pattern
-- `createJobs` 明确采用**非事务语义**（允许部分成功），调用方按返回的 `failures` 重试失败项
-- **The menu download bug is fixed in this phase**
-
-### Phase 3: Migrate MusicPanel consumers
-
-- Replace `useDownloadManager` → `useFileStatuses(folder, 'download-video')`
-- Replace `useTranscribeManager` → `useFileStatuses(folder, 'transcribe')`
-- Same for translate, synthesize, process
-- Start/stop/remove: use `startJob(id, options)` / `stopJob` / `removeJob` from context directly
-- 使用 `jobIdsByPath` 支持同一路径多任务；`primaryJobIdByPath` 仅用于快捷操作
-
-### Phase 4: Remove old code
-
-- Delete `useJobManager.ts`
-- Delete `useDownloadManager.ts`, `useTranscribeManager.ts`, `useTranslateManager.ts`, `useSynthesizeManager.ts`, `useProcessManager.ts`
-- Delete `IndexedDbObserver.tsx` (superseded)
-- Delete `components/eventlisteners/MediaLibraryImportedEventHandler.tsx` (logic merged into orchestrator)
-- Keep `FixedDelayBackgroundJobHandler.tsx` as-is (testing utility)
-
----
-
-## File changes summary
-
-| File | Action |
+| File | Role |
 |---|---|
-| `src/lib/jobTypeRegistry.ts` | **New** — extensible registry of all job types |
-| `src/components/JobOrchestratorProvider.tsx` | **New** — app-level orchestrator, type-agnostic |
-| `src/hooks/useJobOrchestrator.ts` | **New** — context consumption hook |
-| `src/types/background-jobs.ts` | Keep, add `BackgroundJobBase` refinements (no union changes needed) |
-| `src/stores/backgroundJobsStore.ts` | Keep (Zustand store) |
-| `src/lib/downloadTaskDb.ts` | Keep (IndexedDB layer), no schema changes |
-| `public/download-service-worker.js` | Keep, add one handler per new type |
-| `src/lib/*JobFactory.ts` (5 files) | Keep, used by callers before passing to orchestrator |
-| `src/hooks/useJobManager.ts` | **Remove** (phase 4) |
-| `src/hooks/useDownloadManager.ts` | **Remove** (phase 4) |
-| `src/hooks/useTranscribeManager.ts` | **Remove** (phase 4) |
-| `src/hooks/useTranslateManager.ts` | **Remove** (phase 4) |
-| `src/hooks/useSynthesizeManager.ts` | **Remove** (phase 4) |
-| `src/hooks/useProcessManager.ts` | **Remove** (phase 4) |
-| `src/components/IndexedDbObserver.tsx` | **Remove** (phase 4) |
-| `src/components/eventlisteners/MediaLibraryImportedEventHandler.tsx` | **Remove** (phase 4) |
-| `src/components/MusicPanel.tsx` | Simplify — replace 5 hooks with `useFileStatuses` |
-| `src/components/dialogs/download-video-dialog.tsx` | Replace `saveDownloadVideoJob` with `createJob(buildDownloadVideoJob(...))` |
-| `src/components/dialogs/TranscribeDialog.tsx` | Replace direct IDB save with `createJob(buildTranscribeJob(...))` |
-| `src/components/dialogs/SubtitleTranslationDialog.tsx` | Same pattern |
-| `src/components/dialogs/SynthesizeSubtitleDialog.tsx` | Same pattern |
-| `src/components/dialogs/ProcessPipelineDialog.tsx` | Same pattern |
-| `src/providers/dialog-provider.tsx` | No changes needed |
-| `src/AppV2.tsx` | Add `<JobOrchestratorProvider>` wrapper |
+| `src/types/background-jobs.ts` | Type definitions, type guards, `parentId` |
+| `src/types/global.d.ts` | `window.__jobOrchestrator` type declaration |
+| `src/stores/backgroundJobsStore.ts` | Zustand store (add, update, abort, remove) |
+| `src/lib/downloadTaskDb.ts` | IndexedDB persistence, `cancelPendingJobsByParentId()` |
+| `src/lib/jobRecordMapper.ts` | IndexedDB record → typed job conversion |
+| `src/lib/jobTypeRegistry.ts` | Type metadata registry (single extension point) |
+| `src/lib/downloadVideoJobFactory.ts` | Download-video job builder |
+| `src/lib/transcribeJobFactory.ts` | Transcribe job builder |
+| `src/lib/translateJobFactory.ts` | Translate job builder |
+| `src/lib/synthesizeJobFactory.ts` | Synthesize job builder |
+| `src/lib/processJobFactory.ts` | Process (full pipeline) job builder |
+| `src/lib/testDelayJobRunner.ts` | In-process test-delay job runner |
+| `src/lib/backgroundJobLifecycle.ts` | Job status predicates (removable, terminal, etc.) |
+| `src/components/JobOrchestratorProvider.tsx` | App-level orchestrator + reactive hooks |
+| `src/hooks/useJobManager.ts` | Unified facade hook (store + orchestrator) |
+| `src/hooks/useJobOrchestrator.ts` | Re-export barrel |
+| `src/components/dialogs/hooks/use-ytdlp-download-flow.ts` | Download dialog flow + `parentId` generation |
+| `src/components/eventlisteners/FixedDelayBackgroundJobHandler.tsx` | Test-delay job event handler |
+| `src/components/eventlisteners/MediaLibraryImportedEventHandler.tsx` | Media library import (generic jobs) |
+| `src/components/background-jobs/` | StatusBar popover UI components |
+| `public/download-service-worker.js` | Service Worker (executes all job types) |
 
 ---
 
 ## Non-goals
 
-- **Changing the Service Worker's overall structure.** The SW still has per-type handlers — that's inherent to different API endpoints. But the new design reduces what changes when a type is added: add the handler function, wire it to the message switch, done.
-- **Changing the IndexedDB schema.** The existing `DownloadTaskDatabase` / `jobs` store handles arbitrary types already.
-- **Real-time progress updates for non-download jobs.** The SW heartbeat mechanism already covers this for all types.
-- **Job persistence beyond 1 hour.** The `isWithinOneHour` filter is preserved.
+- **Changing the IndexedDB schema** beyond additive fields. The `TaskJobRecord` structure handles arbitrary types already.
+- **Real-time progress for non-download jobs.** The SW heartbeat mechanism covers all types.
+- **Job priority or cross-type ordering.** Jobs are FIFO within each `(type, folder)` queue.
+- **Transaction semantics for `createJobs`.** Bulk creation is non-transactional — each job succeeds or fails independently, and the caller retries failures.

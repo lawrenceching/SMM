@@ -24,6 +24,8 @@ export interface CreateDownloadVideoJobInput {
   ytdlpCookiesFromBrowser?: string
   /** Allow-listed yt-dlp extra flags. */
   ytdlpExtraArgs?: string[]
+  /** Batch identifier — jobs sharing a parentId are cancelled together on failure. */
+  parentId?: string
 }
 
 export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): DownloadVideoBackgroundJob {
@@ -55,6 +57,7 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
     progress: 0,
     type: 'download-video',
     data,
+    parentId: input.parentId,
   }
 }
 
