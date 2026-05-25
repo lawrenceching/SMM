@@ -9,6 +9,7 @@ export interface DiscoverExecutablesData {
   ffmpeg: ExecutablePathInfo;
   ytdlp: ExecutablePathInfo;
   videocaptioner: ExecutablePathInfo;
+  quickjs: ExecutablePathInfo;
 }
 
 interface DiscoverExecutablesResponseBody {
@@ -35,5 +36,6 @@ export async function fetchDiscoverExecutables(): Promise<DiscoverExecutablesDat
     ffmpeg: data?.ffmpeg ?? emptyPathInfo(),
     ytdlp: data?.ytdlp ?? emptyPathInfo(),
     videocaptioner: data?.videocaptioner ?? emptyPathInfo(),
+    quickjs: data?.quickjs ?? emptyPathInfo(),
   };
 }

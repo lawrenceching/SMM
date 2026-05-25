@@ -127,6 +127,11 @@ export interface UserConfig {
    * Whether to prefer the bundled ffmpeg when running videocaptioner (Transcribe feature).
    */
   useBundledFfmpegForVideoCaptioner?: boolean
+
+  /**
+   * Path to the QuickJS executable file.
+   */
+  quickjsExecutablePath?: string
 }
 
 /**

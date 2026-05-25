@@ -7,15 +7,6 @@ import { Button } from "@/components/ui/button"
 import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
-import { useDialogs } from "@/providers/dialog-provider"
-import type { FileItem } from "@/components/dialogs/types"
-import { getYtdlpVersion } from "@/api/ytdlp"
-import { getFfmpegVersion } from "@/api/ffmpeg"
-import { discoverVideoCaptioner } from "@/api/videocaptioner"
-import {
-  fetchDiscoverExecutables,
-  type ExecutablePathInfo,
-} from "@/api/discoverExecutables"
 import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
 
@@ -47,8 +38,6 @@ export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
-  const { filePickerDialog } = useDialogs()
-  const [openFilePicker] = filePickerDialog
 
   // Track initial values
   const initialValues = useMemo(() => ({
@@ -63,9 +52,6 @@ export function GeneralSettings() {
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
     mcpPort: userConfig.mcpPort ?? 30001,
-    ytdlpExecutablePath: userConfig.ytdlpExecutablePath || '',
-    ffmpegExecutablePath: userConfig.ffmpegExecutablePath || '',
-    useBundledFfmpegForVideoCaptioner: userConfig.useBundledFfmpegForVideoCaptioner ?? true,
   }), [userConfig])
 
   // Track current form values
@@ -80,18 +66,6 @@ export function GeneralSettings() {
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
-  const [ytdlpExecutablePath, setYtdlpExecutablePath] = useState(initialValues.ytdlpExecutablePath)
-  const [ytdlpDiscoveredPlaceholder, setYtdlpDiscoveredPlaceholder] = useState("")
-  const [ytdlpUsesAppDiscovery, setYtdlpUsesAppDiscovery] = useState(!initialValues.ytdlpExecutablePath)
-  const [ffmpegExecutablePath, setFfmpegExecutablePath] = useState(initialValues.ffmpegExecutablePath)
-  const [ffmpegDiscoveredPlaceholder, setFfmpegDiscoveredPlaceholder] = useState("")
-  const [ffmpegUsesAppDiscovery, setFfmpegUsesAppDiscovery] = useState(!initialValues.ffmpegExecutablePath)
-  const [useBundledFfmpegForVideoCaptioner, setUseBundledFfmpegForVideoCaptioner] = useState(
-    initialValues.useBundledFfmpegForVideoCaptioner,
-  )
-  const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null)
-  const [ffmpegVersion, setFfmpegVersion] = useState<string | null>(null)
-  const [videoCaptionerPath, setVideoCaptionerPath] = useState<string | null>(null)
 
   // Reset form when userConfig changes
   useEffect(() => {
@@ -106,75 +80,7 @@ export function GeneralSettings() {
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
-    setYtdlpExecutablePath(initialValues.ytdlpExecutablePath)
-    setYtdlpUsesAppDiscovery(!initialValues.ytdlpExecutablePath)
-    setFfmpegExecutablePath(initialValues.ffmpegExecutablePath)
-    setFfmpegUsesAppDiscovery(!initialValues.ffmpegExecutablePath)
-    setUseBundledFfmpegForVideoCaptioner(initialValues.useBundledFfmpegForVideoCaptioner)
   }, [initialValues])
-
-  // Discover ytdlp and ffmpeg paths when component mounts
-  useEffect(() => {
-    const applyExecutablePathFields = (
-      info: ExecutablePathInfo,
-      setValue: (path: string) => void,
-      setPlaceholder: (path: string) => void,
-      setUsesAppDiscovery: (uses: boolean) => void,
-      defaultPlaceholder: string,
-    ) => {
-      const discovered = info.discoveredPath ?? ""
-      if (info.configuredPath) {
-        setValue(info.configuredPath)
-        setPlaceholder(discovered || defaultPlaceholder)
-        setUsesAppDiscovery(false)
-      } else {
-        setValue("")
-        setPlaceholder(discovered || defaultPlaceholder)
-        setUsesAppDiscovery(Boolean(discovered))
-      }
-    }
-
-    const discoverPaths = async () => {
-      try {
-        const paths = await fetchDiscoverExecutables()
-
-        applyExecutablePathFields(
-          paths.ytdlp,
-          setYtdlpExecutablePath,
-          setYtdlpDiscoveredPlaceholder,
-          setYtdlpUsesAppDiscovery,
-          t("general.ytdlpExecutablePathPlaceholder"),
-        )
-        applyExecutablePathFields(
-          paths.ffmpeg,
-          setFfmpegExecutablePath,
-          setFfmpegDiscoveredPlaceholder,
-          setFfmpegUsesAppDiscovery,
-          t("general.ffmpegExecutablePathPlaceholder"),
-        )
-
-        const ytdlpVersionResult = await getYtdlpVersion()
-        if (ytdlpVersionResult.version) {
-          setYtdlpVersion(ytdlpVersionResult.version)
-        }
-
-        const ffmpegVersionResult = await getFfmpegVersion()
-        if (ffmpegVersionResult.version) {
-          setFfmpegVersion(ffmpegVersionResult.version)
-        }
-
-        const videoCaptionerResult = await discoverVideoCaptioner()
-        setVideoCaptionerPath(
-          videoCaptionerResult.path ?? paths.videocaptioner.discoveredPath ?? null,
-        )
-      } catch (error) {
-        console.error("Error discovering tool paths:", error)
-      }
-    }
-
-    discoverPaths()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
-  }, [])
 
   // Detect changes
   const hasChanges = useMemo(() => {
@@ -189,10 +95,7 @@ export function GeneralSettings() {
       preferMediaLanguage !== initialValues.preferMediaLanguage ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
-      mcpPort !== String(initialValues.mcpPort) ||
-      ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
-      ffmpegExecutablePath !== initialValues.ffmpegExecutablePath ||
-      useBundledFfmpegForVideoCaptioner !== initialValues.useBundledFfmpegForVideoCaptioner
+      mcpPort !== String(initialValues.mcpPort)
     )
   }, [
     applicationLanguage,
@@ -206,9 +109,6 @@ export function GeneralSettings() {
     enableMcpServer,
     mcpHost,
     mcpPort,
-    ytdlpExecutablePath,
-    ffmpegExecutablePath,
-    useBundledFfmpegForVideoCaptioner,
     initialValues,
   ])
 
@@ -243,9 +143,6 @@ export function GeneralSettings() {
       enableMcpServer,
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
-      ytdlpExecutablePath: ytdlpExecutablePath || undefined,
-      ffmpegExecutablePath: ffmpegExecutablePath || undefined,
-      useBundledFfmpegForVideoCaptioner,
     }
     setAndSaveUserConfig(traceId, updatedConfig)
   }
@@ -440,141 +337,6 @@ export function GeneralSettings() {
               placeholder={t('general.mcpPortPlaceholder')}
               data-testid="setting-mcp-port"
             />
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="font-semibold text-lg">{t('general.externalTools')}</h3>
-          <p className="text-sm text-muted-foreground">{t('general.externalToolsDescription')}</p>
-          <div className="space-y-2">
-            <Label htmlFor="ytdlp-executable-path">{t('general.ytdlpExecutablePath')}</Label>
-            <div className="flex gap-2">
-              <Input
-                id="ytdlp-executable-path"
-                value={ytdlpExecutablePath}
-                onChange={(e) => {
-                  setYtdlpExecutablePath(e.target.value)
-                  setYtdlpUsesAppDiscovery(false)
-                }}
-                placeholder={
-                  ytdlpDiscoveredPlaceholder || t("general.ytdlpExecutablePathPlaceholder")
-                }
-                data-testid="setting-ytdlp-executable-path"
-                className="flex-1"
-              />
-              <Button
-                variant="outline"
-                onClick={() => {
-                  openFilePicker((file: FileItem) => {
-                    setYtdlpExecutablePath(file.path)
-                  }, {
-                    title: t('general.selectYtdlpExecutable'),
-                    description: t('general.selectYtdlpExecutableDescription'),
-                    selectFolder: false,
-                  })
-                }}
-                data-testid="setting-ytdlp-browse"
-              >
-                {t('general.browse')}
-              </Button>
-            </div>
-            {ytdlpUsesAppDiscovery && ytdlpDiscoveredPlaceholder ? (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="setting-ytdlp-path-hint"
-              >
-                {t("general.executablePathHintAppDiscovery")}
-              </p>
-            ) : ytdlpExecutablePath ? (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="setting-ytdlp-path-hint"
-              >
-                {t("general.executablePathHintUserConfig")}
-              </p>
-            ) : null}
-            {ytdlpVersion && (
-              <p className="text-sm text-muted-foreground" data-testid="setting-ytdlp-version">
-                Version: {ytdlpVersion}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ffmpeg-executable-path">{t('general.ffmpegExecutablePath')}</Label>
-            <div className="flex gap-2">
-              <Input
-                id="ffmpeg-executable-path"
-                value={ffmpegExecutablePath}
-                onChange={(e) => {
-                  setFfmpegExecutablePath(e.target.value)
-                  setFfmpegUsesAppDiscovery(false)
-                }}
-                placeholder={
-                  ffmpegDiscoveredPlaceholder || t("general.ffmpegExecutablePathPlaceholder")
-                }
-                data-testid="setting-ffmpeg-executable-path"
-                className="flex-1"
-              />
-              <Button
-                variant="outline"
-                onClick={() => {
-                  openFilePicker((file: FileItem) => {
-                    setFfmpegExecutablePath(file.path)
-                  }, {
-                    title: t('general.selectFfmpegExecutable'),
-                    description: t('general.selectFfmpegExecutableDescription'),
-                    selectFolder: false,
-                  })
-                }}
-                data-testid="setting-ffmpeg-browse"
-              >
-                {t('general.browse')}
-              </Button>
-            </div>
-            {ffmpegUsesAppDiscovery && ffmpegDiscoveredPlaceholder ? (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="setting-ffmpeg-path-hint"
-              >
-                {t("general.executablePathHintAppDiscovery")}
-              </p>
-            ) : ffmpegExecutablePath ? (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="setting-ffmpeg-path-hint"
-              >
-                {t("general.executablePathHintUserConfig")}
-              </p>
-            ) : null}
-            {ffmpegVersion && (
-              <p className="text-sm text-muted-foreground" data-testid="setting-ffmpeg-version">
-                Version: {ffmpegVersion}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>{t('general.videoCaptionerExecutablePath')}</Label>
-            <p
-              className="text-sm text-muted-foreground break-all rounded-md border p-2"
-              data-testid="setting-videocaptioner-path"
-            >
-              {videoCaptionerPath ?? t('general.videoCaptionerExecutablePathUnavailable')}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                id="use-bundled-ffmpeg-videocaptioner"
-                type="checkbox"
-                checked={useBundledFfmpegForVideoCaptioner}
-                onChange={(e) => setUseBundledFfmpegForVideoCaptioner(e.target.checked)}
-                className="h-4 w-4 rounded border-input"
-                data-testid="setting-use-bundled-ffmpeg-videocaptioner"
-              />
-              <Label htmlFor="use-bundled-ffmpeg-videocaptioner">
-                {t('general.useBundledFfmpegForVideoCaptioner')}
-              </Label>
-            </div>
           </div>
         </div>
       </div>

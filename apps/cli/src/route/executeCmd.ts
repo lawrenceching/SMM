@@ -5,12 +5,13 @@ import { logger } from '../../lib/logger';
 import { discoverFfmpeg, discoverFfprobe } from '../utils/Ffmpeg';
 import { discoverYtdlp } from '../utils/Ytdlp';
 import { discoverVideoCaptioner, resolveSpawnEnvForVideoCaptioner, type VideoCaptionerTranscribeResult } from '../utils/VideoCaptioner';
+import { discoverQuickjs } from '../utils/QuickJS';
 import {
   createCommandExecutionLogWriter,
 } from './commandExecutionLog';
 import { isCommandExecutionId, parseOptionalXCommandExecutionId } from './commandLog';
 
-const COMMAND_WHITELIST = ['ffmpeg', 'ffprobe', 'yt-dlp', 'videocaptioner'] as const;
+const COMMAND_WHITELIST = ['ffmpeg', 'ffprobe', 'yt-dlp', 'videocaptioner', 'qjs'] as const;
 
 export type ExecuteCmdWhitelistedCommand = (typeof COMMAND_WHITELIST)[number];
 
@@ -89,6 +90,8 @@ async function resolveCommandPath(command: ExecuteCmdRequestBody['command']): Pr
       return await discoverYtdlp();
     case 'videocaptioner':
       return await discoverVideoCaptioner();
+    case 'qjs':
+      return await discoverQuickjs();
     default:
       return undefined;
   }

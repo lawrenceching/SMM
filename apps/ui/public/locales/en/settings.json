@@ -34,9 +34,11 @@
     "mcpHost": "MCP host",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP port",
-    "mcpPortPlaceholder": "30001",
-    "externalTools": "External Tools",
-    "externalToolsDescription": "Configure paths to external executable tools",
+    "mcpPortPlaceholder": "30001"
+  },
+  "externalApps": {
+    "title": "External Applications",
+    "description": "Configure paths to external executable tools",
     "ytdlpExecutablePath": "yt-dlp Executable Path",
     "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
     "executablePathHintAppDiscovery": "Using the app-discovered path (shown in the field placeholder). Leave empty and save to keep using it, or enter a custom path to override.",
@@ -50,6 +52,10 @@
     "videoCaptionerExecutablePath": "VideoCaptioner Executable Path",
     "videoCaptionerExecutablePathUnavailable": "Not found",
     "useBundledFfmpegForVideoCaptioner": "Use bundled ffmpeg for VideoCaptioner",
+    "quickjsExecutablePath": "QuickJS Executable Path",
+    "quickjsExecutablePathPlaceholder": "C:\\path\\to\\qjs.exe",
+    "selectQuickjsExecutable": "Select QuickJS Executable",
+    "selectQuickjsExecutableDescription": "Choose the QuickJS executable file",
     "browse": "Browse"
   },
   "ai": {
@@ -121,6 +127,7 @@
     "general": "General",
     "ai": "AI",
     "renameRules": "Rename Rules",
+    "externalApps": "External Apps",
     "feedback": "Feedback"
   }
 }

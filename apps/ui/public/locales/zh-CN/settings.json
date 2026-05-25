@@ -34,9 +34,11 @@
     "mcpHost": "MCP 主机",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP 端口",
-    "mcpPortPlaceholder": "30001",
-    "externalTools": "外部工具",
-    "externalToolsDescription": "配置外部可执行工具的路径",
+    "mcpPortPlaceholder": "30001"
+  },
+  "externalApps": {
+    "title": "外部应用",
+    "description": "配置外部可执行工具的路径",
     "ytdlpExecutablePath": "yt-dlp 可执行文件路径",
     "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
     "executablePathHintAppDiscovery": "当前使用应用自动发现的路径（显示在输入框占位符中）。留空并保存可继续使用该路径；输入自定义路径可覆盖。",
@@ -50,6 +52,10 @@
     "videoCaptionerExecutablePath": "VideoCaptioner 可执行文件路径",
     "videoCaptionerExecutablePathUnavailable": "未找到",
     "useBundledFfmpegForVideoCaptioner": "使用程序自带的 ffmpeg",
+    "quickjsExecutablePath": "QuickJS 可执行文件路径",
+    "quickjsExecutablePathPlaceholder": "C:\\path\\to\\qjs.exe",
+    "selectQuickjsExecutable": "选择 QuickJS 可执行文件",
+    "selectQuickjsExecutableDescription": "选择 QuickJS 可执行文件",
     "browse": "浏览"
   },
   "ai": {
@@ -121,6 +127,7 @@
     "general": "常规",
     "ai": "AI",
     "renameRules": "重命名规则",
+    "externalApps": "外部应用",
     "feedback": "反馈"
   }
 }

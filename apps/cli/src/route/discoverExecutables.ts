@@ -2,6 +2,7 @@ import type { Hono } from 'hono';
 import { resolveFfmpegPathInfo } from '../utils/Ffmpeg';
 import { resolveYtdlpPathInfo } from '../utils/Ytdlp';
 import { resolveVideoCaptionerPathInfo } from '../utils/VideoCaptioner';
+import { resolveQuickjsPathInfo } from '../utils/QuickJS';
 
 export interface ExecutablePathInfo {
   configuredPath: string | null;
@@ -12,6 +13,7 @@ export interface DiscoverExecutablesData {
   ffmpeg: ExecutablePathInfo;
   ytdlp: ExecutablePathInfo;
   videocaptioner: ExecutablePathInfo;
+  quickjs: ExecutablePathInfo;
 }
 
 export interface DiscoverExecutablesResponseBody {
@@ -20,16 +22,18 @@ export interface DiscoverExecutablesResponseBody {
 }
 
 export async function resolveDiscoverExecutables(): Promise<DiscoverExecutablesResponseBody> {
-  const [ffmpeg, ytdlp, videocaptioner] = await Promise.all([
+  const [ffmpeg, ytdlp, videocaptioner, quickjs] = await Promise.all([
     resolveFfmpegPathInfo(),
     resolveYtdlpPathInfo(),
     resolveVideoCaptionerPathInfo(),
+    resolveQuickjsPathInfo(),
   ]);
   return {
     data: {
       ffmpeg,
       ytdlp,
       videocaptioner,
+      quickjs,
     },
   };
 }

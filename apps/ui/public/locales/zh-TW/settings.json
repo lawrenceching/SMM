@@ -34,10 +34,29 @@
     "mcpHost": "MCP 主機",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP 端口",
-    "mcpPortPlaceholder": "30001",
+    "mcpPortPlaceholder": "30001"
+  },
+  "externalApps": {
+    "title": "外部應用",
+    "description": "設定外部可執行工具的路徑",
+    "ytdlpExecutablePath": "yt-dlp 可執行檔路徑",
+    "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "executablePathHintAppDiscovery": "目前使用應用程式自動發現的路徑（顯示在輸入框佔位符中）。留空並儲存可繼續使用該路徑；輸入自訂路徑可覆蓋。",
+    "executablePathHintUserConfig": "目前使用您在設定中儲存的自訂路徑。",
+    "selectYtdlpExecutable": "選擇 yt-dlp 可執行檔",
+    "selectYtdlpExecutableDescription": "選擇 yt-dlp 可執行檔",
+    "ffmpegExecutablePath": "ffmpeg 可執行檔路徑",
+    "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
+    "selectFfmpegExecutable": "選擇 ffmpeg 可執行檔",
+    "selectFfmpegExecutableDescription": "選擇 ffmpeg 可執行檔",
     "videoCaptionerExecutablePath": "VideoCaptioner 可執行檔路徑",
     "videoCaptionerExecutablePathUnavailable": "未找到",
-    "useBundledFfmpegForVideoCaptioner": "使用程式內建的 ffmpeg"
+    "useBundledFfmpegForVideoCaptioner": "使用程式內建的 ffmpeg",
+    "quickjsExecutablePath": "QuickJS 可執行檔路徑",
+    "quickjsExecutablePathPlaceholder": "C:\\path\\to\\qjs.exe",
+    "selectQuickjsExecutable": "選擇 QuickJS 可執行檔",
+    "selectQuickjsExecutableDescription": "選擇 QuickJS 可執行檔",
+    "browse": "瀏覽"
   },
   "ai": {
     "title": "AI 設定",
@@ -108,6 +127,7 @@
     "general": "一般",
     "ai": "AI",
     "renameRules": "重新命名規則",
+    "externalApps": "外部應用",
     "feedback": "意見回饋"
   }
 }

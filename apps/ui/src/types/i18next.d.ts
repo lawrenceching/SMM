@@ -839,7 +839,30 @@ interface SettingsResources {
     general: string
     ai: string
     renameRules: string
+    externalApps: string
     feedback: string
+  }
+  externalApps: {
+    title: string
+    description: string
+    ytdlpExecutablePath: string
+    ytdlpExecutablePathPlaceholder: string
+    executablePathHintAppDiscovery: string
+    executablePathHintUserConfig: string
+    selectYtdlpExecutable: string
+    selectYtdlpExecutableDescription: string
+    ffmpegExecutablePath: string
+    ffmpegExecutablePathPlaceholder: string
+    selectFfmpegExecutable: string
+    selectFfmpegExecutableDescription: string
+    videoCaptionerExecutablePath: string
+    videoCaptionerExecutablePathUnavailable: string
+    useBundledFfmpegForVideoCaptioner: string
+    quickjsExecutablePath: string
+    quickjsExecutablePathPlaceholder: string
+    selectQuickjsExecutable: string
+    selectQuickjsExecutableDescription: string
+    browse: string
   }
   deleteTrack: {
     message: string

@@ -1,4 +1,4 @@
-export type ExecuteCmdType = 'ffmpeg' | 'ffprobe' | 'yt-dlp' | 'videocaptioner';
+export type ExecuteCmdType = 'ffmpeg' | 'ffprobe' | 'yt-dlp' | 'videocaptioner' | 'qjs';
 
 export interface ExecuteCmdRequest {
   command: ExecuteCmdType;
