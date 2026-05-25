@@ -55,6 +55,7 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     jsRuntime: DEFAULT_YTDLP_JS_RUNTIME_ID,
     onUseJsRuntimeChange: action("onUseJsRuntimeChange"),
     onJsRuntimeChange: action("onJsRuntimeChange"),
+    quickjsUnavailable: false,
 
     canDownloadEpisodes: false,
     downloadEpisodes: false,
@@ -277,6 +278,7 @@ export const WithJsRuntime: Story = {
     showMoreOptions: true,
     useJsRuntime: true,
     jsRuntime: "quickjs",
+    quickjsUnavailable: false,
     showCookiesAtTopLevel: false,
   },
 }
@@ -443,6 +445,7 @@ export const FullFeatured: Story = {
     showMoreOptions: true,
     useJsRuntime: true,
     jsRuntime: "quickjs",
+    quickjsUnavailable: false,
     extraArgSelection: {
       "--write-thumbnail": true,
       "--embed-thumbnail": false,

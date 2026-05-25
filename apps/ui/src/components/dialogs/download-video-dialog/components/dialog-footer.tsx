@@ -11,6 +11,7 @@ export interface DialogFooterProps {
   selectedCollectionUrlsSize: number
   isEnqueueing: boolean
   formatsFetched: boolean
+  quickjsUnavailable: boolean
   onCancel: () => void
   onStart: () => void
   t: (key: string) => string
@@ -28,6 +29,7 @@ export function DialogFooter({
   selectedCollectionUrlsSize,
   isEnqueueing,
   formatsFetched,
+  quickjsUnavailable,
   onCancel,
   onStart,
   t,
@@ -39,7 +41,8 @@ export function DialogFooter({
     formBusy ||
     !hasAgreed ||
     start1080pBlocked ||
-    !formatsFetched
+    !formatsFetched ||
+    quickjsUnavailable
 
   return (
     <>

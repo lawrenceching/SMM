@@ -34,6 +34,7 @@ import {
   type YtdlpJsRuntimeId,
 } from "@/lib/ytdlpJsRuntimes"
 import type { YtdlpFormatCodeEntry } from "@/lib/ytdlpFormatCodes"
+import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
@@ -117,6 +118,9 @@ export interface UseDownloadVideoFormReturn {
   useJsRuntime: boolean
   jsRuntime: YtdlpJsRuntimeId
 
+  // New: QuickJS availability
+  quickjsUnavailable: boolean
+
   setDownloadFolder: (v: string) => void
   setSelectedFormatPresetId: (id: YtdlpFormatPresetId) => void
   setCookiesText: (text: string) => void
@@ -193,6 +197,7 @@ export function useDownloadVideoForm(
   const [selectedSupplementaryFormatCode, setSelectedSupplementaryFormatCode] = useState("")
   const [useJsRuntime, setUseJsRuntime] = useState(false)
   const [jsRuntime, setJsRuntime] = useState<YtdlpJsRuntimeId>(DEFAULT_YTDLP_JS_RUNTIME_ID)
+  const [quickjsUnavailable, setQuickjsUnavailable] = useState(false)
 
   // --- destinationFolder sync ---
   useEffect(() => {
@@ -270,6 +275,7 @@ export function useDownloadVideoForm(
   const handleUrlChange = useCallback(
     (value: string) => {
       setUrl(value)
+      setQuickjsUnavailable(false)
       // Reset format listing when URL changes so cookies move back to top level
       if (value.trim() !== url.trim()) {
         resetListFormats()
@@ -307,6 +313,21 @@ export function useDownloadVideoForm(
     if (!trimmed || !validateDownloadUrl(trimmed).valid) {
       runUrlValidation(trimmed)
       return
+    }
+
+    // For YouTube URLs, check QuickJS availability before listing formats
+    if (isYoutubeUrl(trimmed)) {
+      try {
+        const { quickjs } = await fetchDiscoverExecutables()
+        const found = !!(quickjs.configuredPath || quickjs.discoveredPath)
+        setQuickjsUnavailable(!found)
+        if (!found) {
+          return
+        }
+      } catch {
+        setQuickjsUnavailable(true)
+        return
+      }
     }
 
     const cfBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
@@ -393,6 +414,7 @@ export function useDownloadVideoForm(
     setSelectedSupplementaryFormatCode("")
     setUseJsRuntime(false)
     setJsRuntime(DEFAULT_YTDLP_JS_RUNTIME_ID)
+    setQuickjsUnavailable(false)
     resetListFormats()
   }, [platform, resetListFormats])
 
@@ -437,6 +459,7 @@ export function useDownloadVideoForm(
     selectedSupplementaryFormatCode,
     useJsRuntime,
     jsRuntime,
+    quickjsUnavailable,
 
     setDownloadFolder,
     setSelectedFormatPresetId,

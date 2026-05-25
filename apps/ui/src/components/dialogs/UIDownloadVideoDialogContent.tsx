@@ -75,6 +75,9 @@ export interface UIDownloadVideoDialogContentProps {
   onUseJsRuntimeChange: (checked: boolean) => void
   onJsRuntimeChange: (id: YtdlpJsRuntimeId) => void
 
+  // New: QuickJS availability
+  quickjsUnavailable: boolean
+
   canDownloadEpisodes: boolean
   downloadEpisodes: boolean
   episodes: EpisodeItem[]
@@ -159,6 +162,7 @@ export function UIDownloadVideoDialogContent({
   jsRuntime,
   onUseJsRuntimeChange,
   onJsRuntimeChange,
+  quickjsUnavailable,
 
   canDownloadEpisodes,
   downloadEpisodes,
@@ -239,6 +243,16 @@ export function UIDownloadVideoDialogContent({
                 data-testid="download-video-dialog-listing-error"
               >
                 {classifyYtdlpError(listingError).message}
+              </p>
+            )}
+
+            {/* QuickJS unavailable error */}
+            {quickjsUnavailable && (
+              <p
+                className="text-sm text-destructive"
+                data-testid="download-video-dialog-quickjs-unavailable"
+              >
+                无法找到JavaScript运行时
               </p>
             )}
 
@@ -356,6 +370,7 @@ export function UIDownloadVideoDialogContent({
             selectedCollectionUrlsSize={selectedCollectionUrlsSize}
             isEnqueueing={isEnqueueing}
             formatsFetched={!showCookiesAtTopLevel}
+            quickjsUnavailable={quickjsUnavailable}
             onCancel={onCancel}
             onStart={onStart}
             t={t}

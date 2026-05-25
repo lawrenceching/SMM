@@ -98,6 +98,7 @@ export function DownloadVideoDialogContent({
       jsRuntime={form.jsRuntime}
       onUseJsRuntimeChange={form.setUseJsRuntime}
       onJsRuntimeChange={form.setJsRuntime}
+      quickjsUnavailable={form.quickjsUnavailable}
       canDownloadEpisodes={form.canDownloadEpisodes}
       downloadEpisodes={flow.downloadEpisodes}
       episodes={flow.episodes}

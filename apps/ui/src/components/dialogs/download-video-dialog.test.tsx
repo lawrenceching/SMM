@@ -19,6 +19,12 @@ const h = vi.hoisted(() => ({
   getBilibiliVideoMetadata: vi.fn(),
   openTextDialog: vi.fn(),
   writeYtdlpCookiesFile: vi.fn().mockResolvedValue('/data/user/temp/ytdlp-cookies-job-1.txt'),
+  fetchDiscoverExecutables: vi.fn().mockResolvedValue({
+    ytdlp: { configuredPath: null, discoveredPath: null },
+    ffmpeg: { configuredPath: null, discoveredPath: null },
+    videocaptioner: { configuredPath: null, discoveredPath: null },
+    quickjs: { configuredPath: null, discoveredPath: '/app/Resources/bin/quickjs/qjs' },
+  }),
 }))
 
 vi.mock('@/api/ytdlp', async (importOriginal) => {
@@ -211,6 +217,10 @@ vi.mock('@/lib/ytdlpCookiesFile', async (importOriginal) => {
     writeYtdlpCookiesFile: h.writeYtdlpCookiesFile,
   }
 })
+
+vi.mock('@/api/discoverExecutables', () => ({
+  fetchDiscoverExecutables: h.fetchDiscoverExecutables,
+}))
 
 describe('DownloadVideoDialog - user agreement', () => {
   const mockOnClose = vi.fn()
@@ -1116,5 +1126,93 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
 
     const startButton = screen.getByTestId('download-video-dialog-start')
     expect(startButton).not.toBeDisabled()
+  })
+})
+
+describe('DownloadVideoDialog - QuickJS availability check', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onOpenFilePicker: vi.fn(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    hListFormats.resultRef.current = null
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+      quickjs: { configuredPath: null, discoveredPath: '/app/Resources/bin/quickjs/qjs' },
+    })
+  })
+
+  it('shows QuickJS unavailable error and disables Start for YouTube when QuickJS is missing', async () => {
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+      quickjs: { configuredPath: null, discoveredPath: null },
+    })
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // YouTube Go button requires at least one cookies option
+    fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test123' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-go-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toHaveTextContent('无法找到JavaScript运行时')
+    expect(screen.getByTestId('download-video-dialog-start')).toBeDisabled()
+  })
+
+  it('clears QuickJS error and enables Start when QuickJS becomes available on re-check', async () => {
+    // First click: QuickJS unavailable
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+      quickjs: { configuredPath: null, discoveredPath: null },
+    })
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // YouTube Go button requires at least one cookies option
+    fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test123' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-go-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toBeInTheDocument()
+    })
+
+    // Re-check: QuickJS now available
+    h.fetchDiscoverExecutables.mockResolvedValue({
+      ytdlp: { configuredPath: null, discoveredPath: null },
+      ffmpeg: { configuredPath: null, discoveredPath: null },
+      videocaptioner: { configuredPath: null, discoveredPath: null },
+      quickjs: { configuredPath: null, discoveredPath: '/app/Resources/bin/quickjs/qjs' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-go-button'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('download-video-dialog-quickjs-unavailable')).not.toBeInTheDocument()
+    })
+  })
+
+  it('skips QuickJS check for Bilibili URL and proceeds normally', () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1xx411c7mD/' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-go-button'))
+
+    expect(screen.queryByTestId('download-video-dialog-quickjs-unavailable')).not.toBeInTheDocument()
   })
 })
