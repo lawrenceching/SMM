@@ -1,9 +1,21 @@
-/** yt-dlp `--cookies-from-browser` profile names (lowercase). */
-export const YTDLP_COOKIES_BROWSER_IDS = ["chrome", "edge", "firefox"] as const
+/** All yt-dlp `--cookies-from-browser` profile names (lowercase). */
+export const YTDLP_COOKIES_BROWSER_IDS_ALL = ["chrome", "edge", "firefox"] as const
 
-export type YtdlpCookiesBrowserId = (typeof YTDLP_COOKIES_BROWSER_IDS)[number]
+export type YtdlpCookiesBrowserId = (typeof YTDLP_COOKIES_BROWSER_IDS_ALL)[number]
 
-export const DEFAULT_YTDLP_COOKIES_BROWSER_ID: YtdlpCookiesBrowserId = "chrome"
+/** @deprecated Use `getCookiesBrowserIds(platform)` for platform-aware filtering. */
+export const YTDLP_COOKIES_BROWSER_IDS = YTDLP_COOKIES_BROWSER_IDS_ALL
+
+/**
+ * Returns available browsers for `--cookies-from-browser` on the given platform.
+ * On Windows, Chrome and Edge are excluded because yt-dlp cannot decrypt their cookie stores.
+ */
+export function getCookiesBrowserIds(platform: string): readonly YtdlpCookiesBrowserId[] {
+  if (platform === "win32") return ["firefox"]
+  return YTDLP_COOKIES_BROWSER_IDS_ALL
+}
+
+export const DEFAULT_YTDLP_COOKIES_BROWSER_ID: YtdlpCookiesBrowserId = "firefox"
 
 export type YtdlpCookiesBrowserLabelKey =
   | "downloadVideo.cookiesBrowserChrome"

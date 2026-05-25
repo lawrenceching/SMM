@@ -77,6 +77,18 @@
     "embedMetadata": {
       "label": "嵌入元数据"
     },
+    "useJsRuntimeLabel": "JS 运行时",
+    "jsRuntimeDeno": "Deno",
+    "jsRuntimeNode": "Node.js",
+    "jsRuntimeBun": "Bun",
+    "jsRuntimeQuickJS": "QuickJS",
+    "formatCodeSupplementaryVideo": "格式码 (视频)",
+    "formatCodeSupplementaryAudio": "格式码 (音频)",
+    "formatCodeGroupCombined": "音频 + 视频",
+    "formatCodeGroupAudioOnly": "仅音频",
+    "formatCodeGroupVideoOnly": "仅视频",
+    "formatModePreset": "预设",
+    "formatModeCode": "格式码",
     "validation": {
       "URL_EMPTY": "请输入视频 URL",
       "URL_INVALID": "请输入有效的 URL",

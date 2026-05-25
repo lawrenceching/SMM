@@ -24,6 +24,11 @@ function buildYtdlpDownloadArgs(input) {
   if (browser === 'chrome' || browser === 'edge' || browser === 'firefox') {
     args.push('--cookies-from-browser', browser)
   }
+  const jsRuntime = input.jsRuntime && String(input.jsRuntime).trim()
+  const jsRuntimePath = input.jsRuntimePath && String(input.jsRuntimePath).trim()
+  if (jsRuntime) {
+    args.push('--js-runtimes', jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime)
+  }
   args.push(input.url)
   if (input.args && input.args.length) {
     for (const a of input.args) {

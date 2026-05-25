@@ -4,11 +4,10 @@ import { UIDownloadVideoDialogContent } from "./UIDownloadVideoDialogContent"
 import type { UIDownloadVideoDialogContentProps } from "./UIDownloadVideoDialogContent"
 import { DEFAULT_YTDLP_COOKIES_BROWSER_ID } from "@/lib/ytdlpCookiesBrowsers"
 import { DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION } from "@/lib/ytdlpDownloadExtraArgs"
+import { DEFAULT_YTDLP_JS_RUNTIME_ID } from "@/lib/ytdlpJsRuntimes"
 
 const t = (key: string) => key
 const tCommon = (key: string) => key
-
-const noop = () => {}
 
 function baseArgs(): UIDownloadVideoDialogContentProps {
   return {
@@ -20,12 +19,17 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     urlError: null,
     formBusy: false,
     onUrlChange: action("onUrlChange"),
-    onUrlBlur: action("onUrlBlur"),
+    onGo: action("onGo"),
+
+    isListingFormats: false,
+    listingError: null,
+    goDisabled: false,
 
     useCookies: false,
     useCookiesFromBrowser: false,
     cookiesBrowser: DEFAULT_YTDLP_COOKIES_BROWSER_ID,
     start1080pBlocked: false,
+    platform: "win32",
     onUseCookiesChange: action("onUseCookiesChange"),
     onUseCookiesFromBrowserChange: action("onUseCookiesFromBrowserChange"),
     onCookiesBrowserChange: action("onCookiesBrowserChange"),
@@ -35,6 +39,22 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     selectedFormatPresetId: "default",
     is1080pAvailable: true,
     onFormatChange: action("onFormatChange"),
+
+    showCookiesAtTopLevel: true,
+    formatMode: "preset",
+    formatCodes: [],
+    selectedFormatCode: "",
+    selectedSupplementaryFormatCode: "",
+    hideFormatCodeUi: false,
+    onFormatModeChange: action("onFormatModeChange"),
+    onFormatCodeChange: action("onFormatCodeChange"),
+    onSupplementaryFormatCodeChange: action("onSupplementaryFormatCodeChange"),
+
+    isYoutube: false,
+    useJsRuntime: false,
+    jsRuntime: DEFAULT_YTDLP_JS_RUNTIME_ID,
+    onUseJsRuntimeChange: action("onUseJsRuntimeChange"),
+    onJsRuntimeChange: action("onJsRuntimeChange"),
 
     canDownloadEpisodes: false,
     downloadEpisodes: false,
@@ -107,6 +127,55 @@ export const WithValidUrl: Story = {
   },
 }
 
+export const YoutubeWithCookiesTopLevel: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    isYoutube: true,
+    showCookiesAtTopLevel: true,
+  },
+}
+
+export const YoutubeGoDisabled: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    isYoutube: true,
+    showCookiesAtTopLevel: true,
+    goDisabled: true,
+  },
+}
+
+export const ListingFormats: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    isYoutube: true,
+    isListingFormats: true,
+    showCookiesAtTopLevel: true,
+  },
+}
+
+export const ListingError: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    listingError: "Cookies 过期或无效, 请重新配置",
+  },
+}
+
 export const With1080pBlocked: Story = {
   args: {
     ...baseArgs(),
@@ -139,7 +208,44 @@ export const WithCookiesEnabled: Story = {
     isUrlValid: true,
     useCookies: true,
     useCookiesFromBrowser: true,
-    cookiesBrowser: "chrome",
+    cookiesBrowser: "firefox",
+    platform: "win32",
+  },
+}
+
+export const WithFormatCodes: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    formatCodes: [
+      { id: "18", ext: "mp4", resolution: "640x360", fps: 30, label: "18 - mp4 640x360 30fps", category: "combined" },
+      { id: "22", ext: "mp4", resolution: "1280x720", fps: 30, label: "22 - mp4 1280x720 30fps", category: "combined" },
+      { id: "140", ext: "m4a", resolution: "audio only", fps: null, label: "140 - m4a audio only", category: "audio-only" },
+      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, label: "136 - mp4 1280x720 30fps", category: "video-only" },
+    ],
+    formatMode: "format-code",
+    selectedFormatCode: "18",
+    showCookiesAtTopLevel: false,
+  },
+}
+
+export const WithFormatCodesAudioOnly: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    formatCodes: [
+      { id: "140", ext: "m4a", resolution: "audio only", fps: null, label: "140 - m4a audio only", category: "audio-only" },
+      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, label: "136 - mp4 1280x720 30fps", category: "video-only" },
+    ],
+    formatMode: "format-code",
+    selectedFormatCode: "140",
+    showCookiesAtTopLevel: false,
   },
 }
 
@@ -151,11 +257,27 @@ export const WithMoreOptions: Story = {
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     isUrlValid: true,
     showMoreOptions: true,
+    showCookiesAtTopLevel: false,
     extraArgSelection: {
       "--write-thumbnail": true,
       "--embed-thumbnail": false,
       "--embed-metadata": true,
     },
+  },
+}
+
+export const WithJsRuntime: Story = {
+  args: {
+    ...baseArgs(),
+    hasAgreed: true,
+    isAgreementChecked: true,
+    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    isUrlValid: true,
+    isYoutube: true,
+    showMoreOptions: true,
+    useJsRuntime: true,
+    jsRuntime: "quickjs",
+    showCookiesAtTopLevel: false,
   },
 }
 
@@ -189,6 +311,7 @@ export const WithEpisodes: Story = {
       "https://example.com/ep2",
       "https://example.com/ep3",
     ]),
+    hideFormatCodeUi: true,
   },
 }
 
@@ -309,12 +432,17 @@ export const FullFeatured: Story = {
     isAgreementChecked: true,
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     isUrlValid: true,
+    isYoutube: true,
     selectedFormatPresetId: "1080p",
     is1080pAvailable: true,
     useCookies: true,
     useCookiesFromBrowser: true,
-    cookiesBrowser: "chrome",
+    cookiesBrowser: "firefox",
+    platform: "win32",
+    showCookiesAtTopLevel: false,
     showMoreOptions: true,
+    useJsRuntime: true,
+    jsRuntime: "quickjs",
     extraArgSelection: {
       "--write-thumbnail": true,
       "--embed-thumbnail": false,

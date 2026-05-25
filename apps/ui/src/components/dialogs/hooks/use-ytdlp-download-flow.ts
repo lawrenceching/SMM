@@ -18,7 +18,7 @@ import {
   type YtdlpDownloadExtraArgSelection,
 } from "@/lib/ytdlpDownloadExtraArgs"
 import {
-  resolveYtdlpFormatFromPreset,
+  resolveYtdlpFormat,
   type YtdlpFormatPresetId,
 } from "@/lib/ytdlpFormatPresets"
 import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
@@ -58,6 +58,11 @@ export interface UseYtdlpDownloadFlowOptions {
   cookiesBrowser: YtdlpCookiesBrowserId
   showMoreOptions: boolean
   extraArgSelection: YtdlpDownloadExtraArgSelection
+  formatMode?: "preset" | "format-code"
+  selectedFormatCode?: string
+  selectedSupplementaryFormatCode?: string
+  useJsRuntime?: boolean
+  jsRuntime?: string
   onClose: () => void
   t: (key: string) => string
 }
@@ -104,6 +109,11 @@ export function useYtdlpDownloadFlow(
     cookiesBrowser,
     showMoreOptions,
     extraArgSelection,
+    formatMode = "preset",
+    selectedFormatCode = "",
+    selectedSupplementaryFormatCode = "",
+    useJsRuntime = false,
+    jsRuntime = "quickjs",
     onClose,
     t,
   } = opts
@@ -133,7 +143,12 @@ export function useYtdlpDownloadFlow(
 
   const episodesFetchGen = useRef(0)
 
-  const resolvedYtdlpFormat = resolveYtdlpFormatFromPreset(selectedFormatPresetId)
+  const resolvedYtdlpFormat = resolveYtdlpFormat({
+    formatMode,
+    selectedFormatCode,
+    selectedSupplementaryFormatCode,
+    selectedFormatPresetId,
+  })
   const resolvedYtdlpExtraArgs = showMoreOptions
     ? buildYtdlpExtraArgsFromSelection(extraArgSelection)
     : undefined
@@ -337,6 +352,9 @@ export function useYtdlpDownloadFlow(
         ...(resolvedYtdlpExtraArgs && resolvedYtdlpExtraArgs.length > 0
           ? { ytdlpExtraArgs: resolvedYtdlpExtraArgs }
           : {}),
+        ...(useJsRuntime && jsRuntime
+          ? { ytdlpJsRuntime: jsRuntime, ytdlpJsRuntimePath: "" }
+          : {}),
       })
     },
     [
@@ -345,6 +363,8 @@ export function useYtdlpDownloadFlow(
       useCookiesFromBrowser,
       cookiesBrowser,
       resolvedYtdlpExtraArgs,
+      useJsRuntime,
+      jsRuntime,
     ],
   )
 

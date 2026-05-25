@@ -10,6 +10,7 @@ export interface DialogFooterProps {
   collectionEntriesLength: number
   selectedCollectionUrlsSize: number
   isEnqueueing: boolean
+  formatsFetched: boolean
   onCancel: () => void
   onStart: () => void
   t: (key: string) => string
@@ -26,11 +27,20 @@ export function DialogFooter({
   collectionEntriesLength,
   selectedCollectionUrlsSize,
   isEnqueueing,
+  formatsFetched,
   onCancel,
   onStart,
   t,
   tCommon,
 }: DialogFooterProps) {
+  const startDisabled =
+    !isUrlValid ||
+    !downloadFolder.trim() ||
+    formBusy ||
+    !hasAgreed ||
+    start1080pBlocked ||
+    !formatsFetched
+
   return (
     <>
       <Button
@@ -47,12 +57,7 @@ export function DialogFooter({
             data-testid="download-video-dialog-start"
             onClick={() => void onStart()}
             disabled={
-              !isUrlValid ||
-              !downloadFolder.trim() ||
-              formBusy ||
-              !hasAgreed ||
-              selectedCollectionUrlsSize === 0 ||
-              start1080pBlocked
+              startDisabled || selectedCollectionUrlsSize === 0
             }
           >
             {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
@@ -62,13 +67,7 @@ export function DialogFooter({
         <Button
           data-testid="download-video-dialog-start"
           onClick={() => void onStart()}
-          disabled={
-            !isUrlValid ||
-            !downloadFolder.trim() ||
-            formBusy ||
-            !hasAgreed ||
-            start1080pBlocked
-          }
+          disabled={startDisabled}
         >
           {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
         </Button>

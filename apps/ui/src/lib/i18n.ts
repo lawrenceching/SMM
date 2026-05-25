@@ -94,5 +94,15 @@ export const changeLanguage = async (lng: SupportedLanguage): Promise<void> => {
 // Re-export useTranslation with proper types
 export { useTranslation } from 'react-i18next'
 
+/**
+ * Casts i18next's TFunction to `(key: string) => string` for components that
+ * accept plain translation callbacks. Centralizes the escape hatch so the
+ * `as unknown as (key: string) => string` pattern isn't scattered across files.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function castTranslationFn(fn: any): (key: string) => string {
+  return fn
+}
+
 export default i18n
 

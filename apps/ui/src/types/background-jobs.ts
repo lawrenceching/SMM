@@ -72,6 +72,10 @@ export interface DownloadVideoBackgroundJobData {
   ytdlpCookiesFromBrowser?: string;
   /** Allow-listed yt-dlp flags (--write-thumbnail, --embed-thumbnail, --embed-metadata). */
   ytdlpExtraArgs?: string[];
+  /** JS runtime name for `--js-runtimes` (e.g. "quickjs"). */
+  ytdlpJsRuntime?: string;
+  /** Absolute path to the JS runtime binary. */
+  ytdlpJsRuntimePath?: string;
   /** CLI command log correlation (executeCmd yt-dlp). */
   executionId?: string;
   logRelativePath?: string;

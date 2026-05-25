@@ -155,13 +155,18 @@ export interface YtdlpListFormatsRequest {
   cookiesFile?: string;
   /** Browser profile name for `--cookies-from-browser`. */
   cookiesFromBrowser?: string;
+  /** JS runtime name for `--js-runtimes` (e.g. "quickjs"). */
+  jsRuntime?: string;
+  /** Absolute path to the JS runtime binary. */
+  jsRuntimePath?: string;
 }
 
 export type { YtdlpListFormatsResult };
 
 /**
- * Runs `yt-dlp -F [--cookies-from-browser <browser>] <url>` and returns the parsed format list.
- * Cookies-file is intentionally not supported here to avoid writing temp files on every URL blur.
+ * Runs `yt-dlp -F [--cookies-from-browser <browser>] [--js-runtimes <runtime>] <url>`
+ * and returns the parsed format list. Supports `--cookies` (manual file), `--cookies-from-browser`,
+ * and `--js-runtimes`. Throws on non-zero exit code so callers can classify the error.
  */
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
@@ -178,12 +183,23 @@ export async function listYtdlpFormats(
     args.push("--cookies-from-browser", browser as YtdlpCookiesFromBrowserName);
   }
 
+  const jsRuntime = req.jsRuntime?.trim();
+  const jsRuntimePath = req.jsRuntimePath?.trim();
+  if (jsRuntime) {
+    args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
+  }
+
   args.push("-F", req.url.trim());
 
   const result = await executeCmdToCompletion(
     { command: "yt-dlp", args },
     { timeoutMs: 30_000 }
   );
+
+  if (!result.success) {
+    const errorText = [result.stderr, result.stdout].join("\n");
+    throw new Error(result.error || errorText.trim() || `yt-dlp exited with code ${result.exitCode}`);
+  }
 
   // yt-dlp outputs the table to stderr (or combined) on some versions; merge both.
   const combined = [result.stdout, result.stderr].join("\n");

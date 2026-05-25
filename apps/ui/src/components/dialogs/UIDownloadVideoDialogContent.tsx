@@ -7,10 +7,12 @@ import {
 } from "@/components/ui/scrollable-dialog"
 import type { YtdlpFormatPresetId } from "@/lib/ytdlpFormatPresets"
 import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
+import type { YtdlpJsRuntimeId } from "@/lib/ytdlpJsRuntimes"
 import type {
   YtdlpDownloadExtraArgId,
   YtdlpDownloadExtraArgSelection,
 } from "@/lib/ytdlpDownloadExtraArgs"
+import type { YtdlpFormatCodeEntry } from "@/lib/ytdlpFormatCodes"
 import { AgreementSection } from "./download-video-dialog/components/agreement-section"
 import { UrlInputSection } from "./download-video-dialog/components/url-input-section"
 import { CookiesSection } from "./download-video-dialog/components/cookies-section"
@@ -19,8 +21,10 @@ import { EpisodesSection } from "./download-video-dialog/components/episodes-sec
 import { CollectionSection } from "./download-video-dialog/components/collection-section"
 import { MoreOptionsSection } from "./download-video-dialog/components/more-options-section"
 import { FolderSection } from "./download-video-dialog/components/folder-section"
+import { classifyYtdlpError } from "@/lib/ytdlpErrorDetection"
 import { DialogFooter } from "./download-video-dialog/components/dialog-footer"
 import type { EpisodeItem } from "./types"
+import type { YtdlpFormatMode } from "@/lib/ytdlpFormatPresets"
 
 export interface UIDownloadVideoDialogContentProps {
   hasAgreed: boolean
@@ -31,12 +35,18 @@ export interface UIDownloadVideoDialogContentProps {
   urlError: string | null
   formBusy: boolean
   onUrlChange: (value: string) => void
-  onUrlBlur: () => void
+  onGo: () => void
+
+  // New: format listing
+  isListingFormats: boolean
+  listingError: string | null
+  goDisabled: boolean
 
   useCookies: boolean
   useCookiesFromBrowser: boolean
   cookiesBrowser: YtdlpCookiesBrowserId
   start1080pBlocked: boolean
+  platform: string
   onUseCookiesChange: (checked: boolean) => void
   onUseCookiesFromBrowserChange: (checked: boolean) => void
   onCookiesBrowserChange: (id: YtdlpCookiesBrowserId) => void
@@ -46,6 +56,24 @@ export interface UIDownloadVideoDialogContentProps {
   selectedFormatPresetId: YtdlpFormatPresetId
   is1080pAvailable: boolean
   onFormatChange: (id: YtdlpFormatPresetId) => void
+
+  // New: format mode & codes
+  showCookiesAtTopLevel: boolean
+  formatMode: YtdlpFormatMode
+  formatCodes: YtdlpFormatCodeEntry[]
+  selectedFormatCode: string
+  selectedSupplementaryFormatCode: string
+  hideFormatCodeUi: boolean
+  onFormatModeChange: (mode: YtdlpFormatMode) => void
+  onFormatCodeChange: (id: string) => void
+  onSupplementaryFormatCodeChange: (id: string) => void
+
+  // New: JS Runtime
+  isYoutube: boolean
+  useJsRuntime: boolean
+  jsRuntime: YtdlpJsRuntimeId
+  onUseJsRuntimeChange: (checked: boolean) => void
+  onJsRuntimeChange: (id: YtdlpJsRuntimeId) => void
 
   canDownloadEpisodes: boolean
   downloadEpisodes: boolean
@@ -95,12 +123,17 @@ export function UIDownloadVideoDialogContent({
   urlError,
   formBusy,
   onUrlChange,
-  onUrlBlur,
+  onGo,
+
+  isListingFormats,
+  listingError,
+  goDisabled,
 
   useCookies,
   useCookiesFromBrowser,
   cookiesBrowser,
   start1080pBlocked,
+  platform,
   onUseCookiesChange,
   onUseCookiesFromBrowserChange,
   onCookiesBrowserChange,
@@ -110,6 +143,22 @@ export function UIDownloadVideoDialogContent({
   selectedFormatPresetId,
   is1080pAvailable,
   onFormatChange,
+
+  showCookiesAtTopLevel,
+  formatMode,
+  formatCodes,
+  selectedFormatCode,
+  selectedSupplementaryFormatCode,
+  hideFormatCodeUi,
+  onFormatModeChange,
+  onFormatCodeChange,
+  onSupplementaryFormatCodeChange,
+
+  isYoutube,
+  useJsRuntime,
+  jsRuntime,
+  onUseJsRuntimeChange,
+  onJsRuntimeChange,
 
   canDownloadEpisodes,
   downloadEpisodes,
@@ -149,6 +198,8 @@ export function UIDownloadVideoDialogContent({
   t,
   tCommon,
 }: UIDownloadVideoDialogContentProps) {
+  const hasFetchedFormats = formatCodes.length > 0
+
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <ScrollableDialogContent
@@ -174,18 +225,32 @@ export function UIDownloadVideoDialogContent({
               urlError={urlError}
               formBusy={formBusy}
               disabled={!hasAgreed}
+              isListingFormats={isListingFormats}
+              goDisabled={goDisabled}
               onUrlChange={onUrlChange}
-              onUrlBlur={onUrlBlur}
+              onGo={onGo}
               t={t}
             />
 
-            {hasAgreed && (
+            {/* Listing error banner */}
+            {listingError && (
+              <p
+                className="text-sm text-destructive"
+                data-testid="download-video-dialog-listing-error"
+              >
+                {classifyYtdlpError(listingError).message}
+              </p>
+            )}
+
+            {/* Cookies at top level (before format fetch) */}
+            {hasAgreed && showCookiesAtTopLevel && (
               <CookiesSection
                 useCookies={useCookies}
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
                 formBusy={formBusy}
+                platform={platform}
                 onUseCookiesChange={onUseCookiesChange}
                 onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
                 onCookiesBrowserChange={onCookiesBrowserChange}
@@ -194,40 +259,65 @@ export function UIDownloadVideoDialogContent({
               />
             )}
 
-            {hasAgreed && (
-              <FormatSection
-                isUrlValid={isUrlValid}
-                selectedFormatPresetId={selectedFormatPresetId}
-                is1080pAvailable={is1080pAvailable}
-                formBusy={formBusy}
-                onFormatChange={onFormatChange}
+            {/* Format, episodes, and more options — only after formats are fetched */}
+            {hasAgreed && !showCookiesAtTopLevel && (
+              <>
+                <FormatSection
+                  isUrlValid={isUrlValid}
+                  hasFormats={hasFetchedFormats}
+                  selectedFormatPresetId={selectedFormatPresetId}
+                  is1080pAvailable={is1080pAvailable}
+                  formBusy={formBusy}
+                  formatMode={formatMode}
+                  formatCodes={formatCodes}
+                  selectedFormatCode={selectedFormatCode}
+                  selectedSupplementaryFormatCode={selectedSupplementaryFormatCode}
+                  hideFormatCodeUi={hideFormatCodeUi}
+                  onFormatChange={onFormatChange}
+                  onFormatModeChange={onFormatModeChange}
+                  onFormatCodeChange={onFormatCodeChange}
+                  onSupplementaryFormatCodeChange={onSupplementaryFormatCodeChange}
+                  t={t}
+                />
+
+                <EpisodesSection
+                  canDownloadEpisodes={canDownloadEpisodes}
+                  downloadEpisodes={downloadEpisodes}
+                  episodes={episodes}
+                  episodesLoading={episodesLoading}
+                  episodesError={episodesError}
+                  selectedEpisodeUrls={selectedEpisodeUrls}
+                  formBusy={formBusy}
+                  hasAgreed={hasAgreed}
+                  onDownloadEpisodesChange={onDownloadEpisodesChange}
+                  onToggleEpisode={onToggleEpisode}
+                  t={t}
+                />
+
+                <MoreOptionsSection
+                  showMoreOptions={showMoreOptions}
+                  extraArgSelection={extraArgSelection}
+                  formBusy={formBusy}
+                  useJsRuntime={useJsRuntime}
+                  jsRuntime={jsRuntime}
+                  forceJsRuntime={isYoutube}
+                  showCookiesInMoreOptions={true}
+                  useCookies={useCookies}
+                  useCookiesFromBrowser={useCookiesFromBrowser}
+                  cookiesBrowser={cookiesBrowser}
+                  platform={platform}
+                  start1080pBlocked={start1080pBlocked}
+                  onShowMoreOptionsChange={onShowMoreOptionsChange}
+                  onExtraArgToggle={onExtraArgToggle}
+                onUseJsRuntimeChange={onUseJsRuntimeChange}
+                onJsRuntimeChange={onJsRuntimeChange}
+                onUseCookiesChange={onUseCookiesChange}
+                onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
+                onCookiesBrowserChange={onCookiesBrowserChange}
+                onOpenCookiesEditor={onOpenCookiesEditor}
                 t={t}
               />
-            )}
-
-            <EpisodesSection
-              canDownloadEpisodes={canDownloadEpisodes}
-              downloadEpisodes={downloadEpisodes}
-              episodes={episodes}
-              episodesLoading={episodesLoading}
-              episodesError={episodesError}
-              selectedEpisodeUrls={selectedEpisodeUrls}
-              formBusy={formBusy}
-              hasAgreed={hasAgreed}
-              onDownloadEpisodesChange={onDownloadEpisodesChange}
-              onToggleEpisode={onToggleEpisode}
-              t={t}
-            />
-
-            {hasAgreed && isUrlValid && (
-              <MoreOptionsSection
-                showMoreOptions={showMoreOptions}
-                extraArgSelection={extraArgSelection}
-                formBusy={formBusy}
-                onShowMoreOptionsChange={onShowMoreOptionsChange}
-                onExtraArgToggle={onExtraArgToggle}
-                t={t}
-              />
+              </>
             )}
 
             <CollectionSection
@@ -265,6 +355,7 @@ export function UIDownloadVideoDialogContent({
             collectionEntriesLength={collectionEntriesLength}
             selectedCollectionUrlsSize={selectedCollectionUrlsSize}
             isEnqueueing={isEnqueueing}
+            formatsFetched={!showCookiesAtTopLevel}
             onCancel={onCancel}
             onStart={onStart}
             t={t}

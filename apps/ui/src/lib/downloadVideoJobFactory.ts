@@ -24,6 +24,10 @@ export interface CreateDownloadVideoJobInput {
   ytdlpCookiesFromBrowser?: string
   /** Allow-listed yt-dlp extra flags. */
   ytdlpExtraArgs?: string[]
+  /** JS runtime name for `--js-runtimes` (e.g. "quickjs"). */
+  ytdlpJsRuntime?: string
+  /** Absolute path to the JS runtime binary. */
+  ytdlpJsRuntimePath?: string
   /** Batch identifier — jobs sharing a parentId are cancelled together on failure. */
   parentId?: string
 }
@@ -41,6 +45,8 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
   const cookiesFromBrowser = input.ytdlpCookiesFromBrowser?.trim().toLowerCase()
   const extraArgs =
     input.ytdlpExtraArgs && input.ytdlpExtraArgs.length > 0 ? input.ytdlpExtraArgs : undefined
+  const jsRuntime = input.ytdlpJsRuntime?.trim()
+  const jsRuntimePath = input.ytdlpJsRuntimePath?.trim()
   const data: DownloadVideoBackgroundJobData = {
     folder: input.folder,
     videos,
@@ -48,6 +54,7 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
     ...(cookiesFile ? { ytdlpCookiesFile: cookiesFile } : {}),
     ...(cookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesFromBrowser } : {}),
     ...(extraArgs ? { ytdlpExtraArgs: extraArgs } : {}),
+    ...(jsRuntime && jsRuntimePath ? { ytdlpJsRuntime: jsRuntime, ytdlpJsRuntimePath: jsRuntimePath } : {}),
   }
 
   return {

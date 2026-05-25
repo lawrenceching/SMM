@@ -293,6 +293,8 @@ async function startDownload(jobId) {
         format: data.ytdlpFormat,
         cookiesFile: data.ytdlpCookiesFile,
         cookiesFromBrowser: data.ytdlpCookiesFromBrowser,
+        jsRuntime: data.ytdlpJsRuntime,
+        jsRuntimePath: data.ytdlpJsRuntimePath,
       })
       const cmd = await wc.executeCmdViaFetch('yt-dlp', dlArgs, {
         signal: controller.signal,

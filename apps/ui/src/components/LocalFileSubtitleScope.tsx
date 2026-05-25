@@ -5,7 +5,7 @@ import {
   buildRowSubtitleUi,
   type RowSubtitleUi,
 } from "@/hooks/useMusicFolderSubtitlePipeline"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import {
   TranscribeDialog,
   SubtitleTranslationDialog,
@@ -146,8 +146,7 @@ export function LocalFileSubtitleScope({
   children,
 }: LocalFileSubtitleScopeProps) {
   const { t: tComponents } = useTranslation(["components"])
-  // i18next TFunction overloads are not directly assignable to (key: string) => string
-  const t = tComponents as unknown as (key: string) => string
+  const t = castTranslationFn(tComponents)
   const pipeline = useMusicFolderSubtitlePipeline({
     platformFolder,
     mediaFolderPath,

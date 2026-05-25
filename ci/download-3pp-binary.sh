@@ -155,3 +155,62 @@ if [ ! -f "${VC_BIN}" ]; then
 fi
 
 echo "VideoCaptioner installed into bin/videocaptioner."
+
+# --- QuickJS ---
+QUICKJS_VERSION="2025-09-13"
+QUICKJS_BASE_URL="https://bellard.org/quickjs/binary_releases"
+
+case "${PLATFORM}-${ARCH}" in
+  win-x64)
+    QUICKJS_ZIP="quickjs-win-x86_64-${QUICKJS_VERSION}.zip"
+    QUICKJS_DIR="quickjs-win-x86_64-${QUICKJS_VERSION}"
+    QUICKJS_EXE="qjs.exe"
+    ;;
+  linux-x64)
+    QUICKJS_ZIP="quickjs-linux-x86_64-${QUICKJS_VERSION}.zip"
+    QUICKJS_DIR="quickjs-linux-x86_64-${QUICKJS_VERSION}"
+    QUICKJS_EXE="qjs"
+    ;;
+  win-arm64|linux-arm64|mac-arm64)
+    QUICKJS_ZIP="quickjs-cosmo-${QUICKJS_VERSION}.zip"
+    QUICKJS_DIR="quickjs-cosmo-${QUICKJS_VERSION}"
+    QUICKJS_EXE="qjs"
+    ;;
+  *)
+    echo "QuickJS: unsupported PLATFORM/ARCH: ${PLATFORM}-${ARCH}" >&2
+    exit 1
+    ;;
+esac
+
+QUICKJS_ZIP_URL="${QUICKJS_BASE_URL}/${QUICKJS_ZIP}"
+
+echo "Downloading ${QUICKJS_ZIP_URL} ..."
+if ! curl -sSLf -o "${TMPDIR}/${QUICKJS_ZIP}" "${QUICKJS_ZIP_URL}"; then
+  echo "QuickJS download failed." >&2
+  exit 1
+fi
+
+echo "Extracting ${QUICKJS_ZIP} ..."
+unzip -qo "${TMPDIR}/${QUICKJS_ZIP}" -d "${TMPDIR}/quickjs-extracted"
+
+QUICKJS_SRC="${TMPDIR}/quickjs-extracted/${QUICKJS_DIR}"
+if [ ! -d "${QUICKJS_SRC}" ]; then
+  echo "Expected QuickJS directory not found: ${QUICKJS_SRC}" >&2
+  exit 1
+fi
+
+rm -rf bin/quickjs
+mkdir -p bin/quickjs
+cp -a "${QUICKJS_SRC}/." bin/quickjs/
+
+QUICKJS_BIN="bin/quickjs/${QUICKJS_EXE}"
+if [ ! -f "${QUICKJS_BIN}" ]; then
+  echo "QuickJS binary not found after copy: ${QUICKJS_BIN}" >&2
+  exit 1
+fi
+
+if [ "${PLATFORM}" != "win" ]; then
+  chmod +x "bin/quickjs/qjs" 2>/dev/null || true
+fi
+
+echo "QuickJS installed into bin/quickjs."

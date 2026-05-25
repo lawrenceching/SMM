@@ -77,6 +77,18 @@
     "embedMetadata": {
       "label": "Embed metadata"
     },
+    "useJsRuntimeLabel": "JS Runtime",
+    "jsRuntimeDeno": "Deno",
+    "jsRuntimeNode": "Node.js",
+    "jsRuntimeBun": "Bun",
+    "jsRuntimeQuickJS": "QuickJS",
+    "formatCodeSupplementaryVideo": "Format code (video)",
+    "formatCodeSupplementaryAudio": "Format code (audio)",
+    "formatCodeGroupCombined": "Audio + Video",
+    "formatCodeGroupAudioOnly": "Audio Only",
+    "formatCodeGroupVideoOnly": "Video Only",
+    "formatModePreset": "Preset",
+    "formatModeCode": "Format code",
     "validation": {
       "URL_EMPTY": "Please enter a video URL",
       "URL_INVALID": "Please enter a valid URL",

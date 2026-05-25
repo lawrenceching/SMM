@@ -77,6 +77,18 @@
     "embedMetadata": {
       "label": "嵌入元數據"
     },
+    "useJsRuntimeLabel": "JS 執行環境",
+    "jsRuntimeDeno": "Deno",
+    "jsRuntimeNode": "Node.js",
+    "jsRuntimeBun": "Bun",
+    "jsRuntimeQuickJS": "QuickJS",
+    "formatCodeSupplementaryVideo": "格式碼 (影片)",
+    "formatCodeSupplementaryAudio": "格式碼 (音訊)",
+    "formatCodeGroupCombined": "音訊 + 影片",
+    "formatCodeGroupAudioOnly": "僅音訊",
+    "formatCodeGroupVideoOnly": "僅影片",
+    "formatModePreset": "預設",
+    "formatModeCode": "格式碼",
     "validation": {
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效的 URL",

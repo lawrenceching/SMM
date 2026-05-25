@@ -37,6 +37,28 @@ export function resolveYtdlpFormatFromPreset(presetId: string): string | undefin
   return format || undefined;
 }
 
+export type YtdlpFormatMode = "preset" | "format-code";
+
+export interface ResolveYtdlpFormatParams {
+  formatMode: YtdlpFormatMode;
+  selectedFormatCode: string;
+  selectedSupplementaryFormatCode: string;
+  selectedFormatPresetId: YtdlpFormatPresetId;
+}
+
+/**
+ * Resolves the yt-dlp `-f` format string from either a preset or format code selection.
+ * Returns `undefined` only when using the default preset (automatic selection).
+ */
+export function resolveYtdlpFormat(params: ResolveYtdlpFormatParams): string | undefined {
+  if (params.formatMode === "format-code" && params.selectedFormatCode) {
+    return params.selectedSupplementaryFormatCode
+      ? `${params.selectedSupplementaryFormatCode}+${params.selectedFormatCode}`
+      : params.selectedFormatCode;
+  }
+  return resolveYtdlpFormatFromPreset(params.selectedFormatPresetId);
+}
+
 export type DownloadVideoFormatPresetLabelKey =
   | "downloadVideo.formatDefault"
   | "downloadVideo.formatBest"

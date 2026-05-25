@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import type { DownloadVideoDialogProps, FileItem } from "../types"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import { useDownloadVideoForm } from "../hooks/use-download-video-form"
 import { useYtdlpDownloadFlow } from "../hooks/use-ytdlp-download-flow"
 import { UIDownloadVideoDialogContent } from "../UIDownloadVideoDialogContent"
@@ -14,9 +14,8 @@ export function DownloadVideoDialogContent({
   const { t } = useTranslation("dialogs")
   const { t: tCommon } = useTranslation("common")
 
-  // i18next TFunction overloads are not directly assignable to (key: string) => string
-  const td = t as unknown as (key: string) => string
-  const tdCommon = tCommon as unknown as (key: string) => string
+  const td = castTranslationFn(t)
+  const tdCommon = castTranslationFn(tCommon)
 
   const form = useDownloadVideoForm({ isOpen: true, destinationFolder, t: td })
 
@@ -34,9 +33,17 @@ export function DownloadVideoDialogContent({
     cookiesBrowser: form.cookiesBrowser,
     showMoreOptions: form.showMoreOptions,
     extraArgSelection: form.extraArgSelection,
+    formatMode: form.formatMode,
+    selectedFormatCode: form.selectedFormatCode,
+    selectedSupplementaryFormatCode: form.selectedSupplementaryFormatCode,
+    useJsRuntime: form.useJsRuntime,
+    jsRuntime: form.jsRuntime,
     onClose,
     t: td,
   })
+
+  const hideFormatCodeUi =
+    flow.downloadEpisodes || flow.downloadCollectionVideos
 
   const handleFolderSelect = useCallback(() => {
     onOpenFilePicker(
@@ -60,11 +67,15 @@ export function DownloadVideoDialogContent({
       urlError={form.urlError}
       formBusy={flow.formBusy}
       onUrlChange={form.handleUrlChange}
-      onUrlBlur={form.handleUrlBlur}
+      onGo={form.handleGo}
+      isListingFormats={form.isListingFormats}
+      listingError={form.listingError}
+      goDisabled={form.goDisabled}
       useCookies={form.useCookies}
       useCookiesFromBrowser={form.useCookiesFromBrowser}
       cookiesBrowser={form.cookiesBrowser}
       start1080pBlocked={form.start1080pBlocked}
+      platform={form.platform}
       onUseCookiesChange={form.setUseCookies}
       onUseCookiesFromBrowserChange={form.setUseCookiesFromBrowser}
       onCookiesBrowserChange={form.setCookiesBrowser}
@@ -73,6 +84,20 @@ export function DownloadVideoDialogContent({
       selectedFormatPresetId={form.selectedFormatPresetId}
       is1080pAvailable={form.is1080pAvailable}
       onFormatChange={form.setSelectedFormatPresetId}
+      showCookiesAtTopLevel={form.showCookiesAtTopLevel}
+      formatMode={form.formatMode}
+      formatCodes={form.formatCodes}
+      selectedFormatCode={form.selectedFormatCode}
+      selectedSupplementaryFormatCode={form.selectedSupplementaryFormatCode}
+      hideFormatCodeUi={hideFormatCodeUi}
+      onFormatModeChange={form.setFormatMode}
+      onFormatCodeChange={form.setSelectedFormatCode}
+      onSupplementaryFormatCodeChange={form.setSelectedSupplementaryFormatCode}
+      isYoutube={form.isYoutube}
+      useJsRuntime={form.useJsRuntime}
+      jsRuntime={form.jsRuntime}
+      onUseJsRuntimeChange={form.setUseJsRuntime}
+      onJsRuntimeChange={form.setJsRuntime}
       canDownloadEpisodes={form.canDownloadEpisodes}
       downloadEpisodes={flow.downloadEpisodes}
       episodes={flow.episodes}

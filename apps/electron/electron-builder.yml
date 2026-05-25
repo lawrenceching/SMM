@@ -34,6 +34,8 @@ win:
         - '**/*.exe'
     - from: '../../bin/videocaptioner'
       to: 'bin/videocaptioner'
+    - from: '../../bin/quickjs'
+      to: 'bin/quickjs'
 nsis:
   # ${arch} distinguishes x64 vs arm64 when both Windows installers are published
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
@@ -64,6 +66,8 @@ mac:
       to: 'bin/videocaptioner'
       filter:
         - '**/*'
+    - from: '../../bin/quickjs'
+      to: 'bin/quickjs'
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -88,6 +92,8 @@ linux:
       to: 'bin/videocaptioner'
       filter:
         - '**/*'
+    - from: '../../bin/quickjs'
+      to: 'bin/quickjs'
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

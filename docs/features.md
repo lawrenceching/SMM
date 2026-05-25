@@ -95,6 +95,14 @@ And the test status of v1.1.0
 | > MusicPanel-Download.e2e.ts                     |        |         |
 | Download Youtube Video                           | AUTO   |         |
 | > MusicPanel-Download.e2e.ts                     |        |         |
+| DownloadVideoDialog                                                 |        |         |
+| - 无法拉取视频格式 - 未登录                                             |        |         |
+| - 无法拉取视频格式 - 超时                                             |        |         |
+| - 无法下载视频 - 未登录                                               |        |         |
+| - 无法下载视频 - 超时                                               |        |         |
+| - 无法下载视频 - 格式不可用                                               |        |         |
+|                                                  |        |         |
+|                                                  |        |         |
 |                                                  |        |         |
 | Settings                                         |        |         |
 | Custom TMDB host and API key                     | MANUAL |         |
@@ -112,3 +120,72 @@ And the test status of v1.1.0
 | Messages                                         |        |         |
 | TMDB/TVDB Connectivity                           |        |         |
 | videocaptioner not found                         |        |         |
+
+右键菜单
+ - 属性
+ - 编辑标签
+ - 格式转换
+ - 字幕
+ - 删除
+
+## Test Cases
+
+### DownloadVideoDialog
+
+#### Youtube
+
+1. **下载 Youtube 视频 (Cookies From Browser)**
+   - 打开 DownloadVideoDialog
+   - 勾选同意条款
+   - 输入 Youtube URL
+   - 勾选 "从浏览器获取" Cookies, 选择 Firefox
+   - 点击 "Go" 按钮拉取视频格式
+   - 验证格式列表加载成功
+   - 选择预设画质 (如 1080p)
+   - 选择下载目录, 点击 "Start"
+   - 验证后台任务创建成功, 视频正常下载
+
+2. **Youtube 下载 - 无 Cookies 时 Go 按钮禁用**
+   - 打开 DownloadVideoDialog, 勾选同意条款
+   - 输入 Youtube URL
+   - 验证 "Go" 按钮为禁用状态 (未配置 Cookies)
+   - 勾选 "使用 Cookies" 或 "从浏览器获取"
+   - 验证 "Go" 按钮变为可用
+
+3. **Youtube 下载 - 格式码选择**
+   - 完成格式拉取后
+   - 切换到 "格式码" 模式
+   - 选择 audio only 格式码
+   - 验证补充视频格式码下拉菜单出现
+   - 选择补充格式码, 点击 "Start"
+   - 验证下载使用 `video_id+audio_id` 格式
+
+#### Bilibili
+
+1. **下载 Bilibili 视频 (回归验证)**
+   - 打开 DownloadVideoDialog, 勾选同意条款
+   - 输入 Bilibili 视频 URL (非集合/分集)
+   - 点击 "Go" 拉取格式
+   - 选择预设画质, 选择目录, 点击 "Start"
+   - 验证下载任务创建成功
+
+#### Bilibili Episodes
+
+1. **下载 Bilibili 分集 (回归验证)**
+   - 输入 Bilibili 分集视频 URL
+   - 勾选 "下载分集"
+   - 验证分集列表加载, 选择若干集
+   - 验证格式码 UI 已隐藏 (仅预设可用)
+   - 选择目录, 点击 "Start"
+   - 验证每个选中分集各创建一个下载任务
+
+#### Bilibili Collection
+
+1. **下载 Bilibili 合集 (回归验证)**
+   - 输入 Bilibili 合集 URL
+   - 勾选 "获取视频"
+   - 验证合集列表加载
+   - 验证格式码 UI 已隐藏
+   - 选择目录, 点击 "Start"
+   - 验证每个合集视频各创建一个下载任务
+

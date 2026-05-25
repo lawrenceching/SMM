@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  YTDLP_COOKIES_BROWSER_IDS,
+  getCookiesBrowserIds,
   ytdlpCookiesBrowserLabelKey,
   type YtdlpCookiesBrowserId,
 } from "@/lib/ytdlpCookiesBrowsers"
@@ -20,6 +20,7 @@ export interface CookiesSectionProps {
   cookiesBrowser: YtdlpCookiesBrowserId
   start1080pBlocked: boolean
   formBusy: boolean
+  platform: string
   onUseCookiesChange: (checked: boolean) => void
   onUseCookiesFromBrowserChange: (checked: boolean) => void
   onCookiesBrowserChange: (id: YtdlpCookiesBrowserId) => void
@@ -33,12 +34,15 @@ export function CookiesSection({
   cookiesBrowser,
   start1080pBlocked,
   formBusy,
+  platform,
   onUseCookiesChange,
   onUseCookiesFromBrowserChange,
   onCookiesBrowserChange,
   onOpenCookiesEditor,
   t,
 }: CookiesSectionProps) {
+  const browserIds = getCookiesBrowserIds(platform)
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -97,7 +101,7 @@ export function CookiesSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {YTDLP_COOKIES_BROWSER_IDS.map((id) => (
+            {browserIds.map((id) => (
               <SelectItem key={id} value={id}>
                 {t(ytdlpCookiesBrowserLabelKey(id))}
               </SelectItem>
