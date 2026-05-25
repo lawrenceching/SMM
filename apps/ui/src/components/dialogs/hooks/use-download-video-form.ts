@@ -218,10 +218,10 @@ export function useDownloadVideoForm(
   // Format codes from the listing
   const formatCodes = formatsResult?.formatCodes ?? []
 
-  // Go button is disabled for YouTube without cookies
+  // Go button is disabled for YouTube without cookies, or when Use cookies is checked but text is empty
   const goDisabled = isYoutube
-    ? !useCookies && !useCookiesFromBrowser
-    : false
+    ? (!useCookies && !useCookiesFromBrowser) || (useCookies && !cookiesText.trim())
+    : useCookies && !cookiesText.trim()
 
   const resolvedYtdlpFormat = resolveYtdlpFormat({
     formatMode,

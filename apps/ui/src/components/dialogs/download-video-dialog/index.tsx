@@ -42,6 +42,18 @@ export function DownloadVideoDialogContent({
     t: td,
   })
 
+  const startButtonDisabled =
+    !form.isUrlValid ||
+    !form.downloadFolder.trim() ||
+    flow.formBusy ||
+    !form.hasAgreed ||
+    form.start1080pBlocked ||
+    form.showCookiesAtTopLevel ||
+    form.quickjsUnavailable ||
+    (form.isYoutube && !form.useCookies && !form.useCookiesFromBrowser) ||
+    (form.useCookies && !form.cookiesText.trim()) ||
+    (form.isCollectionUrl && flow.selectedCollectionUrls.size === 0)
+
   const hideFormatCodeUi =
     flow.downloadEpisodes || flow.downloadCollectionVideos
 
@@ -72,6 +84,7 @@ export function DownloadVideoDialogContent({
       listingError={form.listingError}
       goDisabled={form.goDisabled}
       useCookies={form.useCookies}
+      cookiesText={form.cookiesText}
       useCookiesFromBrowser={form.useCookiesFromBrowser}
       cookiesBrowser={form.cookiesBrowser}
       start1080pBlocked={form.start1080pBlocked}
@@ -123,8 +136,8 @@ export function DownloadVideoDialogContent({
       onFolderChange={form.setDownloadFolder}
       onFolderSelect={handleFolderSelect}
       collectionEntriesLength={flow.collectionEntries.length}
-      selectedCollectionUrlsSize={flow.selectedCollectionUrls.size}
       isEnqueueing={flow.isEnqueueing}
+      startButtonDisabled={startButtonDisabled}
       onCancel={handleCancel}
       onStart={flow.handleStart}
       onClose={handleCancel}

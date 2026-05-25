@@ -61,6 +61,7 @@
     "cookiesBrowserEdge": "Edge",
     "cookiesBrowserFirefox": "Firefox",
     "cookiesEmpty": "請填寫 Cookie 檔案內容，或取消勾選「使用 Cookie」。",
+    "cookiesNotProvided": "未提供Cookies",
     "cookiesWriteFailed": "無法儲存 Cookie 檔案。",
     "cookiesDialogTitle": "Cookie",
     "cookiesDialogDescription": "請貼上 Netscape 格式的 Cookie 檔案（首行須為 # HTTP Cookie File 或 # Netscape HTTP Cookie File）。詳見 yt-dlp 常見問題。",

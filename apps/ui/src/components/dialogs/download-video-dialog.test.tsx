@@ -991,7 +991,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     )
   })
 
-  it('shows error when Use cookies is enabled but content is empty', async () => {
+  it('disables Start when Use cookies is enabled but content is empty', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1002,9 +1002,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.change(screen.getByLabelText('Download Folder'), {
       target: { value: 'C:\\downloads' },
     })
-    fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('Enter cookie file content.'))
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+    expect(screen.getByTestId('download-video-dialog-start')).toBeDisabled()
   })
 
   it('sets ytdlpCookiesFromBrowser when From browser is enabled', async () => {

@@ -61,6 +61,7 @@
     "cookiesBrowserEdge": "Edge",
     "cookiesBrowserFirefox": "Firefox",
     "cookiesEmpty": "Enter cookie file content or disable Use cookies.",
+    "cookiesNotProvided": "No cookies provided",
     "cookiesWriteFailed": "Could not save cookies file.",
     "cookiesDialogTitle": "Cookies",
     "cookiesDialogDescription": "Paste a Netscape-format cookie file (first line: # HTTP Cookie File or # Netscape HTTP Cookie File). See yt-dlp FAQ for details.",

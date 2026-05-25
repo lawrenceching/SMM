@@ -34,6 +34,7 @@ export interface MoreOptionsSectionProps {
   // Cookies (moved here after format fetch)
   showCookiesInMoreOptions: boolean
   useCookies: boolean
+  cookiesText: string
   useCookiesFromBrowser: boolean
   cookiesBrowser: YtdlpCookiesBrowserId
   platform: string
@@ -61,6 +62,7 @@ export function MoreOptionsSection({
   showCookiesInMoreOptions,
   useCookies,
   useCookiesFromBrowser,
+  cookiesText,
   cookiesBrowser,
   platform,
   start1080pBlocked,
@@ -133,6 +135,7 @@ export function MoreOptionsSection({
             <div className="mt-2 pt-2 border-t">
               <CookiesSection
                 useCookies={useCookies}
+                cookiesText={cookiesText}
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}

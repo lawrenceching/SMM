@@ -43,6 +43,7 @@ export interface UIDownloadVideoDialogContentProps {
   goDisabled: boolean
 
   useCookies: boolean
+  cookiesText: string
   useCookiesFromBrowser: boolean
   cookiesBrowser: YtdlpCookiesBrowserId
   start1080pBlocked: boolean
@@ -106,8 +107,8 @@ export interface UIDownloadVideoDialogContentProps {
   onFolderSelect: () => void
 
   collectionEntriesLength: number
-  selectedCollectionUrlsSize: number
   isEnqueueing: boolean
+  startButtonDisabled: boolean
   onCancel: () => void
   onStart: () => void
 
@@ -133,6 +134,7 @@ export function UIDownloadVideoDialogContent({
   goDisabled,
 
   useCookies,
+  cookiesText,
   useCookiesFromBrowser,
   cookiesBrowser,
   start1080pBlocked,
@@ -192,8 +194,8 @@ export function UIDownloadVideoDialogContent({
   onFolderSelect,
 
   collectionEntriesLength,
-  selectedCollectionUrlsSize,
   isEnqueueing,
+  startButtonDisabled,
   onCancel,
   onStart,
 
@@ -260,6 +262,7 @@ export function UIDownloadVideoDialogContent({
             {hasAgreed && showCookiesAtTopLevel && (
               <CookiesSection
                 useCookies={useCookies}
+                cookiesText={cookiesText}
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
@@ -317,6 +320,7 @@ export function UIDownloadVideoDialogContent({
                   forceJsRuntime={isYoutube}
                   showCookiesInMoreOptions={true}
                   useCookies={useCookies}
+                  cookiesText={cookiesText}
                   useCookiesFromBrowser={useCookiesFromBrowser}
                   cookiesBrowser={cookiesBrowser}
                   platform={platform}
@@ -360,17 +364,11 @@ export function UIDownloadVideoDialogContent({
         </ScrollableDialogBody>
         <ScrollableDialogFooter>
           <DialogFooter
-            hasAgreed={hasAgreed}
-            isUrlValid={isUrlValid}
-            downloadFolder={downloadFolder}
+            startButtonDisabled={startButtonDisabled}
             formBusy={formBusy}
-            start1080pBlocked={start1080pBlocked}
             isCollectionUrl={isCollectionUrl}
             collectionEntriesLength={collectionEntriesLength}
-            selectedCollectionUrlsSize={selectedCollectionUrlsSize}
             isEnqueueing={isEnqueueing}
-            formatsFetched={!showCookiesAtTopLevel}
-            quickjsUnavailable={quickjsUnavailable}
             onCancel={onCancel}
             onStart={onStart}
             t={t}

@@ -26,6 +26,7 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     goDisabled: false,
 
     useCookies: false,
+    cookiesText: "",
     useCookiesFromBrowser: false,
     cookiesBrowser: DEFAULT_YTDLP_COOKIES_BROWSER_ID,
     start1080pBlocked: false,
