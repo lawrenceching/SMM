@@ -23,7 +23,8 @@
       "Bash(npx tsc:*)",
       "Bash(pnpm -C apps/ui exec tsc --noEmit)",
       "Bash(npm test:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(pnpm test *)"
     ],
     "deny": [],
     "ask": []

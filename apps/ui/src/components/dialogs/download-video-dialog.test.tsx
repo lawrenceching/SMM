@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DownloadVideoDialog } from './download-video-dialog'
-import { clearCookiesCache } from '@/lib/ytdlpCookiesCache'
+import { clearCookiesCache, setCachedCookies } from '@/lib/ytdlpCookiesCache'
 
 const h = vi.hoisted(() => ({
   saveDownloadVideoJob: vi.fn().mockResolvedValue(undefined),
@@ -890,6 +890,64 @@ describe('DownloadVideoDialog - user agreement', () => {
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
     fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
     expect(h.openTextDialog).toHaveBeenCalled()
+  })
+
+  it('resets cookies when switching to a different domain with no cached cookies', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    // Pre-populate cache for youtube.com
+    setCachedCookies('www.youtube.com', {
+      cookiesText: '# YouTube cookies',
+      useCookies: true,
+      useCookiesFromBrowser: true,
+      cookiesBrowser: 'firefox',
+    })
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter YouTube URL — cache hit, cookies should be pre-filled
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test' },
+    })
+    expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByLabelText('From browser')).toHaveAttribute('aria-checked', 'true')
+
+    // Switch to Bilibili URL — no cache for this domain, cookies should reset
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1xx' },
+    })
+    expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByLabelText('From browser')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('restores cookies from cache when switching back to a previously cached domain', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    // Pre-populate cache for bilibili.com
+    setCachedCookies('www.bilibili.com', {
+      cookiesText: '# Bilibili cookies',
+      useCookies: true,
+      useCookiesFromBrowser: false,
+      cookiesBrowser: 'firefox',
+    })
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Step 1: Enter bilibili URL — cache hit, cookies pre-filled
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1xx' },
+    })
+    expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'true')
+
+    // Step 2: Switch to YouTube — no cache, cookies reset
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test' },
+    })
+    expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'false')
+
+    // Step 3: Switch back to Bilibili — cache hit, cookies restored
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1xx' },
+    })
+    expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'true')
   })
 
   it('does not set ytdlpCookiesFile when Use cookies is unchecked', async () => {

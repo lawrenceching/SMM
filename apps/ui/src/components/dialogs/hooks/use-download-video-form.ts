@@ -282,13 +282,22 @@ export function useDownloadVideoForm(
       }
       // Pre-fill cookies from cache for the new URL's domain
       const hostname = extractHostname(value.trim())
-      if (hostname) {
+      const prevHostname = extractHostname(url.trim())
+      if (hostname && hostname !== prevHostname) {
         const cached = getCachedCookies(hostname)
         if (cached) {
           setCookiesText(cached.cookiesText)
           setUseCookies(cached.useCookies)
           setUseCookiesFromBrowser(cached.useCookiesFromBrowser)
           setCookiesBrowser(cached.cookiesBrowser)
+        } else {
+          // Switching to a different domain with no cached cookies — reset
+          setCookiesText("")
+          setUseCookies(false)
+          setUseCookiesFromBrowser(false)
+          setCookiesBrowser(
+            getCookiesBrowserIds(platform).includes("firefox") ? "firefox" : getCookiesBrowserIds(platform)[0],
+          )
         }
       }
       const result = validateDownloadUrl(value.trim())
@@ -305,7 +314,7 @@ export function useDownloadVideoForm(
         setUrlError(null)
       }
     },
-    [t, url, resetListFormats],
+    [t, url, platform, resetListFormats],
   )
 
   const handleGo = useCallback(async () => {
