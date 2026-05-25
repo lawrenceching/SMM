@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DownloadVideoDialog } from './download-video-dialog'
+import { clearCookiesCache } from '@/lib/ytdlpCookiesCache'
 
 const h = vi.hoisted(() => ({
   saveDownloadVideoJob: vi.fn().mockResolvedValue(undefined),
@@ -224,6 +225,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn()
     vi.clearAllMocks()
+    clearCookiesCache()
     h.mutateEpisodesMetadata.mockReset()
     h.resetEpisodesMetadata.mockReset()
     h.mutateCollectionMetadata.mockReset()
@@ -1011,6 +1013,8 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
   }
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn()
+    clearCookiesCache()
     h.validateDownloadUrl.mockReturnValue({ valid: true })
     h.mutateListFormats.mockReset()
     hListFormats.listFormats.mockReset()

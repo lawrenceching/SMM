@@ -14,6 +14,11 @@ import {
   type YtdlpCookiesBrowserId,
 } from "@/lib/ytdlpCookiesBrowsers"
 import {
+  getCachedCookies,
+  setCachedCookies,
+  extractHostname,
+} from "@/lib/ytdlpCookiesCache"
+import {
   buildYtdlpExtraArgsFromSelection,
   DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION,
   type YtdlpDownloadExtraArgId,
@@ -269,6 +274,17 @@ export function useDownloadVideoForm(
       if (value.trim() !== url.trim()) {
         resetListFormats()
       }
+      // Pre-fill cookies from cache for the new URL's domain
+      const hostname = extractHostname(value.trim())
+      if (hostname) {
+        const cached = getCachedCookies(hostname)
+        if (cached) {
+          setCookiesText(cached.cookiesText)
+          setUseCookies(cached.useCookies)
+          setUseCookiesFromBrowser(cached.useCookiesFromBrowser)
+          setCookiesBrowser(cached.cookiesBrowser)
+        }
+      }
       const result = validateDownloadUrl(value.trim())
       if (!result.valid) {
         setAvailableHeights(null)
@@ -309,6 +325,17 @@ export function useDownloadVideoForm(
           // If writing fails, proceed without the cookies file
         }
       }
+    }
+
+    // Cache cookies for this domain
+    const hostname = extractHostname(trimmed)
+    if (hostname) {
+      setCachedCookies(hostname, {
+        cookiesText,
+        useCookies,
+        useCookiesFromBrowser,
+        cookiesBrowser,
+      })
     }
 
     listFormats({

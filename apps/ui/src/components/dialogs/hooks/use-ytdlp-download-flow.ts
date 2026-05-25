@@ -22,6 +22,7 @@ import {
   type YtdlpFormatPresetId,
 } from "@/lib/ytdlpFormatPresets"
 import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
+import { setCachedCookies, extractHostname } from "@/lib/ytdlpCookiesCache"
 import { validateDownloadUrl } from "@core/download-video-validators"
 
 interface EpisodeItem {
@@ -379,6 +380,17 @@ export function useYtdlpDownloadFlow(
     if (useCookies && !cookiesText.trim()) {
       toast.error(t("downloadVideo.cookiesEmpty"))
       return
+    }
+
+    // Cache cookies for this domain
+    const hostname = extractHostname(url.trim())
+    if (hostname) {
+      setCachedCookies(hostname, {
+        cookiesText,
+        useCookies,
+        useCookiesFromBrowser,
+        cookiesBrowser,
+      })
     }
 
     if (isCollectionUrl) {
