@@ -74,9 +74,105 @@ const hListFormats = vi.hoisted(() => ({
   resultRef: { current: null as unknown },
 }))
 
+function makeTestVideoMetadata(heights: number[]) {
+  return {
+    id: "test-video",
+    title: "Test Video",
+    fulltitle: null,
+    display_id: "test-video",
+    description: null,
+    uploader: null,
+    uploader_id: null,
+    thumbnail: null,
+    thumbnails: [],
+    duration: null,
+    duration_string: null,
+    timestamp: null,
+    upload_date: null,
+    release_year: null,
+    epoch: 0,
+    view_count: null,
+    like_count: null,
+    comment_count: null,
+    tags: null,
+    chapters: null,
+    subtitles: {},
+    requested_subtitles: null,
+    webpage_url: "https://example.com/video",
+    original_url: null,
+    webpage_url_basename: "test-video",
+    webpage_url_domain: "example.com",
+    extractor: null,
+    extractor_key: null,
+    http_headers: {},
+    _old_archive_ids: null,
+    _has_drm: null,
+    format: null,
+    format_id: null,
+    ext: null,
+    protocol: null,
+    width: null,
+    height: null,
+    resolution: null,
+    fps: null,
+    dynamic_range: null,
+    vcodec: null,
+    acodec: null,
+    vbr: null,
+    abr: null,
+    tbr: null,
+    aspect_ratio: null,
+    stretched_ratio: null,
+    filesize_approx: null,
+    language: null,
+    format_note: null,
+    asr: null,
+    audio_channels: null,
+    formats: heights.map((h) => ({
+      url: "",
+      ext: "mp4",
+      format_id: `${h}p`,
+      format: `${h}p`,
+      protocol: "https",
+      vcodec: "avc1",
+      acodec: "none",
+      vbr: 100,
+      abr: 0,
+      tbr: 100,
+      width: (h * 16 / 9) | 0,
+      height: h,
+      resolution: `${(h * 16 / 9) | 0}x${h}`,
+      aspect_ratio: 1.78,
+      fps: 30,
+      dynamic_range: "SDR",
+      quality: null,
+      filesize: null,
+      filesize_approx: null,
+      audio_ext: "none",
+      video_ext: "mp4",
+      http_headers: {},
+    })),
+    requested_formats: null,
+    requested_downloads: [],
+    playlist: null,
+    playlist_id: null,
+    playlist_title: null,
+    playlist_uploader: null,
+    playlist_uploader_id: null,
+    playlist_channel: null,
+    playlist_channel_id: null,
+    playlist_webpage_url: null,
+    playlist_count: null,
+    n_entries: null,
+    playlist_index: null,
+    __last_playlist_index: null,
+    playlist_autonumber: null,
+  }
+}
+
 vi.mock('./hooks/useListFormatsMutation', () => ({
   useListFormatsMutation: () => ({
-    get formatsResult() { return hListFormats.resultRef.current },
+    get videoMetadata() { return hListFormats.resultRef.current },
     isListing: false,
     listingError: null,
     listFormats: hListFormats.listFormats,
@@ -257,7 +353,7 @@ describe('DownloadVideoDialog - user agreement', () => {
       webpage_url: url,
     }))
     // Default: formats already fetched so Start button is enabled by default
-    hListFormats.resultRef.current = { availableHeights: [1080, 720, 480, 360], hasAudioOnly: true, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([1080, 720, 480, 360])
     // Reset localStorage between tests
     window.localStorage.clear()
   })
@@ -1085,13 +1181,13 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     h.mutateListFormats.mockReset()
     hListFormats.listFormats.mockReset()
     // Default: formats already fetched, start button enabled
-    hListFormats.resultRef.current = { availableHeights: [1080, 720, 480, 360], hasAudioOnly: true, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([1080, 720, 480, 360])
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
   })
 
   it('shows "1080p (unavailable)" label when probe returns no 1080 height', async () => {
     // Pre-set result so the component renders with probe already "complete"
-    hListFormats.resultRef.current = { availableHeights: [360, 480], hasAudioOnly: true, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1106,7 +1202,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
 
   it('shows "1080p" label (no suffix) when probe returns 1080 in heights', async () => {
     // Pre-set result so the component renders with probe already "complete"
-    hListFormats.resultRef.current = { availableHeights: [720, 1080], hasAudioOnly: false, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([720, 1080])
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1120,7 +1216,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
 
   it('disables Start when 1080p selected but unavailable and no cookies configured', async () => {
     // Pre-set result so the component renders with probe already "complete" (no 1080)
-    hListFormats.resultRef.current = { availableHeights: [360, 480], hasAudioOnly: true, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1141,7 +1237,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
 
   it('enables Start when 1080p selected, unavailable, but "From browser" is checked', async () => {
     // Pre-set result so the component renders with probe already "complete" (no 1080)
-    hListFormats.resultRef.current = { availableHeights: [360, 480], hasAudioOnly: true, formatCodes: [], rawText: '' }
+        hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
     fireEvent.change(screen.getByLabelText('Video URL'), {

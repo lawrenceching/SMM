@@ -1,3 +1,5 @@
+import type { Format } from "@/api/ytdlp/types"
+
 export type YtdlpFormatCodeCategory = "audio-only" | "video-only" | "combined"
 
 export interface YtdlpFormatCodeEntry {
@@ -5,77 +7,107 @@ export interface YtdlpFormatCodeEntry {
   ext: string
   resolution: string
   fps: number | null
-  /** Display label (e.g. "18 - 640x360 mp4"). */
-  label: string
   category: YtdlpFormatCodeCategory
+  /** Primary line (e.g. "m4a" for audio, "360P (640x360) mp4" for video). */
+  title: string
+  /** Secondary line (e.g. "~66kbps ~279KB mp4a.40.2"). */
+  subtitle: string
 }
 
 /**
- * Parses yt-dlp `--list-formats` stdout into format code entries grouped by category.
- * Expects the table output starting from the `ID` header line.
+ * Converts `yt-dlp -J` Format objects into format code entries grouped by category.
  */
-export function parseYtdlpFormatCodes(text: string): YtdlpFormatCodeEntry[] {
-  const lines = text.split("\n")
-  const entries: YtdlpFormatCodeEntry[] = []
-
-  // Find the header line: "ID      EXT   RESOLUTION ..."
-  let startIndex = -1
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\s*ID\s+EXT\s+RESOLUTION/.test(lines[i])) {
-      startIndex = i + 1
-      break
-    }
-  }
-  if (startIndex === -1) return entries
-
-  // Find the separator line (dashes) and skip it
-  for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i].trim()
-    // Skip separator lines (all dashes/spaces)
-    if (/^[-─\s]+$/.test(line)) continue
-    if (!line) continue
-
-    const entry = parseFormatLine(line)
-    if (entry) entries.push(entry)
-  }
-
-  return entries
+export function buildFormatCodes(formats: Format[]): YtdlpFormatCodeEntry[] {
+  return formats
+    .filter((f) => !f.format_id.startsWith("sb"))
+    .map((f) => {
+      const category = categorizeFormat(f)
+      return {
+        id: f.format_id,
+        ext: f.ext,
+        resolution: f.resolution ?? "",
+        fps: f.fps ?? null,
+        category,
+        title: buildTitle(f, category),
+        subtitle: buildSubtitle(f, category),
+      }
+    })
 }
 
-function parseFormatLine(line: string): YtdlpFormatCodeEntry | null {
-  // Format: ID EXT RESOLUTION FPS CH | FILESIZE TBR PROTO | VCODEC VBR ACODEC ABR ASR MORE INFO
-  const parts = line.split(/\s+/)
-  if (parts.length < 3) return null
+function buildTitle(f: Format, category: YtdlpFormatCodeCategory): string {
+  if (category === "audio-only") {
+    return f.ext
+  }
+  // Video-only or combined: e.g. "360P (640x360) mp4"
+  const quality = extractQualityLabel(f)
+  const res = f.resolution ? ` (${f.resolution})` : ""
+  return `${quality}${res} ${f.ext}`
+}
 
-  const id = parts[0]
-  // Skip storyboard entries (sb0, sb1, etc.)
-  if (id.startsWith("sb")) return null
+function extractQualityLabel(f: Format): string {
+  if (f.height && f.height >= 2160) return "4K"
+  if (f.height && f.height >= 1440) return "1440P"
+  if (f.height && f.height >= 1080) return "1080P"
+  if (f.height && f.height >= 720) return "720P"
+  if (f.height && f.height >= 480) return "480P"
+  if (f.height && f.height >= 360) return "360P"
+  if (f.height) return `${f.height}P`
+  if (f.resolution) return f.resolution
+  return f.format_id
+}
 
-  const ext = parts[1] || ""
-  const resolution = parts[2] || ""
-  let fps: number | null = null
-  if (parts.length > 3 && /^\d+$/.test(parts[3])) {
-    fps = parseInt(parts[3], 10)
+function buildSubtitle(f: Format, category: YtdlpFormatCodeCategory): string {
+  const parts: string[] = []
+
+  if (f.tbr) {
+    parts.push(`~${formatBitrate(f.tbr)}`)
+  }
+  if (f.filesize_approx) {
+    parts.push(`~${formatFileSize(f.filesize_approx)}`)
   }
 
-  // Determine category from the rest of the line
-  const rest = line.substring(parts.slice(0, 4).join(" ").length).trim()
-  const isAudioOnly = rest.includes("audio only")
-  const isVideoOnly = rest.includes("video only")
-
-  let category: YtdlpFormatCodeCategory
-  if (isAudioOnly) {
-    category = "audio-only"
-  } else if (isVideoOnly) {
-    category = "video-only"
+  if (category === "audio-only") {
+    if (f.acodec) parts.push(f.acodec)
+  } else if (category === "video-only") {
+    if (f.vcodec) parts.push(f.vcodec)
   } else {
-    category = "combined"
+    const codecs = [f.acodec, f.vcodec].filter(Boolean)
+    if (codecs.length > 0) parts.push(codecs.join("+"))
   }
 
-  const fpsStr = fps ? ` ${fps}fps` : ""
-  const label = `${id} - ${ext} ${resolution}${fpsStr}`
+  return parts.join(" ")
+}
 
-  return { id, ext, resolution, fps, label, category }
+function formatBitrate(tbr: number): string {
+  return `${Math.round(tbr)}kbps`
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)}MB`
+  if (bytes >= 1_000) return `${Math.round(bytes / 1_000)}KB`
+  return `${bytes}B`
+}
+
+function categorizeFormat(f: Format): YtdlpFormatCodeCategory {
+  const hasAudio = f.acodec !== "none" && f.acodec !== null
+  const hasVideo = f.vcodec !== "none" && f.vcodec !== null
+  if (hasAudio && !hasVideo) return "audio-only"
+  if (hasVideo && !hasAudio) return "video-only"
+  return "combined"
+}
+
+/** Extracts unique sorted heights from a Format array. */
+export function extractAvailableHeights(formats: Format[]): number[] {
+  const heightSet = new Set<number>()
+  for (const f of formats) {
+    if (f.height) heightSet.add(f.height)
+  }
+  return Array.from(heightSet).sort((a, b) => a - b)
+}
+
+/** Returns true if 1080p video is available in the format list. */
+export function is1080pAvailableFromFormats(formats: Format[]): boolean {
+  return formats.some((f) => f.height === 1080)
 }
 
 export function groupFormatsByCategory(entries: YtdlpFormatCodeEntry[]): {

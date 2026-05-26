@@ -10,10 +10,8 @@ import {
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
-import {
-  parseYtdlpListFormatsStdout,
-  type YtdlpListFormatsResult,
-} from "@/lib/parseYtdlpListFormats";
+import { parse } from "@/api/ytdlp/parse";
+import type { VideoMetadata } from "@/api/ytdlp/types";
 
 export interface YtdlpDownloadRequest {
   url: string;
@@ -161,7 +159,7 @@ export interface YtdlpListFormatsRequest {
   jsRuntimePath?: string;
 }
 
-export type { YtdlpListFormatsResult };
+export type { VideoMetadata };
 
 /**
  * Runs `yt-dlp -F [--cookies-from-browser <browser>] [--js-runtimes <runtime>] <url>`
@@ -170,7 +168,7 @@ export type { YtdlpListFormatsResult };
  */
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
-): Promise<YtdlpListFormatsResult> {
+): Promise<VideoMetadata> {
   const args: string[] = [];
 
   const cookiesFile = req.cookiesFile?.trim();
@@ -189,11 +187,11 @@ export async function listYtdlpFormats(
     args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
   }
 
-  args.push("-F", req.url.trim());
+  args.push("-J", req.url.trim());
 
   const result = await executeCmdToCompletion(
     { command: "yt-dlp", args },
-    { timeoutMs: 30_000 }
+    { timeoutMs: 60_000 }
   );
 
   if (!result.success) {
@@ -201,9 +199,11 @@ export async function listYtdlpFormats(
     throw new Error(result.error || errorText.trim() || `yt-dlp exited with code ${result.exitCode}`);
   }
 
-  // yt-dlp outputs the table to stderr (or combined) on some versions; merge both.
-  const combined = [result.stdout, result.stderr].join("\n");
-  return parseYtdlpListFormatsStdout(combined);
+  const parsed = parse(result.stdout);
+  if ("_type" in parsed && parsed._type === "playlist") {
+    throw new Error("yt-dlp returned a playlist; expected a single video");
+  }
+  return parsed as VideoMetadata;
 }
 
 export interface YtdlpBilibiliEpisodesResponse {

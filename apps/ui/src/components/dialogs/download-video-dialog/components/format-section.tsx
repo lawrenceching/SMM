@@ -188,7 +188,7 @@ export function FormatSection({
               <SelectContent>
                 {supplementaryOptions.map((entry) => (
                   <SelectItem key={entry.id} value={entry.id}>
-                    {entry.label}
+                    <FormatCodeItem entry={entry} />
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -212,9 +212,18 @@ function FormatCodeGroup({
       <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{label}</div>
       {entries.map((entry) => (
         <SelectItem key={entry.id} value={entry.id}>
-          {entry.label}
+          <FormatCodeItem entry={entry} />
         </SelectItem>
       ))}
     </>
+  )
+}
+
+function FormatCodeItem({ entry }: { entry: YtdlpFormatCodeEntry }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm">{entry.title}</span>
+      <span className="text-xs text-muted-foreground">{entry.subtitle}</span>
+    </div>
   )
 }

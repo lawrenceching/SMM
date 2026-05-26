@@ -35,6 +35,11 @@ import {
   type YtdlpJsRuntimeId,
 } from "@/lib/ytdlpJsRuntimes"
 import type { YtdlpFormatCodeEntry } from "@/lib/ytdlpFormatCodes"
+import {
+  buildFormatCodes,
+  extractAvailableHeights,
+  is1080pAvailableFromFormats,
+} from "@/lib/ytdlpFormatCodes"
 import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
@@ -154,7 +159,7 @@ export function useDownloadVideoForm(
   const { isOpen, destinationFolder, t } = opts
 
   const { textDialog: [openTextDialog] } = useDialogs()
-  const { formatsResult, isListing, listingError, listFormats, reset: resetListFormats } =
+  const { videoMetadata, isListing, listingError, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
   const { appConfig } = useConfig()
 
@@ -214,10 +219,10 @@ export function useDownloadVideoForm(
   const isYoutube = isYoutubeUrl(url)
 
   // Formats have been fetched successfully
-  const showCookiesAtTopLevel = !formatsResult
+  const showCookiesAtTopLevel = !videoMetadata
 
   // Format codes from the listing
-  const formatCodes = formatsResult?.formatCodes ?? []
+  const formatCodes = buildFormatCodes(videoMetadata?.formats ?? [])
 
   // Go button is disabled for YouTube without cookies, or when Use cookies is checked but text is empty, or QuickJS unavailable
   const goDisabled =
@@ -233,8 +238,9 @@ export function useDownloadVideoForm(
     selectedFormatPresetId,
   })
 
-  const is1080pAvailable =
-    availableHeights === null ? true : availableHeights.includes(1080)
+  const is1080pAvailable = videoMetadata
+    ? is1080pAvailableFromFormats(videoMetadata.formats)
+    : true
 
   const has1080pAuth =
     (useCookies && cookiesText.trim().length > 0) || useCookiesFromBrowser
@@ -246,12 +252,12 @@ export function useDownloadVideoForm(
     ? buildYtdlpExtraArgsFromSelection(extraArgSelection)
     : undefined
 
-  // --- Sync availableHeights when formatsResult changes ---
+  // --- Sync availableHeights when videoMetadata changes ---
   useEffect(() => {
-    if (formatsResult) {
-      setAvailableHeights(formatsResult.availableHeights)
+    if (videoMetadata) {
+      setAvailableHeights(extractAvailableHeights(videoMetadata.formats))
     }
-  }, [formatsResult])
+  }, [videoMetadata])
 
   // --- Force JS Runtime for YouTube ---
   useEffect(() => {
@@ -293,8 +299,8 @@ export function useDownloadVideoForm(
           setUseCookies(cached.useCookies)
           setUseCookiesFromBrowser(cached.useCookiesFromBrowser)
           setCookiesBrowser(cached.cookiesBrowser)
-        } else {
-          // Switching to a different domain with no cached cookies — reset
+        } else if (prevHostname) {
+          // Switching from a known domain to a different one with no cached cookies — reset
           setCookiesText("")
           setUseCookies(false)
           setUseCookiesFromBrowser(false)
