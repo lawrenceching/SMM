@@ -53,3 +53,20 @@ function parsePlaylist(obj: Record<string, unknown>): PlaylistMetadata {
 
     return { ...(obj as unknown as PlaylistMetadata), entries }
 }
+
+/**
+ * Resolves format-listing metadata from `yt-dlp -J` output.
+ * When yt-dlp returns a playlist (e.g. multi-part Bilibili URLs), uses the first entry.
+ */
+export function videoMetadataForFormatsListing(
+    parsed: VideoMetadata | PlaylistMetadata,
+): VideoMetadata {
+    if (parsed._type === "playlist") {
+        const first = parsed.entries[0]
+        if (!first) {
+            throw new Error("yt-dlp playlist has no entries")
+        }
+        return first
+    }
+    return parsed
+}

@@ -10,7 +10,7 @@ import {
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
-import { parse } from "@/api/ytdlp/parse";
+import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
 import type { VideoMetadata } from "@/api/ytdlp/types";
 
 export interface YtdlpDownloadRequest {
@@ -200,10 +200,7 @@ export async function listYtdlpFormats(
   }
 
   const parsed = parse(result.stdout);
-  if ("_type" in parsed && parsed._type === "playlist") {
-    throw new Error("yt-dlp returned a playlist; expected a single video");
-  }
-  return parsed as VideoMetadata;
+  return videoMetadataForFormatsListing(parsed);
 }
 
 export interface YtdlpBilibiliEpisodesResponse {

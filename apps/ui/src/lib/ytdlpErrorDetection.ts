@@ -23,3 +23,31 @@ export function classifyYtdlpError(errorText: string): YtdlpErrorResult {
 
   return { type: "unknown", message: "未知错误, 请从状态栏任务列表中查看详细日志" }
 }
+
+/** Log yt-dlp failure details to the browser console for debugging. */
+export function logYtdlpError(context: string, err: unknown): void {
+  const prefix = `[yt-dlp] ${context}`
+  if (err instanceof Error) {
+    console.error(`${prefix}: ${err.message}`)
+    if (err.stack) {
+      console.error(err.stack)
+    }
+    return
+  }
+  console.error(`${prefix}:`, err)
+}
+
+/**
+ * Classify a yt-dlp error and log unknown failures (message + stack when available).
+ */
+export function reportYtdlpError(
+  context: string,
+  errorText: string,
+  cause?: unknown,
+): YtdlpErrorResult {
+  const result = classifyYtdlpError(errorText)
+  if (result.type === "unknown") {
+    logYtdlpError(context, cause ?? errorText)
+  }
+  return result
+}

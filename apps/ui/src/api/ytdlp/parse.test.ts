@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { parse } from "./parse";
+import { parse, videoMetadataForFormatsListing } from "./parse";
 import type { PlaylistMetadata, VideoMetadata } from "./types";
 
 const FIXTURES_DIR = resolve(import.meta.dirname, "../../../../../docs/ytdlp");
@@ -76,6 +76,24 @@ describe("parse", () => {
         expect(entry.playlist_index).toBe(2);
         expect(entry.playlist_autonumber).toBe(2);
     });
+
+    it("videoMetadataForFormatsListing uses first playlist entry", () => {
+        const stdout = readFixture("dump-episodes.json");
+        const parsed = parse(stdout);
+        const video = videoMetadataForFormatsListing(parsed);
+
+        expect(video.id).toBe("BV1xJ38z3EkX_p1");
+        expect(video.formats.length).toBeGreaterThan(0);
+        expect(video.playlist_index).toBe(1);
+    });
+
+    it("videoMetadataForFormatsListing returns single video as-is", () => {
+        const stdout = readFixture("dump-single-video.json");
+        const parsed = parse(stdout);
+        const video = videoMetadataForFormatsListing(parsed);
+
+        expect(video.id).toBe("BV1fZRUBuEqc");
+    });
 });
 
 describe("parse error cases", () => {
@@ -117,5 +135,12 @@ describe("parse error cases", () => {
         expect(() =>
             parse(JSON.stringify({ _type: "playlist", id: "x" }))
         ).toThrow(/missing required field: entries/);
+    });
+
+    it("videoMetadataForFormatsListing throws when playlist has no entries", () => {
+        const playlist = parse(
+            JSON.stringify({ _type: "playlist", id: "x", entries: [] }),
+        );
+        expect(() => videoMetadataForFormatsListing(playlist)).toThrow(/no entries/);
     });
 });

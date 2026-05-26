@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import { listYtdlpFormats, type YtdlpListFormatsRequest } from "@/api/ytdlp"
 import type { VideoMetadata } from "@/api/ytdlp/types"
+import { reportYtdlpError } from "@/lib/ytdlpErrorDetection"
 
 export interface UseListFormatsMutationReturn {
   /** Parsed video metadata from `yt-dlp -J`, or null if not yet fetched. */
@@ -35,6 +36,7 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
       .catch((err) => {
         if (gen !== genRef.current) return
         const message = err instanceof Error ? err.message : String(err)
+        reportYtdlpError("list-formats", message, err)
         setListingError(message)
         setVideoMetadata(null)
         setIsListing(false)

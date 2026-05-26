@@ -86,8 +86,8 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onFolderSelect: action("onFolderSelect"),
 
     collectionEntriesLength: 0,
-    selectedCollectionUrlsSize: 0,
     isEnqueueing: false,
+    startButtonDisabled: true,
     onCancel: action("onCancel"),
     onStart: action("onStart"),
 
@@ -223,10 +223,10 @@ export const WithFormatCodes: Story = {
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     isUrlValid: true,
     formatCodes: [
-      { id: "18", ext: "mp4", resolution: "640x360", fps: 30, label: "18 - mp4 640x360 30fps", category: "combined" },
-      { id: "22", ext: "mp4", resolution: "1280x720", fps: 30, label: "22 - mp4 1280x720 30fps", category: "combined" },
-      { id: "140", ext: "m4a", resolution: "audio only", fps: null, label: "140 - m4a audio only", category: "audio-only" },
-      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, label: "136 - mp4 1280x720 30fps", category: "video-only" },
+      { id: "18", ext: "mp4", resolution: "640x360", fps: 30, title: "360P (640x360) mp4", subtitle: "~500kbps avc1", category: "combined" },
+      { id: "22", ext: "mp4", resolution: "1280x720", fps: 30, title: "720P (1280x720) mp4", subtitle: "~2Mbps avc1", category: "combined" },
+      { id: "140", ext: "m4a", resolution: "audio only", fps: null, title: "m4a", subtitle: "~128kbps mp4a.40.2", category: "audio-only" },
+      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, title: "720P (1280x720) mp4", subtitle: "~1.5Mbps avc1", category: "video-only" },
     ],
     formatMode: "format-code",
     selectedFormatCode: "18",
@@ -242,8 +242,8 @@ export const WithFormatCodesAudioOnly: Story = {
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     isUrlValid: true,
     formatCodes: [
-      { id: "140", ext: "m4a", resolution: "audio only", fps: null, label: "140 - m4a audio only", category: "audio-only" },
-      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, label: "136 - mp4 1280x720 30fps", category: "video-only" },
+      { id: "140", ext: "m4a", resolution: "audio only", fps: null, title: "m4a", subtitle: "~128kbps mp4a.40.2", category: "audio-only" },
+      { id: "136", ext: "mp4", resolution: "1280x720", fps: 30, title: "720P (1280x720) mp4", subtitle: "~1.5Mbps avc1", category: "video-only" },
     ],
     formatMode: "format-code",
     selectedFormatCode: "140",
@@ -371,7 +371,6 @@ export const WithCollection: Story = {
       "https://www.bilibili.com/video/BV1dd44",
       "https://www.bilibili.com/video/BV1ee55",
     ]),
-    selectedCollectionUrlsSize: 5,
   },
 }
 
