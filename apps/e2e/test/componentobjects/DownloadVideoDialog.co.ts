@@ -35,6 +35,26 @@ class DownloadVideoDialogCO {
         return $('[data-testid="download-video-dialog-url-input"]')
     }
 
+    get goButton() {
+        return $('[data-testid="download-video-dialog-go-button"]')
+    }
+
+    get listingError() {
+        return $('[data-testid="download-video-dialog-listing-error"]')
+    }
+
+    get quickjsError() {
+        return $('[data-testid="download-video-dialog-quickjs-unavailable"]')
+    }
+
+    get formatModePresetRadio() {
+        return $('[data-testid="download-video-dialog-format-mode-preset"]')
+    }
+
+    get formatModeCodeRadio() {
+        return $('[data-testid="download-video-dialog-format-mode-code"]')
+    }
+
     get useCookiesCheckbox() {
         return $('[data-testid="download-video-dialog-use-cookies-checkbox"]')
     }
@@ -167,10 +187,23 @@ class DownloadVideoDialogCO {
         const input = await this.urlInput
         await input.waitForDisplayed({ timeout: 5000 })
         await input.click()
-        await input.clearValue()
-        if (value.length > 0) {
-            await browser.keys(value)
-        }
+        // Use addValue to properly trigger React controlled input events
+        await input.setValue(value)
+    }
+
+    async clickGo(): Promise<void> {
+        const button = await this.goButton
+        await button.waitForClickable({ timeout: 5000 })
+        await button.click()
+    }
+
+    async triggerUrlWithEnter(value: string): Promise<void> {
+        const input = await this.urlInput
+        await input.waitForDisplayed({ timeout: 5000 })
+        await input.click()
+        await input.setValue(value)
+        // Press Enter to trigger Go
+        await browser.keys(['Enter'])
     }
 
     async setUseCookies(checked: boolean): Promise<void> {

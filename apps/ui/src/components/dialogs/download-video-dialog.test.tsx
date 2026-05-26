@@ -259,6 +259,10 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
           'downloadVideo.cookiesBrowserChrome': 'Chrome',
           'downloadVideo.cookiesBrowserEdge': 'Edge',
           'downloadVideo.cookiesBrowserFirefox': 'Firefox',
+          'downloadVideo.cookiesRequiredForYoutube': 'YouTube requires cookies to download videos.',
+          'downloadVideo.cookiesBrowserSelectLabel': 'Select browser',
+          'downloadVideo.useJsRuntimeLabel': 'Use JavaScript Runtime',
+          'downloadVideo.jsRuntimeQuickJS': 'QuickJS',
           'downloadVideo.cookiesEmpty': 'Enter cookie file content.',
           'downloadVideo.cookiesWriteFailed': 'Could not save cookies file.',
           'downloadVideo.moreOptions.label': 'More options...',
@@ -544,6 +548,125 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.queryByTestId('download-video-dialog-collection-list')).not.toBeInTheDocument()
   })
 
+  // ────────────────────────────────────────────────────────────────
+  // TC-CO-05: unchecking Get videos clears the collection list
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CO-05: unchecking Get videos clears the collection list', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        entries: [
+          { ie_key: 'BiliBili', id: 'BV1', _type: 'url', url: 'https://www.bilibili.com/video/BV1/' },
+          { ie_key: 'BiliBili', id: 'BV2', _type: 'url', url: 'https://www.bilibili.com/video/BV2/' },
+        ],
+      })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://space.bilibili.com/123/lists/456' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-collection-list')).toBeInTheDocument()
+    })
+
+    // Uncheck
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('download-video-dialog-collection-list')).not.toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CO-08: empty collection list → Start button not shown
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CO-08: empty collection list hides Start button', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({ entries: [] })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://space.bilibili.com/123/lists/456' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+
+    // Start button must not exist when collection has 0 entries
+    await waitFor(() => {
+      expect(screen.queryByTestId('download-video-dialog-start')).not.toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CO-10: deselecting all collection items disables Start
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CO-10: deselecting all collection items disables Start', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        entries: [
+          { ie_key: 'BiliBili', id: 'BV1', _type: 'url', url: 'https://www.bilibili.com/video/BV1/' },
+        ],
+      })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://space.bilibili.com/123/lists/456' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-start')).toBeInTheDocument()
+    })
+
+    // Deselect the only collection item
+    fireEvent.click(
+      screen.getByTestId('download-video-dialog-collection-checkbox-https://www.bilibili.com/video/BV1/'),
+    )
+
+    // Start should be disabled when nothing is selected
+    expect(screen.getByTestId('download-video-dialog-start')).toBeDisabled()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CO-11: changing URL clears collection state
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CO-11: changing URL clears the loaded collection list', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        entries: [
+          { ie_key: 'BiliBili', id: 'BV1', _type: 'url', url: 'https://www.bilibili.com/video/BV1/' },
+        ],
+      })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://space.bilibili.com/123/lists/456' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-get-videos-checkbox'))
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-collection-list')).toBeInTheDocument()
+    })
+
+    // Switch to a different URL (non-collection)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1/' },
+    })
+
+    // Get videos must be unchecked and collection list gone
+    await waitFor(() => {
+      expect(screen.queryByTestId('download-video-dialog-collection-list')).not.toBeInTheDocument()
+    })
+  })
+
   it('does not create a background job if user has not agreed, even when URL and folder look valid', () => {
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
@@ -616,6 +739,92 @@ describe('DownloadVideoDialog - user agreement', () => {
     )
   })
 
+  // ────────────────────────────────────────────────────────────────
+  // TC-MO-03: expanding JS Runtime shows the runtime select
+  // ────────────────────────────────────────────────────────────────
+  it('TC-MO-03: enabling Use JS Runtime shows the runtime select', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Open More Options
+    fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
+
+    // JS Runtime checkbox should exist but select should not be visible yet
+    const jsRuntimeCheckbox = screen.getByTestId('download-video-dialog-use-js-runtime-checkbox')
+    expect(jsRuntimeCheckbox).toBeInTheDocument()
+    expect(screen.queryByTestId('download-video-dialog-js-runtime-select')).not.toBeInTheDocument()
+
+    // Enable JS Runtime
+    fireEvent.click(jsRuntimeCheckbox)
+
+    // JS Runtime select should now appear
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-js-runtime-select')).toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-MO-04: YouTube URL forces JS Runtime enabled & disabled
+  // ────────────────────────────────────────────────────────────────
+  it('TC-MO-04: YouTube URL forces Use JS Runtime to be checked and disabled', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test' },
+    })
+
+    // Open More Options
+    fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
+
+    // JS Runtime checkbox must be checked (forced by YouTube)
+    const jsRuntimeCheckbox = screen.getByTestId('download-video-dialog-use-js-runtime-checkbox')
+    expect(jsRuntimeCheckbox).toHaveAttribute('aria-checked', 'true')
+
+    // JS Runtime checkbox must be disabled (forced — user cannot uncheck)
+    expect(jsRuntimeCheckbox).toBeDisabled()
+
+    // JS Runtime select should be visible since it's enabled
+    expect(screen.getByTestId('download-video-dialog-js-runtime-select')).toBeInTheDocument()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-MO-05: cookies position after format probe
+  // ────────────────────────────────────────────────────────────────
+  it('TC-MO-05: cookies appear at top level before probe, then inside More Options after probe', async () => {
+    // Reset so videoMetadata is null (before probe)
+    hListFormats.resultRef.current = null
+
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Before probe: Use cookies checkbox should be visible at top level
+    // (showCookiesAtTopLevel=true when videoMetadata is null)
+    expect(screen.getByTestId('download-video-dialog-use-cookies-checkbox')).toBeInTheDocument()
+
+    // Simulate probe completion by setting videoMetadata
+    hListFormats.resultRef.current = makeTestVideoMetadata([720, 480])
+
+    // Trigger re-render by changing URL slightly
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video?v=2' },
+    })
+
+    // After probe: Use cookies checkbox should NOT be at top level anymore
+    expect(
+      screen.queryByTestId('download-video-dialog-use-cookies-checkbox'),
+    ).not.toBeInTheDocument()
+  })
+
+  // TC-FMT-02: switching to a non-default format preset works
   it('passes 1080p format expression when that preset is selected', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -644,6 +853,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     )
   })
 
+  // TC-EP-02: YouTube URLs do not show the episodes checkbox
   it('does not show Download episodes checkbox for YouTube URL', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -655,6 +865,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.queryByLabelText('Download episodes')).not.toBeInTheDocument()
   })
 
+  // TC-EP-01: Bilibili URLs show the episodes checkbox
   it('shows Download episodes checkbox for bilibili URL', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -666,6 +877,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.getByLabelText('Download episodes')).toBeInTheDocument()
   })
 
+  // TC-EP-10: changing the URL resets episodes state
   it('unchecks Download episodes and clears episode list when bilibili URL changes', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
@@ -748,6 +960,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
   })
 
+  // TC-EP-08: episodes fetch error is displayed and list is cleared
   it('shows episodes fetch error and clears list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
@@ -767,6 +980,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.queryByText('Episode 1')).not.toBeInTheDocument()
   })
 
+  // TC-EP-11: stale metadata responses are discarded after URL change
   it('ignores stale episodes metadata response after URL changes', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     let firstHandlers: { onSuccess?: Function; onSettled?: Function } | undefined
@@ -817,6 +1031,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.queryByText('Old Episode')).not.toBeInTheDocument()
   })
 
+  // TC-EP-07: no enqueue when all episodes are deselected
   it('does not enqueue when episodes mode enabled but nothing selected', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -855,6 +1070,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     warnSpy.mockRestore()
   })
 
+  // TC-EP-06: one background job per selected episode with title/artist metadata
   it('creates one job per selected episode with itemMeta in episodes mode', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
@@ -912,6 +1128,173 @@ describe('DownloadVideoDialog - user agreement', () => {
     )
   })
 
+  // ────────────────────────────────────────────────────────────────
+  // TC-EP-03: checking episodes triggers loading state then displays list
+  // ────────────────────────────────────────────────────────────────
+  it('TC-EP-03: shows loading indicator while episodes are being fetched, then displays the list', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    // Use a deferred callback so the loading state is visible in the DOM
+    // before the episodes list replaces it.
+    let deferredHandlers: { onSuccess?: Function; onSettled?: Function } | undefined
+    h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
+      deferredHandlers = handlers as { onSuccess?: Function; onSettled?: Function }
+      // Defer via microtask so React can render the loading state first
+      queueMicrotask(() => {
+        deferredHandlers?.onSuccess?.({
+          error: null,
+          videos: [
+            {
+              id: 'BV1',
+              title: 'Episode 1 - Intro',
+              webpage_url: 'https://www.bilibili.com/video/BV1/',
+            },
+          ],
+        })
+        deferredHandlers?.onSettled?.()
+      })
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // First verify the episodes checkbox is present (canDownloadEpisodes is true)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1/' },
+    })
+    expect(screen.getByLabelText('Download episodes')).toBeInTheDocument()
+
+    // Click the episodes checkbox
+    fireEvent.click(screen.getByLabelText('Download episodes'))
+
+    // With queueMicrotask, the deferred callback fires on the next microtask.
+    // React 18 uses batch updates — the loading state and the resolved state
+    // may flush together. Verify the final rendered result instead.
+    await waitFor(() => {
+      expect(screen.getByTestId('download-video-dialog-episodes-panel')).toBeInTheDocument()
+      expect(screen.getByText('Episode 1 - Intro')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('download-video-dialog-episodes-list')).toBeInTheDocument()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-EP-04: unchecking episodes clears the list
+  // ────────────────────────────────────────────────────────────────
+  it('TC-EP-04: unchecking Download episodes clears the episode list', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        error: null,
+        videos: [
+          {
+            id: 'BV1',
+            title: 'Episode 1',
+            webpage_url: 'https://www.bilibili.com/video/BV1/',
+          },
+          {
+            id: 'BV2',
+            title: 'Episode 2',
+            webpage_url: 'https://www.bilibili.com/video/BV2/',
+          },
+        ],
+      })
+      handlers?.onSettled?.()
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1/' },
+    })
+
+    // First, load episodes
+    fireEvent.click(screen.getByLabelText('Download episodes'))
+    await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
+    expect(screen.getByText('Episode 2')).toBeInTheDocument()
+
+    // Now uncheck
+    fireEvent.click(screen.getByLabelText('Download episodes'))
+
+    // The episodes panel should disappear and all episode content should be gone
+    await waitFor(() => {
+      expect(screen.queryByTestId('download-video-dialog-episodes-panel')).not.toBeInTheDocument()
+      expect(screen.queryByText('Episode 1')).not.toBeInTheDocument()
+      expect(screen.queryByText('Episode 2')).not.toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-EP-05: individual episode toggle
+  // ────────────────────────────────────────────────────────────────
+  it('TC-EP-05: toggling individual episode checkbox changes selection state', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        error: null,
+        videos: [
+          {
+            id: 'BV1',
+            title: 'Episode 1',
+            webpage_url: 'https://www.bilibili.com/video/BV1/',
+          },
+          {
+            id: 'BV2',
+            title: 'Episode 2',
+            webpage_url: 'https://www.bilibili.com/video/BV2/',
+          },
+        ],
+      })
+      handlers?.onSettled?.()
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV-list/' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+
+    // Enable episodes
+    fireEvent.click(screen.getByLabelText('Download episodes'))
+    await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
+
+    // All episodes should be selected by default
+    const ep1Checkbox = screen.getByTestId(
+      'download-video-dialog-episode-checkbox-https://www.bilibili.com/video/BV1/',
+    )
+    const ep2Checkbox = screen.getByTestId(
+      'download-video-dialog-episode-checkbox-https://www.bilibili.com/video/BV2/',
+    )
+    expect(ep1Checkbox).toHaveAttribute('aria-checked', 'true')
+    expect(ep2Checkbox).toHaveAttribute('aria-checked', 'true')
+
+    // Deselect episode 2
+    fireEvent.click(ep2Checkbox)
+    expect(ep2Checkbox).toHaveAttribute('aria-checked', 'false')
+
+    // Episode 1 should still be selected
+    expect(ep1Checkbox).toHaveAttribute('aria-checked', 'true')
+
+    // Start should still work with episode 1 only
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.saveDownloadVideoJob).toHaveBeenCalledTimes(1)
+    })
+    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          videos: [
+            expect.objectContaining({
+              url: 'https://www.bilibili.com/video/BV1/',
+              title: 'Episode 1',
+            }),
+          ],
+        }),
+      }),
+    )
+  })
+
   it('shows toast error and keeps dialog open when save fails', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.saveDownloadVideoJob.mockImplementationOnce(() => {
@@ -954,6 +1337,25 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(mockOnClose).toHaveBeenCalled()
     expect(h.resetEpisodesMetadata).toHaveBeenCalled()
     expect(h.extractReset).toHaveBeenCalled()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FD-01: download folder shows destinationFolder prop
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FD-01: shows destinationFolder prop as initial download folder', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    // Use different defaultProps with destinationFolder set
+    renderWithQueryClient(
+      <DownloadVideoDialog
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenFilePicker={mockOnOpenFilePicker}
+        destinationFolder={'/home/user/downloads'}
+      />,
+    )
+
+    const folderInput = screen.getByLabelText('Download Folder') as HTMLInputElement
+    expect(folderInput.value).toBe('/home/user/downloads')
   })
 
   it('folder picker uses current folder as initialPath and callback updates input', () => {
@@ -1161,9 +1563,84 @@ describe('DownloadVideoDialog - user agreement', () => {
     await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('write failed'))
     expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
   })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CK-05: switching browser selection changes the displayed browser
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CK-05: enabling From browser shows browser select with correct default', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    // Reset videoMetadata to null so cookies appear at top level
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // From browser checkbox should be visible at top level
+    const fromBrowserCheckbox = screen.getByTestId(
+      'download-video-dialog-use-cookies-from-browser-checkbox',
+    )
+    expect(fromBrowserCheckbox).toBeInTheDocument()
+
+    // Browser select should exist but be disabled when From browser is unchecked
+    const browserSelect = screen.getByTestId('download-video-dialog-cookies-browser-select')
+    expect(browserSelect).toBeInTheDocument()
+
+    // Check From browser — browser select becomes enabled
+    fireEvent.click(fromBrowserCheckbox)
+    await waitFor(() => {
+      expect(fromBrowserCheckbox).toHaveAttribute('aria-checked', 'true')
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CK-06: YouTube without cookies shows required error and disables Go
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CK-06: YouTube URL without cookies shows required error and disables Go', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter a YouTube URL without configuring cookies
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test123' },
+    })
+
+    // Cookies required error should be visible
+    const requiredError = screen.getByTestId('download-video-dialog-cookies-required-hint')
+    expect(requiredError).toBeInTheDocument()
+    expect(requiredError.textContent).toBe('YouTube requires cookies to download videos.')
+
+    // Go button should be disabled
+    expect(screen.getByTestId('download-video-dialog-go-button')).toBeDisabled()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-CK-11: non-YouTube/Bilibili URL does not require cookies
+  // ────────────────────────────────────────────────────────────────
+  it('TC-CK-11: non-YouTube URL does not require cookies and Go is enabled', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter a generic URL (not YouTube/Bilibili)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Cookies required error must NOT be present for non-YouTube URLs
+    expect(
+      screen.queryByTestId('download-video-dialog-cookies-required-hint'),
+    ).not.toBeInTheDocument()
+
+    // Go button should be enabled
+    expect(screen.getByTestId('download-video-dialog-go-button')).toBeEnabled()
+  })
 })
 
-describe('DownloadVideoDialog - 1080p availability probe', () => {
+// ── 1080p availability probe / Format selection (4.3) ──
+describe('DownloadVideoDialog - 1080p availability probe / Format selection (4.3)', () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
@@ -1182,6 +1659,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
   })
 
+  // TC-FMT-03: unavailable suffix on 1080p option when formats lack 1080
   it('shows "1080p (unavailable)" label when probe returns no 1080 height', async () => {
     // Pre-set result so the component renders with probe already "complete"
         hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
@@ -1197,6 +1675,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     expect(option1080.textContent).toContain('unavailable')
   })
 
+  // TC-FMT-02 (complement): 1080p available — no suffix on option
   it('shows "1080p" label (no suffix) when probe returns 1080 in heights', async () => {
     // Pre-set result so the component renders with probe already "complete"
         hListFormats.resultRef.current = makeTestVideoMetadata([720, 1080])
@@ -1211,6 +1690,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     expect(option1080.textContent).not.toContain('unavailable')
   })
 
+  // TC-FMT-04: 1080p selected + unavailable + no cookies → Start disabled
   it('disables Start when 1080p selected but unavailable and no cookies configured', async () => {
     // Pre-set result so the component renders with probe already "complete" (no 1080)
         hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
@@ -1232,6 +1712,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     expect(startButton).toBeDisabled()
   })
 
+  // TC-FMT-05: 1080p selected + unavailable + cookies → Start enabled
   it('enables Start when 1080p selected, unavailable, but "From browser" is checked', async () => {
     // Pre-set result so the component renders with probe already "complete" (no 1080)
         hListFormats.resultRef.current = makeTestVideoMetadata([360, 480])
@@ -1257,6 +1738,7 @@ describe('DownloadVideoDialog - 1080p availability probe', () => {
     expect(startButton).not.toBeDisabled()
   })
 
+  // TC-FMT-06: probe failure → 1080p treated as available (failsafe)
   it('does not block Start when probe fails (unknown = available)', async () => {
     // Don't set resultRef.current — simulate probe failure (null = unknown = available)
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -1365,3 +1847,245 @@ describe('DownloadVideoDialog - QuickJS availability check', () => {
     expect(screen.queryByTestId('download-video-dialog-quickjs-unavailable')).not.toBeInTheDocument()
   })
 })
+
+// ── Format code selection (4.3) ──
+describe('DownloadVideoDialog - format code selection (4.3)', () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onOpenFilePicker: vi.fn(),
+    destinationFolder: 'C:\\downloads',
+  }
+
+  /**
+   * Create video metadata with formats that map to specific categories.
+   * buildFormatCodes uses vcodec/acodec to determine category:
+   *   - both present           → "combined"
+   *   - only vcodec            → "video-only"
+   *   - only acodec            → "audio-only"
+   */
+  function makeFormatCategoryMetadata(
+    categories: Array<{ category: 'combined' | 'audio-only' | 'video-only'; format_id: string; height?: number }>,
+  ) {
+    const base = makeTestVideoMetadata([])
+    base.formats = categories.map(({ category, format_id, height }) => ({
+      url: '',
+      ext: 'mp4',
+      format_id,
+      format: format_id,
+      protocol: 'https',
+      vcodec: category === 'audio-only' ? 'none' : 'avc1',
+      acodec: category === 'video-only' ? 'none' : 'mp4a.40.2',
+      vbr: category === 'audio-only' ? 0 : 100,
+      abr: category === 'video-only' ? 0 : 128,
+      tbr: 100,
+      width: height ? ((height * 16) / 9) | 0 : null,
+      height: height ?? null,
+      resolution: height ? `${((height * 16) / 9) | 0}x${height}` : 'audio only',
+      aspect_ratio: height ? 1.78 : null,
+      fps: height ? 30 : null,
+      dynamic_range: height ? 'SDR' : null,
+      quality: null,
+      filesize: null,
+      filesize_approx: null,
+      audio_ext: category === 'video-only' ? 'none' : 'm4a',
+      video_ext: category === 'audio-only' ? 'none' : 'mp4',
+      http_headers: {},
+    }))
+    return base
+  }
+
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.clearAllMocks()
+    clearCookiesCache()
+    h.validateDownloadUrl.mockReturnValue({ valid: true })
+    h.mutateListFormats.mockReset()
+    hListFormats.listFormats.mockReset()
+    hListFormats.resultRef.current = makeFormatCategoryMetadata([
+      { category: 'video-only', format_id: '137', height: 720 },
+      { category: 'audio-only', format_id: '140' },
+      { category: 'combined', format_id: '18', height: 360 },
+    ])
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+  })
+
+  afterEach(() => {
+    window.localStorage.clear()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-01: Default format preset is "default"
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-01: defaults to "Default (automatic)" format preset', async () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter a URL so FormatSection renders (isUrlValid becomes true)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    const trigger = screen.getByTestId('download-video-dialog-format-select')
+    expect(trigger.textContent).toMatch(/Default|默认/)
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-07: Switch to format-code mode → format code select appears
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-07: switching to format-code mode shows format code select', async () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter a URL so FormatSection renders
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Switch to format-code mode
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-mode-code'))
+
+    // Format code select should appear
+    expect(screen.getByTestId('download-video-dialog-format-code-select')).toBeInTheDocument()
+
+    // Supplementary format code select should NOT appear yet (no selection made)
+    expect(
+      screen.queryByTestId('download-video-dialog-supplementary-format-code-select'),
+    ).not.toBeInTheDocument()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-08: Audio-only format → supplementary video select appears
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-08: selecting audio-only format code shows supplementary video select', async () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Switch to format-code mode
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-mode-code'))
+
+    // Open format code select and pick the audio-only option
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-code-select'))
+    // Wait for portal options, then find by role filtering text
+    const options = await screen.findAllByRole('option')
+    const audioItem = options.find((opt) => {
+      const text = opt.textContent ?? ''
+      // Audio-only option: has audio codec but no video codec reference
+      return text.includes('mp4a') && !text.includes('avc1')
+    })
+    expect(audioItem).toBeTruthy()
+    fireEvent.click(audioItem!)
+
+    // Supplementary video format select should now appear
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('download-video-dialog-supplementary-format-code-select'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-09: Video-only format → supplementary audio select appears
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-09: selecting video-only format code shows supplementary audio select', async () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Switch to format-code mode
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-mode-code'))
+
+    // Open format code select and pick the video-only option
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-code-select'))
+    const videoItem = await screen.findByRole('option', { name: /720/i })
+    fireEvent.click(videoItem)
+
+    // Supplementary audio format select should now appear
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('download-video-dialog-supplementary-format-code-select'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-10: Combined format → no supplementary select
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-10: selecting combined format code does NOT show supplementary select', async () => {
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    // Switch to format-code mode
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-mode-code'))
+
+    // Open format code select and pick a combined option
+    fireEvent.click(screen.getByTestId('download-video-dialog-format-code-select'))
+    // Combined options contain both video and audio codec info — look for combined text
+    const options = await screen.findAllByRole('option')
+    // Pick the combined option (contains audio and video characteristics)
+    const combinedItem = options.find((opt) => {
+      const text = opt.textContent ?? ''
+      return text.includes('mp4a') && text.includes('avc1')
+    })
+    expect(combinedItem).toBeTruthy()
+    fireEvent.click(combinedItem!)
+
+    // Supplementary select must NOT appear for combined formats
+    expect(
+      screen.queryByTestId('download-video-dialog-supplementary-format-code-select'),
+    ).not.toBeInTheDocument()
+  })
+
+  // ────────────────────────────────────────────────────────────────
+  // TC-FMT-11: Episodes/collection mode hides format code UI
+  // ────────────────────────────────────────────────────────────────
+  it('TC-FMT-11: enabling episode download hides format code radio and select', async () => {
+    h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
+      handlers?.onSuccess?.({
+        error: null,
+        videos: [
+          {
+            id: 'BV1',
+            title: 'Episode 1',
+            webpage_url: 'https://www.bilibili.com/video/BV1/',
+          },
+        ],
+      })
+      handlers?.onSettled?.()
+    })
+
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    // Enter a Bilibili URL (canDownloadEpisodes becomes true)
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.bilibili.com/video/BV1/' },
+    })
+
+    // Format mode radio should be visible before enabling episodes
+    expect(
+      screen.getByTestId('download-video-dialog-format-mode-preset'),
+    ).toBeInTheDocument()
+
+    // Enable episode download
+    fireEvent.click(screen.getByLabelText('Download episodes'))
+    await waitFor(() => expect(screen.getByText('Episode 1')).toBeInTheDocument())
+
+    // Format mode radio should now be hidden
+    expect(
+      screen.queryByTestId('download-video-dialog-format-mode-preset'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId('download-video-dialog-format-mode-code'),
+    ).not.toBeInTheDocument()
+
+    // Format preset select should STILL be visible (episodes only hides the code UI)
+    expect(screen.getByTestId('download-video-dialog-format-select')).toBeInTheDocument()
+  })
+})
+

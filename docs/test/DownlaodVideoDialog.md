@@ -1,9 +1,19 @@
-# DownloadVideoDialog E2E 测试用例
+# DownloadVideoDialog 测试用例
 
-> 文档版本: 1.0  
+> 文档版本: 1.2  
 > 对应组件: `apps/ui/src/components/dialogs/download-video-dialog/`  
-> 测试框架: WebdriverIO 9 (E2E)  
-> 组件对象: `apps/e2e/test/componentobjects/DownloadVideoDialog.co.ts`
+> 测试框架: WebdriverIO 9 (E2E) + Vitest (Unit)  
+> E2E 组件对象: `apps/e2e/test/componentobjects/DownloadVideoDialog.co.ts`  
+> 单元测试: `apps/ui/src/components/dialogs/download-video-dialog.test.tsx`
+
+**覆盖方式图例**
+
+| 标记 | 含义 |
+|------|------|
+| E2E | 通过 WebdriverIO 端到端测试覆盖 |
+| Unit | 通过 Vitest 单元测试覆盖 |
+| Both | 同时通过 E2E 和单元测试覆盖 |
+| — | 尚未通过自动化测试覆盖 |
 
 ---
 
@@ -190,76 +200,89 @@ import {
 
 ### 4.1 用户协议流程
 
-| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
-|---|---------|---------|---------|---------|------|
-| **TC-AG-01** | 新用户打开对话框时显示协议 | localStorage 未设置 `userAgreed` | 1. 点击 MusicPanel 下载按钮<br>2. 等待对话框打开 | 1. 协议区域可见，包含标题和说明文字<br>2. URL 输入框、文件夹输入框、Start 按钮均处于禁用状态 | 功能 |
-| **TC-AG-02** | 勾选协议后启用控件 | localStorage 未设置 `userAgreed` | 1. 勾选同意复选框<br>2. 观察控件状态 | 1. 协议区域从 DOM 中移除<br>2. URL 输入框和文件夹输入框变为可用<br>3. localStorage 写入 `DownloadVideoDialog.userAgreed = true` | 功能 |
-| **TC-AG-03** | 已同意用户跳过协议 | localStorage 已设置 `userAgreed = true` | 1. 点击下载按钮<br>2. 等待对话框打开 | 1. 协议区域不显示<br>2. URL 和文件夹输入框默认可用 | 功能 |
-| **TC-AG-04** | 未勾协议时 Start 按钮无反应 | 对话框刚打开 | 1. 输入 URL<br>2. 输入文件夹<br>3. 点击 Start | 后台任务未被创建，对话框保持打开 | 功能 |
-| **TC-AG-05** | 取消/重置后重新打开保留协议状态 | 已勾选过协议并关闭对话框 | 1. 重新打开对话框 | 协议仍然不显示，控件可用 | 回归 |
+| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 | 覆盖方式 |
+|---|---------|---------|---------|---------|------|---------|
+| **TC-AG-01** | 新用户打开对话框时显示协议 | localStorage 未设置 `userAgreed` | 1. 点击 MusicPanel 下载按钮<br>2. 等待对话框打开 | 1. 协议区域可见，包含标题和说明文字<br>2. URL 输入框、文件夹输入框、Start 按钮均处于禁用状态 | 功能 | Both |
+| **TC-AG-02** | 勾选协议后启用控件 | localStorage 未设置 `userAgreed` | 1. 勾选同意复选框<br>2. 观察控件状态 | 1. 协议区域从 DOM 中移除<br>2. URL 输入框和文件夹输入框变为可用<br>3. localStorage 写入 `DownloadVideoDialog.userAgreed = true` | 功能 | Both |
+| **TC-AG-03** | 已同意用户跳过协议 | localStorage 已设置 `userAgreed = true` | 1. 点击下载按钮<br>2. 等待对话框打开 | 1. 协议区域不显示<br>2. URL 和文件夹输入框默认可用 | 功能 | Both |
+| **TC-AG-04** | 未勾协议时 Start 按钮无反应 | 对话框刚打开 | 1. 输入 URL<br>2. 输入文件夹<br>3. 点击 Start | 后台任务未被创建，对话框保持打开 | 功能 | Both |
+| **TC-AG-05** | 取消/重置后重新打开保留协议状态 | 已勾选过协议并关闭对话框 | 1. 重新打开对话框 | 协议仍然不显示，控件可用 | 回归 | E2E |
 
 ### 4.2 URL 输入与格式探测
 
-| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
-|---|---------|---------|---------|---------|------|
-| **TC-URL-01** | 输入有效 URL 后 Go 按钮可点击 | 已同意协议 | 1. 在 URL 输入框输入 `https://www.youtube.com/watch?v=dQw4w9WgXcQ`<br>2. 点击 Go 按钮 | 1. Go 按钮显示 Spinner 旋转<br>2. 格式探测 API 被调用<br>3. 格式选择区域出现<br>4. Cookies 区域移入 More Options | 功能 |
-| **TC-URL-02** | 输入无效 URL 时显示验证错误 | 已同意协议 | 1. 输入 `not-a-valid-url`<br>2. 点击 Go 按钮 | 1. URL 输入框显示红色边框<br>2. 错误提示文字出现<br>3. 格式探测不被调用 | 功能 |
-| **TC-URL-03** | 回车键触发 Go | 已同意协议 | 1. 输入有效 URL<br>2. 按 Enter 键 | 等价于点击 Go 按钮，格式探测被触发 | 功能 |
-| **TC-URL-04** | Go 在探测中时禁用 | 格式探测正在进行 | 1. 点击 Go<br>2. 等待期间再次点击 Go | 第二次点击无效，Go 按钮处于禁用状态 | 功能 |
-| **TC-URL-05** | 格式探测失败时显示错误 | 已同意协议 | 1. 输入一个会导致探测失败的 URL<br>2. 点击 Go | 1. 红色错误提示显示在 URL 下方<br>2. FormatSection 不渲染<br>3. Cookies 保持在顶部 | 异常 |
-| **TC-URL-06** | 更改 URL 时重置格式探测结果 | 已获取过一次格式 | 1. 输入 URL-A，点击 Go，获取格式<br>2. 将 URL 改为 URL-B | 格式选择区域消失，Cookies 移回顶部，之前的格式数据被清除 | 功能 |
-| **TC-URL-07** | YouTube URL 需要先检查 QuickJS | 已同意协议 | 1. 输入 YouTube URL<br>2. 点击 Go | 先调用 `fetchDiscoverExecutables()` 检查 QuickJS 可用性，不可用时显示错误 | 功能 |
-| **TC-URL-08** | QuickJS 不可用时显示错误并禁用 Start | QuickJS 未安装 | 1. 输入 YouTube URL<br>2. 勾选 From browser<br>3. 点击 Go | 1. 显示 QuickJS 不可用错误提示<br>2. Start 按钮被禁用 | 异常 |
-| **TC-URL-09** | 非 YouTube URL 不检查 QuickJS | 已同意协议 | 1. 输入 Bilibili URL<br>2. 点击 Go | QuickJS 检查不被触发 | 功能 |
+| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 | 覆盖方式 |
+|---|---------|---------|---------|---------|------|---------|
+| **TC-URL-01** | 输入有效 URL 后 Go 按钮可点击 | 已同意协议 | 1. 在 URL 输入框输入 `https://www.youtube.com/watch?v=dQw4w9WgXcQ`<br>2. 点击 Go 按钮 | 1. Go 按钮显示 Spinner 旋转<br>2. 格式探测 API 被调用<br>3. 格式选择区域出现<br>4. Cookies 区域移入 More Options | 功能 | E2E |
+| **TC-URL-02** | 输入无效 URL 时显示验证错误 | 已同意协议 | 1. 输入 `not-a-valid-url`<br>2. 点击 Go 按钮 | 1. URL 输入框显示红色边框<br>2. 错误提示文字出现<br>3. 格式探测不被调用 | 功能 | E2E |
+| **TC-URL-03** | 回车键触发 Go | 已同意协议 | 1. 输入有效 URL<br>2. 按 Enter 键 | 等价于点击 Go 按钮，格式探测被触发 | 功能 | E2E |
+| **TC-URL-04** | Go 在探测中时禁用 | 格式探测正在进行 | 1. 点击 Go<br>2. 等待期间再次点击 Go | 第二次点击无效，Go 按钮处于禁用状态 | 功能 | E2E |
+| **TC-URL-05** | 格式探测失败时显示错误 | 已同意协议 | 1. 输入一个会导致探测失败的 URL<br>2. 点击 Go | 1. 红色错误提示显示在 URL 下方<br>2. FormatSection 不渲染<br>3. Cookies 保持在顶部 | 异常 | E2E |
+| **TC-URL-06** | 更改 URL 时重置格式探测结果 | 已获取过一次格式 | 1. 输入 URL-A，点击 Go，获取格式<br>2. 将 URL 改为 URL-B | 格式选择区域消失，Cookies 移回顶部，之前的格式数据被清除 | 功能 | E2E |
+| **TC-URL-07** | YouTube URL 需要先检查 QuickJS | 已同意协议 | 1. 输入 YouTube URL<br>2. 点击 Go | 先调用 `fetchDiscoverExecutables()` 检查 QuickJS 可用性，不可用时显示错误 | 功能 | E2E |
+| **TC-URL-08** | QuickJS 不可用时显示错误并禁用 Start | QuickJS 未安装 | 1. 输入 YouTube URL<br>2. 勾选 From browser<br>3. 点击 Go | 1. 显示 QuickJS 不可用错误提示<br>2. Start 按钮被禁用 | 异常 | Unit |
+| **TC-URL-09** | 非 YouTube URL 不检查 QuickJS | 已同意协议 | 1. 输入 Bilibili URL<br>2. 点击 Go | QuickJS 检查不被触发 | 功能 | E2E |
+
+> **TC-URL-08** 由单元测试覆盖（参见 `download-video-dialog.test.tsx` → `DownloadVideoDialog - QuickJS availability check`）。
 
 ### 4.3 格式选择
 
-| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
-|---|---------|---------|---------|---------|------|
-| **TC-FMT-01** | 默认格式预设选中 default | 格式探测成功 | 查看格式选择器 | 默认选中 `Default (automatic)` | 功能 |
-| **TC-FMT-02** | 切换格式预设（例如 1080p） | 格式探测成功 | 1. 打开格式选择器<br>2. 选择 `1080p` | 1. 选择器显示 1080p<br>2. 传入后台任务的 ytdlpFormat 对应更新 | 功能 |
-| **TC-FMT-03** | 1080p 不可用时显示 unavailable 标记 | 探测返回格式不含 1080p | 1. 打开格式选择器 | `1080p` 选项显示 `(unavailable)` 后缀 | 功能 |
-| **TC-FMT-04** | 1080p 不可用且无 Cookies 时 Start 禁用 | 探测结果不含 1080p，未配置 Cookies | 1. 选择 1080p<br>2. 查看 Start | Start 按钮被禁用，显示 1080p 需要认证提示 | 功能 |
-| **TC-FMT-05** | 1080p 不可用但有 Cookies 时 Start 可用 | 探测结果不含 1080p，已开启 From Browser | 1. 在 More Options 中勾选 From browser<br>2. 选择 1080p<br>3. 查看 Start | Start 按钮可用 | 功能 |
-| **TC-FMT-06** | 探测失败时 1080p 视为可用 | 格式探测未执行或失败 | 1. 选择 1080p | Start 按钮仍然可用（failsafe） | 功能 |
-| **TC-FMT-07** | 切换到格式码模式 | 格式探测成功 | 1. 点击 Format code radio<br>2. 查看格式码选择器 | 1. 格式码下拉框出现<br>2. 格式码分组合并、仅音频、仅视频显示 | 功能 |
-| **TC-FMT-08** | 选择音频格式码时显示补充视频选项 | 格式码模式，选中音频码 | 1. 切换到 Format code 模式<br>2. 选择一个 audio-only 格式码 | 补充格式码选择器出现，列出 video-only 选项 | 功能 |
-| **TC-FMT-09** | 选择视频格式码时显示补充音频选项 | 格式码模式，选中视频码 | 1. 切换到 Format code 模式<br>2. 选择一个 video-only 格式码 | 补充格式码选择器出现，列出 audio-only 选项 | 功能 |
-| **TC-FMT-10** | 选择 combined 格式码时不显示补充选项 | 格式码模式，选中 combined 码 | 1. 选择一个 combined 格式码 | 补充格式码选择器不出现 | 功能 |
-| **TC-FMT-11** | 剧集/合集模式下隐藏格式码 UI | 勾选 Download episodes 或 Get videos | 1. 选中剧集或合集<br>2. 查看格式区域 | 格式区域被隐藏（`hideFormatCodeUi = true`） | 功能 |
+| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 | 覆盖方式 |
+|---|---------|---------|---------|---------|------|---------|
+| **TC-FMT-01** | 默认格式预设选中 default | 格式探测成功 | 查看格式选择器 | 默认选中 `Default (automatic)` | 功能 | Unit |
+| **TC-FMT-02** | 切换格式预设（例如 1080p） | 格式探测成功 | 1. 打开格式选择器<br>2. 选择 `1080p` | 1. 选择器显示 1080p<br>2. 传入后台任务的 ytdlpFormat 对应更新 | 功能 | Unit |
+| **TC-FMT-03** | 1080p 不可用时显示 unavailable 标记 | 探测返回格式不含 1080p | 1. 打开格式选择器 | `1080p` 选项显示 `(unavailable)` 后缀 | 功能 | Unit |
+| **TC-FMT-04** | 1080p 不可用且无 Cookies 时 Start 禁用 | 探测结果不含 1080p，未配置 Cookies | 1. 选择 1080p<br>2. 查看 Start | Start 按钮被禁用，显示 1080p 需要认证提示 | 功能 | Unit |
+| **TC-FMT-05** | 1080p 不可用但有 Cookies 时 Start 可用 | 探测结果不含 1080p，已开启 From Browser | 1. 在 More Options 中勾选 From browser<br>2. 选择 1080p<br>3. 查看 Start | Start 按钮可用 | 功能 | Unit |
+| **TC-FMT-06** | 探测失败时 1080p 视为可用 | 格式探测未执行或失败 | 1. 选择 1080p | Start 按钮仍然可用（failsafe） | 功能 | Unit |
+| **TC-FMT-07** | 切换到格式码模式 | 格式探测成功 | 1. 点击 Format code radio<br>2. 查看格式码选择器 | 1. 格式码下拉框出现<br>2. 格式码分组合并、仅音频、仅视频显示 | 功能 | Unit |
+| **TC-FMT-08** | 选择音频格式码时显示补充视频选项 | 格式码模式，选中音频码 | 1. 切换到 Format code 模式<br>2. 选择一个 audio-only 格式码 | 补充格式码选择器出现，列出 video-only 选项 | 功能 | Unit |
+| **TC-FMT-09** | 选择视频格式码时显示补充音频选项 | 格式码模式，选中视频码 | 1. 切换到 Format code 模式<br>2. 选择一个 video-only 格式码 | 补充格式码选择器出现，列出 audio-only 选项 | 功能 | Unit |
+| **TC-FMT-10** | 选择 combined 格式码时不显示补充选项 | 格式码模式，选中 combined 码 | 1. 选择一个 combined 格式码 | 补充格式码选择器不出现 | 功能 | Unit |
+| **TC-FMT-11** | 剧集/合集模式下隐藏格式码 UI | 勾选 Download episodes 或 Get videos | 1. 选中剧集或合集<br>2. 查看格式区域 | 格式区域被隐藏（`hideFormatCodeUi = true`） | 功能 | Unit |
 
 ### 4.4 Cookies 配置
 
-| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
-|---|---------|---------|---------|---------|------|
-| **TC-CK-01** | 勾选 Use cookies 后显示 Configure 按钮 | 已同意协议 | 1. 勾选 `Use cookies` | 1. Configure 按钮可点击<br>2. 提示文字变为 `cookiesNotProvided` | 功能 |
-| **TC-CK-02** | 点击 Configure 打开文本编辑器 | 已勾选 Use cookies | 1. 点击 Configure 按钮 | 1. 文本编辑对话框打开<br>2. 标题、描述、标签正确显示<br>3. 可输入 Netscape cookie 文本 | 功能 |
-| **TC-CK-03** | 确认编辑后 cookiesText 更新 | 文本编辑器打开 | 1. 输入 cookie 文本<br>2. 点击确认 | 1. 文本编辑器关闭<br>2. Use cookies 保持勾选<br>3. cookiesNotProvided 提示消失 | 功能 |
-| **TC-CK-04** | 勾选 From browser 后显示浏览器选择器 | 已同意协议 | 1. 勾选 `From browser` | 1. 浏览器选择器出现<br>2. 默认选中 `Firefox`（或其他平台可用浏览器） | 功能 |
-| **TC-CK-05** | 切换浏览器选项 | From browser 已勾选 | 1. 打开浏览器选择器<br>2. 选择 `Chrome` | 选择器显示 Chrome | 功能 |
-| **TC-CK-06** | YouTube 需要 Cookies 但未配置时显示错误 | YouTube URL，未勾选 Use cookies 或 From browser | 1. 输入 YouTube URL<br>2. 尝试点击 Go 或 Start | 1. 显示 `cookiesRequiredForYoutube` 错误<br>2. Go 按钮禁用 | 功能 |
-| **TC-CK-07** | 切换域名时 Cookie 缓存恢复 | 已为某域名缓存过 Cookies | 1. 输入 youtube.com URL → 配置 Cookies<br>2. 改输入 bilibili.com URL<br>3. 改回 youtube.com URL | 切换回 youtube.com 时，之前配置的 Cookies 被自动恢复 | 功能 |
-| **TC-CK-08** | 切换到一个无缓存域名时 Cookies 重置 | 已为某域名缓存过 Cookies | 1. 输入 youtube.com URL → 配置 Cookies<br>2. 改输入 bilibili.com URL（无缓存） | Cookies 选项被重置为未勾选 | 功能 |
-| **TC-CK-09** | Use cookies 启用但内容为空时 Start 禁用 | 已勾选 Use cookies 但未输入内容 | 1. 输入有效 URL 和文件夹<br>2. 查看 Start 按钮 | Start 按钮禁用 | 功能 |
-| **TC-CK-10** | 写入 Cookies 文件失败时显示错误 | Use cookies 启用且有内容 | 1. 模拟 cookies 文件写入失败<br>2. 点击 Start | 1. 显示 toast 错误<br>2. 后台任务未被创建 | 异常 |
-| **TC-CK-11** | From browser 未勾选的 URL 不需要 Cookies 也不检查 | 非 YouTube/Bilibili URL | 1. 输入 `https://example.com/video`<br>2. 点击 Go | Cookies 区域不显示，Go 按钮可用 | 功能 |
+| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 | 覆盖方式 |
+|---|---------|---------|---------|---------|------|---------|
+| **TC-CK-01** | 勾选 Use cookies 后显示 Configure 按钮 | 已同意协议 | 1. 勾选 `Use cookies` | 1. Configure 按钮可点击<br>2. 提示文字变为 `cookiesNotProvided` | 功能 | Unit |
+| **TC-CK-02** | 点击 Configure 打开文本编辑器 | 已勾选 Use cookies | 1. 点击 Configure 按钮 | 1. 文本编辑对话框打开<br>2. 标题、描述、标签正确显示<br>3. 可输入 Netscape cookie 文本 | 功能 | Unit |
+| **TC-CK-03** | 确认编辑后 cookiesText 更新 | 文本编辑器打开 | 1. 输入 cookie 文本<br>2. 点击确认 | 1. 文本编辑器关闭<br>2. Use cookies 保持勾选<br>3. cookiesNotProvided 提示消失 | 功能 | Unit |
+| **TC-CK-04** | 勾选 From browser 后显示浏览器选择器 | 已同意协议 | 1. 勾选 `From browser` | 1. 浏览器选择器出现<br>2. 默认选中 `Firefox`（或其他平台可用浏览器） | 功能 | Unit |
+| **TC-CK-05** | 切换浏览器选项 | From browser 已勾选 | 1. 打开浏览器选择器<br>2. 选择 `Chrome` | 选择器显示 Chrome | 功能 | Unit |
+| **TC-CK-06** | YouTube 需要 Cookies 但未配置时显示错误 | YouTube URL，未勾选 Use cookies 或 From browser | 1. 输入 YouTube URL<br>2. 尝试点击 Go 或 Start | 1. 显示 `cookiesRequiredForYoutube` 错误<br>2. Go 按钮禁用 | 功能 | Unit |
+| **TC-CK-07** | 切换域名时 Cookie 缓存恢复 | 已为某域名缓存过 Cookies | 1. 输入 youtube.com URL → 配置 Cookies<br>2. 改输入 bilibili.com URL<br>3. 改回 youtube.com URL | 切换回 youtube.com 时，之前配置的 Cookies 被自动恢复 | 功能 | Unit |
+| **TC-CK-08** | 切换到一个无缓存域名时 Cookies 重置 | 已为某域名缓存过 Cookies | 1. 输入 youtube.com URL → 配置 Cookies<br>2. 改输入 bilibili.com URL（无缓存） | Cookies 选项被重置为未勾选 | 功能 | Unit |
+| **TC-CK-09** | Use cookies 启用但内容为空时 Start 禁用 | 已勾选 Use cookies 但未输入内容 | 1. 输入有效 URL 和文件夹<br>2. 查看 Start 按钮 | Start 按钮禁用 | 功能 | Unit |
+| **TC-CK-10** | 写入 Cookies 文件失败时显示错误 | Use cookies 启用且有内容 | 1. 模拟 cookies 文件写入失败<br>2. 点击 Start | 1. 显示 toast 错误<br>2. 后台任务未被创建 | 异常 | Unit |
+| **TC-CK-11** | From browser 未勾选的 URL 不需要 Cookies 也不检查 | 非 YouTube/Bilibili URL | 1. 输入 `https://example.com/video`<br>2. 点击 Go | Cookies 区域不显示，Go 按钮可用 | 功能 | Unit |
+
+**覆盖方式说明**
+
+| 标记 | 含义 |
+|------|------|
+| E2E | 通过 WebdriverIO E2E 测试覆盖 |
+| Unit | 通过 Vitest 单元测试覆盖 (`download-video-dialog.test.tsx`) |
+| Both | 同时通过 E2E 和单元测试覆盖 |
+| — | 尚未通过自动化测试覆盖 |
 
 ### 4.5 剧集下载
 
-| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
-|---|---------|---------|---------|---------|------|
-| **TC-EP-01** | Bilibili URL 显示 Download Episodes 复选框 | 已同意协议 | 1. 输入 Bilibili 视频 URL | `Download episodes` 复选框出现 | 功能 |
-| **TC-EP-02** | YouTube URL 不显示 Download Episodes | 已同意协议 | 1. 输入 YouTube 视频 URL | `Download episodes` 复选框不存在 | 功能 |
-| **TC-EP-03** | 勾选 Download episodes 后加载剧集列表 | Bilibili URL | 1. 勾选 `Download episodes` | 1. 剧集列表面板出现<br>2. 显示 Loading 文字<br>3. 加载完成后显示剧集列表<br>4. 所有剧集默认勾选 | 功能 |
-| **TC-EP-04** | 取消勾选时清空剧集列表 | 已加载剧集列表 | 1. 取消勾选 `Download episodes` | 1. 剧集列表被清除<br>2. 复选状态回到未选中 | 功能 |
-| **TC-EP-05** | 可以取消选择个别剧集 | 已加载剧集列表 | 1. 取消勾选某一集的复选框 | 该集从 `selectedEpisodeUrls` 中移除 | 功能 |
-| **TC-EP-06** | 开始下载时按选中的剧集创建单个任务 | 已选择部分剧集 | 1. 选择第 1、2 集<br>2. 点击 Start | 1. 为第 1 集创建一个任务<br>2. 任务包含正确的 `itemMeta`（title, artist） | 功能 |
-| **TC-EP-07** | 所有剧集取消选中后 Start 仅打印警告 | 已选择 0 个剧集 | 1. 取消勾选所有剧集<br>2. 点击 Start | 1. console.warn 被调用<br>2. 后台任务不被创建 | 边界 |
-| **TC-EP-08** | 剧集加载失败时显示错误 | 可返回错误的 URL | 1. 勾选 Download episodes | 1. 显示错误提示文字<br>2. 剧集列表为空 | 异常 |
-| **TC-EP-09** | 剧集请求超时处理 | 请求响应极慢 | 1. 勾选 Download episodes | 显示加载状态直至超时或取消 | 异常 |
-| **TC-EP-10** | 更改 URL 时清除旧的剧集状态 | 已加载剧集列表 | 1. 为 URL-A 加载剧集列表<br>2. 将 URL 改为 URL-B | 1. Download episodes 恢复为未勾选<br>2. 旧剧集列表被清除 | 功能 |
-| **TC-EP-11** | 忽略过期的剧集元数据响应 | 快速切换 URL | 1. 切 URL 两次<br>2. 旧 URL 的响应在切换后到达 | 旧响应被丢弃，最终列表显示新 URL 的剧集 | 功能 |
-| **TC-EP-12** | 合集 URL 不显示剧集选项 | Bilibili 合集 URL | 1. 输入合集 URL | Download episodes 复选框不出现，Get videos 出现 | 功能 |
+| # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 | 覆盖方式 |
+|---|---------|---------|---------|---------|------|---------|
+| **TC-EP-01** | Bilibili URL 显示 Download Episodes 复选框 | 已同意协议 | 1. 输入 Bilibili 视频 URL | `Download episodes` 复选框出现 | 功能 | Unit |
+| **TC-EP-02** | YouTube URL 不显示 Download Episodes | 已同意协议 | 1. 输入 YouTube 视频 URL | `Download episodes` 复选框不存在 | 功能 | Unit |
+| **TC-EP-03** | 勾选 Download episodes 后加载剧集列表 | Bilibili URL | 1. 勾选 `Download episodes` | 1. 剧集列表面板出现<br>2. 显示 Loading 文字<br>3. 加载完成后显示剧集列表<br>4. 所有剧集默认勾选 | 功能 | Unit |
+| **TC-EP-04** | 取消勾选时清空剧集列表 | 已加载剧集列表 | 1. 取消勾选 `Download episodes` | 1. 剧集列表被清除<br>2. 复选状态回到未选中 | 功能 | Unit |
+| **TC-EP-05** | 可以取消选择个别剧集 | 已加载剧集列表 | 1. 取消勾选某一集的复选框 | 该集从 `selectedEpisodeUrls` 中移除 | 功能 | Unit |
+| **TC-EP-06** | 开始下载时按选中的剧集创建单个任务 | 已选择部分剧集 | 1. 选择第 1、2 集<br>2. 点击 Start | 1. 为第 1 集创建一个任务<br>2. 任务包含正确的 `itemMeta`（title, artist） | 功能 | Unit |
+| **TC-EP-07** | 所有剧集取消选中后 Start 仅打印警告 | 已选择 0 个剧集 | 1. 取消勾选所有剧集<br>2. 点击 Start | 1. console.warn 被调用<br>2. 后台任务不被创建 | 边界 | Unit |
+| **TC-EP-08** | 剧集加载失败时显示错误 | 可返回错误的 URL | 1. 勾选 Download episodes | 1. 显示错误提示文字<br>2. 剧集列表为空 | 异常 | Unit |
+| **TC-EP-09** | 剧集请求超时处理 | 请求响应极慢 | 1. 勾选 Download episodes | 显示加载状态直至超时或取消 | 异常 | — |
+| **TC-EP-10** | 更改 URL 时清除旧的剧集状态 | 已加载剧集列表 | 1. 为 URL-A 加载剧集列表<br>2. 将 URL 改为 URL-B | 1. Download episodes 恢复为未勾选<br>2. 旧剧集列表被清除 | 功能 | Unit |
+| **TC-EP-11** | 忽略过期的剧集元数据响应 | 快速切换 URL | 1. 切 URL 两次<br>2. 旧 URL 的响应在切换后到达 | 旧响应被丢弃，最终列表显示新 URL 的剧集 | 功能 | Unit |
+| **TC-EP-12** | 合集 URL 不显示剧集选项 | Bilibili 合集 URL | 1. 输入合集 URL | Download episodes 复选框不出现，Get videos 出现 | 功能 | Unit |
+
+> **TC-EP-09** 超时场景依赖异步时序控制，建议留待手工测试验证。
 
 ### 4.6 合集下载
 
@@ -285,8 +308,8 @@ import {
 | **TC-MO-02** | 勾选 Write thumbnail 后 ExtraArgs 包含该参数 | More Options 已展开 | 1. 勾选 `Write thumbnail`<br>2. 点击 Start | 后台任务包含 `ytdlpExtraArgs: ['--write-thumbnail']` | 功能 |
 | **TC-MO-03** | JS Runtime 选项 | More Options 已展开 | 1. 勾选 `Use JS Runtime` | 1. JS Runtime 下拉框出现<br>2. 可选择 quickjs 等运行时 | 功能 |
 | **TC-MO-04** | YouTube URL 强制启用 JS Runtime | YouTube URL，More Options 已展开 | 1. 输入 YouTube URL | JS Runtime 复选框被勾选且禁用 | 功能 |
-| **TC-MO-05** | 格式探测后 Cookies 移入 More Options | 格式探测完成 | 1. 点击 Go 完成格式探测 | Cookies Section 出现在 More Options 内部 | 功能 |
-| **TC-MO-06** | 更多选项中的 Cookies 行为与顶部一致 | Cookies 在 More Options 中 | 1. 勾选 Use cookies<br>2. 点击 Configure<br>3. 输入内容确认 | 行为与 TC-CK-02/03 一致 | 回归 |
+| **TC-MO-05** | 格式探测后 Cookies 移入 More Options | 格式探测完成 | 1. 点击 Go 完成格式探测 | Cookies Section 出现在 More Options 内部 | 功能 | Unit |
+| **TC-MO-06** | 更多选项中的 Cookies 行为与顶部一致 | Cookies 在 More Options 中 | 1. 勾选 Use cookies<br>2. 点击 Configure<br>3. 输入内容确认 | 行为与 TC-CK-02/03 一致 | 回归 | Unit |
 
 ### 4.8 下载文件夹选择
 
@@ -307,23 +330,14 @@ import {
 | **TC-DL-03** | 下载 Bilibili 合集 | 已创建媒体文件夹 | 1. 打开对话框<br>2. 同意协议<br>3. 输入合集 URL<br>4. 选择 720p 格式<br>5. 勾选 Get videos<br>6. 等待合集列表加载<br>7. 取消部分视频<br>8. 点击 Start<br>9. 等待下载完成 | 1. 目标文件夹包含选中的视频<br>2. 不存在 `.part` 文件（下载已完成）<br>3. 不包含未选中的视频 | 集成 |
 | **TC-DL-04** | 下载单个 YouTube 视频 | 已创建媒体文件夹<br>已配置网络代理（如需） | 1. 输入 YouTube URL<br>2. 配置 Cookies<br>3. 点击 Start<br>4. 等待下载完成 | 1. 目标文件夹包含视频文件<br>2. 包含缩略图文件 | 集成 |
 | **TC-DL-05** | 下载完成后的视频在 MusicPanel 表格中显示 | 下载完成 | 1. 完成上面任一下载测试后<br>2. 查看 MusicPanel 表格 | 表格中出现对应标题的行 | 集成 |
-| **TC-DL-06** | 下载完成后后台任务自动隐藏 | 下载完成，文件已在库中 | 1. 查看 Tracks 列表 | 已完成的任务行不显示（被库文件合并） | 集成 |
 | **TC-DL-07** | 取消按钮关闭对话框 | 对话框已打开 | 1. 点击 Cancel 按钮 | 1. 对话框关闭<br>2. 重置 hooks 被调用（resetEpisodesMetadata, extractReset 等） | 功能 |
 
 ### 4.10 UI 交互边界
 
 | # | 用例名称 | 前置条件 | 操作步骤 | 预期结果 | 类型 |
 |---|---------|---------|---------|---------|------|
-| **TC-UI-01** | 表单繁忙时所有控件禁用 | 某个异步操作正在进行（如格式探测、入队中） | 1. 触发操作<br>2. 检查控件状态 | URL 输入框、Go 按钮、格式选择器、Start 按钮、所有复选框均禁用 | UI |
-| **TC-UI-02** | 入队过程中 Start 按钮显示 "Downloading..." | 点击 Start 后入队中 | 1. 点击 Start | Start 按钮文字变为 `Downloading...` | UI |
 | **TC-UI-03** | 入队失败时显示 toast 并保持对话框打开 | 后台任务创建失败 | 1. 模拟失败<br>2. 点击 Start | 1. toast 显示错误消息<br>2. 对话框保持打开<br>3. Start 按钮恢复可用 | 异常 |
-| **TC-UI-04** | 剧集加载中时 Start 按钮禁用 | 剧集列表正在加载 | 1. 勾选 Download episodes<br>2. 在加载完成前查看 Start | Start 按钮禁用 | UI |
-| **TC-UI-05** | 合集加载中时 Start 按钮禁用 | 合集列表正在加载 | 1. 勾选 Get videos<br>2. 在加载完成前查看 Start | Start 按钮禁用 | UI |
-| **TC-UI-06** | 滚动长列表时对话框可滚动 | 集数 > 10 的剧集 | 1. 勾选 Download episodes<br>2. 等待剧集列表加载 | 列表显示滚动条，可滚动 | UI |
 | **TC-UI-07** | 关闭对话框后重置所有状态 | DialogFooter Start 已修改过状态 | 1. 输入 URL、选择格式、配置 Cookies<br>2. 点击 Cancel | 下次打开时所有字段回到初始状态 | 功能 |
-| **TC-UI-08** | 浏览器尺寸变化时无布局溢出 | 小屏浏览器 | 1. 调整浏览器窗口大小 | 对话框不溢出，内容适应 | UI |
-| **TC-UI-09** | 键盘导航支持 Tab 顺序 | 对话框打开 | 1. 按 Tab 键多次 | 焦点按预期顺序在控件间移动：URL → Go → 格式 → ... → Cancel → Start | 无障碍 |
-| **TC-UI-10** | Escape 键关闭对话框 | 对话框打开 | 1. 按 Escape 键 | 对话框关闭 | 无障碍 |
 
 ---
 
