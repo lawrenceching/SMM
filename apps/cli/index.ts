@@ -3,11 +3,10 @@ import {
   applyTmdbTlsDevBypassToProcessIfEnabled,
   trustAllTmdbCertEnabled,
 } from '@/utils/tmdbTls';
-import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
-import { executeHelloTask } from 'tasks/HelloTask';
 import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
+import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
 
@@ -78,6 +77,14 @@ if (trustAllTmdbCertEnabled()) {
 logger.info(`User data directory: ${userDataDir}`);
 logger.info(`App data directory: ${appDataDir}`);
 logger.info(`Log directory: ${logDir}`);
+
+// Clean up old command execution log directories
+const cleaner = new CommandLogCleaner({ logDir, maxLogDirs: 100 });
+const cleanResult = await cleaner.clean();
+logger.info(
+  { removed: cleanResult.removed, remaining: cleanResult.remaining },
+  'Command log cleanup result',
+);
 
 // Create and start the server
 const server = new Server({
