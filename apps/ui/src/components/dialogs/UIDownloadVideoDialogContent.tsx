@@ -205,6 +205,7 @@ export function UIDownloadVideoDialogContent({
   tCommon,
 }: UIDownloadVideoDialogContentProps) {
   const hasFetchedFormats = formatCodes.length > 0
+  const showCookiesRequiredError = isYoutube && !useCookies && !useCookiesFromBrowser
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -254,7 +255,7 @@ export function UIDownloadVideoDialogContent({
                 className="text-sm text-destructive"
                 data-testid="download-video-dialog-quickjs-unavailable"
               >
-                无法找到JavaScript运行时
+                JavaScript 运行时 QuickJS 不可用, 请尝试安装最新版本
               </p>
             )}
 
@@ -266,6 +267,7 @@ export function UIDownloadVideoDialogContent({
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
+                showCookiesRequiredError={showCookiesRequiredError}
                 formBusy={formBusy}
                 platform={platform}
                 onUseCookiesChange={onUseCookiesChange}
@@ -325,6 +327,7 @@ export function UIDownloadVideoDialogContent({
                   cookiesBrowser={cookiesBrowser}
                   platform={platform}
                   start1080pBlocked={start1080pBlocked}
+                  showCookiesRequiredError={showCookiesRequiredError}
                   onShowMoreOptionsChange={onShowMoreOptionsChange}
                   onExtraArgToggle={onExtraArgToggle}
                 onUseJsRuntimeChange={onUseJsRuntimeChange}

@@ -20,6 +20,7 @@ export interface CookiesSectionProps {
   useCookiesFromBrowser: boolean
   cookiesBrowser: YtdlpCookiesBrowserId
   start1080pBlocked: boolean
+  showCookiesRequiredError: boolean
   formBusy: boolean
   platform: string
   onUseCookiesChange: (checked: boolean) => void
@@ -35,6 +36,7 @@ export function CookiesSection({
   useCookiesFromBrowser,
   cookiesBrowser,
   start1080pBlocked,
+  showCookiesRequiredError,
   formBusy,
   platform,
   onUseCookiesChange,
@@ -45,17 +47,18 @@ export function CookiesSection({
 }: CookiesSectionProps) {
   const browserIds = getCookiesBrowserIds(platform)
   const cookiesEmpty = useCookies && !cookiesText.trim()
+  const isInvalid = start1080pBlocked || showCookiesRequiredError
 
   return (
 
     <div>
 
       <FieldGroup className="w-full">
-        <Field orientation="horizontal" data-invalid={start1080pBlocked ? true : undefined}>
+        <Field orientation="horizontal" data-invalid={isInvalid ? true : undefined}>
           <Checkbox
             id="download-video-use-cookies"
             data-testid="download-video-dialog-use-cookies-checkbox"
-            aria-invalid={start1080pBlocked}
+            aria-invalid={isInvalid}
             checked={useCookies}
             onCheckedChange={(checked) => onUseCookiesChange(checked === true)}
             disabled={formBusy}
@@ -82,11 +85,11 @@ export function CookiesSection({
           </Button>
         </Field>
 
-        <Field orientation="horizontal">
+        <Field orientation="horizontal" data-invalid={isInvalid ? true : undefined}>
           <Checkbox
             id="download-video-use-cookies-from-browser"
             data-testid="download-video-dialog-use-cookies-from-browser-checkbox"
-            aria-invalid={start1080pBlocked}
+            aria-invalid={isInvalid}
             checked={useCookiesFromBrowser}
             onCheckedChange={(checked) => onUseCookiesFromBrowserChange(checked === true)}
             disabled={formBusy}
@@ -121,6 +124,11 @@ export function CookiesSection({
             </FieldError>
           )}
         </Field>
+        {showCookiesRequiredError && (
+          <FieldError data-testid="download-video-dialog-cookies-required-hint">
+            {t("downloadVideo.cookiesRequiredForYoutube")}
+          </FieldError>
+        )}
       </FieldGroup>
     </div>
 

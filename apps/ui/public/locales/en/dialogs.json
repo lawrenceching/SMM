@@ -46,6 +46,7 @@
     "formatAudioOnly": "Audio only",
     "formatUnavailableSuffix": " (unavailable)",
     "format1080pAuthRequired": "This format requires login. Enable \"Use cookies\" or \"From browser\".",
+    "cookiesRequiredForYoutube": "Enable \"Use cookies\" or \"From browser\" to download YouTube videos",
     "episodesLoading": "Loading episodes…",
     "episodesNoneSelected": "Select at least one episode.",
     "episodesNoVideoUrls": "Selected episodes are missing playable URLs.",

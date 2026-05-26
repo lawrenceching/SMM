@@ -39,6 +39,7 @@ export interface MoreOptionsSectionProps {
   cookiesBrowser: YtdlpCookiesBrowserId
   platform: string
   start1080pBlocked: boolean
+  showCookiesRequiredError: boolean
 
   onShowMoreOptionsChange: (checked: boolean) => void
   onExtraArgToggle: (id: YtdlpDownloadExtraArgId, enabled: boolean) => void
@@ -66,6 +67,7 @@ export function MoreOptionsSection({
   cookiesBrowser,
   platform,
   start1080pBlocked,
+  showCookiesRequiredError,
   onShowMoreOptionsChange,
   onExtraArgToggle,
   onUseJsRuntimeChange,
@@ -139,6 +141,7 @@ export function MoreOptionsSection({
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
+                showCookiesRequiredError={showCookiesRequiredError}
                 formBusy={formBusy}
                 platform={platform}
                 onUseCookiesChange={onUseCookiesChange}
