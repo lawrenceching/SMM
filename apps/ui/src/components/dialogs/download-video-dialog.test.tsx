@@ -1072,7 +1072,6 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
     fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
-    fireEvent.click(screen.getByLabelText('Use cookies'))
     fireEvent.change(screen.getByLabelText('Download Folder'), {
       target: { value: 'C:\\downloads' },
     })
@@ -1131,7 +1130,6 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
     fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
-    fireEvent.click(screen.getByLabelText('Use cookies'))
     fireEvent.click(screen.getByLabelText('From browser'))
     fireEvent.change(screen.getByLabelText('Download Folder'), {
       target: { value: 'C:\\downloads' },
@@ -1156,7 +1154,6 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
     fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
-    fireEvent.click(screen.getByLabelText('Use cookies'))
     fireEvent.change(screen.getByLabelText('Download Folder'), {
       target: { value: 'C:\\downloads' },
     })

@@ -403,7 +403,12 @@ export function useDownloadVideoForm(
   )
 
   const handleOpenCookiesEditor = useCallback(() => {
-    openTextDialog((text: string) => setCookiesText(text), {
+    openTextDialog((text: string) => {
+      setCookiesText(text)
+      if (text.trim()) {
+        setUseCookies(true)
+      }
+    }, {
       initialValue: cookiesText,
       title: t("downloadVideo.cookiesDialogTitle"),
       description: t("downloadVideo.cookiesDialogDescription"),
