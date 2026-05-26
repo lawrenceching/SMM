@@ -47,18 +47,18 @@ export function CookiesSection({
 }: CookiesSectionProps) {
   const browserIds = getCookiesBrowserIds(platform)
   const cookiesEmpty = useCookies && !cookiesText.trim()
-  const isInvalid = start1080pBlocked || showCookiesRequiredError
+  const checkboxInvalid = start1080pBlocked || showCookiesRequiredError
 
   return (
 
     <div>
 
       <FieldGroup className="w-full">
-        <Field orientation="horizontal" data-invalid={isInvalid ? true : undefined}>
+        <Field orientation="horizontal" data-invalid={checkboxInvalid ? true : undefined}>
           <Checkbox
             id="download-video-use-cookies"
             data-testid="download-video-dialog-use-cookies-checkbox"
-            aria-invalid={isInvalid}
+            aria-invalid={checkboxInvalid}
             checked={useCookies}
             onCheckedChange={(checked) => onUseCookiesChange(checked === true)}
             disabled={formBusy}
@@ -85,11 +85,11 @@ export function CookiesSection({
           </Button>
         </Field>
 
-        <Field orientation="horizontal" data-invalid={isInvalid ? true : undefined}>
+        <Field orientation="horizontal" data-invalid={showCookiesRequiredError ? true : undefined}>
           <Checkbox
             id="download-video-use-cookies-from-browser"
             data-testid="download-video-dialog-use-cookies-from-browser-checkbox"
-            aria-invalid={isInvalid}
+            aria-invalid={checkboxInvalid}
             checked={useCookiesFromBrowser}
             onCheckedChange={(checked) => onUseCookiesFromBrowserChange(checked === true)}
             disabled={formBusy}
