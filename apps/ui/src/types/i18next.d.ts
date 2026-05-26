@@ -319,6 +319,13 @@ interface ComponentsResources {
       synthesizeStop: string
       process: string
       processStop: string
+      summarize: string
+      summarizeError: string
+      summarizeNoSubtitle: string
+      summarizeNoAiConfig: string
+      summarizeNoProxy: string
+      summarizeSuccess: string
+      summarizeFailed: string
     }
     noTracksFound: string
     tryAdjustingFilter: string
@@ -464,6 +471,7 @@ interface ComponentsResources {
       translating: string
       synthesising: string
       processing: string
+      summarizing: string
     }
   }
   movieEpisodeTable: {

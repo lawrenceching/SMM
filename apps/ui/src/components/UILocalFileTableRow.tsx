@@ -27,6 +27,9 @@ export interface UILocalFileTableRowProps {
   onToggleExpand: () => void
   associatedFiles: AssociatedFile[]
   matchingJobs: { id: string; jobType: RunningJob["type"] }[]
+  isSummarizing?: boolean
+  onSummarize?: () => void
+  canSummarize?: boolean
 }
 
 export function UILocalFileTableRow({
@@ -42,6 +45,9 @@ export function UILocalFileTableRow({
   onToggleExpand,
   associatedFiles,
   matchingJobs,
+  isSummarizing = false,
+  onSummarize,
+  canSummarize = false,
 }: UILocalFileTableRowProps) {
   const hasAssociatedFiles = associatedFiles.length > 0
 
@@ -58,6 +64,8 @@ export function UILocalFileTableRow({
         fileMenu={fileMenu}
         onTrackClick={onTrackClick}
         onToggleExpand={onToggleExpand}
+        onSummarize={onSummarize}
+        canSummarize={canSummarize}
       />
       {isExpanded && hasAssociatedFiles &&
         associatedFiles.map((file) => (
@@ -72,6 +80,7 @@ export function UILocalFileTableRow({
       {matchingJobs.map((job) => (
         <JobRow key={job.id} jobType={job.jobType} />
       ))}
+      {isExpanded && isSummarizing && <JobRow key="summarizing" jobType="summarizing" />}
     </>
   )
 }

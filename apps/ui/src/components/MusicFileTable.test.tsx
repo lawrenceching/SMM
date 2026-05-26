@@ -25,6 +25,7 @@ vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+  castTranslationFn: (fn: any) => fn,
 }));
 
 vi.mock("@/hooks/useGetAssociatedFiles", () => ({
@@ -36,6 +37,24 @@ vi.mock("@/stores/backgroundJobsStore", () => ({
     const store = { jobs: [] }
     return selector(store)
   },
+}));
+
+vi.mock("@/hooks/userConfig/useConfig", () => ({
+  useConfig: () => ({
+    appConfig: { version: "1.0.0", userDataDir: "/data", reverseProxyUrl: null },
+    userConfig: {
+      selectedAIProvider: undefined,
+      aiProviders: undefined,
+    },
+    setUserConfig: () => {},
+    isLoading: false,
+    isUserConfigLoaded: false,
+    error: null,
+    setAndSaveUserConfig: () => Promise.resolve(),
+    reload: () => {},
+    refreshUserConfig: () => Promise.resolve(),
+    addMediaFolderInUserConfig: () => Promise.resolve(),
+  }),
 }));
 
 vi.mock("@/components/ui/context-menu", () => {

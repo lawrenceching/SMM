@@ -1,4 +1,4 @@
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import { AnimatedDotsText } from "@/components/AnimatedDotsText"
 import type { RunningJob } from "@/types/associated-files"
 
@@ -13,7 +13,8 @@ export interface JobRowProps {
 }
 
 export function JobRow({ jobType }: JobRowProps) {
-  const { t } = useTranslation(["components"])
+  const { t: tStrict } = useTranslation(["components"])
+  const t = castTranslationFn(tStrict)
 
   const text = (() => {
     switch (jobType) {
@@ -25,6 +26,10 @@ export function JobRow({ jobType }: JobRowProps) {
         return t("localFileTableRow.job.synthesising")
       case "processing":
         return t("localFileTableRow.job.processing")
+      case "summarizing":
+        return t("localFileTableRow.job.summarizing")
+      default:
+        return ""
     }
   })()
 

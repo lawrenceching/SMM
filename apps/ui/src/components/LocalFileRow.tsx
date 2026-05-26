@@ -14,11 +14,12 @@ import {
   Tag,
   XCircle,
   Captions,
+  Sparkles,
   ChevronRight,
   ChevronDown,
 } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
-import { useTranslation } from "@/lib/i18n"
+import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
 import { MusicRowMediaCells } from "./musicTableRowShared"
@@ -46,6 +47,8 @@ export interface LocalFileRowProps {
   fileMenu: LocalFileTableRowFileMenu
   onTrackClick?: (trackId: number) => void
   onToggleExpand: () => void
+  onSummarize?: () => void
+  canSummarize?: boolean
 }
 
 export function LocalFileRow({
@@ -59,8 +62,11 @@ export function LocalFileRow({
   fileMenu,
   onTrackClick,
   onToggleExpand,
+  onSummarize,
+  canSummarize = false,
 }: LocalFileRowProps) {
-  const { t } = useTranslation(["components"])
+  const { t: tStrict } = useTranslation(["components"])
+  const t = castTranslationFn(tStrict)
   const { isMultiSelectMode, selectedTrackIds, onSelectedTrackIdsChange } = selection
 
   const toggleTrackSelection = (trackId: number) => {
@@ -173,6 +179,13 @@ export function LocalFileRow({
         <ContextMenuItem onClick={fileMenu.onFormatConvert}>
           <FileText className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.formatConvert")}
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!canSummarize || !onSummarize}
+          onClick={onSummarize}
+        >
+          <Sparkles className="mr-2 size-4" />
+          {t("mediaPlayer.trackContextMenu.summarize")}
         </ContextMenuItem>
         <ContextMenuSub>
           <ContextMenuSubTrigger

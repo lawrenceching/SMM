@@ -294,7 +294,14 @@
       "synthesize": "Synthesize",
       "synthesizeStop": "Stop synthesizing",
       "process": "Pipeline",
-      "processStop": "Stop pipeline"
+      "processStop": "Stop pipeline",
+      "summarize": "Summarize",
+      "summarizeError": "Cannot resolve file path",
+      "summarizeNoSubtitle": "No associated subtitle file found",
+      "summarizeNoAiConfig": "Please configure an AI provider in Settings",
+      "summarizeNoProxy": "Reverse proxy is not ready, please restart the server",
+      "summarizeSuccess": "Summary saved to {{path}}",
+      "summarizeFailed": "Summarize failed: {{error}}"
     },
     "noTracksFound": "No tracks found",
     "tryAdjustingFilter": "Try adjusting your search or filter"
@@ -325,7 +332,8 @@
       "transcribing": "Transcribing",
       "translating": "Translating subtitles",
       "synthesising": "Synthesizing subtitles",
-      "processing": "Processing subtitles"
+      "processing": "Processing subtitles",
+      "summarizing": "Summarizing..."
     }
   },
   "subtitleTranslationDialog": {

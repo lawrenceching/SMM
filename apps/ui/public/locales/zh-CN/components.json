@@ -293,7 +293,14 @@
       "synthesize": "合成字幕",
       "synthesizeStop": "停止合成字幕",
       "process": "全流程处理",
-      "processStop": "停止流水线"
+      "processStop": "停止流水线",
+      "summarize": "总结",
+      "summarizeError": "无法获取当前文件的路径",
+      "summarizeNoSubtitle": "未找到关联的字幕文件",
+      "summarizeNoAiConfig": "请先在设置中配置 AI 提供商",
+      "summarizeNoProxy": "反向代理未就绪，请重新启动服务",
+      "summarizeSuccess": "总结已保存到 {{path}}",
+      "summarizeFailed": "总结失败：{{error}}"
     },
     "noTracksFound": "未找到音轨",
     "tryAdjustingFilter": "尝试调整您的搜索或筛选条件"
@@ -324,7 +331,8 @@
       "transcribing": "正在生成字幕",
       "translating": "正在翻译字幕",
       "synthesising": "正在合成字幕",
-      "processing": "正在处理字幕"
+      "processing": "正在处理字幕",
+      "summarizing": "正在总结..."
     }
   },
   "subtitleTranslationDialog": {

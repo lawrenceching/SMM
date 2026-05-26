@@ -4,5 +4,5 @@ export interface AssociatedFile {
 }
 
 export interface RunningJob {
-  type: "transcribing" | "translating" | "synthesising" | "processing"
+  type: "transcribing" | "translating" | "synthesising" | "processing" | "summarizing"
 }

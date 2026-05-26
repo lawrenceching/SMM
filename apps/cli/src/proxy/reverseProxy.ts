@@ -10,6 +10,11 @@ export const ALLOWED_UPSTREAM_HOSTS = new Set([
   // SMM-managed default upstream that hosts the public TMDB/TVDB proxy without requiring an API key.
   'tmdb-mcp-server.imlc.me',
   'httpbin.io',
+  // AI Provider hosts for summarize feature
+  'api.deepseek.com',
+  'api.openai.com',
+  'openrouter.ai',
+  'open.bigmodel.cn',
 ]);
 
 const HOP_BY_HOP_REQUEST_HEADERS = new Set([
@@ -236,6 +241,21 @@ export function createReverseProxyManager(): ReverseProxyManager {
           const configuredMcpPort = Number(userConfig.mcpPort ?? 30001);
           if (Number.isFinite(configuredMcpPort)) {
             reservedPorts.add(configuredMcpPort);
+          }
+
+          // Add AI provider hosts from user config to the whitelist
+          if (userConfig.aiProviders?.length) {
+            for (const p of userConfig.aiProviders) {
+              if (p.baseURL) {
+                try {
+                  const url = new URL(p.baseURL);
+                  ALLOWED_UPSTREAM_HOSTS.add(url.hostname);
+                  logger.info(`[Reverse Proxy] Added AI provider host to whitelist: ${url.hostname}`);
+                } catch {
+                  logger.warn({ baseURL: p.baseURL }, 'Invalid baseURL in AI provider config');
+                }
+              }
+            }
           }
         } catch (err) {
           logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');

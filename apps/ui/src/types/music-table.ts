@@ -10,6 +10,8 @@ export interface LocalFileTableRowFileMenu {
   onProperties: () => void
   onFormatConvert: () => void
   onEditTags: () => void
+  onSummarize: () => void
+  canSummarize: boolean
 }
 
 export interface LocalFileTableRowSubtitleActions {

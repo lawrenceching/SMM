@@ -155,6 +155,8 @@ export function MusicFileTable({
           addedDate: new Date(),
           path: track.path,
         }),
+      onSummarize: () => {},
+      canSummarize: false,
     }),
     [],
   )
