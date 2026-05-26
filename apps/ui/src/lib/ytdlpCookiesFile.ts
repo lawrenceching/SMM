@@ -1,4 +1,5 @@
 import { writeFile } from "@/api/writeFile"
+import { deleteFile } from "@/api/deleteFile"
 import { join } from "@/lib/path"
 
 /** Normalize cookie file text to LF per yt-dlp FAQ. */
@@ -18,4 +19,12 @@ export async function writeYtdlpCookiesFile(
   const path = buildYtdlpCookiesFilePath(userDataDir, jobId)
   await writeFile(path, normalizeYtdlpCookieText(cookieText))
   return path
+}
+
+export async function deleteYtdlpCookiesFile(path: string): Promise<void> {
+  try {
+    await deleteFile(path)
+  } catch {
+    // Best-effort cleanup; don't surface errors to the user
+  }
 }

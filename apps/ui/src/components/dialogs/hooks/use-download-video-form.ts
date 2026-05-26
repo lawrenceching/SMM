@@ -8,6 +8,7 @@ import { useConfig } from "@/hooks/userConfig/useConfig"
 import {
   writeYtdlpCookiesFile,
   buildYtdlpCookiesFilePath,
+  deleteYtdlpCookiesFile,
 } from "@/lib/ytdlpCookiesFile"
 import {
   getCookiesBrowserIds,
@@ -370,12 +371,19 @@ export function useDownloadVideoForm(
       })
     }
 
-    listFormats({
-      url: trimmed,
-      cookiesFromBrowser: cfBrowser,
-      ...(cookiesFile ? { cookiesFile } : {}),
-      ...(useJsRuntime ? { jsRuntime } : {}),
-    })
+    listFormats(
+      {
+        url: trimmed,
+        cookiesFromBrowser: cfBrowser,
+        ...(cookiesFile ? { cookiesFile } : {}),
+        ...(useJsRuntime ? { jsRuntime } : {}),
+      },
+      cookiesFile
+        ? () => {
+            deleteYtdlpCookiesFile(cookiesFile)
+          }
+        : undefined,
+    )
   }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, appConfig.userDataDir, listFormats, runUrlValidation])
 
   const handleAgreementChange = useCallback(

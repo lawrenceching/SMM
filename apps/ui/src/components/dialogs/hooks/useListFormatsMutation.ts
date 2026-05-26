@@ -10,7 +10,7 @@ export interface UseListFormatsMutationReturn {
   /** Error message from the last listing attempt, or null. */
   listingError: string | null
   /** Call to trigger format listing. */
-  listFormats: (req: YtdlpListFormatsRequest) => void
+  listFormats: (req: YtdlpListFormatsRequest, onSettled?: () => void) => void
   /** Reset mutation state. */
   reset: () => void
 }
@@ -21,7 +21,7 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
   const [listingError, setListingError] = useState<string | null>(null)
   const genRef = useRef(0)
 
-  const listFormats = useCallback((req: YtdlpListFormatsRequest) => {
+  const listFormats = useCallback((req: YtdlpListFormatsRequest, onSettled?: () => void) => {
     const gen = ++genRef.current
     setIsListing(true)
     setListingError(null)
@@ -38,6 +38,11 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
         setListingError(message)
         setFormatsResult(null)
         setIsListing(false)
+      })
+      .finally(() => {
+        if (gen === genRef.current) {
+          onSettled?.()
+        }
       })
   }, [])
 
