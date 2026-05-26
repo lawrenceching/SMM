@@ -5,7 +5,7 @@ TBD - created by archiving change download-video-dialog-support-youtube. Update 
 ## Requirements
 ### Requirement: Dialog shows format code selection alongside presets
 
-After `--list-formats` completes successfully, the DownloadVideoDialog SHALL display a radio group with two options: "预设" (presets) and "格式码" (format codes). Selecting "预设" SHALL show the existing preset dropdown. Selecting "格式码" SHALL show a format code dropdown populated from the `--list-formats` output.
+After `yt-dlp -J` completes successfully, the DownloadVideoDialog SHALL display a radio group with two options: "预设" (presets) and "格式码" (format codes). Selecting "预设" SHALL show the existing preset dropdown. Selecting "格式码" SHALL show a format code dropdown populated from `VideoMetadata.formats`.
 
 #### Scenario: User selects format code mode
 
@@ -23,7 +23,7 @@ After `--list-formats` completes successfully, the DownloadVideoDialog SHALL dis
 
 ### Requirement: Format codes are grouped into three categories
 
-The format code dropdown SHALL group entries into three categories:
+The format code dropdown SHALL group entries from `VideoMetadata.formats` into three categories:
 1. **audio only** — formats with `acodec` != "none" and `vcodec` == "none"
 2. **video only** — formats with `vcodec` != "none" and `acodec` == "none"
 3. **audio + video** — formats with both audio and video codecs (neither labeled "only")
@@ -32,7 +32,7 @@ All available formats SHALL be displayed in the dropdown; no additional filterin
 
 #### Scenario: YouTube format listing produces all three categories
 
-- **WHEN** `--list-formats` returns YouTube formats
+- **WHEN** `yt-dlp -J` returns formats with audio-only, video-only, and combined entries
 - **THEN** the format code dropdown SHALL contain audio-only entries, video-only entries, and combined audio+video entries
 - **AND** entries SHALL be visually grouped
 
