@@ -51,6 +51,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  beforeSign: build/beforeSign.js
   extraResources:
     - from: '../cli/dist/cli'
       to: 'cli'
