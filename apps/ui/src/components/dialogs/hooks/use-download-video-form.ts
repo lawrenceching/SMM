@@ -224,9 +224,8 @@ export function useDownloadVideoForm(
   // Format codes from the listing
   const formatCodes = buildFormatCodes(videoMetadata?.formats ?? [])
 
-  // Go button is disabled for YouTube without cookies, or when Use cookies is checked but text is empty, or QuickJS unavailable
+  // Go button is disabled for YouTube without cookies, or when Use cookies is checked but text is empty
   const goDisabled =
-    quickjsUnavailable ||
     (isYoutube
       ? (!useCookies && !useCookiesFromBrowser) || (useCookies && !cookiesText.trim())
       : useCookies && !cookiesText.trim())

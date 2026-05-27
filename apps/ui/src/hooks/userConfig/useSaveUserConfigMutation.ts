@@ -22,7 +22,7 @@ export function useSaveUserConfigMutation() {
         await changeLanguage(config.applicationLanguage)
       }
       const filePath = join(dir, "smm.json")
-      await writeFile(filePath, JSON.stringify(config), traceId)
+      await writeFile(filePath, JSON.stringify(config), 'overwrite', traceId)
       return config
     },
     onSuccess: (config) => {

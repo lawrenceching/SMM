@@ -61,8 +61,9 @@ function parsePlaylist(obj: Record<string, unknown>): PlaylistMetadata {
 export function videoMetadataForFormatsListing(
     parsed: VideoMetadata | PlaylistMetadata,
 ): VideoMetadata {
-    if (parsed._type === "playlist") {
-        const first = parsed.entries[0]
+    if ("entries" in parsed) {
+        const playlist = parsed as PlaylistMetadata
+        const first = playlist.entries[0]
         if (!first) {
             throw new Error("yt-dlp playlist has no entries")
         }

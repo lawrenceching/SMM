@@ -32,7 +32,7 @@ export function useAddMediaFolderMutation() {
         folders: [...new Set([...prev.folders, folder])],
       }
       const filePath = join(dir, "smm.json")
-      await writeFile(filePath, JSON.stringify(updatedConfig), traceId)
+      await writeFile(filePath, JSON.stringify(updatedConfig), 'overwrite', traceId)
       return updatedConfig
     },
     onSuccess: (config) => {

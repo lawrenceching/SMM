@@ -1798,7 +1798,7 @@ describe('DownloadVideoDialog - QuickJS availability check', () => {
     await waitFor(() => {
       expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toHaveTextContent('无法找到JavaScript运行时')
+    expect(screen.getByTestId('download-video-dialog-quickjs-unavailable')).toHaveTextContent('JavaScript 运行时 QuickJS 不可用, 请尝试安装最新版本')
     expect(screen.getByTestId('download-video-dialog-start')).toBeDisabled()
   })
 
