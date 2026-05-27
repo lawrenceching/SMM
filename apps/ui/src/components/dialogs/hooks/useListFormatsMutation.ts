@@ -6,6 +6,8 @@ import { reportYtdlpError } from "@/lib/ytdlpErrorDetection"
 export interface UseListFormatsMutationReturn {
   /** Parsed video metadata from `yt-dlp -J`, or null if not yet fetched. */
   videoMetadata: VideoMetadata | null
+  /** When `yt-dlp -J` returns a playlist, the video list entries extracted from it; null otherwise. */
+  videoListEntries: VideoMetadata[] | null
   /** True while `yt-dlp -J` is executing. */
   isListing: boolean
   /** Error message from the last listing attempt, or null. */
@@ -18,6 +20,7 @@ export interface UseListFormatsMutationReturn {
 
 export function useListFormatsMutation(): UseListFormatsMutationReturn {
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata | null>(null)
+  const [videoListEntries, setVideoListEntries] = useState<VideoMetadata[] | null>(null)
   const [isListing, setIsListing] = useState(false)
   const [listingError, setListingError] = useState<string | null>(null)
   const genRef = useRef(0)
@@ -26,11 +29,13 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
     const gen = ++genRef.current
     setIsListing(true)
     setListingError(null)
+    setVideoListEntries(null)
 
     listYtdlpFormats(req)
       .then((result) => {
         if (gen !== genRef.current) return
-        setVideoMetadata(result)
+        setVideoMetadata(result.videoMetadata)
+        setVideoListEntries(result.playlistEntries ?? null)
         setIsListing(false)
       })
       .catch((err) => {
@@ -39,6 +44,7 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
         reportYtdlpError("list-formats", message, err)
         setListingError(message)
         setVideoMetadata(null)
+        setVideoListEntries(null)
         setIsListing(false)
       })
       .finally(() => {
@@ -51,9 +57,10 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
   const reset = useCallback(() => {
     genRef.current += 1
     setVideoMetadata(null)
+    setVideoListEntries(null)
     setIsListing(false)
     setListingError(null)
   }, [])
 
-  return { videoMetadata, isListing, listingError, listFormats, reset }
+  return { videoMetadata, videoListEntries, isListing, listingError, listFormats, reset }
 }

@@ -10,10 +10,3 @@ export interface DownloadVideoDialogProps {
   /** The absolute path in platform-specific format */
   destinationFolder?: string
 }
-
-export interface EpisodeItem {
-  title: string
-  artist: string
-  /** Stable id for selection; same as the download URL. */
-  url: string
-}

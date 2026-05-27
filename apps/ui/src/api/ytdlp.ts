@@ -1,4 +1,4 @@
-import type { YtdlpVideo } from "@core/types/YtdlpTypes";
+
 import { validateDownloadUrl } from "@core/download-video-validators";
 import {
   buildYtdlpDownloadArgs,
@@ -9,9 +9,9 @@ import {
 } from "@core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
-import { parseYtdlpPlaylistStdout } from "@/utils/parseYtdlpPlaylistStdout";
+
 import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
-import type { VideoMetadata } from "@/api/ytdlp/types";
+import type { PlaylistMetadata, VideoMetadata } from "@/api/ytdlp/types";
 
 export interface YtdlpDownloadRequest {
   url: string;
@@ -159,7 +159,12 @@ export interface YtdlpListFormatsRequest {
   jsRuntimePath?: string;
 }
 
-export type { VideoMetadata };
+export interface ListFormatsResult {
+  /** Video metadata used for format selection (first entry when the response is a playlist). */
+  videoMetadata: VideoMetadata;
+  /** When `yt-dlp -J` returns a playlist, the full list of video entries; undefined for single videos. */
+  playlistEntries?: VideoMetadata[];
+}
 
 /**
  * Runs `yt-dlp -F [--cookies-from-browser <browser>] [--js-runtimes <runtime>] <url>`
@@ -168,7 +173,7 @@ export type { VideoMetadata };
  */
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
-): Promise<VideoMetadata> {
+): Promise<ListFormatsResult> {
   const args: string[] = [];
 
   const cookiesFile = req.cookiesFile?.trim();
@@ -205,60 +210,16 @@ export async function listYtdlpFormats(
   }
 
   const parsed = parse(result.stdout);
-  return videoMetadataForFormatsListing(parsed);
-}
+  const videoMetadata = videoMetadataForFormatsListing(parsed);
 
-export interface YtdlpBilibiliEpisodesResponse {
-  videos?: YtdlpVideo[];
-  error?: string;
-}
-
-/**
- * Fetches raw yt-dlp `-j` stdout for a Bilibili series URL, then parses NDJSON into videos.
- */
-export async function getBilibiliEpisodesMetadata(
-  url: string
-): Promise<YtdlpBilibiliEpisodesResponse> {
-  const validation = validateDownloadUrl(url.trim());
-  if (!validation.valid) {
-    return { error: validation.error };
+  // Extract full playlist entries when yt-dlp returns a playlist
+  let playlistEntries: VideoMetadata[] | undefined;
+  if ("entries" in parsed) {
+    const playlist = parsed as PlaylistMetadata;
+    playlistEntries = playlist.entries;
   }
 
-  const result = await executeCmdToCompletion(
-    { command: "yt-dlp", args: ["-j", url.trim()] },
-    { timeoutMs: YTDLP_COLLECTION_CMD_TIMEOUT_MS }
-  );
-
-  if (!result.success) {
-    return { error: result.error };
-  }
-
-  const parsed = parseYtdlpPlaylistStdout(result.stdout);
-  if ("error" in parsed) {
-    return { error: parsed.error };
-  }
-  return { videos: parsed.videos };
-}
-
-/** Single entry in a Bilibili collection flat playlist (`yt-dlp --flat-playlist -J`). */
-export interface BilibiliCollectionEntry {
-  ie_key: string;
-  id: string;
-  _type: string;
-  url: string;
-  __x_forwarded_for_ip?: string | null;
-}
-
-export interface BilibiliCollectionThumbnail {
-  url: string;
-  id: string;
-}
-
-export interface BilibiliCollectionMetadataVersion {
-  version: string;
-  current_git_head: string | null;
-  release_git_head: string;
-  repository: string;
+  return { videoMetadata, playlistEntries };
 }
 
 /** Subset of yt-dlp `-J` output for a single video (`_type: video`). */
@@ -297,50 +258,6 @@ export interface BilibiliCollectionMetadata {
   epoch: number;
   __files_to_move?: Record<string, unknown>;
   _version?: BilibiliCollectionMetadataVersion;
-}
-
-const BILIBILI_COLLECTION_PATH = /^\/(\d+)\/lists\/(\d+)\/?$/;
-
-/**
- * Validates a Bilibili **collection** URL and returns the normalized URL string.
- * Expected shape: `https://space.bilibili.com/<uid>/lists/<collectionId>` (digits only).
- */
-export function assertValidBilibiliCollectionUrl(url: string): string {
-  const trimmed = url.trim();
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    throw new Error("Invalid Bilibili collection URL: not a valid URL");
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new Error("Invalid Bilibili collection URL: must use https");
-  }
-
-  if (parsed.hostname !== "space.bilibili.com") {
-    throw new Error("Invalid Bilibili collection URL: host must be space.bilibili.com");
-  }
-
-  const pathnameNorm = parsed.pathname.replace(/\/$/, "") || parsed.pathname;
-  if (!BILIBILI_COLLECTION_PATH.test(pathnameNorm)) {
-    throw new Error(
-      "Invalid Bilibili collection URL: expected https://space.bilibili.com/<uid>/lists/<collectionId>"
-    );
-  }
-
-  // Preserve query and fragment (e.g. ?type=season); normalize only trailing slash on pathname.
-  return `${parsed.origin}${pathnameNorm}${parsed.search}${parsed.hash}`;
-}
-
-/** True when {@link assertValidBilibiliCollectionUrl} would succeed (HTTPS space collection list URL). */
-export function isBilibiliCollectionUrl(url: string): boolean {
-  try {
-    assertValidBilibiliCollectionUrl(url);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function collectExecuteCmdOutput(
@@ -437,55 +354,4 @@ export async function getBilibiliVideoMetadata(url: string): Promise<BilibiliVid
   return parseBilibiliVideoStdout(stdout);
 }
 
-/**
- * Parses a single JSON document from `yt-dlp --flat-playlist -J` stdout (may be pretty-printed).
- */
-export function parseBilibiliCollectionStdout(stdout: string): BilibiliCollectionMetadata {
-  const trimmed = stdout.trim();
-  if (!trimmed) {
-    throw new Error("yt-dlp produced empty stdout");
-  }
 
-  let raw: unknown;
-  try {
-    raw = JSON.parse(trimmed);
-  } catch {
-    throw new Error("yt-dlp stdout is not valid JSON");
-  }
-
-  if (raw === null || typeof raw !== "object") {
-    throw new Error("yt-dlp output is not a JSON object");
-  }
-
-  const obj = raw as Record<string, unknown>;
-  if (obj._type !== "playlist") {
-    throw new Error("yt-dlp output is not a playlist");
-  }
-  if (!Array.isArray(obj.entries)) {
-    throw new Error("yt-dlp playlist has no entries array");
-  }
-
-  return raw as BilibiliCollectionMetadata;
-}
-
-/**
- * Runs `yt-dlp --flat-playlist -J` via {@link executeCmdStream} and returns parsed collection metadata.
- */
-export async function getBilibiliCollectionMetadata(url: string): Promise<BilibiliCollectionMetadata> {
-  const validUrl = assertValidBilibiliCollectionUrl(url);
-
-  const { stdout, stderr, exitCode } = await collectExecuteCmdOutput(
-    {
-      command: "yt-dlp",
-      args: ["--flat-playlist", "-J", validUrl],
-    },
-    YTDLP_COLLECTION_CMD_TIMEOUT_MS
-  );
-
-  if (exitCode !== 0) {
-    const detail = stderr.trim() || `exit code ${exitCode ?? "unknown"}`;
-    throw new Error(`yt-dlp failed: ${detail}`);
-  }
-
-  return parseBilibiliCollectionStdout(stdout);
-}

@@ -23,8 +23,7 @@ export function DownloadVideoDialogContent({
     isOpen: true,
     hasAgreed: form.hasAgreed,
     url: form.url,
-    isCollectionUrl: form.isCollectionUrl,
-    canDownloadEpisodes: form.canDownloadEpisodes,
+    videoListEntries: form.videoListEntries,
     downloadFolder: form.downloadFolder,
     selectedFormatPresetId: form.selectedFormatPresetId,
     useCookies: form.useCookies,
@@ -52,10 +51,7 @@ export function DownloadVideoDialogContent({
     form.quickjsUnavailable ||
     (form.isYoutube && !form.useCookies && !form.useCookiesFromBrowser) ||
     (form.useCookies && !form.cookiesText.trim()) ||
-    (form.isCollectionUrl && flow.selectedCollectionUrls.size === 0)
-
-  const hideFormatCodeUi =
-    flow.downloadEpisodes || flow.downloadCollectionVideos
+    (flow.videoList.length > 0 && flow.selectedUrls.size === 0)
 
   const handleFolderSelect = useCallback(() => {
     onOpenFilePicker(
@@ -102,7 +98,6 @@ export function DownloadVideoDialogContent({
       formatCodes={form.formatCodes}
       selectedFormatCode={form.selectedFormatCode}
       selectedSupplementaryFormatCode={form.selectedSupplementaryFormatCode}
-      hideFormatCodeUi={hideFormatCodeUi}
       onFormatModeChange={form.setFormatMode}
       onFormatCodeChange={form.setSelectedFormatCode}
       onSupplementaryFormatCodeChange={form.setSelectedSupplementaryFormatCode}
@@ -112,22 +107,9 @@ export function DownloadVideoDialogContent({
       onUseJsRuntimeChange={form.setUseJsRuntime}
       onJsRuntimeChange={form.setJsRuntime}
       quickjsUnavailable={form.quickjsUnavailable}
-      canDownloadEpisodes={form.canDownloadEpisodes}
-      downloadEpisodes={flow.downloadEpisodes}
-      episodes={flow.episodes}
-      episodesLoading={flow.episodesLoading}
-      episodesError={flow.episodesError}
-      selectedEpisodeUrls={flow.selectedEpisodeUrls}
-      onDownloadEpisodesChange={flow.handleDownloadEpisodesChange}
-      onToggleEpisode={flow.toggleEpisodeSelection}
-      isCollectionUrl={form.isCollectionUrl}
-      downloadCollectionVideos={flow.downloadCollectionVideos}
-      collectionEntries={flow.collectionEntries}
-      collectionMetadataLoading={flow.collectionMetadataLoading}
-      collectionError={flow.collectionError}
-      selectedCollectionUrls={flow.selectedCollectionUrls}
-      onDownloadCollectionVideosChange={flow.handleDownloadCollectionVideosChange}
-      onToggleCollectionUrl={flow.toggleCollectionUrlSelection}
+      videoList={flow.videoList}
+      selectedUrls={flow.selectedUrls}
+      onToggleUrl={flow.toggleUrlSelection}
       showMoreOptions={form.showMoreOptions}
       extraArgSelection={form.extraArgSelection}
       onShowMoreOptionsChange={form.setShowMoreOptions}
@@ -135,7 +117,6 @@ export function DownloadVideoDialogContent({
       downloadFolder={form.downloadFolder}
       onFolderChange={form.setDownloadFolder}
       onFolderSelect={handleFolderSelect}
-      collectionEntriesLength={flow.collectionEntries.length}
       isEnqueueing={flow.isEnqueueing}
       startButtonDisabled={startButtonDisabled}
       onCancel={handleCancel}

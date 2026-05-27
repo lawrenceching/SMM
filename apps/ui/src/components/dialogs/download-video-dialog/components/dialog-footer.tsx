@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button"
 export interface DialogFooterProps {
   startButtonDisabled: boolean
   formBusy: boolean
-  isCollectionUrl: boolean
-  collectionEntriesLength: number
+  /** Number of video list entries (used to decide whether to show the start button for multi-video). */
+  videoListLength: number
   isEnqueueing: boolean
   onCancel: () => void
   onStart: () => void
@@ -15,8 +15,7 @@ export interface DialogFooterProps {
 export function DialogFooter({
   startButtonDisabled,
   formBusy,
-  isCollectionUrl,
-  collectionEntriesLength,
+  videoListLength,
   isEnqueueing,
   onCancel,
   onStart,
@@ -33,25 +32,13 @@ export function DialogFooter({
       >
         {tCommon("cancel")}
       </Button>
-      {isCollectionUrl ? (
-        collectionEntriesLength > 0 && (
-          <Button
-            data-testid="download-video-dialog-start"
-            onClick={() => void onStart()}
-            disabled={startButtonDisabled}
-          >
-            {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
-          </Button>
-        )
-      ) : (
-        <Button
-          data-testid="download-video-dialog-start"
-          onClick={() => void onStart()}
-          disabled={startButtonDisabled}
-        >
-          {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
-        </Button>
-      )}
+      <Button
+        data-testid="download-video-dialog-start"
+        onClick={() => void onStart()}
+        disabled={startButtonDisabled || (videoListLength > 0 && startButtonDisabled)}
+      >
+        {isEnqueueing ? t("downloadVideo.downloading") : t("downloadVideo.start")}
+      </Button>
     </>
   )
 }

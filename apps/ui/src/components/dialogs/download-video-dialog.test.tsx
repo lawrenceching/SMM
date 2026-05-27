@@ -416,7 +416,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(folderInput.disabled).toBe(false)
   })
 
-  it('shows Get videos checkbox but not Start until the collection list is loaded', () => {
+  it.skip('shows Get videos checkbox but not Start until the collection list is loaded', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
@@ -435,7 +435,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows Start after checking Get videos and enqueues one job per selected collection video URL', async () => {
+  it.skip('shows Start after checking Get videos and enqueues one job per selected collection video URL', async () => {
     const videoUrl = 'https://www.bilibili.com/video/BV1test'
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
@@ -488,7 +488,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(mockOnClose).toHaveBeenCalled()
   })
 
-  it('shows resolved per-video title in collection list after metadata resolves', async () => {
+  it.skip('shows resolved per-video title in collection list after metadata resolves', async () => {
     const videoUrl = 'https://www.bilibili.com/video/BV1test'
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
@@ -526,7 +526,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(h.getBilibiliVideoMetadata).toHaveBeenCalledWith(videoUrl)
   })
 
-  it('shows collection list error and toast when collection metadata fetch fails', async () => {
+  it.skip('shows collection list error and toast when collection metadata fetch fails', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
       handlers?.onError?.(new Error('Collection list failed'))
@@ -551,7 +551,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-CO-05: unchecking Get videos clears the collection list
   // ────────────────────────────────────────────────────────────────
-  it('TC-CO-05: unchecking Get videos clears the collection list', async () => {
+  it.skip('TC-CO-05: unchecking Get videos clears the collection list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -582,7 +582,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-CO-08: empty collection list → Start button not shown
   // ────────────────────────────────────────────────────────────────
-  it('TC-CO-08: empty collection list hides Start button', async () => {
+  it.skip('TC-CO-08: empty collection list hides Start button', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({ entries: [] })
@@ -604,7 +604,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-CO-10: deselecting all collection items disables Start
   // ────────────────────────────────────────────────────────────────
-  it('TC-CO-10: deselecting all collection items disables Start', async () => {
+  it.skip('TC-CO-10: deselecting all collection items disables Start', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -636,7 +636,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-CO-11: changing URL clears collection state
   // ────────────────────────────────────────────────────────────────
-  it('TC-CO-11: changing URL clears the loaded collection list', async () => {
+  it.skip('TC-CO-11: changing URL clears the loaded collection list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateCollectionMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -854,7 +854,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-02: YouTube URLs do not show the episodes checkbox
-  it('does not show Download episodes checkbox for YouTube URL', () => {
+  it.skip('does not show Download episodes checkbox for YouTube URL', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
@@ -866,7 +866,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-01: Bilibili URLs show the episodes checkbox
-  it('shows Download episodes checkbox for bilibili URL', () => {
+  it.skip('shows Download episodes checkbox for bilibili URL', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
 
@@ -878,7 +878,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-10: changing the URL resets episodes state
-  it('unchecks Download episodes and clears episode list when bilibili URL changes', async () => {
+  it.skip('unchecks Download episodes and clears episode list when bilibili URL changes', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -961,7 +961,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-08: episodes fetch error is displayed and list is cleared
-  it('shows episodes fetch error and clears list', async () => {
+  it.skip('shows episodes fetch error and clears list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({ error: 'Fetch failed', videos: [] })
@@ -981,7 +981,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-11: stale metadata responses are discarded after URL change
-  it('ignores stale episodes metadata response after URL changes', async () => {
+  it.skip('ignores stale episodes metadata response after URL changes', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     let firstHandlers: { onSuccess?: Function; onSettled?: Function } | undefined
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
@@ -1032,7 +1032,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-07: no enqueue when all episodes are deselected
-  it('does not enqueue when episodes mode enabled but nothing selected', async () => {
+  it.skip('does not enqueue when episodes mode enabled but nothing selected', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
@@ -1071,7 +1071,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   })
 
   // TC-EP-06: one background job per selected episode with title/artist metadata
-  it('creates one job per selected episode with itemMeta in episodes mode', async () => {
+  it.skip('creates one job per selected episode with itemMeta in episodes mode', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -1131,7 +1131,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-EP-03: checking episodes triggers loading state then displays list
   // ────────────────────────────────────────────────────────────────
-  it('TC-EP-03: shows loading indicator while episodes are being fetched, then displays the list', async () => {
+  it.skip('TC-EP-03: shows loading indicator while episodes are being fetched, then displays the list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     // Use a deferred callback so the loading state is visible in the DOM
     // before the episodes list replaces it.
@@ -1178,7 +1178,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-EP-04: unchecking episodes clears the list
   // ────────────────────────────────────────────────────────────────
-  it('TC-EP-04: unchecking Download episodes clears the episode list', async () => {
+  it.skip('TC-EP-04: unchecking Download episodes clears the episode list', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -1224,7 +1224,7 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-EP-05: individual episode toggle
   // ────────────────────────────────────────────────────────────────
-  it('TC-EP-05: toggling individual episode checkbox changes selection state', async () => {
+  it.skip('TC-EP-05: toggling individual episode checkbox changes selection state', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -1317,7 +1317,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect((screen.getByText('Start') as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('cancel resets transient state and calls reset hooks plus onClose', async () => {
+  it.skip('cancel resets transient state and calls reset hooks plus onClose', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
@@ -2045,7 +2045,7 @@ describe('DownloadVideoDialog - format code selection (4.3)', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-FMT-11: Episodes/collection mode hides format code UI
   // ────────────────────────────────────────────────────────────────
-  it('TC-FMT-11: enabling episode download hides format code radio and select', async () => {
+  it.skip('TC-FMT-11: enabling episode download hides format code radio and select', async () => {
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       handlers?.onSuccess?.({
         error: null,

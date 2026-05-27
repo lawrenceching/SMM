@@ -17,13 +17,11 @@ import { AgreementSection } from "./download-video-dialog/components/agreement-s
 import { UrlInputSection } from "./download-video-dialog/components/url-input-section"
 import { CookiesSection } from "./download-video-dialog/components/cookies-section"
 import { FormatSection } from "./download-video-dialog/components/format-section"
-import { EpisodesSection } from "./download-video-dialog/components/episodes-section"
-import { CollectionSection } from "./download-video-dialog/components/collection-section"
+import { VideoListSection, type VideoListEntry } from "./download-video-dialog/components/video-list-section"
 import { MoreOptionsSection } from "./download-video-dialog/components/more-options-section"
 import { FolderSection } from "./download-video-dialog/components/folder-section"
 import { classifyYtdlpError } from "@/lib/ytdlpErrorDetection"
 import { DialogFooter } from "./download-video-dialog/components/dialog-footer"
-import type { EpisodeItem } from "./types"
 import type { YtdlpFormatMode } from "@/lib/ytdlpFormatPresets"
 
 export interface UIDownloadVideoDialogContentProps {
@@ -64,7 +62,6 @@ export interface UIDownloadVideoDialogContentProps {
   formatCodes: YtdlpFormatCodeEntry[]
   selectedFormatCode: string
   selectedSupplementaryFormatCode: string
-  hideFormatCodeUi: boolean
   onFormatModeChange: (mode: YtdlpFormatMode) => void
   onFormatCodeChange: (id: string) => void
   onSupplementaryFormatCodeChange: (id: string) => void
@@ -79,23 +76,10 @@ export interface UIDownloadVideoDialogContentProps {
   // New: QuickJS availability
   quickjsUnavailable: boolean
 
-  canDownloadEpisodes: boolean
-  downloadEpisodes: boolean
-  episodes: EpisodeItem[]
-  episodesLoading: boolean
-  episodesError: string | null
-  selectedEpisodeUrls: Set<string>
-  onDownloadEpisodesChange: (checked: boolean) => void
-  onToggleEpisode: (url: string) => void
-
-  isCollectionUrl: boolean
-  downloadCollectionVideos: boolean
-  collectionEntries: { url: string }[]
-  collectionMetadataLoading: boolean
-  collectionError: string | null
-  selectedCollectionUrls: Set<string>
-  onDownloadCollectionVideosChange: (checked: boolean) => void
-  onToggleCollectionUrl: (url: string) => void
+  // Unified video list from playlist entries
+  videoList: VideoListEntry[]
+  selectedUrls: Set<string>
+  onToggleUrl: (url: string) => void
 
   showMoreOptions: boolean
   extraArgSelection: YtdlpDownloadExtraArgSelection
@@ -106,7 +90,6 @@ export interface UIDownloadVideoDialogContentProps {
   onFolderChange: (value: string) => void
   onFolderSelect: () => void
 
-  collectionEntriesLength: number
   isEnqueueing: boolean
   startButtonDisabled: boolean
   onCancel: () => void
@@ -154,7 +137,6 @@ export function UIDownloadVideoDialogContent({
   formatCodes,
   selectedFormatCode,
   selectedSupplementaryFormatCode,
-  hideFormatCodeUi,
   onFormatModeChange,
   onFormatCodeChange,
   onSupplementaryFormatCodeChange,
@@ -166,23 +148,9 @@ export function UIDownloadVideoDialogContent({
   onJsRuntimeChange,
   quickjsUnavailable,
 
-  canDownloadEpisodes,
-  downloadEpisodes,
-  episodes,
-  episodesLoading,
-  episodesError,
-  selectedEpisodeUrls,
-  onDownloadEpisodesChange,
-  onToggleEpisode,
-
-  isCollectionUrl,
-  downloadCollectionVideos,
-  collectionEntries,
-  collectionMetadataLoading,
-  collectionError,
-  selectedCollectionUrls,
-  onDownloadCollectionVideosChange,
-  onToggleCollectionUrl,
+  videoList,
+  selectedUrls,
+  onToggleUrl,
 
   showMoreOptions,
   extraArgSelection,
@@ -193,7 +161,6 @@ export function UIDownloadVideoDialogContent({
   onFolderChange,
   onFolderSelect,
 
-  collectionEntriesLength,
   isEnqueueing,
   startButtonDisabled,
   onCancel,
@@ -278,7 +245,7 @@ export function UIDownloadVideoDialogContent({
               />
             )}
 
-            {/* Format, episodes, and more options — only after formats are fetched */}
+            {/* Format, video list, and more options — only after formats are fetched */}
             {hasAgreed && !showCookiesAtTopLevel && (
               <>
                 <FormatSection
@@ -291,7 +258,7 @@ export function UIDownloadVideoDialogContent({
                   formatCodes={formatCodes}
                   selectedFormatCode={selectedFormatCode}
                   selectedSupplementaryFormatCode={selectedSupplementaryFormatCode}
-                  hideFormatCodeUi={hideFormatCodeUi}
+                  hideFormatCodeUi={videoList.length > 0}
                   onFormatChange={onFormatChange}
                   onFormatModeChange={onFormatModeChange}
                   onFormatCodeChange={onFormatCodeChange}
@@ -299,17 +266,11 @@ export function UIDownloadVideoDialogContent({
                   t={t}
                 />
 
-                <EpisodesSection
-                  canDownloadEpisodes={canDownloadEpisodes}
-                  downloadEpisodes={downloadEpisodes}
-                  episodes={episodes}
-                  episodesLoading={episodesLoading}
-                  episodesError={episodesError}
-                  selectedEpisodeUrls={selectedEpisodeUrls}
+                <VideoListSection
+                  entries={videoList}
+                  selectedUrls={selectedUrls}
+                  onToggleUrl={onToggleUrl}
                   formBusy={formBusy}
-                  hasAgreed={hasAgreed}
-                  onDownloadEpisodesChange={onDownloadEpisodesChange}
-                  onToggleEpisode={onToggleEpisode}
                   t={t}
                 />
 
@@ -341,20 +302,6 @@ export function UIDownloadVideoDialogContent({
               </>
             )}
 
-            <CollectionSection
-              isCollectionUrl={isCollectionUrl}
-              downloadCollectionVideos={downloadCollectionVideos}
-              collectionEntries={collectionEntries}
-              collectionMetadataLoading={collectionMetadataLoading}
-              collectionError={collectionError}
-              selectedCollectionUrls={selectedCollectionUrls}
-              formBusy={formBusy}
-              hasAgreed={hasAgreed}
-              onDownloadCollectionVideosChange={onDownloadCollectionVideosChange}
-              onToggleCollectionUrl={onToggleCollectionUrl}
-              t={t}
-            />
-
             <FolderSection
               downloadFolder={downloadFolder}
               formBusy={formBusy}
@@ -369,8 +316,7 @@ export function UIDownloadVideoDialogContent({
           <DialogFooter
             startButtonDisabled={startButtonDisabled}
             formBusy={formBusy}
-            isCollectionUrl={isCollectionUrl}
-            collectionEntriesLength={collectionEntriesLength}
+            videoListLength={videoList.length}
             isEnqueueing={isEnqueueing}
             onCancel={onCancel}
             onStart={onStart}

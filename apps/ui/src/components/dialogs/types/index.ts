@@ -4,7 +4,7 @@ import type { DialogConfig, FileItem, FolderType } from "./common"
 
 // Re-export types that were split out
 export type { DialogConfig, FileItem, FolderType } from "./common"
-export type { DownloadVideoDialogProps, EpisodeItem } from "./download-video"
+export type { DownloadVideoDialogProps } from "./download-video"
 
 export interface ConfirmationDialogProps {
   isOpen: boolean

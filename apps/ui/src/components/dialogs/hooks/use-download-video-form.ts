@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { validateDownloadUrl } from "@core/download-video-validators"
-import { isBilibiliCollectionUrl } from "@/api/ytdlp"
 import { useListFormatsMutation } from "./useListFormatsMutation"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -44,17 +43,6 @@ import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
-function isBilibiliUrl(value: string): boolean {
-  const trimmed = value.trim()
-  if (!trimmed) return false
-  try {
-    const parsed = new URL(trimmed)
-    const host = parsed.hostname.toLowerCase()
-    return host === "b23.tv" || host.endsWith(".bilibili.com") || host === "bilibili.com"
-  } catch {
-    return false
-  }
-}
 
 function isYoutubeUrl(value: string): boolean {
   const trimmed = value.trim()
@@ -94,8 +82,6 @@ export interface UseDownloadVideoFormReturn {
   extraArgSelection: YtdlpDownloadExtraArgSelection
 
   isUrlValid: boolean
-  isCollectionUrl: boolean
-  canDownloadEpisodes: boolean
   is1080pAvailable: boolean
   has1080pAuth: boolean
   start1080pBlocked: boolean
@@ -159,7 +145,7 @@ export function useDownloadVideoForm(
   const { isOpen, destinationFolder, t } = opts
 
   const { textDialog: [openTextDialog] } = useDialogs()
-  const { videoMetadata, isListing, listingError, listFormats, reset: resetListFormats } =
+  const { videoMetadata, videoListEntries, isListing, listingError, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
   const { appConfig } = useConfig()
 
@@ -214,8 +200,6 @@ export function useDownloadVideoForm(
 
   // --- derived state ---
   const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
-  const isCollectionUrl = isBilibiliCollectionUrl(url.trim()) && isUrlValid
-  const canDownloadEpisodes = isBilibiliUrl(url) && !isCollectionUrl
   const isYoutube = isYoutubeUrl(url)
 
   // Formats have been fetched successfully
@@ -469,8 +453,7 @@ export function useDownloadVideoForm(
     extraArgSelection,
 
     isUrlValid,
-    isCollectionUrl,
-    canDownloadEpisodes,
+
     is1080pAvailable,
     has1080pAuth,
     start1080pBlocked,
@@ -478,6 +461,7 @@ export function useDownloadVideoForm(
     resolvedYtdlpExtraArgs,
 
     // New
+    videoListEntries,
     isListingFormats: isListing,
     listingError,
     formatCodes,
