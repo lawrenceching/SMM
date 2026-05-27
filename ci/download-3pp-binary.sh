@@ -195,7 +195,13 @@ unzip -qo "${TMPDIR}/${QUICKJS_ZIP}" -d "${TMPDIR}/quickjs-extracted"
 
 QUICKJS_SRC="${TMPDIR}/quickjs-extracted/${QUICKJS_DIR}"
 if [ ! -d "${QUICKJS_SRC}" ]; then
-  echo "Expected QuickJS directory not found: ${QUICKJS_SRC}" >&2
+  # Some QuickJS archives store files directly in the zip root (no top-level folder)
+  QUICKJS_SRC="${TMPDIR}/quickjs-extracted"
+fi
+
+if [ ! -f "${QUICKJS_SRC}/${QUICKJS_EXE}" ]; then
+  echo "Expected QuickJS binary not found: ${QUICKJS_SRC}/${QUICKJS_EXE}" >&2
+  ls -la "${TMPDIR}/quickjs-extracted/" >&2
   exit 1
 fi
 
