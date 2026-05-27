@@ -12,6 +12,7 @@ allowed-tools:
   - Grep
   - WebFetch
   - WebSearch
+  - AskQuestion
 ---
 
 # Three Stages Planning
@@ -36,7 +37,11 @@ allowed-tools:
    3 a
    4 write your own answer if you like
    ```
+
+   **IMPORTANT** You can invoke several rounds of Q&A until you fully clarify the requirement.
+
 2. **Create `docs/design/[change-name].md`** - Summary the changes in words, and create the design document with proper name.
+   Use [templates/design.md](templates/design.md) as reference.
 3. **Ask Feedback** - Ask user for reivew, and adjust the design document accordingly.
    The message template
    ```
@@ -45,53 +50,6 @@ allowed-tools:
    ```
 4. **Start Coding** - If user approved the change, start coding following the "Tasks" section in design document.
 
-## Design Document Template
+## Progressive Update
 
-```md
-# [Change Name]
-
-TODO: brief the change here.
-
-## 1. Background
-TODO: brief the background of this change here.
-
-## 2. Architecture
-TODO: High level architecture, represent by diagram
-
-## 3. User Stories
-
-### 3.1 User Story Title
-
-[describe the user story in TDD style here]
-* **Given** - 
-* **When** - 
-* **Then** - 
-
-```mermaid
-[draw the technical sequence diagram here]
-```
-
-## 4. Tasks
-
-Break down the change into tasks in technical view.
-
-### 4.1 New UI Component
-
-[ ] Task 1...
-[ ] Task 2...
-[ ] ...
-
-### 4.1 New HTTP interface
-
-[ ] Task 1...
-[ ] Task 2...
-[ ] ...
-
-## Backward Compatibility
-TODO: think of potential backward compatibility issues. If no issues found, mark as `none`.
-
-## Documents
-TODO: list the documents that needs to update in this change
-[ ] `docs/...` [brief the changes here...]
-
-```
+You should continually update the design document once one task was completed. Mark the "[ ]" to "[x]" in design document to keep track the progress.

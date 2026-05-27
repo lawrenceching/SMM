@@ -35,7 +35,15 @@ function filterAssociatedFiles(allFilePaths: string[], videoFilePath: string): A
   findFiles(extensions.subtitleFileExtensions, "subtitle", results)
   findFiles(extensions.imageFileExtensions, "thumbnail", results)
   findFiles(extensions.audioTrackFileExtensions, "audio", results)
-  findFiles([".nfo"], "summary", results)
+
+  // Summary files: match {stem}_summary*.txt (e.g. song_summary.txt, song_summary_1.txt)
+  for (const fp of allFilePaths) {
+    const base = basename(fp) ?? ""
+    if (base.startsWith(stem + "_summary") && base.endsWith(".txt")) {
+      results.push({ type: "summary", path: fp })
+    }
+  }
+
   return results
 }
 
