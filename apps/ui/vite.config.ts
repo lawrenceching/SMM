@@ -19,8 +19,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:30000',
         changeOrigin: true,
-        // Screenshot API can take long (ffmpeg); avoid proxy closing the connection (node-http-proxy default can be ~2min)
-        // proxyTimeout: 300_000, // 5 minutes
+        // Long-running streams (yt-dlp download, ffmpeg); default proxy idle timeout can drop ~30s connections.
+        proxyTimeout: 0,
       },
       // CLI TMDB L7 reverse proxy (see apps/cli/src/route/TmdbProxy.ts)
       '/tmdb': {

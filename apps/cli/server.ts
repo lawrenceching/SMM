@@ -42,6 +42,7 @@ import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
 import { handleCommandLog } from './src/route/commandLog';
+import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
@@ -218,6 +219,7 @@ export class Server {
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
     handleCommandLog(this.app);
+    handleCommandExecutionStatus(this.app);
     handleLog(this.app);
 
     // POST /api/execute - Special orchestration route for multiple tasks

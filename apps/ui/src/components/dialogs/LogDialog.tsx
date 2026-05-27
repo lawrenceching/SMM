@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { getJobExecutionId } from '@/components/background-jobs/backgroundJobsPopoverJobUtils'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +16,7 @@ import {
   fetchCommandLogSegments,
   type CommandLogFormat,
 } from '@/api/commandLog'
+import { isTerminalCommandLogText } from '@/lib/commandLogTerminal'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -35,13 +38,28 @@ export function LogDialog({
 }: LogDialogProps) {
   const { t } = useTranslation('components')
   const [format, setFormat] = useState<CommandLogFormat>('raw')
+  const [passiveEnded, setPassiveEnded] = useState(false)
+  const jobForExecution = useBackgroundJobsStore((s) =>
+    executionId ? s.jobs.find((j) => getJobExecutionId(j) === executionId) : undefined,
+  )
+
+  useEffect(() => {
+    setPassiveEnded(false)
+  }, [executionId, open])
+
+  const jobStillRunning =
+    jobForExecution != null
+      ? jobForExecution.status === 'running'
+      : isRunning
+
+  const effectiveIsRunning = jobStillRunning && !passiveEnded
 
   const query = useQuery({
     queryKey: ['command-log', executionId, format],
     enabled: open && executionId.length > 0,
-    staleTime: isRunning ? 0 : 60_000,
-    refetchInterval: isRunning ? 2000 : false,
-    refetchOnWindowFocus: isRunning,
+    staleTime: effectiveIsRunning ? 0 : 60_000,
+    refetchInterval: effectiveIsRunning ? 2000 : false,
+    refetchOnWindowFocus: effectiveIsRunning,
     queryFn: async () => {
       if (format === 'raw') {
         return fetchCommandLogRaw(executionId)
@@ -59,6 +77,12 @@ export function LogDialog({
       .join('\n')
   }, [query.data])
 
+  useEffect(() => {
+    if (bodyText && isTerminalCommandLogText(bodyText)) {
+      setPassiveEnded(true)
+    }
+  }, [bodyText])
+
   const truncated = query.data?.meta.truncated ?? false
 
   return (
@@ -67,7 +91,7 @@ export function LogDialog({
         <DialogHeader className="border-b border-border px-4 py-3">
           <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
             <span>{t('statusBar.backgroundJobs.logDialog.title', { jobTitle })}</span>
-            {isRunning && (
+            {effectiveIsRunning && (
               <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-normal text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 {t('statusBar.backgroundJobs.logDialog.live')}

@@ -10,6 +10,12 @@ import {
   createCommandExecutionLogWriter,
 } from './commandExecutionLog';
 import { isCommandExecutionId, parseOptionalXCommandExecutionId } from './commandLog';
+import {
+  markCommandExecutionFinished,
+  markCommandExecutionRunning,
+  type CommandExecutionOutcome,
+} from './commandExecutionRegistry';
+import { parseFinishedFromSystemNote } from './commandExecutionLogStatus';
 
 const COMMAND_WHITELIST = ['ffmpeg', 'ffprobe', 'yt-dlp', 'videocaptioner', 'qjs'] as const;
 
@@ -146,6 +152,7 @@ export function handleExecuteCmd(app: Hono) {
 
       const commandExecutionId = clientExecutionId ?? crypto.randomUUID();
       const cmdLog = await createCommandExecutionLogWriter(commandExecutionId);
+      markCommandExecutionRunning(commandExecutionId, command);
 
       const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args);
 
@@ -251,7 +258,12 @@ export function handleExecuteCmd(app: Hono) {
                       },
                       '[executeCmd] command timed out'
                     );
-                    safeEndCmdLog(`timeout after ${validTimeout}ms`);
+                    const timeoutNote = `timeout after ${validTimeout}ms`;
+                    markCommandExecutionFinished(commandExecutionId, {
+                      outcome: 'failure',
+                      systemNote: timeoutNote,
+                    });
+                    safeEndCmdLog(timeoutNote);
                     safeEnqueue(encodeNdjson({
                       type: 'system',
                       data: { event: 'timeout' }
@@ -290,11 +302,19 @@ export function handleExecuteCmd(app: Hono) {
                     },
                     '[executeCmd] command finished'
                   );
+                  const exitNote = `exit code=${code ?? 'null'} signal=${signal ?? 'null'}`;
+                  const outcome: CommandExecutionOutcome = code === 0 ? 'success' : 'failure';
+                  markCommandExecutionFinished(commandExecutionId, {
+                    outcome,
+                    exitCode: code,
+                    signal: signal ?? null,
+                    systemNote: exitNote,
+                  });
                   safeEnqueue(encodeNdjson({
                     type: 'system',
                     data: { event: 'exit', code, signal }
                   }));
-                  safeEndCmdLog(`exit code=${code ?? 'null'} signal=${signal ?? 'null'}`);
+                  safeEndCmdLog(exitNote);
                   queueMicrotask(() => {
                     safeClose();
                     cleanupChild();
@@ -311,11 +331,16 @@ export function handleExecuteCmd(app: Hono) {
                     },
                     '[executeCmd] command execution error'
                   );
+                  const errorNote = `process error: ${err.message}`;
+                  markCommandExecutionFinished(commandExecutionId, {
+                    outcome: 'failure',
+                    systemNote: errorNote,
+                  });
                   safeEnqueue(encodeNdjson({
                     type: 'system',
                     data: { event: 'error', message: err.message }
                   }));
-                  safeEndCmdLog(`process error: ${err.message}`);
+                  safeEndCmdLog(errorNote);
                   queueMicrotask(() => {
                     safeClose();
                     cleanupChild();
@@ -334,7 +359,18 @@ export function handleExecuteCmd(app: Hono) {
                   if (child && child.exitCode === null && child.signalCode === null) {
                     child.kill('SIGTERM');
                   }
-                  safeEndCmdLog('client disconnected (abort)');
+                  const abortNote = 'client disconnected (abort)';
+                  markCommandExecutionFinished(commandExecutionId, {
+                    outcome: 'failure',
+                    exitCode: null,
+                    signal: 'SIGTERM',
+                    systemNote: abortNote,
+                  });
+                  safeEnqueue(encodeNdjson({
+                    type: 'system',
+                    data: { event: 'exit', code: null, signal: 'SIGTERM' },
+                  }));
+                  safeEndCmdLog(abortNote);
                   queueMicrotask(() => {
                     safeClose();
                     cleanupChild();
@@ -348,13 +384,16 @@ export function handleExecuteCmd(app: Hono) {
                   { requestId: httpRequestId, commandExecutionId, command, error: err },
                   '[executeCmd] failed to spawn command'
                 );
+                const spawnNote = `spawn failed: ${err instanceof Error ? err.message : 'Unknown error'}`;
+                markCommandExecutionFinished(commandExecutionId, {
+                  outcome: 'failure',
+                  systemNote: spawnNote,
+                });
                 safeEnqueue(encodeNdjson({
                   type: 'system',
                   data: { event: 'error', message: err instanceof Error ? err.message : 'Unknown error' }
                 }));
-                safeEndCmdLog(
-                  `spawn failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-                );
+                safeEndCmdLog(spawnNote);
                 queueMicrotask(() => {
                   safeClose();
                   cleanupChild();
@@ -426,6 +465,7 @@ export async function runWhitelistedCommandSync(input: {
         ? input.executionId.trim()
         : undefined;
     const cmdLog = await createCommandExecutionLogWriter(writerId);
+    markCommandExecutionRunning(cmdLog.executionId, input.command);
 
     const withCorrelation = (result: VideoCaptionerTranscribeResult): VideoCaptionerTranscribeResult => ({
       ...result,
@@ -475,8 +515,25 @@ export async function runWhitelistedCommandSync(input: {
           settled = true;
           clearTimeout(timeoutId);
           if (logNote) {
+            const parsed = parseFinishedFromSystemNote(logNote);
+            if (parsed) {
+              markCommandExecutionFinished(cmdLog.executionId, {
+                ...parsed,
+                systemNote: logNote,
+              });
+            } else {
+              markCommandExecutionFinished(cmdLog.executionId, {
+                outcome: result.success ? 'success' : 'failure',
+                exitCode: result.success ? 0 : null,
+                systemNote: logNote,
+              });
+            }
             safeEndCmdLog(logNote);
           } else {
+            markCommandExecutionFinished(cmdLog.executionId, {
+              outcome: result.success ? 'success' : 'failure',
+              exitCode: result.success ? 0 : null,
+            });
             safeEndCmdLog();
           }
           resolve(withCorrelation(result));
@@ -540,9 +597,12 @@ export async function runWhitelistedCommandSync(input: {
         });
       });
     } catch (error) {
-      safeEndCmdLog(
-        `spawn failed: ${error instanceof Error ? error.message : 'unknown error'}`
-      );
+      const spawnNote = `spawn failed: ${error instanceof Error ? error.message : 'unknown error'}`;
+      markCommandExecutionFinished(cmdLog.executionId, {
+        outcome: 'failure',
+        systemNote: spawnNote,
+      });
+      safeEndCmdLog(spawnNote);
       logger.error(
         {
           error,
