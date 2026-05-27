@@ -127,11 +127,11 @@ export function LocalFileTableRow({
       return
     }
     if (!aiProvider.baseURL) {
-      toast.error(t("mediaPlayer.trackContextMenu.summarizeNoBaseUrl", { name: aiProvider.name }))
+      toast.error((tStrict as any)("mediaPlayer.trackContextMenu.summarizeNoBaseUrl", { name: aiProvider.name }))
       return
     }
     if (!aiProvider.model) {
-      toast.error(t("mediaPlayer.trackContextMenu.summarizeNoModel", { name: aiProvider.name }))
+      toast.error((tStrict as any)("mediaPlayer.trackContextMenu.summarizeNoModel", { name: aiProvider.name }))
       return
     }
     const reverseProxyUrl = appConfig.reverseProxyUrl

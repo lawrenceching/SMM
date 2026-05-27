@@ -99,21 +99,3 @@ export const JOB_TYPE_REGISTRY: Record<string, JobTypeConfig> = {
 
 /** All registered job type keys. */
 export const ALL_JOB_TYPES = Object.keys(JOB_TYPE_REGISTRY)
-
-/**
- * Derive the full set of SW event names for a given message prefix.
- * e.g. `'download'` → `{ start: 'download:start', started: 'download:started', ... }`
- */
-export function swEventNames(prefix: string) {
-  return {
-    start: `${prefix}:start`,
-    stop: `${prefix}:stop`,
-    remove: `${prefix}:remove`,
-    started: `${prefix}:started`,
-    succeeded: `${prefix}:succeeded`,
-    failed: `${prefix}:failed`,
-    stopped: `${prefix}:stopped`,
-    removed: `${prefix}:removed`,
-    heartbeat: `${prefix}:heartbeat`,
-  }
-}

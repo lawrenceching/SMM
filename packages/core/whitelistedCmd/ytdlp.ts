@@ -18,6 +18,10 @@ export interface YtdlpDownloadRequestInput {
   cookiesFile?: string;
   /** Browser profile for `--cookies-from-browser` (e.g. chrome, edge, firefox). */
   cookiesFromBrowser?: string;
+  /** JS runtime name for `--js-runtimes` (e.g. "quickjs"). */
+  jsRuntime?: string;
+  /** Absolute path to the JS runtime binary. */
+  jsRuntimePath?: string;
 }
 
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
@@ -52,6 +56,12 @@ export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string
   const browser = input.cookiesFromBrowser?.trim().toLowerCase();
   if (browser && isYtdlpCookiesFromBrowserName(browser)) {
     args.push("--cookies-from-browser", browser);
+  }
+
+  const jsRuntime = input.jsRuntime?.trim();
+  const jsRuntimePath = input.jsRuntimePath?.trim();
+  if (jsRuntime) {
+    args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
   }
 
   args.push(input.url);

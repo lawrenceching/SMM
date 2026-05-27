@@ -10,7 +10,14 @@ import {
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
-import type { BackgroundJob } from '@/types/background-jobs'
+import type {
+  BackgroundJob,
+  DownloadVideoBackgroundJobData,
+  TranscribeBackgroundJobData,
+  TranslateBackgroundJobData,
+  SynthesizeBackgroundJobData,
+  ProcessBackgroundJobData,
+} from '@/types/background-jobs'
 import {
   getAllJobs,
   putJob,
@@ -20,12 +27,19 @@ import {
   cancelPendingJobsByParentId,
   type TaskJobRecord,
 } from '@/lib/downloadTaskDb'
-import { JOB_TYPE_REGISTRY, ALL_JOB_TYPES, swEventNames } from '@/lib/jobTypeRegistry'
-import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
+import { JOB_TYPE_REGISTRY, ALL_JOB_TYPES } from '@/lib/jobTypeRegistry'
 import {
-  attachDownloadServiceWorkerUpdateChecks,
-  DOWNLOAD_SERVICE_WORKER_URL,
-} from '@/lib/downloadServiceWorker'
+  COMMAND_EXECUTION_STATUS_POLL_MS,
+  pollCommandExecutionStatusAndReconcile,
+} from '@/lib/commandExecutionStatusPoller'
+import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommandStatus'
+import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
+import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
+import {
+  buildYtdlpDownloadArgs,
+  parseYtdlpDownloadStdout,
+} from '@core/whitelistedCmd/ytdlp'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -42,7 +56,7 @@ export interface JobOrchestratorContextValue {
   jobRecords: TaskJobRecord[]
   /** Newest IDB records for the status-bar popover (up to 100). */
   popoverJobRecords: TaskJobRecord[]
-  /** Whether the Service Worker has registered and is ready. */
+  /** Whether the orchestrator is ready (initialised + IDB synced). */
   isReady: boolean
   /** Re-read IndexedDB and sync into the background-jobs store. */
   refreshFromIndexedDB: (source?: string) => Promise<void>
@@ -63,10 +77,10 @@ export interface JobOrchestratorContextValue {
 
 const JobOrchestratorContext = createContext<JobOrchestratorContextValue | null>(null)
 
-/** Serializes IDB→store sync across parallel callers (StrictMode, SW update, popover). */
+/** Serializes IDB→store sync across parallel callers (StrictMode, popover). */
 let syncFromIndexedDBChain: Promise<unknown> = Promise.resolve()
 
-/** Poll IndexedDB while jobs are pending/running (safety net if SW postMessage is missed). */
+/** Poll IndexedDB while jobs are pending/running (safety net for reconciliation). */
 const ACTIVE_JOB_POLL_INTERVAL_MS = 5_000
 
 export function useJobOrchestratorContext(): JobOrchestratorContextValue {
@@ -75,6 +89,107 @@ export function useJobOrchestratorContext(): JobOrchestratorContextValue {
   return ctx
 }
 
+// ---------------------------------------------------------------------------
+// Helpers — videocaptioner arg builders
+// ---------------------------------------------------------------------------
+
+const VIDEOCAPTIONER_DUMMY_API_KEY = 'dummykey'
+
+function ensureVcApiKey(args: string[]): void {
+  if (!args.includes('--api-key')) {
+    args.push('--api-key', VIDEOCAPTIONER_DUMMY_API_KEY)
+  }
+}
+
+function buildTranscribeArgs(data: TranscribeBackgroundJobData): string[] {
+  const vc = data.videoCaptioner ?? {}
+  const args: string[] = ['transcribe', data.mediaPathPlatform || data.mediaPath]
+  args.push('--asr', vc.asr || 'bijian')
+  if (vc.language) args.push('--language', vc.language)
+  if (vc.wordTimestamps === true) args.push('--word-timestamps')
+  args.push('--format', vc.format || 'srt')
+  return args
+}
+
+function buildTranslateArgs(data: TranslateBackgroundJobData): string[] {
+  const args: string[] = [
+    'subtitle',
+    data.subtitlePathPlatform || data.subtitlePath,
+    '--translator', data.translator,
+    '--target-language', data.targetLanguage,
+    '--no-optimize',
+    '--no-split',
+  ]
+  if (data.reflect === true) args.push('--reflect')
+  if (data.layout) args.push('--layout', data.layout)
+  if (data.translator === 'llm' && data.llm?.apiKey) {
+    args.push('--api-key', data.llm.apiKey)
+    if (data.llm.apiBase) args.push('--api-base', data.llm.apiBase)
+    if (data.llm.model) args.push('--model', data.llm.model)
+  }
+  ensureVcApiKey(args)
+  return args
+}
+
+function buildSynthesizeArgs(data: SynthesizeBackgroundJobData): string[] {
+  const args: string[] = [
+    'synthesize',
+    data.videoPathPlatform || data.videoPath,
+    '-s', data.subtitlePathPlatform || data.subtitlePath,
+  ]
+  if (data.subtitleMode) args.push('--subtitle-mode', data.subtitleMode)
+  if (data.quality) args.push('--quality', data.quality)
+  if (data.style) args.push('--style', data.style)
+  if (data.renderMode) args.push('--render-mode', data.renderMode)
+  if (data.layout) args.push('--layout', data.layout)
+  ensureVcApiKey(args)
+  return args
+}
+
+function buildProcessArgs(data: ProcessBackgroundJobData): string[] {
+  const args: string[] = ['process', data.mediaPathPlatform || data.mediaPath]
+  args.push('--asr', data.asr || 'bijian')
+  if (data.language) args.push('--language', data.language)
+  if (data.wordTimestamps === true) args.push('--word-timestamps')
+  args.push('--format', data.format || 'srt')
+  if (data.noOptimize === true) args.push('--no-optimize')
+  if (data.noSplit === true) args.push('--no-split')
+  if (data.noTranslate === true) {
+    args.push('--no-translate')
+  } else if (data.translator && data.targetLanguage) {
+    args.push('--translator', data.translator, '--target-language', data.targetLanguage)
+    if (data.reflect === true) args.push('--reflect')
+    if (data.layout) args.push('--layout', data.layout)
+    if (data.prompt) args.push('--prompt', data.prompt)
+    if (data.translator === 'llm' && data.llm?.apiKey) {
+      args.push('--api-key', data.llm.apiKey)
+      if (data.llm.apiBase) args.push('--api-base', data.llm.apiBase)
+      if (data.llm.model) args.push('--model', data.llm.model)
+    }
+  }
+  if (data.noSynthesize === true) {
+    args.push('--no-synthesize')
+  } else {
+    if (data.subtitleMode) args.push('--subtitle-mode', data.subtitleMode)
+    if (data.quality) args.push('--quality', data.quality)
+    if (data.style) args.push('--style', data.style)
+    if (data.renderMode) args.push('--render-mode', data.renderMode)
+    if (data.synthesizeLayout) args.push('--layout', data.synthesizeLayout)
+  }
+  ensureVcApiKey(args)
+  return args
+}
+
+/** Timeout per job type — matches original Service Worker values. */
+const JOB_TIMEOUT_MS: Record<string, number> = {
+  'download-video': 60 * 60 * 1000,       // 1 hour
+  'transcribe': 10 * 60 * 1000,            // 10 min
+  'translate': 10 * 60 * 1000,             // 10 min
+  'synthesize': 60 * 60 * 1000,            // 1 hour
+  'process': 2 * 60 * 60 * 1000,           // 2 hours
+}
+
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -86,13 +201,18 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
-  const [swReady, setSwReady] = useState(false)
+  const [isReady, setIsReady] = useState(false)
 
   // Mutable refs so callbacks always see the latest values without stale closures.
   const jobRecordsRef = useRef<TaskJobRecord[]>([])
-  const swReadyRef = useRef(false)
-  /** Stored after registration so postSw can use registration.active (more reliable than controller). */
-  const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null)
+  const isReadyRef = useRef(false)
+
+  /** Global concurrency: at most 1 running job per type. */
+  const runningJobsRef = useRef<Map<string, string>>(new Map())        // type → jobId
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map()) // jobId → controller
+
+  // Refs to break circular dependency between executeJob ↔ tryAutoStart
+  const executeJobRef = useRef<(jobId: string) => Promise<void>>(async () => {})
 
   // ---------------------------------------------------------------------------
   // Core sync
@@ -131,27 +251,16 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     [syncFromIndexedDB],
   )
 
-  // Load persisted jobs on mount without waiting for Service Worker registration.
+  // Load persisted jobs on mount.
   useEffect(() => {
     void syncFromIndexedDB('mount:eager')
   }, [syncFromIndexedDB])
 
   // ---------------------------------------------------------------------------
-  // SW plumbing
+  // Abort running-on-mount (no SW → all running jobs are stale on fresh load)
   // ---------------------------------------------------------------------------
 
-  const postSw = useCallback((event: string, id: string) => {
-    const target =
-      swRegistrationRef.current?.active ?? navigator.serviceWorker?.controller
-    if (target) {
-      target.postMessage({ event, id })
-    } else {
-      console.warn('[JobOrchestrator] no SW controller', { event, id })
-    }
-  }, [])
-
-  /** Mark all running IDB jobs as aborted (called once on SW registration). */
-  const handleSwReactivate = useCallback(async (): Promise<void> => {
+  const abortRunningJobsOnMount = useCallback(async (): Promise<void> => {
     const records = await getAllJobs()
     for (const record of records) {
       if (record.type === 'test-delay') continue
@@ -181,17 +290,324 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ---------------------------------------------------------------------------
+  // executeJob — runs a single job to completion (no SW proxy)
+  // ---------------------------------------------------------------------------
+
+  const executeJob = useCallback(async (jobId: string): Promise<void> => {
+    const record = jobRecordsRef.current.find((r) => r.id === jobId)
+    if (!record || record.status !== 'pending') return
+
+    const jobType = record.type
+    const config = JOB_TYPE_REGISTRY[jobType]
+    if (!config) return
+
+    // Concurrency check: at most 1 running per type globally
+    if (runningJobsRef.current.has(jobType)) return
+
+    // Check auto-start preference
+    try {
+      if (localStorage.getItem(config.autoStartKey) === 'false') return
+    } catch {
+      // localStorage unavailable — treat as enabled
+    }
+
+    // Parse job data
+    let data: Record<string, unknown>
+    try {
+      data = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      data = {}
+    }
+
+    const controller = new AbortController()
+    abortControllersRef.current.set(jobId, controller)
+    runningJobsRef.current.set(jobType, jobId)
+
+    try {
+      // Mark as running
+      record.status = 'running'
+      record.updatedAt = Date.now()
+      await putJob(record)
+
+      await syncFromIndexedDB('executeJob:started')
+      if (config.toasts?.started) {
+        toast.info(config.toasts.started(tRef.current))
+      }
+
+      let success = false
+      let wasStopped = false
+
+      switch (jobType) {
+        // ── Download ──────────────────────────────────────────────
+        case 'download-video': {
+          const downloadData = data as unknown as DownloadVideoBackgroundJobData
+          const videos = downloadData.videos ?? []
+          let allSucceeded = true
+
+          for (let i = 0; i < videos.length; i++) {
+            if (controller.signal.aborted) { wasStopped = true; break }
+
+            const video = videos[i]
+            if (video.status === 'succeeded') continue
+
+            video.status = 'downloading'
+            record.data = JSON.stringify(data)
+            record.updatedAt = Date.now()
+            await putJob(record)
+            await syncFromIndexedDB('executeJob:video-status')
+
+            try {
+              const executionId = crypto.randomUUID()
+              data.executionId = executionId
+              record.data = JSON.stringify(data)
+              await putJob(record)
+
+              const args = buildYtdlpDownloadArgs({
+                url: video.url,
+                folder: downloadData.folder,
+                format: downloadData.ytdlpFormat,
+                cookiesFile: downloadData.ytdlpCookiesFile,
+                cookiesFromBrowser: downloadData.ytdlpCookiesFromBrowser,
+                args: downloadData.ytdlpExtraArgs,
+                jsRuntime: downloadData.ytdlpJsRuntime,
+                jsRuntimePath: downloadData.ytdlpJsRuntimePath,
+              })
+
+              const result = await executeCmdToCompletionWithHeaders(
+                { command: 'yt-dlp', args },
+                {
+                  timeoutMs: JOB_TIMEOUT_MS['download-video'],
+                  signal: controller.signal,
+                  executionId,
+                },
+              )
+
+              if (result.executionId) data.executionId = result.executionId
+              if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+
+              if (!result.success) {
+                video.status = 'failed'
+                allSucceeded = false
+              } else {
+                const outPath = parseYtdlpDownloadStdout(result.stdout)
+                if (outPath) {
+                  // Store download path (optional, currently not used by SW either)
+                }
+                video.status = 'succeeded'
+              }
+            } catch (e) {
+              if (controller.signal.aborted) {
+                video.status = 'pending'
+                wasStopped = true
+                break
+              }
+              video.status = 'failed'
+              allSucceeded = false
+            }
+
+            record.data = JSON.stringify(data)
+            record.updatedAt = Date.now()
+            await putJob(record)
+            await syncFromIndexedDB('executeJob:video-completed')
+          }
+
+          if (wasStopped) {
+            record.status = 'stopped'
+          } else if (allSucceeded) {
+            record.status = 'succeeded'
+            record.progress = 100
+            success = true
+          } else {
+            record.status = 'failed'
+          }
+          break
+        }
+
+        // ── Transcribe ────────────────────────────────────────────
+        case 'transcribe': {
+          const td = data as unknown as TranscribeBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          const args = buildTranscribeArgs(td)
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'videocaptioner', args },
+            { timeoutMs: JOB_TIMEOUT_MS['transcribe'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+          break
+        }
+
+        // ── Translate ─────────────────────────────────────────────
+        case 'translate': {
+          const td = data as unknown as TranslateBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          const args = buildTranslateArgs(td)
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'videocaptioner', args },
+            { timeoutMs: JOB_TIMEOUT_MS['translate'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+          break
+        }
+
+        // ── Synthesize ────────────────────────────────────────────
+        case 'synthesize': {
+          const sd = data as unknown as SynthesizeBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          const args = buildSynthesizeArgs(sd)
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'videocaptioner', args },
+            { timeoutMs: JOB_TIMEOUT_MS['synthesize'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+          break
+        }
+
+        // ── Process ───────────────────────────────────────────────
+        case 'process': {
+          const pd = data as unknown as ProcessBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          const args = buildProcessArgs(pd)
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'videocaptioner', args },
+            { timeoutMs: JOB_TIMEOUT_MS['process'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+          break
+        }
+
+        default:
+          return
+      }
+
+      // Persist final state
+      record.data = JSON.stringify(data)
+      record.updatedAt = Date.now()
+      await putJob(record)
+
+      // Toast notification
+      if (wasStopped) {
+        // No toast for stopped (user initiated)
+      } else if (success && config.toasts?.succeeded) {
+        toast.success(config.toasts.succeeded(tRef.current))
+      } else if (!success && config.toasts?.failed) {
+        toast.error(config.toasts.failed(tRef.current))
+      }
+
+      // Handle cancel-siblings on failure
+      if (!success && !wasStopped && record.parentId) {
+        await cancelPendingJobsByParentId(record.parentId)
+      }
+    } catch (e) {
+      // Unexpected error — mark as failed
+      record.status = 'failed'
+      record.updatedAt = Date.now()
+      record.data = JSON.stringify(data)
+      await putJob(record)
+      console.error('[JobOrchestrator] executeJob unexpected error', e)
+    } finally {
+      abortControllersRef.current.delete(jobId)
+      runningJobsRef.current.delete(jobType)
+
+      await syncFromIndexedDB('executeJob:finished')
+
+      // Auto-chain: start next pending job of same type
+      const freshRecords = jobRecordsRef.current
+      try {
+        const nextPending = freshRecords.find(
+          (r) => r.type === jobType && r.status === 'pending',
+        )
+        if (nextPending) {
+          void executeJobRef.current(nextPending.id)
+        }
+      } catch {
+        // best-effort chaining
+      }
+    }
+  }, [syncFromIndexedDB])
+
+  executeJobRef.current = executeJob
+
+  // ---------------------------------------------------------------------------
+  // Stop a running job
+  // ---------------------------------------------------------------------------
+
+  const stopExecutingJob = useCallback(async (jobId: string): Promise<void> => {
+    const controller = abortControllersRef.current.get(jobId)
+    if (controller) {
+      controller.abort()
+    }
+
+    // If the job is still in IDB as running, update it
+    const record = jobRecordsRef.current.find((r) => r.id === jobId)
+    if (record && record.status === 'running') {
+      record.status = 'stopped'
+      record.updatedAt = Date.now()
+      if (record.data) {
+        try {
+          const data = JSON.parse(record.data) as {
+            videos?: Array<{ status?: string }>
+          }
+          if (Array.isArray(data.videos)) {
+            for (const v of data.videos) {
+              if (v.status === 'downloading') {
+                v.status = 'pending'
+              }
+            }
+            record.data = JSON.stringify(data)
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+      await putJob(record)
+      await syncFromIndexedDB('stopJob')
+    }
+  }, [syncFromIndexedDB])
+
+  // ---------------------------------------------------------------------------
   // Auto-start
   // ---------------------------------------------------------------------------
 
   /**
    * Attempt to auto-start the next pending job for `(type, folder)`.
-   * No-op when: SW not ready, auto-start disabled in localStorage, or a job
-   * of the same (type, folder) is already running.
+   * No-op when: not ready, auto-start disabled, or a job of the same type
+   * is already running.
    */
   const tryAutoStart = useCallback(
     (type: string, folder: string, records?: TaskJobRecord[]): void => {
-      if (!swReadyRef.current) return
+      if (!isReadyRef.current) return
       const config = JOB_TYPE_REGISTRY[type]
       if (!config) return
 
@@ -203,7 +619,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
       const current = records ?? jobRecordsRef.current
       const hasRunning = current.some(
-        (r) => r.type === type && r.folder === folder && r.status === 'running',
+        (r) => r.type === type && r.status === 'running',
       )
       if (hasRunning) return
 
@@ -212,9 +628,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       )
       if (!next) return
 
-      postSw(swEventNames(config.messagePrefix).start, next.id)
+      void executeJobRef.current(next.id)
     },
-    [postSw],
+    [], // empty deps — uses refs for all dynamic values
   )
 
   /** Try auto-start for every distinct (type, folder) combo in the current records. */
@@ -234,64 +650,6 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   )
 
   // ---------------------------------------------------------------------------
-  // SW message listener
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    const handler = async (event: MessageEvent) => {
-      const data = event.data
-      if (!data || typeof data !== 'object' || !('event' in data)) return
-      const msg = data as { event: string; id?: string }
-      if (!msg.id) return
-      if (msg.event.endsWith(':heartbeat')) return
-
-      const matchedType = ALL_JOB_TYPES.find((t) => {
-        const evts = swEventNames(JOB_TYPE_REGISTRY[t].messagePrefix)
-        return Object.values(evts).includes(msg.event)
-      })
-      if (!matchedType) return
-
-      const config = JOB_TYPE_REGISTRY[matchedType]
-      const evts = swEventNames(config.messagePrefix)
-
-      if (msg.event === evts.started && config.toasts?.started) {
-        toast.info(config.toasts.started(tRef.current))
-      }
-
-      if (
-        msg.event === evts.succeeded ||
-        msg.event === evts.failed ||
-        msg.event === evts.stopped
-      ) {
-        if (msg.event === evts.succeeded && config.toasts?.succeeded) {
-          toast.success(config.toasts.succeeded(tRef.current))
-        } else if (msg.event === evts.failed && config.toasts?.failed) {
-          toast.error(config.toasts.failed(tRef.current))
-        }
-        const failedJob = jobRecordsRef.current.find((r) => r.id === msg.id)
-        const prevFolder = failedJob?.folder
-        const prevParentId = failedJob?.parentId
-
-        let fresh = await syncFromIndexedDB(`sw:${msg.event}`)
-
-        if (msg.event === evts.failed && prevParentId) {
-          await cancelPendingJobsByParentId(prevParentId)
-          fresh = await syncFromIndexedDB(`sw:${msg.event}:cancel-siblings`)
-        }
-
-        if (prevFolder) tryAutoStart(matchedType, prevFolder, fresh)
-        return
-      }
-
-      // started / removed → just re-sync
-      await syncFromIndexedDB(`sw:${msg.event}`)
-    }
-
-    navigator.serviceWorker?.addEventListener('message', handler)
-    return () => navigator.serviceWorker?.removeEventListener('message', handler)
-  }, [syncFromIndexedDB, tryAutoStart])
-
-  // ---------------------------------------------------------------------------
   // indexed-updated listener
   // ---------------------------------------------------------------------------
 
@@ -309,6 +667,14 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     [jobRecords],
   )
 
+  const hasRunningJobsWithExecutionId = useMemo(
+    () =>
+      jobRecords.some(
+        (r) => r.status === 'running' && getExecutionIdFromJobRecord(r) != null,
+      ),
+    [jobRecords],
+  )
+
   useEffect(() => {
     if (!hasActiveJobs) return
     const id = setInterval(() => {
@@ -317,71 +683,37 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id)
   }, [hasActiveJobs, syncFromIndexedDB])
 
+  useEffect(() => {
+    if (!hasRunningJobsWithExecutionId) return
+    void pollCommandExecutionStatusAndReconcile()
+    const id = setInterval(() => {
+      void pollCommandExecutionStatusAndReconcile()
+    }, COMMAND_EXECUTION_STATUS_POLL_MS)
+    return () => clearInterval(id)
+  }, [hasRunningJobsWithExecutionId])
+
   // ---------------------------------------------------------------------------
-  // Mount: register SW, startup reconciliation, initial auto-start
+  // Mount: abort stale running jobs, sync IDB, auto-start
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false
-    let detachSwUpdateChecks: (() => void) | undefined
-
-    const activateServiceWorker = async (source: string) => {
-      swRegistrationRef.current = await navigator.serviceWorker.ready
-      await handleSwReactivate()
-      const fresh = await syncFromIndexedDB(`activate:${source}`)
-      swReadyRef.current = true
-      setSwReady(true)
-      tryAutoStartAll(fresh)
-    }
 
     async function init() {
-      if (!navigator.serviceWorker) {
-        // No SW support — still sync so UI shows persisted jobs.
-        await syncFromIndexedDB('init:no-sw')
-        return
-      }
-      try {
-        const registration = await navigator.serviceWorker.register(DOWNLOAD_SERVICE_WORKER_URL)
-        if (cancelled) return
-
-        // Wait for this page to be controlled (needed on first SW install when
-        // clients.claim() hasn't fired yet — registration.active exists but
-        // navigator.serviceWorker.controller may still be null).
-        if (!navigator.serviceWorker.controller) {
-          await new Promise<void>((resolve) => {
-            const onChange = () => {
-              navigator.serviceWorker.removeEventListener('controllerchange', onChange)
-              resolve()
-            }
-            navigator.serviceWorker.addEventListener('controllerchange', onChange)
-            // Re-check in case the event already fired between the null check and listener add.
-            if (navigator.serviceWorker.controller) {
-              navigator.serviceWorker.removeEventListener('controllerchange', onChange)
-              resolve()
-            }
-          })
-        }
-        if (cancelled) return
-
-        await activateServiceWorker('init')
-        if (cancelled) return
-
-        detachSwUpdateChecks = attachDownloadServiceWorkerUpdateChecks(registration, () => {
-          if (cancelled) return
-          void activateServiceWorker('sw-update')
-        })
-      } catch (e) {
-        console.warn('[JobOrchestrator] SW registration failed', e)
-        await syncFromIndexedDB('init:sw-register-failed')
-      }
+      await abortRunningJobsOnMount()
+      if (cancelled) return
+      const fresh = await syncFromIndexedDB('mount:init')
+      if (cancelled) return
+      isReadyRef.current = true
+      setIsReady(true)
+      tryAutoStartAll(fresh)
     }
 
     void init()
     return () => {
       cancelled = true
-      detachSwUpdateChecks?.()
     }
-  }, [handleSwReactivate, syncFromIndexedDB, tryAutoStartAll])
+  }, [abortRunningJobsOnMount, syncFromIndexedDB, tryAutoStartAll])
 
   // ---------------------------------------------------------------------------
   // Imperative API
@@ -461,7 +793,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
   const startJob = useCallback(
     async (id: string, options?: { forceStart?: boolean }): Promise<StartJobResult> => {
-      if (!swReadyRef.current) return { started: false, reason: 'sw-not-ready' }
+      if (!isReadyRef.current) return { started: false, reason: 'sw-not-ready' }
 
       const record = jobRecordsRef.current.find((r) => r.id === id)
       if (!record) return { started: false, reason: 'job-not-found' }
@@ -471,39 +803,35 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
 
       if (!options?.forceStart) {
         const hasRunning = jobRecordsRef.current.some(
-          (r) => r.type === record.type && r.folder === record.folder && r.status === 'running',
+          (r) => r.type === record.type && r.status === 'running',
         )
         if (hasRunning) return { started: false, reason: 'concurrency-blocked' }
       }
 
-      postSw(swEventNames(config.messagePrefix).start, id)
+      void executeJobRef.current(id)
       return { started: true }
     },
-    [postSw],
+    [], // uses refs, no need for executeJob in deps
   )
 
   const stopJob = useCallback(
     (id: string): void => {
-      const record = jobRecordsRef.current.find((r) => r.id === id)
-      if (!record) return
-      const config = JOB_TYPE_REGISTRY[record.type]
-      if (!config) return
-      postSw(`${config.messagePrefix}:stop`, id)
+      stopExecutingJob(id)
     },
-    [postSw],
+    [stopExecutingJob],
   )
 
   const removeJob = useCallback(
     async (id: string): Promise<void> => {
-      const record = jobRecordsRef.current.find((r) => r.id === id)
-      if (record) {
-        const config = JOB_TYPE_REGISTRY[record.type]
-        if (config) postSw(swEventNames(config.messagePrefix).remove, id)
+      // Abort if running
+      const controller = abortControllersRef.current.get(id)
+      if (controller) {
+        controller.abort()
       }
       await deleteJob(id)
       await syncFromIndexedDB('removeJob')
     },
-    [postSw, syncFromIndexedDB],
+    [syncFromIndexedDB],
   )
 
   // ---------------------------------------------------------------------------
@@ -517,7 +845,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       startJob,
       stopJob,
       removeJob,
-      isReady: () => swReadyRef.current,
+      isReady: () => isReadyRef.current,
     }
     return () => {
       delete (window as unknown as Record<string, unknown>).__jobOrchestrator
@@ -532,7 +860,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     () => ({
       jobRecords,
       popoverJobRecords,
-      isReady: swReady,
+      isReady,
       refreshFromIndexedDB,
       createJob,
       createJobs,
@@ -543,7 +871,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     [
       jobRecords,
       popoverJobRecords,
-      swReady,
+      isReady,
       refreshFromIndexedDB,
       createJob,
       createJobs,
