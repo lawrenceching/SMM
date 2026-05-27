@@ -117,9 +117,21 @@ export function LocalFileTableRow({
 
     // Resolve AI config
     const selectedName = userConfig.selectedAIProvider
+    if (!selectedName) {
+      toast.error(t("mediaPlayer.trackContextMenu.summarizeNoDefaultAi"))
+      return
+    }
     const aiProvider = userConfig.aiProviders?.find((p) => p.name === selectedName)
     if (!aiProvider) {
       toast.error(t("mediaPlayer.trackContextMenu.summarizeNoAiConfig"))
+      return
+    }
+    if (!aiProvider.baseURL) {
+      toast.error(t("mediaPlayer.trackContextMenu.summarizeNoBaseUrl", { name: aiProvider.name }))
+      return
+    }
+    if (!aiProvider.model) {
+      toast.error(t("mediaPlayer.trackContextMenu.summarizeNoModel", { name: aiProvider.name }))
       return
     }
     const reverseProxyUrl = appConfig.reverseProxyUrl

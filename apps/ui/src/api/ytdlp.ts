@@ -195,8 +195,13 @@ export async function listYtdlpFormats(
   );
 
   if (!result.success) {
-    const errorText = [result.stderr, result.stdout].join("\n");
-    throw new Error(result.error || errorText.trim() || `yt-dlp exited with code ${result.exitCode}`);
+    const stderr = result.stderr?.trim() ?? ""
+    const stdout = result.stdout?.trim() ?? ""
+    const errorText = [stderr, stdout].filter(Boolean).join("\n")
+    const message = errorText || `yt-dlp exited with code ${result.exitCode}`
+    // Prepend the system-level error (e.g. timeout message) if available
+    const fullMessage = result.error ? `${result.error}\n${message}` : message
+    throw new Error(fullMessage)
   }
 
   const parsed = parse(result.stdout);

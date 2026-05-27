@@ -1,5 +1,5 @@
 /** Known error types that can occur during `--list-formats` or download. */
-export type YtdlpErrorType = "cookie-expired" | "format-unavailable" | "unknown"
+export type YtdlpErrorType = "cookie-expired" | "format-unavailable" | "connection-timeout" | "unknown"
 
 export interface YtdlpErrorResult {
   type: YtdlpErrorType
@@ -19,6 +19,10 @@ export function classifyYtdlpError(errorText: string): YtdlpErrorResult {
 
   if (/Requested format is not available/i.test(text)) {
     return { type: "format-unavailable", message: "请求格式不可用, 请尝试选择格式码" }
+  }
+
+  if (/Connection to www\.youtube\.com timed out/i.test(text)) {
+    return { type: "connection-timeout", message: "无法获取视频格式, 连接 Youtube 超时" }
   }
 
   return { type: "unknown", message: "未知错误, 请从状态栏任务列表中查看详细日志" }

@@ -22,6 +22,13 @@ describe("ytdlpErrorDetection", () => {
     expect(result.type).toBe("format-unavailable")
   })
 
+  it("classifies connection-timeout errors", () => {
+    const result = classifyYtdlpError(
+      "yt-dlp command timed out\nWARNING: [youtube] (<HTTPSConnection(host='www.youtube.com', port=443) at 0x2145b8be3b0>, 'Connection to www.youtube.com timed out. (connect timeout=20.0)'). Retrying (1/3)...",
+    )
+    expect(result.type).toBe("connection-timeout")
+  })
+
   it("returns unknown for unrecognized errors", () => {
     const result = classifyYtdlpError("some unexpected failure")
     expect(result.type).toBe("unknown")

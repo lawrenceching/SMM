@@ -333,10 +333,12 @@ export function useDownloadVideoForm(
     }
 
     // For YouTube URLs, check QuickJS availability before listing formats
+    let quickjsPath: string | undefined
     if (isYoutubeUrl(trimmed)) {
       try {
         const { quickjs } = await fetchDiscoverExecutables()
-        const found = !!(quickjs.configuredPath || quickjs.discoveredPath)
+        quickjsPath = quickjs.configuredPath || quickjs.discoveredPath || undefined
+        const found = !!quickjsPath
         setQuickjsUnavailable(!found)
         if (!found) {
           return
@@ -381,7 +383,7 @@ export function useDownloadVideoForm(
         url: trimmed,
         cookiesFromBrowser: cfBrowser,
         ...(cookiesFile ? { cookiesFile } : {}),
-        ...(useJsRuntime ? { jsRuntime } : {}),
+        ...(useJsRuntime ? { jsRuntime, jsRuntimePath: quickjsPath } : {}),
       },
       cookiesFile
         ? () => {

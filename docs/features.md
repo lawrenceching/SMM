@@ -96,9 +96,7 @@ And the test status of v1.1.0
 | Download Youtube Video                           | AUTO   |         |
 | > MusicPanel-Download.e2e.ts                     |        |         |
 | DownloadVideoDialog                                                 |        |         |
-| - 无法拉取视频格式 - 未登录                                             |        |         |
-| - 无法拉取视频格式 - 超时                                             |        |         |
-| - 无法下载视频 - 未登录                                               |        |         |
+| - 无法拉取视频格式 - 超时                          | MANUAL   |         |
 | - 无法下载视频 - 超时                                               |        |         |
 | - 无法下载视频 - 格式不可用                                               |        |         |
 |                                                  |        |         |

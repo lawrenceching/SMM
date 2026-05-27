@@ -1,7 +1,7 @@
 ---
-name: three-stages-planning
+name: arch
 version: "0.0.1"
-description: How to process the changes in architecture-coding-testing three stages
+description: How to architect, design, code and test the complex requirement.
 user-invocable: true
 allowed-tools:
   - Read
@@ -15,11 +15,13 @@ allowed-tools:
   - AskQuestion
 ---
 
-# Three Stages Planning
+# Architecturing
 
 ## Before ANY complex task:
 
-1. **Ask Questions** - Think about the changes and ask questions to clarify the requirements.
+1. **Understanding** - Have thorough understanding, read `.agents/docs/architecture.md` first. And read docments in `.agents/docs/design/` folder that may relative to this change.
+
+2. **Ask Questions** - Think about the changes and ask questions to clarify the requirements.
    Invoke the proper tools to ask questions. If no suitable tools avaiable, ask a quesiton in plain text, using follow template
    ```
    1. [Question here]
@@ -40,15 +42,15 @@ allowed-tools:
 
    **IMPORTANT** You can invoke several rounds of Q&A until you fully clarify the requirement.
 
-2. **Create `.agents/docs/design/[change-name].md`** - Summary the changes in words, and create the design document with proper name.
+3. **Create `.agents/docs/design/[change-name].md`** - Summary the changes in words, and create the design document with proper name.
    Use [templates/design.md](templates/design.md) as reference.
-3. **Ask Feedback** - Ask user for reivew, and adjust the design document accordingly.
+4. **Ask Feedback** - Ask user for reivew, and adjust the design document accordingly.
    The message template
    ```
    The design document is created. Review its content and let me know if anything needs to adjust.
    Or say "approved" to move to coding stage.
    ```
-4. **Start Coding** - If user approved the change, start coding following the "Tasks" section in design document.
+5. **Start Coding** - If user approved the change, start coding following the design document.
 
 ## Progressive Update
 
