@@ -40,7 +40,7 @@ allowed-tools:
 
    **IMPORTANT** You can invoke several rounds of Q&A until you fully clarify the requirement.
 
-2. **Create `docs/design/[change-name].md`** - Summary the changes in words, and create the design document with proper name.
+2. **Create `.agents/docs/design/[change-name].md`** - Summary the changes in words, and create the design document with proper name.
    Use [templates/design.md](templates/design.md) as reference.
 3. **Ask Feedback** - Ask user for reivew, and adjust the design document accordingly.
    The message template
