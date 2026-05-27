@@ -25,6 +25,15 @@ export function classifyYtdlpError(errorText: string): YtdlpErrorResult {
     return { type: "connection-timeout", message: "无法获取视频格式, 连接 Youtube 超时" }
   }
 
+  const connectionTimeout = /Connection to (\S+?) timed out/i.exec(text)
+  if (connectionTimeout) {
+    const host = connectionTimeout[1]
+    return {
+      type: "connection-timeout",
+      message: `无法获取视频格式, 连接 ${host} 超时`,
+    }
+  }
+
   return { type: "unknown", message: "未知错误, 请从状态栏任务列表中查看详细日志" }
 }
 

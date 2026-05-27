@@ -22,11 +22,18 @@ describe("ytdlpErrorDetection", () => {
     expect(result.type).toBe("format-unavailable")
   })
 
-  it("classifies connection-timeout errors", () => {
+  it("classifies connection-timeout errors for YouTube", () => {
     const result = classifyYtdlpError(
       "yt-dlp command timed out\nWARNING: [youtube] (<HTTPSConnection(host='www.youtube.com', port=443) at 0x2145b8be3b0>, 'Connection to www.youtube.com timed out. (connect timeout=20.0)'). Retrying (1/3)...",
     )
     expect(result.type).toBe("connection-timeout")
+    expect(result.message).toBe("无法获取视频格式, 连接 Youtube 超时")
+  })
+
+  it("classifies connection-timeout errors for other hosts", () => {
+    const result = classifyYtdlpError("Connection to api.bilibili.com timed out. (connect timeout=20.0)")
+    expect(result.type).toBe("connection-timeout")
+    expect(result.message).toBe("无法获取视频格式, 连接 api.bilibili.com 超时")
   })
 
   it("returns unknown for unrecognized errors", () => {
