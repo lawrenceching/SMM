@@ -8,6 +8,7 @@ import {
 } from '@/lib/downloadTaskDb'
 import { jobRecordToBackgroundJob } from '@/lib/jobRecordMapper'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { toast } from 'sonner'
 
 export const TEST_DELAY_JOB_TYPE = 'test-delay'
 
@@ -141,6 +142,12 @@ export async function runTestDelayJob(record: TaskJobRecord, traceId = 'test-del
       record.progress = 100
       record.data = JSON.stringify(data)
       await persistRecord(record)
+
+      // Show toast on failure (skip during resume on app mount)
+      if (data.outcome === 'failed' && traceId !== 'resume') {
+        toast.error(`Job failed: ${record.name}`)
+      }
+
       console.log(`[${traceId}] TestDelayJob: Job "${record.name}" finished as ${data.outcome}`)
     })()
   }, remaining)

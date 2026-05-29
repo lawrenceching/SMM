@@ -95,10 +95,10 @@ And the test status of v1.1.0
 | > MusicPanel-Download.e2e.ts                     |        |         |
 | Download Youtube Video                           | AUTO   |         |
 | > MusicPanel-Download.e2e.ts                     |        |         |
-| DownloadVideoDialog                                                 |        |         |
-| - 无法拉取视频格式 - 超时                          | MANUAL   |         |
-| - 无法下载视频 - 超时                                               |        |         |
-| - 无法下载视频 - 格式不可用                                               |        |         |
+| DownloadVideoDialog                              |        |         |
+| - 无法拉取视频格式 - 超时                        | MANUAL |         |
+| - 无法下载视频 - 超时                            |        |         |
+| - 无法下载视频 - 格式不可用                      |        |         |
 |                                                  |        |         |
 |                                                  |        |         |
 |                                                  |        |         |
@@ -113,7 +113,8 @@ And the test status of v1.1.0
 |                                                  |        |         |
 | Background Jobs                                  |        |         |
 | - Start/Stop/Remove Download Video Job           |        |         |
-| - Failure Notification of Download Video Job     |||
+| - Failure Notification of Download Video Job     |        |         |
+| apps\e2e\test\specs\other\BackgroundJob.e2e.ts   |        |         |
 |                                                  |        |         |
 | Messages                                         |        |         |
 | TMDB/TVDB Connectivity                           |        |         |

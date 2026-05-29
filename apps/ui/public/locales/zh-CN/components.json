@@ -234,6 +234,9 @@
         "failed": "任务失败",
         "aborted": "用户已终止任务"
       },
+      "toasts": {
+        "genericFailed": "任务「{{name}}」失败"
+      },
       "delete": "删除",
       "deleteDisabledRunning": "运行中的任务无法删除",
       "clearFinished": "清理",
@@ -426,6 +429,16 @@
     "noMediaFolder": "媒体文件夹不可用，无法开始流水线。",
     "notEligible": "该项不符合流水线条件。",
     "partialFailure": "{{count}} 个流水线任务未能加入队列。"
+  },
+  "downloadVideoDialog": {
+    "toastStart": "开始下载",
+    "toastSucceeded": "下载完成",
+    "toastFailed": "下载失败"
+  },
+  "transcribeDialog": {
+    "toastStart": "开始生成字幕",
+    "toastSucceeded": "字幕生成完成",
+    "toastFailed": "字幕生成失败"
   },
   "tvShowEpisodeTable": {
     "columns": {

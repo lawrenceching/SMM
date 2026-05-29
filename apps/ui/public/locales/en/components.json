@@ -235,6 +235,9 @@
         "failed": "Job failed",
         "aborted": "Aborted by user"
       },
+      "toasts": {
+        "genericFailed": "Job \"{{name}}\" failed"
+      },
       "delete": "Delete",
       "deleteDisabledRunning": "Cannot delete while running",
       "clearFinished": "Clear",
@@ -427,6 +430,16 @@
     "noMediaFolder": "Media folder is not available; cannot start pipeline.",
     "notEligible": "This item is not eligible for the pipeline.",
     "partialFailure": "{{count}} pipeline job(s) could not be enqueued."
+  },
+  "downloadVideoDialog": {
+    "toastStart": "Download started",
+    "toastSucceeded": "Download finished",
+    "toastFailed": "Download failed"
+  },
+  "transcribeDialog": {
+    "toastStart": "Transcription started",
+    "toastSucceeded": "Transcription finished",
+    "toastFailed": "Transcription failed"
   },
   "tvShowEpisodeTable": {
     "columns": {

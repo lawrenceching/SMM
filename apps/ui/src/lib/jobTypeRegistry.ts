@@ -35,6 +35,11 @@ export const JOB_TYPE_REGISTRY: Record<string, JobTypeConfig> = {
       if (Array.isArray(url) && typeof url[0]?.url === 'string') return url[0].url
       return ''
     },
+    toasts: {
+      started: (t) => t('downloadVideoDialog.toastStart'),
+      succeeded: (t) => t('downloadVideoDialog.toastSucceeded'),
+      failed: (t) => t('downloadVideoDialog.toastFailed'),
+    },
   },
 
   'transcribe': {
@@ -43,6 +48,11 @@ export const JOB_TYPE_REGISTRY: Record<string, JobTypeConfig> = {
     extractPath: (data) => {
       const p = (data as Record<string, unknown> | null)?.mediaPath
       return typeof p === 'string' && p.trim() ? Path.posix(p.trim()) : ''
+    },
+    toasts: {
+      started: (t) => t('transcribeDialog.toastStart'),
+      succeeded: (t) => t('transcribeDialog.toastSucceeded'),
+      failed: (t) => t('transcribeDialog.toastFailed'),
     },
   },
 

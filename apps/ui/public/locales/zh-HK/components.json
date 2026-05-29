@@ -232,6 +232,9 @@
         "failed": "工作失敗",
         "aborted": "使用者已中止"
       },
+      "toasts": {
+        "genericFailed": "工作「{{name}}」失敗"
+      },
       "delete": "刪除",
       "deleteDisabledRunning": "執行中的任務無法刪除",
       "clearFinished": "清理",
@@ -423,6 +426,16 @@
     "noMediaFolder": "媒體資料夾不可用，無法開始流程。",
     "notEligible": "此項不符合流程條件。",
     "partialFailure": "{{count}} 個流程任務未能加入佇列。"
+  },
+  "downloadVideoDialog": {
+    "toastStart": "開始下載",
+    "toastSucceeded": "下載完成",
+    "toastFailed": "下載失敗"
+  },
+  "transcribeDialog": {
+    "toastStart": "開始生成字幕",
+    "toastSucceeded": "字幕生成完成",
+    "toastFailed": "字幕生成失敗"
   },
   "tvShowEpisodeTable": {
     "columns": {

@@ -287,6 +287,9 @@ interface ComponentsResources {
         process: string
         typedJob: string
       }
+      toasts: {
+        genericFailed: string
+      }
     }
   }
   mediaPlayer: {
@@ -418,6 +421,16 @@ interface ComponentsResources {
     noMediaFolder: string
     notEligible: string
     partialFailure: string
+  }
+  downloadVideoDialog: {
+    toastStart: string
+    toastSucceeded: string
+    toastFailed: string
+  }
+  transcribeDialog: {
+    toastStart: string
+    toastSucceeded: string
+    toastFailed: string
   }
   tvShowEpisodeTable: {
     columns: {

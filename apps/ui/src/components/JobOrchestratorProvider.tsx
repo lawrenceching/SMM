@@ -523,6 +523,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         toast.success(config.toasts.succeeded(tRef.current))
       } else if (!success && config.toasts?.failed) {
         toast.error(config.toasts.failed(tRef.current))
+      } else if (!success) {
+        // Generic fallback for types without specific toast messages
+        toast.error(tRef.current('statusBar.backgroundJobs.toasts.genericFailed', { name: record.name } as Record<string, unknown>))
       }
 
       // Handle cancel-siblings on failure
