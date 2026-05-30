@@ -11,7 +11,7 @@ import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCo
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 
 import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
-import type { PlaylistMetadata, VideoMetadata } from "@/api/ytdlp/types";
+import type { PlaylistMetadata, Thumbnail, Version, VideoMetadata } from "@/api/ytdlp/types";
 
 export interface YtdlpDownloadRequest {
   url: string;
@@ -244,7 +244,7 @@ export interface BilibiliCollectionMetadata {
   thumbnail: string;
   id: string;
   _type: string;
-  entries: BilibiliCollectionEntry[];
+  entries: VideoMetadata[];
   webpage_url: string;
   original_url: string;
   webpage_url_basename: string;
@@ -253,11 +253,11 @@ export interface BilibiliCollectionMetadata {
   extractor_key: string;
   upload_date: string;
   release_year: number | null;
-  thumbnails: BilibiliCollectionThumbnail[];
+  thumbnails: Thumbnail[];
   playlist_count: number;
   epoch: number;
   __files_to_move?: Record<string, unknown>;
-  _version?: BilibiliCollectionMetadataVersion;
+  _version?: Version;
 }
 
 async function collectExecuteCmdOutput(
@@ -272,7 +272,6 @@ async function collectExecuteCmdOutput(
   };
 }
 
-const YTDLP_COLLECTION_CMD_TIMEOUT_MS = 180_000;
 const YTDLP_VIDEO_METADATA_TIMEOUT_MS = 60_000;
 
 /**

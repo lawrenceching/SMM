@@ -79,7 +79,6 @@ export function useYtdlpDownloadFlow(
   opts: UseYtdlpDownloadFlowOptions,
 ): UseYtdlpDownloadFlowReturn {
   const {
-    isOpen,
     hasAgreed,
     url,
     videoListEntries,

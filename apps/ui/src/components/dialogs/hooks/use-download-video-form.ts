@@ -40,6 +40,7 @@ import {
   is1080pAvailableFromFormats,
 } from "@/lib/ytdlpFormatCodes"
 import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
+import type { VideoMetadata } from "@/api/ytdlp/types"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
@@ -109,6 +110,9 @@ export interface UseDownloadVideoFormReturn {
   // New: JS runtime
   useJsRuntime: boolean
   jsRuntime: YtdlpJsRuntimeId
+
+  // New: video list entries from playlist
+  videoListEntries: VideoMetadata[] | null
 
   // New: QuickJS availability
   quickjsUnavailable: boolean

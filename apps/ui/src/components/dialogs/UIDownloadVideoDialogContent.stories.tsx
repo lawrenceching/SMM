@@ -46,7 +46,6 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     formatCodes: [],
     selectedFormatCode: "",
     selectedSupplementaryFormatCode: "",
-    hideFormatCodeUi: false,
     onFormatModeChange: action("onFormatModeChange"),
     onFormatCodeChange: action("onFormatCodeChange"),
     onSupplementaryFormatCodeChange: action("onSupplementaryFormatCodeChange"),
@@ -58,23 +57,9 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onJsRuntimeChange: action("onJsRuntimeChange"),
     quickjsUnavailable: false,
 
-    canDownloadEpisodes: false,
-    downloadEpisodes: false,
-    episodes: [],
-    episodesLoading: false,
-    episodesError: null,
-    selectedEpisodeUrls: new Set(),
-    onDownloadEpisodesChange: action("onDownloadEpisodesChange"),
-    onToggleEpisode: action("onToggleEpisode"),
-
-    isCollectionUrl: false,
-    downloadCollectionVideos: false,
-    collectionEntries: [],
-    collectionMetadataLoading: false,
-    collectionError: null,
-    selectedCollectionUrls: new Set(),
-    onDownloadCollectionVideosChange: action("onDownloadCollectionVideosChange"),
-    onToggleCollectionUrl: action("onToggleCollectionUrl"),
+    videoList: [],
+    selectedUrls: new Set(),
+    onToggleUrl: action("onToggleUrl"),
 
     showMoreOptions: false,
     extraArgSelection: { ...DEFAULT_YTDLP_DOWNLOAD_EXTRA_ARG_SELECTION },
@@ -85,7 +70,6 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onFolderChange: action("onFolderChange"),
     onFolderSelect: action("onFolderSelect"),
 
-    collectionEntriesLength: 0,
     isEnqueueing: false,
     startButtonDisabled: true,
     onCancel: action("onCancel"),
@@ -302,19 +286,17 @@ export const WithEpisodes: Story = {
     isAgreementChecked: true,
     url: "https://www.bilibili.com/video/BV1xx411c7mD",
     isUrlValid: true,
-    canDownloadEpisodes: true,
-    downloadEpisodes: true,
-    episodes: [
+    videoList: [
       { title: "Episode 1 - Introduction", artist: "Channel Name", url: "https://example.com/ep1" },
       { title: "Episode 2 - Getting Started", artist: "Channel Name", url: "https://example.com/ep2" },
       { title: "Episode 3 - Advanced Topics", artist: "Channel Name", url: "https://example.com/ep3" },
     ],
-    selectedEpisodeUrls: new Set([
+    selectedUrls: new Set([
       "https://example.com/ep1",
       "https://example.com/ep2",
       "https://example.com/ep3",
     ]),
-    hideFormatCodeUi: true,
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
@@ -325,10 +307,9 @@ export const WithEpisodesLoading: Story = {
     isAgreementChecked: true,
     url: "https://www.bilibili.com/video/BV1xx411c7mD",
     isUrlValid: true,
-    canDownloadEpisodes: true,
-    downloadEpisodes: true,
-    episodes: [],
-    episodesLoading: true,
+    videoList: [],
+    selectedUrls: new Set(),
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
@@ -339,11 +320,9 @@ export const WithEpisodesError: Story = {
     isAgreementChecked: true,
     url: "https://www.bilibili.com/video/BV1xx411c7mD",
     isUrlValid: true,
-    canDownloadEpisodes: true,
-    downloadEpisodes: true,
-    episodes: [],
-    episodesLoading: false,
-    episodesError: "Failed to fetch episode list. The video may be private or unavailable.",
+    videoList: [],
+    selectedUrls: new Set(),
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
@@ -354,23 +333,21 @@ export const WithCollection: Story = {
     isAgreementChecked: true,
     url: "https://space.bilibili.com/123456/channel/collectiondetail?sid=789",
     isUrlValid: true,
-    isCollectionUrl: true,
-    downloadCollectionVideos: true,
-    collectionEntries: [
-      { url: "https://www.bilibili.com/video/BV1aa11" },
-      { url: "https://www.bilibili.com/video/BV1bb22" },
-      { url: "https://www.bilibili.com/video/BV1cc33" },
-      { url: "https://www.bilibili.com/video/BV1dd44" },
-      { url: "https://www.bilibili.com/video/BV1ee55" },
+    videoList: [
+      { title: "Video 1", artist: "Bilibili Uploader", url: "https://www.bilibili.com/video/BV1aa11" },
+      { title: "Video 2", artist: "Bilibili Uploader", url: "https://www.bilibili.com/video/BV1bb22" },
+      { title: "Video 3", artist: "Bilibili Uploader", url: "https://www.bilibili.com/video/BV1cc33" },
+      { title: "Video 4", artist: "Bilibili Uploader", url: "https://www.bilibili.com/video/BV1dd44" },
+      { title: "Video 5", artist: "Bilibili Uploader", url: "https://www.bilibili.com/video/BV1ee55" },
     ],
-    collectionEntriesLength: 5,
-    selectedCollectionUrls: new Set([
+    selectedUrls: new Set([
       "https://www.bilibili.com/video/BV1aa11",
       "https://www.bilibili.com/video/BV1bb22",
       "https://www.bilibili.com/video/BV1cc33",
       "https://www.bilibili.com/video/BV1dd44",
       "https://www.bilibili.com/video/BV1ee55",
     ]),
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
@@ -381,10 +358,9 @@ export const WithCollectionLoading: Story = {
     isAgreementChecked: true,
     url: "https://space.bilibili.com/123456/channel/collectiondetail?sid=789",
     isUrlValid: true,
-    isCollectionUrl: true,
-    downloadCollectionVideos: true,
-    collectionEntries: [],
-    collectionMetadataLoading: true,
+    videoList: [],
+    selectedUrls: new Set(),
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
@@ -395,11 +371,9 @@ export const WithCollectionError: Story = {
     isAgreementChecked: true,
     url: "https://space.bilibili.com/123456/channel/collectiondetail?sid=789",
     isUrlValid: true,
-    isCollectionUrl: true,
-    downloadCollectionVideos: true,
-    collectionEntries: [],
-    collectionMetadataLoading: false,
-    collectionError: "Failed to load collection. Please check the URL and try again.",
+    videoList: [],
+    selectedUrls: new Set(),
+    onToggleUrl: action("onToggleUrl"),
   },
 }
 
