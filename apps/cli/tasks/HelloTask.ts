@@ -1,6 +1,6 @@
 import { APP_VERSION } from '../src/version';
 import type { HelloResponseBody } from '@core/types';
-import { getLogDir, getUserDataDir, getAppDataDir } from '@/utils/config';
+import { getLogDir, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
 import { logger } from '../lib/logger';
 
 export async function executeHelloTask(reverseProxyUrl: string | null = null): Promise<HelloResponseBody> {
@@ -13,6 +13,7 @@ export async function executeHelloTask(reverseProxyUrl: string | null = null): P
     userDataDir: getUserDataDir(),
     appDataDir: getAppDataDir(),
     logDir: getLogDir(),
+    tmpDir: getTmpDir(),
     reverseProxyUrl,
   }
 }

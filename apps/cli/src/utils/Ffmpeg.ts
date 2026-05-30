@@ -1,62 +1,14 @@
 import { getUserConfig } from "./config";
-import { getTmpDir } from "./config";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import crypto from "crypto";
 import { execSync, spawn } from "child_process";
 import { Path } from "@core/path";
 import { logger } from "../../lib/logger";
 
-const NUM_SCREENSHOTS = 5;
-
 /** Escape a string for use inside double quotes in shell (e.g. paths with " in filename). */
 function escapeForDoubleQuotedShell(s: string): string {
   return s.replace(/"/g, '""');
-}
-
-function getScreenshotCacheDir(videoPath: string): string {
-  const absolutePath = path.resolve(videoPath);
-  const hash = crypto
-    .createHash("sha256")
-    .update(absolutePath)
-    .digest("hex")
-    .slice(0, 32);
-  return path.join(getTmpDir(), "screenshots", hash);
-}
-
-function readScreenshotCacheMeta(
-  cacheDir: string
-): { mtimeMs: number } | null {
-  const metaPath = path.join(cacheDir, "meta.json");
-  if (!fs.existsSync(metaPath)) {
-    return null;
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as {
-      mtimeMs?: number;
-    };
-    if (typeof data.mtimeMs !== "number") {
-      return null;
-    }
-    return { mtimeMs: data.mtimeMs };
-  } catch {
-    return null;
-  }
-}
-
-function isScreenshotCacheValid(cacheDir: string, mtimeMs: number): boolean {
-  const meta = readScreenshotCacheMeta(cacheDir);
-  if (!meta || meta.mtimeMs !== mtimeMs) {
-    return false;
-  }
-  for (let i = 1; i <= NUM_SCREENSHOTS; i++) {
-    const jpgPath = path.join(cacheDir, `${i}.jpg`);
-    if (!fs.existsSync(jpgPath)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 import {
@@ -162,156 +114,6 @@ export async function getFfmpegVersion(): Promise<FfmpegVersionResult> {
   } catch {
     return { error: "failed to execute ffmpeg" };
   }
-}
-
-export interface GenerateScreenshotsResult {
-  screenshots?: string[];
-  error?: string;
-}
-
-function getVideoDuration(videoPath: string, ffmpegPath: string): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegPath, ["-i", videoPath, "-f", "null", "-"], {
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-
-    let stderr = "";
-    child.stderr?.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    child.on("close", (code) => {
-      const durationMatch = stderr.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
-      if (durationMatch && durationMatch[1] && durationMatch[2] && durationMatch[3] && durationMatch[4]) {
-        const hours = parseInt(durationMatch[1], 10);
-        const minutes = parseInt(durationMatch[2], 10);
-        const seconds = parseInt(durationMatch[3], 10);
-        const centiseconds = parseInt(durationMatch[4], 10);
-        const duration = hours * 3600 + minutes * 60 + seconds + centiseconds / 100;
-        resolve(duration);
-      } else {
-        reject(new Error("failed to parse video duration"));
-      }
-    });
-
-    child.on("error", reject);
-  });
-}
-
-function generateScreenshot(
-  ffmpegPath: string,
-  videoPath: string,
-  outputPath: string,
-  timestamp: number
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegPath, [
-      "-ss", timestamp.toFixed(3),
-      "-i", videoPath,
-      "-vframes", "1",
-      "-q:v", "2",
-      "-y",
-      outputPath,
-    ], {
-      stdio: ["ignore", "ignore", "inherit"],
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`ffmpeg exited with code ${code}`));
-      }
-    });
-
-    child.on("error", reject);
-  });
-}
-
-export async function generateVideoScreenshots(
-  videoPath: string
-): Promise<GenerateScreenshotsResult> {
-  if (!videoPath) {
-    return { error: "video path is required" };
-  }
-
-  if (!fs.existsSync(videoPath)) {
-    return { error: "video file not found" };
-  }
-
-  let mtimeMs: number;
-  try {
-    const stat = fs.statSync(videoPath);
-    mtimeMs = stat.mtimeMs;
-  } catch {
-    return { error: "failed to read video file stats" };
-  }
-
-  const cacheDir = getScreenshotCacheDir(videoPath);
-  if (isScreenshotCacheValid(cacheDir, mtimeMs)) {
-    const screenshots = Array.from(
-      { length: NUM_SCREENSHOTS },
-      (_, i) => path.join(cacheDir, `${i + 1}.jpg`)
-    );
-    return { screenshots };
-  }
-
-  const ffmpegPath = await discoverFfmpeg();
-  if (!ffmpegPath) {
-    return { error: "ffmpeg executable not found" };
-  }
-
-  if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-  }
-
-  let duration: number;
-  try {
-    duration = await getVideoDuration(videoPath, ffmpegPath);
-  } catch (error) {
-    return {
-      error: `failed to get video duration: ${
-        error instanceof Error ? error.message : "unknown error"
-      }`,
-    };
-  }
-
-  if (duration <= 0) {
-    return { error: "invalid video duration" };
-  }
-
-  const screenshotPaths: string[] = [];
-  const interval = duration / (NUM_SCREENSHOTS + 1);
-
-  for (let i = 1; i <= NUM_SCREENSHOTS; i++) {
-    const timestamp = interval * i;
-    const screenshotPath = path.join(cacheDir, `${i}.jpg`);
-
-    try {
-      await generateScreenshot(ffmpegPath, videoPath, screenshotPath, timestamp);
-
-      if (!fs.existsSync(screenshotPath)) {
-        return { error: `failed to generate screenshot at ${timestamp}s` };
-      }
-
-      screenshotPaths.push(screenshotPath);
-    } catch (error) {
-      return {
-        error: `failed to generate screenshot: ${
-          error instanceof Error ? error.message : "unknown error"
-        }`,
-      };
-    }
-  }
-
-  const metaPath = path.join(cacheDir, "meta.json");
-  fs.writeFileSync(
-    metaPath,
-    JSON.stringify({ mtimeMs }),
-    "utf-8"
-  );
-
-  return { screenshots: screenshotPaths };
 }
 
 // --- Format conversion ---

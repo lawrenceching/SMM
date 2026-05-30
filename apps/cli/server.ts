@@ -221,7 +221,6 @@ export class Server {
     handleCommandLog(this.app);
     handleCommandExecutionStatus(this.app);
     handleLog(this.app);
-
     // POST /api/execute - Special orchestration route for multiple tasks
     this.app.post('/api/execute', async (c) => {
       try {

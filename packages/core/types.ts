@@ -984,6 +984,11 @@ export interface HelloResponseBody {
   appDataDir: string;
 
   /**
+   * path in platform-specific format — cached / transient files (e.g. screenshots)
+   */
+  tmpDir: string;
+
+  /**
    * path in platform-specific format
    */
   logDir: string;

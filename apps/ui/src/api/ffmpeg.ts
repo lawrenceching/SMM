@@ -1,7 +1,6 @@
 import { Path } from "@core/path";
 import {
   buildFfmpegConvertArgs,
-  buildFfmpegScreenshotArgs,
   buildFfmpegWriteTagsArgs,
   buildFfprobeReadTagsArgs,
   parseFfprobeTagsJson,
@@ -10,6 +9,12 @@ import {
   type FfmpegConvertPreset,
 } from "@/lib/whitelistedCmd";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
+import { listFiles } from "@/api/listFiles";
+import { writeFile } from "@/api/writeFile";
+import { hello } from "@/api/hello";
+import { helloQueryKey } from "@/lib/appQueryKeys";
+import { queryClient } from "@/lib/queryClient";
+import type { HelloResponseBody } from "@core/types";
 
 export interface FfmpegScreenshotsResponse {
   screenshots?: string[];
@@ -20,52 +25,141 @@ export interface GenerateFfmpegScreenshotsOptions {
   signal?: AbortSignal;
 }
 
-const NUM_SCREENSHOTS = 5;
 const FFMPEG_CONVERT_TIMEOUT_MS = 60 * 60 * 1000;
 const FFPROBE_TIMEOUT_MS = 30_000;
-const SCREENSHOT_TIMEOUT_MS = 120_000;
+const NUM_SCREENSHOTS = 5;
+const SCREENSHOT_GEN_TIMEOUT_MS = 60_000;
+
+/** SHA-256 hex digest using Web Crypto API (works on localhost / secure context). */
+async function sha256Hex(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Extract duration (seconds) from ffprobe JSON stdout. */
+function parseFfprobeDuration(stdout: string): number | null {
+  try {
+    const parsed = JSON.parse(stdout);
+    const duration = parsed?.format?.duration;
+    if (duration != null) {
+      const d = Number(duration);
+      if (Number.isFinite(d) && d > 0) return d;
+    }
+  } catch {
+    // invalid JSON
+  }
+  return null;
+}
 
 export async function generateFfmpegScreenshots(
   videoPath: string,
   options?: GenerateFfmpegScreenshotsOptions
 ): Promise<FfmpegScreenshotsResponse> {
   const absolutePath = new Path(videoPath).platformAbsPath();
+  const signal = options?.signal;
 
-  const probeResult = await executeCmdToCompletion(
-    { command: "ffprobe", args: buildFfprobeReadTagsArgs(absolutePath) },
-    { timeoutMs: FFPROBE_TIMEOUT_MS, signal: options?.signal }
-  );
-
-  if (!probeResult.success) {
-    return { error: probeResult.error ?? "failed to probe video" };
+  // 1. Get tmpDir from cached hello response (fetch if not cached)
+  let helloData = queryClient.getQueryData<HelloResponseBody>(helloQueryKey);
+  if (!helloData?.tmpDir) {
+    helloData = await queryClient.fetchQuery({
+      queryKey: helloQueryKey,
+      queryFn: () => hello(),
+    });
   }
-
-  const parsed = parseFfprobeTagsJson(probeResult.stdout);
-  const duration = parsed.duration;
-  if (duration === undefined || duration <= 0) {
-    return { error: "invalid video duration" };
+  if (!helloData?.tmpDir) {
+    return { error: 'tmpDir not available' };
   }
+  if (signal?.aborted) return { error: 'request aborted' };
 
-  const parsedPath = absolutePath.replace(/\\/g, "/").replace(/\/[^/]+$/, "");
-  const baseName = absolutePath.replace(/^.*[/\\]/, "").replace(/\.[^.]+$/, "");
-  const interval = duration / (NUM_SCREENSHOTS + 1);
-  const screenshots: string[] = [];
+  // 2. Compute deterministic cache directory from video path hash
+  const hash = await sha256Hex(absolutePath);
+  // Forward slashes are fine — the server normalises with path.resolve().
+  const cacheDir = `${helloData.tmpDir}/screenshots/${hash}`;
 
-  for (let i = 1; i <= NUM_SCREENSHOTS; i++) {
-    const timestamp = interval * i;
-    const outputPath = `${parsedPath}/${baseName}_screenshot_${i}.jpg`;
-    const args = buildFfmpegScreenshotArgs(absolutePath, outputPath, timestamp);
-    const shot = await executeCmdToCompletion(
-      { command: "ffmpeg", args },
-      { timeoutMs: SCREENSHOT_TIMEOUT_MS, signal: options?.signal }
+  // 3. Check cache by listing the cache directory
+  const listResult = await listFiles({ path: cacheDir, onlyFiles: true });
+  if (!listResult.error && listResult.data?.items) {
+    // Extract filenames (handle both \ and / path separators)
+    const jpgNames = new Set(
+      listResult.data.items.map((i) => {
+        const backslash = i.path.lastIndexOf('\\');
+        const slash = i.path.lastIndexOf('/');
+        return i.path.slice(Math.max(backslash, slash) + 1);
+      }),
     );
-    if (!shot.success) {
-      return { error: shot.error ?? `failed to generate screenshot at ${timestamp}s` };
+    if (
+      jpgNames.size >= NUM_SCREENSHOTS &&
+      [1, 2, 3, 4, 5].every((n) => jpgNames.has(`${n}.jpg`))
+    ) {
+      // Cache hit — build paths in canonical order
+      const screenshots = [1, 2, 3, 4, 5].map((n) => `${cacheDir}/${n}.jpg`);
+      return { screenshots };
     }
-    screenshots.push(outputPath);
+  }
+  if (signal?.aborted) return { error: 'request aborted' };
+
+  // 4. Get video duration via ffprobe
+  const ffprobeResult = await executeCmdToCompletion(
+    {
+      command: 'ffprobe',
+      args: [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        absolutePath,
+      ],
+    },
+    { timeoutMs: FFPROBE_TIMEOUT_MS, signal },
+  );
+  if (!ffprobeResult.success) {
+    return { error: ffprobeResult.error ?? 'failed to probe video duration' };
+  }
+  const duration = parseFfprobeDuration(ffprobeResult.stdout);
+  if (duration == null || duration <= 0) {
+    return { error: 'invalid video duration' };
+  }
+  if (signal?.aborted) return { error: 'request aborted' };
+
+  // 5. Create cache directory by writing a placeholder file
+  try {
+    await writeFile(`${cacheDir}/.cache`, '', 'overwrite');
+  } catch (err) {
+    return {
+      error: `failed to create cache directory: ${err instanceof Error ? err.message : 'unknown error'}`,
+    };
+  }
+  if (signal?.aborted) return { error: 'request aborted' };
+
+  // 6. Calculate evenly-spaced timestamps
+  const interval = duration / (NUM_SCREENSHOTS + 1);
+  const timestamps = [1, 2, 3, 4, 5].map((i) => interval * i);
+
+  // 7. Build a single ffmpeg command with multiple -ss / -i inputs
+  //    and individual -map / -vframes / -q:v outputs.
+  const args: string[] = [];
+  const outputPaths: string[] = [];
+  for (const ts of timestamps) {
+    args.push('-ss', ts.toFixed(3), '-i', absolutePath);
+  }
+  for (let i = 0; i < NUM_SCREENSHOTS; i++) {
+    const outPath = `${cacheDir}/${i + 1}.jpg`;
+    outputPaths.push(outPath);
+    args.push('-map', `${i}:v`, '-vframes', '1', '-q:v', '2', '-y', outPath);
   }
 
-  return { screenshots };
+  // 8. Run ffmpeg (single command, 5 outputs)
+  const ffmpegResult = await executeCmdToCompletion(
+    { command: 'ffmpeg', args },
+    { timeoutMs: SCREENSHOT_GEN_TIMEOUT_MS, signal },
+  );
+  if (!ffmpegResult.success) {
+    return { error: ffmpegResult.error ?? 'failed to generate screenshots' };
+  }
+
+  return { screenshots: outputPaths };
 }
 
 export type { FfmpegConvertFormat, FfmpegConvertPreset };
@@ -147,7 +241,13 @@ export async function writeMediaTags(
 ): Promise<FfmpegWriteTagsResponse> {
   const pathObj = new Path(params.path);
   const absolutePath = pathObj.platformAbsPath();
-  const tempFilePath = `${absolutePath}.smm-temp`;
+
+  // Preserve the original file extension so ffmpeg can auto-detect the output
+  // format (e.g. test.mp4 → test.smm-temp.mp4 instead of test.mp4.smm-temp).
+  const extIdx = absolutePath.lastIndexOf('.');
+  const ext = extIdx >= 0 ? absolutePath.slice(extIdx) : '';
+  const base = ext ? absolutePath.slice(0, extIdx) : absolutePath;
+  const tempFilePath = `${base}.smm-temp${ext}`;
 
   const args = buildFfmpegWriteTagsArgs(absolutePath, tempFilePath, params.tags);
   const result = await executeCmdToCompletion(
