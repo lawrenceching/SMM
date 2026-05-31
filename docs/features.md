@@ -121,11 +121,14 @@ And the test status of v1.1.0
 | videocaptioner not found                         |        |         |
 
 右键菜单
- - 属性
- - 编辑标签
+ - 属性/编辑标签
+   > apps\e2e\test\specs\other\MediaFileProperties.e2e.ts
  - 格式转换
+   > apps\e2e\test\specs\other\ConvertVideoFormat.e2e.ts
  - 字幕
+   > apps\e2e\test\specs\other\Subtitle.e2e.ts
  - 删除
+   > apps\e2e\test\specs\music\DeleteFile.e2e.ts
 
 ## Test Cases
 
