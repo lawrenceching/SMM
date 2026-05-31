@@ -103,7 +103,7 @@ importers:
   apps/convex:
     dependencies:
       convex:
-        specifier: ^1.39.1
+        specifier: ^1.1.0
         version: 1.39.1(react@19.2.4)
 
   apps/docker:
