@@ -156,9 +156,11 @@ export function useDownloadVideoForm(
   // --- platform ---
   const platform = useMemo(() => {
     if (typeof navigator !== "undefined" && navigator.userAgent) {
-      return /windows/i.test(navigator.userAgent) ? "win32" : process.platform
+      if (/windows/i.test(navigator.userAgent)) return "win32"
+      if (/mac/i.test(navigator.userAgent)) return "darwin"
+      return "linux"
     }
-    return process.platform
+    return "linux"
   }, [])
 
   // --- persisted agreement ---
