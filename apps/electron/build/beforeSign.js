@@ -1,88 +1,158 @@
 /**
- * Pre-sign nested frameworks before the main macOS code signing pass.
+ * afterPack hook (macOS only): pre-sign nested binaries before electron-builder's signing pass.
  *
- * electron-builder calls this after the app is assembled but before it
- * runs `codesign` on the top-level .app bundle. Frameworks bundled inside
- * extraResources (e.g. VideoCaptioner's Python.framework) often lack
- * standard framework metadata (Info.plist, Versions/ layout), causing
- * `codesign --deep` to fail with "bundle format is ambiguous".
- *
- * We walk every *.framework directory and stamp it individually so the
- * main signing pass sees properly signed sub-bundles.
+ * VideoCaptioner's PyInstaller bundle embeds Python.framework without the standard
+ * Versions/ layout and Info.plist. codesign rejects it with "bundle format is ambiguous".
+ * We sign each Mach-O inside via a temp-path copy (ActivityWatch #1250/#1254), and
+ * mac.signIgnore prevents electron-builder from re-attempting the broken framework path.
  */
 exports.default = async function (context) {
-  // macOS only (afterPack uses electronPlatformName, not packager.platform)
-  if (context.electronPlatformName !== 'darwin') return
+  if (context.electronPlatformName !== 'darwin') return;
 
   const { execSync } = require('child_process');
   const { join } = require('path');
-  const { existsSync, readdirSync, statSync } = require('fs');
+  const {
+    existsSync,
+    readdirSync,
+    statSync,
+    copyFileSync,
+    unlinkSync,
+    mkdtempSync,
+    rmdirSync,
+  } = require('fs');
+  const { tmpdir } = require('os');
+  const { randomBytes } = require('crypto');
 
   const appName = context.packager.appInfo.productFilename;
   const appDir = join(context.appOutDir, `${appName}.app`);
   const resourcesDir = join(appDir, 'Contents', 'Resources');
-
   if (!existsSync(resourcesDir)) return;
 
-  // Use signing identity from env, or ad-hoc if not available
-  const identityFlag = process.env.APPLE_TEAM_ID
-    ? `--sign "${process.env.APPLE_TEAM_ID}"`
-    : '--sign -';
+  const identity = process.env.CSC_NAME || process.env.APPLE_IDENTITY || process.env.APPLE_TEAM_ID;
+  const identityFlag = identity ? `--sign "${identity}"` : '--sign -';
 
-  /** Collect all .framework directories recursively. */
+  function collectMachOFiles(dir) {
+    try {
+      const output = execSync(
+        `find "${dir}" -type f -print0 | xargs -0 file 2>/dev/null | grep 'Mach-O' | cut -d: -f1`,
+        { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 },
+      );
+      return output
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  function signMachOInPlace(filePath) {
+    execSync(
+      `codesign ${identityFlag} --force --timestamp --options runtime "${filePath}"`,
+      { stdio: 'inherit', timeout: 30_000 },
+    );
+  }
+
+  /** Sign a Mach-O binary outside any .framework path context. */
+  function signMachOViaTempCopy(filePath) {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'smm-codesign-'));
+    const tmpBinary = join(tmpDir, `bin-${randomBytes(4).toString('hex')}`);
+    try {
+      copyFileSync(filePath, tmpBinary);
+      execSync(
+        `codesign ${identityFlag} --force --timestamp --options runtime "${tmpBinary}"`,
+        { stdio: 'inherit', timeout: 30_000 },
+      );
+      copyFileSync(tmpBinary, filePath);
+    } finally {
+      try {
+        unlinkSync(tmpBinary);
+      } catch {
+        // ignore
+      }
+      try {
+        rmdirSync(tmpDir);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  function trySignFrameworkBundle(frameworkDir) {
+    try {
+      execSync(
+        `codesign ${identityFlag} --force --timestamp --options runtime --deep "${frameworkDir}"`,
+        { stdio: 'pipe', timeout: 60_000 },
+      );
+      console.log(`[afterPack] Signed framework bundle: ${frameworkDir}`);
+      return true;
+    } catch (err) {
+      const msg = String(err.stderr ?? err.stdout ?? err.message ?? '');
+      if (!msg.includes('bundle format is ambiguous')) {
+        console.warn(`[afterPack] WARN: framework bundle sign failed for ${frameworkDir}`);
+      }
+      return false;
+    }
+  }
+
+  function signNonStandardFramework(frameworkDir) {
+    const machOs = collectMachOFiles(frameworkDir);
+    if (machOs.length === 0) {
+      throw new Error(`[afterPack] no Mach-O files found in ${frameworkDir}`);
+    }
+
+    for (const bin of machOs) {
+      console.log(`[afterPack] Signing Mach-O via temp copy: ${bin}`);
+      signMachOViaTempCopy(bin);
+    }
+    console.log(`[afterPack] Signed ${machOs.length} Mach-O file(s) inside ${frameworkDir}`);
+  }
+
   function collectFrameworks(dir) {
     const results = [];
-    try {
-      for (const entry of readdirSync(dir)) {
-        const full = join(dir, entry);
-        if (entry.endsWith('.framework') && statSync(full).isDirectory()) {
-          results.push(full);
-        } else if (statSync(full).isDirectory()) {
-          results.push(...collectFrameworks(full));
-        }
+    function walk(current) {
+      let entries;
+      try {
+        entries = readdirSync(current);
+      } catch {
+        return;
       }
-    } catch {
-      // permission / symlink issues
+      for (const entry of entries) {
+        const full = join(current, entry);
+        let st;
+        try {
+          st = statSync(full);
+        } catch {
+          continue;
+        }
+        if (!st.isDirectory()) continue;
+        if (entry.endsWith('.framework')) {
+          results.push(full);
+        }
+        walk(full);
+      }
     }
+    walk(dir);
     return results;
   }
 
-  const frameworks = collectFrameworks(resourcesDir);
-
-  for (const fw of frameworks) {
-    console.log(`[beforeSign] Pre-signing framework: ${fw}`);
-    try {
-      execSync(
-        `codesign ${identityFlag} --force --timestamp --options runtime --deep "${fw}"`,
-        { stdio: 'inherit', timeout: 30_000 },
-      );
-      console.log(`[beforeSign] OK: ${fw}`);
-    } catch (err) {
-      // Log but don't block — the main pass may still handle it
-      console.warn(`[beforeSign] WARN: could not sign ${fw}`);
+  for (const fw of collectFrameworks(resourcesDir)) {
+    console.log(`[afterPack] Processing framework: ${fw}`);
+    if (!trySignFrameworkBundle(fw)) {
+      signNonStandardFramework(fw);
     }
   }
 
-  // Pre-sign any bare (extension-less) Mach-O binaries inside _internal
-  // that might confuse codesign's bundle format detection.
   const internalDir = join(resourcesDir, 'bin', 'videocaptioner', '_internal');
   if (existsSync(internalDir)) {
-    try {
-      for (const entry of readdirSync(internalDir)) {
-        const full = join(internalDir, entry);
-        if (statSync(full).isFile() && !entry.includes('.')) {
-          try {
-            execSync(
-              `codesign ${identityFlag} --force --timestamp --options runtime "${full}"`,
-              { stdio: 'inherit', timeout: 15_000 },
-            );
-          } catch {
-            // skip non-Mach-O files
-          }
-        }
+    for (const bin of collectMachOFiles(internalDir)) {
+      if (bin.includes('.framework/')) continue;
+      try {
+        console.log(`[afterPack] Signing Mach-O in-place: ${bin}`);
+        signMachOInPlace(bin);
+      } catch {
+        console.warn(`[afterPack] WARN: could not sign ${bin}`);
       }
-    } catch {
-      // ignore
     }
   }
 };

@@ -51,6 +51,9 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  # PyInstaller Python.framework lacks standard bundle layout; signed in afterPack instead
+  signIgnore:
+    - Python\.framework
   extraResources:
     - from: '../cli/dist/cli'
       to: 'cli'
