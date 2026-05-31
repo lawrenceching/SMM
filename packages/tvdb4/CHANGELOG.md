@@ -1,5 +1,11 @@
 # @smm/tvdb4
 
+## 1.3.0
+
+### Minor Changes
+
+- ytdlp and videocaptioner integration
+
 ## 1.2.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @smm/utils
 
+## 1.2.0
+
+### Minor Changes
+
+- ytdlp and videocaptioner integration
+
 ## 1.1.5
 
 ### Patch Changes
