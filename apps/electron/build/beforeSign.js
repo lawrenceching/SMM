@@ -11,8 +11,8 @@
  * main signing pass sees properly signed sub-bundles.
  */
 exports.default = async function (context) {
-  // macOS only
-  if (context.packager.platform.name !== 'mac') return
+  // macOS only (afterPack uses electronPlatformName, not packager.platform)
+  if (context.electronPlatformName !== 'darwin') return
 
   const { execSync } = require('child_process');
   const { join } = require('path');

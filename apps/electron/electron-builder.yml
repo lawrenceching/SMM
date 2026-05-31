@@ -51,7 +51,6 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-  beforeSign: build/beforeSign.js
   extraResources:
     - from: '../cli/dist/cli'
       to: 'cli'
@@ -98,6 +97,8 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
+# Runs after pack, before code signing (replaces deprecated mac.beforeSign)
+afterPack: build/beforeSign.js
 publish:
   provider: generic
   url: https://example.com/auto-updates
