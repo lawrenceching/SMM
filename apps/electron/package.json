@@ -16,9 +16,9 @@
     "build": "pnpm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "pnpm run build && electron-builder --dir",
-    "build:win": "pnpm run build && electron-builder --win",
-    "build:mac": "pnpm run build && electron-builder --mac",
-    "build:linux": "pnpm run build && electron-builder --linux",
+    "build:win": "pnpm run build && electron-builder --win --publish never",
+    "build:mac": "pnpm run build && electron-builder --mac --publish never",
+    "build:linux": "pnpm run build && electron-builder --linux --publish never",
     "test": "echo \"No tests yet\""
   },
   "dependencies": {

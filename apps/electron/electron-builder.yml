@@ -74,9 +74,9 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  # snap requires snapcraft; omitted for CI and typical local packaging
   target:
     - AppImage
-    - snap
     - deb
   maintainer: electronjs.org
   category: Utility

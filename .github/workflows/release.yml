@@ -95,7 +95,6 @@ jobs:
             apps/electron/dist/*.dmg
             apps/electron/dist/*.AppImage
             apps/electron/dist/*.deb
-            apps/electron/dist/*.snap
           retention-days: 30
 
   build-electron-linux-arm64:
@@ -163,7 +162,6 @@ jobs:
             apps/electron/dist/*.dmg
             apps/electron/dist/*.AppImage
             apps/electron/dist/*.deb
-            apps/electron/dist/*.snap
           retention-days: 30
 
   build-electron-windows-x64:
@@ -231,7 +229,6 @@ jobs:
             apps/electron/dist/*.dmg
             apps/electron/dist/*.AppImage
             apps/electron/dist/*.deb
-            apps/electron/dist/*.snap
           retention-days: 30
 
   build-electron-windows-arm64:
@@ -299,7 +296,6 @@ jobs:
             apps/electron/dist/*.dmg
             apps/electron/dist/*.AppImage
             apps/electron/dist/*.deb
-            apps/electron/dist/*.snap
           retention-days: 30
 
   build-electron-mac-arm64:
@@ -367,7 +363,6 @@ jobs:
             apps/electron/dist/*.dmg
             apps/electron/dist/*.AppImage
             apps/electron/dist/*.deb
-            apps/electron/dist/*.snap
           retention-days: 30
 
   release-electron:
