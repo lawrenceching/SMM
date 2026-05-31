@@ -57,10 +57,16 @@ jobs:
             platform: mac
             build-command: build:mac
             arch: arm64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            build-command: build:linux
+            arch: arm64
         exclude:
           - os: macos-14
             arch: x64
           - os: windows-latest
+            arch: arm64
+          - os: ubuntu-latest
             arch: arm64
 
     defaults:
@@ -97,7 +103,7 @@ jobs:
 
       - name: Build cli
         run: pnpm --filter cli run build
-        # Windows ARM64 uses windows-11-arm runner (native), no CLI_COMPILE_TARGET needed
+        # Windows ARM64 (windows-11-arm) and Linux ARM64 (ubuntu-24.04-arm) use native ARM runners, no CLI_COMPILE_TARGET needed
 
       - name: Build ui
         run: cd apps/ui && pnpm run build

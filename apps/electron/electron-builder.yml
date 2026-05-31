@@ -98,7 +98,7 @@ linux:
     - from: '../../bin/quickjs'
       to: 'bin/quickjs'
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: false
 # Runs after pack, before code signing (replaces deprecated mac.beforeSign)
 afterPack: build/beforeSign.js
