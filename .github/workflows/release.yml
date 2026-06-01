@@ -99,6 +99,7 @@ jobs:
 
   build-electron-linux-arm64:
     name: Build Electron (linux-arm64)
+    timeout-minutes: 60
     runs-on: ubuntu-24.04-arm
     env:
       PLATFORM: linux
