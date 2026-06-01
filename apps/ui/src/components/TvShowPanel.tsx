@@ -752,8 +752,7 @@ function TvShowPanel() {
           filePath: videoPath,
           track: {
             id: 0,
-            title: row.episodeName ?? `S${seasonNo}E${episodeNo}`,
-            duration: row.duration,
+            title: row.episodeTitle ?? `S${seasonNo}E${episodeNo}`,
           },
         })
       } else {
@@ -800,7 +799,6 @@ function TvShowPanel() {
           setPlanById(planId, { status })
           return Promise.resolve()
         },
-        t,
         toast,
       })
     }

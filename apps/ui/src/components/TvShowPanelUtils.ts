@@ -958,7 +958,6 @@ export interface HandlePendingPlansParams {
   handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
   handleRuleBasedRecognizeConfirmCallback?: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
-  t: ReturnType<typeof import('react-i18next').useTranslation>['t']
   toast: typeof toast
 }
 
@@ -974,7 +973,6 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     closeAiBasedRecognizePrompt,
     handleAiRecognizeConfirmCallback,
     updatePlan: setPlayById,
-    t,
   } = params
 
   if (!mediaMetadata?.mediaFolderPath) {
@@ -1013,7 +1011,7 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     } else {
       openAiBasedRecognizePrompt({
         status: "wait-for-ack",
-        confirmButtonLabel: t('toolbar.confirm') || "Confirm",
+        confirmButtonLabel: 'Confirm',
         confirmButtonDisabled: false,
         isRenaming: false,
         onConfirm: () => handleAiRecognizeConfirmCallback(plan as RecognizeMediaFilePlan),

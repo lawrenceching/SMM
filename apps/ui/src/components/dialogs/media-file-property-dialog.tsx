@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils"
 import { extensions } from "@core/utils"
 import { getMediaTags, writeMediaTags, generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { Path } from "@core/path"
-import { useDialogs } from "@/providers/dialog-provider"
 import { toast } from "sonner"
 
 export interface TrackProperties {
