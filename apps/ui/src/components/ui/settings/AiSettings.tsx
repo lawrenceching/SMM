@@ -3,6 +3,9 @@ import { useConfig } from "@/hooks/userConfig"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { AiProviderNameCombobox } from "@/components/ui/settings/AiProviderNameCombobox"
+import { AiModelCombobox } from "@/components/ui/settings/AiModelCombobox"
+import { findPresetByName, getModelOptions, type AiProvider } from "@/lib/ai-provider-presets"
 import type { OpenAICompatibleConfig } from "@core/types"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
@@ -82,6 +85,30 @@ export function AiSettings() {
       }
       return next
     })
+  }
+
+  const applyPresetToProvider = (index: number, preset: AiProvider, name: string) => {
+    setProviders(prev => {
+      const next = [...prev]
+      const current = next[index]
+      next[index] = {
+        ...current,
+        name,
+        baseURL: (current.baseURL ?? '').trim() ? current.baseURL : preset.baseUrl,
+        model: (current.model ?? '').trim() ? current.model : (preset.models[0] ?? ''),
+      }
+      setValidationErrors(validateUniqueNames(next))
+      return next
+    })
+  }
+
+  const handleProviderNameChange = (index: number, name: string) => {
+    const preset = findPresetByName(name)
+    if (preset) {
+      applyPresetToProvider(index, preset, name)
+    } else {
+      updateProvider(index, 'name', name)
+    }
   }
 
   const setActive = (name: string | undefined) => {
@@ -201,13 +228,13 @@ export function AiSettings() {
 
                   <div className="flex-1 space-y-2 min-w-0">
                     <Label htmlFor={`provider-name-${index}`}>{t('ai.providerName')}</Label>
-                    <Input
+                    <AiProviderNameCombobox
                       id={`provider-name-${index}`}
                       value={provider.name || ''}
-                      onChange={(e) => updateProvider(index, 'name', e.target.value)}
-                      placeholder="provider-name"
+                      onValueChange={(name) => handleProviderNameChange(index, name)}
+                      placeholder={t('ai.providerNamePlaceholder')}
                       data-testid={`ai-provider-name-${index}`}
-                      className={validationErrors[index] ? 'border-destructive' : ''}
+                      invalid={!!validationErrors[index]}
                     />
                     {validationErrors[index] && (
                       <p className="text-sm text-destructive">{validationErrors[index]}</p>
@@ -252,10 +279,11 @@ export function AiSettings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`provider-model-${index}`}>{t('ai.model')}</Label>
-                    <Input
+                    <AiModelCombobox
                       id={`provider-model-${index}`}
                       value={provider.model || ''}
-                      onChange={(e) => updateProvider(index, 'model', e.target.value)}
+                      onValueChange={(model) => updateProvider(index, 'model', model)}
+                      modelOptions={getModelOptions(provider.name || '', provider.model)}
                       placeholder={t('ai.modelPlaceholder')}
                       data-testid={`ai-provider-model-${index}`}
                     />
