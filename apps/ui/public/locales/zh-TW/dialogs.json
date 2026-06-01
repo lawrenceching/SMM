@@ -216,6 +216,12 @@
     "saveFailed": "儲存標籤失敗",
     "loadFailed": "載入標籤失敗"
   },
+  "mediaFileProperty": {
+    "title": "文件屬性",
+    "editableTags": "可編輯標籤",
+    "viewFullSize": "查看完整大小",
+    "imagePreview": "圖片預覽"
+  },
   "formatConverter": {
     "title": "格式轉換",
     "description": "使用 ffmpeg 將影片轉換為目標格式",

@@ -282,6 +282,7 @@
       "delete": "刪除",
       "properties": "屬性",
       "editTags": "編輯標籤",
+      "properties": "屬性",
       "formatConvert": "格式轉換",
       "downloadStart": "開始",
       "downloadStop": "停止",
@@ -455,6 +456,7 @@
       "showColumns": "顯示...",
       "unlink": "取消關聯",
       "editTags": "編輯標籤",
+      "properties": "屬性",
       "notImplemented": "尚未實現"
     },
     "unlinkSuccess": "已取消劇集關聯",

@@ -6,7 +6,6 @@ import {
   emitTrackDeleteEvent,
   emitTrackPropertiesEvent,
   emitTrackFormatConvertEvent,
-  emitTrackEditTagsEvent,
 } from "@/lib/musicEvents"
 import { LocalFileTableRow } from "./LocalFileTableRow"
 import type { LocalFileTableRowFileMenu, MusicTableSelection } from "@/types/music-table"
@@ -145,16 +144,7 @@ export function MusicFileTable({
           addedDate: new Date(),
           path: track.path,
         }),
-      onEditTags: () =>
-        emitTrackEditTagsEvent({
-          id: track.id,
-          title: track.title,
-          artist: track.artist,
-          duration: track.duration,
-          thumbnail: track.thumbnail,
-          addedDate: new Date(),
-          path: track.path,
-        }),
+
       onSummarize: () => {},
       canSummarize: false,
     }),

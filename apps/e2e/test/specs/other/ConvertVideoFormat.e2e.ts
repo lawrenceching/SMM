@@ -179,7 +179,7 @@ describe('ConvertVideoFormat', () => {
         await clickContextMenuItem(['Properties', '属性'])
 
         // Verify the file-property dialog is displayed
-        const filePropDialog = $('[data-testid="file-property-dialog"]')
+        const filePropDialog = $('[data-testid="media-file-property-dialog"]')
         await filePropDialog.waitForDisplayed({ timeout: 5000 })
 
         // Verify the dialog shows expected file info

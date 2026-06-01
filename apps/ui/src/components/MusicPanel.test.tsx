@@ -220,7 +220,7 @@ describe('MusicPanel', () => {
     vi.mocked(useMediaMetadataQuery).mockReturnValue(mockQueryOk(mockSelectedMediaMetadata) as ReturnType<typeof useMediaMetadataQuery>);
 
     vi.mocked(useDialogs).mockReturnValue({
-      filePropertyDialog: [vi.fn(), vi.fn()],
+      mediaFilePropertyDialog: [vi.fn(), vi.fn()],
       formatConverterDialog: [vi.fn(), vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
@@ -232,7 +232,6 @@ describe('MusicPanel', () => {
       renameFileDialog: [vi.fn(), vi.fn()],
       renameFolderDialog: [vi.fn(), vi.fn()],
       scrapeDialog: [vi.fn(), vi.fn()],
-      editMediaFileDialog: [vi.fn(), vi.fn()],
     });
 
     vi.mocked(toast).mockImplementation(() => 'test-id');
@@ -374,7 +373,7 @@ describe('MusicPanel', () => {
     it('should open delete confirmation when track:delete event is received', async () => {
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(), vi.fn()],
+        mediaFilePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
@@ -386,7 +385,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -503,7 +501,7 @@ describe('MusicPanel', () => {
       const mockCloseConfirmation = vi.fn();
 
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(), vi.fn()],
+        mediaFilePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, mockCloseConfirmation],
@@ -515,7 +513,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       const { result } = renderHook(() => MusicPanel());
@@ -558,7 +555,7 @@ describe('MusicPanel', () => {
 
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(), vi.fn()],
+        mediaFilePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
@@ -570,7 +567,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -604,7 +600,7 @@ describe('MusicPanel', () => {
       const mockOpenConfirmation = vi.fn();
 
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(), vi.fn()],
+        mediaFilePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
@@ -616,7 +612,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
@@ -670,11 +665,14 @@ describe('MusicPanel', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.filePropertyDialog[0];
+      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.mediaFilePropertyDialog[0];
       expect(filePropertyDialogMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: expect.any(Number),
-          title: expect.any(String),
+          filePath: expect.any(String),
+          track: expect.objectContaining({
+            id: expect.any(Number),
+            title: expect.any(String),
+          }),
         })
       );
     });
@@ -722,14 +720,14 @@ describe('MusicPanel', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.filePropertyDialog[0];
+      const filePropertyDialogMock = vi.mocked(useDialogs).mock.results[0]?.value.mediaFilePropertyDialog[0];
       expect(filePropertyDialogMock).toHaveBeenCalled();
     });
 
     it('should handle errors when opening properties dialog', async () => {
       const mockError = new Error('Failed to open dialog');
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(() => {
+        mediaFilePropertyDialog: [vi.fn(() => {
           throw mockError;
         }), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
@@ -743,7 +741,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -780,7 +777,6 @@ describe('MusicPanel', () => {
       expect(addEventListenerSpy).toHaveBeenCalledWith('track:delete', expect.any(Function));
       expect(addEventListenerSpy).toHaveBeenCalledWith('track:properties', expect.any(Function));
       expect(addEventListenerSpy).toHaveBeenCalledWith('track:formatConvert', expect.any(Function));
-      expect(addEventListenerSpy).toHaveBeenCalledWith('track:editTags', expect.any(Function));
 
       addEventListenerSpy.mockRestore();
     });
@@ -796,7 +792,6 @@ describe('MusicPanel', () => {
       expect(removeEventListenerSpy).toHaveBeenCalledWith('track:delete', expect.any(Function));
       expect(removeEventListenerSpy).toHaveBeenCalledWith('track:properties', expect.any(Function));
       expect(removeEventListenerSpy).toHaveBeenCalledWith('track:formatConvert', expect.any(Function));
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('track:editTags', expect.any(Function));
 
       removeEventListenerSpy.mockRestore();
     });
@@ -882,7 +877,7 @@ describe('MusicPanel', () => {
     it('should handle errors gracefully in track delete', async () => {
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
-        filePropertyDialog: [vi.fn(), vi.fn()],
+        mediaFilePropertyDialog: [vi.fn(), vi.fn()],
         formatConverterDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
@@ -894,7 +889,6 @@ describe('MusicPanel', () => {
         renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
         scrapeDialog: [vi.fn(), vi.fn()],
-        editMediaFileDialog: [vi.fn(), vi.fn()],
       });
 
       vi.mocked(deleteFile).mockRejectedValue(new Error('Delete failed'));

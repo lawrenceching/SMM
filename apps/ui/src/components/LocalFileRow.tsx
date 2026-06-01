@@ -11,7 +11,6 @@ import {
   FolderOpen,
   Trash2,
   FileText,
-  Tag,
   XCircle,
   Captions,
   Sparkles,
@@ -171,10 +170,6 @@ export function LocalFileRow({
         <ContextMenuItem onClick={fileMenu.onProperties}>
           <FileText className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.properties")}
-        </ContextMenuItem>
-        <ContextMenuItem onClick={fileMenu.onEditTags}>
-          <Tag className="mr-2 size-4" />
-          {t("mediaPlayer.trackContextMenu.editTags")}
         </ContextMenuItem>
         <ContextMenuItem onClick={fileMenu.onFormatConvert}>
           <FileText className="mr-2 size-4" />

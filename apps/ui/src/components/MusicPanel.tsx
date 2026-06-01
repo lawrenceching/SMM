@@ -24,7 +24,6 @@ import {
   type TrackDeleteEventDetail,
   type TrackPropertiesEventDetail,
   type TrackFormatConvertEventDetail,
-  type TrackEditTagsEventDetail,
   MUSIC_EVENT_NAMES,
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
@@ -169,17 +168,15 @@ export function MusicPanel() {
   );
 
   const {
-    filePropertyDialog,
+    mediaFilePropertyDialog,
     confirmationDialog,
     downloadVideoDialog,
     formatConverterDialog,
-    editMediaFileDialog,
   } = useDialogs();
-  const [openFilePropertyDialog] = filePropertyDialog;
+  const [openMediaFileProperty] = mediaFilePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
   const [openFormatConverter] = formatConverterDialog;
-  const [openEditMediaFile] = editMediaFileDialog;
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -447,12 +444,17 @@ export function MusicPanel() {
         return;
       }
 
-      openFilePropertyDialog(track);
+      if (!track.path) {
+        toast.error(`Track "${trackTitle}" does not have an associated file path.`);
+        return;
+      }
+
+      openMediaFileProperty({ filePath: track.path, track });
     } catch (error) {
       console.error('[MusicPanel] Failed to open properties dialog:', error);
       toast.error(`Could not open properties for "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [tracks, openFilePropertyDialog]);
+  }, [tracks, openMediaFileProperty]);
 
   const handleTrackFormatConvert = useCallback((event: CustomEvent<TrackFormatConvertEventDetail>) => {
     const { trackId } = event.detail;
@@ -475,11 +477,7 @@ export function MusicPanel() {
     });
   }, [tracks, openFormatConverter]);
 
-  const handleTrackEditTags = useCallback((event: CustomEvent<TrackEditTagsEventDetail>) => {
-    const { trackPath } = event.detail;
-    if (!trackPath) return;
-    openEditMediaFile({ path: trackPath });
-  }, [openEditMediaFile]);
+
 
   const handleDownloadClick = useCallback(() => {
     if (!mediaMetadata?.mediaFolderPath) {
@@ -517,16 +515,13 @@ export function MusicPanel() {
         MUSIC_EVENT_NAMES['track:formatConvert'],
         handleTrackFormatConvert,
       ),
-      addMusicEventListener<TrackEditTagsEventDetail>(
-        MUSIC_EVENT_NAMES['track:editTags'],
-        handleTrackEditTags,
-      ),
+
     ];
 
     return () => {
       for (const unsub of subscriptions) unsub();
     };
-  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackEditTags]);
+  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert]);
 
   const clearSelection = useCallback(() => setSelectedTrackIds([]), []);
 

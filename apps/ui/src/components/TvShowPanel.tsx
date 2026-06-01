@@ -130,10 +130,10 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { filePickerDialog, scrapeDialog, editMediaFileDialog } = useDialogs()
+  const { filePickerDialog, scrapeDialog, mediaFilePropertyDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
-  const [openEditMediaFile] = editMediaFileDialog
+  const [openMediaFileProperty] = mediaFilePropertyDialog
   const { userConfig } = useConfig()
   const { getTvShowById } = useTmdbQueries()
 
@@ -741,19 +741,26 @@ function TvShowPanel() {
     [mediaMetadata, updateMediaMetadata, t]
   )
 
-  const handleEditTagsForRow = useCallback(
+  const handlePropertiesForRow = useCallback(
     (row: TvShowEpisodeDataRow) => { 
       const seasonNo = row.season;
       const episodeNo = row.episode;
 
       const videoPath = mediaMetadata?.mediaFiles?.find(f => f.seasonNumber === seasonNo && f.episodeNumber === episodeNo)?.absolutePath
       if (videoPath) {
-        openEditMediaFile({ path: videoPath })
+        openMediaFileProperty({
+          filePath: videoPath,
+          track: {
+            id: 0,
+            title: row.episodeName ?? `S${seasonNo}E${episodeNo}`,
+            duration: row.duration,
+          },
+        })
       } else {
-        console.warn(`[TvShowPanel] handleEditTagsForRow: no video path found for season ${seasonNo} episode ${episodeNo}`)
+        console.warn(`[TvShowPanel] handlePropertiesForRow: no video path found for season ${seasonNo} episode ${episodeNo}`)
       }
     },
-    [mediaMetadata, openEditMediaFile]
+    [mediaMetadata, openMediaFileProperty]
   )
   
   /**
@@ -765,7 +772,7 @@ function TvShowPanel() {
       const seasonNo = row.season;
       const episodeNo = row.episode;
       handleOpenFilePickerForEpisode(seasonNo, episodeNo)
-  }, [mediaMetadata, openEditMediaFile])
+  }, [mediaMetadata])
 
   useEffect(() => {
     if(plan !== undefined) {
@@ -964,7 +971,7 @@ function TvShowPanel() {
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             onSelectFileContextMenuClick={handleSelectFileContextMenuClick}
             onUnlinkContextMenuClick={handleUnlinkEpisode}
-            onEditTagsContextMenuClick={handleEditTagsForRow}
+            onPropertiesContextMenuClick={handlePropertiesForRow}
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}

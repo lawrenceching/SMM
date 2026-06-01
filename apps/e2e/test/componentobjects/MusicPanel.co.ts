@@ -8,7 +8,6 @@ type MusicTrackContextMenuItem =
     | "downloadRemove"
     | "open"
     | "properties"
-    | "editTags"
     | "formatConvert"
     | "transcribe"
     | "delete"
@@ -19,7 +18,6 @@ const MUSIC_TRACK_CONTEXT_MENU_LABELS: Record<MusicTrackContextMenuItem, string[
     downloadRemove: ["Remove", "删除"],
     open: ["Open", "打开"],
     properties: ["Properties", "属性"],
-    editTags: ["Edit tags", "编辑标签"],
     formatConvert: ["Format conversion", "格式转换"],
     transcribe: ["Transcribe", "转录"],
     delete: ["Delete", "删除"],

@@ -119,8 +119,8 @@ describe('MediaFileProperties', () => {
         await rightClickFirstTrackRow()
         await clickContextMenuItem(['Properties', '属性'])
 
-        // Verify the file-property dialog is displayed
-        const filePropDialog1 = $('[data-testid="file-property-dialog"]')
+        // Verify the media-file-property dialog is displayed
+        const filePropDialog1 = $('[data-testid="media-file-property-dialog"]')
         await filePropDialog1.waitForDisplayed({ timeout: 5000 })
 
         // Close the dialog via Escape
@@ -196,18 +196,23 @@ describe('MediaFileProperties', () => {
         await rightClickFirstTrackRow()
         await clickContextMenuItem(['Properties', '属性'])
 
-        const filePropDialog2 = $('[data-testid="file-property-dialog"]')
+        const filePropDialog2 = $('[data-testid="media-file-property-dialog"]')
         await filePropDialog2.waitForDisplayed({ timeout: 5000 })
 
-        // The dialog header shows the track title
+        // The dialog title shows "File Properties"
         const dialogTitleEl = filePropDialog2.$('[data-slot="dialog-title"]')
         await dialogTitleEl.waitForDisplayed({ timeout: 5000 })
-        const actualTitle = await dialogTitleEl.getText()
+        await expect(dialogTitleEl).toHaveText(expect.stringContaining('Properties'))
+
+        // Check the title input field shows the saved title
+        const titleInput = filePropDialog2.$('[data-testid="media-file-property-title"]')
+        await titleInput.waitForDisplayed({ timeout: 5000 })
+        const actualTitle = await titleInput.getValue()
         expect(actualTitle).toBe('My Test Title')
 
-        // The dialog description shows the artist
-        const dialogDescEl = filePropDialog2.$('[data-slot="dialog-description"]')
-        const actualArtist = await dialogDescEl.getText()
+        // Check the artist input field shows the saved artist
+        const artistInput = filePropDialog2.$('[data-testid="media-file-property-artist"]')
+        const actualArtist = await artistInput.getValue()
         expect(actualArtist).toBe('My Test Artist')
 
         // ── 8. Close the Properties dialog so afterEach cleanup can access the sidebar

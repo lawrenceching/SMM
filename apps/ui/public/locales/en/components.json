@@ -285,6 +285,7 @@
       "delete": "Delete",
       "properties": "Properties",
       "editTags": "Edit tags",
+      "properties": "Properties",
       "formatConvert": "Format conversion",
       "downloadStart": "Start",
       "downloadStop": "Stop",
@@ -459,6 +460,7 @@
       "showColumns": "Show...",
       "unlink": "Unlink",
       "editTags": "Edit tags",
+      "properties": "Properties",
       "notImplemented": "Not Implemented Yet"
     },
     "unlinkSuccess": "Episode unlinked successfully",

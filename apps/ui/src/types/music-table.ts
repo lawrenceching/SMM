@@ -9,7 +9,6 @@ export interface LocalFileTableRowFileMenu {
   onDelete: () => void
   onProperties: () => void
   onFormatConvert: () => void
-  onEditTags: () => void
   onSummarize: () => void
   canSummarize: boolean
 }

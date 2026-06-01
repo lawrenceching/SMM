@@ -11,10 +11,9 @@ export { RenameFolderDialog } from "./rename-folder-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
 export { ScrapeDialogV2 } from "./ScrapeDialogV2"
-export { FilePropertyDialog } from "./file-property-dialog"
 export { FormatConverterDialog } from "./format-converter-dialog"
 export { DeleteTrackDialog } from "./delete-track-dialog"
-export { EditMediaFileDialog } from "./edit-media-file-dialog"
+export { MediaFilePropertyDialog } from "./media-file-property-dialog"
 export { TranscribeDialog } from "./TranscribeDialog"
 export { UITranscribeDialog } from "./UITranscribeDialog"
 export { SubtitleTranslationDialog } from "./SubtitleTranslationDialog"
@@ -44,11 +43,9 @@ export type {
   OpenFolderDialogProps,
   ScrapeDialogProps,
   TrackProperties,
-  FilePropertyDialogProps,
+  MediaFilePropertyDialogProps,
   FormatConverterDialogProps,
   DeleteTrackDialogProps,
-  EditMediaFileDialogProps,
-  OpenEditMediaFileOptions,
   TranscribeAsrEngine,
   TranscribeProvider,
   TranscribeOutputFormat,

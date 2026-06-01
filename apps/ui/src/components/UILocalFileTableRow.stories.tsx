@@ -81,7 +81,6 @@ const fileMenu = {
   onDelete: action("onDelete"),
   onProperties: action("onProperties"),
   onFormatConvert: action("onFormatConvert"),
-  onEditTags: action("onEditTags"),
   onSummarize: action("onSummarize"),
   canSummarize: false,
 }

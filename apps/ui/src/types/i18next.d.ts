@@ -449,6 +449,7 @@ interface ComponentsResources {
       showColumns: string
       unlink: string
       editTags: string
+      properties: string
       notImplemented: string
     }
     unlinkSuccess: string
@@ -689,6 +690,12 @@ interface DialogsResources {
   }
   errors: {
     providerError: string
+  }
+  mediaFileProperty: {
+    title: string
+    editableTags: string
+    viewFullSize: string
+    imagePreview: string
   }
   fileProperty: {
     title: string

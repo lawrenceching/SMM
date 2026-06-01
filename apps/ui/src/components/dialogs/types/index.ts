@@ -325,10 +325,13 @@ export interface TrackProperties {
   path?: string
 }
 
-export interface FilePropertyDialogProps {
+export interface MediaFilePropertyDialogProps {
   isOpen: boolean
   onClose: () => void
-  track: TrackProperties
+  /** Absolute file path for reading / writing media tags. */
+  filePath: string
+  /** Optional track metadata for read-only property display. */
+  track?: TrackProperties
 }
 
 export interface FormatConverterDialogProps {
@@ -342,17 +345,7 @@ export interface FormatConverterDialogProps {
   onSelectSource?: (track: TrackProperties) => void
 }
 
-/** Options passed when opening the edit media file (tags) dialog. Path is the media file path (e.g. POSIX). */
-export interface OpenEditMediaFileOptions {
-  path: string
-}
 
-export interface EditMediaFileDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  /** Media file path (e.g. POSIX) to read/write tags. */
-  path: string | undefined
-}
 
 export type ExecuteCmdType = "ffmpeg" | "ffprobe" | "yt-dlp" | "videocaptioner"
 

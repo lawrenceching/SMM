@@ -168,7 +168,7 @@ describe('MusicPanel download-video jobs', () => {
       mockQueryOk() as ReturnType<typeof useMediaMetadataQuery>
     )
     vi.mocked(useDialogs).mockReturnValue({
-      filePropertyDialog: [vi.fn(), vi.fn()],
+      mediaFilePropertyDialog: [vi.fn(), vi.fn()],
       formatConverterDialog: [vi.fn(), vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
@@ -180,7 +180,6 @@ describe('MusicPanel download-video jobs', () => {
       renameFileDialog: [vi.fn(), vi.fn()],
       renameFolderDialog: [vi.fn(), vi.fn()],
       scrapeDialog: [vi.fn(), vi.fn()],
-      editMediaFileDialog: [vi.fn(), vi.fn()],
     })
     vi.mocked(openFile).mockResolvedValue({ data: {} as any, error: undefined })
     vi.mocked(deleteFile).mockResolvedValue({ data: { path: '/media/music/song1.mp3' }, error: undefined })

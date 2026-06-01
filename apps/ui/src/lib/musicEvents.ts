@@ -1,13 +1,12 @@
 import type { Track } from '@/components/MediaPlayer';
 
-export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties' | 'track:formatConvert' | 'track:editTags';
+export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties' | 'track:formatConvert';
 
 export const MUSIC_EVENT_NAMES: Record<MusicEventType, MusicEventType> = {
   'track:open': 'track:open',
   'track:delete': 'track:delete',
   'track:properties': 'track:properties',
   'track:formatConvert': 'track:formatConvert',
-  'track:editTags': 'track:editTags',
 };
 
 export interface BaseMusicEventDetail {
@@ -35,17 +34,12 @@ export interface TrackFormatConvertEventDetail extends BaseMusicEventDetail {
   trackTitle: string;
 }
 
-export interface TrackEditTagsEventDetail extends BaseMusicEventDetail {
-  trackPath?: string;
-  trackTitle: string;
-}
 
 export type MusicEventDetail = 
   | TrackOpenEventDetail 
   | TrackDeleteEventDetail 
   | TrackPropertiesEventDetail 
-  | TrackFormatConvertEventDetail
-  | TrackEditTagsEventDetail;
+  | TrackFormatConvertEventDetail;
 
 export function createTrackOpenEvent(track: Track): CustomEvent<TrackOpenEventDetail> {
   return new CustomEvent<TrackOpenEventDetail>(MUSIC_EVENT_NAMES['track:open'], {
@@ -123,23 +117,6 @@ export function emitTrackFormatConvertEvent(track: Track): void {
   emitMusicEvent(event);
 }
 
-export function createTrackEditTagsEvent(track: Track): CustomEvent<TrackEditTagsEventDetail> {
-  return new CustomEvent<TrackEditTagsEventDetail>(MUSIC_EVENT_NAMES['track:editTags'], {
-    bubbles: true,
-    composed: true,
-    detail: {
-      trackId: track.id,
-      timestamp: Date.now(),
-      trackPath: track.path,
-      trackTitle: track.title,
-    },
-  });
-}
-
-export function emitTrackEditTagsEvent(track: Track): void {
-  const event = createTrackEditTagsEvent(track);
-  emitMusicEvent(event);
-}
 
 export function addMusicEventListener<T extends MusicEventDetail>(
   eventType: MusicEventType,

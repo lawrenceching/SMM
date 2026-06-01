@@ -216,6 +216,12 @@
     "saveFailed": "Failed to save tags",
     "loadFailed": "Failed to load tags"
   },
+  "mediaFileProperty": {
+    "title": "File Properties",
+    "editableTags": "Editable Tags",
+    "viewFullSize": "View full size",
+    "imagePreview": "Image preview"
+  },
   "formatConverter": {
     "title": "Format conversion",
     "description": "Convert video to the target format using ffmpeg",

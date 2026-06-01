@@ -14,9 +14,8 @@ import {
   OpenFolderDialog,
   ScrapeDialog,
   ScrapeDialogV2,
-  FilePropertyDialog,
   FormatConverterDialog,
-  EditMediaFileDialog,
+  MediaFilePropertyDialog,
   ExecuteCmdDialog,
   AddTestBackgroundJobDialog,
   LogDialog,
@@ -25,7 +24,6 @@ import {
   type FileItem,
   type Task,
   type TrackProperties,
-  type OpenEditMediaFileOptions,
   type ExecuteCmdType,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
@@ -100,17 +98,13 @@ interface DialogContextValue {
     openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => void,
     closeScrape: () => void
   ]
-  filePropertyDialog: [
-    openFileProperty: (track: TrackProperties) => void,
-    closeFileProperty: () => void
+  mediaFilePropertyDialog: [
+    openMediaFileProperty: (options: { filePath: string; track?: TrackProperties }) => void,
+    closeMediaFileProperty: () => void
   ]
   formatConverterDialog: [
     openFormatConverter: (track?: TrackProperties | string) => void,
     closeFormatConverter: () => void
-  ]
-  editMediaFileDialog: [
-    openEditMediaFile: (options: OpenEditMediaFileOptions) => void,
-    closeEditMediaFile: () => void
   ]
   executeCmdDialog: [
     openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
@@ -188,17 +182,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isScrapeOpen, setIsScrapeOpen] = useState(false)
   const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }>({})
 
-  // File property dialog state
-  const [isFilePropertyOpen, setIsFilePropertyOpen] = useState(false)
-  const [filePropertyTrack, setFilePropertyTrack] = useState<TrackProperties | undefined>(undefined)
+  // Media file property dialog state
+  const [isMediaFilePropertyOpen, setIsMediaFilePropertyOpen] = useState(false)
+  const [mediaFilePropertyTrack, setMediaFilePropertyTrack] = useState<TrackProperties | undefined>(undefined)
+  const [mediaFilePropertyPath, setMediaFilePropertyPath] = useState<string>("")
 
   // Format converter dialog state
   const [isFormatConverterOpen, setIsFormatConverterOpen] = useState(false)
   const [formatConverterTrack, setFormatConverterTrack] = useState<TrackProperties | undefined>(undefined)
-
-  // Edit media file (tags) dialog state
-  const [isEditMediaFileOpen, setIsEditMediaFileOpen] = useState(false)
-  const [editMediaFilePath, setEditMediaFilePath] = useState<string | undefined>(undefined)
 
   // Execute command dialog state
   const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
@@ -396,15 +387,17 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openFileProperty = useCallback((track: TrackProperties) => {
-    setFilePropertyTrack(track)
-    setIsFilePropertyOpen(true)
+  const openMediaFileProperty = useCallback((options: { filePath: string; track?: TrackProperties }) => {
+    setMediaFilePropertyPath(options.filePath)
+    setMediaFilePropertyTrack(options.track)
+    setIsMediaFilePropertyOpen(true)
   }, [])
 
-  const closeFileProperty = useCallback(() => {
-    setIsFilePropertyOpen(false)
+  const closeMediaFileProperty = useCallback(() => {
+    setIsMediaFilePropertyOpen(false)
     setTimeout(() => {
-      setFilePropertyTrack(undefined)
+      setMediaFilePropertyPath("")
+      setMediaFilePropertyTrack(undefined)
     }, 200)
   }, [])
 
@@ -426,15 +419,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openEditMediaFile = useCallback((options: OpenEditMediaFileOptions) => {
-    setEditMediaFilePath(options.path)
-    setIsEditMediaFileOpen(true)
-  }, [])
 
-  const closeEditMediaFile = useCallback(() => {
-    setIsEditMediaFileOpen(false)
-    setTimeout(() => setEditMediaFilePath(undefined), 200)
-  }, [])
 
   const openExecuteCmd = useCallback((initialCommand?: ExecuteCmdType) => {
     setExecuteCmdInitialCommand(initialCommand)
@@ -484,9 +469,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
     textDialog: [openTextDialog, closeTextDialog],
     renameFolderDialog: [openRenameFolder, closeRenameFolder],
     scrapeDialog: [openScrape, closeScrape],
-    filePropertyDialog: [openFileProperty, closeFileProperty],
+    mediaFilePropertyDialog: [openMediaFileProperty, closeMediaFileProperty],
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
-    editMediaFileDialog: [openEditMediaFile, closeEditMediaFile],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
     addTestBackgroundJobDialog: [openAddTestBackgroundJob, closeAddTestBackgroundJob],
     logDialog: [openLogDialog, closeLogDialog],
@@ -575,10 +559,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
           mediaMetadata={scrapeOptions.mediaMetadata}
         />
       )}
-      <FilePropertyDialog
-        isOpen={isFilePropertyOpen}
-        onClose={closeFileProperty}
-        track={filePropertyTrack}
+      <MediaFilePropertyDialog
+        isOpen={isMediaFilePropertyOpen}
+        onClose={closeMediaFileProperty}
+        filePath={mediaFilePropertyPath}
+        track={mediaFilePropertyTrack}
       />
       <FormatConverterDialog
         isOpen={isFormatConverterOpen}
@@ -586,11 +571,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
         track={formatConverterTrack}
         onOpenFilePicker={openFilePicker}
         onSelectSource={(track: TrackProperties) => setFormatConverterTrack(track)}
-      />
-      <EditMediaFileDialog
-        isOpen={isEditMediaFileOpen}
-        onClose={closeEditMediaFile}
-        path={editMediaFilePath}
       />
       <ExecuteCmdDialog
         isOpen={isExecuteCmdOpen}
