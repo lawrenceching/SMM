@@ -51,6 +51,8 @@ import { createReverseProxyManager, type ReverseProxyManager } from '@/proxy/rev
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as Engine } from '@socket.io/bun-engine';
 import { initI18n } from './src/i18n/config';
+import { initializeFolderWatcher, getFolderWatcher } from './src/services/folderWatcher';
+import { getUserConfig } from './src/utils/config';
 
 export interface ServerConfig {
   port?: number;
@@ -339,6 +341,27 @@ export class Server {
     );
 
     applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
+
+    // Initialize folder watcher for all existing media folders
+    this.initializeFolderWatcherAsync();
+  }
+
+  private async initializeFolderWatcherAsync(): Promise<void> {
+    try {
+      const userConfig = await getUserConfig();
+      const folders = userConfig.folders || [];
+      if (folders.length > 0) {
+        initializeFolderWatcher(folders);
+        logger.info({ folderCount: folders.length }, 'Folder watcher initialized for all media folders');
+      } else {
+        logger.info('No media folders to watch');
+      }
+    } catch (error) {
+      logger.error(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Failed to initialize folder watcher',
+      );
+    }
   }
 
   stop(): void {
@@ -348,6 +371,7 @@ export class Server {
     }
 
     this.proxyManager.stop();
+    getFolderWatcher().stopAllWatching();
     this.server.stop();
     this.server = null;
     logger.info('Server stopped.');

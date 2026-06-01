@@ -20,6 +20,7 @@ import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/R
 import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlisteners/RecognizeMediaFilePlanReadyEventListener.tsx'
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
+import { FolderContentChangedEventListener } from './components/eventlisteners/FolderContentChangedEventListener.tsx'
 import { JobOrchestratorProvider } from './components/JobOrchestratorProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
@@ -187,6 +188,7 @@ function EventListeners() {
       <MediaFolderImportedEventHandler />
       <MediaLibraryImportedEventHandler />
       <FixedDelayBackgroundJobHandler />
+      <FolderContentChangedEventListener />
     </>
   )
 }

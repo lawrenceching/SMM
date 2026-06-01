@@ -76,6 +76,32 @@ export interface MediaMetadataUpdatedEventData {
   folderPath?: string,
 }
 
+/* Folder content changed event: Start */
+
+/**
+ * Fired when the CLI's fs.watch detects file changes in a monitored media folder.
+ * Used to notify UI panels (TvShow, Movie, Music) to refresh their content
+ * without each backend feature needing to emit its own event.
+ */
+export const FOLDER_CONTENT_CHANGED_EVENT = 'folderContentChanged'
+
+export interface FolderContentChangedEventData {
+  /**
+   * Folder path in POSIX format
+   */
+  folderPath: string
+  /**
+   * Type of change detected
+   */
+  changeType: 'created' | 'modified' | 'deleted'
+  /**
+   * Optional relative file path of the changed file
+   */
+  filePath?: string
+}
+
+/* Folder content changed event: End */
+
 /* User config updated event: Start */
 
 export const USER_CONFIG_UPDATED_EVENT = 'userConfigUpdated'

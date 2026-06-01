@@ -55,15 +55,23 @@ If the issue is too complex to analyze, or there are uncertainty, kick off the s
 ## Step 3 Slow Path: Guess-Reproduce-Verify Loop
 
 1. **Possible Reasons** List possible reasons that may cause this issues.
-2. **Diagnostic Instrumentation** Add temporary debug log using log server.
-3. **Reproduce** Ask user to reproduce the issue, collect logs for analyze.
-4.  **Verify** Analyze the log and identify the reasons
+2. **Start Log Server** Start the log server by running Node.js script in `scripts/log-server.ts`
+3. **Create Log Session** Create new log session in log server.
+4. **Diagnostic Instrumentation** Add temporary debug log using log server.
+   Add log by calling log server API
+   ```
+   fetch(`http://localhost:28080/log`, {...})
+   ```
+5. **Reproduce** Ask user to reproduce the issue, collect logs for analyze.
+6.  **Verify** Analyze the log and identify the reasons
     If log is insufficient, go back to step 7 and try again.
     If all reasons were rejected, go back to step 6 and try again.
 
    This loop could go several times until we fully locate the root cause.
    **IMPORT** The root cause can ONLY be confirmed with solid log evidence.
-5. **Clean Up** Stop log server (`GET /shutdown`). Log files are deleted automatically when the server shuts down — read them from **path** before shutdown.
+7. **Clean Up** 
+   - Stop log server (`GET /shutdown`). Log files are deleted automatically when the server shuts down — read them from **path** before shutdown.
+   - Remove diagnostic log
 
 
 ## Step 4 Fix
