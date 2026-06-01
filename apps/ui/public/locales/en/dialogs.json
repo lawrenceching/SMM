@@ -55,6 +55,8 @@
     "backgroundQueued": "Download added to background tasks.",
     "backgroundJobEpisodesName": "Episodes ({{count}} videos)",
     "cookiesConfigure": "Configure",
+    "cookiesHint": "Enter {{platformName}} Cookies so SMM can fetch video formats and download videos",
+    "cookiesHintTutorialLink": "Guide & tutorial",
     "useCookiesLabel": "Use cookies",
     "useCookiesFromBrowserLabel": "From browser",
     "cookiesBrowserSelectLabel": "Select browser",

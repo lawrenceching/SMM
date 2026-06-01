@@ -33,6 +33,7 @@ export interface MoreOptionsSectionProps {
 
   // Cookies (moved here after format fetch)
   showCookiesInMoreOptions: boolean
+  url: string
   useCookies: boolean
   cookiesText: string
   useCookiesFromBrowser: boolean
@@ -40,6 +41,8 @@ export interface MoreOptionsSectionProps {
   platform: string
   start1080pBlocked: boolean
   showCookiesRequiredError: boolean
+  youtubeCookiesHintEmphasized: boolean
+  youtubeCookiesHintFlashKey: number
 
   onShowMoreOptionsChange: (checked: boolean) => void
   onExtraArgToggle: (id: YtdlpDownloadExtraArgId, enabled: boolean) => void
@@ -61,6 +64,7 @@ export function MoreOptionsSection({
   jsRuntime,
   forceJsRuntime,
   showCookiesInMoreOptions,
+  url,
   useCookies,
   useCookiesFromBrowser,
   cookiesText,
@@ -68,6 +72,8 @@ export function MoreOptionsSection({
   platform,
   start1080pBlocked,
   showCookiesRequiredError,
+  youtubeCookiesHintEmphasized,
+  youtubeCookiesHintFlashKey,
   onShowMoreOptionsChange,
   onExtraArgToggle,
   onUseJsRuntimeChange,
@@ -136,12 +142,15 @@ export function MoreOptionsSection({
           {showCookiesInMoreOptions && (
             <div className="mt-2 pt-2 border-t">
               <CookiesSection
+                url={url}
                 useCookies={useCookies}
                 cookiesText={cookiesText}
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
                 showCookiesRequiredError={showCookiesRequiredError}
+                youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
+                youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
                 formBusy={formBusy}
                 platform={platform}
                 onUseCookiesChange={onUseCookiesChange}

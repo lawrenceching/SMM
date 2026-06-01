@@ -19,6 +19,7 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     urlError: null,
     formBusy: false,
     onUrlChange: action("onUrlChange"),
+    onUrlBlur: action("onUrlBlur"),
     onGo: action("onGo"),
 
     isListingFormats: false,
@@ -56,6 +57,8 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onUseJsRuntimeChange: action("onUseJsRuntimeChange"),
     onJsRuntimeChange: action("onJsRuntimeChange"),
     quickjsUnavailable: false,
+    youtubeCookiesHintEmphasized: false,
+    youtubeCookiesHintFlashKey: 0,
 
     videoList: [],
     selectedUrls: new Set(),

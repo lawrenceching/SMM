@@ -41,6 +41,7 @@ import {
 } from "@/lib/ytdlpFormatCodes"
 import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
 import type { VideoMetadata } from "@/api/ytdlp/types"
+import { isYoutubeDownloadUrl } from "@core/download-video-cookie-platform"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 
@@ -119,6 +120,11 @@ export interface UseDownloadVideoFormReturn {
   // New: QuickJS availability
   quickjsUnavailable: boolean
 
+  /** YouTube cookies hint: persistent red after URL blur without cookies. */
+  youtubeCookiesHintEmphasized: boolean
+  /** Incremented on each YouTube URL blur to replay the 3-pulse flash animation. */
+  youtubeCookiesHintFlashKey: number
+
   setDownloadFolder: (v: string) => void
   setSelectedFormatPresetId: (id: YtdlpFormatPresetId) => void
   setCookiesText: (text: string) => void
@@ -138,6 +144,7 @@ export interface UseDownloadVideoFormReturn {
   setJsRuntime: (id: YtdlpJsRuntimeId) => void
 
   handleUrlChange: (value: string) => void
+  handleUrlBlur: () => void
   handleGo: () => void
   handleAgreementChange: (checked: boolean) => void
   handleOpenCookiesEditor: () => void
@@ -199,6 +206,8 @@ export function useDownloadVideoForm(
   const [jsRuntime, setJsRuntime] = useState<YtdlpJsRuntimeId>(DEFAULT_YTDLP_JS_RUNTIME_ID)
   const [jsRuntimePath, setJsRuntimePath] = useState<string | undefined>(undefined)
   const [quickjsUnavailable, setQuickjsUnavailable] = useState(false)
+  const [youtubeCookiesHintEmphasized, setYoutubeCookiesHintEmphasized] = useState(false)
+  const [youtubeCookiesHintFlashKey, setYoutubeCookiesHintFlashKey] = useState(0)
 
   // --- destinationFolder sync ---
   useEffect(() => {
@@ -210,6 +219,14 @@ export function useDownloadVideoForm(
   // --- derived state ---
   const isUrlValid = url.trim() !== "" && validateDownloadUrl(url.trim()).valid
   const isYoutube = isYoutubeUrl(url)
+  const hasYoutubeCookiesAuth = useCookies || useCookiesFromBrowser
+
+  useEffect(() => {
+    if (!isYoutube || hasYoutubeCookiesAuth) {
+      setYoutubeCookiesHintEmphasized(false)
+      setYoutubeCookiesHintFlashKey(0)
+    }
+  }, [isYoutube, hasYoutubeCookiesAuth])
 
   // Formats have been fetched successfully
   const showCookiesAtTopLevel = !videoMetadata
@@ -401,6 +418,18 @@ export function useDownloadVideoForm(
     [setHasAgreed],
   )
 
+  const handleUrlBlur = useCallback(() => {
+    const trimmed = url.trim()
+    if (!isYoutubeDownloadUrl(trimmed)) {
+      return
+    }
+    if (useCookies || useCookiesFromBrowser) {
+      return
+    }
+    setYoutubeCookiesHintEmphasized(true)
+    setYoutubeCookiesHintFlashKey((key) => key + 1)
+  }, [url, useCookies, useCookiesFromBrowser])
+
   const handleOpenCookiesEditor = useCallback(() => {
     openTextDialog((text: string) => {
       setCookiesText(text)
@@ -445,6 +474,8 @@ export function useDownloadVideoForm(
     setJsRuntime(DEFAULT_YTDLP_JS_RUNTIME_ID)
     setJsRuntimePath(undefined)
     setQuickjsUnavailable(false)
+    setYoutubeCookiesHintEmphasized(false)
+    setYoutubeCookiesHintFlashKey(0)
     resetListFormats()
   }, [platform, resetListFormats])
 
@@ -491,6 +522,8 @@ export function useDownloadVideoForm(
     jsRuntime,
     jsRuntimePath,
     quickjsUnavailable,
+    youtubeCookiesHintEmphasized,
+    youtubeCookiesHintFlashKey,
 
     setDownloadFolder,
     setSelectedFormatPresetId,
@@ -507,6 +540,7 @@ export function useDownloadVideoForm(
     setJsRuntime,
 
     handleUrlChange,
+    handleUrlBlur,
     handleGo,
     handleAgreementChange,
     handleOpenCookiesEditor,

@@ -33,6 +33,7 @@ export interface UIDownloadVideoDialogContentProps {
   urlError: string | null
   formBusy: boolean
   onUrlChange: (value: string) => void
+  onUrlBlur: () => void
   onGo: () => void
 
   // New: format listing
@@ -75,6 +76,8 @@ export interface UIDownloadVideoDialogContentProps {
 
   // New: QuickJS availability
   quickjsUnavailable: boolean
+  youtubeCookiesHintEmphasized: boolean
+  youtubeCookiesHintFlashKey: number
 
   // Unified video list from playlist entries
   videoList: VideoListEntry[]
@@ -110,6 +113,7 @@ export function UIDownloadVideoDialogContent({
   urlError,
   formBusy,
   onUrlChange,
+  onUrlBlur,
   onGo,
 
   isListingFormats,
@@ -147,6 +151,8 @@ export function UIDownloadVideoDialogContent({
   onUseJsRuntimeChange,
   onJsRuntimeChange,
   quickjsUnavailable,
+  youtubeCookiesHintEmphasized,
+  youtubeCookiesHintFlashKey,
 
   videoList,
   selectedUrls,
@@ -202,6 +208,7 @@ export function UIDownloadVideoDialogContent({
               isListingFormats={isListingFormats}
               goDisabled={goDisabled}
               onUrlChange={onUrlChange}
+              onUrlBlur={onUrlBlur}
               onGo={onGo}
               t={t}
             />
@@ -229,12 +236,15 @@ export function UIDownloadVideoDialogContent({
             {/* Cookies at top level (before format fetch) */}
             {hasAgreed && showCookiesAtTopLevel && (
               <CookiesSection
+                url={url}
                 useCookies={useCookies}
                 cookiesText={cookiesText}
                 useCookiesFromBrowser={useCookiesFromBrowser}
                 cookiesBrowser={cookiesBrowser}
                 start1080pBlocked={start1080pBlocked}
                 showCookiesRequiredError={showCookiesRequiredError}
+                youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
+                youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
                 formBusy={formBusy}
                 platform={platform}
                 onUseCookiesChange={onUseCookiesChange}
@@ -282,6 +292,7 @@ export function UIDownloadVideoDialogContent({
                   jsRuntime={jsRuntime}
                   forceJsRuntime={isYoutube}
                   showCookiesInMoreOptions={true}
+                  url={url}
                   useCookies={useCookies}
                   cookiesText={cookiesText}
                   useCookiesFromBrowser={useCookiesFromBrowser}
@@ -289,6 +300,8 @@ export function UIDownloadVideoDialogContent({
                   platform={platform}
                   start1080pBlocked={start1080pBlocked}
                   showCookiesRequiredError={showCookiesRequiredError}
+                  youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
+                  youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
                   onShowMoreOptionsChange={onShowMoreOptionsChange}
                   onExtraArgToggle={onExtraArgToggle}
                 onUseJsRuntimeChange={onUseJsRuntimeChange}

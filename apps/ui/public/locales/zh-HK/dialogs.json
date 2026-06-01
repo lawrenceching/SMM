@@ -55,6 +55,8 @@
     "backgroundQueued": "已加入後台下載任務。",
     "backgroundJobEpisodesName": "分集（{{count}} 條片）",
     "cookiesConfigure": "配置",
+    "cookiesHint": "請輸入{{platformName}} Cookies 以便 SMM 拉取影片格式和下載影片",
+    "cookiesHintTutorialLink": "說明和教程",
     "useCookiesLabel": "使用 Cookies",
     "useCookiesFromBrowserLabel": "從瀏覽器獲取",
     "cookiesBrowserSelectLabel": "選擇瀏覽器",

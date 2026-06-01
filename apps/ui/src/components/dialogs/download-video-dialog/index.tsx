@@ -76,6 +76,7 @@ export function DownloadVideoDialogContent({
       urlError={form.urlError}
       formBusy={flow.formBusy}
       onUrlChange={form.handleUrlChange}
+      onUrlBlur={form.handleUrlBlur}
       onGo={form.handleGo}
       isListingFormats={form.isListingFormats}
       listingError={form.listingError}
@@ -108,6 +109,8 @@ export function DownloadVideoDialogContent({
       onUseJsRuntimeChange={form.setUseJsRuntime}
       onJsRuntimeChange={form.setJsRuntime}
       quickjsUnavailable={form.quickjsUnavailable}
+      youtubeCookiesHintEmphasized={form.youtubeCookiesHintEmphasized}
+      youtubeCookiesHintFlashKey={form.youtubeCookiesHintFlashKey}
       videoList={flow.videoList}
       selectedUrls={flow.selectedUrls}
       onToggleUrl={flow.toggleUrlSelection}

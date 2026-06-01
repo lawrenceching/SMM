@@ -218,12 +218,18 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string, options?: { ns?: string; count?: number }) => {
+      t: (key: string, options?: { ns?: string; count?: number; platformName?: string }) => {
         if (options?.ns === 'common') {
           const commonTranslations: Record<string, string> = {
             cancel: 'Cancel',
           }
           return commonTranslations[key] || key
+        }
+        if (key === 'downloadVideo.cookiesHint') {
+          const platformName = options?.platformName ?? ''
+          return platformName
+            ? `Enter ${platformName} Cookies so SMM can fetch video formats and download videos`
+            : 'Enter Cookies so SMM can fetch video formats and download videos'
         }
         const dialogsTranslations: Record<string, string> = {
           'downloadVideo.title': 'Download Video',
@@ -253,6 +259,8 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
           'downloadVideo.episodesLoading': 'Loading episodes…',
           'downloadVideo.episodesNoneSelected': 'Select at least one item.',
           'downloadVideo.cookiesConfigure': 'Configure',
+          'downloadVideo.cookiesHintTutorialLink': 'Guide & tutorial',
+          'downloadVideo.cookiesNotProvided': 'No cookies provided',
           'downloadVideo.useCookiesLabel': 'Use cookies',
           'downloadVideo.useCookiesFromBrowserLabel': 'From browser',
           'downloadVideo.cookiesBrowserSelectLabel': 'Select browser',
@@ -1597,7 +1605,23 @@ describe('DownloadVideoDialog - user agreement', () => {
   // ────────────────────────────────────────────────────────────────
   // TC-CK-06: YouTube without cookies shows required error and disables Go
   // ────────────────────────────────────────────────────────────────
-  it('TC-CK-06: YouTube URL without cookies shows required error and disables Go', async () => {
+  it('TC-CK-07: YouTube URL blur emphasizes cookies hint with flash', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    hListFormats.resultRef.current = null
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://www.youtube.com/watch?v=test123' },
+    })
+    fireEvent.blur(screen.getByTestId('download-video-dialog-url-input'))
+
+    const hint = screen.getByTestId('download-video-dialog-cookies-hint')
+    expect(hint).toHaveAttribute('data-youtube-hint-emphasized', 'true')
+    expect(hint).toHaveClass('text-destructive')
+    expect(hint).toHaveClass('animate-dvd-youtube-cookies-hint-flash')
+  })
+
+  it('TC-CK-06: YouTube URL without cookies disables Go', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     hListFormats.resultRef.current = null
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -1607,12 +1631,10 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'https://www.youtube.com/watch?v=test123' },
     })
 
-    // Cookies required error should be visible
-    const requiredError = screen.getByTestId('download-video-dialog-cookies-required-hint')
-    expect(requiredError).toBeInTheDocument()
-    expect(requiredError.textContent).toBe('YouTube requires cookies to download videos.')
+    expect(
+      screen.queryByTestId('download-video-dialog-cookies-required-hint'),
+    ).not.toBeInTheDocument()
 
-    // Go button should be disabled
     expect(screen.getByTestId('download-video-dialog-go-button')).toBeDisabled()
   })
 

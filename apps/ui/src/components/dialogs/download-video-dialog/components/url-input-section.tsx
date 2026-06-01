@@ -11,6 +11,7 @@ export interface UrlInputSectionProps {
   isListingFormats: boolean
   goDisabled: boolean
   onUrlChange: (value: string) => void
+  onUrlBlur?: () => void
   onGo: () => void
   t: (key: string) => string
 }
@@ -23,6 +24,7 @@ export function UrlInputSection({
   isListingFormats,
   goDisabled,
   onUrlChange,
+  onUrlBlur,
   onGo,
   t,
 }: UrlInputSectionProps) {
@@ -37,6 +39,7 @@ export function UrlInputSection({
           placeholder="https://www.youtube.com/watch?v=..."
           value={url}
           onChange={(e) => onUrlChange(e.target.value)}
+          onBlur={() => onUrlBlur?.()}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !goDisabled && !isListingFormats && !formBusy) {
               e.preventDefault()
