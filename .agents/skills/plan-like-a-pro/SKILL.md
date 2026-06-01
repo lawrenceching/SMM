@@ -1,7 +1,7 @@
 ---
-name: arch
+name: plan-like-a-pro
 version: "0.0.1"
-description: How to architect, design, code and test the complex requirement.
+description: How to architect, design, code and test the complex requirement like a professional developer
 user-invocable: true
 allowed-tools:
   - Read
@@ -15,7 +15,7 @@ allowed-tools:
   - AskQuestion
 ---
 
-# Architecturing
+# Plan like a Pro
 
 ## Before ANY complex task:
 
