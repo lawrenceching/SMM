@@ -281,6 +281,7 @@
     "processFailedTooltip": "字幕流水线失败",
     "trackContextMenu": {
       "open": "打开",
+      "openError": "打开文件失败",
       "delete": "删除",
       "properties": "属性",
       "editTags": "编辑标签",

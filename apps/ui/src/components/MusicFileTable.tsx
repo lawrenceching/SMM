@@ -2,11 +2,13 @@ import { Music } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "@/lib/i18n"
 import {
-  emitTrackOpenEvent,
   emitTrackDeleteEvent,
   emitTrackPropertiesEvent,
   emitTrackFormatConvertEvent,
 } from "@/lib/musicEvents"
+import { openFile } from "@/api/openFile"
+import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
+import { Path } from "@core/path"
 import { LocalFileTableRow } from "./LocalFileTableRow"
 import type { LocalFileTableRowFileMenu, MusicTableSelection } from "@/types/music-table"
 import { JobTableRow } from "./JobTableRow"
@@ -104,16 +106,14 @@ export function MusicFileTable({
 
   const fileMenuForRow = useCallback(
     (track: LocalFileTableRowData): LocalFileTableRowFileMenu => ({
-      onOpen: () =>
-        emitTrackOpenEvent({
-          id: track.id,
-          title: track.title,
-          artist: track.artist,
-          duration: track.duration,
-          thumbnail: track.thumbnail,
-          addedDate: new Date(),
-          path: track.path,
-        }),
+      onOpen: () => {
+        const absPosixPath = absolutePosixMusicFilePath(track, mediaFolderPath);
+        if (!absPosixPath) return;
+        const platformPath = Path.toPlatformPath(absPosixPath);
+        openFile(platformPath).catch((error) => {
+          console.error('[MusicFileTable] Failed to open file:', error);
+        });
+      },
       onDelete: () =>
         emitTrackDeleteEvent({
           id: track.id,
@@ -148,7 +148,7 @@ export function MusicFileTable({
       onSummarize: () => {},
       canSummarize: false,
     }),
-    [],
+    [mediaFolderPath],
   )
 
   return (

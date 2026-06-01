@@ -1,8 +1,10 @@
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { FolderOpen } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import { basename } from "@/lib/path"
 import type { AssociatedFile } from "@/types/associated-files"
@@ -20,9 +22,10 @@ export interface AssociatedFileRowProps {
   file: AssociatedFile
   subtitleActions?: LocalFileTableRowSubtitleActions
   subtitleUi?: RowSubtitleUi
+  onOpen?: () => void
 }
 
-export function AssociatedFileRow({ file, subtitleActions, subtitleUi }: AssociatedFileRowProps) {
+export function AssociatedFileRow({ file, subtitleActions, subtitleUi, onOpen }: AssociatedFileRowProps) {
   const { t } = useTranslation(["components"])
   const name = basename(file.path) ?? file.path
 
@@ -45,7 +48,9 @@ export function AssociatedFileRow({ file, subtitleActions, subtitleUi }: Associa
     <div
       style={subgridRowStyle}
       role="row"
-      className="text-xs text-muted-foreground"
+      className="text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
+      onDoubleClick={() => onOpen?.()}
+      title={t("mediaPlayer.trackContextMenu.open")}
     >
       <div role="cell" />
       <div role="cell" className="flex items-center justify-center py-1">
@@ -62,16 +67,35 @@ export function AssociatedFileRow({ file, subtitleActions, subtitleUi }: Associa
     </div>
   )
 
-  if (!showSubtitleMenu) return row
+  const openMenuItem = onOpen && (
+    <ContextMenuItem onClick={onOpen}>
+      <FolderOpen className="mr-2 size-4" />
+      {t("mediaPlayer.trackContextMenu.open")}
+    </ContextMenuItem>
+  )
+
+  if (!showSubtitleMenu && !openMenuItem) return row
+
+  if (showSubtitleMenu) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+        <ContextMenuContent>
+          {openMenuItem}
+          <SubtitleContextMenuItems
+            subtitleUi={subtitleUi}
+            subtitleActions={subtitleActions}
+          />
+        </ContextMenuContent>
+      </ContextMenu>
+    )
+  }
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
       <ContextMenuContent>
-        <SubtitleContextMenuItems
-          subtitleUi={subtitleUi}
-          subtitleActions={subtitleActions}
-        />
+        {openMenuItem}
       </ContextMenuContent>
     </ContextMenu>
   )

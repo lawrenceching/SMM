@@ -279,6 +279,7 @@
     "processFailedTooltip": "字幕流程失敗",
     "trackContextMenu": {
       "open": "開啟",
+      "openError": "開啟文件失敗",
       "delete": "刪除",
       "properties": "屬性",
       "editTags": "編輯標籤",

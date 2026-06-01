@@ -282,6 +282,7 @@
     "processFailedTooltip": "Subtitle pipeline failed",
     "trackContextMenu": {
       "open": "Open",
+      "openError": "Failed to open file",
       "delete": "Delete",
       "properties": "Properties",
       "editTags": "Edit tags",

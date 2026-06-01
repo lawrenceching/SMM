@@ -30,6 +30,8 @@ export interface UILocalFileTableRowProps {
   isSummarizing?: boolean
   onSummarize?: () => void
   canSummarize?: boolean
+  /** Called when user wants to open an associated file. Receives the absolute platform path. */
+  onOpenAssociatedFile?: (file: AssociatedFile) => void
 }
 
 export function UILocalFileTableRow({
@@ -48,6 +50,7 @@ export function UILocalFileTableRow({
   isSummarizing = false,
   onSummarize,
   canSummarize = false,
+  onOpenAssociatedFile,
 }: UILocalFileTableRowProps) {
   const hasAssociatedFiles = associatedFiles.length > 0
 
@@ -74,6 +77,7 @@ export function UILocalFileTableRow({
             file={file}
             subtitleActions={subtitleActions}
             subtitleUi={subtitleUi}
+            onOpen={() => onOpenAssociatedFile?.(file)}
           />
         ))}
       {isExpanded && !hasAssociatedFiles && matchingJobs.length === 0 && <EmptyAssociatedFileRow />}
