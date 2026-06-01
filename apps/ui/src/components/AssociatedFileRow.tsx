@@ -1,3 +1,4 @@
+import { useCallback } from "react"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -7,6 +8,8 @@ import {
 import { FolderOpen } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import { basename } from "@/lib/path"
+import { openFile } from "@/api/openFile"
+import { Path } from "@core/path"
 import type { AssociatedFile } from "@/types/associated-files"
 import type { LocalFileTableRowSubtitleActions } from "@/types/music-table"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
@@ -22,12 +25,18 @@ export interface AssociatedFileRowProps {
   file: AssociatedFile
   subtitleActions?: LocalFileTableRowSubtitleActions
   subtitleUi?: RowSubtitleUi
-  onOpen?: () => void
 }
 
-export function AssociatedFileRow({ file, subtitleActions, subtitleUi, onOpen }: AssociatedFileRowProps) {
+export function AssociatedFileRow({ file, subtitleActions, subtitleUi }: AssociatedFileRowProps) {
   const { t } = useTranslation(["components"])
   const name = basename(file.path) ?? file.path
+
+  const handleOpen = useCallback(() => {
+    const platformPath = Path.toPlatformPath(file.path)
+    openFile(platformPath).catch((error) => {
+      console.error('[AssociatedFileRow] Failed to open file:', error)
+    })
+  }, [file.path])
 
   const label = (() => {
     switch (file.type) {
@@ -48,8 +57,8 @@ export function AssociatedFileRow({ file, subtitleActions, subtitleUi, onOpen }:
     <div
       style={subgridRowStyle}
       role="row"
-      className="text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-      onDoubleClick={() => onOpen?.()}
+      className="text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 select-none"
+      onDoubleClick={handleOpen}
       title={t("mediaPlayer.trackContextMenu.open")}
     >
       <div role="cell" />
@@ -67,35 +76,34 @@ export function AssociatedFileRow({ file, subtitleActions, subtitleUi, onOpen }:
     </div>
   )
 
-  const openMenuItem = onOpen && (
-    <ContextMenuItem onClick={onOpen}>
-      <FolderOpen className="mr-2 size-4" />
-      {t("mediaPlayer.trackContextMenu.open")}
-    </ContextMenuItem>
-  )
-
-  if (!showSubtitleMenu && !openMenuItem) return row
-
-  if (showSubtitleMenu) {
+  if (!showSubtitleMenu) {
+    // Non-subtitle files: only show the "Open" context menu
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
         <ContextMenuContent>
-          {openMenuItem}
-          <SubtitleContextMenuItems
-            subtitleUi={subtitleUi}
-            subtitleActions={subtitleActions}
-          />
+          <ContextMenuItem onClick={handleOpen}>
+            <FolderOpen className="mr-2 size-4" />
+            {t("mediaPlayer.trackContextMenu.open")}
+          </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
     )
   }
 
+  // Subtitle files: show "Open" action followed by subtitle-specific actions
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
       <ContextMenuContent>
-        {openMenuItem}
+        <ContextMenuItem onClick={handleOpen}>
+          <FolderOpen className="mr-2 size-4" />
+          {t("mediaPlayer.trackContextMenu.open")}
+        </ContextMenuItem>
+        <SubtitleContextMenuItems
+          subtitleUi={subtitleUi}
+          subtitleActions={subtitleActions}
+        />
       </ContextMenuContent>
     </ContextMenu>
   )

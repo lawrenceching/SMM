@@ -11,7 +11,7 @@ import type {
   MusicTableSelection,
   LocalFileTableRowFileMenu,
 } from "@/types/music-table"
-import type { RunningJob, AssociatedFile } from "@/types/associated-files"
+import type { RunningJob } from "@/types/associated-files"
 import { useGetAssociatedFiles } from "@/hooks/useGetAssociatedFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
@@ -22,7 +22,6 @@ import { useConfig } from "@/hooks/userConfig/useConfig"
 import { summarizeVideo } from "@/lib/summarizeVideo"
 import { findAndWriteSummaryFile } from "@/lib/summarizeFilename"
 import { Path } from "@core/path"
-import { openFile } from "@/api/openFile"
 import { toast } from "sonner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 
@@ -178,14 +177,6 @@ export function LocalFileTableRow({
     }
   }, [absPath, mediaFolderPath, associatedFiles, userConfig, appConfig, t])
 
-  const handleOpenAssociatedFile = useCallback((file: AssociatedFile) => {
-    const platformPath = Path.toPlatformPath(file.path);
-    openFile(platformPath).catch((error) => {
-      console.error('[LocalFileTableRow] Failed to open associated file:', error);
-      toast.error(t("mediaPlayer.trackContextMenu.openError"));
-    });
-  }, [t]);
-
   return (
     <UILocalFileTableRow
       row={row}
@@ -203,7 +194,6 @@ export function LocalFileTableRow({
       isSummarizing={isSummarizing}
       onSummarize={handleSummarize}
       canSummarize={canSummarize}
-      onOpenAssociatedFile={handleOpenAssociatedFile}
     />
   )
 }
