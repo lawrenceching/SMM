@@ -35,39 +35,50 @@ function ensureVideoCaptionerCliDummyApiKey(args: string[]): void {
   }
 }
 
+/** Default on when missing from smm.json; only explicit `false` disables bundled ffmpeg for VideoCaptioner. */
+export function shouldUseBundledFfmpegForVideoCaptioner(
+  useBundledFfmpegForVideoCaptioner: boolean | undefined,
+): boolean {
+  return useBundledFfmpegForVideoCaptioner !== false;
+}
+
 export async function resolveSpawnEnvForVideoCaptioner(): Promise<NodeJS.ProcessEnv | undefined> {
-  let env: NodeJS.ProcessEnv | undefined;
+  let useBundled = true;
   try {
     const userConfig = await getUserConfig();
-    if (userConfig.useBundledFfmpegForVideoCaptioner) {
-      const ffmpegPath = await discoverFfmpeg();
-      if (ffmpegPath) {
-        const ffmpegDir = path.dirname(ffmpegPath);
-        const baseEnv: NodeJS.ProcessEnv = { ...process.env };
-        const currentPath = baseEnv.PATH || baseEnv.Path || "";
-        const sep = process.platform === "win32" ? ";" : ":";
-        const newPath = ffmpegDir + (currentPath ? sep + currentPath : "");
-        baseEnv.PATH = newPath;
-        baseEnv.Path = newPath;
-        env = baseEnv;
-        videoCaptionerLog.info(
-          { ffmpegPath, ffmpegDir, useBundledFfmpegForVideoCaptioner: true },
-          "configured PATH for videocaptioner to prefer bundled ffmpeg"
-        );
-      } else {
-        videoCaptionerLog.warn(
-          { useBundledFfmpegForVideoCaptioner: true },
-          "useBundledFfmpegForVideoCaptioner is enabled but bundled ffmpeg was not found"
-        );
-      }
-    }
+    useBundled = shouldUseBundledFfmpegForVideoCaptioner(userConfig.useBundledFfmpegForVideoCaptioner);
   } catch (error) {
     videoCaptionerLog.warn(
       { error },
-      "failed to read user config for useBundledFfmpegForVideoCaptioner; falling back to default PATH"
+      "failed to read user config for useBundledFfmpegForVideoCaptioner; defaulting to bundled ffmpeg",
     );
   }
-  return env;
+
+  if (!useBundled) {
+    return undefined;
+  }
+
+  const ffmpegPath = await discoverFfmpeg();
+  if (!ffmpegPath) {
+    videoCaptionerLog.warn(
+      { useBundledFfmpegForVideoCaptioner: true },
+      "useBundledFfmpegForVideoCaptioner is enabled but bundled ffmpeg was not found",
+    );
+    return undefined;
+  }
+
+  const ffmpegDir = path.dirname(ffmpegPath);
+  const baseEnv: NodeJS.ProcessEnv = { ...process.env };
+  const currentPath = baseEnv.PATH || baseEnv.Path || "";
+  const sep = process.platform === "win32" ? ";" : ":";
+  const newPath = ffmpegDir + (currentPath ? sep + currentPath : "");
+  baseEnv.PATH = newPath;
+  baseEnv.Path = newPath;
+  videoCaptionerLog.info(
+    { ffmpegPath, ffmpegDir, useBundledFfmpegForVideoCaptioner: true },
+    "configured PATH for videocaptioner to prefer bundled ffmpeg",
+  );
+  return baseEnv;
 }
 
 function videoCaptionerExeName(): string {

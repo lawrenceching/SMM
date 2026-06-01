@@ -3,7 +3,15 @@ import { EventEmitter } from "events";
 import { mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { getPythonScriptsCandidatePaths, transcribeWithVideoCaptioner, translateSubtitleWithVideoCaptioner, synthesizeWithVideoCaptioner, processWithVideoCaptioner, VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "./VideoCaptioner";
+import {
+  getPythonScriptsCandidatePaths,
+  shouldUseBundledFfmpegForVideoCaptioner,
+  transcribeWithVideoCaptioner,
+  translateSubtitleWithVideoCaptioner,
+  synthesizeWithVideoCaptioner,
+  processWithVideoCaptioner,
+  VIDEOCAPTIONER_CLI_DUMMY_API_KEY,
+} from "./VideoCaptioner";
 
 const h = vi.hoisted(() => ({
   spawn: vi.fn(),
@@ -245,6 +253,56 @@ describe("transcribeWithVideoCaptioner", () => {
     expect(options.env).toBeDefined();
     const envPath = options.env!.PATH || options.env!.Path || "";
     expect(envPath.toLowerCase().startsWith("c:/smm/bin/ffmpeg".toLowerCase())).toBe(true);
+  });
+
+  it("injects bundled ffmpeg dir into PATH when useBundledFfmpegForVideoCaptioner is unset", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+    h.getUserConfig.mockResolvedValue({});
+    h.discoverFfmpeg.mockResolvedValueOnce("C:/SMM/bin/ffmpeg/ffmpeg.exe");
+
+    const promise = transcribeWithVideoCaptioner("C:/media/a.mp3");
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    const spawnCall = h.spawn.mock.calls[0]!;
+    const options = spawnCall[2] as { env?: NodeJS.ProcessEnv };
+    expect(options.env).toBeDefined();
+    const envPath = options.env!.PATH || options.env!.Path || "";
+    expect(envPath.toLowerCase().startsWith("c:/smm/bin/ffmpeg".toLowerCase())).toBe(true);
+  });
+
+  it("does not inject bundled ffmpeg when useBundledFfmpegForVideoCaptioner is false", async () => {
+    const child = createMockChild();
+    h.spawn.mockReturnValue(child);
+    h.getUserConfig.mockResolvedValue({
+      useBundledFfmpegForVideoCaptioner: false,
+    });
+    h.discoverFfmpeg.mockResolvedValueOnce("C:/SMM/bin/ffmpeg/ffmpeg.exe");
+
+    const promise = transcribeWithVideoCaptioner("C:/media/a.mp3");
+    await vi.waitFor(() => expect(h.spawn).toHaveBeenCalled());
+    child.emit("close", 0);
+    await promise;
+
+    const spawnCall = h.spawn.mock.calls[0]!;
+    const options = spawnCall[2] as { env?: NodeJS.ProcessEnv };
+    expect(options.env).toBeUndefined();
+  });
+});
+
+describe("shouldUseBundledFfmpegForVideoCaptioner", () => {
+  it("defaults to true when undefined", () => {
+    expect(shouldUseBundledFfmpegForVideoCaptioner(undefined)).toBe(true);
+  });
+
+  it("is true when explicitly true", () => {
+    expect(shouldUseBundledFfmpegForVideoCaptioner(true)).toBe(true);
+  });
+
+  it("is false only when explicitly false", () => {
+    expect(shouldUseBundledFfmpegForVideoCaptioner(false)).toBe(false);
   });
 });
 

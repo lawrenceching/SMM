@@ -26,6 +26,7 @@ export const defaultUserConfig: UserConfig = {
   enableMcpServer: false,
   mcpHost: '127.0.0.1',
   mcpPort: 30001,
+  useBundledFfmpegForVideoCaptioner: true,
 };
 
 export async function readUserConfigFromUserDataDir(userDataDir: string): Promise<UserConfig> {

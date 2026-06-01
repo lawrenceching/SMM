@@ -33,6 +33,7 @@ const DEFAULT_USER_CONFIG: UserConfig = {
   enableMcpServer: false,
   mcpHost: '127.0.0.1',
   mcpPort: 30001,
+  useBundledFfmpegForVideoCaptioner: true,
 };
 
 /**
