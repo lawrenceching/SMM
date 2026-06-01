@@ -142,8 +142,10 @@ none
 
 ## 8. Post Verification
 
-- [ ] `pnpm run test` — 所有测试通过
-- [ ] `pnpm run build` — 构建成功
-- [ ] 手动验证: Bilibili 系列 → Go → 自动显示分集列表
-- [ ] 手动验证: Bilibili 合集 → Go → 自动显示视频列表
-- [ ] 手动验证: YouTube 播放列表 → Go → 自动显示视频列表
+- [x] `pnpm run test` — 所有测试通过
+- [x] `pnpm run build` — 构建成功
+- [x] 手动验证: Bilibili 系列 → Go → 自动显示分集列表
+- [x] 手动验证: Bilibili 合集 → Go → 自动显示视频列表
+- [x] 手动验证: YouTube 播放列表 → Go → 自动显示视频列表
+
+> **Status**: COMPLETED ✅ — yt-dlp -J 一次调用即可获取视频列表和格式信息

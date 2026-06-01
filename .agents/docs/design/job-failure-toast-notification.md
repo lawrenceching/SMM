@@ -206,5 +206,7 @@ None required — this is a UX enhancement, no user-facing documentation changes
 ## 8. Post Verification
 
 - [x] E2E test — Run `pnpm run wdio --spec ./test/specs/other/BackgroundJob.e2e.ts` in apps/e2e ✅
-- [ ] Unit tests — Run `pnpm run test` in apps/ui
-- [ ] Build — Run `pnpm run build` in project root
+- [x] Unit tests — Run `pnpm run test` in apps/ui
+- [x] Build — Run `pnpm run build` in project root
+
+> **Status**: COMPLETED ✅ — 所有后台任务类型失败时均显示 toast 通知

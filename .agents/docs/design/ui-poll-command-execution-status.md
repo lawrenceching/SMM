@@ -221,15 +221,16 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [ ] `docs/api/index.md` — 登记 `GET /api/command-execution/:executionId`
-- [ ] `docs/api/CommandExecutionStatusAPI.md` — 新建
+- [x] `docs/api/index.md` — 登记 `GET /api/command-execution/:executionId`
+- [ ] `docs/api/CommandExecutionStatusAPI.md` — 新建（未完成）
 - [ ] `.agents/docs/architecture.md` — Background Jobs 小节补充对账环（可选）
 
 ---
 
 ## 8. Post Verification
 
-- [ ] `pnpm test`（cli + ui 新测试）
+- [x] CLI 单元测试：注册表生命周期 + log 尾部 fallback 解析
+- [x] UI 单元测试：reconcile 逻辑
 - [ ] 手动：dev 下触发代理断连 / 标签页后台化，确认 IDB 在数十秒内变为终态（无需刷新）
 
 ---
@@ -237,4 +238,9 @@ sequenceDiagram
 ## 9. 已确认
 
 1. **轮询间隔**：**3s**（`COMMAND_EXECUTION_STATUS_POLL_MS`）。
-2. **多视频 download 成功对账**：仅将当前 `downloading` 条目标为 `succeeded`；**不**在 UI 对账中把整 job 标为 `succeeded`（整 job 终态仍由 SW 写入）。
+2. **多视频 download 成功对账**：仅将当前 `downloading` 条目标为 `succeeded`；**不**在 UI 对账中把整 job 标为 `succeeded`（整 job 终态仍由 CLI 写入）。
+
+---
+
+> **Status**: PARTIALLY COMPLETE — API + CLI 注册表 + UI poller + reconcile 已完成。
+> `CommandExecutionStatusAPI.md` 文档未创建, 手动验证未执行。

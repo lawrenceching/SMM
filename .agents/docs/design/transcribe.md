@@ -1,8 +1,11 @@
 # 生成字幕（Transcribe）技术设计
 
+> **Note**: 本文档创建于 Service Worker 架构时期。Service Worker 已于后续重构中移除（详见 `remove-service-worker.md`），
+> 但任务流程和 API 接口仍然有效，异步执行已迁移至主线程 `JobOrchestratorProvider`。
+
 ## 目标
 
-“生成字幕”功能将用户在 UI 中发起的转写任务持久化到 IndexedDB，并通过 Service Worker 异步执行。  
+“生成字幕”功能将用户在 UI 中发起的转写任务持久化到 IndexedDB，并通过后台任务系统异步执行。  
 目标是：
 
 - 在 `MusicPanel` 行级展示任务状态（运行中/失败）

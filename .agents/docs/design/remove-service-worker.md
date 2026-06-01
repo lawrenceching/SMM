@@ -173,7 +173,9 @@ none — 内部架构重构, 无 API 或用户文档变更
 
 ## 8. Post Verification
 
-- [ ] `pnpm run test` — 所有单元测试通过
-- [ ] `pnpm run build` — 构建成功
-- [ ] 手动验证: 创建下载任务 → 启动 → 查看进度 → 停止
-- [ ] 手动验证: 页面刷新后任务状态正确恢复
+- [x] `pnpm run test` — 所有单元测试通过
+- [x] `pnpm run build` — 构建成功
+- [x] 手动验证: 创建下载任务 → 启动 → 查看进度 → 停止
+- [x] 手动验证: 页面刷新后任务状态正确恢复
+
+> **Status**: COMPLETED ✅ — Service Worker 已从代码中完全移除, 后台任务通过主线程直接执行
