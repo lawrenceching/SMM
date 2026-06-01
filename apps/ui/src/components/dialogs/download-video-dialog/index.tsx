@@ -37,6 +37,7 @@ export function DownloadVideoDialogContent({
     selectedSupplementaryFormatCode: form.selectedSupplementaryFormatCode,
     useJsRuntime: form.useJsRuntime,
     jsRuntime: form.jsRuntime,
+    jsRuntimePath: form.jsRuntimePath,
     onClose,
     t: td,
   })

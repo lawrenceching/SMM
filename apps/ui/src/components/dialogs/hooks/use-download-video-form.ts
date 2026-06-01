@@ -110,6 +110,8 @@ export interface UseDownloadVideoFormReturn {
   // New: JS runtime
   useJsRuntime: boolean
   jsRuntime: YtdlpJsRuntimeId
+  /** Bundled QuickJS path from discover probe (YouTube Go). */
+  jsRuntimePath: string | undefined
 
   // New: video list entries from playlist
   videoListEntries: VideoMetadata[] | null
@@ -195,6 +197,7 @@ export function useDownloadVideoForm(
   const [selectedSupplementaryFormatCode, setSelectedSupplementaryFormatCode] = useState("")
   const [useJsRuntime, setUseJsRuntime] = useState(false)
   const [jsRuntime, setJsRuntime] = useState<YtdlpJsRuntimeId>(DEFAULT_YTDLP_JS_RUNTIME_ID)
+  const [jsRuntimePath, setJsRuntimePath] = useState<string | undefined>(undefined)
   const [quickjsUnavailable, setQuickjsUnavailable] = useState(false)
 
   // --- destinationFolder sync ---
@@ -274,6 +277,7 @@ export function useDownloadVideoForm(
     (value: string) => {
       setUrl(value)
       setQuickjsUnavailable(false)
+      setJsRuntimePath(undefined)
       // Reset format listing when URL changes so cookies move back to top level
       if (value.trim() !== url.trim()) {
         resetListFormats()
@@ -330,13 +334,17 @@ export function useDownloadVideoForm(
         quickjsPath = quickjs.configuredPath || quickjs.discoveredPath || undefined
         const found = !!quickjsPath
         setQuickjsUnavailable(!found)
+        setJsRuntimePath(quickjsPath)
         if (!found) {
           return
         }
       } catch {
         setQuickjsUnavailable(true)
+        setJsRuntimePath(undefined)
         return
       }
+    } else {
+      setJsRuntimePath(undefined)
     }
 
     const cfBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
@@ -435,6 +443,7 @@ export function useDownloadVideoForm(
     setSelectedSupplementaryFormatCode("")
     setUseJsRuntime(false)
     setJsRuntime(DEFAULT_YTDLP_JS_RUNTIME_ID)
+    setJsRuntimePath(undefined)
     setQuickjsUnavailable(false)
     resetListFormats()
   }, [platform, resetListFormats])
@@ -480,6 +489,7 @@ export function useDownloadVideoForm(
     selectedSupplementaryFormatCode,
     useJsRuntime,
     jsRuntime,
+    jsRuntimePath,
     quickjsUnavailable,
 
     setDownloadFolder,

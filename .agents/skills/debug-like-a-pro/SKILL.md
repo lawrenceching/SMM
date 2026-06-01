@@ -1,0 +1,143 @@
+---
+name: debug-like-a-pro
+version: "0.0.1"
+description: How to debug complex issues like a professional developer
+user-invocable: true
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - AskQuestion
+---
+
+# Debug like a Pro
+
+## Step 1: Before ANYTHING
+
+1. **Understanding** - Have thorough understanding of the system, read `.agents/docs/architecture.md` first. And read docments in `.agents/docs/design/` folder that may relative to this issue.
+
+2. **Ask Questions** - Think about the issues and ask questions to clarify the user story.
+   Invoke the proper tools to ask questions. If no suitable tools avaiable, ask a quesiton in plain text, using follow template
+   ```
+   1. [Question here]
+      * a. [Answer 1]
+      * b. [Answer 2]
+      * c. [Answer 3]
+      * d. Others
+
+   2. ...
+   3. ...
+
+   Answer the questions in format:
+   1 a
+   2 b
+   3 a
+   4 write your own answer if you like
+   ```
+
+   **IMPORTANT** You can invoke several rounds of Q&A until you fully clarify the issue.
+
+3. **Describe Issue** Describe the issue again in technical point of view
+4. **Software Architecture** Draw a diagram to describe the architecture relative to this issue
+5. **Code Flow** Locate the key files, key classes or key emthods, and rraw a diagram of code flow relative to this issue,
+
+## Step 2 Quick Path: Analyze the Codebase
+
+Analyze the codebase and find out the root cause.
+
+If the issue is too complex to analyze, or there are uncertainty, kick off the slow path.
+
+## Step 3 Slow Path: Guess-Reproduce-Verify Loop
+
+1. **Possible Reasons** List possible reasons that may cause this issues.
+2. **Diagnostic Instrumentation** Add temporary debug log using log server.
+3. **Reproduce** Ask user to reproduce the issue, collect logs for analyze.
+4.  **Verify** Analyze the log and identify the reasons
+    If log is insufficient, go back to step 7 and try again.
+    If all reasons were rejected, go back to step 6 and try again.
+
+   This loop could go several times until we fully locate the root cause.
+   **IMPORT** The root cause can ONLY be confirmed with solid log evidence.
+5. **Clean Up** Stop log server (`GET /shutdown`). Log files are deleted automatically when the server shuts down — read them from **path** before shutdown.
+
+
+## Step 4 Fix
+
+Brief the root cause and propose a fix.
+Draw a diagram or mermaid graph if root cause is complicated to describe.
+Ask user to type "approved" for explict approval.
+Apply the fix ONLY with the user approval.
+
+**IMPORTANT** The proposal needs to cover the product code fix and test needs to supplement.
+
+## Log server
+
+The log server is a small HTTP server that collects focused debug logs during steps 7–8 (reproduce / verify). It is a **supplement**, not a replacement for the project's own logging.
+
+Use it to capture only the lines needed to confirm or reject hypotheses from step 6, without wading through noisy console or application log files.
+
+Script: `scripts/log-server.ts` (Node.js built-ins only; runs on Node, Bun, or Deno).
+
+### Start the server
+
+```bash
+# Bun (recommended in this monorepo)
+bun scripts/log-server.ts
+
+# Node 22+
+node --experimental-strip-types scripts/log-server.ts
+
+# Deno
+deno run --allow-net --allow-write --allow-read scripts/log-server.ts
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-p`, `--port` | `28080` | Listen port |
+| `--timeout` | `15m` | Auto-shutdown after this idle period (e.g. `30s`, `15m`, `1h`, or milliseconds like `900000`) |
+| `-h`, `--help` | — | Show usage |
+
+The server binds to `127.0.0.1` only. When it exits (manual shutdown or timeout), it prints the reason to stderr.
+
+**Important:** Call `GET /shutdown` when debugging is done, or rely on `--timeout` so the process does not stay running indefinitely. On shutdown (manual or timeout), the server deletes all session log files it created.
+
+### HTTP API
+
+Base URL: `http://127.0.0.1:<port>`. Request bodies are JSON (`Content-Type: application/json`).
+
+| Method | Path | Body | Success |
+|--------|------|------|---------|
+| `POST` | `/new` | `{ "id": "...", "path": "..." }` | `201` — create session and open log file |
+| `POST` | `/log` | `{ "id": "...", "message": "..." }` | `200` — append one line |
+| `POST` | `/end` | `{ "id": "..." }` | `200` — close session (log file kept on disk) |
+| `GET` | `/sessions` | — | `200` — `{ "sessions": [...] }` |
+| `GET` | `/shutdown` | — | `200` then server exits and deletes all session log files |
+| `GET` | `/` | — | `200` — health check |
+
+- **id:** Human-readable session id; letters, digits, `-`, `_` only.
+- **path:** Log file path (parent directories are created automatically). Suggested path is project root folder (such as `{PROJECT_ROOT}/issue-blablabla.log`).
+
+### Example workflow
+
+```bash
+# Terminal 1: start server (optional custom port / timeout)
+bun scripts/log-server.ts -p 28080 --timeout 15m
+
+# Terminal 2: instrumented debug session
+curl -s -X POST http://127.0.0.1:28080/new -H "Content-Type: application/json" \
+  -d '{"id":"episode-rename","path":"./debug-logs/episode-rename.log"}'
+curl -s -X POST http://127.0.0.1:28080/log -H "Content-Type: application/json" \
+  -d '{"id":"episode-rename","message":"before rename: foo.mkv"}'
+curl -s http://127.0.0.1:28080/sessions
+curl -s -X POST http://127.0.0.1:28080/end -H "Content-Type: application/json" \
+  -d '{"id":"episode-rename"}'
+curl -s http://127.0.0.1:28080/shutdown
+```
+
+Instrument application code (or temporary logging) by `POST /log` to the server while reproducing the issue. After `POST /end`, analyze the file at **path** (it remains until shutdown). Call `GET /shutdown` only after you are done reading the logs.
+

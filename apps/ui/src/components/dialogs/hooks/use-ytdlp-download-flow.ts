@@ -59,6 +59,8 @@ export interface UseYtdlpDownloadFlowOptions {
   selectedSupplementaryFormatCode?: string
   useJsRuntime?: boolean
   jsRuntime?: string
+  /** Absolute path to JS runtime binary (e.g. bundled QuickJS). */
+  jsRuntimePath?: string
   onClose: () => void
   t: (key: string) => string
 }
@@ -95,6 +97,7 @@ export function useYtdlpDownloadFlow(
     selectedSupplementaryFormatCode = "",
     useJsRuntime = false,
     jsRuntime = "quickjs",
+    jsRuntimePath,
     onClose,
     t,
   } = opts
@@ -180,7 +183,10 @@ export function useYtdlpDownloadFlow(
           ? { ytdlpExtraArgs: resolvedYtdlpExtraArgs }
           : {}),
         ...(useJsRuntime && jsRuntime
-          ? { ytdlpJsRuntime: jsRuntime, ytdlpJsRuntimePath: "" }
+          ? {
+              ytdlpJsRuntime: jsRuntime,
+              ...(jsRuntimePath?.trim() ? { ytdlpJsRuntimePath: jsRuntimePath.trim() } : {}),
+            }
           : {}),
       })
     },
@@ -192,6 +198,7 @@ export function useYtdlpDownloadFlow(
       resolvedYtdlpExtraArgs,
       useJsRuntime,
       jsRuntime,
+      jsRuntimePath,
     ],
   )
 

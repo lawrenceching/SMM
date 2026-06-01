@@ -54,7 +54,12 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
     ...(cookiesFile ? { ytdlpCookiesFile: cookiesFile } : {}),
     ...(cookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesFromBrowser } : {}),
     ...(extraArgs ? { ytdlpExtraArgs: extraArgs } : {}),
-    ...(jsRuntime && jsRuntimePath ? { ytdlpJsRuntime: jsRuntime, ytdlpJsRuntimePath: jsRuntimePath } : {}),
+    ...(jsRuntime
+      ? {
+          ytdlpJsRuntime: jsRuntime,
+          ...(jsRuntimePath ? { ytdlpJsRuntimePath: jsRuntimePath } : {}),
+        }
+      : {}),
   }
 
   return {
