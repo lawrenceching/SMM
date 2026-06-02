@@ -1,5 +1,11 @@
 # @smm/test
 
+## 1.2.3
+
+### Patch Changes
+
+- v1.3.4
+
 ## 1.2.2
 
 ### Patch Changes

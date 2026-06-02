@@ -1,5 +1,13 @@
 # cli
 
+## 1.3.3
+
+### Patch Changes
+
+- v1.3.4
+- Updated dependencies
+  - @smm/tvdb4@1.3.3
+
 ## 1.3.2
 
 ### Patch Changes

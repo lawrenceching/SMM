@@ -1,5 +1,11 @@
 # @smm/tvdb4
 
+## 1.3.3
+
+### Patch Changes
+
+- v1.3.4
+
 ## 1.3.2
 
 ### Patch Changes
