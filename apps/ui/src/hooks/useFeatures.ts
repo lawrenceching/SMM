@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
 const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
+const MOBILE_LAYOUT_STORAGE_KEY = "features.isMobileLayoutEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -12,6 +13,27 @@ function readVideoCaptionerAsrOptionsEnabled(): boolean {
     return v === "true"
   } catch {
     return true
+  }
+}
+
+/** Default: disabled until the user opts in (`false` when unset). */
+function readMobileLayoutEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(MOBILE_LAYOUT_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeMobileLayoutEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(MOBILE_LAYOUT_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore
   }
 }
 
@@ -92,6 +114,14 @@ export interface UseFeaturesResult {
    */
   isTencentAsrTranscribeEnabled: boolean
   setTencentAsrTranscribeEnabled: (enabled: boolean) => void
+  /**
+   * When true, the mobile-responsive layout (AppNavigation with NavBar/Toolbox) is used
+   * instead of the desktop layout (AppV2 with sidebar).
+   * Persisted under `features.isMobileLayoutEnabled`.
+   * Defaults to false (desktop layout only) until mobile layout is fully implemented.
+   */
+  isMobileLayoutEnabled: boolean
+  setMobileLayoutEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -108,6 +138,10 @@ export function useFeatures(): UseFeaturesResult {
     readTencentAsrTranscribeEnabled,
   )
 
+  const [isMobileLayoutEnabled, setIsMobileLayoutEnabled] = useState(
+    readMobileLayoutEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -115,6 +149,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === TENCENT_ASR_STORAGE_KEY) {
         setIsTencentAsrTranscribeEnabled(readTencentAsrTranscribeEnabled())
+      }
+      if (event.key === MOBILE_LAYOUT_STORAGE_KEY) {
+        setIsMobileLayoutEnabled(readMobileLayoutEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -131,6 +168,11 @@ export function useFeatures(): UseFeaturesResult {
     setIsTencentAsrTranscribeEnabled(enabled)
   }, [])
 
+  const setMobileLayoutEnabled = useCallback((enabled: boolean) => {
+    writeMobileLayoutEnabled(enabled)
+    setIsMobileLayoutEnabled(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isTranscribeEnabled,
@@ -138,6 +180,8 @@ export function useFeatures(): UseFeaturesResult {
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,
       setTencentAsrTranscribeEnabled,
+      isMobileLayoutEnabled,
+      setMobileLayoutEnabled,
     }),
     [
       isTranscribeEnabled,
@@ -145,6 +189,8 @@ export function useFeatures(): UseFeaturesResult {
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,
       setTencentAsrTranscribeEnabled,
+      isMobileLayoutEnabled,
+      setMobileLayoutEnabled,
     ],
   )
 }

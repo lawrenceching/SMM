@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { i18nReady } from './lib/i18n'
@@ -27,55 +27,11 @@ import { queryClient } from './lib/queryClient'
 import { logger } from './lib/log'
 import { useUIMediaFolderStoreState } from './stores/uiMediaFolderStore'
 import { useMediaMetadataQuery } from './hooks/mediaMetadata'
+import { useFeatures } from './hooks/useFeatures'
 logger.info(`SMM UI launched`)
 
 
-// Hook to detect mobile screen
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    // Initial check using window width
-    if (typeof window === 'undefined') return false
-    return window.innerWidth < 768
-  })
 
-  useEffect(() => {
-    // Check window width
-    const checkWidth = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-
-    // Check media query
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
-    const handleMediaChange = (e: MediaQueryListEvent) => {
-      setIsMobile(e.matches)
-    }
-
-    // Initial check
-    checkWidth()
-
-    // Listen to window resize
-    window.addEventListener('resize', checkWidth)
-
-    // Listen to media query changes (for better accuracy)
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleMediaChange)
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleMediaChange)
-    }
-
-    return () => {
-      window.removeEventListener('resize', checkWidth)
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleMediaChange)
-      } else {
-        mediaQuery.removeListener(handleMediaChange)
-      }
-    }
-  }, [])
-
-  return isMobile
-}
 
 // WebSocketHandlers component - shared across all app views
 function WebSocketHandlers() {
@@ -197,10 +153,10 @@ function AppSwitcher() {
   // Establish WebSocket connection at the switcher level so it persists across view changes
   useWebSocket();
 
-  const isMobile = useIsMobile()
+  const { isMobileLayoutEnabled } = useFeatures()
 
-  // On mobile, use AppNavigation
-  if (isMobile) {
+  // On mobile (when feature flag is enabled), use AppNavigation
+  if (isMobileLayoutEnabled) {
     return (
       <>
         <AppNavigation />

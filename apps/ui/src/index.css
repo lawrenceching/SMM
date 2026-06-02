@@ -111,6 +111,10 @@
 }
 
 @layer base {
+  html, body, #root {
+    min-width: 800px;
+    min-height: 600px;
+  }
   * {
     @apply border-border outline-ring/50;
   }

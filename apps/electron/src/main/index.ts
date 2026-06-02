@@ -488,6 +488,8 @@ function createWindow(options: CreateWindowOptions = {}): void {
   const win = new BrowserWindow({
     width: 900,
     height: 670,
+    minWidth: 800,
+    minHeight: 600,
     show: false,
     title: 'SMM',
     autoHideMenuBar: true,
