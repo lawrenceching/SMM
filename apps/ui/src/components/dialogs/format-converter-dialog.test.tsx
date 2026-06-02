@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { FormatConverterDialog } from "./format-converter-dialog"
 import type { TrackProperties } from "./types"
+import { FfmpegConvertError } from "@/lib/ffmpegConvertErrorDetection"
+import { toast } from "sonner"
 
 const mutation = vi.hoisted(() => ({
   isPending: false,
@@ -51,6 +53,10 @@ vi.mock("@/lib/i18n", () => ({
         "formatConverter.presetQuality": "Quality",
         "formatConverter.presetBalanced": "Balanced",
         "formatConverter.presetSpeed": "Speed",
+        "formatConverter.errors.encoderNotFound":
+          "Required video or audio encoder is not available in your ffmpeg build.",
+        "formatConverter.errors.unknown":
+          "Conversion failed due to an unexpected error.",
       }
       return dialogs[key] ?? options?.defaultValue ?? key
     },
@@ -126,5 +132,39 @@ describe("FormatConverterDialog", () => {
       <FormatConverterDialog isOpen={false} onClose={onClose} track={sampleTrack} />
     )
     expect(mutation.reset).toHaveBeenCalled()
+  })
+
+  it("shows inline error for FfmpegConvertError without error toast", async () => {
+    mutation.mutateAsync.mockRejectedValueOnce(
+      new FfmpegConvertError({
+        type: "encoder-not-found",
+        i18nKey: "formatConverter.errors.encoderNotFound",
+      })
+    )
+    renderDialog()
+
+    fireEvent.click(screen.getByTestId("format-converter-start"))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("format-converter-error")).toHaveTextContent(
+        "Required video or audio encoder is not available in your ffmpeg build."
+      )
+    })
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it("shows unknown inline error for non-FfmpegConvertError failures", async () => {
+    mutation.mutateAsync.mockRejectedValueOnce(new Error("network failure"))
+    renderDialog()
+
+    fireEvent.click(screen.getByTestId("format-converter-start"))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("format-converter-error")).toHaveTextContent(
+        "Conversion failed due to an unexpected error."
+      )
+    })
+    expect(toast.error).not.toHaveBeenCalled()
   })
 })

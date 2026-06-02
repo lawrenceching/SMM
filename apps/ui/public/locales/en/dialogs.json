@@ -244,7 +244,24 @@
     "noSourceHint": "Please select a file to convert first.",
     "uiOnlyHint": "UI only – conversion not started.",
     "invalidParams": "Please set output folder and file name.",
-    "success": "Conversion completed."
+    "success": "Conversion completed.",
+    "errors": {
+      "timeout": "Conversion timed out. Try a shorter clip or a faster preset.",
+      "cancelled": "Conversion was interrupted.",
+      "errorRateExceeded": "Too many frames failed to encode. The source file may be corrupted.",
+      "encoderNotFound": "Required video or audio encoder is not available in your ffmpeg build.",
+      "decoderNotFound": "Cannot decode the source file. The codec may not be supported.",
+      "muxerNotFound": "Cannot write the selected output format.",
+      "demuxerNotFound": "Cannot read the source file format.",
+      "filterNotFound": "A required ffmpeg filter is not available.",
+      "invalidData": "The source file contains invalid or corrupted data.",
+      "fileNotFound": "Source or output path not found.",
+      "permissionDenied": "Permission denied. Check folder access rights.",
+      "diskFull": "Not enough disk space to write the output file.",
+      "outOfMemory": "Not enough memory to complete conversion.",
+      "generic": "Conversion failed. Check the application log for details.",
+      "unknown": "Conversion failed due to an unexpected error."
+    }
   },
   "deleteTrack": {
     "message": "Move \"{{filePath}}\" to the Recycle Bin?",

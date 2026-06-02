@@ -244,7 +244,24 @@
     "noSourceHint": "請先選擇要轉換的檔案。",
     "uiOnlyHint": "僅 UI 示範，未實際開始轉換。",
     "invalidParams": "請設定輸出資料夾與檔名。",
-    "success": "轉換完成。"
+    "success": "轉換完成。",
+    "errors": {
+      "timeout": "轉換逾時。請嘗試較短的片段或更快的編碼預設。",
+      "cancelled": "轉換已中斷。",
+      "errorRateExceeded": "編碼失敗幀過多，來源檔案可能已損壞。",
+      "encoderNotFound": "目前的 ffmpeg 缺少所需的視訊或音訊編碼器。",
+      "decoderNotFound": "無法解碼來源檔案，該編解碼器可能不受支援。",
+      "muxerNotFound": "無法寫入所選的輸出格式。",
+      "demuxerNotFound": "無法讀取來源檔案格式。",
+      "filterNotFound": "缺少所需的 ffmpeg 濾鏡。",
+      "invalidData": "來源檔案包含無效或損壞的資料。",
+      "fileNotFound": "找不到來源檔案或輸出路徑。",
+      "permissionDenied": "權限不足，請檢查資料夾存取權限。",
+      "diskFull": "磁碟空間不足，無法寫入輸出檔案。",
+      "outOfMemory": "記憶體不足，無法完成轉換。",
+      "generic": "轉換失敗，請查看應用程式日誌了解詳情。",
+      "unknown": "轉換因意外錯誤而失敗。"
+    }
   },
   "deleteTrack": {
     "message": "將「{{filePath}}」移至資源回收筒？",

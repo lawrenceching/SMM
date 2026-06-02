@@ -9,6 +9,10 @@ import {
   type FfmpegConvertPreset,
 } from "@/lib/whitelistedCmd";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
+import {
+  classifyFfmpegConvertError,
+  FfmpegConvertError,
+} from "@/lib/ffmpegConvertErrorDetection";
 import { listFiles } from "@/api/listFiles";
 import { writeFile } from "@/api/writeFile";
 import { hello } from "@/api/hello";
@@ -195,7 +199,13 @@ export async function convertVideo(params: FfmpegConvertRequest): Promise<Ffmpeg
   if (result.success) {
     return { success: true, outputPath };
   }
-  return { error: result.error };
+
+  const classified = classifyFfmpegConvertError({
+    exitCode: result.exitCode,
+    stderr: result.stderr,
+    systemMessage: result.error,
+  });
+  throw new FfmpegConvertError(classified);
 }
 
 export interface FfmpegTagsRequest {

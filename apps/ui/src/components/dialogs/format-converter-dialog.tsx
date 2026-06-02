@@ -26,6 +26,7 @@ import { basename, dirname, join } from "@/lib/path"
 import type { FormatConverterDialogProps } from "./types"
 import { toast } from "sonner"
 import { useConvertVideoMutation } from "@/hooks/ffmpeg/useConvertVideoMutation"
+import { FfmpegConvertError } from "@/lib/ffmpegConvertErrorDetection"
 
 const OUTPUT_FORMATS = [
   { value: "mp4h264", ext: "mp4", labelKey: "formatConverter.formatMp4H264" },
@@ -68,6 +69,7 @@ export function FormatConverterDialog({
   const [preset, setPreset] = useState<string>("balanced")
   const [outputDir, setOutputDir] = useState("")
   const [outputFileName, setOutputFileName] = useState("")
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const {
     mutateAsync: convertVideoAsync,
     reset: resetConvertVideoMutation,
@@ -100,6 +102,7 @@ export function FormatConverterDialog({
     setOutputDir(sourceDir)
     const base = getBaseNameWithoutExt(sourcePath)
     setOutputFileName(base ? `${base} (1).${formatExt}` : "")
+    setErrorMessage(null)
   }, [isOpen, sourceDir, sourcePath, formatExt])
 
   useEffect(() => {
@@ -121,6 +124,7 @@ export function FormatConverterDialog({
       return
     }
     const outputPath = join(outputDir, outputFileName)
+    setErrorMessage(null)
     try {
       await convertVideoAsync({
         inputPath: sourcePath,
@@ -131,7 +135,11 @@ export function FormatConverterDialog({
       toast.success(t("formatConverter.success", "Conversion completed."))
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Conversion failed.")
+      if (err instanceof FfmpegConvertError) {
+        setErrorMessage(t(err.i18nKey))
+      } else {
+        setErrorMessage(t("formatConverter.errors.unknown"))
+      }
     }
   }
 
@@ -225,6 +233,15 @@ export function FormatConverterDialog({
         </ScrollableDialogHeader>
 
         <ScrollableDialogBody className="min-w-0 py-4">
+          {errorMessage && (
+            <p
+              className="text-sm text-destructive mb-4"
+              data-testid="format-converter-error"
+            >
+              {errorMessage}
+            </p>
+          )}
+
           {/* Source video */}
           <div className="flex flex-col gap-2">
             <Label>{t("formatConverter.sourceLabel")}</Label>

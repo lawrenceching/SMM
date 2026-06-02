@@ -244,7 +244,24 @@
     "noSourceHint": "请先选择要转换的文件。",
     "uiOnlyHint": "仅 UI 演示，未实际开始转换。",
     "invalidParams": "请设置输出文件夹和文件名。",
-    "success": "转换完成。"
+    "success": "转换完成。",
+    "errors": {
+      "timeout": "转换超时。请尝试较短的片段或更快的编码预设。",
+      "cancelled": "转换已中断。",
+      "errorRateExceeded": "编码失败帧过多，源文件可能已损坏。",
+      "encoderNotFound": "当前 ffmpeg 缺少所需的视频或音频编码器。",
+      "decoderNotFound": "无法解码源文件，该编解码器可能不受支持。",
+      "muxerNotFound": "无法写入所选的输出格式。",
+      "demuxerNotFound": "无法读取源文件格式。",
+      "filterNotFound": "缺少所需的 ffmpeg 滤镜。",
+      "invalidData": "源文件包含无效或损坏的数据。",
+      "fileNotFound": "找不到源文件或输出路径。",
+      "permissionDenied": "权限不足，请检查文件夹访问权限。",
+      "diskFull": "磁盘空间不足，无法写入输出文件。",
+      "outOfMemory": "内存不足，无法完成转换。",
+      "generic": "转换失败，请查看应用日志了解详情。",
+      "unknown": "转换因意外错误而失败。"
+    }
   },
   "deleteTrack": {
     "message": "将「{{filePath}}」移到回收站？",

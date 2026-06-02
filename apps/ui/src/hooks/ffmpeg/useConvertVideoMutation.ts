@@ -15,12 +15,6 @@ export function useConvertVideoMutation(
 ) {
   return useMutation({
     ...options,
-    mutationFn: async (params: FfmpegConvertRequest) => {
-      const result = await convertVideo(params)
-      if (result.error) {
-        throw new Error(result.error)
-      }
-      return result
-    },
+    mutationFn: (params: FfmpegConvertRequest) => convertVideo(params),
   })
 }

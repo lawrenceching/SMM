@@ -731,6 +731,23 @@ interface DialogsResources {
     uiOnlyHint: string
     invalidParams: string
     success: string
+    errors: {
+      timeout: string
+      cancelled: string
+      errorRateExceeded: string
+      encoderNotFound: string
+      decoderNotFound: string
+      muxerNotFound: string
+      demuxerNotFound: string
+      filterNotFound: string
+      invalidData: string
+      fileNotFound: string
+      permissionDenied: string
+      diskFull: string
+      outOfMemory: string
+      generic: string
+      unknown: string
+    }
   }
   executeCmd: {
     title: string
