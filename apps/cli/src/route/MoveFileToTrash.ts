@@ -1,35 +1,38 @@
 import { z } from 'zod/v3';
 import { stat } from 'node:fs/promises';
 import { Path } from '@core/path';
-import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@core/types';
+import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@core/types';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import { moveFileToTrashOrDelete } from '../utils/files';
 
-const deleteFileRequestSchema = z.object({
+const moveFileToTrashRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
 });
 
-export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteFileResponseBody> {
+export async function doMoveFileToTrash(
+  body: MoveFileToTrashRequestBody,
+): Promise<MoveFileToTrashResponseBody> {
   try {
-    const validationResult = deleteFileRequestSchema.safeParse(body);
-    
+    const validationResult = moveFileToTrashRequestSchema.safeParse(body);
+
     if (!validationResult.success) {
       return {
         data: {
           path: body.path || '',
         },
-        error: `Validation Failed: ${validationResult.error.issues.map(i => i.message).join(', ')}`,
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(', ')}`,
       };
     }
 
     let { path: filePath } = validationResult.data;
-    
+
     try {
       filePath = Path.toPlatformPath(filePath);
-    } catch (error) {
+    } catch {
+      // use path as provided
     }
-    
+
     const validatedPath = filePath;
 
     try {
@@ -42,7 +45,7 @@ export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteF
           error: `Path Is Directory: ${filePath} is a directory, not a file`,
         };
       }
-    } catch (error) {
+    } catch {
       return {
         data: {
           path: validatedPath,
@@ -53,7 +56,7 @@ export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteF
 
     try {
       await moveFileToTrashOrDelete(validatedPath);
-      
+
       return {
         data: {
           path: validatedPath,
@@ -64,7 +67,7 @@ export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteF
         data: {
           path: validatedPath,
         },
-        error: `Delete File Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: `Move File To Trash Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   } catch (error) {
@@ -77,20 +80,23 @@ export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteF
   }
 }
 
-export function handleDeleteFile(app: Hono) {
-  app.post('/api/deleteFile', async (c) => {
+export function handleMoveFileToTrash(app: Hono) {
+  app.post('/api/moveFileToTrash', async (c) => {
     try {
       const rawBody = await c.req.json();
-      const result = await doDeleteFile(rawBody);
+      const result = await doMoveFileToTrash(rawBody);
       return c.json(result, 200);
     } catch (error) {
-      logger.error({ error }, 'DeleteFile route error:');
-      return c.json({ 
-        data: {
-          path: '',
+      logger.error({ error }, 'MoveFileToTrash route error:');
+      return c.json(
+        {
+          data: {
+            path: '',
+          },
+          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process move file to trash request'}`,
         },
-        error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process delete file request'}`,
-      }, 200);
+        200,
+      );
     }
   });
 }

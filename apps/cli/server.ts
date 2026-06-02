@@ -25,7 +25,7 @@ import { handleAICheck } from './src/route/AICheck';
 import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
-import { handleDeleteFile } from './src/route/DeleteFile';
+import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
@@ -204,7 +204,7 @@ export class Server {
     handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);
-    handleDeleteFile(this.app);
+    handleMoveFileToTrash(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugRenameFilesTaskRoutes(this.app);

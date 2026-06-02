@@ -16,7 +16,8 @@ import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
-import { deleteFile } from "@/api/deleteFile";
+import { moveFileToTrash } from "@/api/moveFileToTrash";
+import { useTranslation } from "@/lib/i18n";
 import { getMediaTags } from "@/api/ffmpeg";
 import {
   addMusicEventListener,
@@ -39,13 +40,15 @@ import { syncTracks } from "@/lib/musicPanelSyncTracks";
 import { LocalFileSubtitleScope, useLocalFileSubtitle } from "./LocalFileSubtitleScope";
 
 interface PendingDelete {
-  trackPath: string;
+  /** Platform absolute path passed to moveFileToTrash API. */
+  trashPath: string;
   displayPath: string;
   currentFiles: string[];
   fileIndex: number;
 }
 
 export function MusicPanel() {
+  const { t } = useTranslation(["dialogs"]);
   const { folders, selectedFolder } = useUIMediaFolderStoreState();
   const {
     data: queriedMediaMetadata,
@@ -177,7 +180,6 @@ export function MusicPanel() {
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
   const [openFormatConverter] = formatConverterDialog;
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
@@ -339,40 +341,49 @@ export function MusicPanel() {
     }
   }, []);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!pendingDelete) return;
+  const confirmDelete = useCallback(
+    async (pending: PendingDelete) => {
+      try {
+        await moveFileToTrash(pending.trashPath);
 
-    try {
-      await deleteFile(Path.toPlatformPath(pendingDelete.trackPath));
+        const updatedFiles = [...pending.currentFiles];
+        updatedFiles.splice(pending.fileIndex, 1);
 
-      const updatedFiles = [...pendingDelete.currentFiles];
-      updatedFiles.splice(pendingDelete.fileIndex, 1);
+        const mediaFolderPath = mediaMetadata?.mediaFolderPath;
+        if (!mediaFolderPath) {
+          toast.error("Media folder path is not available.");
+          return;
+        }
 
-      const mediaFolderPath = mediaMetadata?.mediaFolderPath;
-      if (!mediaFolderPath) {
-        toast.error("Media folder path is not available.");
-        return;
+        await updateMediaMetadata(
+          mediaFolderPath,
+          (current: MediaMetadata) => ({
+            ...current,
+            files: updatedFiles,
+          }),
+        );
+
+        toast.success(
+          t("deleteTrack.movedToTrash", '"{{filePath}}" was moved to the Recycle Bin.', {
+            filePath: pending.displayPath,
+          }),
+        );
+        closeConfirmation();
+      } catch (error) {
+        console.error("[MusicPanel] Failed to move track to trash:", error);
+        const message = error instanceof Error ? error.message : "Unknown error";
+        toast.error(
+          t("deleteTrack.moveToTrashFailed", 'Could not move "{{filePath}}" to the Recycle Bin. {{error}}', {
+            filePath: pending.displayPath,
+            error: message,
+          }),
+        );
       }
-
-      await updateMediaMetadata(
-        mediaFolderPath,
-        (current: MediaMetadata) => ({
-          ...current,
-          files: updatedFiles,
-        }),
-      );
-
-      toast.success(`"${pendingDelete.displayPath}" has been deleted.`);
-      setPendingDelete(null);
-      closeConfirmation();
-    } catch (error) {
-      console.error('[MusicPanel] Failed to delete track:', error);
-      toast.error(`Could not delete "${pendingDelete.displayPath}". ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [pendingDelete, mediaMetadata, updateMediaMetadata, closeConfirmation]);
+    },
+    [mediaMetadata, updateMediaMetadata, closeConfirmation, t],
+  );
 
   const handleDeleteCancel = useCallback(() => {
-    setPendingDelete(null);
     closeConfirmation();
   }, [closeConfirmation]);
 
@@ -409,12 +420,12 @@ export function MusicPanel() {
         displayPathForFile(mediaFolderPath, absolutePath) ??
         absolutePath;
 
-      setPendingDelete({
-        trackPath,
+      const pending: PendingDelete = {
+        trashPath: Path.toPlatformPath(absolutePath),
         displayPath,
         currentFiles,
         fileIndex,
-      });
+      };
 
       openConfirmation({
         title: "Delete Track",
@@ -422,7 +433,7 @@ export function MusicPanel() {
         content: (
           <DeleteTrackDialog
             displayPath={displayPath}
-            onConfirm={handleDeleteConfirm}
+            onConfirm={() => void confirmDelete(pending)}
             onCancel={handleDeleteCancel}
           />
         ),
@@ -431,7 +442,7 @@ export function MusicPanel() {
       console.error('[MusicPanel] Failed to handle delete track:', error);
       toast.error(`Could not process delete for "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [mediaMetadata, openConfirmation, handleDeleteConfirm, handleDeleteCancel]);
+  }, [mediaMetadata, openConfirmation, confirmDelete, handleDeleteCancel]);
 
   const handleTrackProperties = useCallback((event: CustomEvent<TrackPropertiesEventDetail>) => {
     const { trackId, trackTitle } = event.detail;

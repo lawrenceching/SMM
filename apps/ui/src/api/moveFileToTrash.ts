@@ -1,11 +1,11 @@
-import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@core/types';
+import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@core/types';
 
-export async function deleteFile(path: string): Promise<DeleteFileResponseBody> {
-  const req: DeleteFileRequestBody = {
-    path: path,
+export async function moveFileToTrash(path: string): Promise<MoveFileToTrashResponseBody> {
+  const req: MoveFileToTrashRequestBody = {
+    path,
   };
 
-  const resp = await fetch('/api/deleteFile', {
+  const resp = await fetch('/api/moveFileToTrash', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -14,7 +14,7 @@ export async function deleteFile(path: string): Promise<DeleteFileResponseBody> 
   });
 
   if (!resp.ok) {
-    console.error(`[deleteFile] unexpected HTTP status`, {
+    console.error(`[moveFileToTrash] unexpected HTTP status`, {
       url: resp.url,
       status: resp.status,
       statusText: resp.statusText,
@@ -24,25 +24,27 @@ export async function deleteFile(path: string): Promise<DeleteFileResponseBody> 
     throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`);
   }
 
-  const data: DeleteFileResponseBody = await resp.json();
+  const data: MoveFileToTrashResponseBody = await resp.json();
   if (data.error) {
-    console.error(`[deleteFile] unexpected response body`, {
+    console.error(`[moveFileToTrash] API error`, {
       url: resp.url,
       status: resp.status,
       statusText: resp.statusText,
       request: req,
       response: data,
     });
+    throw new Error(data.error);
   }
 
   if (!data.data) {
-    console.error(`[deleteFile] unexpected response body: no data`, {
+    console.error(`[moveFileToTrash] unexpected response body: no data`, {
       url: resp.url,
       status: resp.status,
       statusText: resp.statusText,
       request: req,
       response: data,
     });
+    throw new Error('moveFileToTrash: empty response');
   }
 
   return data;

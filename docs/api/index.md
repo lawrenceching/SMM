@@ -8,6 +8,10 @@ HTTP: `GET /api/command-log/:executionId` — reads `commands/<uuid>/main.log` u
 Source Code: apps/cli/src/route/commandExecutionStatus.ts
 HTTP: `GET /api/command-execution/:executionId` — returns `phase` (`unknown` \| `running` \| `finished`), optional `outcome` (`success` \| `failure`), `exitCode`, `signal`, `systemNote`. Correlates with `X-Command-Execution-Id` from `POST /api/executeCmd`. UI main thread polls this to reconcile IndexedDB when Service Worker is suspended.
 
+## MoveFileToTrash
+Source Code: apps/cli/src/route/MoveFileToTrash.ts
+HTTP: `POST /api/moveFileToTrash` — moves a file to the system trash/recycle bin on desktop environments (permanent delete on headless/server). Request body: `{ path: string }` (platform absolute path).
+
 ## isFolderAvailable
 Source Code: apps/cli/src/route/IsFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md

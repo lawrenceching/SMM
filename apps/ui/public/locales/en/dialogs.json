@@ -247,7 +247,9 @@
     "success": "Conversion completed."
   },
   "deleteTrack": {
-    "message": "Are you sure you want to delete \"{{filePath}}\"? This action cannot be undone."
+    "message": "Move \"{{filePath}}\" to the Recycle Bin?",
+    "movedToTrash": "\"{{filePath}}\" was moved to the Recycle Bin.",
+    "moveToTrashFailed": "Could not move \"{{filePath}}\" to the Recycle Bin. {{error}}"
   },
   "executeCmd": {
     "title": "Execute Command",

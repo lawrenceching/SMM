@@ -1,5 +1,5 @@
 import { writeFile } from "@/api/writeFile"
-import { deleteFile } from "@/api/deleteFile"
+import { moveFileToTrash } from "@/api/moveFileToTrash"
 import { join } from "@/lib/path"
 
 /** Normalize cookie file text to LF per yt-dlp FAQ. */
@@ -23,7 +23,7 @@ export async function writeYtdlpCookiesFile(
 
 export async function deleteYtdlpCookiesFile(path: string): Promise<void> {
   try {
-    await deleteFile(path)
+    await moveFileToTrash(path)
   } catch {
     // Best-effort cleanup; don't surface errors to the user
   }

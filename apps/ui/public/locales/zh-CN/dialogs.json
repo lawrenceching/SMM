@@ -247,7 +247,9 @@
     "success": "转换完成。"
   },
   "deleteTrack": {
-    "message": "确定要删除「{{filePath}}」吗？此操作无法撤销。"
+    "message": "将「{{filePath}}」移到回收站？",
+    "movedToTrash": "「{{filePath}}」已移到回收站。",
+    "moveToTrashFailed": "无法将「{{filePath}}」移到回收站。{{error}}"
   },
   "executeCmd": {
     "title": "执行命令",

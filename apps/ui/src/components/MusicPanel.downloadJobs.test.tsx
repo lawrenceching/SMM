@@ -6,7 +6,7 @@ import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore'
 import { useMediaMetadataQuery } from '@/hooks/mediaMetadata'
 import { useDialogs } from '@/providers/dialog-provider'
 import { openFile } from '@/api/openFile'
-import { deleteFile } from '@/api/deleteFile'
+import { moveFileToTrash } from '@/api/moveFileToTrash'
 import { getMediaTags } from '@/api/ffmpeg'
 import { discoverVideoCaptioner } from '@/api/videocaptioner'
 import { toast } from 'sonner'
@@ -50,7 +50,7 @@ vi.mock('@/hooks/mediaMetadata/useUpdateMediaMetadataMutation', () => ({
 }))
 vi.mock('@/providers/dialog-provider')
 vi.mock('@/api/openFile')
-vi.mock('@/api/deleteFile')
+vi.mock('@/api/moveFileToTrash')
 vi.mock('@/api/ffmpeg')
 vi.mock('@/api/videocaptioner', () => ({
   discoverVideoCaptioner: vi.fn(),
@@ -182,7 +182,7 @@ describe('MusicPanel download-video jobs', () => {
       scrapeDialog: [vi.fn(), vi.fn()],
     })
     vi.mocked(openFile).mockResolvedValue({ data: {} as any, error: undefined })
-    vi.mocked(deleteFile).mockResolvedValue({ data: { path: '/media/music/song1.mp3' }, error: undefined })
+    vi.mocked(moveFileToTrash).mockResolvedValue({ data: { path: '/media/music/song1.mp3' } })
     vi.mocked(getMediaTags).mockResolvedValue({ tags: {}, duration: undefined, error: undefined })
     vi.mocked(discoverVideoCaptioner).mockResolvedValue({ path: '/usr/bin/videocaptioner' })
     vi.mocked(toast).mockImplementation(() => 'id')

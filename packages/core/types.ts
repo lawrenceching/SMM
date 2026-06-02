@@ -1106,14 +1106,14 @@ export interface GetFileNameResponseBody {
   error?: string
 }
 
-export interface DeleteFileRequestBody {
+export interface MoveFileToTrashRequestBody {
   /**
-   * The absolute path to the file to delete (in platform-specific format)
+   * The absolute path to the file to move to trash (in platform-specific format)
    */
   path: string
 }
 
-export interface DeleteFileResponseBody {
+export interface MoveFileToTrashResponseBody {
   data: {
     path: string
   }

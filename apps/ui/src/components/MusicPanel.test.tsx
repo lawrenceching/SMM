@@ -7,7 +7,7 @@ import { useMediaMetadataQuery } from '@/hooks/mediaMetadata';
 import { useDialogs } from '@/providers/dialog-provider';
 import { toast } from 'sonner';
 import { openFile } from '@/api/openFile';
-import { deleteFile } from '@/api/deleteFile';
+import { moveFileToTrash } from '@/api/moveFileToTrash';
 import type { Track } from './MediaPlayer';
 import { Path } from '@core/path';
 import { getMediaTags } from '@/api/ffmpeg';
@@ -110,8 +110,8 @@ vi.mock('@/providers/dialog-provider', () => ({
 vi.mock('@/api/openFile', () => ({
   openFile: vi.fn(),
 }))
-vi.mock('@/api/deleteFile', () => ({
-  deleteFile: vi.fn(),
+vi.mock('@/api/moveFileToTrash', () => ({
+  moveFileToTrash: vi.fn(),
 }))
 vi.mock('@/api/ffmpeg', () => ({
   getMediaTags: vi.fn(),
@@ -133,7 +133,17 @@ vi.mock('@/hooks/useFeatures', () => ({
 }));
 vi.mock('sonner');
 vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, defaultValue?: string, options?: Record<string, string>) => {
+      if (options) {
+        return Object.entries(options).reduce(
+          (s, [k, v]) => s.replace(`{{${k}}}`, v),
+          defaultValue ?? key,
+        );
+      }
+      return defaultValue ?? key;
+    },
+  }),
 }));
 vi.mock('./MusicFileTable', () => ({
   MusicFileTable: () => null,
@@ -241,9 +251,8 @@ describe('MusicPanel', () => {
       error: undefined,
     });
 
-    vi.mocked(deleteFile).mockResolvedValue({
+    vi.mocked(moveFileToTrash).mockResolvedValue({
       data: { path: '/media/music/song1.mp3' },
-      error: undefined,
     });
 
     vi.mocked(getMediaTags).mockResolvedValue({
@@ -496,7 +505,7 @@ describe('MusicPanel', () => {
       );
     });
 
-    it('should show success toast after successful deletion', async () => {
+    it('should delete file, update metadata, show success toast, and close dialog on confirm', async () => {
       const mockOpenConfirmation = vi.fn();
       const mockCloseConfirmation = vi.fn();
 
@@ -515,7 +524,9 @@ describe('MusicPanel', () => {
         scrapeDialog: [vi.fn(), vi.fn()],
       });
 
-      const { result } = renderHook(() => MusicPanel());
+      vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
+
+      renderHook(() => MusicPanel());
 
       await act(async () => {
         document.dispatchEvent(
@@ -539,7 +550,21 @@ describe('MusicPanel', () => {
         }),
       );
 
-      expect(deleteFile).not.toHaveBeenCalled();
+      const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
+      await act(async () => {
+        await dialogConfig.content.props.onConfirm();
+      });
+
+      expect(moveFileToTrash).toHaveBeenCalledWith(mockSelectedMediaMetadata.files[0]);
+      expect(h.mockFetchMediaMetadata).toHaveBeenCalledWith({ path: mockSelectedMediaMetadata.mediaFolderPath });
+      expect(h.mockSaveMediaMetadata).toHaveBeenCalledWith({
+        pathPosix: mockSelectedMediaMetadata.mediaFolderPath,
+        metadata: expect.objectContaining({
+          files: [mockSelectedMediaMetadata.files[1]],
+        }),
+      });
+      expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('song1.mp3'));
+      expect(mockCloseConfirmation).toHaveBeenCalled();
     });
 
     it('should handle multiple file deletions', async () => {
@@ -593,10 +618,10 @@ describe('MusicPanel', () => {
         }),
       );
 
-      expect(deleteFile).not.toHaveBeenCalled();
+      expect(moveFileToTrash).not.toHaveBeenCalled();
     });
 
-    it('should close dialog when user clicks confirm and delete is successful', async () => {
+    it('should pass display path to delete confirmation content', async () => {
       const mockOpenConfirmation = vi.fn();
 
       vi.mocked(useDialogs).mockReturnValue({
@@ -614,34 +639,27 @@ describe('MusicPanel', () => {
         scrapeDialog: [vi.fn(), vi.fn()],
       });
 
-      vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
-
       renderHook(() => MusicPanel());
 
       await act(async () => {
-        const event = new CustomEvent('track:delete', {
-          bubbles: true,
-          composed: true,
-          detail: {
-            trackId: mockTrack.id,
-            timestamp: Date.now(),
-            trackPath: mockSelectedMediaMetadata.files[0],
-            trackTitle: mockTrack.title,
-          },
-        });
-        document.dispatchEvent(event);
-        
-        await new Promise(resolve => setTimeout(resolve, 0));
+        document.dispatchEvent(
+          new CustomEvent('track:delete', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              trackId: mockTrack.id,
+              timestamp: Date.now(),
+              trackPath: mockSelectedMediaMetadata.files[0],
+              trackTitle: mockTrack.title,
+            },
+          }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
-
-      expect(mockOpenConfirmation).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Delete Track',
-        })
-      );
 
       const dialogConfig = mockOpenConfirmation.mock.calls[0][0];
       expect(dialogConfig.content.props.displayPath).toBe('song1.mp3');
+      expect(typeof dialogConfig.content.props.onConfirm).toBe('function');
     });
   });
 
@@ -891,7 +909,7 @@ describe('MusicPanel', () => {
         scrapeDialog: [vi.fn(), vi.fn()],
       });
 
-      vi.mocked(deleteFile).mockRejectedValue(new Error('Delete failed'));
+      vi.mocked(moveFileToTrash).mockRejectedValue(new Error('Move to trash failed'));
 
       renderHook(() => MusicPanel());
 

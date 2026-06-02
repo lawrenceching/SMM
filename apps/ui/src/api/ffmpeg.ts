@@ -259,10 +259,14 @@ export async function writeMediaTags(
     return { error: result.error };
   }
 
-  const { deleteFile } = await import("@/api/deleteFile");
-  const del = await deleteFile(absolutePath);
-  if (del.error) {
-    return { error: del.error };
+  try {
+    await (await import("@/api/moveFileToTrash")).moveFileToTrash(
+      new Path(absolutePath).platformAbsPath(),
+    );
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to move original file to trash",
+    };
   }
 
   const renameResp = await fetch("/api/renameFiles", {

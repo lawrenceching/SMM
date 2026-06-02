@@ -894,6 +894,8 @@ interface SettingsResources {
   }
   deleteTrack: {
     message: string
+    movedToTrash: string
+    moveToTrashFailed: string
   }
 }
 
