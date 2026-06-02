@@ -23,6 +23,7 @@ import type { HelloResponseBody } from "@core/types";
 export interface FfmpegScreenshotsResponse {
   screenshots?: string[];
   error?: string;
+  executionId?: string;
 }
 
 export interface GenerateFfmpegScreenshotsOptions {
@@ -216,6 +217,7 @@ export interface FfmpegTagsResponse {
   tags?: Record<string, string>;
   duration?: number;
   error?: string;
+  executionId?: string;
 }
 
 export async function getMediaTags(params: FfmpegTagsRequest): Promise<FfmpegTagsResponse> {
@@ -226,14 +228,14 @@ export async function getMediaTags(params: FfmpegTagsRequest): Promise<FfmpegTag
   );
 
   if (!result.success) {
-    return { error: result.error };
+    return { error: result.error, executionId: result.executionId };
   }
 
   const parsed = parseFfprobeTagsJson(result.stdout);
   if (parsed.error) {
     return { error: parsed.error };
   }
-  return { tags: parsed.tags, duration: parsed.duration };
+  return { tags: parsed.tags, duration: parsed.duration, executionId: result.executionId };
 }
 
 export interface FfmpegWriteTagsRequest {
@@ -244,6 +246,7 @@ export interface FfmpegWriteTagsRequest {
 export interface FfmpegWriteTagsResponse {
   success?: boolean;
   error?: string;
+  executionId?: string;
 }
 
 export async function writeMediaTags(
@@ -264,9 +267,10 @@ export async function writeMediaTags(
     { command: "ffmpeg", args },
     { timeoutMs: FFMPEG_CONVERT_TIMEOUT_MS }
   );
+  const ffmpegExecutionId = result.executionId;
 
   if (!result.success) {
-    return { error: result.error };
+    return { error: result.error, executionId: ffmpegExecutionId };
   }
 
   try {
@@ -276,6 +280,7 @@ export async function writeMediaTags(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to move original file to trash",
+      executionId: ffmpegExecutionId,
     };
   }
 
@@ -288,10 +293,10 @@ export async function writeMediaTags(
   });
   const renameBody = (await renameResp.json()) as { error?: string };
   if (!renameResp.ok || renameBody.error) {
-    return { error: renameBody.error ?? `rename failed: HTTP ${renameResp.status}` };
+    return { error: renameBody.error ?? `rename failed: HTTP ${renameResp.status}`, executionId: ffmpegExecutionId };
   }
 
-  return { success: true };
+  return { success: true, executionId: ffmpegExecutionId };
 }
 
 export async function discoverFfmpeg(): Promise<{ path?: string; error?: string }> {

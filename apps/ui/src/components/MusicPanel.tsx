@@ -19,6 +19,7 @@ import { openFile } from "@/api/openFile";
 import { moveFileToTrash } from "@/api/moveFileToTrash";
 import { useTranslation } from "@/lib/i18n";
 import { getMediaTags } from "@/api/ffmpeg";
+import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore";
 import {
   addMusicEventListener,
   type TrackOpenEventDetail,
@@ -227,6 +228,7 @@ export function MusicPanel() {
 
     const controller = new AbortController();
     const tracksToFetch = tracks.filter((t) => t.path);
+    const addEntry = useFailedCommandLogsStore.getState().addEntry;
 
     (async () => {
       for (const track of tracksToFetch) {
@@ -236,6 +238,15 @@ export function MusicPanel() {
           if (controller.signal.aborted) break;
           if (res.error) {
             console.warn("[MusicPanel] Failed to read tags for", track.path, res.error);
+            if (res.executionId) {
+              addEntry({
+                executionId: res.executionId,
+                title: `Read tags: ${track.path?.split("/").pop()?.split("\\").pop() || track.path || ""}`,
+                command: "ffprobe",
+                error: res.error,
+                timestamp: Date.now(),
+              });
+            }
             continue;
           }
           const artist = res.tags?.artist ?? res.tags?.ARTIST ?? "";

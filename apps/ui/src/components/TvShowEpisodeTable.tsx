@@ -26,6 +26,7 @@ import Image from "@/components/Image"
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { generateFfmpegScreenshots } from "@/api/ffmpeg"
+import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { renameFiles } from "@/api/renameFiles"
 import { openFile } from "@/api/openFile"
@@ -248,7 +249,20 @@ function EpisodeVideoScreenshot({
           console.log(LOG, "skip setState (path no longer current)", { label })
           return
         }
-        if (result.screenshots && result.screenshots.length > 0) {
+        if (result.error) {
+          console.warn(LOG, "screenshot generation error", label, result.error)
+          if (result.executionId && stillCurrent) {
+            useFailedCommandLogsStore.getState().addEntry({
+              executionId: result.executionId,
+              title: `Screenshots: ${label}`,
+              command: "ffmpeg",
+              error: result.error,
+              timestamp: Date.now(),
+            })
+          }
+          setError(true)
+          setScreenshots([])
+        } else if (result.screenshots && result.screenshots.length > 0) {
           setScreenshots(result.screenshots)
           console.log(LOG, "setScreenshots called", { label, count: result.screenshots.length })
         } else {

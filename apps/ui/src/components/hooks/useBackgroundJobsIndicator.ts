@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useJobManager } from '@/hooks/useJobManager'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
+import { useFailedCommandLogsStore } from '@/stores/failedCommandLogsStore'
 import { useStatusbarStore } from '@/stores/statusbarStore'
 import { isDownloadVideoJob } from '@/types/background-jobs'
 
@@ -17,6 +18,7 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
   const { jobs, refreshFromIndexedDB } = useJobManager()
   const isPopoverOpen = useStatusbarStore((s) => s.isBackgroundJobsPopoverOpen)
   const setBackgroundJobsPopoverOpen = useStatusbarStore((s) => s.setBackgroundJobsPopoverOpen)
+  const failedCommandCount = useFailedCommandLogsStore((s) => s.entries.length)
 
   const setPopoverOpen = useCallback(
     (open: boolean) => {
@@ -48,9 +50,9 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
   const activeJobs = jobs.filter(
     (j) => j.status === 'running' || j.status === 'pending'
   )
-  const activeCount = activeJobs.length
+  const activeCount = activeJobs.length + failedCommandCount
   const hasRunning = runningCount > 0
-  const hasFailedOrAborted = failedOrAbortedCount > 0
+  const hasFailedOrAborted = failedOrAbortedCount > 0 || failedCommandCount > 0
   const statusVariant = hasRunning ? 'running' : hasFailedOrAborted ? 'warning' : 'success'
 
   return {

@@ -32,9 +32,12 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { extensions } from "@core/utils"
-import { getMediaTags, writeMediaTags, generateFfmpegScreenshots } from "@/api/ffmpeg"
+import { getMediaTags, generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { Path } from "@core/path"
 import { toast } from "sonner"
+import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore"
+import { useJobManager } from "@/hooks/useJobManager"
+import { buildFfmpegWriteTagsJob } from "@/lib/ffmpegWriteTagsJobFactory"
 
 export interface TrackProperties {
   id: number
@@ -266,6 +269,8 @@ export function MediaFilePropertyDialog({
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const addFailedCmdEntry = useFailedCommandLogsStore((s) => s.addEntry)
+  const { createJob } = useJobManager()
 
   // ── Screenshots state (for video preview) ────────────────────────
   const [screenshots, setScreenshots] = useState<string[]>([])
@@ -283,12 +288,20 @@ export function MediaFilePropertyDialog({
     setScreenshots([])
     setViewerImageUrl(null)
 
-    // Load tags
+    // Load tags — on failure, save executionId for log viewing
     if (resolvedFilePath) {
       getMediaTags({ path: resolvedFilePath })
         .then((res) => {
           if (res.error) {
-            console.warn("[MediaFilePropertyDialog] Failed to load tags:", res.error)
+            if (res.executionId) {
+              addFailedCmdEntry({
+                executionId: res.executionId,
+                title: `Read tags: ${resolvedFilePath.split("/").pop()?.split("\\").pop() || resolvedFilePath}`,
+                command: "ffprobe",
+                error: res.error,
+                timestamp: Date.now(),
+              })
+            }
             return
           }
           setTags({
@@ -306,11 +319,20 @@ export function MediaFilePropertyDialog({
       setLoading(false)
     }
 
-    // Load screenshots for videos
+    // Load screenshots for videos — on failure, save executionId for log viewing
     if (fileType === "video") {
       setIsLoadingScreenshots(true)
       generateFfmpegScreenshots(Path.posix(resolvedFilePath))
         .then((res) => {
+          if (res.error && res.executionId) {
+            addFailedCmdEntry({
+              executionId: res.executionId,
+              title: `Screenshots: ${resolvedFilePath.split("/").pop()?.split("\\").pop() || resolvedFilePath}`,
+              command: "ffmpeg",
+              error: res.error,
+              timestamp: Date.now(),
+            })
+          }
           if (res.screenshots) setScreenshots(res.screenshots)
         })
         .catch((err) => {
@@ -318,31 +340,31 @@ export function MediaFilePropertyDialog({
         })
         .finally(() => setIsLoadingScreenshots(false))
     }
-  }, [isOpen, resolvedFilePath, fileType, track]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, resolvedFilePath, fileType, track, addFailedCmdEntry]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save handler ─────────────────────────────────────────────────
   const handleSave = async () => {
     if (!resolvedFilePath) return
     setSaving(true)
+
+    const job = buildFfmpegWriteTagsJob({
+      filePath: resolvedFilePath,
+      title: resolvedFilePath.split("/").pop()?.split("\\").pop() || resolvedFilePath,
+      tags: {
+        title: tags.title,
+        artist: tags.artist,
+        comment: tags.comment,
+        date: tags.date,
+      },
+    })
+
     try {
-      const res = await writeMediaTags({
-        path: resolvedFilePath,
-        tags: {
-          title: tags.title,
-          artist: tags.artist,
-          comment: tags.comment,
-          date: tags.date,
-        },
-      })
-      if (res.error) {
-        toast.error(t("editMediaFile.saveFailed"), { description: res.error })
-        return
-      }
-      toast.success(t("editMediaFile.saveSuccess"))
+      await createJob(job)
+      toast.success(t("editMediaFile.saveSuccess", "Saving tags…"))
       onClose()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      toast.error(t("editMediaFile.saveFailed"), { description: msg })
+      toast.error(t("editMediaFile.saveFailed", "Failed to save tags"), { description: msg })
     } finally {
       setSaving(false)
     }

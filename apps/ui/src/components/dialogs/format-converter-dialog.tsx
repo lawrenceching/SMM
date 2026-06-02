@@ -25,8 +25,8 @@ import { Video, FolderOpen, Loader2 } from "lucide-react"
 import { basename, dirname, join } from "@/lib/path"
 import type { FormatConverterDialogProps } from "./types"
 import { toast } from "sonner"
-import { useConvertVideoMutation } from "@/hooks/ffmpeg/useConvertVideoMutation"
-import { FfmpegConvertError } from "@/lib/ffmpegConvertErrorDetection"
+import { useJobManager } from "@/hooks/useJobManager"
+import { buildFfmpegConvertJob } from "@/lib/ffmpegConvertJobFactory"
 
 const OUTPUT_FORMATS = [
   { value: "mp4h264", ext: "mp4", labelKey: "formatConverter.formatMp4H264" },
@@ -70,11 +70,8 @@ export function FormatConverterDialog({
   const [outputDir, setOutputDir] = useState("")
   const [outputFileName, setOutputFileName] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const {
-    mutateAsync: convertVideoAsync,
-    reset: resetConvertVideoMutation,
-    isPending: isConverting,
-  } = useConvertVideoMutation()
+  const [isConverting, setIsConverting] = useState(false)
+  const { createJob } = useJobManager()
 
   const sourcePath = track ? getSourcePath(track) : ""
   const sourceDir = sourcePath ? dirname(sourcePath) : ""
@@ -107,9 +104,10 @@ export function FormatConverterDialog({
 
   useEffect(() => {
     if (!isOpen) {
-      resetConvertVideoMutation()
+      setIsConverting(false)
+      setErrorMessage(null)
     }
-  }, [isOpen, resetConvertVideoMutation])
+  }, [isOpen])
 
   const blockDismiss = isConverting
 
@@ -125,21 +123,23 @@ export function FormatConverterDialog({
     }
     const outputPath = join(outputDir, outputFileName)
     setErrorMessage(null)
+    setIsConverting(true)
+
+    const job = buildFfmpegConvertJob({
+      inputPath: sourcePath,
+      outputPath,
+      outputFormat: outputFormat as "mp4h264" | "mp4h265" | "webm" | "mkv",
+      preset: preset as "quality" | "balanced" | "speed",
+      title: sourceDisplayName,
+    })
+
     try {
-      await convertVideoAsync({
-        inputPath: sourcePath,
-        outputPath,
-        outputFormat: outputFormat as "mp4h264" | "mp4h265" | "webm" | "mkv",
-        preset: preset as "quality" | "balanced" | "speed",
-      })
-      toast.success(t("formatConverter.success", "Conversion completed."))
+      await createJob(job)
+      toast.success(t("formatConverter.success", "Conversion started."))
       onClose()
     } catch (err) {
-      if (err instanceof FfmpegConvertError) {
-        setErrorMessage(t(err.i18nKey))
-      } else {
-        setErrorMessage(t("formatConverter.errors.unknown"))
-      }
+      setIsConverting(false)
+      setErrorMessage(t("formatConverter.errors.unknown"))
     }
   }
 

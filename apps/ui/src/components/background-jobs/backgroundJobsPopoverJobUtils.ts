@@ -1,6 +1,8 @@
 import type { BackgroundJob } from '@/types/background-jobs'
 import {
   isDownloadVideoJob,
+  isFfmpegConvertBackgroundJob,
+  isFfmpegWriteTagsBackgroundJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
@@ -13,6 +15,8 @@ export function getJobExecutionId(job: BackgroundJob): string | undefined {
   if (isSynthesizeBackgroundJob(job)) return job.data.executionId
   if (isProcessBackgroundJob(job)) return job.data.executionId
   if (isDownloadVideoJob(job)) return job.data.executionId
+  if (isFfmpegConvertBackgroundJob(job)) return job.data.executionId
+  if (isFfmpegWriteTagsBackgroundJob(job)) return job.data.executionId
   return undefined
 }
 
@@ -22,7 +26,9 @@ export function canOpenCommandLog(job: BackgroundJob): boolean {
     !isTranslateBackgroundJob(job) &&
     !isSynthesizeBackgroundJob(job) &&
     !isProcessBackgroundJob(job) &&
-    !isDownloadVideoJob(job)
+    !isDownloadVideoJob(job) &&
+    !isFfmpegConvertBackgroundJob(job) &&
+    !isFfmpegWriteTagsBackgroundJob(job)
   ) {
     return false
   }

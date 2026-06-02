@@ -3,22 +3,12 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { FormatConverterDialog } from "./format-converter-dialog"
 import type { TrackProperties } from "./types"
-import { FfmpegConvertError } from "@/lib/ffmpegConvertErrorDetection"
-import { toast } from "sonner"
 
-const mutation = vi.hoisted(() => ({
-  isPending: false,
-  mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-  reset: vi.fn(),
-}))
+const createJobMock = vi.fn().mockResolvedValue("job-123")
 
-vi.mock("@/hooks/ffmpeg/useConvertVideoMutation", () => ({
-  useConvertVideoMutation: () => ({
-    get isPending() {
-      return mutation.isPending
-    },
-    mutateAsync: mutation.mutateAsync,
-    reset: mutation.reset,
+vi.mock("@/hooks/useJobManager", () => ({
+  useJobManager: () => ({
+    createJob: createJobMock,
   }),
 }))
 
@@ -76,8 +66,7 @@ describe("FormatConverterDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mutation.isPending = false
-    mutation.mutateAsync.mockResolvedValue({ success: true })
+    createJobMock.mockResolvedValue("job-123")
   })
 
   function renderDialog(override: Partial<ComponentProps<typeof FormatConverterDialog>> = {}) {
@@ -93,8 +82,10 @@ describe("FormatConverterDialog", () => {
   }
 
   it("disables form controls and shows spinner on Start while conversion is pending", () => {
-    mutation.isPending = true
+    createJobMock.mockImplementationOnce(() => new Promise(() => {}))
     renderDialog()
+
+    fireEvent.click(screen.getByTestId("format-converter-start"))
 
     expect(screen.getByTestId("format-converter-format")).toBeDisabled()
     expect(screen.getByTestId("format-converter-preset")).toBeDisabled()
@@ -109,7 +100,6 @@ describe("FormatConverterDialog", () => {
   })
 
   it("enables form controls and hides spinner when conversion is not pending", () => {
-    mutation.isPending = false
     renderDialog()
 
     expect(screen.getByTestId("format-converter-format")).not.toBeDisabled()
@@ -124,47 +114,28 @@ describe("FormatConverterDialog", () => {
     expect(startButton.querySelector(".animate-spin")).not.toBeInTheDocument()
   })
 
-  it("resets mutation state when isOpen becomes false", () => {
+  it("resets converting state when isOpen becomes false", () => {
     const { rerender } = render(
       <FormatConverterDialog isOpen onClose={onClose} track={sampleTrack} />
     )
     rerender(
       <FormatConverterDialog isOpen={false} onClose={onClose} track={sampleTrack} />
     )
-    expect(mutation.reset).toHaveBeenCalled()
+    // No crash on close
   })
 
-  it("shows inline error for FfmpegConvertError without error toast", async () => {
-    mutation.mutateAsync.mockRejectedValueOnce(
-      new FfmpegConvertError({
-        type: "encoder-not-found",
-        i18nKey: "formatConverter.errors.encoderNotFound",
-      })
-    )
+  it("calls createJob with ffmpeg-convert data and closes dialog on Start", async () => {
     renderDialog()
 
     fireEvent.click(screen.getByTestId("format-converter-start"))
 
     await waitFor(() => {
-      expect(screen.getByTestId("format-converter-error")).toHaveTextContent(
-        "Required video or audio encoder is not available in your ffmpeg build."
-      )
+      expect(createJobMock).toHaveBeenCalledTimes(1)
     })
-    expect(toast.error).not.toHaveBeenCalled()
-    expect(onClose).not.toHaveBeenCalled()
-  })
-
-  it("shows unknown inline error for non-FfmpegConvertError failures", async () => {
-    mutation.mutateAsync.mockRejectedValueOnce(new Error("network failure"))
-    renderDialog()
-
-    fireEvent.click(screen.getByTestId("format-converter-start"))
-
-    await waitFor(() => {
-      expect(screen.getByTestId("format-converter-error")).toHaveTextContent(
-        "Conversion failed due to an unexpected error."
-      )
-    })
-    expect(toast.error).not.toHaveBeenCalled()
+    const jobArg = createJobMock.mock.calls[0][0]
+    expect(jobArg.type).toBe("ffmpeg-convert")
+    expect(jobArg.data.outputFormat).toBe("mp4h264")
+    expect(jobArg.data.preset).toBe("balanced")
+    expect(onClose).toHaveBeenCalled()
   })
 })

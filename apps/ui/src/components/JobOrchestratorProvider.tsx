@@ -17,6 +17,8 @@ import type {
   TranslateBackgroundJobData,
   SynthesizeBackgroundJobData,
   ProcessBackgroundJobData,
+  FfmpegConvertBackgroundJobData,
+  FfmpegWriteTagsBackgroundJobData,
 } from '@/types/background-jobs'
 import {
   getAllJobs,
@@ -35,6 +37,12 @@ import {
 import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommandStatus'
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
+import {
+  buildFfmpegConvertArgs,
+  buildFfmpegWriteTagsArgs,
+  type FfmpegConvertFormat,
+  type FfmpegConvertPreset,
+} from '@/lib/whitelistedCmd'
 import {
   buildYtdlpDownloadArgs,
   parseYtdlpDownloadStdout,
@@ -187,6 +195,8 @@ const JOB_TIMEOUT_MS: Record<string, number> = {
   'translate': 10 * 60 * 1000,             // 10 min
   'synthesize': 60 * 60 * 1000,            // 1 hour
   'process': 2 * 60 * 60 * 1000,           // 2 hours
+  'ffmpeg-convert': 60 * 60 * 1000,        // 1 hour
+  'ffmpeg-write-tags': 5 * 60 * 1000,      // 5 min
 }
 
 // ---------------------------------------------------------------------------
@@ -504,6 +514,88 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           if (controller.signal.aborted) wasStopped = true
           record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
           record.progress = success ? 100 : record.progress
+          break
+        }
+
+        // ── FFmpeg Convert ────────────────────────────────────────
+        case 'ffmpeg-convert': {
+          const cd = data as unknown as FfmpegConvertBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          const args = buildFfmpegConvertArgs(
+            cd.inputPathPlatform,
+            cd.outputPathPlatform,
+            cd.outputFormat as FfmpegConvertFormat,
+            cd.preset as FfmpegConvertPreset,
+          )
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'ffmpeg', args },
+            { timeoutMs: JOB_TIMEOUT_MS['ffmpeg-convert'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+          break
+        }
+
+        // ── FFmpeg Write Tags ─────────────────────────────────────
+        case 'ffmpeg-write-tags': {
+          const wd = data as unknown as FfmpegWriteTagsBackgroundJobData
+          const executionId = crypto.randomUUID()
+
+          // Build temp file path (same logic as writeMediaTags in api/ffmpeg.ts)
+          const extIdx = wd.filePathPlatform.lastIndexOf('.');
+          const ext = extIdx >= 0 ? wd.filePathPlatform.slice(extIdx) : '';
+          const base = ext ? wd.filePathPlatform.slice(0, extIdx) : wd.filePathPlatform;
+          const tempFilePath = `${base}.smm-temp${ext}`;
+
+          const args = buildFfmpegWriteTagsArgs(
+            wd.filePathPlatform,
+            tempFilePath,
+            wd.tags,
+          )
+          const result = await executeCmdToCompletionWithHeaders(
+            { command: 'ffmpeg', args },
+            { timeoutMs: JOB_TIMEOUT_MS['ffmpeg-write-tags'], signal: controller.signal, executionId },
+          )
+
+          if (result.executionId) data.executionId = result.executionId
+          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+          success = result.success
+
+          if (controller.signal.aborted) wasStopped = true
+          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
+          record.progress = success ? 100 : record.progress
+
+          // On success, move original to trash and rename temp file
+          if (success) {
+            try {
+              const { moveFileToTrash } = await import('@/api/moveFileToTrash')
+              await moveFileToTrash(wd.filePathPlatform)
+            } catch {
+              // If trash fails, job still succeeded — the temp file remains
+              console.warn('[JobOrchestrator] failed to trash original after tag write')
+            }
+            try {
+              const resp = await fetch('/api/renameFiles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  files: [{ from: tempFilePath, to: wd.filePathPlatform }],
+                }),
+              })
+              if (!resp.ok) {
+                console.warn('[JobOrchestrator] rename after tag write failed')
+              }
+            } catch {
+              console.warn('[JobOrchestrator] rename after tag write error')
+            }
+          }
           break
         }
 

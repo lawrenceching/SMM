@@ -227,6 +227,48 @@ export interface ProcessBackgroundJob extends BackgroundJobBase {
   data: ProcessBackgroundJobData
 }
 
+/** FFmpeg format conversion job data */
+export interface FfmpegConvertBackgroundJobData {
+  /** Media library folder (platform path). */
+  folder: string
+  /** Absolute input file path (POSIX). */
+  inputPath: string
+  inputPathPlatform: string
+  /** Absolute output file path (POSIX). */
+  outputPath: string
+  outputPathPlatform: string
+  outputFormat: string
+  preset: string
+  /** Source file display name. */
+  title: string
+  executionId?: string
+  logRelativePath?: string
+}
+
+export interface FfmpegConvertBackgroundJob extends BackgroundJobBase {
+  type: 'ffmpeg-convert'
+  data: FfmpegConvertBackgroundJobData
+}
+
+/** FFmpeg write-media-tags job data */
+export interface FfmpegWriteTagsBackgroundJobData {
+  /** Media library folder (platform path). */
+  folder?: string
+  /** Absolute file path (POSIX). */
+  filePath: string
+  filePathPlatform: string
+  /** Source file display name. */
+  title: string
+  tags: Record<string, string>
+  executionId?: string
+  logRelativePath?: string
+}
+
+export interface FfmpegWriteTagsBackgroundJob extends BackgroundJobBase {
+  type: 'ffmpeg-write-tags'
+  data: FfmpegWriteTagsBackgroundJobData
+}
+
 export type BackgroundJob =
   | GenericBackgroundJob
   | TestDelayBackgroundJob
@@ -235,6 +277,8 @@ export type BackgroundJob =
   | TranslateBackgroundJob
   | SynthesizeBackgroundJob
   | ProcessBackgroundJob
+  | FfmpegConvertBackgroundJob
+  | FfmpegWriteTagsBackgroundJob
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -262,4 +306,12 @@ export function isSynthesizeBackgroundJob(job: BackgroundJob): job is Synthesize
 
 export function isProcessBackgroundJob(job: BackgroundJob): job is ProcessBackgroundJob {
   return job.type === 'process'
+}
+
+export function isFfmpegConvertBackgroundJob(job: BackgroundJob): job is FfmpegConvertBackgroundJob {
+  return job.type === 'ffmpeg-convert'
+}
+
+export function isFfmpegWriteTagsBackgroundJob(job: BackgroundJob): job is FfmpegWriteTagsBackgroundJob {
+  return job.type === 'ffmpeg-write-tags'
 }

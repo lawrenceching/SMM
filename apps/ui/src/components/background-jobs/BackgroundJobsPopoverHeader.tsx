@@ -11,6 +11,7 @@ import { useTranslation } from '@/lib/i18n'
 export interface BackgroundJobsPopoverHeaderProps {
   jobs: BackgroundJob[]
   isLoading: boolean
+  hasFailedCommands?: boolean
   removableCount: number
   onClear: () => void
 }
@@ -18,6 +19,7 @@ export interface BackgroundJobsPopoverHeaderProps {
 export function BackgroundJobsPopoverHeader({
   jobs,
   isLoading,
+  hasFailedCommands: _hasFailedCommands,
   removableCount,
   onClear,
 }: BackgroundJobsPopoverHeaderProps) {

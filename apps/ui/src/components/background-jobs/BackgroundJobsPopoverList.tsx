@@ -20,7 +20,7 @@ function parseJobNameDetail(name: string): string | null {
   return name.slice(idx + 2)
 }
 
-type JobTypeLabelKey = 'transcribe' | 'translate' | 'synthesize' | 'process'
+type JobTypeLabelKey = 'transcribe' | 'translate' | 'synthesize' | 'process' | 'ffmpeg-convert' | 'ffmpeg-write-tags'
 
 function getJobDisplayName(
   job: BackgroundJob,
@@ -46,7 +46,9 @@ function getJobDisplayName(
     case 'transcribe':
     case 'translate':
     case 'synthesize':
-    case 'process': {
+    case 'process':
+    case 'ffmpeg-convert':
+    case 'ffmpeg-write-tags': {
       const typeLabel = t(`statusBar.backgroundJobs.jobNames.${job.type}` as `statusBar.backgroundJobs.jobNames.${JobTypeLabelKey}`)
       const detail = parseJobNameDetail(job.name)
       if (detail) {

@@ -105,6 +105,34 @@ export const JOB_TYPE_REGISTRY: Record<string, JobTypeConfig> = {
       failed: (t) => t('processPipelineDialog.toastFailed'),
     },
   },
+
+  'ffmpeg-convert': {
+    messagePrefix: 'ffmpeg-convert',
+    autoStartKey: 'ffmpegConvert.autoStart',
+    extractPath: (data) => {
+      const p = (data as Record<string, unknown> | null)?.inputPath
+      return typeof p === 'string' && p.trim() ? Path.posix(p.trim()) : ''
+    },
+    toasts: {
+      started: (t) => t('formatConverter.toastStart', 'Converting video format…'),
+      succeeded: (t) => t('formatConverter.toastSucceeded', 'Format conversion completed.'),
+      failed: (t) => t('formatConverter.toastFailed', 'Format conversion failed.'),
+    },
+  },
+
+  'ffmpeg-write-tags': {
+    messagePrefix: 'ffmpeg-write-tags',
+    autoStartKey: 'ffmpegWriteTags.autoStart',
+    extractPath: (data) => {
+      const p = (data as Record<string, unknown> | null)?.filePath
+      return typeof p === 'string' && p.trim() ? Path.posix(p.trim()) : ''
+    },
+    toasts: {
+      started: (t) => t('editMediaFile.toastStart', 'Writing media tags…'),
+      succeeded: (t) => t('editMediaFile.toastSuccess', 'Media tags saved.'),
+      failed: (t) => t('editMediaFile.toastFailed', 'Failed to write media tags.'),
+    },
+  },
 }
 
 /** All registered job type keys. */
