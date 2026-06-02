@@ -7,6 +7,10 @@ import {
 import type { MediaMetadata } from "@core/types"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 
+const MEDIA_FOLDER_POSIX = "/path/to/music"
+const NESTED_FILE_POSIX = "/path/to/music/a/b/c/d/test.mp4"
+const NESTED_FILE_REL = "a/b/c/d/test.mp4"
+
 describe("transcribeDialogRowsFromMediaFiles", () => {
   it("returns empty array when no metadata or no mediaFiles", () => {
     expect(transcribeDialogRowsFromMediaFiles(undefined)).toEqual([])
@@ -83,6 +87,16 @@ describe("absolutePosixMusicFilePath", () => {
   it("returns undefined for relative path without folder", () => {
     expect(absolutePosixMusicFilePath({ path: "sub/a.mp3" })).toBeUndefined()
   })
+
+  it("joins deeply nested relative path with media folder", () => {
+    expect(
+      absolutePosixMusicFilePath({ path: NESTED_FILE_REL }, MEDIA_FOLDER_POSIX),
+    ).toBe(NESTED_FILE_POSIX)
+  })
+
+  it("preserves deeply nested absolute posix path", () => {
+    expect(absolutePosixMusicFilePath({ path: NESTED_FILE_POSIX })).toBe(NESTED_FILE_POSIX)
+  })
 })
 
 describe("transcribeDialogRowsFromMusicFileRows", () => {
@@ -118,5 +132,22 @@ describe("transcribeDialogRowsFromMusicFileRows", () => {
     const rows = [baseRow({ path: "/lib/music/sub/x.mp3", title: "X" })]
     const out = transcribeDialogRowsFromMusicFileRows(rows, "/lib/music")
     expect(out[0].displayPath).toBe("sub/x.mp3")
+  })
+
+  it("resolves deeply nested absolute path with displayPath a/b/c/d/test.mp4", () => {
+    const rows = [baseRow({ path: NESTED_FILE_POSIX, title: "test" })]
+    const out = transcribeDialogRowsFromMusicFileRows(rows, MEDIA_FOLDER_POSIX)
+    expect(out).toHaveLength(1)
+    expect(out[0].path).toBe(NESTED_FILE_POSIX)
+    expect(out[0].id).toBe(NESTED_FILE_POSIX)
+    expect(out[0].displayPath).toBe(NESTED_FILE_REL)
+  })
+
+  it("resolves deeply nested relative path joined with media folder", () => {
+    const rows = [baseRow({ path: NESTED_FILE_REL, title: "test" })]
+    const out = transcribeDialogRowsFromMusicFileRows(rows, MEDIA_FOLDER_POSIX)
+    expect(out).toHaveLength(1)
+    expect(out[0].path).toBe(NESTED_FILE_POSIX)
+    expect(out[0].displayPath).toBe(NESTED_FILE_REL)
   })
 })

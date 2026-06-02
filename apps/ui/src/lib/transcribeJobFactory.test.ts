@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest"
+import { Path } from "@core/path"
 import { buildTranscribeJob } from "./transcribeJobFactory"
+
+const MEDIA_FOLDER_PLATFORM = "C:\\path\\to\\music"
+const NESTED_FILE_POSIX = "/path/to/music/a/b/c/d/test.mp4"
 
 describe("buildTranscribeJob", () => {
   it("creates a pending videoCaptioner job with platform paths", () => {
@@ -52,5 +56,19 @@ describe("buildTranscribeJob", () => {
       wordTimestamps: true,
       format: "ass",
     })
+  })
+
+  it("preserves deeply nested posix mediaPath and platform path for executeCmd", () => {
+    const job = buildTranscribeJob({
+      folder: MEDIA_FOLDER_PLATFORM,
+      mediaPath: NESTED_FILE_POSIX,
+      title: "test",
+      provider: "videoCaptioner",
+    })
+    expect(job.data.mediaPath).toBe(NESTED_FILE_POSIX)
+    expect(job.data.mediaPathPlatform).toBe(Path.toPlatformPath(NESTED_FILE_POSIX))
+    expect(job.data.mediaPathPlatform).toContain("a")
+    expect(job.data.mediaPathPlatform).toContain("test.mp4")
+    expect(job.data.mediaPathPlatform).not.toBe("test.mp4")
   })
 })

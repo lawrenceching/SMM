@@ -15,13 +15,7 @@ export type FfmpegConvertErrorType =
   | "generic"
   | "unknown";
 
-export interface FfmpegConvertErrorResult {
-  type: FfmpegConvertErrorType;
-  /** i18n key under dialogs namespace, e.g. formatConverter.errors.encoderNotFound */
-  i18nKey: string;
-}
-
-const I18N_KEYS: Record<FfmpegConvertErrorType, string> = {
+const I18N_KEYS = {
   timeout: "formatConverter.errors.timeout",
   cancelled: "formatConverter.errors.cancelled",
   "error-rate-exceeded": "formatConverter.errors.errorRateExceeded",
@@ -37,7 +31,16 @@ const I18N_KEYS: Record<FfmpegConvertErrorType, string> = {
   "out-of-memory": "formatConverter.errors.outOfMemory",
   generic: "formatConverter.errors.generic",
   unknown: "formatConverter.errors.unknown",
-};
+} as const satisfies Record<FfmpegConvertErrorType, string>;
+
+export type FfmpegConvertErrorI18nKey =
+  (typeof I18N_KEYS)[FfmpegConvertErrorType];
+
+export interface FfmpegConvertErrorResult {
+  type: FfmpegConvertErrorType;
+  /** i18n key under dialogs namespace, e.g. formatConverter.errors.encoderNotFound */
+  i18nKey: FfmpegConvertErrorI18nKey;
+}
 
 function result(type: FfmpegConvertErrorType): FfmpegConvertErrorResult {
   return { type, i18nKey: I18N_KEYS[type] };
@@ -45,7 +48,7 @@ function result(type: FfmpegConvertErrorType): FfmpegConvertErrorResult {
 
 export class FfmpegConvertError extends Error {
   readonly type: FfmpegConvertErrorType;
-  readonly i18nKey: string;
+  readonly i18nKey: FfmpegConvertErrorI18nKey;
 
   constructor(classified: FfmpegConvertErrorResult) {
     super(classified.i18nKey);
