@@ -32,7 +32,7 @@
     "ci": "pnpm run build && pnpm run test && pnpm run typecheck",
     "ci:cli": "cd apps/cli && pnpm run test && pnpm run typecheck",
     "changeset": "changeset",
-    "changeset:version": "changeset version && pnpm run build:cli",
+    "changeset:version": "changeset version && pnpm i && pnpm run build:cli",
     "changeset:publish": "changeset publish"
   },
   "devDependencies": {
