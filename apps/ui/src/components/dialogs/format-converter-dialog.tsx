@@ -21,11 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n"
-import { Video, FolderOpen } from "lucide-react"
+import { Video, FolderOpen, Loader2 } from "lucide-react"
 import { basename, dirname, join } from "@/lib/path"
 import type { FormatConverterDialogProps } from "./types"
 import { toast } from "sonner"
-import { convertVideo } from "@/api/ffmpeg"
+import { useConvertVideoMutation } from "@/hooks/ffmpeg/useConvertVideoMutation"
 
 const OUTPUT_FORMATS = [
   { value: "mp4h264", ext: "mp4", labelKey: "formatConverter.formatMp4H264" },
@@ -68,7 +68,11 @@ export function FormatConverterDialog({
   const [preset, setPreset] = useState<string>("balanced")
   const [outputDir, setOutputDir] = useState("")
   const [outputFileName, setOutputFileName] = useState("")
-  const [isConverting, setIsConverting] = useState(false)
+  const {
+    mutateAsync: convertVideoAsync,
+    reset: resetConvertVideoMutation,
+    isPending: isConverting,
+  } = useConvertVideoMutation()
 
   const sourcePath = track ? getSourcePath(track) : ""
   const sourceDir = sourcePath ? dirname(sourcePath) : ""
@@ -98,18 +102,16 @@ export function FormatConverterDialog({
     setOutputFileName(base ? `${base} (1).${formatExt}` : "")
   }, [isOpen, sourceDir, sourcePath, formatExt])
 
-
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose()
-      }
+    if (!isOpen) {
+      resetConvertVideoMutation()
     }
-    window.addEventListener("keydown", handleEscape)
-    return () => window.removeEventListener("keydown", handleEscape)
-  }, [isOpen, onClose])
+  }, [isOpen, resetConvertVideoMutation])
+
+  const blockDismiss = isConverting
 
   const handleCancel = () => {
+    if (isConverting) return
     onClose()
   }
 
@@ -119,28 +121,22 @@ export function FormatConverterDialog({
       return
     }
     const outputPath = join(outputDir, outputFileName)
-    setIsConverting(true)
     try {
-      const result = await convertVideo({
+      await convertVideoAsync({
         inputPath: sourcePath,
         outputPath,
         outputFormat: outputFormat as "mp4h264" | "mp4h265" | "webm" | "mkv",
         preset: preset as "quality" | "balanced" | "speed",
       })
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
       toast.success(t("formatConverter.success", "Conversion completed."))
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Conversion failed.")
-    } finally {
-      setIsConverting(false)
     }
   }
 
   const handleBrowse = () => {
+    if (isConverting) return
     if (onOpenFilePicker) {
       onOpenFilePicker(
         (file) => {
@@ -204,11 +200,24 @@ export function FormatConverterDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !blockDismiss) {
+          onClose()
+        }
+      }}
+    >
       <ScrollableDialogContent
-        showCloseButton
+        showCloseButton={!blockDismiss}
         className="max-w-lg max-h-[80vh]"
         data-testid="format-converter-dialog"
+        onInteractOutside={(e) => {
+          if (blockDismiss) e.preventDefault()
+        }}
+        onEscapeKeyDown={(e) => {
+          if (blockDismiss) e.preventDefault()
+        }}
       >
         <ScrollableDialogHeader className="min-w-0">
           <DialogTitle>{t("formatConverter.title")}</DialogTitle>
@@ -237,8 +246,12 @@ export function FormatConverterDialog({
           {/* Output format */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="format-converter-format">{t("formatConverter.outputFormatLabel")}</Label>
-            <Select value={outputFormat} onValueChange={handleFormatChange}>
-              <SelectTrigger id="format-converter-format" className="w-full">
+            <Select value={outputFormat} onValueChange={handleFormatChange} disabled={isConverting}>
+              <SelectTrigger
+                id="format-converter-format"
+                data-testid="format-converter-format"
+                className="w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -254,8 +267,12 @@ export function FormatConverterDialog({
           {/* Preset */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="format-converter-preset">{t("formatConverter.presetLabel")}</Label>
-            <Select value={preset} onValueChange={setPreset}>
-              <SelectTrigger id="format-converter-preset" className="w-full">
+            <Select value={preset} onValueChange={setPreset} disabled={isConverting}>
+              <SelectTrigger
+                id="format-converter-preset"
+                data-testid="format-converter-preset"
+                className="w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -274,7 +291,9 @@ export function FormatConverterDialog({
             <div className="flex gap-2">
               <Input
                 id="format-converter-dir"
+                data-testid="format-converter-dir"
                 readOnly
+                disabled={isConverting}
                 value={outputDir}
                 className="flex-1 min-w-0"
               />
@@ -282,8 +301,9 @@ export function FormatConverterDialog({
                 type="button"
                 variant="outline"
                 onClick={handleBrowse}
-                disabled={!onOpenFilePicker}
+                disabled={isConverting || !onOpenFilePicker}
                 aria-label={t("formatConverter.browse")}
+                data-testid="format-converter-browse"
               >
                 <FolderOpen className="h-4 w-4" />
               </Button>
@@ -295,19 +315,38 @@ export function FormatConverterDialog({
             <Label htmlFor="format-converter-filename">{t("formatConverter.outputFileNameLabel")}</Label>
             <Input
               id="format-converter-filename"
+              data-testid="format-converter-filename"
               value={outputFileName}
               onChange={(e) => setOutputFileName(e.target.value)}
+              disabled={isConverting}
               className="min-w-0"
             />
           </div>
         </ScrollableDialogBody>
 
         <ScrollableDialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={isConverting}>
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isConverting}
+            data-testid="format-converter-cancel"
+          >
             {t("cancel", { ns: "common" })}
           </Button>
-          <Button onClick={handleStart} disabled={isConverting}>
-            {t("formatConverter.start")}
+          <Button
+            className={isConverting ? "inline-flex items-center gap-2" : undefined}
+            onClick={() => void handleStart()}
+            disabled={isConverting}
+            data-testid="format-converter-start"
+          >
+            {isConverting ? (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                {t("formatConverter.start")}
+              </>
+            ) : (
+              t("formatConverter.start")
+            )}
           </Button>
         </ScrollableDialogFooter>
       </ScrollableDialogContent>
