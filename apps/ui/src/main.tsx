@@ -21,6 +21,7 @@ import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlist
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { FolderContentChangedEventListener } from './components/eventlisteners/FolderContentChangedEventListener.tsx'
+import { DragDropReceiver } from './components/dragdrop/DragDropReceiver'
 import { JobOrchestratorProvider } from './components/JobOrchestratorProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
@@ -188,7 +189,9 @@ async function bootstrap() {
                 <AppLanguageSync />
                 <UIMediaFolderStoreInitializer />
                 <AppInitializer />
-                <AppSwitcher />
+                <DragDropReceiver>
+                  <AppSwitcher />
+                </DragDropReceiver>
               </DialogProvider>
             </JobOrchestratorProvider>
         </ThemeProvider>
