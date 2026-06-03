@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
+import { useDialogs } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
   DownloadVideoBackgroundJobData,
@@ -212,6 +213,15 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation('components')
   const tRef = useRef(t)
   tRef.current = t
+
+  // Optional log dialog integration — gracefully handle missing DialogProvider
+  const openLogDialogRef = useRef<((params: { executionId: string; jobTitle: string; isRunning?: boolean }) => void) | undefined>(undefined)
+  try {
+    const { logDialog } = useDialogs()
+    openLogDialogRef.current = logDialog[0]
+  } catch {
+    openLogDialogRef.current = undefined
+  }
 
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
@@ -638,18 +648,35 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         // No toast for stopped (user initiated)
       } else if (success && config.toasts?.succeeded) {
         toast.success(config.toasts.succeeded(tRef.current))
-      } else if (!success && config.toasts?.failed) {
-        // Check for classified yt-dlp error (download-video)
+      } else if (!success) {
+        // Determine the toast message
         const ytdlpErrorType = data.ytdlpErrorType as string | undefined
         const ytdlpErrorMessage = data.ytdlpErrorMessage as string | undefined
+        let message: string
         if (ytdlpErrorType && ytdlpErrorMessage && ytdlpErrorType !== 'unknown') {
-          toast.error(ytdlpErrorMessage)
+          message = ytdlpErrorMessage
+        } else if (config.toasts?.failed) {
+          message = config.toasts.failed(tRef.current)
         } else {
-          toast.error(config.toasts.failed(tRef.current))
+          message = tRef.current('statusBar.backgroundJobs.toasts.genericFailed', { name: record.name } as Record<string, unknown>)
         }
-      } else if (!success) {
-        // Generic fallback for types without specific toast messages
-        toast.error(tRef.current('statusBar.backgroundJobs.toasts.genericFailed', { name: record.name } as Record<string, unknown>))
+
+        // Add "日志" action button when executionId and log dialog are available
+        const execId = data.executionId as string | undefined
+        if (execId && openLogDialogRef.current) {
+          toast.error(message, {
+            action: {
+              label: tRef.current('statusBar.backgroundJobs.logButton'),
+              onClick: () => openLogDialogRef.current!({
+                executionId: execId,
+                jobTitle: record.name,
+                isRunning: false,
+              }),
+            },
+          })
+        } else {
+          toast.error(message)
+        }
       }
 
       // Handle cancel-siblings on failure

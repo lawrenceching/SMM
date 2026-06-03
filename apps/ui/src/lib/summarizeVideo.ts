@@ -44,11 +44,39 @@ export async function summarizeVideo({
 3. 结构清晰，分点列出重要内容
 4. 如果字幕内容不适合总结（如纯歌曲歌词），请说明原因`
 
-  const { text } = await generateText({
-    model: provider.chatModel(aiProvider.model),
-    system: systemPrompt,
-    prompt: subtitleContent,
-  })
+  try {
+    const { text } = await generateText({
+      model: provider.chatModel(aiProvider.model),
+      system: systemPrompt,
+      prompt: subtitleContent,
+      abortSignal: AbortSignal.timeout(120_000), // 2 minute timeout
+    })
 
-  return text
+    return text
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const lower = message.toLowerCase()
+    // Network / connection errors
+    if (lower.includes('fetch failed') || lower.includes('failed to fetch') || lower.includes('network') || lower.includes('networkerror') || lower.includes('econnrefused')) {
+      throw new Error('Network connection failed. Please check your network and AI provider settings.')
+    }
+    // Timeout
+    if (lower.includes('timeout') || lower.includes('timed out') || lower.includes('aborted') || message.includes('TimeOut')) {
+      throw new Error('AI summary request timed out. The subtitle content may be too long.')
+    }
+    // Authentication errors
+    if (lower.includes('401') || lower.includes('403') || lower.includes('unauthorized') || lower.includes('auth') || lower.includes('authentication')) {
+      throw new Error('AI provider authentication failed. Please check your API key.')
+    }
+    // Rate limiting
+    if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')) {
+      throw new Error('AI provider rate limit exceeded. Please try again later.')
+    }
+    // Server errors
+    if ((message.includes('5') && (message.includes('500') || message.includes('502') || message.includes('503'))) || lower.includes('internal server error') || lower.includes('service unavailable')) {
+      throw new Error('AI provider server error. Please try again later.')
+    }
+    // Re-throw other errors as-is
+    throw error
+  }
 }

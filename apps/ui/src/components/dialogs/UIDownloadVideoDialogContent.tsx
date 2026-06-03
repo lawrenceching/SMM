@@ -75,6 +75,11 @@ export interface UIDownloadVideoDialogContentProps {
 
   // New: QuickJS availability
   quickjsUnavailable: boolean
+
+  /** Callback to open the command log dialog for the listing error. */
+  onOpenListingLog?: () => void
+  /** Localized label for the log button (e.g. "Log" / "日志"). */
+  listingLogButtonLabel?: string
   youtubeCookiesHintEmphasized: boolean
   youtubeCookiesHintFlashKey: number
 
@@ -117,6 +122,8 @@ export function UIDownloadVideoDialogContent({
 
   isListingFormats,
   listingError,
+  onOpenListingLog,
+  listingLogButtonLabel,
   goDisabled,
 
   useCookies,
@@ -212,14 +219,26 @@ export function UIDownloadVideoDialogContent({
               t={t}
             />
 
-            {/* Listing error banner */}
+            {/* Listing error banner with log button */}
             {listingError && (
-              <p
-                className="text-sm text-destructive"
-                data-testid="download-video-dialog-listing-error"
-              >
-                {listingError}
-              </p>
+              <div className="flex items-start gap-2">
+                <p
+                  className="text-sm text-destructive flex-1"
+                  data-testid="download-video-dialog-listing-error"
+                >
+                  {listingError}
+                </p>
+                {onOpenListingLog && (
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    onClick={onOpenListingLog}
+                    data-testid="download-video-dialog-listing-log-button"
+                  >
+                    {listingLogButtonLabel ?? 'Log'}
+                  </button>
+                )}
+              </div>
             )}
 
             {/* QuickJS unavailable error */}

@@ -1,6 +1,7 @@
-import { useCallback } from "react"
+import { useCallback, useRef } from "react"
 import type { DownloadVideoDialogProps, FileItem } from "../types"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
+import { useDialogs } from "@/providers/dialog-provider"
 import { useDownloadVideoForm } from "../hooks/use-download-video-form"
 import { useYtdlpDownloadFlow } from "../hooks/use-ytdlp-download-flow"
 import { UIDownloadVideoDialogContent } from "../UIDownloadVideoDialogContent"
@@ -16,6 +17,18 @@ export function DownloadVideoDialogContent({
 
   const td = castTranslationFn(t)
   const tdCommon = castTranslationFn(tCommon)
+
+  const { t: tComponents } = useTranslation("components")
+  const tdComponents = castTranslationFn(tComponents)
+
+  // Optional log dialog integration — gracefully handle missing DialogProvider in tests
+  const openLogDialogRef = useRef<((params: { executionId: string; jobTitle: string; isRunning?: boolean }) => void) | undefined>(undefined)
+  try {
+    const { logDialog } = useDialogs()
+    openLogDialogRef.current = logDialog[0]
+  } catch {
+    openLogDialogRef.current = undefined
+  }
 
   const form = useDownloadVideoForm({ isOpen: true, destinationFolder, t: td })
 
@@ -67,6 +80,16 @@ export function DownloadVideoDialogContent({
     onClose()
   }, [form.resetFormState, flow.resetFlowState, onClose])
 
+  const handleOpenListingLog = useCallback(() => {
+    if (form.listingExecutionId && openLogDialogRef.current) {
+      openLogDialogRef.current({
+        executionId: form.listingExecutionId,
+        jobTitle: 'yt-dlp list formats',
+        isRunning: false,
+      })
+    }
+  }, [form.listingExecutionId])
+
   return (
     <UIDownloadVideoDialogContent
       hasAgreed={form.hasAgreed}
@@ -80,6 +103,8 @@ export function DownloadVideoDialogContent({
       onGo={form.handleGo}
       isListingFormats={form.isListingFormats}
       listingError={form.listingError}
+      onOpenListingLog={form.listingExecutionId ? handleOpenListingLog : undefined}
+      listingLogButtonLabel={tdComponents('statusBar.backgroundJobs.logButton')}
       goDisabled={form.goDisabled}
       useCookies={form.useCookies}
       cookiesText={form.cookiesText}

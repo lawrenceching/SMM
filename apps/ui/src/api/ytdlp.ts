@@ -216,7 +216,12 @@ export async function listYtdlpFormats(
     const message = errorText || `yt-dlp exited with code ${result.exitCode}`
     // Prepend the system-level error (e.g. timeout message) if available
     const fullMessage = result.error ? `${result.error}\n${message}` : message
-    throw new Error(fullMessage)
+    const error = new Error(fullMessage)
+    // Attach executionId so DVD can show a "日志" button to view command logs
+    if (result.executionId) {
+      (error as Error & { executionId?: string }).executionId = result.executionId
+    }
+    throw error
   }
 
   const parsed = parse(result.stdout);

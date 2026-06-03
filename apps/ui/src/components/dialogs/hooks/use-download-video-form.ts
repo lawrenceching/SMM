@@ -115,6 +115,7 @@ export interface UseDownloadVideoFormReturn {
   jsRuntimePath: string | undefined
 
   // New: video list entries from playlist
+  listingExecutionId: string | null
   videoListEntries: VideoMetadata[] | null
 
   // New: QuickJS availability
@@ -158,7 +159,7 @@ export function useDownloadVideoForm(
   const { isOpen, destinationFolder, t } = opts
 
   const { textDialog: [openTextDialog] } = useDialogs()
-  const { videoMetadata, videoListEntries, isListing, listingError, listFormats, reset: resetListFormats } =
+  const { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
   const { appConfig } = useConfig()
 
@@ -510,6 +511,7 @@ export function useDownloadVideoForm(
     videoListEntries,
     isListingFormats: isListing,
     listingError,
+    listingExecutionId,
     formatCodes,
     goDisabled,
     platform,

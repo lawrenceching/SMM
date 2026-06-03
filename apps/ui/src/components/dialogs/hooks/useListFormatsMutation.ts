@@ -16,6 +16,8 @@ export interface UseListFormatsMutationReturn {
   isListing: boolean
   /** Error message from the last listing attempt, or null. */
   listingError: string | null
+  /** Execution ID from the yt-dlp command log, for showing a "日志" button. */
+  listingExecutionId: string | null
   /** Call to trigger format listing. */
   listFormats: (req: YtdlpListFormatsRequest, onSettled?: () => void) => void
   /** Reset mutation state. */
@@ -28,12 +30,14 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
   const [videoListEntries, setVideoListEntries] = useState<VideoMetadata[] | null>(null)
   const [isListing, setIsListing] = useState(false)
   const [listingError, setListingError] = useState<string | null>(null)
+  const [listingExecutionId, setListingExecutionId] = useState<string | null>(null)
   const genRef = useRef(0)
 
   const listFormats = useCallback((req: YtdlpListFormatsRequest, onSettled?: () => void) => {
     const gen = ++genRef.current
     setIsListing(true)
     setListingError(null)
+    setListingExecutionId(null)
     setVideoListEntries(null)
 
     listYtdlpFormats(req)
@@ -45,6 +49,11 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
       })
       .catch((err) => {
         if (gen !== genRef.current) return
+        // Capture executionId from the error if available (attached by listYtdlpFormats)
+        const execId = (err as Error & { executionId?: string }).executionId
+        if (execId) {
+          setListingExecutionId(execId)
+        }
         const errMessage = err instanceof Error ? err.message : String(err)
         // Classify the error using the combined error text
         const result = classifyYtdlpError({
@@ -71,7 +80,8 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
     setVideoListEntries(null)
     setIsListing(false)
     setListingError(null)
+    setListingExecutionId(null)
   }, [])
 
-  return { videoMetadata, videoListEntries, isListing, listingError, listFormats, reset }
+  return { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset }
 }
