@@ -20,7 +20,6 @@ import { FormatSection } from "./download-video-dialog/components/format-section
 import { VideoListSection, type VideoListEntry } from "./download-video-dialog/components/video-list-section"
 import { MoreOptionsSection } from "./download-video-dialog/components/more-options-section"
 import { FolderSection } from "./download-video-dialog/components/folder-section"
-import { classifyYtdlpError } from "@/lib/ytdlpErrorDetection"
 import { DialogFooter } from "./download-video-dialog/components/dialog-footer"
 import type { YtdlpFormatMode } from "@/lib/ytdlpFormatPresets"
 
@@ -219,7 +218,7 @@ export function UIDownloadVideoDialogContent({
                 className="text-sm text-destructive"
                 data-testid="download-video-dialog-listing-error"
               >
-                {classifyYtdlpError(listingError).message}
+                {listingError}
               </p>
             )}
 

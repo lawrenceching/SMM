@@ -41,8 +41,8 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
       .catch((err) => {
         if (gen !== genRef.current) return
         const message = err instanceof Error ? err.message : String(err)
-        reportYtdlpError("list-formats", message, err)
-        setListingError(message)
+        const { message: displayMessage } = reportYtdlpError("list-formats", message, err)
+        setListingError(displayMessage)
         setVideoMetadata(null)
         setVideoListEntries(null)
         setIsListing(false)

@@ -11,6 +11,9 @@
  * - YouTube QuickJS check
  * - QuickJS unavailable (manual only)
  * - Non-YouTube doesn't check QuickJS
+ *
+ * Also tests (all-site support):
+ * - TC-E2E-UNSUPPORTED-01: unsupported site shows error message
  */
 
 import { createAndImportFolder } from "test/actions/import-folders"
@@ -372,5 +375,48 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
 
         // QuickJS error must never appear for a Bilibili URL
         expect(await DownloadVideoDialogCO.quickjsError.isExisting()).toBe(false)
+    })
+
+    // ────────────────────────────────────────────────────────────────
+    // TC-E2E-UNSUPPORTED-01: yt-dlp unsupported site shows error
+    // ────────────────────────────────────────────────────────────────
+    it("TC-E2E-UNSUPPORTED-01: unsupported site URL displays unsupported-site error", async function () {
+        this.timeout(60 * 1000)
+
+        // Inject yt-dlp "Unsupported URL" stderr; URL value is irrelevant to this case.
+        await browser.execute(() => {
+            localStorage.setItem(
+                "test.mockYtdlpListFormatsError",
+                "ERROR: Unsupported URL: https://mock.invalid/video",
+            )
+        })
+
+        await DownloadVideoDialogCO.setUrl("https://mock.invalid/video")
+
+        // Before Go: no listing error
+        expect(await DownloadVideoDialogCO.listingError.isExisting()).toBe(false)
+
+        await DownloadVideoDialogCO.clickGo()
+
+        // Wait for listing error to appear
+        await browser.waitUntil(
+            async () => await DownloadVideoDialogCO.listingError.isExisting(),
+            {
+                timeout: 30_000,
+                interval: 500,
+                timeoutMsg: "Listing error did not appear for unsupported site URL",
+            },
+        )
+
+        // Verify error text contains unsupported-site message
+        const errorText = await DownloadVideoDialogCO.listingError.getText()
+        expect(errorText).toMatch(/不支持|not supported|暂不支援/i)
+
+        // Format section should NOT appear after a failed probe
+        expect(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()).toBe(false)
+
+        await browser.execute(() => {
+            localStorage.removeItem("test.mockYtdlpListFormatsError")
+        })
     })
 })

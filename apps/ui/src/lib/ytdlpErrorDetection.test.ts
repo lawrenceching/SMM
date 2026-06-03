@@ -22,6 +22,14 @@ describe("ytdlpErrorDetection", () => {
     expect(result.type).toBe("format-unavailable")
   })
 
+  it("classifies unsupported-site errors from yt-dlp Unsupported URL", () => {
+    const result = classifyYtdlpError(
+      "ERROR: Unsupported URL: https://mock.invalid/video",
+    )
+    expect(result.type).toBe("unsupported-site")
+    expect(result.message).toBe("暂不支持该网站")
+  })
+
   it("classifies connection-timeout errors for YouTube", () => {
     const result = classifyYtdlpError(
       "yt-dlp command timed out\nWARNING: [youtube] (<HTTPSConnection(host='www.youtube.com', port=443) at 0x2145b8be3b0>, 'Connection to www.youtube.com timed out. (connect timeout=20.0)'). Retrying (1/3)...",

@@ -166,14 +166,24 @@ export interface ListFormatsResult {
   playlistEntries?: VideoMetadata[];
 }
 
+/** E2E: when set, `listYtdlpFormats` throws this yt-dlp-style error without running yt-dlp. */
+export const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError";
+
 /**
- * Runs `yt-dlp -F [--cookies-from-browser <browser>] [--js-runtimes <runtime>] <url>`
- * and returns the parsed format list. Supports `--cookies` (manual file), `--cookies-from-browser`,
- * and `--js-runtimes`. Throws on non-zero exit code so callers can classify the error.
+ * Runs `yt-dlp -J` and returns the parsed format list. Supports `--cookies` (manual file),
+ * `--cookies-from-browser`, and `--js-runtimes`. Throws on non-zero exit code so callers
+ * can classify the error.
  */
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
 ): Promise<ListFormatsResult> {
+  if (typeof localStorage !== "undefined") {
+    const mockError = localStorage.getItem(TEST_MOCK_LIST_FORMATS_ERROR_KEY);
+    if (mockError) {
+      throw new Error(mockError);
+    }
+  }
+
   const args: string[] = [];
 
   const cookiesFile = req.cookiesFile?.trim();

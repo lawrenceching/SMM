@@ -96,7 +96,7 @@
     "validation": {
       "URL_EMPTY": "Please enter a video URL",
       "URL_INVALID": "Please enter a valid URL",
-      "URL_PLATFORM_NOT_ALLOWED": "Only YouTube and Bilibili URLs are supported"
+      "URL_PLATFORM_NOT_ALLOWED": "This website is not supported. Please check if yt-dlp supports this site."
     }
   },
   "scrape": {

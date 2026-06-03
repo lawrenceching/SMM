@@ -96,7 +96,7 @@
     "validation": {
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效的 URL",
-      "URL_PLATFORM_NOT_ALLOWED": "僅支援 YouTube 和 Bilibili 連結"
+      "URL_PLATFORM_NOT_ALLOWED": "該網站暫不支援, 請確認 yt-dlp 是否支援此網站"
     }
   },
   "scrape": {

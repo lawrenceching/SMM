@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   validateDownloadUrl,
-  ALLOWED_HOSTNAMES,
   URL_EMPTY,
   URL_INVALID,
-  URL_PLATFORM_NOT_ALLOWED,
 } from './download-video-validators'
 
 describe('validateDownloadUrl', () => {
@@ -48,7 +46,7 @@ describe('validateDownloadUrl', () => {
     })
   })
 
-  describe('allowed platforms', () => {
+  describe('allowed URLs (any valid http/https)', () => {
     it('should accept YouTube URL', () => {
       const result = validateDownloadUrl('https://www.youtube.com/watch?v=abc123')
       expect(result).toEqual({ valid: true })
@@ -64,66 +62,29 @@ describe('validateDownloadUrl', () => {
       expect(result).toEqual({ valid: true })
     })
 
-    it('should accept mobile YouTube URL', () => {
-      const result = validateDownloadUrl('https://m.youtube.com/watch?v=abc123')
-      expect(result).toEqual({ valid: true })
-    })
-
     it('should accept Bilibili URL', () => {
       const result = validateDownloadUrl('https://www.bilibili.com/video/BV1xx411c7mD')
       expect(result).toEqual({ valid: true })
     })
 
-    it('should accept Bilibili short URL', () => {
-      const result = validateDownloadUrl('https://b23.tv/abc123')
-      expect(result).toEqual({ valid: true })
-    })
-
-    it('should accept mobile Bilibili URL', () => {
-      const result = validateDownloadUrl('https://m.bilibili.com/video/BV1xx411c7mD')
-      expect(result).toEqual({ valid: true })
-    })
-
-    it('should accept Bilibili space collection URL', () => {
-      const result = validateDownloadUrl(
-        'https://space.bilibili.com/131560419/lists/7780118'
-      )
-      expect(result).toEqual({ valid: true })
-    })
-  })
-
-  describe('disallowed platforms', () => {
-    it('should reject Vimeo URL', () => {
+    it('should accept Vimeo URL', () => {
       const result = validateDownloadUrl('https://vimeo.com/123456')
-      expect(result).toEqual({ valid: false, error: URL_PLATFORM_NOT_ALLOWED })
+      expect(result).toEqual({ valid: true })
     })
 
-    it('should reject Dailymotion URL', () => {
+    it('should accept Dailymotion URL', () => {
       const result = validateDownloadUrl('https://www.dailymotion.com/video/x7tgad0')
-      expect(result).toEqual({ valid: false, error: URL_PLATFORM_NOT_ALLOWED })
+      expect(result).toEqual({ valid: true })
     })
 
-    it('should reject generic URL', () => {
+    it('should accept Twitch URL', () => {
+      const result = validateDownloadUrl('https://www.twitch.tv/videos/123456')
+      expect(result).toEqual({ valid: true })
+    })
+
+    it('should accept generic URL', () => {
       const result = validateDownloadUrl('https://example.com/video.mp4')
-      expect(result).toEqual({ valid: false, error: URL_PLATFORM_NOT_ALLOWED })
-    })
-  })
-
-  describe('ALLOWED_HOSTNAMES', () => {
-    it('should contain YouTube hostnames', () => {
-      expect(ALLOWED_HOSTNAMES).toContain('youtube.com')
-      expect(ALLOWED_HOSTNAMES).toContain('www.youtube.com')
-      expect(ALLOWED_HOSTNAMES).toContain('m.youtube.com')
-      expect(ALLOWED_HOSTNAMES).toContain('youtu.be')
-      expect(ALLOWED_HOSTNAMES).toContain('music.youtube.com')
-    })
-
-    it('should contain Bilibili hostnames', () => {
-      expect(ALLOWED_HOSTNAMES).toContain('bilibili.com')
-      expect(ALLOWED_HOSTNAMES).toContain('www.bilibili.com')
-      expect(ALLOWED_HOSTNAMES).toContain('m.bilibili.com')
-      expect(ALLOWED_HOSTNAMES).toContain('space.bilibili.com')
-      expect(ALLOWED_HOSTNAMES).toContain('b23.tv')
+      expect(result).toEqual({ valid: true })
     })
   })
 })

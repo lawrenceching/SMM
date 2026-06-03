@@ -4,21 +4,11 @@ export type ValidationResult =
 
 export const URL_EMPTY = 'URL_EMPTY'
 export const URL_INVALID = 'URL_INVALID'
-export const URL_PLATFORM_NOT_ALLOWED = 'URL_PLATFORM_NOT_ALLOWED'
 
-export const ALLOWED_HOSTNAMES: readonly string[] = [
-  'youtube.com',
-  'www.youtube.com',
-  'm.youtube.com',
-  'youtu.be',
-  'music.youtube.com',
-  'bilibili.com',
-  'www.bilibili.com',
-  'm.bilibili.com',
-  'space.bilibili.com',
-  'b23.tv',
-]
-
+/**
+ * Validates that the URL has a valid http/https format.
+ * Site-level support detection is delegated to yt-dlp at probe time.
+ */
 export function validateDownloadUrl(url: string): ValidationResult {
   if (!url.trim()) {
     return { valid: false, error: URL_EMPTY }
@@ -37,10 +27,6 @@ export function validateDownloadUrl(url: string): ValidationResult {
 
   if (!parsed.hostname) {
     return { valid: false, error: URL_INVALID }
-  }
-
-  if (!ALLOWED_HOSTNAMES.includes(parsed.hostname)) {
-    return { valid: false, error: URL_PLATFORM_NOT_ALLOWED }
   }
 
   return { valid: true }

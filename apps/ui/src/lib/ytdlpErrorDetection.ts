@@ -1,5 +1,5 @@
 /** Known error types that can occur during `--list-formats` or download. */
-export type YtdlpErrorType = "cookie-expired" | "format-unavailable" | "connection-timeout" | "unknown"
+export type YtdlpErrorType = "cookie-expired" | "format-unavailable" | "connection-timeout" | "unsupported-site" | "unknown"
 
 export interface YtdlpErrorResult {
   type: YtdlpErrorType
@@ -19,6 +19,11 @@ export function classifyYtdlpError(errorText: string): YtdlpErrorResult {
 
   if (/Requested format is not available/i.test(text)) {
     return { type: "format-unavailable", message: "请求格式不可用, 请尝试选择格式码" }
+  }
+
+  // Unsupported site — yt-dlp outputs "Unsupported URL: ..." when no extractor matches
+  if (/Unsupported URL/i.test(text)) {
+    return { type: "unsupported-site", message: "暂不支持该网站" }
   }
 
   if (/Connection to www\.youtube\.com timed out/i.test(text)) {
