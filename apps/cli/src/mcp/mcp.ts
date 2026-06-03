@@ -52,6 +52,15 @@ import { registerGetMediaMetadataTool } from "./tools";
 let handlerPromise: Promise<(req: Request) => Promise<Response>> | null = null;
 
 /**
+ * Clears the cached HTTP handler promise. Call this when the MCP server is stopped
+ * so that the next getMcpStreamableHttpHandler() call creates a fresh handler.
+ * This also allows recovery after a failed handler creation attempt.
+ */
+export function resetMcpStreamableHttpHandler(): void {
+  handlerPromise = null;
+}
+
+/**
  * Returns a request handler for MCP Streamable HTTP. Creates the MCP server and transport
  * on first call and reuses them for subsequent requests.
  */

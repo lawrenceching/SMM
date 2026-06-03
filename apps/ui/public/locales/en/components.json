@@ -174,6 +174,8 @@
     "mcp": {
       "serverOn": "MCP server on",
       "serverOff": "MCP server off",
+      "serverError": "MCP server error",
+      "unknownError": "Unknown error",
       "title": "MCP Server",
       "subtitle": "Model Context Protocol",
       "turnOff": "Turn MCP server off",
@@ -182,6 +184,7 @@
       "protocol": "Protocol",
       "protocolValue": "Streamable HTTP",
       "disabledMessage": "Enable MCP in Settings → General to expose server on its own port.",
+      "startFailedOnLoad": "MCP server stopped unexpectedly after startup. Check the server logs for details.",
       "documentation": "Documentation"
     },
     "database": {

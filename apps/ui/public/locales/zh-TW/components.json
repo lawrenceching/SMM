@@ -172,6 +172,8 @@
     "mcp": {
       "serverOn": "MCP伺服器已開啟",
       "serverOff": "MCP伺服器已關閉",
+      "serverError": "MCP伺服器錯誤",
+      "unknownError": "未知錯誤",
       "title": "MCP伺服器",
       "subtitle": "模型上下文協定",
       "turnOff": "關閉MCP伺服器",
@@ -180,6 +182,7 @@
       "protocol": "協定",
       "protocolValue": "串流HTTP",
       "disabledMessage": "在設定 → 常規中啟用MCP以在獨立連接埠上公開伺服器。",
+      "startFailedOnLoad": "MCP伺服器在啟動後意外停止。請檢查伺服器日誌了解詳情。",
       "documentation": "文件"
     },
     "database": {

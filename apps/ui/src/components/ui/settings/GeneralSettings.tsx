@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
+import { startMcpServer, stopMcpServer } from "@/api/mcp"
 
 const THEME_OPTIONS = ["light", "dark", "system"] as const
 const PRIMARY_DATABASE_OPTIONS: {
@@ -144,7 +145,30 @@ export function GeneralSettings() {
       mcpHost: mcpHost || undefined,
       mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
     }
-    setAndSaveUserConfig(traceId, updatedConfig)
+    await setAndSaveUserConfig(traceId, updatedConfig)
+
+    // ── Sync MCP server after config save ──────────────────
+    const mcpToggledOn = enableMcpServer && !initialValues.enableMcpServer
+    const mcpToggledOff = !enableMcpServer && initialValues.enableMcpServer
+    const mcpHostOrPortChanged =
+      mcpHost !== initialValues.mcpHost ||
+      mcpPort !== String(initialValues.mcpPort)
+
+    try {
+      if (mcpToggledOff) {
+        await stopMcpServer()
+      } else if (mcpToggledOn) {
+        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+      } else if (enableMcpServer && mcpHostOrPortChanged) {
+        // Restart with new host/port
+        await stopMcpServer()
+        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[${traceId}] MCP server sync failed:`, msg)
+      // Toggle stays ON per design — user can view error in McpIndicator popover
+    }
   }
 
   return (

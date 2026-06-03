@@ -7,8 +7,6 @@ import { existedFileError, isError, ExistedFileError } from '@core/errors';
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
 import type { Hono } from 'hono';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
-import { getUserConfigPath } from '@/utils/config';
-import { applyMcpConfig } from '@/mcp/mcpServerManager';
 
 const writeFileRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
@@ -189,15 +187,6 @@ export function handleWriteFile(app: Hono) {
         }
         logHttpRespOut(c, result, 400);
         return c.json(result, 400);
-      }
-
-      // If user config file was written, apply MCP server config (start/stop/restart)
-      const writtenPath = path.resolve((rawBody as WriteFileRequestBody).path);
-      const configPath = path.resolve(getUserConfigPath());
-      if (writtenPath === configPath) {
-        applyMcpConfig().catch((err) =>
-          logger.error({ err, traceId }, 'WriteFile: applyMcpConfig failed after config write')
-        );
       }
 
       logHttpRespOut(c, result, 200);

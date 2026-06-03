@@ -197,6 +197,9 @@ interface ComponentsResources {
     mcp: {
       serverOn: string
       serverOff: string
+      serverError: string
+      unknownError: string
+      startFailedOnLoad: string
       title: string
       subtitle: string
       turnOff: string

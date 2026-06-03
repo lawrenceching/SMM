@@ -25,3 +25,15 @@ Whitelisted commands: `ffmpeg`, `ffprobe`, `yt-dlp`, `videocaptioner`. The UI bu
 ## TencentAsrTranscribe
 Source Code: apps/cli/src/route/tencentAsr/Transcribe.ts
 HTTP: `POST /api/tencent-asr/transcribe`
+
+## McpStart
+Source Code: apps/cli/src/route/Mcp.ts
+HTTP: `PUT /api/mcp/start` — starts the MCP server on the configured host:port. Optional request body: `{ host?: string, port?: number }`. Returns `McpServerState` JSON (`{ status: 'running' | 'stopped' | 'error', host?, port?, error? }`).
+
+## McpStop
+Source Code: apps/cli/src/route/Mcp.ts
+HTTP: `PUT /api/mcp/stop` — stops the MCP server gracefully. No request body. Returns `McpServerState` JSON.
+
+## McpStatus
+Source Code: apps/cli/src/route/Mcp.ts
+HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as `McpServerState` JSON.
