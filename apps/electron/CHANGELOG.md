@@ -1,5 +1,11 @@
 # SMM
 
+## 1.3.7
+
+### Patch Changes
+
+- v1.3.7
+
 ## 1.3.6
 
 ### Patch Changes
