@@ -289,12 +289,12 @@ S01E12 - - - -`)
                                 {
                                     "season": 1,
                                     "episode": 7,
-                                    "name": "聽不懂宮姐在說什麼\t"
+                                    "name": "聽不懂宮姐在說什麼"
                                 },
                                 {
                                     "season": 1,
                                     "episode": 8,
-                                    "name": "有些事情不知為妙\t"
+                                    "name": "有些事情不知為妙"
                                 },
                                 {
                                     "season": 1,
