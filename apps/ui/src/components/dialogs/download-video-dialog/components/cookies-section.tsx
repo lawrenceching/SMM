@@ -18,6 +18,7 @@ import {
   DOWNLOAD_VIDEO_COOKIES_WIKI_URL,
   getDownloadVideoCookiePlatformDisplayName,
 } from "@core/download-video-cookie-platform"
+import localStorages from "@/lib/localStorages"
 
 export interface CookiesSectionProps {
   url: string
@@ -65,6 +66,7 @@ export function CookiesSection({
   const tutorialLinkLabel = t("downloadVideo.cookiesHintTutorialLink")
   const hintEmphasized = isYoutubeHint && youtubeCookiesHintEmphasized
   const hintFlashing = isYoutubeHint && youtubeCookiesHintFlashKey > 0
+  const guideUrl = localStorages.cookieGuideUrl ?? DOWNLOAD_VIDEO_COOKIES_WIKI_URL
 
   return (
     <div data-testid="download-video-dialog-cookies-section">
@@ -80,7 +82,7 @@ export function CookiesSection({
       >
         {cookiesHint}{" "}
         <a
-          href={DOWNLOAD_VIDEO_COOKIES_WIKI_URL}
+          href={guideUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={cn(

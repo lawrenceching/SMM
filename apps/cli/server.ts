@@ -45,6 +45,7 @@ import { handleCommandLog } from './src/route/commandLog';
 import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
 import { handleMcpRoutes } from './src/route/Mcp';
+import { handleSpeedtest } from './src/route/speedtest';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -225,6 +226,7 @@ export class Server {
     handleCommandExecutionStatus(this.app);
     handleLog(this.app);
     handleMcpRoutes(this.app);
+    handleSpeedtest(this.app);
     // POST /api/execute - Special orchestration route for multiple tasks
     this.app.post('/api/execute', async (c) => {
       try {

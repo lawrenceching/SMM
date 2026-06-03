@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest"
 import {
   getDownloadVideoCookiePlatformDisplayName,
   isYoutubeDownloadUrl,
+  DOWNLOAD_VIDEO_COOKIES_WIKI_URL,
+  DOWNLOAD_VIDEO_COOKIES_GITCODE_URL,
 } from "./download-video-cookie-platform"
 
 describe("getDownloadVideoCookiePlatformDisplayName", () => {
@@ -33,6 +35,22 @@ describe("getDownloadVideoCookiePlatformDisplayName", () => {
 
   it("returns empty string for unsupported hosts", () => {
     expect(getDownloadVideoCookiePlatformDisplayName("https://vimeo.com/123")).toBe("")
+  })
+})
+
+describe("DOWNLOAD_VIDEO_COOKIES_WIKI_URL", () => {
+  it("points to GitHub wiki", () => {
+    expect(DOWNLOAD_VIDEO_COOKIES_WIKI_URL).toMatch(
+      /^https:\/\/github\.com\/lawrenceching\/SMM\/wiki\//,
+    )
+  })
+})
+
+describe("DOWNLOAD_VIDEO_COOKIES_GITCODE_URL", () => {
+  it("points to GitCode discussion", () => {
+    expect(DOWNLOAD_VIDEO_COOKIES_GITCODE_URL).toMatch(
+      /^https:\/\/gitcode\.com\/lawrenceching\/simple-media-manager\/discussions\//,
+    )
   })
 })
 

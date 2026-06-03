@@ -1,6 +1,7 @@
 const STORAGE_KEY_SELECTED_FOLDER_INDEX = 'selectedFolderIndex';
 const STORAGE_KEY_FILE_PICKER_LAST_DIR = 'filepickerdialog.lastdir';
 const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
+const STORAGE_KEY_COOKIE_GUIDE_URL = 'cookie_guide_url';
 
 const localStorages = {
     get selectedFolderIndex(): number | null {
@@ -44,6 +45,24 @@ const localStorages = {
     set filePickerLastDir(path: string) {
         try {
             localStorage.setItem(STORAGE_KEY_FILE_PICKER_LAST_DIR, path);
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get cookieGuideUrl(): string | null {
+        try {
+            return localStorage.getItem(STORAGE_KEY_COOKIE_GUIDE_URL);
+        } catch {
+            return null;
+        }
+    },
+    set cookieGuideUrl(url: string | null) {
+        try {
+            if (url) {
+                localStorage.setItem(STORAGE_KEY_COOKIE_GUIDE_URL, url);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_COOKIE_GUIDE_URL);
+            }
         } catch {
             // Ignore localStorage errors
         }

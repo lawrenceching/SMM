@@ -40,3 +40,6 @@ export function isYoutubeDownloadUrl(url: string): boolean {
 
 export const DOWNLOAD_VIDEO_COOKIES_WIKI_URL =
   "https://github.com/lawrenceching/SMM/wiki/How-to-login(set-cookies)-before-downloading"
+
+export const DOWNLOAD_VIDEO_COOKIES_GITCODE_URL =
+  "https://gitcode.com/lawrenceching/simple-media-manager/discussions/3"
