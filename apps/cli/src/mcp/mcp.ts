@@ -104,11 +104,6 @@ export async function getMcpStreamableHttpHandler(): Promise<
 
     await registerGetEpisodeTool(server);
     await registerGetEpisodesTool(server);
-    
-    await registerTmdbSearchTool(server);
-    await registerTmdbGetMovieTool(server);
-    await registerTmdbGetTvShowTool(server);
-
 
     // Stateless mode — each request needs a fresh transport.
     // Close the previous transport connection first so server.connect()
