@@ -97,6 +97,33 @@
       "URL_EMPTY": "请输入视频 URL",
       "URL_INVALID": "请输入有效的 URL",
       "URL_PLATFORM_NOT_ALLOWED": "该网站暂不支持, 请确认 yt-dlp 是否支持此网站"
+    },
+    "errors": {
+      "cookieExpired": "Cookies 过期或无效, 请重新配置",
+      "botDetection": "YouTube 检测到异常流量请求, 请提供有效的 Cookies",
+      "ageRestricted": "该视频有年龄限制, 请提供已登录的 Cookies",
+      "loginRequired": "该视频需要登录, 请提供有效的 Cookies",
+      "formatUnavailable": "请求格式不可用, 请尝试选择格式码",
+      "unsupportedUrl": "暂不支持该网站",
+      "videoUnavailable": "该视频不可用 (已删除、私密或已结束)",
+      "geoRestricted": "该视频有地区限制, 无法在当前地区访问",
+      "http403": "服务器拒绝访问 (HTTP 403), 可能需要提供 Cookies 或更换网络",
+      "http404": "视频不存在 (HTTP 404)",
+      "http410": "视频已被删除 (HTTP 410)",
+      "http412": "请求被网站反爬虫系统拦截 (HTTP 412), 建议提供 Cookies 或等待后重试",
+      "http429": "请求过于频繁, 请稍后重试 (HTTP 429)",
+      "http5xx": "服务器错误, 请稍后重试 (HTTP 5xx)",
+      "connectionTimeout": "连接 {{host}} 超时",
+      "networkError": "网络连接失败, 请检查网络设置",
+      "ffmpegMissing": "缺少 FFmpeg, 请安装 FFmpeg",
+      "postprocessingError": "后处理失败, 请查看日志",
+      "sameFileError": "文件已存在",
+      "keyboardInterrupt": "下载被用户中断",
+      "contentTooShort": "下载数据不完整, 请重试",
+      "playerRequestFailed": "播放器请求失败, 请重试",
+      "optionsError": "yt-dlp 命令行参数有误",
+      "downloadCancelled": "下载已被取消",
+      "unknown": "未知错误, 请从状态栏任务列表中查看详细日志"
     }
   },
   "scrape": {

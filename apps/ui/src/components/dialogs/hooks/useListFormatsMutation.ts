@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from "react"
 import { listYtdlpFormats, type YtdlpListFormatsRequest } from "@/api/ytdlp"
 import type { VideoMetadata } from "@/api/ytdlp/types"
-import { reportYtdlpError } from "@/lib/ytdlpErrorDetection"
+import {
+  classifyYtdlpError,
+  getYtdlpErrorMessage,
+} from "@/lib/ytdlpErrorDetection"
+import { useTranslation } from "@/lib/i18n"
 
 export interface UseListFormatsMutationReturn {
   /** Parsed video metadata from `yt-dlp -J`, or null if not yet fetched. */
@@ -19,6 +23,7 @@ export interface UseListFormatsMutationReturn {
 }
 
 export function useListFormatsMutation(): UseListFormatsMutationReturn {
+  const { t } = useTranslation("dialogs")
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata | null>(null)
   const [videoListEntries, setVideoListEntries] = useState<VideoMetadata[] | null>(null)
   const [isListing, setIsListing] = useState(false)
@@ -40,8 +45,14 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
       })
       .catch((err) => {
         if (gen !== genRef.current) return
-        const message = err instanceof Error ? err.message : String(err)
-        const { message: displayMessage } = reportYtdlpError("list-formats", message, err)
+        const errMessage = err instanceof Error ? err.message : String(err)
+        // Classify the error using the combined error text
+        const result = classifyYtdlpError({
+          stderr: errMessage,
+          stdout: "",
+          exitCode: null,
+        })
+        const displayMessage = getYtdlpErrorMessage(result, t as any)
         setListingError(displayMessage)
         setVideoMetadata(null)
         setVideoListEntries(null)
@@ -52,7 +63,7 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
           onSettled?.()
         }
       })
-  }, [])
+  }, [t])
 
   const reset = useCallback(() => {
     genRef.current += 1

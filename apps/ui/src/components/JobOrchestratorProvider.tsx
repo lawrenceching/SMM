@@ -47,6 +47,10 @@ import {
   buildYtdlpDownloadArgs,
   parseYtdlpDownloadStdout,
 } from '@core/whitelistedCmd/ytdlp'
+import {
+  classifyYtdlpError,
+  getYtdlpErrorMessage,
+} from '@/lib/ytdlpErrorDetection'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -398,6 +402,16 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               if (!result.success) {
                 video.status = 'failed'
                 allSucceeded = false
+                // Classify yt-dlp error for a specific toast message
+                if (!data.ytdlpErrorType) {
+                  const errResult = classifyYtdlpError({
+                    stderr: result.stderr ?? '',
+                    stdout: result.stdout ?? '',
+                    exitCode: result.exitCode,
+                  })
+                  data.ytdlpErrorType = errResult.type
+                  data.ytdlpErrorMessage = getYtdlpErrorMessage(errResult, tRef.current as any)
+                }
               } else {
                 const outPath = parseYtdlpDownloadStdout(result.stdout)
                 if (outPath) {
@@ -413,6 +427,17 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               }
               video.status = 'failed'
               allSucceeded = false
+              // Classify yt-dlp error from exception message
+              if (!data.ytdlpErrorType) {
+                const errMessage = e instanceof Error ? e.message : String(e)
+                const errResult = classifyYtdlpError({
+                  stderr: errMessage,
+                  stdout: '',
+                  exitCode: null,
+                })
+                data.ytdlpErrorType = errResult.type
+                data.ytdlpErrorMessage = getYtdlpErrorMessage(errResult, tRef.current as any)
+              }
             }
 
             record.data = JSON.stringify(data)
@@ -614,7 +639,14 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       } else if (success && config.toasts?.succeeded) {
         toast.success(config.toasts.succeeded(tRef.current))
       } else if (!success && config.toasts?.failed) {
-        toast.error(config.toasts.failed(tRef.current))
+        // Check for classified yt-dlp error (download-video)
+        const ytdlpErrorType = data.ytdlpErrorType as string | undefined
+        const ytdlpErrorMessage = data.ytdlpErrorMessage as string | undefined
+        if (ytdlpErrorType && ytdlpErrorMessage && ytdlpErrorType !== 'unknown') {
+          toast.error(ytdlpErrorMessage)
+        } else {
+          toast.error(config.toasts.failed(tRef.current))
+        }
       } else if (!success) {
         // Generic fallback for types without specific toast messages
         toast.error(tRef.current('statusBar.backgroundJobs.toasts.genericFailed', { name: record.name } as Record<string, unknown>))

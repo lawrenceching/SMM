@@ -97,6 +97,33 @@
       "URL_EMPTY": "請輸入影片 URL",
       "URL_INVALID": "請輸入有效嘅 URL",
       "URL_PLATFORM_NOT_ALLOWED": "該網站暫不支援, 請確認 yt-dlp 是否支援此網站"
+    },
+    "errors": {
+      "cookieExpired": "Cookies 過期或無效, 請重新配置",
+      "botDetection": "YouTube 檢測到異常流量請求, 請提供有效嘅 Cookies",
+      "ageRestricted": "該影片有年齡限制, 請提供已登入嘅 Cookies",
+      "loginRequired": "該影片需要登入, 請提供有效嘅 Cookies",
+      "formatUnavailable": "請求格式唔可用, 請嘗試選擇格式碼",
+      "unsupportedUrl": "暫唔支援該網站",
+      "videoUnavailable": "該影片唔可用 (已刪除、私人或已結束)",
+      "geoRestricted": "該影片有地區限制, 無法喺目前地區存取",
+      "http403": "伺服器拒絕存取 (HTTP 403), 可能需要提供 Cookies 或更換網絡",
+      "http404": "影片唔存在 (HTTP 404)",
+      "http410": "影片已被刪除 (HTTP 410)",
+      "http412": "請求被網站反爬蟲系統攔截 (HTTP 412), 建議提供 Cookies 或等陣再試",
+      "http429": "請求過於頻繁, 請稍後再試 (HTTP 429)",
+      "http5xx": "伺服器錯誤, 請稍後再試 (HTTP 5xx)",
+      "connectionTimeout": "連接 {{host}} 超時",
+      "networkError": "網絡連接失敗, 請檢查網絡設定",
+      "ffmpegMissing": "缺少 FFmpeg, 請安裝 FFmpeg",
+      "postprocessingError": "後處理失敗, 請查看日誌",
+      "sameFileError": "檔案已存在",
+      "keyboardInterrupt": "下載被用戶中斷",
+      "contentTooShort": "下載數據唔完整, 請重試",
+      "playerRequestFailed": "播放器請求失敗, 請重試",
+      "optionsError": "yt-dlp 命令列參數有誤",
+      "downloadCancelled": "下載已被取消",
+      "unknown": "未知錯誤, 請從狀態列任務列表中查看詳細日誌"
     }
   },
   "scrape": {
