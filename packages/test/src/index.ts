@@ -170,11 +170,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
                 baseURL: 'https://api.deepseek.com',
                 model: 'deepseek-v4-flash',
                 apiKey: deepseekApiKey,
-            },
-            { name: 'OpenAI', baseURL: '', apiKey: '', model: '' },
-            { name: 'OpenRouter', baseURL: '', apiKey: '', model: '' },
-            { name: 'GLM', baseURL: '', apiKey: '', model: '' },
-            { name: 'Other', baseURL: '', apiKey: '', model: '' },
+            }
         ],
         preferMediaLanguage: undefined,
         selectedAIProvider: 'DeepSeek',

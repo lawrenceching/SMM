@@ -10,7 +10,7 @@ const Key = {
     Escape: '\uE00C'
 }
 
-type SettingsTab = 'general' | 'ai' | 'rename-rules' | 'feedback'
+type SettingsTab = 'general' | 'ai' | 'external-apps' | 'rename-rules' | 'feedback'
 type PreferMediaLanguageCode = "__unset__" | "zh-CN" | "en-US" | "ja-JP"
 type ThemeMode = "light" | "dark" | "system"
 
@@ -175,13 +175,50 @@ class ConfigDialog {
         return $('[data-testid="setting-ffmpeg-executable-path"]')
     }
 
+    get ytdlpPathHint() {
+        return $('[data-testid="setting-ytdlp-path-hint"]')
+    }
+
     get ytdlpVersion() {
         return $('[data-testid="setting-ytdlp-version"]')
     }
 
+    get ffmpegPathHint() {
+        return $('[data-testid="setting-ffmpeg-path-hint"]')
+    }
 
     get ffmpegVersion() {
         return $('[data-testid="setting-ffmpeg-version"]')
+    }
+
+    // ==================== External Applications (new tab) ====================
+
+    get externalAppsSettings() {
+        return $('[data-testid="external-apps-settings"]')
+    }
+
+    get quickjsPathInput() {
+        return $('[data-testid="setting-quickjs-executable-path"]')
+    }
+
+    get quickjsBrowseButton() {
+        return $('[data-testid="setting-quickjs-browse"]')
+    }
+
+    get quickjsPathHint() {
+        return $('[data-testid="setting-quickjs-path-hint"]')
+    }
+
+    get quickjsVersion() {
+        return $('[data-testid="setting-quickjs-version"]')
+    }
+
+    get videoCaptionerPath() {
+        return $('[data-testid="setting-videocaptioner-path"]')
+    }
+
+    get useBundledFfmpegCheckbox() {
+        return $('[data-testid="setting-use-bundled-ffmpeg-videocaptioner"]')
     }
 
     /**
@@ -342,10 +379,13 @@ class ConfigDialog {
     }
 
     /**
-     * Set the value of an input field
+     * Set the value of an input field.
+     * Works with standard Input and {@link RadixDialogCompatibleCombobox}.
+     * Does not press Escape — that closes the Radix config dialog when focus is on a plain input.
      */
     async setInputValue(element: ChainablePromiseElement, value: string): Promise<void> {
         await element.waitForExist({ timeout: 5000 })
+        await element.scrollIntoView()
         await element.click()
 
         // Clear existing value (works cross-platform; Ctrl+A fails on macOS where Select All is Cmd+A)
@@ -361,6 +401,106 @@ class ConfigDialog {
         if (value.length > 0) {
             await browser.keys(value)
         }
+    }
+
+    /**
+     * Whether a combobox listbox popover is open (Radix portals it outside ai-settings).
+     */
+    async isComboboxPopoverOpen(): Promise<boolean> {
+        const listboxes = await $$('[role="listbox"]')
+        for (const listbox of listboxes) {
+            try {
+                if (await listbox.isDisplayed()) {
+                    return true
+                }
+            } catch {
+                // stale element — continue
+            }
+        }
+        return false
+    }
+
+    /**
+     * Close a combobox popover via its toggle button (do not use Escape — it closes the config dialog).
+     */
+    async dismissComboboxPopover(comboboxInput: ChainablePromiseElement): Promise<void> {
+        if (!(await this.isComboboxPopoverOpen())) {
+            return
+        }
+
+        const toggle = await comboboxInput.parentElement().$('button[data-slot="combobox-toggle"]')
+        await toggle.waitForExist({ timeout: 5000 })
+        await toggle.waitForClickable({ timeout: 5000 })
+        await toggle.click()
+
+        await browser.waitUntil(async () => !(await this.isComboboxPopoverOpen()), {
+            timeout: 3000,
+            timeoutMsg: 'Combobox popover did not close after toggle click',
+        })
+
+        await browser.pause(100)
+    }
+
+    /**
+     * Commit a creatable combobox value and close its popover.
+     * Clicks the matching list option when present (Radix commit path); otherwise toggles closed.
+     */
+    async commitComboboxValue(comboboxInput: ChainablePromiseElement, value: string): Promise<void> {
+        if (!(await this.isComboboxPopoverOpen())) {
+            return
+        }
+
+        const trimmed = value.trim()
+        const options = await $$('[role="listbox"] [role="option"]')
+        for (const opt of options) {
+            try {
+                if (!(await opt.isDisplayed())) {
+                    continue
+                }
+                const text = (await opt.getText()).trim()
+                if (text === trimmed) {
+                    await opt.click()
+                    await browser.waitUntil(async () => !(await this.isComboboxPopoverOpen()), {
+                        timeout: 3000,
+                        timeoutMsg: `Combobox popover did not close after selecting option "${trimmed}"`,
+                    })
+                    await browser.pause(100)
+                    return
+                }
+            } catch {
+                // stale option — try next
+            }
+        }
+
+        await this.dismissComboboxPopover(comboboxInput)
+    }
+
+    /**
+     * Set a creatable combobox value, commit it, then focus the next field.
+     */
+    async setComboboxInputValue(
+        element: ChainablePromiseElement,
+        value: string,
+        blurTarget: ChainablePromiseElement,
+    ): Promise<void> {
+        await element.waitForExist({ timeout: 5000 })
+        await element.scrollIntoView()
+        await element.click()
+        await element.clearValue()
+        await browser.pause(100)
+        await element.setValue(value)
+        await browser.pause(100)
+
+        await this.commitComboboxValue(element, value)
+
+        if (await this.isComboboxPopoverOpen()) {
+            throw new Error('Combobox popover still open after commit')
+        }
+
+        await blurTarget.waitForExist({ timeout: 5000 })
+        await blurTarget.scrollIntoView()
+        await blurTarget.click()
+        await browser.pause(150)
     }
 
     /**
@@ -630,71 +770,63 @@ class ConfigDialog {
     // ==================== External Tools Actions ====================
 
     /**
-     * Check if yt-dlp version is displayed
+     * Check if yt-dlp version is displayed (via specific testid).
      */
     async isYtdlpVersionDisplayed(): Promise<boolean> {
         try {
-            // Look for version text containing "Version:" 
-            const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
-            for (const textElement of versionTexts) {
-                const text = await textElement.getText()
-                if (text.includes('Version:')) {
-                    return true
-                }
-            }
-            return false
+            const el = await this.ytdlpVersion
+            return await el.isDisplayed()
         } catch {
             return false
         }
     }
 
     /**
-     * Check if ffmpeg version is displayed
+     * Check if ffmpeg version is displayed (via specific testid).
      */
     async isFfmpegVersionDisplayed(): Promise<boolean> {
         try {
-            // Look for version text containing "Version:"
-            const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
-            for (const textElement of versionTexts) {
-                const text = await textElement.getText()
-                if (text.includes('Version:')) {
-                    return true
-                }
-            }
-            return false
+            const el = await this.ffmpegVersion
+            return await el.isDisplayed()
         } catch {
             return false
         }
     }
 
     /**
-     * Get yt-dlp version text
+     * Get yt-dlp version text (e.g. "Version: 2025.01.15").
      */
-    async getYtdlpVersion(): Promise<string> {
-        const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
-        for (const textElement of versionTexts) {
-            const text = await textElement.getText()
-            if (text.includes('Version:')) {
-                return text
-            }
+    async getYtdlpVersionText(): Promise<string> {
+        try {
+            const el = await this.ytdlpVersion
+            return await el.getText()
+        } catch {
+            return ''
         }
-        return ''
     }
 
     /**
-     * Get ffmpeg version text
+     * Get ffmpeg version text (e.g. "Version: 7.1").
      */
-    async getFfmpegVersion(): Promise<string> {
-        const versionTexts = await $$('p=//*[contains(text(), "Version:")]')
-        // Return the second one (first is yt-dlp, second is ffmpeg)
-        const versionCount = await versionTexts.length
-        if (versionCount >= 2) {
-            const ffmpegVersion = versionTexts[1]
-            if (ffmpegVersion) {
-                return await ffmpegVersion.getText()
-            }
+    async getFfmpegVersionText(): Promise<string> {
+        try {
+            const el = await this.ffmpegVersion
+            return await el.getText()
+        } catch {
+            return ''
         }
-        return ''
+    }
+
+    /**
+     * Get QuickJS version text (e.g. "Version: 2024-01-13").
+     */
+    async getQuickjsVersionText(): Promise<string> {
+        try {
+            const el = await this.quickjsVersion
+            return await el.getText()
+        } catch {
+            return ''
+        }
     }
 
     // ==================== AI Settings Actions ====================
@@ -742,10 +874,25 @@ class ConfigDialog {
     }
 
     /**
+     * Scroll a provider card into view inside the scrollable config panel.
+     */
+    async scrollProviderCardIntoView(index: number): Promise<void> {
+        const card = await this.getProviderCard(index)
+        await card.waitForExist({ timeout: 5000 })
+        await card.scrollIntoView({ block: 'center' })
+        await browser.pause(150)
+    }
+
+    /**
      * Set the provider name by index
      */
     async setProviderName(index: number, value: string): Promise<void> {
-        await this.setInputValue(this.getProviderNameInput(index), value)
+        await this.scrollProviderCardIntoView(index)
+        await this.setComboboxInputValue(
+            this.getProviderNameInput(index),
+            value,
+            this.getProviderBaseUrlInput(index),
+        )
     }
 
     /**
@@ -759,6 +906,7 @@ class ConfigDialog {
      * Set the provider base URL by index
      */
     async setProviderBaseUrl(index: number, value: string): Promise<void> {
+        await this.scrollProviderCardIntoView(index)
         await this.setInputValue(this.getProviderBaseUrlInput(index), value)
     }
 
@@ -773,6 +921,7 @@ class ConfigDialog {
      * Set the provider API key by index
      */
     async setProviderApiKey(index: number, value: string): Promise<void> {
+        await this.scrollProviderCardIntoView(index)
         await this.setInputValue(this.getProviderApiKeyInput(index), value)
     }
 
@@ -787,7 +936,26 @@ class ConfigDialog {
      * Set the provider model by index
      */
     async setProviderModel(index: number, value: string): Promise<void> {
-        await this.setInputValue(this.getProviderModelInput(index), value)
+        await this.scrollProviderCardIntoView(index)
+        await this.setComboboxInputValue(
+            this.getProviderModelInput(index),
+            value,
+            this.getProviderCheckButton(index),
+        )
+    }
+
+    /**
+     * Fill all fields on a provider card (name/model use combobox commit helpers).
+     */
+    async fillProvider(
+        index: number,
+        provider: { name: string; baseURL: string; apiKey: string; model: string },
+    ): Promise<void> {
+        await this.scrollProviderCardIntoView(index)
+        await this.setProviderName(index, provider.name)
+        await this.setProviderBaseUrl(index, provider.baseURL)
+        await this.setProviderApiKey(index, provider.apiKey)
+        await this.setProviderModel(index, provider.model)
     }
 
     /**

@@ -119,6 +119,11 @@ And the test status of v1.1.0
 | Messages                                         |        |         |
 | TMDB/TVDB Connectivity                           |        |         |
 | videocaptioner not found                         |        |         |
+|                                                  |        |         |
+|                                                  |        |         |
+|                                                  |        |         |
+| Dark Mode                     |        |         |
+
 
 右键菜单
  - 属性/编辑标签

@@ -103,13 +103,12 @@ class DownloadVideoDialogCO {
         return $('[data-testid="download-video-dialog-embed-metadata-checkbox"]')
     }
 
-    get downloadEpisodesCheckbox() {
-        return $('[data-testid="download-video-dialog-episodes-checkbox"]')
+    get listingLogButton() {
+        return $('[data-testid="download-video-dialog-listing-log-button"]')
     }
 
-    /** @deprecated Use {@link downloadEpisodesCheckbox} */
-    get episodesCheckbox() {
-        return this.downloadEpisodesCheckbox
+    get videoList() {
+        return $('[data-testid="download-video-dialog-video-list"]')
     }
 
     get episodesList() {
@@ -120,16 +119,45 @@ class DownloadVideoDialogCO {
         return $$('[data-testid="download-video-dialog-episodes-list-item"]')
     }
 
-    get getVideosCheckbox() {
-        return $('[data-testid="download-video-dialog-get-videos-checkbox"]')
+    // --- New element getters ---
+
+    // Cookies section
+    get cookiesSection() {
+        return $('[data-testid="download-video-dialog-cookies-section"]')
     }
 
-    get collectionList() {
-        return $('[data-testid="download-video-dialog-collection-list"]')
+    get cookiesHint() {
+        return $('[data-testid="download-video-dialog-cookies-hint"]')
     }
 
-    get collectionListItems() {
-        return $$('[data-testid="download-video-dialog-collection-list-item"]')
+    get cookiesTutorialLink() {
+        return $('[data-testid="download-video-dialog-cookies-tutorial-link"]')
+    }
+
+    get cookiesEmptyHint() {
+        return $('[data-testid="download-video-dialog-cookies-empty-hint"]')
+    }
+
+    get format1080pAuthHint() {
+        return $('[data-testid="download-video-dialog-1080p-auth-hint"]')
+    }
+
+    // Format code select
+    get formatCodeSelectTrigger() {
+        return $('[data-testid="download-video-dialog-format-code-select"]')
+    }
+
+    get supplementaryFormatCodeSelectTrigger() {
+        return $('[data-testid="download-video-dialog-supplementary-format-code-select"]')
+    }
+
+    // JS Runtime
+    get jsRuntimeCheckbox() {
+        return $('[data-testid="download-video-dialog-use-js-runtime-checkbox"]')
+    }
+
+    get jsRuntimeSelectTrigger() {
+        return $('[data-testid="download-video-dialog-js-runtime-select"]')
     }
 
     get folderInput() {
@@ -255,24 +283,6 @@ class DownloadVideoDialogCO {
             timeout: 5000,
             timeoutMsg: "Cookies text dialog did not close after confirm",
         })
-    }
-
-    async setDownloadEpisodes(checked: boolean): Promise<void> {
-        const checkbox = await this.downloadEpisodesCheckbox
-        await checkbox.waitForExist({ timeout: 5000 })
-        const currentValue = await checkbox.isSelected()
-        if (currentValue !== checked) {
-            await checkbox.click()
-        }
-    }
-
-    async setGetVideos(checked: boolean): Promise<void> {
-        const checkbox = await this.getVideosCheckbox
-        await checkbox.waitForExist({ timeout: 5000 })
-        const currentValue = await checkbox.isSelected()
-        if (currentValue !== checked) {
-            await checkbox.click()
-        }
     }
 
     async setMoreOptions(checked: boolean): Promise<void> {
@@ -405,10 +415,10 @@ class DownloadVideoDialogCO {
     }
 
     /**
-     * Waits until the collection list is shown and the item count is stable
-     * (metadata fetch finished).
+     * Waits until the video (episodes) list is shown and the item count is stable
+     * (metadata fetch finished). Replaces the deprecated waitForCollectionListLoaded.
      */
-    async waitForCollectionListLoaded(options?: {
+    async waitForVideoListLoaded(options?: {
         minItems?: number
         timeout?: number
         interval?: number
@@ -422,14 +432,14 @@ class DownloadVideoDialogCO {
 
         await browser.waitUntil(
             async () => {
-                const list = await this.collectionList
+                const list = await this.episodesList
                 if (!(await list.isExisting().catch(() => false))) {
                     lastCount = -1
                     stablePolls = 0
                     return false
                 }
 
-                const items = await this.collectionListItems
+                const items = await this.episodesListItems
                 const count = await items.length
                 if (count < minItems) {
                     lastCount = -1
@@ -453,37 +463,11 @@ class DownloadVideoDialogCO {
             {
                 timeout,
                 interval,
-                timeoutMsg: `[DownloadVideoDialog] Collection list did not stabilize (min ${minItems} items) within ${timeout}ms`,
+                timeoutMsg: `[DownloadVideoDialog] Video list did not stabilize (min ${minItems} items) within ${timeout}ms`,
             },
         )
 
         return resolvedCount
-    }
-
-    async uncheckCollectionExcept(keepIndices: number[]): Promise<void> {
-        const list = await this.collectionList
-        await list.waitForDisplayed({ timeout: 5000 })
-
-        const keepIndexSet = new Set(keepIndices)
-        const items = await this.collectionListItems
-        const itemCount = await items.length
-
-        for (let index = 0; index < itemCount; index += 1) {
-            if (keepIndexSet.has(index)) {
-                continue
-            }
-
-            const item = items[index]
-            if (!item) {
-                continue
-            }
-            const checkbox = await item.$('input[type="checkbox"]')
-            await checkbox.waitForExist({ timeout: 5000 })
-
-            if (await checkbox.isSelected()) {
-                await checkbox.click()
-            }
-        }
     }
 
     async uncheckEpisodesExcept(keepIndices: number[]): Promise<void> {
@@ -510,6 +494,76 @@ class DownloadVideoDialogCO {
                 await checkbox.click()
             }
         }
+    }
+
+    // --- New methods ---
+
+    /**
+     * Clicks the "View Log" button next to the listing error.
+     */
+    async clickListingLogButton(): Promise<void> {
+        const button = await this.listingLogButton
+        await button.waitForClickable({ timeout: 5000 })
+        await button.click()
+    }
+
+    /**
+     * Selects a format code from the format code select dropdown.
+     * If currently in preset mode, switches to format-code mode first.
+     */
+    async selectFormatCode(formatCodeId: string): Promise<void> {
+        // Switch to format-code mode if currently in preset mode
+        const presetRadio = await this.formatModePresetRadio
+        if (await presetRadio.isExisting()) {
+            const currentMode = await browser.execute(
+                () => document.querySelector<HTMLInputElement>('[data-testid="download-video-dialog-format-mode-preset"]')?.checked,
+            )
+            if (currentMode) {
+                const codeRadio = await this.formatModeCodeRadio
+                await codeRadio.waitForClickable({ timeout: 5000 })
+                await codeRadio.click()
+            }
+        }
+
+        await this.selectRadixOption(
+            await this.formatCodeSelectTrigger,
+            formatCodeId,
+            [],
+        )
+    }
+
+    /**
+     * Selects a supplementary format code (when audio-only or video-only is selected).
+     */
+    async selectSupplementaryFormatCode(formatCodeId: string): Promise<void> {
+        await this.selectRadixOption(
+            await this.supplementaryFormatCodeSelectTrigger,
+            formatCodeId,
+            [],
+        )
+    }
+
+    /**
+     * Sets the "Use JavaScript Runtime" checkbox.
+     */
+    async setUseJsRuntime(checked: boolean): Promise<void> {
+        const checkbox = await this.jsRuntimeCheckbox
+        await checkbox.waitForExist({ timeout: 5000 })
+        const currentValue = await checkbox.isSelected()
+        if (currentValue !== checked) {
+            await checkbox.click()
+        }
+    }
+
+    /**
+     * Selects a JS runtime from the dropdown (only available when useJsRuntime is checked).
+     */
+    async selectJsRuntime(runtimeId: string): Promise<void> {
+        await this.selectRadixOption(
+            await this.jsRuntimeSelectTrigger,
+            runtimeId,
+            [],
+        )
     }
 
     async dumpStartButtonDebugInfo(): Promise<void> {

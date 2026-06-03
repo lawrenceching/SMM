@@ -54,7 +54,8 @@ describe('MusicPanel - Download', () => {
         expect(dvd.agreementCheckbox).toBeDisplayed();
         await dvd.setAgreement(true);
 
-        expect(dvd.episodesCheckbox).not.toBeDisplayed();
+        // Single video: the video list (episodes) should not be shown
+        expect(dvd.episodesList).not.toBeExisting();
 
         expect(dvd.urlInput).toBeDisplayed();
         await dvd.setUrl("https://www.bilibili.com/video/BV17NrWBaE87/");
@@ -92,7 +93,8 @@ describe('MusicPanel - Download', () => {
         expect(dvd.agreementCheckbox).toBeDisplayed();
         await dvd.setAgreement(true);
 
-        expect(dvd.episodesCheckbox).not.toBeDisplayed();
+        // Single video: the video list (episodes) should not be shown
+        expect(dvd.episodesList).not.toBeExisting();
 
         expect(dvd.urlInput).toBeDisplayed();
         await dvd.setUrl(
@@ -127,9 +129,7 @@ describe('MusicPanel - Download', () => {
         expect(dvd.urlInput).toBeDisplayed();
         await dvd.setUrl("https://www.bilibili.com/video/BV1rY4y1P7er/");
 
-        expect(dvd.episodesCheckbox).toBeDisplayed();
-        await dvd.setDownloadEpisodes(true);
-
+        // Video (episodes) list appears automatically after format probing
         // sometimes it take longer than 60 seconds to load the episodes list
         await browser.waitUntil(async () => {
             const list = await dvd.episodesListItems;
@@ -182,18 +182,14 @@ describe('MusicPanel - Download', () => {
             await browser.pause(4000)
         }
 
-        expect(dvd.episodesCheckbox).not.toBeDisplayed();
-        expect(dvd.getVideosCheckbox).toBeDisplayed();
-
-        await dvd.setGetVideos(true);
-
-        const collectionCount = await dvd.waitForCollectionListLoaded({
+        // Unified video list — wait for items to appear automatically after format probing
+        const collectionCount = await dvd.waitForVideoListLoaded({
             minItems: 4,
             timeout: 60 * 1000,
         });
-        console.log(`[MusicPanel-Download] Collection list loaded with ${collectionCount} items`);
+        console.log(`[MusicPanel-Download] Video list loaded with ${collectionCount} items`);
 
-        await dvd.uncheckCollectionExcept([0, 1, 2]);
+        await dvd.uncheckEpisodesExcept([0, 1, 2]);
         await dvd.dumpStartButtonDebugInfo();
         await dvd.clickStart();
 
