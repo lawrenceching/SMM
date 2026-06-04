@@ -131,7 +131,8 @@ function isListFormatsRequest(req: ExecuteCmdRequest): boolean {
 }
 
 function isDownloadRequest(req: ExecuteCmdRequest): boolean {
-  return req.command === 'yt-dlp' && req.args.includes('--print')
+  // --output is always present for download invocations (added by buildYtdlpDownloadArgs).
+  return req.command === 'yt-dlp' && req.args.includes('--output')
 }
 
 function renderWithOrchestrator(ui: ReactElement) {

@@ -3,6 +3,13 @@ export type ExecuteCmdType = 'ffmpeg' | 'ffprobe' | 'yt-dlp' | 'videocaptioner' 
 export interface ExecuteCmdRequest {
   command: ExecuteCmdType;
   args: string[];
+  /**
+   * Run the command in a pseudo-terminal. Currently honored only for
+   * `yt-dlp` (the CLI silently ignores this flag for other commands).
+   * Default false. See `.agents/docs/design/executeCmd-pty.md` for
+   * context on why yt-dlp needs PTY on Windows.
+   */
+  tty?: boolean;
 }
 
 export interface ExecuteCmdStdoutStderrMessage {
@@ -20,7 +27,31 @@ export interface ExecuteCmdSystemMessage {
   };
 }
 
-export type ExecuteCmdMessage = ExecuteCmdStdoutStderrMessage | ExecuteCmdSystemMessage;
+/**
+ * Per-iteration download progress emitted by yt-dlp.
+ * Sourced from the CLI's `--progress-template` JSON output.
+ */
+export interface ExecuteCmdProgressMessage {
+  type: 'progress';
+  data: {
+    /** 0-100 percent. */
+    percent: number;
+    /** Bytes per second. */
+    speed: number;
+    /** Estimated seconds remaining; null if unknown. */
+    eta: number | null;
+    /** Bytes downloaded; null if unknown. */
+    downloaded: number | null;
+    /** Total bytes; null if unknown. */
+    total: number | null;
+    status: 'downloading' | 'finished';
+  };
+}
+
+export type ExecuteCmdMessage =
+  | ExecuteCmdStdoutStderrMessage
+  | ExecuteCmdSystemMessage
+  | ExecuteCmdProgressMessage;
 
 function isTerminalSystemMessage(message: ExecuteCmdMessage): boolean {
   return (
@@ -58,6 +89,8 @@ export interface ExecuteCmdStreamCallbacks {
     logRelativePath: string | null;
     resolvedExecutablePath: string | null;
   }) => void;
+  /** Fired for every `progress` NDJSON message. Optional. */
+  onProgress?: (data: ExecuteCmdProgressMessage['data']) => void;
 }
 
 export function executeCmdStream(
@@ -127,6 +160,9 @@ export function executeCmdStream(
             const message: ExecuteCmdMessage = JSON.parse(line);
             if (isTerminalSystemMessage(message)) {
               sawTerminalSystemMessage = true;
+            }
+            if (message.type === 'progress' && callbacks.onProgress) {
+              callbacks.onProgress(message.data);
             }
             callbacks.onMessage(message);
           } catch (parseError) {

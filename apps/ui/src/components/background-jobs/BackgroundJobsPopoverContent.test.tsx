@@ -2,9 +2,17 @@ import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BackgroundJobsPopoverContent } from './BackgroundJobsPopoverContent'
 
 const openLogDialog = vi.fn()
+
+function renderWithQuery(ui: React.ReactElement) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+}
 const mockStopJob = vi.fn()
 const mockRemoveJob = vi.fn().mockResolvedValue(undefined)
 const mockClearRemovableJobs = vi.fn().mockResolvedValue(undefined)
@@ -19,6 +27,8 @@ vi.mock('@/providers/dialog-provider', () => ({
 vi.mock('@/hooks/useJobManager', () => ({
   useJobManager: vi.fn(),
 }))
+
+
 
 vi.mock('@/stores/statusbarStore', () => ({
   useStatusbarStore: vi.fn(),
@@ -120,7 +130,7 @@ describe('BackgroundJobsPopoverContent', () => {
         },
       ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const logBtn = screen.getByTestId('background-job-j1-log-button')
     expect(logBtn).toBeInTheDocument()
@@ -152,7 +162,7 @@ describe('BackgroundJobsPopoverContent', () => {
         },
       ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const logBtn = screen.getByTestId('background-job-j2-log-button')
     expect(logBtn).toBeInTheDocument()
@@ -184,7 +194,7 @@ describe('BackgroundJobsPopoverContent', () => {
         },
       ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const logBtn = screen.getByTestId('background-job-j3-log-button')
     expect(logBtn).toBeInTheDocument()
@@ -208,7 +218,7 @@ describe('BackgroundJobsPopoverContent', () => {
       },
     ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const deleteBtn = screen.getByTestId('background-job-j-del-delete-menu')
     expect(deleteBtn).not.toBeDisabled()
@@ -228,7 +238,7 @@ describe('BackgroundJobsPopoverContent', () => {
       },
     ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const deleteBtn = screen.getByTestId('background-job-j-pending-delete-menu')
     expect(deleteBtn).not.toBeDisabled()
@@ -248,7 +258,7 @@ describe('BackgroundJobsPopoverContent', () => {
       },
     ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     expect(screen.getByTestId('background-job-j-run-delete-menu')).toBeDisabled()
   })
@@ -273,7 +283,7 @@ describe('BackgroundJobsPopoverContent', () => {
       },
     ])
 
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
 
     const clearBtn = screen.getByTestId('background-jobs-clear-button')
     fireEvent.click(clearBtn)
@@ -291,7 +301,7 @@ describe('BackgroundJobsPopoverContent', () => {
         data: {},
       },
     ])
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
     expect(screen.queryByTestId('background-jobs-clear-button')).not.toBeInTheDocument()
   })
 
@@ -306,13 +316,13 @@ describe('BackgroundJobsPopoverContent', () => {
         data: {},
       },
     ])
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
     expect(screen.getByTestId('background-jobs-clear-button')).toBeInTheDocument()
   })
 
   it('clear button is hidden while loading', () => {
     mockPopoverJobs([], true)
-    render(<BackgroundJobsPopoverContent />)
+    renderWithQuery(<BackgroundJobsPopoverContent />)
     expect(screen.queryByTestId('background-jobs-clear-button')).not.toBeInTheDocument()
   })
 })

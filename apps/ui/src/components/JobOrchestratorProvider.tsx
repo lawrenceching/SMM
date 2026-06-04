@@ -11,6 +11,7 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
 import { useDialogs } from '@/providers/dialog-provider'
+import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import type {
   BackgroundJob,
   DownloadVideoBackgroundJobData,
@@ -38,6 +39,7 @@ import {
 import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommandStatus'
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
+import type { YtdlpProgressData } from '@/lib/whitelistedCmd/executeCmdToCompletion'
 import {
   buildFfmpegConvertArgs,
   buildFfmpegWriteTagsArgs,
@@ -366,19 +368,30 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         case 'download-video': {
           const downloadData = data as unknown as DownloadVideoBackgroundJobData
           const videos = downloadData.videos ?? []
+          const totalVideos = videos.length
           let allSucceeded = true
+          let completedVideos = 0
 
           for (let i = 0; i < videos.length; i++) {
             if (controller.signal.aborted) { wasStopped = true; break }
 
             const video = videos[i]
-            if (video.status === 'succeeded') continue
+            if (video.status === 'succeeded') {
+              completedVideos++
+              continue
+            }
+
+            // Progress is now consumed by BackgroundJobsPopoverList via
+            // useYtdlpDownloadProgressQuery (polls the CLI command log).
+            // The onProgress callback is still wired to executeCmd's NDJSON
+            // stream (it fires), but does nothing meaningful here.
+            const handleYtdlpProgress = (_p: YtdlpProgressData): void => {
+              // no-op — progress is read from the command log.
+            }
 
             video.status = 'downloading'
             record.data = JSON.stringify(data)
             record.updatedAt = Date.now()
-            await putJob(record)
-            await syncFromIndexedDB('executeJob:video-status')
 
             try {
               const executionId = crypto.randomUUID()
@@ -399,11 +412,12 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               })
 
               const result = await executeCmdToCompletionWithHeaders(
-                { command: 'yt-dlp', args },
+                { command: 'yt-dlp', args, tty: true },
                 {
                   timeoutMs: JOB_TIMEOUT_MS['download-video'],
                   signal: controller.signal,
                   executionId,
+                  onProgress: handleYtdlpProgress,
                 },
               )
 
@@ -429,6 +443,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                   // Store download path (optional, currently not used by SW either)
                 }
                 video.status = 'succeeded'
+                completedVideos++
               }
             } catch (e) {
               if (controller.signal.aborted) {
@@ -451,6 +466,10 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               }
             }
 
+            // Update persisted progress to reflect completed videos.
+            record.progress = totalVideos > 0
+              ? Math.min(100, (completedVideos / totalVideos) * 100)
+              : 0
             record.data = JSON.stringify(data)
             record.updatedAt = Date.now()
             await putJob(record)

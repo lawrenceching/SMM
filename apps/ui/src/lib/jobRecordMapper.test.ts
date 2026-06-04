@@ -36,6 +36,36 @@ describe('jobRecordToBackgroundJob', () => {
       data: { delayMs: 30_000, outcome: 'failed', startedAt: 1_000 },
     })
   })
+
+  it('does not deserialize transient progress fields (removed from type)', () => {
+    const job = jobRecordToBackgroundJob({
+      id: 'd1',
+      name: 'Download',
+      status: 'running',
+      progress: 42,
+      type: 'download-video',
+      folder: '/media',
+      data: JSON.stringify({
+        folder: '/media',
+        videos: [{ url: 'https://example.com/v1', artist: 'A', title: 'T1', status: 'downloading' }],
+        // These fields were removed from DownloadVideoBackgroundJobData in 2026-06-04.
+        // The mapper should ignore them, not crash.
+        activeVideoProgress: 42,
+        downloadSpeedBps: 1_500_000,
+        downloadEtaSeconds: 95,
+      }),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    expect(job).toBeDefined()
+    if (job?.type === 'download-video') {
+      // The fields must not appear on the type after deserialization.
+      // TypeScript will catch any accidental reads at compile time.
+      expect(job.data).not.toHaveProperty('activeVideoProgress')
+      expect(job.data).not.toHaveProperty('downloadSpeedBps')
+      expect(job.data).not.toHaveProperty('downloadEtaSeconds')
+    }
+  })
 })
 
 describe('syncJobRecordsToStore', () => {

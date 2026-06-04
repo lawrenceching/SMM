@@ -43,7 +43,13 @@ export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefi
  */
 export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string[] {
   const outputTemplate = `${input.folder.replace(/\\/g, "/")}/%(title)s [%(id)s].%(ext)s`;
-  const args: string[] = ["--output", outputTemplate, "--print", "after_move:filepath"];
+  // --print after_move:filepath was removed because it suppresses yt-dlp's
+  // stdout progress output (--progress-template / --newline). Progress is now
+  // consumed exclusively via command-log polling (useYtdlpDownloadProgressQuery),
+  // so stdout must carry the progress NDJSON lines for the log to capture them.
+  // The filepath from --print was unused (comment: "optional, currently not used").
+  const args: string[] = ["--output", outputTemplate];
+
 
   const proxy = input.proxy?.trim();
   if (proxy) {
@@ -80,7 +86,12 @@ export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string
   return args;
 }
 
-/** Last non-empty stdout line from yt-dlp `--print after_move:filepath`. */
+/**
+ * Last non-empty stdout line from yt-dlp.
+ * Previously used with `--print after_move:filepath` to extract the download path.
+ * That flag is now removed (it suppressed progress output), so this function
+ * returns the last progress NDJSON line. The result is currently unused.
+ */
 export function parseYtdlpDownloadStdout(stdout: string): string {
   const lines = stdout.trim().split("\n").filter((l) => l.trim());
   return lines[lines.length - 1]?.trim() ?? "";

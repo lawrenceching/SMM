@@ -39,6 +39,8 @@ function getLogStyle(type: ExecuteCmdLogEntry["type"]): { bg: string; text: stri
       return { bg: "bg-orange-500/10", text: "text-orange-400" }
     case "system":
       return { bg: "bg-blue-500/10", text: "text-blue-400" }
+    case "progress":
+      return { bg: "bg-green-500/10", text: "text-green-400" }
     default:
       return { bg: "bg-transparent", text: "text-foreground" }
   }
@@ -127,7 +129,11 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
                       ? `code=${message.data.code}`
                       : message.data.message ?? ""
                   }`
-                : String(message.data),
+                : message.type === "progress"
+                  ? `[progress] ${Math.round(message.data.percent)}% ` +
+                    `(${Math.round(message.data.speed / 1024)} KB/s, ` +
+                    `eta=${message.data.eta ?? "?"}s)`
+                  : String(message.data),
           }
           setLogs((prev) => [...prev, newLog])
         },

@@ -41,6 +41,8 @@
     "npm-run-all2": "^8.0.4"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron"]
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
   }
 }

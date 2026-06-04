@@ -358,7 +358,7 @@ export interface ExecuteCmdDialogProps {
 export interface ExecuteCmdLogEntry {
   id: number
   timestamp: number
-  type: "stdout" | "stderr" | "system"
+  type: "stdout" | "stderr" | "system" | "progress"
   content: string
 }
 

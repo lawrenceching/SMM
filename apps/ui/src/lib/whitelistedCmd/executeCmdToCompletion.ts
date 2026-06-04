@@ -1,6 +1,7 @@
 import {
   executeCmdStream,
   type ExecuteCmdMessage,
+  type ExecuteCmdProgressMessage,
   type ExecuteCmdRequest,
 } from "@/api/executeCmd";
 
@@ -15,6 +16,12 @@ export interface ExecuteCmdCompletionResult {
   /** Absolute path resolved by CLI `executeCmd` (response header). */
   resolvedExecutablePath?: string | null;
 }
+
+/**
+ * Per-iteration yt-dlp progress payload surfaced to callers of
+ * {@link executeCmdToCompletion} / {@link executeCmdToCompletionWithHeaders}.
+ */
+export type YtdlpProgressData = ExecuteCmdProgressMessage["data"];
 
 const STDERR_EXCERPT_MAX = 500;
 
@@ -45,6 +52,8 @@ export function executeCmdToCompletion(
     timeoutMs?: number;
     signal?: AbortSignal;
     executionId?: string;
+    /** Fired for every `progress` NDJSON message from yt-dlp. */
+    onProgress?: (data: YtdlpProgressData) => void;
   }
 ): Promise<ExecuteCmdCompletionResult> {
   return new Promise((resolve, reject) => {
@@ -78,6 +87,10 @@ export function executeCmdToCompletion(
           }
           if (message.type === "stderr") {
             stderr += message.data;
+            return;
+          }
+          if (message.type === "progress") {
+            options?.onProgress?.(message.data);
             return;
           }
           if (message.type !== "system") return;
@@ -149,6 +162,8 @@ export async function executeCmdToCompletionWithHeaders(
     timeoutMs?: number;
     signal?: AbortSignal;
     executionId?: string;
+    /** Fired for every `progress` NDJSON message from yt-dlp. */
+    onProgress?: (data: YtdlpProgressData) => void;
   }
 ): Promise<ExecuteCmdCompletionResult> {
   if (!options?.executionId) {
@@ -221,7 +236,9 @@ export async function executeCmdToCompletionWithHeaders(
               const message = JSON.parse(line) as ExecuteCmdMessage;
               if (message.type === "stdout") stdout += message.data;
               else if (message.type === "stderr") stderr += message.data;
-              else if (message.type === "system") {
+              else if (message.type === "progress") {
+                options?.onProgress?.(message.data);
+              } else if (message.type === "system") {
                 const { event, code, message: msg } = message.data;
                 if (event === "error") systemMessage = msg ?? "command failed";
                 else if (event === "timeout") systemMessage = `${request.command} timed out`;

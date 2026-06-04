@@ -2,6 +2,8 @@ import type { Hono } from 'hono';
 import { z } from 'zod/v3';
 import { spawn, type ChildProcess } from 'child_process';
 import { logger } from '../../lib/logger';
+import { resolvePtyModule, isPtyAvailable, getPtyUnavailableReason } from '../utils/pty';
+import type { IPty } from '../utils/pty';
 import { discoverFfmpeg, discoverFfprobe } from '../utils/Ffmpeg';
 import { discoverYtdlp } from '../utils/Ytdlp';
 import { discoverVideoCaptioner, resolveSpawnEnvForVideoCaptioner, type VideoCaptionerTranscribeResult } from '../utils/VideoCaptioner';
@@ -34,7 +36,12 @@ const executeCmdRequestSchema = z.object({
       );
     }, 'args contain invalid characters or exceed length limit')
     .optional()
-    .default([])
+    .default([]),
+  /**
+   * Run the command in a pseudo-terminal (ConPTY on Windows, unix98 PTY on POSIX).
+   * Currently only meaningful for `yt-dlp`; ignored for other commands. Default false.
+   */
+  tty: z.boolean().optional().default(false),
 });
 
 type ExecuteCmdRequestBody = z.infer<typeof executeCmdRequestSchema>;
@@ -54,7 +61,19 @@ interface NdjsonSystemMessage {
   };
 }
 
-type NdjsonMessage = NdjsonStdoutStderrMessage | NdjsonSystemMessage;
+interface NdjsonProgressMessage {
+  type: 'progress';
+  data: {
+    percent: number;
+    speed: number;
+    eta: number | null;
+    downloaded: number | null;
+    total: number | null;
+    status: 'downloading' | 'finished';
+  };
+}
+
+type NdjsonMessage = NdjsonStdoutStderrMessage | NdjsonSystemMessage | NdjsonProgressMessage;
 
 function encodeNdjson(message: NdjsonMessage): Uint8Array {
   const encoder = new TextEncoder();
@@ -65,21 +84,154 @@ function argsIncludeFfmpegLocation(args: string[]): boolean {
   return args.includes('--ffmpeg-location');
 }
 
-async function resolveSpawnArgsAndEnv(
+/**
+ * Progress template JSON passed to `yt-dlp --progress-template`.
+ *
+ * Each line yt-dlp emits on stdout (with `--newline`) will be one of these
+ * JSON objects. Fields are documented in `yt-dlp-progress.md`.
+ *
+ * Why `percent` and `speed` are quoted: yt-dlp emits the literal text
+ * `NA` (no quotes) for unavailable values such as percent or speed at
+ * the start of a download, which is not valid JSON. Wrapping the
+ * `%(progress._percent_json)s` and `%(progress.speed)r` placeholders
+ * in double quotes makes yt-dlp emit `"NA"` (a valid JSON string) when
+ * the value is missing, so the line is always parseable.
+ *
+ * `eta`, `downloaded_bytes`, and `total_bytes` are emitted unquoted
+ * because yt-dlp only outputs them as numbers or the literal `NA`
+ * (which we sanitize before parsing — see {@link sanitizeYtdlpProgressLine}).
+ */
+const YTDLP_PROGRESS_TEMPLATE =
+  '{"percent": "%(progress._percent_json)s", "speed": "%(progress.speed)r", "eta": %(progress.eta)r, "downloaded": %(progress.downloaded_bytes)r, "total": %(progress.total_bytes)r, "status": "%(progress.status)s"}';
+
+function isYtdlpDownloadCommand(args: string[]): boolean {
+  // Download invocations set an output template via --output.
+  return args.includes('--output');
+}
+
+export function injectYtdlpProgressArgs(args: string[]): string[] {
+  // Only inject if the caller hasn't already provided a progress template,
+  // and only for download invocations (i.e. --output is present).
+  if (args.includes('--progress-template') || args.includes('--newline')) {
+    return args;
+  }
+  if (!isYtdlpDownloadCommand(args)) {
+    return args;
+  }
+  return [...args, '--newline', '--progress-template', YTDLP_PROGRESS_TEMPLATE];
+}
+
+export function isYtdlpProgressJson(line: string): boolean {
+  if (!line.startsWith('{')) return false;
+  try {
+    const parsed = JSON.parse(sanitizeYtdlpProgressLine(line)) as Record<string, unknown>;
+    return typeof parsed.status === 'string';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * yt-dlp emits the literal text `NA` (no quotes) for unavailable values
+ * of `eta`, `downloaded_bytes`, and `total_bytes` in the progress template.
+ * This produces invalid JSON. We replace the value `NA` with `null` so
+ * `JSON.parse` succeeds. The pattern is restricted to value position
+ * (`: *NA` requires a preceding colon) so that the quoted string `"NA"`
+ * emitted for `percent` and `speed` is not touched.
+ */
+function sanitizeYtdlpProgressLine(line: string): string {
+  return line.replace(/: *NA\b/g, ':null');
+}
+
+/**
+ * Convert a yt-dlp progress field value — a number, a numeric string
+ * (e.g. `"62197.226..."`), the literal `"NA"`, or `null` after
+ * sanitization — into a finite number, or `null` when the value is
+ * not a usable number. Used for all progress fields so the parser is
+ * robust to both quoted and unquoted formats.
+ */
+function parseProgressNumericValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    if (value === 'NA' || value.trim() === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+export function parseYtdlpProgressLine(line: string): NdjsonProgressMessage['data'] | null {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(sanitizeYtdlpProgressLine(line)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const statusRaw = parsed.status;
+  if (statusRaw !== 'downloading' && statusRaw !== 'finished') {
+    return null;
+  }
+  const downloaded = parseProgressNumericValue(parsed.downloaded);
+  const total = parseProgressNumericValue(parsed.total);
+
+  // `percent` is often `"NA"` (a string) for resumed or freshly started
+  // downloads, so fall back to downloaded/total when it is not a number.
+  let percent = parseProgressNumericValue(parsed.percent);
+  if (percent == null && downloaded != null && total != null && total > 0) {
+    percent = (downloaded / total) * 100;
+  }
+  if (percent == null) percent = 0;
+
+  const speed = parseProgressNumericValue(parsed.speed) ?? 0;
+  const eta = parseProgressNumericValue(parsed.eta);
+
+  return {
+    percent,
+    speed,
+    eta,
+    downloaded,
+    total,
+    status: statusRaw,
+  };
+}
+
+export async function resolveSpawnArgsAndEnv(
   command: ExecuteCmdRequestBody['command'],
-  args: string[]
+  args: string[],
+  opts?: { tty?: boolean }
 ): Promise<{ args: string[]; env?: NodeJS.ProcessEnv }> {
   let spawnArgs = args;
   let env: NodeJS.ProcessEnv | undefined;
+  const tty = opts?.tty === true;
 
   if (command === 'videocaptioner') {
     env = await resolveSpawnEnvForVideoCaptioner();
   }
 
-  if (command === 'yt-dlp' && !argsIncludeFfmpegLocation(args)) {
-    const ffmpegPath = await discoverFfmpeg();
-    if (ffmpegPath) {
-      spawnArgs = ['--ffmpeg-location', ffmpegPath, ...args];
+  if (command === 'yt-dlp') {
+    if (!argsIncludeFfmpegLocation(args)) {
+      const ffmpegPath = await discoverFfmpeg();
+      if (ffmpegPath) {
+        spawnArgs = ['--ffmpeg-location', ffmpegPath, ...spawnArgs];
+      }
+    }
+    // Inject --newline + --progress-template so progress is parseable.
+    spawnArgs = injectYtdlpProgressArgs(spawnArgs);
+    if (tty) {
+      // When the child is attached to a real TTY (ConPTY on Windows), yt-dlp's
+      // Python runtime uses line-buffered stdout natively, so
+      // `PYTHONUNBUFFERED` is unnecessary. Skip it to keep the env clean.
+    } else {
+      // Force line-buffered stdout. yt-dlp is a Python application that
+      // block-buffers stdout (typically 8KB) when its stdout is a pipe
+      // (SMM's case via child_process.spawn), which delays progress lines
+      // for many seconds — they only flush when the buffer fills or the
+      // process exits. With PYTHONUNBUFFERED=1 each `\n` causes an
+      // immediate flush, so progress arrives in real time. This matches
+      // the line-buffered behavior yt-dlp uses when its stdout is a TTY.
+      env = { ...(env ?? process.env), PYTHONUNBUFFERED: '1' };
     }
   }
 
@@ -131,7 +283,7 @@ export function handleExecuteCmd(app: Hono) {
         return c.json({ error: message }, 400);
       }
 
-      const { command, args } = parseResult.data;
+      const { command, args, tty } = parseResult.data;
 
       const executablePath = await resolveCommandPath(command);
       if (!executablePath) {
@@ -154,7 +306,22 @@ export function handleExecuteCmd(app: Hono) {
       const cmdLog = await createCommandExecutionLogWriter(commandExecutionId);
       markCommandExecutionRunning(commandExecutionId, command);
 
-      const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args);
+      // `tty: true` is only honored for `yt-dlp`. Other commands ignore it.
+      // If PTY is unavailable (e.g. node-pty prebuilt missing), we silently
+      // fall back to pipe spawn — see [executeCmd] PTY fallback log.
+      const requestedTty = tty === true;
+      const usePty = requestedTty && command === 'yt-dlp' && isPtyAvailable();
+      if (requestedTty && command === 'yt-dlp' && !usePty) {
+        const reason = getPtyUnavailableReason();
+        logger.warn(
+          { commandExecutionId, command, reason: reason ?? 'unknown' },
+          '[executeCmd] PTY requested for yt-dlp but unavailable; falling back to pipe spawn'
+        );
+      }
+
+      const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args, {
+        tty: usePty,
+      });
 
       logger.info(
         {
@@ -164,6 +331,8 @@ export function handleExecuteCmd(app: Hono) {
           command,
           argsCount: args.length,
           timeoutMs: validTimeout,
+          requestedTty,
+          usePty,
         },
         '[executeCmd] starting command execution'
       );
@@ -179,10 +348,13 @@ export function handleExecuteCmd(app: Hono) {
                 resolve();
               };
 
-              let child: ChildProcess | null = null;
+              let child: ChildProcess | IPty | null = null;
               let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
               let isClosed = false;
               let cmdLogEnded = false;
+              // Buffer for the trailing partial line from stdout. yt-dlp may
+              // emit a progress JSON line split across multiple chunks.
+              let stdoutLineBuffer = '';
 
               const safeEndCmdLog = (note?: string) => {
                 if (cmdLogEnded) return;
@@ -228,27 +400,223 @@ export function handleExecuteCmd(app: Hono) {
               };
 
               const cleanupChild = () => {
-                if (child) {
+                if (!child) return;
+                if ('stdout' in child) {
+                  // ChildProcess has .stdout/.stderr streams.
                   child.removeAllListeners();
                   child.stdout?.removeAllListeners();
                   child.stderr?.removeAllListeners();
-                  child = null;
+                } else {
+                  // IPty: no removeAllListeners API. Best effort — drop
+                  // reference so handlers can be GC'd.
+                }
+                child = null;
+              };
+
+              /**
+               * Whether the child has already exited. Works for both
+               * ChildProcess (exitCode/signalCode) and IPty (no exit signal,
+               * we track via `ptyExited`).
+               */
+              let ptyExited = false;
+              const isChildRunning = (): boolean => {
+                if (!child) return false;
+                if ('exitCode' in child) {
+                  // ChildProcess
+                  return child.exitCode === null && child.signalCode === null;
+                }
+                // IPty
+                return !ptyExited;
+              };
+              const killChild = (signal?: string) => {
+                if (!child) return;
+                if ('kill' in child) {
+                  // ChildProcess expects a NodeJS signal; IPty accepts any string.
+                  // The union is `string | NodeJS.Signals`, so cast is safe.
+                  try { child.kill(signal as never); } catch { /* ignore */ }
                 }
               };
 
-              try {
-                child = spawn(executablePath, spawnArgs, {
-                  stdio: ['ignore', 'pipe', 'pipe'],
-                  shell: false,
-                  ...(spawnEnv ? { env: spawnEnv } : {}),
-                });
+              /**
+               * Flush any trailing partial line buffered from the child
+               * output. Used both for the final flush on exit and by
+               * the per-chunk line splitter.
+               */
+              const flushStdoutLineBuffer = () => {
+                if (stdoutLineBuffer.length === 0) return;
+                const remaining = stdoutLineBuffer;
+                stdoutLineBuffer = '';
+                if (isYtdlpProgressJson(remaining)) {
+                  const parsed = parseYtdlpProgressLine(remaining);
+                  if (parsed) {
+                    safeEnqueue(encodeNdjson({ type: 'progress', data: parsed }));
+                    return;
+                  }
+                }
+                safeEnqueue(encodeNdjson({ type: 'stdout', data: remaining }));
+              };
 
-                cmdLog.appendSystemNote(
-                  `spawn command=${command} executablePath=${executablePath} args=${JSON.stringify(spawnArgs)}`
+              /**
+               * Handle child process exit (both PTY and pipe).
+               */
+              const handleExit = (code: number | null, signal: string | null) => {
+                flushStdoutLineBuffer();
+                logger.info(
+                  {
+                    requestId: httpRequestId,
+                    commandExecutionId,
+                    commandLogPath: cmdLog.logRelativePath,
+                    command,
+                    exitCode: code,
+                    signal,
+                  },
+                  '[executeCmd] command finished'
                 );
+                const exitNote = `exit code=${code ?? 'null'} signal=${signal ?? 'null'}`;
+                const outcome: CommandExecutionOutcome = code === 0 ? 'success' : 'failure';
+                markCommandExecutionFinished(commandExecutionId, {
+                  outcome,
+                  exitCode: code,
+                  signal: signal ?? null,
+                  systemNote: exitNote,
+                });
+                safeEnqueue(encodeNdjson({
+                  type: 'system',
+                  data: { event: 'exit', code, signal }
+                }));
+                safeEndCmdLog(exitNote);
+                queueMicrotask(() => {
+                  safeClose();
+                  cleanupChild();
+                });
+              };
+
+              /**
+               * Handle child process spawn/runtime error (pipe path only;
+               * PTY does not emit a separate 'error' event).
+               */
+              const handleError = (err: Error) => {
+                logger.error(
+                  {
+                    requestId: httpRequestId,
+                    commandExecutionId,
+                    command,
+                    error: err.message,
+                  },
+                  '[executeCmd] command execution error'
+                );
+                const errorNote = `process error: ${err.message}`;
+                markCommandExecutionFinished(commandExecutionId, {
+                  outcome: 'failure',
+                  systemNote: errorNote,
+                });
+                safeEnqueue(encodeNdjson({
+                  type: 'system',
+                  data: { event: 'error', message: err.message }
+                }));
+                safeEndCmdLog(errorNote);
+                queueMicrotask(() => {
+                  safeClose();
+                  cleanupChild();
+                });
+              };
+
+              try {
+                if (usePty) {
+                  const ptyMod = resolvePtyModule();
+                  if (!ptyMod) {
+                    // Should not happen: usePty implies pty availability,
+                    // but guard anyway.
+                    throw new Error('node-pty is not available');
+                  }
+                  child = ptyMod.spawn(executablePath, spawnArgs, {
+                    name: 'xterm-256color',
+                    cols: 120,
+                    rows: 30,
+                    cwd: process.cwd(),
+                    env: spawnEnv ?? process.env,
+                    useConpty: true,
+                  });
+
+                  cmdLog.appendSystemNote(
+                    `pty spawn command=${command} executablePath=${executablePath} args=${JSON.stringify(spawnArgs)} pid=${(child as IPty).pid}`
+                  );
+
+                  child.onData((data: string) => {
+                    cmdLog.appendStdout(data);
+                    stdoutLineBuffer += data;
+                    const lines = stdoutLineBuffer.split('\n');
+                    stdoutLineBuffer = lines.pop() ?? '';
+                    for (const line of lines) {
+                      if (isYtdlpProgressJson(line)) {
+                        const parsed = parseYtdlpProgressLine(line);
+                        if (parsed) {
+                          safeEnqueue(encodeNdjson({ type: 'progress', data: parsed }));
+                          continue;
+                        }
+                      }
+                      safeEnqueue(encodeNdjson({ type: 'stdout', data: line + '\n' }));
+                    }
+                  });
+
+                  child.onExit(({ exitCode, signal }) => {
+                    ptyExited = true;
+                    flushStdoutLineBuffer();
+                    handleExit(exitCode, signal != null ? String(signal) : null);
+                  });
+                } else {
+                  child = spawn(executablePath, spawnArgs, {
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                    shell: false,
+                    ...(spawnEnv ? { env: spawnEnv } : {}),
+                  });
+
+                  cmdLog.appendSystemNote(
+                    `spawn command=${command} executablePath=${executablePath} args=${JSON.stringify(spawnArgs)}`
+                  );
+
+                  child.stdout?.on('data', (data: Buffer) => {
+                    const text = data.toString();
+                    cmdLog.appendStdout(text);
+                    // Split into lines so we can route progress JSON to a
+                    // dedicated `progress` NDJSON message.
+                    // We track incomplete trailing lines in a buffer.
+                    stdoutLineBuffer += text;
+                    const lines = stdoutLineBuffer.split('\n');
+                    stdoutLineBuffer = lines.pop() ?? '';
+                    for (const line of lines) {
+                      if (isYtdlpProgressJson(line)) {
+                        const parsed = parseYtdlpProgressLine(line);
+                        if (parsed) {
+                          safeEnqueue(encodeNdjson({ type: 'progress', data: parsed }));
+                          continue;
+                        }
+                      }
+                      safeEnqueue(encodeNdjson({ type: 'stdout', data: line + '\n' }));
+                    }
+                  });
+
+                  child.stderr?.on('data', (data: Buffer) => {
+                    const text = data.toString();
+                    cmdLog.appendStderr(text);
+                    safeEnqueue(encodeNdjson({
+                      type: 'stderr',
+                      data: text
+                    }));
+                  });
+
+                  child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
+                    ptyExited = true;
+                    handleExit(code, signal ?? null);
+                  });
+
+                  child.on('error', (err: Error) => {
+                    handleError(err);
+                  });
+                }
 
                 timeoutTimer = setTimeout(() => {
-                  if (child && child.exitCode === null && child.signalCode === null) {
+                  if (isChildRunning()) {
                     logger.warn(
                       {
                         requestId: httpRequestId,
@@ -268,84 +636,9 @@ export function handleExecuteCmd(app: Hono) {
                       type: 'system',
                       data: { event: 'timeout' }
                     }));
-                    child.kill('SIGTERM');
+                    killChild('SIGTERM');
                   }
                 }, validTimeout);
-
-                child.stdout?.on('data', (data: Buffer) => {
-                  const text = data.toString();
-                  cmdLog.appendStdout(text);
-                  safeEnqueue(encodeNdjson({
-                    type: 'stdout',
-                    data: text
-                  }));
-                });
-
-                child.stderr?.on('data', (data: Buffer) => {
-                  const text = data.toString();
-                  cmdLog.appendStderr(text);
-                  safeEnqueue(encodeNdjson({
-                    type: 'stderr',
-                    data: text
-                  }));
-                });
-
-                child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
-                  logger.info(
-                    {
-                      requestId: httpRequestId,
-                      commandExecutionId,
-                      commandLogPath: cmdLog.logRelativePath,
-                      command,
-                      exitCode: code,
-                      signal,
-                    },
-                    '[executeCmd] command finished'
-                  );
-                  const exitNote = `exit code=${code ?? 'null'} signal=${signal ?? 'null'}`;
-                  const outcome: CommandExecutionOutcome = code === 0 ? 'success' : 'failure';
-                  markCommandExecutionFinished(commandExecutionId, {
-                    outcome,
-                    exitCode: code,
-                    signal: signal ?? null,
-                    systemNote: exitNote,
-                  });
-                  safeEnqueue(encodeNdjson({
-                    type: 'system',
-                    data: { event: 'exit', code, signal }
-                  }));
-                  safeEndCmdLog(exitNote);
-                  queueMicrotask(() => {
-                    safeClose();
-                    cleanupChild();
-                  });
-                });
-
-                child.on('error', (err: Error) => {
-                  logger.error(
-                    {
-                      requestId: httpRequestId,
-                      commandExecutionId,
-                      command,
-                      error: err.message,
-                    },
-                    '[executeCmd] command execution error'
-                  );
-                  const errorNote = `process error: ${err.message}`;
-                  markCommandExecutionFinished(commandExecutionId, {
-                    outcome: 'failure',
-                    systemNote: errorNote,
-                  });
-                  safeEnqueue(encodeNdjson({
-                    type: 'system',
-                    data: { event: 'error', message: err.message }
-                  }));
-                  safeEndCmdLog(errorNote);
-                  queueMicrotask(() => {
-                    safeClose();
-                    cleanupChild();
-                  });
-                });
 
                 const abortHandler = () => {
                   logger.warn(
@@ -356,8 +649,8 @@ export function handleExecuteCmd(app: Hono) {
                     },
                     '[executeCmd] client disconnected, terminating process'
                   );
-                  if (child && child.exitCode === null && child.signalCode === null) {
-                    child.kill('SIGTERM');
+                  if (isChildRunning()) {
+                    killChild('SIGTERM');
                   }
                   const abortNote = 'client disconnected (abort)';
                   markCommandExecutionFinished(commandExecutionId, {

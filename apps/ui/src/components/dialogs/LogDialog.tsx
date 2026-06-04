@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCommandLogQuery } from '@/hooks/useCommandLogQuery'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { getJobExecutionId } from '@/components/background-jobs/backgroundJobsPopoverJobUtils'
 import {
@@ -11,11 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useTranslation } from '@/lib/i18n'
-import {
-  fetchCommandLogRaw,
-  fetchCommandLogSegments,
-  type CommandLogFormat,
-} from '@/api/commandLog'
+import { type CommandLogFormat } from '@/api/commandLog'
 import { isTerminalCommandLogText } from '@/lib/commandLogTerminal'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -54,24 +50,16 @@ export function LogDialog({
 
   const effectiveIsRunning = jobStillRunning && !passiveEnded
 
-  const query = useQuery({
-    queryKey: ['command-log', executionId, format],
+  const query = useCommandLogQuery({
+    executionId,
     enabled: open && executionId.length > 0,
-    staleTime: effectiveIsRunning ? 0 : 60_000,
-    refetchInterval: effectiveIsRunning ? 2000 : false,
-    refetchOnWindowFocus: effectiveIsRunning,
-    queryFn: async () => {
-      if (format === 'raw') {
-        return fetchCommandLogRaw(executionId)
-      }
-      const { body, meta } = await fetchCommandLogSegments(executionId)
-      return { segments: body.segments, meta }
-    },
+    isRunning: effectiveIsRunning,
+    format,
   })
 
   const bodyText = useMemo(() => {
     if (!query.data) return ''
-    if ('text' in query.data) return query.data.text
+    if (query.data.kind === 'raw') return query.data.text
     return query.data.segments
       .map((s) => `[${s.kind}] ${s.ts}\n${s.body}`)
       .join('\n')
@@ -153,10 +141,10 @@ export function LogDialog({
               {t('statusBar.backgroundJobs.logDialog.loadError')}
             </p>
           )}
-          {query.isSuccess && !bodyText.trim() && (
+          {!query.isPending && !query.isError && !bodyText.trim() && (
             <p className="text-sm text-muted-foreground">{t('statusBar.backgroundJobs.logDialog.empty')}</p>
           )}
-          {query.isSuccess && bodyText.trim() !== '' && (
+          {!query.isPending && !query.isError && bodyText.trim() !== '' && (
             <ScrollArea className={cn('h-[min(60vh,420px)] w-full rounded-md border border-border')}>
               <pre className="whitespace-pre-wrap wrap-break-word p-3 text-xs font-mono leading-relaxed">
                 {bodyText}
