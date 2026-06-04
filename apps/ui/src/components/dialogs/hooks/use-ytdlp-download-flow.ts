@@ -61,6 +61,8 @@ export interface UseYtdlpDownloadFlowOptions {
   jsRuntime?: string
   /** Absolute path to JS runtime binary (e.g. bundled QuickJS). */
   jsRuntimePath?: string
+  /** Proxy URL for yt-dlp `--proxy`. */
+  proxy?: string
   onClose: () => void
   t: (key: string) => string
 }
@@ -98,6 +100,7 @@ export function useYtdlpDownloadFlow(
     useJsRuntime = false,
     jsRuntime = "quickjs",
     jsRuntimePath,
+    proxy,
     onClose,
     t,
   } = opts
@@ -173,6 +176,7 @@ export function useYtdlpDownloadFlow(
     ) => {
       const id = createDownloadVideoJobId()
       const ytdlpCookiesFile = await prepareYtdlpCookiesFileForJob(id)
+      const proxyTrimmed = proxy?.trim()
       return buildDownloadVideoJob({
         ...input,
         id,
@@ -188,6 +192,7 @@ export function useYtdlpDownloadFlow(
               ...(jsRuntimePath?.trim() ? { ytdlpJsRuntimePath: jsRuntimePath.trim() } : {}),
             }
           : {}),
+        ...(proxyTrimmed ? { ytdlpProxy: proxyTrimmed } : {}),
       })
     },
     [
@@ -199,6 +204,7 @@ export function useYtdlpDownloadFlow(
       useJsRuntime,
       jsRuntime,
       jsRuntimePath,
+      proxy,
     ],
   )
 

@@ -28,6 +28,8 @@ export interface CreateDownloadVideoJobInput {
   ytdlpJsRuntime?: string
   /** Absolute path to the JS runtime binary. */
   ytdlpJsRuntimePath?: string
+  /** Proxy URL for yt-dlp `--proxy`. */
+  ytdlpProxy?: string
   /** Batch identifier — jobs sharing a parentId are cancelled together on failure. */
   parentId?: string
 }
@@ -47,6 +49,7 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
     input.ytdlpExtraArgs && input.ytdlpExtraArgs.length > 0 ? input.ytdlpExtraArgs : undefined
   const jsRuntime = input.ytdlpJsRuntime?.trim()
   const jsRuntimePath = input.ytdlpJsRuntimePath?.trim()
+  const proxy = input.ytdlpProxy?.trim()
   const data: DownloadVideoBackgroundJobData = {
     folder: input.folder,
     videos,
@@ -60,6 +63,7 @@ export function buildDownloadVideoJob(input: CreateDownloadVideoJobInput): Downl
           ...(jsRuntimePath ? { ytdlpJsRuntimePath: jsRuntimePath } : {}),
         }
       : {}),
+    ...(proxy ? { ytdlpProxy: proxy } : {}),
   }
 
   return {

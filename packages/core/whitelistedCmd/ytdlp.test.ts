@@ -53,4 +53,32 @@ describe("buildYtdlpDownloadArgs", () => {
     });
     expect(args).not.toContain("--cookies-from-browser");
   });
+
+  it("includes --proxy when proxy is set", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      proxy: "socks5://127.0.0.1:1080/",
+    });
+    const idx = args.indexOf("--proxy");
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(args[idx + 1]).toBe("socks5://127.0.0.1:1080/");
+    expect(args).toContain(base.url);
+  });
+
+  it("omits --proxy when proxy is empty or whitespace", () => {
+    const args = buildYtdlpDownloadArgs({ ...base, proxy: "   " });
+    expect(args).not.toContain("--proxy");
+  });
+
+  it("places --proxy before URL", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      proxy: "http://127.0.0.1:8080",
+    });
+    const proxyIdx = args.indexOf("--proxy");
+    const urlIdx = args.indexOf(base.url);
+    expect(proxyIdx).toBeGreaterThanOrEqual(0);
+    expect(urlIdx).toBeGreaterThanOrEqual(0);
+    expect(proxyIdx).toBeLessThan(urlIdx);
+  });
 });

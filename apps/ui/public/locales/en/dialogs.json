@@ -86,6 +86,7 @@
     "jsRuntimeNode": "Node.js",
     "jsRuntimeBun": "Bun",
     "jsRuntimeQuickJS": "QuickJS",
+    "proxyLabel": "Proxy server",
     "formatCodeSupplementaryVideo": "Format code (video)",
     "formatCodeSupplementaryAudio": "Format code (audio)",
     "formatCodeGroupCombined": "Audio + Video",

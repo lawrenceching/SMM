@@ -22,6 +22,8 @@ export interface YtdlpDownloadRequestInput {
   jsRuntime?: string;
   /** Absolute path to the JS runtime binary. */
   jsRuntimePath?: string;
+  /** Proxy URL for `--proxy` (http, https, socks5). */
+  proxy?: string;
 }
 
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
@@ -42,6 +44,11 @@ export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefi
 export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string[] {
   const outputTemplate = `${input.folder.replace(/\\/g, "/")}/%(title)s [%(id)s].%(ext)s`;
   const args: string[] = ["--output", outputTemplate, "--print", "after_move:filepath"];
+
+  const proxy = input.proxy?.trim();
+  if (proxy) {
+    args.push("--proxy", proxy);
+  }
 
   const format = input.format?.trim();
   if (format) {

@@ -1,4 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -25,6 +26,9 @@ export interface MoreOptionsSectionProps {
   showMoreOptions: boolean
   extraArgSelection: YtdlpDownloadExtraArgSelection
   formBusy: boolean
+
+  // Show extra args (write-thumbnail, embed-thumbnail, embed-metadata)
+  showExtraArgs: boolean
 
   // JS Runtime
   useJsRuntime: boolean
@@ -53,6 +57,10 @@ export interface MoreOptionsSectionProps {
   onCookiesBrowserChange: (id: YtdlpCookiesBrowserId) => void
   onOpenCookiesEditor: () => void
 
+  // Proxy
+  proxy: string
+  onProxyChange: (value: string) => void
+
   t: (key: string) => string
 }
 
@@ -60,6 +68,7 @@ export function MoreOptionsSection({
   showMoreOptions,
   extraArgSelection,
   formBusy,
+  showExtraArgs,
   useJsRuntime,
   jsRuntime,
   forceJsRuntime,
@@ -82,6 +91,8 @@ export function MoreOptionsSection({
   onUseCookiesFromBrowserChange,
   onCookiesBrowserChange,
   onOpenCookiesEditor,
+  proxy,
+  onProxyChange,
   t,
 }: MoreOptionsSectionProps) {
   return (
@@ -163,7 +174,7 @@ export function MoreOptionsSection({
           )}
 
           {/* Extra args */}
-          {YTDLP_DOWNLOAD_EXTRA_ARG_IDS.map((argId) => {
+          {showExtraArgs && YTDLP_DOWNLOAD_EXTRA_ARG_IDS.map((argId) => {
             const inputId = `download-video-extra-${argId.slice(2)}`
             const testIdSuffix =
               argId === "--write-thumbnail"
@@ -186,6 +197,22 @@ export function MoreOptionsSection({
               </div>
             )
           })}
+
+          {/* Proxy */}
+          <div className="mt-2 pt-2 border-t flex flex-col gap-1">
+            <Label htmlFor="download-video-proxy" className="font-normal">
+              {t("downloadVideo.proxyLabel")}
+            </Label>
+            <Input
+              id="download-video-proxy"
+              data-testid="download-video-dialog-proxy-input"
+              value={proxy}
+              onChange={(e) => onProxyChange(e.target.value)}
+              disabled={formBusy}
+              placeholder="socks5://127.0.0.1:1080/"
+              className="h-8"
+            />
+          </div>
         </div>
       )}
     </div>

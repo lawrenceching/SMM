@@ -93,6 +93,10 @@ export interface UIDownloadVideoDialogContentProps {
   onShowMoreOptionsChange: (checked: boolean) => void
   onExtraArgToggle: (id: YtdlpDownloadExtraArgId, enabled: boolean) => void
 
+  // Proxy
+  proxy: string
+  onProxyChange: (value: string) => void
+
   downloadFolder: string
   onFolderChange: (value: string) => void
   onFolderSelect: () => void
@@ -168,6 +172,9 @@ export function UIDownloadVideoDialogContent({
   extraArgSelection,
   onShowMoreOptionsChange,
   onExtraArgToggle,
+
+  proxy,
+  onProxyChange,
 
   downloadFolder,
   onFolderChange,
@@ -253,24 +260,59 @@ export function UIDownloadVideoDialogContent({
 
             {/* Cookies at top level (before format fetch) */}
             {hasAgreed && showCookiesAtTopLevel && (
-              <CookiesSection
-                url={url}
-                useCookies={useCookies}
-                cookiesText={cookiesText}
-                useCookiesFromBrowser={useCookiesFromBrowser}
-                cookiesBrowser={cookiesBrowser}
-                start1080pBlocked={start1080pBlocked}
-                showCookiesRequiredError={showCookiesRequiredError}
-                youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
-                youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
-                formBusy={formBusy}
-                platform={platform}
-                onUseCookiesChange={onUseCookiesChange}
-                onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
-                onCookiesBrowserChange={onCookiesBrowserChange}
-                onOpenCookiesEditor={onOpenCookiesEditor}
-                t={t}
-              />
+              <>
+                <CookiesSection
+                  url={url}
+                  useCookies={useCookies}
+                  cookiesText={cookiesText}
+                  useCookiesFromBrowser={useCookiesFromBrowser}
+                  cookiesBrowser={cookiesBrowser}
+                  start1080pBlocked={start1080pBlocked}
+                  showCookiesRequiredError={showCookiesRequiredError}
+                  youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
+                  youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
+                  formBusy={formBusy}
+                  platform={platform}
+                  onUseCookiesChange={onUseCookiesChange}
+                  onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
+                  onCookiesBrowserChange={onCookiesBrowserChange}
+                  onOpenCookiesEditor={onOpenCookiesEditor}
+                  t={t}
+                />
+
+                {/* More options (before format fetch): only JS runtime and proxy are visible */}
+                <MoreOptionsSection
+                  showMoreOptions={showMoreOptions}
+                  extraArgSelection={extraArgSelection}
+                  formBusy={formBusy}
+                  showExtraArgs={false}
+                  useJsRuntime={useJsRuntime}
+                  jsRuntime={jsRuntime}
+                  forceJsRuntime={isYoutube}
+                  showCookiesInMoreOptions={false}
+                  url={url}
+                  useCookies={useCookies}
+                  cookiesText={cookiesText}
+                  useCookiesFromBrowser={useCookiesFromBrowser}
+                  cookiesBrowser={cookiesBrowser}
+                  platform={platform}
+                  start1080pBlocked={start1080pBlocked}
+                  showCookiesRequiredError={showCookiesRequiredError}
+                  youtubeCookiesHintEmphasized={youtubeCookiesHintEmphasized}
+                  youtubeCookiesHintFlashKey={youtubeCookiesHintFlashKey}
+                  onShowMoreOptionsChange={onShowMoreOptionsChange}
+                  onExtraArgToggle={onExtraArgToggle}
+                  onUseJsRuntimeChange={onUseJsRuntimeChange}
+                  onJsRuntimeChange={onJsRuntimeChange}
+                  onUseCookiesChange={onUseCookiesChange}
+                  onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
+                  onCookiesBrowserChange={onCookiesBrowserChange}
+                  onOpenCookiesEditor={onOpenCookiesEditor}
+                  proxy={proxy}
+                  onProxyChange={onProxyChange}
+                  t={t}
+                />
+              </>
             )}
 
             {/* Format, video list, and more options — only after formats are fetched */}
@@ -306,6 +348,7 @@ export function UIDownloadVideoDialogContent({
                   showMoreOptions={showMoreOptions}
                   extraArgSelection={extraArgSelection}
                   formBusy={formBusy}
+                  showExtraArgs={true}
                   useJsRuntime={useJsRuntime}
                   jsRuntime={jsRuntime}
                   forceJsRuntime={isYoutube}
@@ -328,6 +371,8 @@ export function UIDownloadVideoDialogContent({
                 onUseCookiesFromBrowserChange={onUseCookiesFromBrowserChange}
                 onCookiesBrowserChange={onCookiesBrowserChange}
                 onOpenCookiesEditor={onOpenCookiesEditor}
+                proxy={proxy}
+                onProxyChange={onProxyChange}
                 t={t}
               />
               </>

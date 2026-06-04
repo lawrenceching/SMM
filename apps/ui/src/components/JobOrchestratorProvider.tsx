@@ -395,6 +395,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                 args: downloadData.ytdlpExtraArgs,
                 jsRuntime: downloadData.ytdlpJsRuntime,
                 jsRuntimePath: downloadData.ytdlpJsRuntimePath,
+                proxy: downloadData.ytdlpProxy,
               })
 
               const result = await executeCmdToCompletionWithHeaders(

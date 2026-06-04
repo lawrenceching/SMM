@@ -51,6 +51,7 @@ export function DownloadVideoDialogContent({
     useJsRuntime: form.useJsRuntime,
     jsRuntime: form.jsRuntime,
     jsRuntimePath: form.jsRuntimePath,
+    proxy: form.proxy,
     onClose,
     t: td,
   })
@@ -143,6 +144,8 @@ export function DownloadVideoDialogContent({
       extraArgSelection={form.extraArgSelection}
       onShowMoreOptionsChange={form.setShowMoreOptions}
       onExtraArgToggle={form.setExtraArgEnabled}
+      proxy={form.proxy}
+      onProxyChange={form.setProxy}
       downloadFolder={form.downloadFolder}
       onFolderChange={form.setDownloadFolder}
       onFolderSelect={handleFolderSelect}

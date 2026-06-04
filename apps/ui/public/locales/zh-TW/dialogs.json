@@ -86,6 +86,7 @@
     "jsRuntimeNode": "Node.js",
     "jsRuntimeBun": "Bun",
     "jsRuntimeQuickJS": "QuickJS",
+    "proxyLabel": "代理伺服器",
     "formatCodeSupplementaryVideo": "格式碼 (影片)",
     "formatCodeSupplementaryAudio": "格式碼 (音訊)",
     "formatCodeGroupCombined": "音訊 + 影片",

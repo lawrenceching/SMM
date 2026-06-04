@@ -157,6 +157,8 @@ export interface YtdlpListFormatsRequest {
   jsRuntime?: string;
   /** Absolute path to the JS runtime binary. */
   jsRuntimePath?: string;
+  /** Proxy URL for `--proxy` (http, https, socks5). */
+  proxy?: string;
 }
 
 export interface ListFormatsResult {
@@ -200,6 +202,11 @@ export async function listYtdlpFormats(
   const jsRuntimePath = req.jsRuntimePath?.trim();
   if (jsRuntime) {
     args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
+  }
+
+  const proxy = req.proxy?.trim();
+  if (proxy) {
+    args.push("--proxy", proxy);
   }
 
   args.push("-J", req.url.trim());

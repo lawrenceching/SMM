@@ -114,6 +114,9 @@ export interface UseDownloadVideoFormReturn {
   /** Bundled QuickJS path from discover probe (YouTube Go). */
   jsRuntimePath: string | undefined
 
+  // New: proxy
+  proxy: string
+
   // New: video list entries from playlist
   listingExecutionId: string | null
   videoListEntries: VideoMetadata[] | null
@@ -144,6 +147,9 @@ export interface UseDownloadVideoFormReturn {
   setUseJsRuntime: (v: boolean) => void
   setJsRuntime: (id: YtdlpJsRuntimeId) => void
 
+  // New: proxy setter
+  setProxy: (v: string) => void
+
   handleUrlChange: (value: string) => void
   handleUrlBlur: () => void
   handleGo: () => void
@@ -161,7 +167,7 @@ export function useDownloadVideoForm(
   const { textDialog: [openTextDialog] } = useDialogs()
   const { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
-  const { appConfig } = useConfig()
+  const { appConfig, userConfig, setAndSaveUserConfig } = useConfig()
 
   // --- platform ---
   const platform = useMemo(() => {
@@ -207,6 +213,7 @@ export function useDownloadVideoForm(
   const [jsRuntime, setJsRuntime] = useState<YtdlpJsRuntimeId>(DEFAULT_YTDLP_JS_RUNTIME_ID)
   const [jsRuntimePath, setJsRuntimePath] = useState<string | undefined>(undefined)
   const [quickjsUnavailable, setQuickjsUnavailable] = useState(false)
+  const [proxy, setProxyState] = useState<string>(() => userConfig?.ytdlpProxy ?? "")
   const [youtubeCookiesHintEmphasized, setYoutubeCookiesHintEmphasized] = useState(false)
   const [youtubeCookiesHintFlashKey, setYoutubeCookiesHintFlashKey] = useState(0)
 
@@ -400,6 +407,7 @@ export function useDownloadVideoForm(
         cookiesFromBrowser: cfBrowser,
         ...(cookiesFile ? { cookiesFile } : {}),
         ...(useJsRuntime ? { jsRuntime, jsRuntimePath: quickjsPath } : {}),
+        ...(proxy.trim() ? { proxy: proxy.trim() } : {}),
       },
       cookiesFile
         ? () => {
@@ -407,7 +415,7 @@ export function useDownloadVideoForm(
           }
         : undefined,
     )
-  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, appConfig.userDataDir, listFormats, runUrlValidation])
+  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, appConfig.userDataDir, listFormats, runUrlValidation, proxy])
 
   const handleAgreementChange = useCallback(
     (checked: boolean) => {
@@ -452,6 +460,25 @@ export function useDownloadVideoForm(
     [],
   )
 
+  const setProxy = useCallback(
+    async (value: string) => {
+      setProxyState(value)
+      const trimmed = value.trim()
+      if (trimmed === (userConfig?.ytdlpProxy ?? "")) {
+        return
+      }
+      try {
+        await setAndSaveUserConfig(
+          `dvd-proxy-${Date.now()}`,
+          { ...userConfig, ytdlpProxy: trimmed },
+        )
+      } catch (error) {
+        console.error("[useDownloadVideoForm] Failed to persist proxy:", error)
+      }
+    },
+    [setAndSaveUserConfig, userConfig],
+  )
+
   // --- reset ---
   const resetFormState = useCallback(() => {
     setUrl("")
@@ -477,8 +504,9 @@ export function useDownloadVideoForm(
     setQuickjsUnavailable(false)
     setYoutubeCookiesHintEmphasized(false)
     setYoutubeCookiesHintFlashKey(0)
+    setProxy(userConfig?.ytdlpProxy ?? "")
     resetListFormats()
-  }, [platform, resetListFormats])
+  }, [platform, resetListFormats, userConfig?.ytdlpProxy])
 
   return {
     url,
@@ -526,6 +554,7 @@ export function useDownloadVideoForm(
     quickjsUnavailable,
     youtubeCookiesHintEmphasized,
     youtubeCookiesHintFlashKey,
+    proxy,
 
     setDownloadFolder,
     setSelectedFormatPresetId,
@@ -540,6 +569,7 @@ export function useDownloadVideoForm(
     setSelectedSupplementaryFormatCode,
     setUseJsRuntime,
     setJsRuntime,
+    setProxy,
 
     handleUrlChange,
     handleUrlBlur,

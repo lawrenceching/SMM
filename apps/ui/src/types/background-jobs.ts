@@ -76,6 +76,8 @@ export interface DownloadVideoBackgroundJobData {
   ytdlpJsRuntime?: string;
   /** Absolute path to the JS runtime binary. */
   ytdlpJsRuntimePath?: string;
+  /** Proxy URL for yt-dlp `--proxy` (http, https, socks5). */
+  ytdlpProxy?: string;
   /** CLI command log correlation (executeCmd yt-dlp). */
   executionId?: string;
   logRelativePath?: string;

@@ -69,6 +69,9 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onShowMoreOptionsChange: action("onShowMoreOptionsChange"),
     onExtraArgToggle: action("onExtraArgToggle"),
 
+    proxy: "",
+    onProxyChange: action("onProxyChange"),
+
     downloadFolder: "",
     onFolderChange: action("onFolderChange"),
     onFolderSelect: action("onFolderSelect"),

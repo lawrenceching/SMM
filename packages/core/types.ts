@@ -116,6 +116,12 @@ export interface UserConfig {
   ytdlpExecutablePath?: string
 
   /**
+   * Proxy URL for yt-dlp (`--proxy`). Supports http, https, socks5 protocols.
+   * Example: `socks5://127.0.0.1:1080/`
+   */
+  ytdlpProxy?: string
+
+  /**
    * Path to the ffmpeg executable file.
    */
   ffmpegExecutablePath?: string
