@@ -10,6 +10,7 @@ interface JobOrchestratorBridge {
   startJob(id: string, options?: { forceStart?: boolean }): Promise<StartJobResult>
   stopJob(id: string): void
   removeJob(id: string): Promise<void>
+  markPendingAsAborted(id: string): Promise<void>
   isReady(): boolean
 }
 

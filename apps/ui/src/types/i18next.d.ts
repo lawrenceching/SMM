@@ -252,6 +252,7 @@ interface ComponentsResources {
       abortAriaLabel: string
       delete: string
       deleteDisabledRunning: string
+      stopAll: string
       clearFinished: string
       clearFinishedTooltip: string
       clearFinishedAria: string

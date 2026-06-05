@@ -244,6 +244,7 @@
       },
       "delete": "Delete",
       "deleteDisabledRunning": "Cannot delete while running",
+      "stopAll": "Stop All",
       "clearFinished": "Clear",
       "clearFinishedTooltip": "Remove all jobs except those currently running",
       "clearFinishedAria": "Remove all jobs except those currently running",

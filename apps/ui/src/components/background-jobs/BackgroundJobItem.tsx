@@ -13,6 +13,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
@@ -139,6 +140,12 @@ export interface BackgroundJobItemProps {
     jobTitle: string
     isRunning: boolean
   }) => void
+  /**
+   * Abort every pending and running job in the popover. Invoked from
+   * the context-menu "Stop All" item — see `docs/design/background-jobs-stop-all.md`
+   * for the two-phase ordering rationale.
+   */
+  stopAllJobs: () => Promise<void>
 }
 
 export function BackgroundJobItem({
@@ -146,6 +153,7 @@ export function BackgroundJobItem({
   stopJob,
   removeJob,
   openLogDialog,
+  stopAllJobs,
 }: BackgroundJobItemProps) {
   const { t } = useTranslation('components')
   const displayName = getJobDisplayName(job, t)
@@ -293,6 +301,13 @@ export function BackgroundJobItem({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem
+          data-testid={`background-job-${job.id}-stop-all-menu`}
+          onSelect={() => void stopAllJobs()}
+        >
+          {t('statusBar.backgroundJobs.stopAll')}
+        </ContextMenuItem>
+        <ContextMenuSeparator data-testid={`background-job-${job.id}-menu-separator`} />
         <ContextMenuItem
           data-testid={`background-job-${job.id}-delete-menu`}
           variant="destructive"

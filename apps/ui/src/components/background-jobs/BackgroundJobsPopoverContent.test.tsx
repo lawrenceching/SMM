@@ -17,6 +17,7 @@ const mockStopJob = vi.fn()
 const mockRemoveJob = vi.fn().mockResolvedValue(undefined)
 const mockClearRemovableJobs = vi.fn().mockResolvedValue(undefined)
 const mockRefreshFromIndexedDB = vi.fn().mockResolvedValue(undefined)
+const mockStopAllJobs = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/providers/dialog-provider', () => ({
   useDialogs: () => ({
@@ -47,11 +48,13 @@ vi.mock('@/components/ui/context-menu', () => ({
     children: React.ReactNode
     onSelect?: () => void
     disabled?: boolean
+    [key: string]: unknown
   }) => (
     <button type="button" disabled={disabled} onClick={() => onSelect?.()} {...props}>
       {children}
     </button>
   ),
+  ContextMenuSeparator: ({ ...rest }: { [key: string]: unknown }) => <hr data-testid="context-menu-separator" {...rest} />,
 }))
 
 vi.mock('@/lib/i18n', () => ({
@@ -61,6 +64,7 @@ vi.mock('@/lib/i18n', () => ({
       if (key === 'statusBar.backgroundJobs.subtitle') return 'subtitle'
       if (key === 'statusBar.backgroundJobs.empty') return 'empty'
       if (key === 'statusBar.backgroundJobs.delete') return 'Delete'
+      if (key === 'statusBar.backgroundJobs.stopAll') return 'Stop All'
       if (key === 'statusBar.backgroundJobs.clearFinished') return 'Clear'
       if (key === 'statusBar.backgroundJobs.clearFinishedTooltip') return 'Remove completed jobs'
       if (key === 'statusBar.backgroundJobs.clearFinishedAria') return 'Remove completed jobs'
@@ -99,6 +103,7 @@ function mockPopoverJobs(jobs: BackgroundJob[], isPopoverOpen = true) {
     removeJob: mockRemoveJob,
     clearRemovableJobs: mockClearRemovableJobs,
     refreshFromIndexedDB: mockRefreshFromIndexedDB,
+    stopAllJobs: mockStopAllJobs,
   })
   mockUseStatusbarStore.mockImplementation((selector?: (s: { isBackgroundJobsPopoverOpen: boolean }) => unknown) => {
     const state = { isBackgroundJobsPopoverOpen: isPopoverOpen }
@@ -324,5 +329,25 @@ describe('BackgroundJobsPopoverContent', () => {
     mockPopoverJobs([], true)
     renderWithQuery(<BackgroundJobsPopoverContent />)
     expect(screen.queryByTestId('background-jobs-clear-button')).not.toBeInTheDocument()
+  })
+
+  it('Stop All context-menu item calls useJobManager.stopAllJobs', () => {
+    mockPopoverJobs([
+      {
+        id: 'j-running',
+        name: 'Run',
+        status: 'running',
+        progress: 10,
+        type: 'generic',
+        data: {},
+      },
+    ])
+
+    renderWithQuery(<BackgroundJobsPopoverContent />)
+
+    const stopAllBtn = screen.getByTestId('background-job-j-running-stop-all-menu')
+    expect(stopAllBtn).toHaveTextContent('Stop All')
+    fireEvent.click(stopAllBtn)
+    expect(mockStopAllJobs).toHaveBeenCalledTimes(1)
   })
 })

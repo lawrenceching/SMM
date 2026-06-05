@@ -9,7 +9,7 @@ import { BackgroundJobsPopoverList } from './BackgroundJobsPopoverList'
 import { FailedCommandsList } from './FailedCommandsList'
 
 export function BackgroundJobsPopoverContent() {
-  const { jobs, stopJob, removeJob, clearRemovableJobs, refreshFromIndexedDB } = useJobManager()
+  const { jobs, stopJob, removeJob, clearRemovableJobs, refreshFromIndexedDB, stopAllJobs } = useJobManager()
   const isPopoverOpen = useStatusbarStore((s) => s.isBackgroundJobsPopoverOpen)
   const { logDialog } = useDialogs()
   const [openLogDialog] = logDialog
@@ -54,6 +54,7 @@ export function BackgroundJobsPopoverContent() {
         stopJob={stopJob}
         removeJob={removeJob}
         openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
       />
       {failedEntries.length > 0 && (
         <FailedCommandsList

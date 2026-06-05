@@ -250,4 +250,187 @@ describe('useJobManager', () => {
     expect(mockStoreRemoveJob).toHaveBeenCalledWith('p1')
     expect(mockStoreRemoveJob).toHaveBeenCalledWith('d1')
   })
+
+  describe('stopAllJobs', () => {
+    const mockMarkPendingAsAborted = vi.fn().mockResolvedValue(undefined)
+
+    beforeEach(() => {
+      mockMarkPendingAsAborted.mockClear()
+      mockMarkPendingAsAborted.mockResolvedValue(undefined)
+      mockUseJobOrchestratorContext.mockReturnValue({
+        popoverJobRecords: [],
+        refreshFromIndexedDB: mockRefreshFromIndexedDB,
+        isReady: true,
+        createJob: vi.fn(),
+        createJobs: vi.fn(),
+        startJob: vi.fn(),
+        stopJob: mockOrchestratorStopJob,
+        removeJob: mockOrchestratorRemoveJob,
+        markPendingAsAborted: mockMarkPendingAsAborted,
+      })
+    })
+
+    it('is a no-op when no pending or running jobs exist', async () => {
+      setupStore([
+        {
+          id: 'd1',
+          name: 'Done',
+          status: 'succeeded',
+          progress: 100,
+          type: 'generic',
+          data: {},
+        },
+      ])
+
+      const { result } = renderHook(() => useJobManager())
+      await act(async () => {
+        await result.current.stopAllJobs()
+      })
+
+      expect(mockAbortJob).not.toHaveBeenCalled()
+      expect(mockOrchestratorStopJob).not.toHaveBeenCalled()
+      expect(mockMarkPendingAsAborted).not.toHaveBeenCalled()
+      expect(mockStopTestDelayJob).not.toHaveBeenCalled()
+    })
+
+    it('marks generic pending jobs as aborted before stopping running jobs', async () => {
+      // Use a persisted (transcribe) running job so the Phase 2 routing
+      // goes through `orchestrator.stopJob` rather than `abortJob` (generic
+      // running jobs share the abortJob path; using a transcribe job makes
+      // the two-phase ordering observable in callOrder).
+      const callOrder: string[] = []
+      mockAbortJob.mockImplementation((id: string) => {
+        callOrder.push(`abort:${id}`)
+      })
+      mockOrchestratorStopJob.mockImplementation((id: string) => {
+        callOrder.push(`stop:${id}`)
+      })
+
+      const jobs: BackgroundJob[] = [
+        {
+          id: 'g-pending',
+          name: 'Queued generic',
+          status: 'pending',
+          progress: 0,
+          type: 'generic',
+          data: {},
+        },
+        {
+          id: 't-running',
+          name: 'Transcribe running',
+          status: 'running',
+          progress: 10,
+          type: 'transcribe',
+          data: {
+            folder: '/f',
+            mediaPath: '/m.mp3',
+            mediaPathPlatform: 'C:/m.mp3',
+            title: 't',
+            provider: 'videoCaptioner',
+          },
+        },
+      ]
+      setupStore(jobs)
+
+      const { result } = renderHook(() => useJobManager())
+      await act(async () => {
+        await result.current.stopAllJobs()
+      })
+
+      // Phase 1 (pending abort) must precede Phase 2 (running stop) so
+      // that the orchestrator's auto-chain finally block has no pending
+      // siblings to start.
+      expect(callOrder).toEqual(['abort:g-pending', 'stop:t-running'])
+      expect(mockAbortJob).toHaveBeenCalledWith('g-pending')
+      expect(mockOrchestratorStopJob).toHaveBeenCalledWith('t-running')
+    })
+
+    it('marks persisted pending jobs as aborted via orchestrator.markPendingAsAborted', async () => {
+      const callOrder: string[] = []
+      mockMarkPendingAsAborted.mockImplementation(async (id: string) => {
+        callOrder.push(`markAborted:${id}`)
+      })
+      mockOrchestratorStopJob.mockImplementation((id: string) => {
+        callOrder.push(`stop:${id}`)
+      })
+
+      const jobs: BackgroundJob[] = [
+        {
+          id: 't-pending',
+          name: 'Transcribe pending',
+          status: 'pending',
+          progress: 0,
+          type: 'transcribe',
+          data: {
+            folder: '/f',
+            mediaPath: '/m.mp3',
+            mediaPathPlatform: 'C:/m.mp3',
+            title: 't',
+            provider: 'videoCaptioner',
+          },
+        },
+        {
+          id: 't-running',
+          name: 'Transcribe running',
+          status: 'running',
+          progress: 10,
+          type: 'transcribe',
+          data: {
+            folder: '/f',
+            mediaPath: '/m.mp3',
+            mediaPathPlatform: 'C:/m.mp3',
+            title: 't',
+            provider: 'videoCaptioner',
+          },
+        },
+      ]
+      setupStore(jobs)
+
+      const { result } = renderHook(() => useJobManager())
+      await act(async () => {
+        await result.current.stopAllJobs()
+      })
+
+      expect(callOrder).toEqual(['markAborted:t-pending', 'stop:t-running'])
+      expect(mockMarkPendingAsAborted).toHaveBeenCalledWith('t-pending')
+      expect(mockOrchestratorStopJob).toHaveBeenCalledWith('t-running')
+    })
+
+    it('routes test-delay pending jobs to stopTestDelayJob', async () => {
+      const callOrder: string[] = []
+      mockStopTestDelayJob.mockImplementation(async (id: string) => {
+        callOrder.push(`stopTd:${id}`)
+      })
+      mockOrchestratorStopJob.mockImplementation((id: string) => {
+        callOrder.push(`stop:${id}`)
+      })
+
+      const jobs: BackgroundJob[] = [
+        {
+          id: 'td-pending',
+          name: 'Test pending',
+          status: 'pending',
+          progress: 0,
+          type: 'test-delay',
+          data: { delayMs: 10_000, outcome: 'succeeded' },
+        },
+        {
+          id: 'td-running',
+          name: 'Test running',
+          status: 'running',
+          progress: 50,
+          type: 'test-delay',
+          data: { delayMs: 10_000, outcome: 'succeeded' },
+        },
+      ]
+      setupStore(jobs)
+
+      const { result } = renderHook(() => useJobManager())
+      await act(async () => {
+        await result.current.stopAllJobs()
+      })
+
+      expect(callOrder).toEqual(['stopTd:td-pending', 'stopTd:td-running'])
+    })
+  })
 })

@@ -22,6 +22,19 @@ export interface UseJobManagerResult {
   stopJob: (id: string) => void
   removeJob: (id: string) => Promise<void>
   clearRemovableJobs: () => Promise<void>
+  /**
+   * Abort every `pending` job and stop every `running` job.
+   *
+   * Runs in two phases to preserve the orchestrator's auto-chain invariant
+   * (see `docs/design/background-jobs-stop-all.md`):
+   *   1. Mark all `pending` jobs as `aborted` in IndexedDB (awaited) so that
+   *      the `executeJob` `finally` block finds no pending siblings to start.
+   *   2. Stop all `running` jobs (fire-and-forget — their abort signal
+   *      propagates through the existing pipeline).
+   *
+   * No-op when there are no pending or running jobs.
+   */
+  stopAllJobs: () => Promise<void>
   addJob: (nameOrJob: string | BackgroundJob) => string
   updateJob: (id: string, updates: Partial<BackgroundJob>) => void
   patchJob: (id: string, fn: (job: BackgroundJob) => BackgroundJob) => void
@@ -84,6 +97,40 @@ export function useJobManager(): UseJobManagerResult {
     }
   }, [jobs, removeJob, t])
 
+  const stopAllJobs = useCallback(async (): Promise<void> => {
+    // Snapshot the job list once so subsequent state mutations don't
+    // cause us to re-read a partially-updated list mid-flight.
+    const snapshot = useBackgroundJobsStore.getState().jobs
+    const pendingJobs = snapshot.filter((j) => j.status === 'pending')
+    const runningJobs = snapshot.filter((j) => j.status === 'running')
+
+    if (pendingJobs.length === 0 && runningJobs.length === 0) return
+
+    // Phase 1: mark all pending jobs as `aborted`. Awaiting each path
+    // guarantees IDB has been written before we trigger any running-job
+    // aborts whose `executeJob` `finally` block would auto-chain.
+    await Promise.all(
+      pendingJobs.map(async (job) => {
+        if (isGenericBackgroundJob(job)) {
+          useBackgroundJobsStore.getState().abortJob(job.id)
+          return
+        }
+        if (isTestDelayBackgroundJob(job)) {
+          await stopTestDelayJob(job.id)
+          return
+        }
+        await orchestrator.markPendingAsAborted(job.id)
+      }),
+    )
+
+    // Phase 2: stop all running jobs. These calls are synchronous (the
+    // orchestrator abort is fire-and-forget; the existing `finally`
+    // block in `executeJob` will re-sync from IDB).
+    for (const job of runningJobs) {
+      stopJob(job.id)
+    }
+  }, [orchestrator, stopJob])
+
   return {
     jobs,
     refreshFromIndexedDB: orchestrator.refreshFromIndexedDB,
@@ -94,6 +141,7 @@ export function useJobManager(): UseJobManagerResult {
     stopJob,
     removeJob,
     clearRemovableJobs,
+    stopAllJobs,
     addJob,
     updateJob,
     patchJob,

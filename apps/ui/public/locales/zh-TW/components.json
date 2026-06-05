@@ -241,6 +241,7 @@
       },
       "delete": "刪除",
       "deleteDisabledRunning": "執行中的任務無法刪除",
+      "stopAll": "停止全部",
       "clearFinished": "清理",
       "clearFinishedTooltip": "清理除執行中以外的任務",
       "clearFinishedAria": "清理除執行中以外的任務",

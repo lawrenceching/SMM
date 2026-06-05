@@ -86,6 +86,13 @@ export interface JobOrchestratorContextValue {
   startJob(id: string, options?: { forceStart?: boolean }): Promise<StartJobResult>
   stopJob(id: string): void
   removeJob(id: string): Promise<void>
+  /**
+   * Mark a `pending` persisted job as `aborted` in IndexedDB.
+   * No-op for non-pending or missing records. Used by `stopAllJobs` to
+   * drain the pending queue before stopping running jobs — see
+   * `docs/design/background-jobs-stop-all.md` for the ordering rationale.
+   */
+  markPendingAsAborted(id: string): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -1020,6 +1027,19 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     [syncFromIndexedDB],
   )
 
+  const markPendingAsAborted = useCallback(
+    async (id: string): Promise<void> => {
+      const record = jobRecordsRef.current.find((r) => r.id === id)
+      if (!record) return
+      if (record.status !== 'pending') return
+      record.status = 'aborted'
+      record.updatedAt = Date.now()
+      await putJob(record)
+      await syncFromIndexedDB('markPendingAsAborted')
+    },
+    [syncFromIndexedDB],
+  )
+
   // ---------------------------------------------------------------------------
   // window.__jobOrchestrator bridge (for non-React consumers)
   // ---------------------------------------------------------------------------
@@ -1031,12 +1051,13 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       startJob,
       stopJob,
       removeJob,
+      markPendingAsAborted,
       isReady: () => isReadyRef.current,
     }
     return () => {
       delete (window as unknown as Record<string, unknown>).__jobOrchestrator
     }
-  }, [createJob, createJobs, startJob, stopJob, removeJob])
+  }, [createJob, createJobs, startJob, stopJob, removeJob, markPendingAsAborted])
 
   // ---------------------------------------------------------------------------
   // Context value
@@ -1053,6 +1074,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       startJob,
       stopJob,
       removeJob,
+      markPendingAsAborted,
     }),
     [
       jobRecords,
@@ -1064,6 +1086,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       startJob,
       stopJob,
       removeJob,
+      markPendingAsAborted,
     ],
   )
 

@@ -13,6 +13,7 @@ export interface BackgroundJobsPopoverListProps {
     jobTitle: string
     isRunning: boolean
   }) => void
+  stopAllJobs: () => Promise<void>
 }
 
 export function BackgroundJobsPopoverList({
@@ -21,6 +22,7 @@ export function BackgroundJobsPopoverList({
   stopJob,
   removeJob,
   openLogDialog,
+  stopAllJobs,
 }: BackgroundJobsPopoverListProps) {
   const { t } = useTranslation('components')
 
@@ -49,6 +51,7 @@ export function BackgroundJobsPopoverList({
             stopJob={stopJob}
             removeJob={removeJob}
             openLogDialog={openLogDialog}
+            stopAllJobs={stopAllJobs}
           />
         ))
       )}

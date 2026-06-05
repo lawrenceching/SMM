@@ -64,7 +64,9 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
   abortJob: (id) =>
     set((state) => ({
       jobs: state.jobs.map((job) =>
-        job.id === id && job.status === 'running' ? { ...job, status: 'aborted' } : job
+        job.id === id && (job.status === 'running' || job.status === 'pending')
+          ? { ...job, status: 'aborted' }
+          : job
       ),
     })),
 
