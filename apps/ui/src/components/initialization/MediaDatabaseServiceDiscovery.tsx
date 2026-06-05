@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import Debug from "debug"
 import { useDiscoveredMediaDatabaseBaseUrls } from "@/hooks/useDiscoveredMediaDatabaseBaseUrls"
 import localStorages from "@/lib/localStorages"
@@ -10,6 +10,22 @@ import {
 import type { MediaDatabaseEndpoint } from "@/api/discover"
 
 const debug = Debug("MediaDatabaseServiceDiscovery")
+
+// Module-level guard: ensures the reachability probe runs at most once
+// per app session, even when React's StrictMode mounts/unmounts the
+// component twice in development or when the parent re-renders cause
+// the effect to re-evaluate. Without this, each endpoint would receive
+// 2x or 3x as many probe requests as expected.
+let hasProbedThisSession = false
+
+/**
+ * Test-only helper: resets the per-session guard so unit tests that
+ * render the component multiple times can exercise the probe path
+ * independently for each test case.
+ */
+export function _resetMediaDatabaseServiceDiscoveryForTesting(): void {
+  hasProbedThisSession = false
+}
 
 function serializePreferredEndpoint(endpoint: MediaDatabaseEndpoint): string {
   return JSON.stringify({
@@ -107,16 +123,19 @@ async function probeAndStore(
  * preference stable in the face of transient network jitter or a single
  * unlucky probe.
  *
+ * A module-level guard (`hasProbedThisSession`) ensures the probe runs
+ * at most once per app session, even when React's StrictMode mounts
+ * and re-mounts the component during development.
+ *
  * This component is render-free; it only triggers side effects.
  */
 export function MediaDatabaseServiceDiscovery() {
   const { data: endpoints } = useDiscoveredMediaDatabaseBaseUrls()
-  const ranRef = useRef(false)
 
   useEffect(() => {
     if (!endpoints) return
-    if (ranRef.current) return
-    ranRef.current = true
+    if (hasProbedThisSession) return
+    hasProbedThisSession = true
 
     void probeAndStore(endpoints, "tmdb").catch((err: unknown) => {
       debug(`tmdb reachability check failed: %o`, err)

@@ -2,7 +2,7 @@ import React from "react"
 import { render, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { MediaDatabaseServiceDiscovery } from "./MediaDatabaseServiceDiscovery"
+import { MediaDatabaseServiceDiscovery, _resetMediaDatabaseServiceDiscoveryForTesting } from "./MediaDatabaseServiceDiscovery"
 import localStorages from "@/lib/localStorages"
 import { discoveredMediaDatabasesQueryKey } from "@/hooks/useDiscoveredMediaDatabaseBaseUrls"
 import type { MediaDatabaseEndpoint } from "@/api/discover"
@@ -38,6 +38,9 @@ describe("MediaDatabaseServiceDiscovery", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    // Reset the module-level probe guard so each test exercises the
+    // probe path independently.
+    _resetMediaDatabaseServiceDiscoveryForTesting()
     // Provide a default stub for probe so tests that don't set up an
     // explicit mock still get a deterministic result.
     mockProbeEndpointReachability.mockImplementation(async (endpoint) => ({
@@ -202,5 +205,38 @@ describe("MediaDatabaseServiceDiscovery", () => {
       // The stale value should be replaced with the new fastest URL.
       expect(JSON.parse(pref!).url).toBe("https://a.example/api/tmdb")
     })
+  })
+
+  it("does not re-probe when mounted multiple times in the same session", async () => {
+    // The component should mount cleanly multiple times in the same
+    // app session (e.g. StrictMode dev double-mount, or a hot-reload
+    // cycle) without sending extra probe requests.
+    const discovered: MediaDatabaseEndpoint[] = [
+      { type: "tmdb", url: "https://a.example/api/tmdb", authorizationMethod: "none" },
+      { type: "tvdb", url: "https://a.example/api/tvdb", authorizationMethod: "none" },
+    ]
+    mockProbeEndpointReachability.mockImplementation(async (endpoint) => ({
+      endpoint,
+      ok: true,
+      durationMs: 100,
+    }))
+
+    // First mount kicks off the probe.
+    const { unmount } = render(<MediaDatabaseServiceDiscovery />, {
+      wrapper: makeWrapper(discovered),
+    })
+    await waitFor(() => {
+      expect(mockProbeEndpointReachability).toHaveBeenCalled()
+    })
+    const callCountAfterFirstMount = mockProbeEndpointReachability.mock.calls.length
+    unmount()
+
+    // Second mount within the same session must NOT re-probe.
+    render(<MediaDatabaseServiceDiscovery />, { wrapper: makeWrapper(discovered) })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(mockProbeEndpointReachability).toHaveBeenCalledTimes(
+      callCountAfterFirstMount,
+    )
   })
 })
