@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCommandLogQuery } from '@/hooks/useCommandLogQuery'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { getJobExecutionId } from '@/components/background-jobs/backgroundJobsPopoverJobUtils'
@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useTranslation } from '@/lib/i18n'
 import { isTerminalCommandLogText } from '@/lib/commandLogTerminal'
 import { Loader2, RefreshCw } from 'lucide-react'
@@ -63,13 +62,28 @@ export function LogDialog({
   }, [bodyText])
 
   const truncated = query.data?.meta.truncated ?? false
+  const logTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const handleDialogKeyDownCapture = (event: React.KeyboardEvent) => {
+    if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'a') return
+    if (!bodyText.trim()) return
+    const textarea = logTextareaRef.current
+    if (!textarea || event.target === textarea) return
+    event.preventDefault()
+    textarea.focus()
+    textarea.select()
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl gap-0 p-0" aria-describedby={undefined}>
-        <DialogHeader className="border-b border-border px-4 py-3">
-          <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
-            <span>{t('statusBar.backgroundJobs.logDialog.title', { jobTitle })}</span>
+      <DialogContent
+        className="flex max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        aria-describedby={undefined}
+        onKeyDownCapture={handleDialogKeyDownCapture}
+      >
+        <DialogHeader className="min-w-0 shrink-0 border-b border-border px-4 py-3">
+          <DialogTitle className="flex min-w-0 flex-wrap items-center gap-2 text-base">
+            <span className="min-w-0 break-all">{t('statusBar.backgroundJobs.logDialog.title', { jobTitle })}</span>
             {effectiveIsRunning && (
               <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-normal text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -78,7 +92,7 @@ export function LogDialog({
             )}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+        <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2">
           <Button
             type="button"
             size="sm"
@@ -96,11 +110,11 @@ export function LogDialog({
           </Button>
         </div>
         {truncated && (
-          <p className="border-b border-border bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
+          <p className="min-w-0 shrink-0 border-b border-border bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
             {t('statusBar.backgroundJobs.logDialog.truncated')}
           </p>
         )}
-        <div className="p-4">
+        <div className="min-w-0 overflow-hidden p-4">
           {query.isPending && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -116,11 +130,16 @@ export function LogDialog({
             <p className="text-sm text-muted-foreground">{t('statusBar.backgroundJobs.logDialog.empty')}</p>
           )}
           {!query.isPending && !query.isError && bodyText.trim() !== '' && (
-            <ScrollArea className={cn('h-[min(60vh,420px)] w-full rounded-md border border-border')}>
-              <pre className="whitespace-pre-wrap wrap-break-word p-3 text-xs font-mono leading-relaxed">
-                {bodyText}
-              </pre>
-            </ScrollArea>
+            <textarea
+              ref={logTextareaRef}
+              readOnly
+              aria-label={t('statusBar.backgroundJobs.logDialog.contentAria')}
+              value={bodyText}
+              data-testid="log-dialog-content"
+              className={cn(
+                'h-[min(60vh,420px)] w-full min-w-0 max-w-full resize-none overflow-auto rounded-md border border-border bg-background p-3 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all outline-none focus:border-border focus:outline-none focus-visible:border-border focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
+              )}
+            />
           )}
         </div>
       </DialogContent>

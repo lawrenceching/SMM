@@ -1,7 +1,7 @@
 import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LogDialog } from './LogDialog'
 
@@ -53,6 +53,31 @@ describe('LogDialog', () => {
       expect(screen.getByText('abc')).toBeInTheDocument()
     })
     expect(globalThis.fetch).toHaveBeenCalled()
+  })
+
+  it('selects all log text on Ctrl+A when focus is outside the log area', async () => {
+    renderWithClient(
+      <LogDialog
+        open
+        onOpenChange={() => {}}
+        executionId="00000000-0000-4000-8000-000000000001"
+        jobTitle="Job A"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('log-dialog-content')).toBeInTheDocument()
+    })
+
+    const textarea = screen.getByTestId('log-dialog-content') as HTMLTextAreaElement
+    const refreshButton = screen.getByRole('button', { name: 'statusBar.backgroundJobs.logDialog.refresh' })
+    refreshButton.focus()
+
+    fireEvent.keyDown(refreshButton, { key: 'a', ctrlKey: true, bubbles: true })
+
+    expect(document.activeElement).toBe(textarea)
+    expect(textarea.selectionStart).toBe(0)
+    expect(textarea.selectionEnd).toBe(textarea.value.length)
   })
 
   it(

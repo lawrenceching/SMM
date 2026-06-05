@@ -268,7 +268,8 @@
         "truncated": "This view may be truncated. Headers report total size; open the log file on disk for the full output.",
         "loadError": "Could not load the command log.",
         "empty": "Log is empty.",
-        "live": "Live"
+        "live": "Live",
+        "contentAria": "Command log output"
       }
     }
   },
