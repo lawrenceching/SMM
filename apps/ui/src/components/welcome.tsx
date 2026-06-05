@@ -18,12 +18,18 @@ export interface WelcomeProps {
   onImportFolderClick?: () => void
 }
 
+type WelcomeFeatureCardTitleKey =
+  | "welcome.featureCards.importFolder"
+  | "welcome.featureCards.downloadVideo"
+  | "welcome.featureCards.formatConversion"
+  | "welcome.featureCards.github"
+
 interface FeatureCardSpec {
   id: string
   /** lucide-react icon component */
   Icon: ComponentType<{ className?: string }>
   /** i18n key for the card title */
-  titleKey: string
+  titleKey: WelcomeFeatureCardTitleKey
   /** Tailwind classes for the icon container background */
   iconBgClass: string
   /** Tailwind classes for the icon container shadow / glow */

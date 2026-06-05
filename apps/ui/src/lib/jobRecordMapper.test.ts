@@ -37,6 +37,64 @@ describe('jobRecordToBackgroundJob', () => {
     })
   })
 
+  it('maps ffmpeg-convert records', () => {
+    const job = jobRecordToBackgroundJob({
+      id: 'fc1',
+      name: 'Convert: sample.mkv',
+      status: 'running',
+      progress: 0,
+      type: 'ffmpeg-convert',
+      folder: '',
+      data: JSON.stringify({
+        folder: '',
+        inputPath: '/media/sample.mkv',
+        inputPathPlatform: 'C:\\media\\sample.mkv',
+        outputPath: '/media/sample (1).webp',
+        outputPathPlatform: 'C:\\media\\sample (1).webp',
+        outputFormat: 'webp',
+        preset: 'balanced',
+        title: 'sample.mkv',
+      }),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    expect(job).toMatchObject({
+      id: 'fc1',
+      type: 'ffmpeg-convert',
+      status: 'running',
+      data: {
+        inputPath: '/media/sample.mkv',
+        outputFormat: 'webp',
+        title: 'sample.mkv',
+      },
+    })
+  })
+
+  it('maps ffmpeg-write-tags records', () => {
+    const job = jobRecordToBackgroundJob({
+      id: 'wt1',
+      name: 'Write tags: track.mp3',
+      status: 'pending',
+      progress: 0,
+      type: 'ffmpeg-write-tags',
+      folder: '/music',
+      data: JSON.stringify({
+        folder: '/music',
+        filePath: '/music/track.mp3',
+        filePathPlatform: 'C:\\music\\track.mp3',
+        title: 'track.mp3',
+        tags: { artist: 'A', title: 'T' },
+      }),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    expect(job).toMatchObject({
+      id: 'wt1',
+      type: 'ffmpeg-write-tags',
+      data: { tags: { artist: 'A', title: 'T' } },
+    })
+  })
+
   it('does not deserialize transient progress fields (removed from type)', () => {
     const job = jobRecordToBackgroundJob({
       id: 'd1',
@@ -94,6 +152,33 @@ describe('syncJobRecordsToStore', () => {
     const remaining = useBackgroundJobsStore.getState().jobs
     expect(remaining).toHaveLength(1)
     expect(remaining[0]?.id).toBe('generic-1')
+  })
+
+  it('syncs ffmpeg-convert records into the store', () => {
+    syncJobRecordsToStore([
+      {
+        id: 'fc1',
+        name: 'Convert: sample.mkv',
+        status: 'pending',
+        progress: 0,
+        type: 'ffmpeg-convert',
+        folder: '',
+        data: JSON.stringify({
+          folder: '',
+          inputPath: '/media/sample.mkv',
+          inputPathPlatform: '/media/sample.mkv',
+          outputPath: '/media/sample.webp',
+          outputPathPlatform: '/media/sample.webp',
+          outputFormat: 'webp',
+          preset: 'balanced',
+          title: 'sample.mkv',
+        }),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ])
+    expect(useBackgroundJobsStore.getState().jobs).toHaveLength(1)
+    expect(useBackgroundJobsStore.getState().jobs[0]?.type).toBe('ffmpeg-convert')
   })
 
   it('replaces persisted jobs atomically on each sync', () => {

@@ -61,7 +61,41 @@ const WEBP_PRESETS = [
   "text",
 ] as const
 
+const WEBP_PRESET_LABEL_KEYS: Record<
+  (typeof WEBP_PRESETS)[number],
+  | "formatConverter.webpPresetDefault"
+  | "formatConverter.webpPresetPicture"
+  | "formatConverter.webpPresetPhoto"
+  | "formatConverter.webpPresetDrawing"
+  | "formatConverter.webpPresetIcon"
+  | "formatConverter.webpPresetText"
+> = {
+  default: "formatConverter.webpPresetDefault",
+  picture: "formatConverter.webpPresetPicture",
+  photo: "formatConverter.webpPresetPhoto",
+  drawing: "formatConverter.webpPresetDrawing",
+  icon: "formatConverter.webpPresetIcon",
+  text: "formatConverter.webpPresetText",
+}
+
 const APNG_PREDS = ["paeth", "mixed", "none", "sub", "up", "avg"] as const
+
+const APNG_PRED_LABEL_KEYS: Record<
+  (typeof APNG_PREDS)[number],
+  | "formatConverter.apngPredPaeth"
+  | "formatConverter.apngPredMixed"
+  | "formatConverter.apngPredNone"
+  | "formatConverter.apngPredSub"
+  | "formatConverter.apngPredUp"
+  | "formatConverter.apngPredAvg"
+> = {
+  paeth: "formatConverter.apngPredPaeth",
+  mixed: "formatConverter.apngPredMixed",
+  none: "formatConverter.apngPredNone",
+  sub: "formatConverter.apngPredSub",
+  up: "formatConverter.apngPredUp",
+  avg: "formatConverter.apngPredAvg",
+}
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -576,7 +610,7 @@ export function FormatConverterDialog({
                       <SelectContent>
                         {WEBP_PRESETS.map((presetValue) => (
                           <SelectItem key={presetValue} value={presetValue}>
-                            {t(`formatConverter.webpPreset${presetValue.charAt(0).toUpperCase()}${presetValue.slice(1)}`)}
+                            {t(WEBP_PRESET_LABEL_KEYS[presetValue])}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -612,7 +646,7 @@ export function FormatConverterDialog({
                       <SelectContent>
                         {APNG_PREDS.map((pred) => (
                           <SelectItem key={pred} value={pred}>
-                            {t(`formatConverter.apngPred${pred.charAt(0).toUpperCase()}${pred.slice(1)}`)}
+                            {t(APNG_PRED_LABEL_KEYS[pred])}
                           </SelectItem>
                         ))}
                       </SelectContent>

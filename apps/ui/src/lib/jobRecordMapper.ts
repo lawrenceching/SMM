@@ -3,6 +3,10 @@ import {
   type BackgroundJob,
   type DownloadVideoBackgroundJob,
   type DownloadVideoBackgroundJobData,
+  type FfmpegConvertBackgroundJob,
+  type FfmpegConvertBackgroundJobData,
+  type FfmpegWriteTagsBackgroundJob,
+  type FfmpegWriteTagsBackgroundJobData,
   type ProcessBackgroundJob,
   type ProcessBackgroundJobData,
   type SynthesizeBackgroundJob,
@@ -14,6 +18,8 @@ import {
   type TranslateBackgroundJob,
   type TranslateBackgroundJobData,
   isDownloadVideoJob,
+  isFfmpegConvertBackgroundJob,
+  isFfmpegWriteTagsBackgroundJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTestDelayBackgroundJob,
@@ -322,6 +328,83 @@ export function jobRecordToBackgroundJob(record: TaskJobRecord): BackgroundJob |
     return job
   }
 
+  if (record.type === 'ffmpeg-convert') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const inputPathRaw = typeof parsed.inputPath === 'string' ? parsed.inputPath : ''
+    const inputPath = inputPathRaw ? Path.posix(inputPathRaw) : ''
+    const inputPathPlatform =
+      typeof parsed.inputPathPlatform === 'string' ? parsed.inputPathPlatform : inputPath
+    const outputPathRaw = typeof parsed.outputPath === 'string' ? parsed.outputPath : ''
+    const outputPath = outputPathRaw ? Path.posix(outputPathRaw) : ''
+    const outputPathPlatform =
+      typeof parsed.outputPathPlatform === 'string' ? parsed.outputPathPlatform : outputPath
+    const data: FfmpegConvertBackgroundJobData = {
+      folder: (typeof parsed.folder === 'string' ? parsed.folder : record.folder) || '',
+      inputPath,
+      inputPathPlatform,
+      outputPath,
+      outputPathPlatform,
+      outputFormat: typeof parsed.outputFormat === 'string' ? parsed.outputFormat : '',
+      preset: typeof parsed.preset === 'string' ? parsed.preset : 'balanced',
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+    }
+    if (parsed.imageOptions && typeof parsed.imageOptions === 'object') {
+      data.imageOptions = parsed.imageOptions as FfmpegConvertBackgroundJobData['imageOptions']
+    }
+    applyCommandLogCorrelation(data, parsed)
+    const job: FfmpegConvertBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as FfmpegConvertBackgroundJob['status'],
+      progress: record.progress,
+      type: 'ffmpeg-convert',
+      data,
+      parentId: record.parentId,
+    }
+    return job
+  }
+
+  if (record.type === 'ffmpeg-write-tags') {
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(record.data || '{}') as Record<string, unknown>
+    } catch {
+      parsed = {}
+    }
+    const filePathRaw = typeof parsed.filePath === 'string' ? parsed.filePath : ''
+    const filePath = filePathRaw ? Path.posix(filePathRaw) : ''
+    const filePathPlatform =
+      typeof parsed.filePathPlatform === 'string' ? parsed.filePathPlatform : filePath
+    const tagsRaw = parsed.tags
+    const tags =
+      tagsRaw && typeof tagsRaw === 'object' && !Array.isArray(tagsRaw)
+        ? (tagsRaw as Record<string, string>)
+        : {}
+    const data: FfmpegWriteTagsBackgroundJobData = {
+      folder: typeof parsed.folder === 'string' ? parsed.folder : record.folder,
+      filePath,
+      filePathPlatform,
+      title: typeof parsed.title === 'string' ? parsed.title : record.name,
+      tags,
+    }
+    applyCommandLogCorrelation(data, parsed)
+    const job: FfmpegWriteTagsBackgroundJob = {
+      id: record.id,
+      name: record.name,
+      status: record.status as FfmpegWriteTagsBackgroundJob['status'],
+      progress: record.progress,
+      type: 'ffmpeg-write-tags',
+      data,
+      parentId: record.parentId,
+    }
+    return job
+  }
+
   if (record.type !== 'download-video') {
     return null
   }
@@ -377,7 +460,9 @@ function isPersistedFromIdbJob(job: BackgroundJob): boolean {
     isTranslateBackgroundJob(job) ||
     isSynthesizeBackgroundJob(job) ||
     isProcessBackgroundJob(job) ||
-    isTestDelayBackgroundJob(job)
+    isTestDelayBackgroundJob(job) ||
+    isFfmpegConvertBackgroundJob(job) ||
+    isFfmpegWriteTagsBackgroundJob(job)
   )
 }
 

@@ -215,7 +215,7 @@ sequenceDiagram
 
 - [x] Add `avif` | `webp` | `apng` to `FfmpegConvertFormat` and `FfmpegConvertImageOptions` type
 - [x] Implement `buildFfmpegConvertArgs` cases for three formats + unit tests in `packages/core`
-- [ ] Sync `apps/cli/src/utils/Ffmpeg.ts` if still referenced
+- [x] Sync `apps/cli/src/utils/Ffmpeg.ts` if still referenced — skipped; UI path uses core whitelistedCmd
 
 ### 5.2 Job data & orchestrator
 
