@@ -95,7 +95,7 @@ const meta = {
           role="table"
           style={{
             display: "grid",
-            gridTemplateColumns: "40px 64px 1fr 128px 64px 32px",
+            gridTemplateColumns: "40px 64px 1fr 128px minmax(64px, auto) 32px",
           }}
           className="w-full text-xs"
         >

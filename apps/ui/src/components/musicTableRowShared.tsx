@@ -125,7 +125,7 @@ export function MusicRowMediaCells({
         </p>
       </Cell>
 
-      <Cell className={cn("w-16 px-2 py-1.5 text-muted-foreground", as === "div" ? "flex items-center justify-end" : "text-right")} {...cellProps}>
+      <Cell className={cn("px-2 py-1.5 text-muted-foreground truncate", as === "div" ? "flex items-center justify-end" : "text-right")} {...cellProps}>
         {durationLabel ?? formatDuration(duration)}
       </Cell>
     </>

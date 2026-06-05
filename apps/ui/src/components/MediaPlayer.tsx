@@ -8,6 +8,12 @@ export interface DownloadingTrack {
   status?: "pending" | "downloading" | "completed" | "failed" | "stopped";
   /** When set, this row is backed by a {@link import('@/types/background-jobs').DownloadVideoBackgroundJob} */
   jobId?: string
+  /**
+   * CLI command execution id for the parent download-video job. Used by
+   * progress hooks to poll main.log for yt-dlp progress JSON lines.
+   * Mirrors `BackgroundJob.data.executionId` of the same jobId.
+   */
+  executionId?: string
 }
 
 /**

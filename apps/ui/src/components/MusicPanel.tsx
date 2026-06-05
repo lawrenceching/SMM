@@ -303,6 +303,7 @@ export function MusicPanel() {
             id: track.id,
             index,
             jobId: track.jobId,
+            executionId: track.executionId,
             status,
             title: track.title,
             artist: track.artist ?? "",

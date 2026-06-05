@@ -11,7 +11,7 @@ import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
 import { Path } from "@core/path"
 import { LocalFileTableRow } from "./LocalFileTableRow"
 import type { LocalFileTableRowFileMenu, MusicTableSelection } from "@/types/music-table"
-import { JobTableRow } from "./JobTableRow"
+import { TableRowDownloadVideoJob } from "./TableRowDownloadVideoJob"
 
 export interface LocalFileTableRowData {
   kind: "local"
@@ -36,6 +36,11 @@ export interface JobTableRowData {
   id: number
   index: number
   jobId: string
+  /**
+   * CLI command execution id used by the progress hook to poll
+   * main.log for live download progress.
+   */
+  executionId?: string
   status: JobTableRowStatus
   title: string
   artist: string
@@ -157,7 +162,7 @@ export function MusicFileTable({
         role="table"
         style={{
           display: "grid",
-          gridTemplateColumns: "40px 64px 1fr 128px 64px 32px",
+          gridTemplateColumns: "40px 64px 1fr 128px 160px 32px",
         }}
         className="w-full"
       >
@@ -217,7 +222,7 @@ export function MusicFileTable({
                 onTrackClick={onTrackClick}
               />
             ) : (
-              <JobTableRow
+              <TableRowDownloadVideoJob
                 key={row.id}
                 row={row}
                 mediaFolderPath={mediaFolderPath}

@@ -31,9 +31,13 @@ export function tracksFromDownloadJobRecords(records: DownloadJobRecord[]): Trac
     if (record.type !== 'download-video') return []
 
     let videos: Array<{ url: string; title: string; artist: string; status: string }>
+    let executionId: string | undefined
     try {
       const parsed = JSON.parse(record.data || '{}')
       videos = parsed.videos || []
+      if (typeof parsed.executionId === 'string') {
+        executionId = parsed.executionId
+      }
     } catch {
       return []
     }
@@ -50,6 +54,7 @@ export function tracksFromDownloadJobRecords(records: DownloadJobRecord[]): Trac
         path: undefined,
         url: item.url,
         jobId: record.id,
+        executionId,
         status: record.status === 'stopped' ? 'stopped' as const
           : record.status === 'aborted' ? 'stopped' as const
           : itemStatus,
