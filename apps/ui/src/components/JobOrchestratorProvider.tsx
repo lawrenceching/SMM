@@ -601,6 +601,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
             cd.outputPathPlatform,
             cd.outputFormat as FfmpegConvertFormat,
             cd.preset as FfmpegConvertPreset,
+            cd.imageOptions,
           )
           const result = await executeCmdToCompletionWithHeaders(
             { command: 'ffmpeg', args },

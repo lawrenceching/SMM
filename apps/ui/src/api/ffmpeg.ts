@@ -174,6 +174,7 @@ export interface FfmpegConvertRequest {
   outputPath: string;
   outputFormat: FfmpegConvertFormat;
   preset: FfmpegConvertPreset;
+  imageOptions?: import('@core/whitelistedCmd/constants').FfmpegConvertImageOptions;
 }
 
 export interface FfmpegConvertResponse {
@@ -189,7 +190,8 @@ export async function convertVideo(params: FfmpegConvertRequest): Promise<Ffmpeg
     inputPath,
     outputPath,
     params.outputFormat,
-    params.preset
+    params.preset,
+    params.imageOptions,
   );
 
   const result = await executeCmdToCompletion(

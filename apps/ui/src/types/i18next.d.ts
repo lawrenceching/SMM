@@ -521,6 +521,14 @@ interface ComponentsResources {
     }
     noFilesFound: string
   }
+  welcome: {
+    featureCards: {
+      importFolder: string
+      downloadVideo: string
+      formatConversion: string
+      github: string
+    }
+  }
 }
 
 interface DialogsResources {
@@ -726,6 +734,36 @@ interface DialogsResources {
     formatMp4H265: string
     formatWebm: string
     formatMkv: string
+    formatAvif: string
+    formatWebp: string
+    formatApng: string
+    imageModeLabel: string
+    imageModeAnimated: string
+    imageModeStill: string
+    imageFpsLabel: string
+    imageMaxWidthLabel: string
+    imageMaxWidthHint: string
+    imageLoopLabel: string
+    imageLoopOnce: string
+    imageLoopInfinite: string
+    avifCrfLabel: string
+    avifCpuUsedLabel: string
+    webpLosslessLabel: string
+    webpQualityLabel: string
+    webpPresetLabel: string
+    webpPresetDefault: string
+    webpPresetPicture: string
+    webpPresetPhoto: string
+    webpPresetDrawing: string
+    webpPresetIcon: string
+    webpPresetText: string
+    apngPredLabel: string
+    apngPredPaeth: string
+    apngPredMixed: string
+    apngPredNone: string
+    apngPredSub: string
+    apngPredUp: string
+    apngPredAvg: string
     presetLabel: string
     presetQuality: string
     presetBalanced: string

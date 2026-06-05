@@ -1,6 +1,8 @@
 /**
  * Background job status type
  */
+import type { FfmpegConvertImageOptions } from '@core/whitelistedCmd/constants'
+
 export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted' | 'stopped';
 
 /** Per-video row in a download-video job (see docs/design/download-bilibili-videos.md) */
@@ -241,6 +243,7 @@ export interface FfmpegConvertBackgroundJobData {
   outputPathPlatform: string
   outputFormat: string
   preset: string
+  imageOptions?: FfmpegConvertImageOptions
   /** Source file display name. */
   title: string
   executionId?: string

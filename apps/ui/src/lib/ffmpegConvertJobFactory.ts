@@ -5,6 +5,8 @@ function newJobId(): string {
   return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
+import type { FfmpegConvertImageOptions } from '@core/whitelistedCmd/constants'
+
 export interface BuildFfmpegConvertJobInput {
   folder?: string
   inputPath: string
@@ -12,6 +14,7 @@ export interface BuildFfmpegConvertJobInput {
   outputFormat: string
   preset: string
   title: string
+  imageOptions?: FfmpegConvertImageOptions
 }
 
 export function buildFfmpegConvertJob(
@@ -32,6 +35,7 @@ export function buildFfmpegConvertJob(
     outputFormat: input.outputFormat,
     preset: input.preset,
     title: input.title.trim() || inputPathPosix,
+    ...(input.imageOptions && { imageOptions: input.imageOptions }),
   }
 
   return {

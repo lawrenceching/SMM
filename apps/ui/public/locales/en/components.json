@@ -508,6 +508,14 @@
     },
     "noFilesFound": "No files found"
   },
+  "welcome": {
+    "featureCards": {
+      "importFolder": "Import Folder",
+      "downloadVideo": "Download Video",
+      "formatConversion": "Format Conversion",
+      "github": "Github"
+    }
+  },
   "toast": {
     "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead."
   }

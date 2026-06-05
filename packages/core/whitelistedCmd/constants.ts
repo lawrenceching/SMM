@@ -35,5 +35,59 @@ export type VideoCaptionerSynthesizeRenderMode =
 /** Placeholder for videocaptioner CLI when no LLM key is needed. */
 export const VIDEOCAPTIONER_CLI_DUMMY_API_KEY = "dummykey";
 
-export type FfmpegConvertFormat = "mp4h264" | "mp4h265" | "webm" | "mkv";
+export type FfmpegConvertFormat =
+  | "mp4h264"
+  | "mp4h265"
+  | "webm"
+  | "mkv"
+  | "avif"
+  | "webp"
+  | "apng";
+
 export type FfmpegConvertPreset = "quality" | "balanced" | "speed";
+
+export type FfmpegConvertImageLoop = "once" | "infinite";
+
+export type FfmpegConvertWebpPreset =
+  | "default"
+  | "picture"
+  | "photo"
+  | "drawing"
+  | "icon"
+  | "text";
+
+export type FfmpegConvertApngPred = "none" | "sub" | "up" | "avg" | "paeth" | "mixed";
+
+export interface FfmpegConvertImageOptions {
+  mode: "animated" | "still";
+  fps: number;
+  maxWidth: number;
+  avif: {
+    crf: number;
+    cpuUsed: number;
+    loop: FfmpegConvertImageLoop;
+  };
+  webp: {
+    lossless: boolean;
+    quality: number;
+    preset: FfmpegConvertWebpPreset;
+    loop: FfmpegConvertImageLoop;
+  };
+  apng: {
+    pred: FfmpegConvertApngPred;
+    loop: FfmpegConvertImageLoop;
+  };
+}
+
+export const DEFAULT_FFMPEG_CONVERT_IMAGE_OPTIONS: FfmpegConvertImageOptions = {
+  mode: "animated",
+  fps: 10,
+  maxWidth: 0,
+  avif: { crf: 30, cpuUsed: 4, loop: "once" },
+  webp: { lossless: false, quality: 80, preset: "default", loop: "once" },
+  apng: { pred: "paeth", loop: "once" },
+};
+
+export function isFfmpegConvertImageFormat(format: FfmpegConvertFormat): boolean {
+  return format === "avif" || format === "webp" || format === "apng";
+}

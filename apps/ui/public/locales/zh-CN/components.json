@@ -507,6 +507,14 @@
     },
     "noFilesFound": "未找到文件"
   },
+  "welcome": {
+    "featureCards": {
+      "importFolder": "导入文件夹",
+      "downloadVideo": "下载视频",
+      "formatConversion": "格式转换",
+      "github": "Github"
+    }
+  },
   "toast": {
     "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。"
   }

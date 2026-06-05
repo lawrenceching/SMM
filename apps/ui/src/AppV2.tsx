@@ -516,7 +516,7 @@ function AppV2Content() {
         >
           {uiFolders.length === 0 && (
             <div style={{ padding: "20px", overflow: "auto" }}>
-              <Welcome />
+              <Welcome onImportFolderClick={handleOpenFolderMenuClick} />
             </div>
           )}
           {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (

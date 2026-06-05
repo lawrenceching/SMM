@@ -504,6 +504,14 @@
     },
     "noFilesFound": "未找到檔案"
   },
+  "welcome": {
+    "featureCards": {
+      "importFolder": "匯入資料夾",
+      "downloadVideo": "下載影片",
+      "formatConversion": "格式轉換",
+      "github": "Github"
+    }
+  },
   "toast": {
     "noRecognizedFiles": "無法辨識任何集數。建議改用 AI 辨識。"
   }

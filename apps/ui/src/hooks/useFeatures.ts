@@ -5,6 +5,7 @@ const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
 const MOBILE_LAYOUT_STORAGE_KEY = "features.isMobileLayoutEnabled"
 const TTY_FOR_YTDLP_STORAGE_KEY = "features.enableTtyForYtdlpCommand"
 const PRINT_ARG_FOR_YTDLP_STORAGE_KEY = "features.enablePrintArgInYtdlpCommand"
+const DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY = "features.isDisplayFeatureCardsInWelcomeEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -114,6 +115,30 @@ function writeVideoCaptionerAsrOptionsEnabled(enabled: boolean): void {
   }
 }
 
+/** Default: enabled when the user has never set a preference (`null`). */
+function readDisplayFeatureCardsInWelcomeEnabled(): boolean {
+  if (typeof window === "undefined") return true
+  try {
+    const v = window.localStorage.getItem(DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY)
+    if (v === null) return true
+    return v === "true"
+  } catch {
+    return true
+  }
+}
+
+function writeDisplayFeatureCardsInWelcomeEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(
+      DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY,
+      enabled ? "true" : "false",
+    )
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 /**
  * Best-effort runtime OS detection for renderer (Electron + browser dev).
  * Mirrors patterns used in `@core/path` for Electron vs UA fallback.
@@ -180,6 +205,14 @@ export interface UseFeaturesResult {
    */
   enablePrintArgInYtdlpCommand: boolean
   setEnablePrintArgInYtdlpCommand: (enabled: boolean) => void
+  /**
+   * When true, the empty-state welcome view renders feature cards
+   * (Import Folder, Download Video, Format Conversion, Github).
+   * When false, the original minimal "Simple Media Manager" block is shown.
+   * Defaults to true. Persisted under `features.isDisplayFeatureCardsInWelcomeEnabled`.
+   */
+  isDisplayFeatureCardsInWelcomeEnabled: boolean
+  setIsDisplayFeatureCardsInWelcomeEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -208,6 +241,10 @@ export function useFeatures(): UseFeaturesResult {
     readPrintArgForYtdlpEnabled,
   )
 
+  const [isDisplayFeatureCardsInWelcomeEnabled, setIsDisplayFeatureCardsInWelcomeEnabled] = useState(
+    readDisplayFeatureCardsInWelcomeEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -224,6 +261,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === PRINT_ARG_FOR_YTDLP_STORAGE_KEY) {
         setPrintArgState(readPrintArgForYtdlpEnabled())
+      }
+      if (event.key === DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY) {
+        setIsDisplayFeatureCardsInWelcomeEnabled(readDisplayFeatureCardsInWelcomeEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -255,6 +295,11 @@ export function useFeatures(): UseFeaturesResult {
     setPrintArgState(enabled)
   }, [])
 
+  const setIsDisplayFeatureCardsInWelcomeEnabledCallback = useCallback((enabled: boolean) => {
+    writeDisplayFeatureCardsInWelcomeEnabled(enabled)
+    setIsDisplayFeatureCardsInWelcomeEnabled(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isTranscribeEnabled,
@@ -268,6 +313,8 @@ export function useFeatures(): UseFeaturesResult {
       setEnableTtyForYtdlpCommand,
       enablePrintArgInYtdlpCommand,
       setEnablePrintArgInYtdlpCommand,
+      isDisplayFeatureCardsInWelcomeEnabled,
+      setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     }),
     [
       isTranscribeEnabled,
@@ -281,6 +328,8 @@ export function useFeatures(): UseFeaturesResult {
       setEnableTtyForYtdlpCommand,
       enablePrintArgInYtdlpCommand,
       setEnablePrintArgInYtdlpCommand,
+      isDisplayFeatureCardsInWelcomeEnabled,
+      setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     ],
   )
 }

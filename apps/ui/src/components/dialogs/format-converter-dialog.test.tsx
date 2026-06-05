@@ -40,9 +40,25 @@ vi.mock("@/lib/i18n", () => ({
         "formatConverter.formatMp4H265": "MP4 H.265",
         "formatConverter.formatWebm": "WebM",
         "formatConverter.formatMkv": "MKV",
+        "formatConverter.formatAvif": "AVIF",
+        "formatConverter.formatWebp": "WebP",
+        "formatConverter.formatApng": "APNG",
         "formatConverter.presetQuality": "Quality",
         "formatConverter.presetBalanced": "Balanced",
         "formatConverter.presetSpeed": "Speed",
+        "formatConverter.imageModeLabel": "Output mode",
+        "formatConverter.imageModeAnimated": "Animated",
+        "formatConverter.imageModeStill": "Still",
+        "formatConverter.imageFpsLabel": "FPS",
+        "formatConverter.imageMaxWidthLabel": "Max width",
+        "formatConverter.imageMaxWidthHint": "0 keeps source width",
+        "formatConverter.imageLoopLabel": "Loop",
+        "formatConverter.imageLoopOnce": "Once",
+        "formatConverter.imageLoopInfinite": "Infinite",
+        "formatConverter.webpLosslessLabel": "Lossless",
+        "formatConverter.webpQualityLabel": "Quality",
+        "formatConverter.webpPresetLabel": "Preset",
+        "formatConverter.webpPresetDefault": "Default",
         "formatConverter.errors.encoderNotFound":
           "Required video or audio encoder is not available in your ffmpeg build.",
         "formatConverter.errors.unknown":
@@ -67,6 +83,7 @@ describe("FormatConverterDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     createJobMock.mockResolvedValue("job-123")
+    Element.prototype.scrollIntoView = vi.fn()
   })
 
   function renderDialog(override: Partial<ComponentProps<typeof FormatConverterDialog>> = {}) {
@@ -77,7 +94,7 @@ describe("FormatConverterDialog", () => {
         track={sampleTrack}
         onOpenFilePicker={vi.fn()}
         {...override}
-      />
+      />,
     )
   }
 
@@ -116,12 +133,11 @@ describe("FormatConverterDialog", () => {
 
   it("resets converting state when isOpen becomes false", () => {
     const { rerender } = render(
-      <FormatConverterDialog isOpen onClose={onClose} track={sampleTrack} />
+      <FormatConverterDialog isOpen onClose={onClose} track={sampleTrack} />,
     )
     rerender(
-      <FormatConverterDialog isOpen={false} onClose={onClose} track={sampleTrack} />
+      <FormatConverterDialog isOpen={false} onClose={onClose} track={sampleTrack} />,
     )
-    // No crash on close
   })
 
   it("calls createJob with ffmpeg-convert data and closes dialog on Start", async () => {
@@ -136,6 +152,46 @@ describe("FormatConverterDialog", () => {
     expect(jobArg.type).toBe("ffmpeg-convert")
     expect(jobArg.data.outputFormat).toBe("mp4h264")
     expect(jobArg.data.preset).toBe("balanced")
+    expect(jobArg.data.imageOptions).toBeUndefined()
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it("shows image options and hides video preset when WebP is selected", async () => {
+    renderDialog()
+
+    expect(screen.getByTestId("format-converter-preset")).toBeInTheDocument()
+    expect(screen.queryByTestId("format-converter-image-options")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId("format-converter-format"))
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "WebP" })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole("option", { name: "WebP" }))
+
+    expect(screen.queryByTestId("format-converter-preset")).not.toBeInTheDocument()
+    expect(screen.getByTestId("format-converter-image-options")).toBeInTheDocument()
+    expect(screen.getByTestId("format-converter-webp-quality")).toBeInTheDocument()
+  })
+
+  it("passes imageOptions when converting to WebP", async () => {
+    renderDialog()
+
+    fireEvent.click(screen.getByTestId("format-converter-format"))
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "WebP" })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole("option", { name: "WebP" }))
+    fireEvent.click(screen.getByTestId("format-converter-start"))
+
+    await waitFor(() => {
+      expect(createJobMock).toHaveBeenCalledTimes(1)
+    })
+    const jobArg = createJobMock.mock.calls[0][0]
+    expect(jobArg.data.outputFormat).toBe("webp")
+    expect(jobArg.data.imageOptions).toMatchObject({
+      mode: "animated",
+      fps: 10,
+      webp: { quality: 80, lossless: false, preset: "default", loop: "once" },
+    })
   })
 })
