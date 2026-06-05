@@ -123,9 +123,9 @@ sequenceDiagram
 [x] 组件逻辑:
   1. 使用 `useDiscoveredMediaDatabaseBaseUrls()` 获取所有端点
   2. 对每个 `type="tmdb"` 的端点做 `fetch(url)` 可达性检测
-     - 使用 `mode: 'no-cors'` 避免被浏览器的 CORS 策略阻塞
-     - 只要 fetch 成功 (未报错) 就视为可达, 记录响应时间 (`performance.now()` / `Date.now()`)
-     - 401/404/500 等任何 HTTP 错误均视为可达 (响应是 opaque 的, 浏览器看不到)
+     - 使用 `mode: 'cors'` (默认) 发送 **正常格式的请求**, 附带 `Authorization: Bearer yyyy-MM-dd` 头 (如果是 date-token 端点), 避免上游监控看到未认证的探测请求
+     - 只要 fetch 未报错就视为可达, 记录响应时间 (`performance.now()` / `Date.now()`)
+     - 401/404/500 等任何 HTTP 错误均视为可达 (只关心能否连通, 不关心状态码)
   3. **每个端点探测 N=3 次** (并行), 取 `durationMs` 最低的探测作为该端点的 "最佳时延"
   4. 在最佳时延最低的可达端点中选一个, 写入 localStorage:
      - `preferTmdbBaseUrl` = `JSON.stringify({url, authorizationMethod})`

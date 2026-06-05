@@ -28,7 +28,7 @@ describe("probeEndpointReachability", () => {
   it("returns ok=true with duration when fetch resolves", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 0, type: "opaque" }),
+      vi.fn().mockResolvedValue({ ok: true, status: 200 }),
     );
 
     const result = await probeEndpointReachability(endpoint());
@@ -36,12 +36,11 @@ describe("probeEndpointReachability", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
 
-  it("returns ok=true even for non-ok status (opaque response)", async () => {
-    // In no-cors mode, the response is opaque and status is not visible.
-    // We treat any non-erroring fetch as success.
+  it("returns ok=true even for 4xx/5xx responses (status is ignored)", async () => {
+    // The probe intentionally treats any HTTP response as success.
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 500, type: "opaque" }),
+      vi.fn().mockResolvedValue({ ok: false, status: 401 }),
     );
 
     const result = await probeEndpointReachability(endpoint());
@@ -59,8 +58,8 @@ describe("probeEndpointReachability", () => {
     expect(result.error).toBe("network down");
   });
 
-  it("does not attach an Authorization header (no-cors strips it anyway)", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, type: "opaque" });
+  it("attaches the Authorization Bearer header for date-token endpoints", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal("fetch", fetchMock);
 
     await probeEndpointReachability(
@@ -69,14 +68,14 @@ describe("probeEndpointReachability", () => {
 
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = init.headers as Record<string, string>;
-    // The reachability probe uses no-cors mode, which strips the
-    // Authorization header in the browser. The token-aware search path
-    // is a separate code path that uses cors mode.
-    expect(headers.Authorization).toBeUndefined();
+    // The probe sends the same Authorization header the search path
+    // would send, so the upstream sees a well-formed request and
+    // does not log the probe as an unauthenticated burst.
+    expect(headers.Authorization).toMatch(/^Bearer \d{4}-\d{2}-\d{2}$/);
   });
 
   it("does not add Authorization header for 'none' endpoints", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, type: "opaque" });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal("fetch", fetchMock);
 
     await probeEndpointReachability(endpoint({ authorizationMethod: "none" }));
@@ -86,14 +85,17 @@ describe("probeEndpointReachability", () => {
     expect(headers.Authorization).toBeUndefined();
   });
 
-  it("uses mode: 'no-cors'", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, type: "opaque" });
+  it("does not set an explicit mode (uses the default 'cors')", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal("fetch", fetchMock);
 
     await probeEndpointReachability(endpoint());
 
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.mode).toBe("no-cors");
+    // We rely on the fetch default (`cors`) so that the Authorization
+    // header is actually sent. With `no-cors` the browser would strip
+    // it, defeating the purpose of attaching it.
+    expect(init.mode).toBeUndefined();
   });
 });
 

@@ -14,25 +14,25 @@ export interface ReachabilityResult {
 }
 
 /**
- * Probe a single endpoint with a GET fetch to measure TCP-layer
- * reachability and latency.
+ * Probe a single endpoint with a GET fetch to measure reachability and
+ * latency.
  *
- * We intentionally use `mode: "no-cors"` for two reasons:
+ * We use `mode: "cors"` (the default) and attach the `Authorization`
+ * header for endpoints that require a date-token. The request is sent
+ * exactly as the search code path sends it, so it looks like a normal
+ * request in the upstream's access logs and monitoring.
  *
- *  1. The browser will not enforce CORS preflight, so the request is
- *     always sent — the response is "opaque" (status/headers/body not
- *     visible from JS) but the lack of an error means the host
- *     responded. This is exactly the "TCP-layer reachability" semantic
- *     required: we only care whether the host is up, not the HTTP code.
+ * Reachability is decided as follows:
  *
- *  2. `no-cors` mode strips non-safelisted headers, including
- *     `Authorization`. The token-aware search path uses `mode: "cors"`
- *     separately (see `searchTmdbDirect` / `searchTvdbDirect`), so the
- *     reachability probe does not need to attach a `Bearer` token.
- *
- * Any 2xx/3xx/4xx/5xx response is treated as success (`ok: true`).
- * Only true network failures (DNS, TCP refused, TLS, timeout) count as
- * failure.
+ *  - The fetch completes with a response (any HTTP status) → the host
+ *    is reachable. We do not care about the status code; 401/404/500
+ *    are all "reachable" because the host responded.
+ *  - The fetch throws (network failure, DNS error, TLS error, CORS
+ *    preflight rejection, abort/timeout) → the host is not reachable
+ *    for our purposes. Note: a CORS-rejected response is reported by
+ *    the browser as a `TypeError`, indistinguishable from a network
+ *    failure, but in practice the SMM-managed endpoints all return
+ *    CORS headers so this is not an issue.
  */
 export async function probeEndpointReachability(
   endpoint: MediaDatabaseEndpoint,
@@ -48,17 +48,18 @@ export async function probeEndpointReachability(
 
   const start = performance.now()
   try {
-    await fetch(endpoint.url, {
+    const response = await fetch(endpoint.url, {
       method: "GET",
-      mode: "no-cors",
       headers: {
         Accept: "application/json",
+        ...buildAuthHeader(endpoint.authorizationMethod),
       },
       signal: controller.signal,
     })
     const durationMs = performance.now() - start
-    // In no-cors mode, response.ok is always false and status is 0; we
-    // treat the lack of an error as success (the server was reached).
+    // Any HTTP response (2xx/3xx/4xx/5xx) means the host is reachable.
+    // We deliberately ignore `response.ok` and `response.status` here.
+    void response
     return { endpoint, ok: true, durationMs }
   } catch (error) {
     const durationMs = performance.now() - start
@@ -72,6 +73,15 @@ export async function probeEndpointReachability(
     clearTimeout(timeout)
     if (signal) signal.removeEventListener("abort", onAbort)
   }
+}
+
+function buildAuthHeader(
+  authorizationMethod: MediaDatabaseEndpoint["authorizationMethod"],
+): Record<string, string> {
+  if (authorizationMethod === "date-token") {
+    return { Authorization: `Bearer ${todayDateToken()}` }
+  }
+  return {}
 }
 
 export function pickFastestEndpoint(results: ReachabilityResult[]): MediaDatabaseEndpoint | null {
