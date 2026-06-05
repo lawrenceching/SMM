@@ -229,8 +229,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
   const [isReady, setIsReady] = useState(false)
-  const { enableTtyForYtdlpCommand } = useFeatures()
+  const { enableTtyForYtdlpCommand, enablePrintArgInYtdlpCommand } = useFeatures()
   const ytdlpTty = enableTtyForYtdlpCommand
+  const ytdlpPrintArg = enablePrintArgInYtdlpCommand ? 'after_move:filepath' : undefined
 
   // Mutable refs so callbacks always see the latest values without stale closures.
   const jobRecordsRef = useRef<TaskJobRecord[]>([])
@@ -415,6 +416,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                 jsRuntime: downloadData.ytdlpJsRuntime,
                 jsRuntimePath: downloadData.ytdlpJsRuntimePath,
                 proxy: downloadData.ytdlpProxy,
+                printArg: ytdlpPrintArg,
               })
 
               const result = await executeCmdToCompletionWithHeaders(

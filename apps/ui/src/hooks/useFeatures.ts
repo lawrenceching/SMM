@@ -4,6 +4,7 @@ const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOpti
 const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
 const MOBILE_LAYOUT_STORAGE_KEY = "features.isMobileLayoutEnabled"
 const TTY_FOR_YTDLP_STORAGE_KEY = "features.enableTtyForYtdlpCommand"
+const PRINT_ARG_FOR_YTDLP_STORAGE_KEY = "features.enablePrintArgInYtdlpCommand"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -54,6 +55,27 @@ function writeTtyForYtdlpEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return
   try {
     window.localStorage.setItem(TTY_FOR_YTDLP_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore
+  }
+}
+
+/** Default: disabled — progress JSON must stay on stdout for log polling. */
+function readPrintArgForYtdlpEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(PRINT_ARG_FOR_YTDLP_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writePrintArgForYtdlpEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(PRINT_ARG_FOR_YTDLP_STORAGE_KEY, enabled ? "true" : "false")
   } catch {
     // ignore
   }
@@ -150,6 +172,14 @@ export interface UseFeaturesResult {
    */
   enableTtyForYtdlpCommand: boolean
   setEnableTtyForYtdlpCommand: (enabled: boolean) => void
+  /**
+   * When true, yt-dlp download commands include `--print after_move:filepath`.
+   * Defaults to false because --print suppresses progress JSON on stdout,
+   * which is needed for log-polling progress display.
+   * Persisted in localStorage.
+   */
+  enablePrintArgInYtdlpCommand: boolean
+  setEnablePrintArgInYtdlpCommand: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -174,6 +204,10 @@ export function useFeatures(): UseFeaturesResult {
     readTtyForYtdlpEnabled,
   )
 
+  const [enablePrintArgInYtdlpCommand, setPrintArgState] = useState(
+    readPrintArgForYtdlpEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -187,6 +221,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === TTY_FOR_YTDLP_STORAGE_KEY) {
         setEnableTtyForYtdlpCommand(readTtyForYtdlpEnabled())
+      }
+      if (event.key === PRINT_ARG_FOR_YTDLP_STORAGE_KEY) {
+        setPrintArgState(readPrintArgForYtdlpEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -213,6 +250,11 @@ export function useFeatures(): UseFeaturesResult {
     setTtyForYtdlpCommandState(enabled)
   }, [])
 
+  const setEnablePrintArgInYtdlpCommand = useCallback((enabled: boolean) => {
+    writePrintArgForYtdlpEnabled(enabled)
+    setPrintArgState(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isTranscribeEnabled,
@@ -224,6 +266,8 @@ export function useFeatures(): UseFeaturesResult {
       setMobileLayoutEnabled,
       enableTtyForYtdlpCommand,
       setEnableTtyForYtdlpCommand,
+      enablePrintArgInYtdlpCommand,
+      setEnablePrintArgInYtdlpCommand,
     }),
     [
       isTranscribeEnabled,
@@ -235,6 +279,8 @@ export function useFeatures(): UseFeaturesResult {
       setMobileLayoutEnabled,
       enableTtyForYtdlpCommand,
       setEnableTtyForYtdlpCommand,
+      enablePrintArgInYtdlpCommand,
+      setEnablePrintArgInYtdlpCommand,
     ],
   )
 }

@@ -19,6 +19,11 @@ export interface YtdlpDownloadRequest {
   folder?: string;
   /** yt-dlp `-f` format selector; omit for yt-dlp default. */
   format?: string;
+  /**
+   * When set, `--print <printArg>` is passed to yt-dlp.
+   * Default is undefined (no --print) so progress JSON stays on stdout.
+   */
+  printArg?: string;
 }
 
 export interface YtdlpDownloadResponse {
@@ -52,6 +57,7 @@ export async function downloadYtdlpVideo(
     folder,
     args: request.args,
     format: request.format,
+    printArg: request.printArg,
   });
 
   const result = await executeCmdToCompletion(

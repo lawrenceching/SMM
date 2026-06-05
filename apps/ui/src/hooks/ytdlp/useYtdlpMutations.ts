@@ -5,6 +5,7 @@ import {
   listYtdlpFormats,
   type YtdlpListFormatsRequest,
 } from "@/api/ytdlp";
+import { useFeatures } from "@/hooks/useFeatures";
 
 export function useExtractYtdlpVideoDataMutation() {
   return useMutation({
@@ -28,6 +29,9 @@ export interface DownloadYtdlpVideosInput {
  * Runs yt-dlp downloads sequentially for each URL (same folder and args).
  */
 export function useDownloadYtdlpVideosMutation() {
+  const { enablePrintArgInYtdlpCommand } = useFeatures()
+  const printArg = enablePrintArgInYtdlpCommand ? 'after_move:filepath' : undefined
+
   return useMutation({
     mutationFn: async (input: DownloadYtdlpVideosInput) => {
       const results: Awaited<ReturnType<typeof downloadYtdlpVideo>>[] = [];
@@ -37,6 +41,7 @@ export function useDownloadYtdlpVideosMutation() {
             url,
             folder: input.folder,
             args: input.args,
+            printArg,
           })
         );
       }

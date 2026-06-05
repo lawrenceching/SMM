@@ -24,6 +24,12 @@ export interface YtdlpDownloadRequestInput {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
+  /**
+   * When set, `--print <printArg>` is appended to the args.
+   * Default is undefined (no --print) so progress JSON lines remain on
+   * stdout for log-polling progress display.
+   */
+  printArg?: string;
 }
 
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
@@ -43,14 +49,14 @@ export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefi
  */
 export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string[] {
   const outputTemplate = `${input.folder.replace(/\\/g, "/")}/%(title)s [%(id)s].%(ext)s`;
-  // --print after_move:filepath was removed because it suppresses yt-dlp's
-  // stdout progress output (--progress-template / --newline). Progress is now
-  // consumed exclusively via command-log polling (useYtdlpDownloadProgressQuery),
-  // so stdout must carry the progress NDJSON lines for the log to capture them.
-  // The filepath from --print was unused (comment: "optional, currently not used").
+  // --print is controlled by enablePrintArgInYtdlpCommand feature flag.
+  // When set, --print <printArg> is appended; when absent (default),
+  // stdout carries progress JSON lines for log-polling progress display.
   const args: string[] = ["--output", outputTemplate];
 
-
+  if (input.printArg) {
+    args.push("--print", input.printArg);
+  }
   const proxy = input.proxy?.trim();
   if (proxy) {
     args.push("--proxy", proxy);
