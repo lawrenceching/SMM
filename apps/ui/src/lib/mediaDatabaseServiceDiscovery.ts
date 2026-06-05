@@ -56,6 +56,21 @@ function serializePreferredEndpoint(endpoint: MediaDatabaseEndpoint): string {
   })
 }
 
+/**
+ * Append `?source=latencytest-N` (or `&source=latencytest-N` when the
+ * URL already has a query string) to the endpoint URL. This tags
+ * reachability probes in the network panel and in upstream access
+ * logs so the by-design N probes per URL are clearly identifiable.
+ *
+ * The original URL is intentionally NOT mutated; the localStorage
+ * preference stores the unmodified URL so the search code path is
+ * unaffected.
+ */
+function appendLatencyTestSource(url: string, probeNumber: number): string {
+  const separator = url.includes("?") ? "&" : "?"
+  return `${url}${separator}source=latencytest-${probeNumber}`
+}
+
 async function probeAndStore(
   endpoints: MediaDatabaseEndpoint[],
   type: MediaDatabaseEndpoint["type"],
@@ -75,8 +90,26 @@ async function probeAndStore(
   const perEndpointProbes = await Promise.all(
     filtered.map((e) =>
       Promise.all(
-        Array.from({ length: REACHABILITY_PROBES_PER_URL }, () =>
-          probeEndpointReachability(e),
+        Array.from(
+          { length: REACHABILITY_PROBES_PER_URL },
+          (_, probeIndex) => {
+            // Tag each probe with a `?source=latencytest-N` query
+            // parameter so the multiple probes per URL are clearly
+            // identifiable as reachability probes in the network panel
+            // and in upstream access logs. This is intentional — the
+            // multi-probe design selects the URL with the lowest
+            // observed latency.
+            const taggedUrl = appendLatencyTestSource(e.url, probeIndex + 1)
+            return probeEndpointReachability({ ...e, url: taggedUrl }).then(
+              (result) => ({
+                ...result,
+                // Remember the original (untagged) URL so the
+                // localStorage preference and any consumer that
+                // inspects the result sees the clean URL.
+                endpoint: e,
+              }),
+            )
+          },
         ),
       ),
     ),

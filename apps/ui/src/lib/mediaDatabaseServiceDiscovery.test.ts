@@ -101,6 +101,62 @@ describe("startMediaDatabaseServiceDiscovery", () => {
     )
   })
 
+  it("tags each probe with a ?source=latencytest-N query parameter", async () => {
+    mockFetchDiscoveredMediaDatabases.mockResolvedValue([
+      { type: "tmdb", url: "https://a.example/api/tmdb", authorizationMethod: "none" },
+    ])
+
+    await startMediaDatabaseServiceDiscovery()
+
+    const calledEndpoints = mockProbeEndpointReachability.mock.calls.map(
+      (call) => (call[0] as MediaDatabaseEndpoint).url,
+    )
+    // 3 probes of the same URL, each with a distinct `source=latencytest-N`
+    // suffix so the multi-probe pattern is identifiable in the network
+    // panel and in upstream access logs.
+    expect(calledEndpoints).toEqual([
+      "https://a.example/api/tmdb?source=latencytest-1",
+      "https://a.example/api/tmdb?source=latencytest-2",
+      "https://a.example/api/tmdb?source=latencytest-3",
+    ])
+  })
+
+  it("appends the source parameter with & when the URL already has a query string", async () => {
+    mockFetchDiscoveredMediaDatabases.mockResolvedValue([
+      {
+        type: "tmdb",
+        url: "https://a.example/api/tmdb?foo=bar",
+        authorizationMethod: "none",
+      },
+    ])
+
+    await startMediaDatabaseServiceDiscovery()
+
+    const calledEndpoints = mockProbeEndpointReachability.mock.calls.map(
+      (call) => (call[0] as MediaDatabaseEndpoint).url,
+    )
+    expect(calledEndpoints).toEqual([
+      "https://a.example/api/tmdb?foo=bar&source=latencytest-1",
+      "https://a.example/api/tmdb?foo=bar&source=latencytest-2",
+      "https://a.example/api/tmdb?foo=bar&source=latencytest-3",
+    ])
+  })
+
+  it("stores the untagged (clean) URL in localStorage", async () => {
+    mockFetchDiscoveredMediaDatabases.mockResolvedValue([
+      { type: "tmdb", url: "https://clean.example/api/tmdb", authorizationMethod: "none" },
+    ])
+
+    await startMediaDatabaseServiceDiscovery()
+
+    const stored = JSON.parse(localStorages.preferTmdbBaseUrl!)
+    // The localStorage preference must NOT contain the
+    // `?source=latencytest-N` suffix — that suffix is only for the
+    // probe request, not for the URL that the search code path uses.
+    expect(stored.url).toBe("https://clean.example/api/tmdb")
+    expect(stored.url).not.toContain("latencytest")
+  })
+
   it("re-runs the probe on every app start and overwrites the stored preference", async () => {
     localStorage.setItem(
       "preferTmdbBaseUrl",
