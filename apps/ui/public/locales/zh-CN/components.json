@@ -256,6 +256,8 @@
         "translate": "翻译字幕",
         "synthesize": "合成字幕",
         "process": "字幕流水线",
+        "ffmpeg-convert": "格式转换",
+        "ffmpeg-write-tags": "写入标签",
         "typedJob": "{{type}}：{{detail}}"
       },
       "logDialog": {

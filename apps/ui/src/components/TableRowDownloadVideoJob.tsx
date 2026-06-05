@@ -74,7 +74,7 @@ export function TableRowDownloadVideoJob({
       onDownloadStop={() => onDownloadStop?.(row.jobId)}
       onDownloadRemove={() => onDownloadRemove?.(row.jobId)}
       liveProgress={liveProgress}
-      t={t}
+      t={(key) => t(key as never)}
     />
   )
 }

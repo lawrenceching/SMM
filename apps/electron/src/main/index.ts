@@ -9,6 +9,8 @@ import { channelRoute } from './ChannelRoute'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
+const CLI_SHUTDOWN_TIMEOUT_MS = 5_000
+const CLI_SHUTDOWN_FETCH_TIMEOUT_MS = 2_000
 
 const LOADING_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -112,6 +114,8 @@ let cliPort: number | null = null
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
 let mainWindow: BrowserWindow | null = null
+let isQuitting = false
+const cliDevPort = 30000
 
 // Control whether to start dev dependencies (CLI and UI dev processes) on startup
 const startUpDependencies: boolean = false
@@ -287,6 +291,74 @@ async function waitForServerReady(port: number): Promise<void> {
   throw new Error(`Server at ${url} did not become ready within ${SERVER_READY_TIMEOUT_MS}ms`)
 }
 
+async function requestCliShutdown(port: number): Promise<boolean> {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/shutdown`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(CLI_SHUTDOWN_FETCH_TIMEOUT_MS),
+    })
+    return res.ok
+  } catch (error) {
+    console.warn('[SMM] CLI shutdown request failed:', error)
+    return false
+  }
+}
+
+function waitForProcessExit(proc: ChildProcess, timeoutMs: number): Promise<boolean> {
+  if (proc.exitCode !== null || proc.signalCode !== null) {
+    return Promise.resolve(true)
+  }
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      proc.removeListener('exit', onExit)
+      resolve(false)
+    }, timeoutMs)
+
+    const onExit = () => {
+      clearTimeout(timer)
+      resolve(true)
+    }
+
+    proc.once('exit', onExit)
+  })
+}
+
+async function stopProcessGracefully(
+  proc: ChildProcess,
+  options: { port?: number; label: string },
+): Promise<void> {
+  if (options.port !== undefined) {
+    await requestCliShutdown(options.port)
+  }
+
+  const exited = await waitForProcessExit(proc, CLI_SHUTDOWN_TIMEOUT_MS)
+  if (exited) {
+    console.log(`${options.label} exited gracefully`)
+    return
+  }
+
+  console.warn(`${options.label} did not exit in time, sending SIGTERM`)
+  try {
+    proc.kill('SIGTERM')
+  } catch (error) {
+    console.warn(`${options.label} SIGTERM failed:`, error)
+  }
+
+  const exitedAfterTerm = await waitForProcessExit(proc, 1_000)
+  if (exitedAfterTerm) {
+    console.log(`${options.label} exited after SIGTERM`)
+    return
+  }
+
+  console.warn(`${options.label} still running, force killing`)
+  try {
+    proc.kill()
+  } catch (error) {
+    console.warn(`${options.label} force kill failed:`, error)
+  }
+}
+
 async function startCLI(): Promise<void> {
   if (cliProcess) {
     console.log('CLI is already running')
@@ -350,11 +422,26 @@ async function startCLI(): Promise<void> {
 }
 
 function stopCLI(): void {
-  if (cliProcess) {
-    cliProcess.kill()
-    cliProcess = null
-    console.log('CLI executable stopped')
+  void stopCLIGracefully()
+}
+
+async function stopCLIGracefully(): Promise<void> {
+  const proc = cliProcess
+  if (!proc) {
+    return
   }
+
+  const port = cliPort
+  if (port !== null) {
+    await stopProcessGracefully(proc, { port, label: 'CLI executable' })
+  } else {
+    await stopProcessGracefully(proc, { label: 'CLI executable' })
+  }
+
+  if (cliProcess === proc) {
+    cliProcess = null
+  }
+  console.log('CLI executable stopped')
 }
 
 /**
@@ -375,7 +462,8 @@ function startCLIDev(): void {
       stdio: 'pipe',
       shell: true,
       env: {
-        ...process.env
+        ...process.env,
+        PORT: cliDevPort.toString(),
       }
     })
 
@@ -465,14 +553,28 @@ function startUIDev(): void {
  * Stop CLI and UI dev processes
  */
 function stopDevProcesses(): void {
-  if (cliDevProcess) {
-    cliDevProcess.kill()
-    cliDevProcess = null
+  void stopDevProcessesGracefully()
+}
+
+async function stopDevProcessesGracefully(): Promise<void> {
+  const cliProc = cliDevProcess
+  if (cliProc) {
+    await stopProcessGracefully(cliProc, {
+      port: cliDevPort,
+      label: 'CLI dev process',
+    })
+    if (cliDevProcess === cliProc) {
+      cliDevProcess = null
+    }
     console.log('CLI dev process stopped')
   }
-  if (uiDevProcess) {
-    uiDevProcess.kill()
-    uiDevProcess = null
+
+  const uiProc = uiDevProcess
+  if (uiProc) {
+    await stopProcessGracefully(uiProc, { label: 'UI dev process' })
+    if (uiDevProcess === uiProc) {
+      uiDevProcess = null
+    }
     console.log('UI dev process stopped')
   }
 }
@@ -633,12 +735,25 @@ app.on('window-all-closed', () => {
 })
 
 // Clean up processes when app quits
-app.on('before-quit', () => {
-  if (is.dev) {
-    stopDevProcesses()
-  } else {
-    stopCLI()
+app.on('before-quit', (event) => {
+  if (isQuitting) {
+    return
   }
+
+  event.preventDefault()
+  isQuitting = true
+
+  void (async () => {
+    try {
+      if (is.dev) {
+        await stopDevProcessesGracefully()
+      } else {
+        await stopCLIGracefully()
+      }
+    } finally {
+      app.quit()
+    }
+  })()
 })
 
 // In this file you can include the rest of your app's specific main process

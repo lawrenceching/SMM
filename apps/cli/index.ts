@@ -7,6 +7,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
 import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
+import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
+import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
 
@@ -86,10 +88,22 @@ logger.info(
   'Command log cleanup result',
 );
 
+const cookiesCleaner = new YtdlpCookiesCleaner({ userDataDir });
+const cookiesStartupResult = await cookiesCleaner.cleanAll();
+logger.info(cookiesStartupResult, 'yt-dlp cookies temp cleanup on startup');
+
 // Create and start the server
 const server = new Server({
   port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
   root: args.staticDir ?? '../ui/dist',
+  beforeStop: async () => {
+    const result = await cookiesCleaner.cleanAll();
+    logger.info(result, 'yt-dlp cookies temp cleanup on shutdown');
+  },
+});
+
+registerGracefulShutdown({
+  stopServer: () => server.stop(),
 });
 
 server.start();

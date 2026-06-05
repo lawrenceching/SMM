@@ -116,7 +116,7 @@ export function UITableRowDownloadVideoJob({
     ? Math.max(0, Math.min(100, liveProgress?.percent ?? 0))
     : 0
   const liveLabel = isDownloading
-    ? formatLiveLabel(liveProgress?.speedBps, liveProgress?.etaSeconds)
+    ? formatLiveLabel(liveProgress?.speedBps, liveProgress?.etaSeconds ?? undefined)
     : undefined
 
   return (

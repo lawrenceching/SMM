@@ -257,6 +257,8 @@
         "translate": "Translate",
         "synthesize": "Synthesize",
         "process": "Process",
+        "ffmpeg-convert": "Format conversion",
+        "ffmpeg-write-tags": "Write tags",
         "typedJob": "{{type}}: {{detail}}"
       },
       "logDialog": {

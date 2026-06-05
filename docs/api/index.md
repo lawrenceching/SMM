@@ -16,6 +16,12 @@ HTTP: `POST /api/moveFileToTrash` — moves a file to the system trash/recycle b
 Source Code: apps/cli/src/route/DeleteFile.ts
 HTTP: `POST /api/deleteFile` — permanently deletes a managed yt-dlp cookies temp file (`{userDataDir}/temp/ytdlp-cookies-*.txt`). Request body: `{ path: string }` (platform absolute path). Not for general user file deletion.
 
+## Shutdown
+Source Code: apps/cli/src/route/shutdown.ts
+HTTP: `POST /api/shutdown` — localhost-only graceful shutdown used by the Electron main process. Runs yt-dlp cookies temp cleanup, stops the CLI server, then exits the process. Response: `{ ok: true }`. Non-loopback callers receive 403.
+
+CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback when the prior run was hard-killed).
+
 ## isFolderAvailable
 Source Code: apps/cli/src/route/IsFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md

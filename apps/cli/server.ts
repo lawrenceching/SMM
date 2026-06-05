@@ -48,6 +48,7 @@ import { handleLog } from './src/route/Log';
 import { handleMcpRoutes } from './src/route/Mcp';
 import { handleSpeedtest } from './src/route/speedtest';
 import { handleDiscover } from './src/route/discover';
+import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -61,6 +62,7 @@ import { getUserConfig } from './src/utils/config';
 export interface ServerConfig {
   port?: number;
   root?: string;
+  beforeStop?: () => Promise<void>;
 }
 
 export class Server {
@@ -71,11 +73,14 @@ export class Server {
   private io: SocketIOServer;
   private engine: Engine;
   private proxyManager: ReverseProxyManager;
+  private beforeStop?: () => Promise<void>;
+  private stopping = false;
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
+    this.beforeStop = config.beforeStop;
 
     // Initialize Socket.IO and Bun Engine with CORS configuration
     this.engine = new Engine({
@@ -231,6 +236,7 @@ export class Server {
     handleMcpRoutes(this.app);
     handleSpeedtest(this.app);
     handleDiscover(this.app);
+    handleShutdown(this.app);
     // POST /api/execute - Special orchestration route for multiple tasks
     this.app.post('/api/execute', async (c) => {
       try {
@@ -319,6 +325,7 @@ export class Server {
       port: this.port,
       idleTimeout: 30, // must be greater than the "pingInterval" option of the engine, which defaults to 25 seconds
       fetch: (req, server) => {
+        setShutdownRequestIPResolver((request) => server.requestIP(request));
         const url = new URL(req.url);
 
         // Bun applies idleTimeout to streaming bodies: if no bytes are written for idleTimeout
@@ -372,7 +379,23 @@ export class Server {
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    if (this.stopping) {
+      return;
+    }
+    this.stopping = true;
+
+    if (this.beforeStop) {
+      try {
+        await this.beforeStop();
+      } catch (error) {
+        logger.warn(
+          { error: error instanceof Error ? error.message : String(error) },
+          'beforeStop hook failed during server shutdown',
+        );
+      }
+    }
+
     if (!this.server) {
       logger.warn('Server is not running.');
       return;
@@ -382,6 +405,7 @@ export class Server {
     getFolderWatcher().stopAllWatching();
     this.server.stop();
     this.server = null;
+    setShutdownRequestIPResolver(null);
     logger.info('Server stopped.');
   }
 

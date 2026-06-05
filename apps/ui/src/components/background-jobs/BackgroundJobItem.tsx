@@ -18,6 +18,7 @@ import {
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
 import { isDownloadVideoJob } from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
+import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/i18n'
 import { canOpenCommandLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
 import { useYtdlpDownloadProgressQuery } from '@/hooks/useYtdlpDownloadProgressQuery'
@@ -97,10 +98,7 @@ function getStatusColor(status: JobStatus) {
   }
 }
 
-function getJobDisplayName(
-  job: BackgroundJob,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function getJobDisplayName(job: BackgroundJob, t: TFunction<'components'>): string {
   switch (job.type) {
     case 'download-video': {
       const videos = (job.data as { videos?: unknown[] } | undefined)?.videos
@@ -199,7 +197,7 @@ export function BackgroundJobItem({
                   variant={getStatusVariant(job.status)}
                   className="text-xs"
                 >
-                  {t(`statusBar.backgroundJobs.status.${job.status}` as const)}
+                  {t(`statusBar.backgroundJobs.status.${job.status}`)}
                 </Badge>
               </div>
 

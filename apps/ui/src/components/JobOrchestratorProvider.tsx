@@ -11,7 +11,6 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
 import { useDialogs } from '@/providers/dialog-provider'
-import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import type {
   BackgroundJob,
   DownloadVideoBackgroundJobData,
@@ -354,8 +353,6 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController()
     abortControllersRef.current.set(jobId, controller)
     runningJobsRef.current.set(jobType, jobId)
-
-    const t0 = Date.now()
 
     try {
       // Mark as running

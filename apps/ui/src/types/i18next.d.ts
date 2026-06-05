@@ -268,6 +268,7 @@ interface ComponentsResources {
         loading: string
         loadError: string
         empty: string
+        contentAria: string
       }
       status: {
         pending: string
@@ -275,6 +276,7 @@ interface ComponentsResources {
         succeeded: string
         failed: string
         aborted: string
+        stopped: string
       }
       messages: {
         succeeded: string
@@ -288,6 +290,8 @@ interface ComponentsResources {
         translate: string
         synthesize: string
         process: string
+        'ffmpeg-convert': string
+        'ffmpeg-write-tags': string
         typedJob: string
       }
       toasts: {

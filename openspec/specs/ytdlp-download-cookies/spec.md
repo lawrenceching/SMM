@@ -68,3 +68,22 @@ The system SHALL treat SMM-written yt-dlp cookie files under `{userDataDir}/temp
 
 - **WHEN** a client calls `POST /api/deleteFile` with a path outside `{userDataDir}/temp/ytdlp-cookies-*.txt`
 - **THEN** the API SHALL reject the request and SHALL NOT delete the file
+
+### Requirement: CLI lifecycle sweeps managed cookies temp files
+
+The CLI SHALL permanently delete all files matching `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup and during graceful shutdown. This fallback SHALL NOT use `moveFileToTrash`.
+
+#### Scenario: Startup removes leftover cookies from prior crash
+
+- **WHEN** the CLI process starts and managed cookies files exist under `{userDataDir}/temp/`
+- **THEN** the CLI SHALL permanently delete those files before serving requests
+
+#### Scenario: Graceful shutdown removes managed cookies
+
+- **WHEN** the CLI receives `SIGINT`, `SIGTERM`, or an authorized localhost `POST /api/shutdown`
+- **THEN** the CLI SHALL permanently delete all managed cookies files under `{userDataDir}/temp/` before stopping the HTTP server
+
+#### Scenario: Shutdown API rejects non-localhost callers
+
+- **WHEN** a client calls `POST /api/shutdown` from a non-loopback address or with a non-localhost Host header
+- **THEN** the API SHALL reject the request and SHALL NOT stop the server
