@@ -22,6 +22,7 @@ import { UserConfigUpdatedEventListener } from './components/eventlisteners/User
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { FolderContentChangedEventListener } from './components/eventlisteners/FolderContentChangedEventListener.tsx'
 import { DragDropReceiver } from './components/dragdrop/DragDropReceiver'
+import { startMediaDatabaseServiceDiscovery } from './lib/mediaDatabaseServiceDiscovery'
 import { JobOrchestratorProvider } from './components/JobOrchestratorProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
@@ -179,6 +180,13 @@ function AppSwitcher() {
 
 async function bootstrap() {
   await i18nReady
+
+  // Start the media-database service discovery (probes endpoints,
+  // writes localStorage). This is a plain JavaScript side-effect that
+  // runs alongside the React render. It is intentionally not awaited:
+  // the React tree should not block on network probes, and any failure
+  // is logged but never thrown.
+  void startMediaDatabaseServiceDiscovery()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

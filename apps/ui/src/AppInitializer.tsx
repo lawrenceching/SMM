@@ -7,7 +7,6 @@ import { fetchConvexSettings, getConvexSiteUrl } from "@/api/convexSettings"
 import { convexSettingsQueryKey } from "@/lib/appQueryKeys"
 import { queryClient } from "@/lib/queryClient"
 import { DvdGuideUrlInitializer } from "@/components/initialization/DvdGuideUrlInitializer"
-import { MediaDatabaseServiceDiscovery } from "@/components/initialization/MediaDatabaseServiceDiscovery"
 const debug = Debug("AppInitializer")
 
 export async function buildMediaMetadata(
@@ -65,7 +64,6 @@ export function AppInitializer() {
     return (
         <>
             <DvdGuideUrlInitializer />
-            <MediaDatabaseServiceDiscovery />
         </>
     )
 }

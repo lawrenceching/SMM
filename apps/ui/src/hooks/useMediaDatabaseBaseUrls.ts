@@ -1,7 +1,10 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
-import { useDiscoveredMediaDatabaseBaseUrls } from "./useDiscoveredMediaDatabaseBaseUrls"
+import {
+  getDiscoveredEndpoints,
+  subscribeToDiscovery,
+} from "@/lib/mediaDatabaseServiceDiscovery"
 import localStorages from "@/lib/localStorages"
 import type {
   MediaDatabaseAuthorizationMethod,
@@ -75,13 +78,43 @@ function toBaseUrl(endpoint: MediaDatabaseEndpoint): MediaDatabaseBaseUrl {
  *
  * The hardcoded default is always included (when not already in the
  * discovered list) so the search can always fall back to it.
+ *
+ * This hook reads from localStorage and the module-level discovery
+ * cache (populated by `startMediaDatabaseServiceDiscovery`). It does
+ * not issue any HTTP requests of its own. It re-runs when the
+ * discovery cache changes (via the `subscribeToDiscovery` callback)
+ * and when localStorage is touched.
  */
 export function useMediaDatabaseBaseUrls(type: MediaDatabaseType): MediaDatabaseBaseUrl[] {
-  const { data: discovered } = useDiscoveredMediaDatabaseBaseUrls()
+  const [discovered, setDiscovered] = useState<MediaDatabaseEndpoint[]>(() =>
+    getDiscoveredEndpoints(),
+  )
+  const [localStorageVersion, setLocalStorageVersion] = useState(0)
+
+  useEffect(() => {
+    return subscribeToDiscovery(() => {
+      setDiscovered(getDiscoveredEndpoints())
+    })
+  }, [])
+
+  // Pick up localStorage changes made by other parts of the app or by
+  // external edits. We only need to re-render when the value actually
+  // changes, so we read on every render and bump a version counter.
+  useEffect(() => {
+    const refresh = (): void => {
+      setLocalStorageVersion((v) => v + 1)
+    }
+    window.addEventListener("storage", refresh)
+    const interval = window.setInterval(refresh, 1000)
+    return () => {
+      window.removeEventListener("storage", refresh)
+      window.clearInterval(interval)
+    }
+  }, [])
 
   return useMemo<MediaDatabaseBaseUrl[]>(() => {
     const preferred = readPreferredFromLocalStorage(type)
-    const discoveredForType = (discovered ?? []).filter((e) => e.type === type)
+    const discoveredForType = discovered.filter((e) => e.type === type)
 
     const ordered: MediaDatabaseBaseUrl[] = []
     if (preferred) ordered.push(preferred)
@@ -94,5 +127,5 @@ export function useMediaDatabaseBaseUrls(type: MediaDatabaseType): MediaDatabase
       ordered.push(defaultEndpoint)
     }
     return dedupe(ordered)
-  }, [type, discovered])
+  }, [type, discovered, localStorageVersion])
 }
