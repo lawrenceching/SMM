@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
-import { useCommandLogQuery, type CommandLogQueryData } from './useCommandLogQuery'
-import type { CommandLogSegment } from '@/api/commandLog'
+import { useCommandLogQuery } from './useCommandLogQuery'
 
 /**
  * Latest yt-dlp download progress parsed from the CLI command log.
@@ -49,9 +48,6 @@ function parseProgressNumericValue(value: unknown): number | null {
 /**
  * Parse a single line that looks like yt-dlp progress JSON. Returns null
  * if the line is not progress JSON.
- *
- * Mirrors CLI-side `parseYtdlpProgressLine` so the UI and server agree
- * on what counts as a progress line.
  */
 export function parseYtdlpProgressLine(line: string): YtdlpDownloadProgress | null {
   let parsed: Record<string, unknown>
@@ -69,16 +65,27 @@ export function parseYtdlpProgressLine(line: string): YtdlpDownloadProgress | nu
 
   // `percent` is often `"NA"` (a string) for resumed or freshly started
   // downloads, so fall back to downloaded/total when it is not a number.
-  let percent = parseProgressNumericValue(parsed.percent)
+  let percent: number | null = null
+  if (typeof parsed.percent === 'string') {
+    // yt-dlp's `_percent_json` field includes a trailing `%` (e.g. `"42.5%"`).
+    // Strip it before numeric parsing.
+    const cleaned = parsed.percent.replace(/%$/g, '').trim()
+    percent = parseProgressNumericValue(cleaned)
+  } else {
+    percent = parseProgressNumericValue(parsed.percent)
+  }
   if (percent == null && downloaded != null && total != null && total > 0) {
     percent = (downloaded / total) * 100
   }
   if (percent == null) percent = 0
 
+  // Default speed/eta to 0 when yt-dlp reports `"NA"`, so the UI always
+  // shows speed/eta elements (with "0 B/s" / "0s") instead of hiding
+  // them and making the user wonder if the app is broken.
   const speed = parseProgressNumericValue(parsed.speed) ?? 0
-  const eta = parseProgressNumericValue(parsed.eta)
+  const eta = parseProgressNumericValue(parsed.eta) ?? 0
 
-  return {
+  const result: YtdlpDownloadProgress = {
     percent,
     speedBps: speed,
     etaSeconds: eta,
@@ -87,28 +94,36 @@ export function parseYtdlpProgressLine(line: string): YtdlpDownloadProgress | nu
     status: statusRaw,
     updatedAt: Date.now(),
   }
+
+  return result
 }
 
 /**
- * Walk stdout segments in order, find the LAST line that parses as yt-dlp
- * progress JSON. Earlier lines are stale (we only care about the most
- * recent state). ANSI escape codes are stripped from the body before
- * splitting into lines.
+ * Walk the raw command-log text from end to beginning, return the
+ * progress parsed from the LAST line that is valid yt-dlp progress JSON.
+ *
+ * Each line in the log is prefixed with `${ISO timestamp} [KIND] `, so we
+ * strip everything up to and including the closing `] ` before trying to
+ * JSON.parse. Earlier (older) lines are stale — we only care about the
+ * most recent state.
  */
-export function extractLatestProgress(segments: CommandLogSegment[]): YtdlpDownloadProgress | null {
-  // Walk in reverse so the first parse hit is the latest.
-  for (let i = segments.length - 1; i >= 0; i--) {
-    const seg = segments[i]
-    if (!seg || seg.kind !== 'stdout') continue
-    // Strip ANSI escape codes (CSI sequences) — ConPTY emits them in stdout.
-    const clean = seg.body.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
-    const lines = clean.split(/\r?\n/)
-    for (let j = lines.length - 1; j >= 0; j--) {
-      const line = lines[j]?.trim() ?? ''
-      if (!line.startsWith('{')) continue
-      const parsed = parseYtdlpProgressLine(line)
-      if (parsed) return parsed
-    }
+export function extractLatestProgress(logText: string): YtdlpDownloadProgress | null {
+  if (!logText) return null
+  // Strip the per-line prefix `${ISO timestamp} [KIND] ` and keep only
+  // the content that follows. The regex is anchored so unrelated text
+  // (or lines that don't follow the prefix format) is ignored.
+  const lineRe = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z \[(?:STDOUT|STDERR|SYSTEM)\] (.*)$/
+  const lines = logText.split(/\r?\n/)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i]
+    if (!line) continue
+    const m = line.match(lineRe)
+    if (!m) continue
+    const content = m[1]!.trim()
+    // Fast skip: progress lines are JSON objects starting with `{`.
+    if (!content.startsWith('{')) continue
+    const parsed = parseYtdlpProgressLine(content)
+    if (parsed) return parsed
   }
   return null
 }
@@ -116,7 +131,7 @@ export function extractLatestProgress(segments: CommandLogSegment[]): YtdlpDownl
 export interface UseYtdlpDownloadProgressQueryArgs {
   executionId: string
   isRunning: boolean
-  /** Poll interval in ms. Defaults to 2000 (matches CLI 2s poll cycle). */
+  /** Poll interval in ms. Defaults to 200. */
   refetchIntervalMs?: number
 }
 
@@ -145,7 +160,7 @@ export interface UseYtdlpDownloadProgressQueryResult {
 export function useYtdlpDownloadProgressQuery({
   executionId,
   isRunning,
-  refetchIntervalMs = 2000,
+  refetchIntervalMs = 200,
 }: UseYtdlpDownloadProgressQueryArgs): UseYtdlpDownloadProgressQueryResult {
   // For popover progress, "enabled" follows "isRunning": no point in
   // keeping the polling query active after the job is done.
@@ -153,14 +168,13 @@ export function useYtdlpDownloadProgressQuery({
     executionId,
     enabled: isRunning,
     isRunning,
-    format: 'segments',
     refetchIntervalMs,
   })
 
-  const progress = useMemo<YtdlpDownloadProgress | null>(() => {
-    if (!data || data.kind !== 'segments') return null
-    return extractLatestProgress(data.segments)
-  }, [data])
+  const progress = useMemo<YtdlpDownloadProgress | null>(
+    () => extractLatestProgress(data?.text ?? ''),
+    [data?.text],
+  )
 
   return { progress, isPending, isFetching, error }
 }

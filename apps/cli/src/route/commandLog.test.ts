@@ -6,7 +6,6 @@ import { Hono } from "hono";
 import {
   COMMAND_LOG_MAX_BYTES,
   handleCommandLog,
-  parseCommandLogToSegments,
   parseOptionalXCommandExecutionId,
   resolveCommandMainLogPath,
 } from "./commandLog";
@@ -29,21 +28,6 @@ describe("parseOptionalXCommandExecutionId", () => {
     expect(parseOptionalXCommandExecutionId("not-a-uuid")).toEqual({
       error: "Invalid X-Command-Execution-Id",
     });
-  });
-});
-
-describe("parseCommandLogToSegments", () => {
-  it("parses stdout and stderr segments in order", () => {
-    const raw = `--- stream=stdout ts=2020-01-01T00:00:00.000Z ---
-a
---- stream=stderr ts=2020-01-01T00:00:01.000Z ---
-b
-`;
-    const segs = parseCommandLogToSegments(raw);
-    expect(segs).toEqual([
-      { kind: "stdout", ts: "2020-01-01T00:00:00.000Z", body: "a" },
-      { kind: "stderr", ts: "2020-01-01T00:00:01.000Z", body: "b\n" },
-    ]);
   });
 });
 
@@ -82,15 +66,6 @@ describe("GET /api/command-log/:executionId", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 400 for invalid format", async () => {
-    const id = "00000000-0000-4000-8000-000000000099";
-    const logDir = path.join(tmpLogRoot, "commands", id);
-    mkdirSync(logDir, { recursive: true });
-    writeFileSync(path.join(logDir, "main.log"), "x");
-    const res = await app.request(`/api/command-log/${id}?format=xml`);
-    expect(res.status).toBe(400);
-  });
-
   it("returns raw slice with truncation headers", async () => {
     const id = "00000000-0000-4000-8000-000000000001";
     const logDir = path.join(tmpLogRoot, "commands", id);
@@ -120,23 +95,19 @@ describe("GET /api/command-log/:executionId", () => {
     expect(res.headers.get("X-Log-Truncated")).toBe("true");
   });
 
-  it("returns JSON segments when format=segments", async () => {
+  it("returns the raw main.log text as text/plain", async () => {
     const id = "00000000-0000-4000-8000-000000000003";
     const logDir = path.join(tmpLogRoot, "commands", id);
-    const content = `--- stream=system ts=2021-01-01T00:00:00.000Z ---
-start
---- stream=stdout ts=2021-01-01T00:00:01.000Z ---
-out
+    const content = `2021-01-01T00:00:00.000Z [SYSTEM] start
+2021-01-01T00:00:01.000Z [STDOUT] out
 `;
     mkdirSync(logDir, { recursive: true });
     writeFileSync(path.join(logDir, "main.log"), content);
 
-    const res = await app.request(`/api/command-log/${id}?format=segments`);
+    const res = await app.request(`/api/command-log/${id}`);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { segments: { kind: string; body: string }[] };
-    expect(body.segments.length).toBeGreaterThanOrEqual(2);
-    expect(body.segments[0]!.kind).toBe("system");
-    expect(body.segments[1]!.kind).toBe("stdout");
+    expect(res.headers.get("Content-Type")).toContain("text/plain");
+    expect(await res.text()).toBe(content);
   });
 });
 

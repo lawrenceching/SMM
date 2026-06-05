@@ -40,6 +40,7 @@ import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommand
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
 import type { YtdlpProgressData } from '@/lib/whitelistedCmd/executeCmdToCompletion'
+import { useFeatures } from '@/hooks/useFeatures'
 import {
   buildFfmpegConvertArgs,
   buildFfmpegWriteTagsArgs,
@@ -228,6 +229,8 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
   const [isReady, setIsReady] = useState(false)
+  const { enableTtyForYtdlpCommand } = useFeatures()
+  const ytdlpTty = enableTtyForYtdlpCommand
 
   // Mutable refs so callbacks always see the latest values without stale closures.
   const jobRecordsRef = useRef<TaskJobRecord[]>([])
@@ -349,6 +352,8 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
     abortControllersRef.current.set(jobId, controller)
     runningJobsRef.current.set(jobType, jobId)
 
+    const t0 = Date.now()
+
     try {
       // Mark as running
       record.status = 'running'
@@ -356,6 +361,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       await putJob(record)
 
       await syncFromIndexedDB('executeJob:started')
+
       if (config.toasts?.started) {
         toast.info(config.toasts.started(tRef.current))
       }
@@ -412,7 +418,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               })
 
               const result = await executeCmdToCompletionWithHeaders(
-                { command: 'yt-dlp', args, tty: true },
+                { command: 'yt-dlp', args, tty: ytdlpTty },
                 {
                   timeoutMs: JOB_TIMEOUT_MS['download-video'],
                   signal: controller.signal,
@@ -420,7 +426,6 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                   onProgress: handleYtdlpProgress,
                 },
               )
-
               if (result.executionId) data.executionId = result.executionId
               if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
 

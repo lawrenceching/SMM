@@ -1,16 +1,3 @@
-
-export type CommandLogFormat = 'raw' | 'segments'
-
-export type CommandLogSegment = { kind: string; ts: string; body: string }
-
-export type CommandLogSegmentsBody = {
-  totalBytes: number
-  truncated: boolean
-  offset: number
-  limit: number
-  segments: CommandLogSegment[]
-}
-
 export type CommandLogResponseMeta = {
   truncated: boolean
   totalBytes: number | null
@@ -53,23 +40,27 @@ function isCommandLogNotFoundResponse(res: Response, bodyText: string): boolean 
 
 function buildCommandLogUrl(
   executionId: string,
-  format: CommandLogFormat,
   range?: { offset?: number; limit?: number },
 ): string {
   const base = `/api/command-log/${encodeURIComponent(executionId)}`
   const q = new URLSearchParams()
-  q.set('format', format)
   if (range?.offset !== undefined) q.set('offset', String(range.offset))
   if (range?.limit !== undefined) q.set('limit', String(range.limit))
   const qs = q.toString()
   return qs ? `${base}?${qs}` : base
 }
 
-export async function fetchCommandLogRaw(
+/**
+ * Fetches the raw main.log text for an execution. The CLI returns the
+ * file contents as `text/plain` along with pagination/truncation
+ * headers. No server-side structure is imposed — the UI parses
+ * whatever it needs from the text (e.g. yt-dlp progress JSON).
+ */
+export async function fetchCommandLogText(
   executionId: string,
   range?: { offset?: number; limit?: number },
 ): Promise<{ text: string; meta: CommandLogResponseMeta }> {
-  const url = buildCommandLogUrl(executionId, 'raw', range)
+  const url = buildCommandLogUrl(executionId, range)
   const res = await fetch(url, { credentials: 'same-origin' })
   const text = await res.text()
   if (!res.ok) {
@@ -79,29 +70,4 @@ export async function fetchCommandLogRaw(
     throw new Error(text || `HTTP ${res.status}`)
   }
   return { text, meta: readLogMeta(res) }
-}
-
-export async function fetchCommandLogSegments(
-  executionId: string,
-  range?: { offset?: number; limit?: number },
-): Promise<{ body: CommandLogSegmentsBody; meta: CommandLogResponseMeta }> {
-  const url = buildCommandLogUrl(executionId, 'segments', range)
-  const res = await fetch(url, { credentials: 'same-origin' })
-  const text = await res.text()
-  if (!res.ok) {
-    if (isCommandLogNotFoundResponse(res, text)) {
-      const body: CommandLogSegmentsBody = {
-        totalBytes: 0,
-        truncated: false,
-        offset: 0,
-        limit: 0,
-        segments: [],
-      }
-      return { body, meta: emptyLogMeta }
-    }
-    throw new Error(text || `HTTP ${res.status}`)
-  }
-  const meta = readLogMeta(res)
-  const body = JSON.parse(text) as CommandLogSegmentsBody
-  return { body, meta }
 }

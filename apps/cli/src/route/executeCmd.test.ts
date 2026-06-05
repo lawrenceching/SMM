@@ -4,7 +4,7 @@ import {
   isYtdlpProgressJson,
   parseYtdlpProgressLine,
   resolveSpawnArgsAndEnv,
-} from "./executeCmd";
+} from "../utils/cmd";
 
 const mocks = vi.hoisted(() => ({
   discoverFfmpeg: vi.fn(),
@@ -192,7 +192,7 @@ describe("injectYtdlpProgressArgs", () => {
     const result = injectYtdlpProgressArgs(args);
     const template = result[result.indexOf("--progress-template") + 1];
     expect(template).toBe(
-      '{"percent": "%(progress._percent_json)s", "speed": "%(progress.speed)r", "eta": %(progress.eta)r, "downloaded": %(progress.downloaded_bytes)r, "total": %(progress.total_bytes)r, "status": "%(progress.status)s"}',
+      '{"percent": "%(progress._percent_json)s", "speed": "%(progress.speed)r", "eta": "%(progress.eta)r", "downloaded": "%(progress.downloaded_bytes)r", "total": "%(progress.total_bytes)r", "status": "%(progress.status)s"}',
     );
   });
 

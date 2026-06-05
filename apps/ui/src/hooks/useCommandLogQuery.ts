@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  fetchCommandLogRaw,
-  fetchCommandLogSegments,
-  type CommandLogFormat,
+  fetchCommandLogText,
   type CommandLogResponseMeta,
-  type CommandLogSegment,
-  type CommandLogSegmentsBody,
 } from '@/api/commandLog'
 
 /**
@@ -16,9 +12,9 @@ import {
  * parsers (e.g. yt-dlp progress JSON) should compose this hook with their own
  * derived logic.
  *
- * Query key `['command-log', executionId, format]` is shared across all
- * consumers (LogDialog, BackgroundJobsPopover, etc.), so multiple components
- * observing the same executionId only trigger one HTTP request.
+ * Query key `['command-log', executionId]` is shared across all consumers
+ * (LogDialog, BackgroundJobsPopover, etc.), so multiple components observing
+ * the same executionId only trigger one HTTP request.
  */
 export interface UseCommandLogQueryArgs {
   executionId: string
@@ -26,18 +22,12 @@ export interface UseCommandLogQueryArgs {
   enabled: boolean
   /** When true, poll every `refetchIntervalMs`. When false, fetch only once. */
   isRunning: boolean
-  /** Defaults to 'segments' for line-level parsing. */
-  format?: CommandLogFormat
-  /** Poll interval in ms. Defaults to 2000. */
+  /** Poll interval in ms. Defaults to 200. */
   refetchIntervalMs?: number
 }
 
-export type CommandLogQueryData =
-  | { kind: 'segments'; segments: CommandLogSegment[]; meta: CommandLogResponseMeta }
-  | { kind: 'raw'; text: string; meta: CommandLogResponseMeta }
-
 export interface UseCommandLogQueryResult {
-  data: CommandLogQueryData | undefined
+  data: { text: string; meta: CommandLogResponseMeta } | undefined
   isPending: boolean
   isFetching: boolean
   isError: boolean
@@ -49,27 +39,19 @@ export function useCommandLogQuery({
   executionId,
   enabled,
   isRunning,
-  format = 'segments',
-  refetchIntervalMs = 2000,
+  refetchIntervalMs = 200,
 }: UseCommandLogQueryArgs): UseCommandLogQueryResult {
   const query = useQuery({
-    queryKey: ['command-log', executionId, format],
+    queryKey: ['command-log', executionId],
     enabled: !!executionId && enabled,
     refetchInterval: isRunning ? refetchIntervalMs : false,
     staleTime: isRunning ? 0 : Infinity,
     refetchOnWindowFocus: isRunning,
-    queryFn: async (): Promise<CommandLogQueryData> => {
-      if (format === 'raw') {
-        const { text, meta } = await fetchCommandLogRaw(executionId)
-        return { kind: 'raw', text, meta }
-      }
-      const { body, meta } = await fetchCommandLogSegments(executionId)
-      return { kind: 'segments', segments: body.segments, meta }
-    },
+    queryFn: async () => fetchCommandLogText(executionId),
   })
 
   return {
-    data: query.data as CommandLogQueryData | undefined,
+    data: query.data,
     isPending: query.isPending,
     isFetching: query.isFetching,
     isError: query.isError,

@@ -2,20 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { useYtdlpDownloadProgressQuery } from './useYtdlpDownloadProgressQuery'
-import * as commandLogApi from '@/api/commandLog'
 import {
+  useYtdlpDownloadProgressQuery,
   extractLatestProgress,
   parseYtdlpProgressLine,
 } from './useYtdlpDownloadProgressQuery'
-import type { CommandLogSegment } from '@/api/commandLog'
+import * as commandLogApi from '@/api/commandLog'
 
 vi.mock('@/api/commandLog', () => ({
-  fetchCommandLogRaw: vi.fn(),
-  fetchCommandLogSegments: vi.fn(),
+  fetchCommandLogText: vi.fn(),
 }))
 
-const mockedFetchSegments = vi.mocked(commandLogApi.fetchCommandLogSegments)
+const mockedFetchText = vi.mocked(commandLogApi.fetchCommandLogText)
 
 function createWrapper(queryClient: QueryClient) {
   return ({ children }: { children: ReactNode }) => (
@@ -44,13 +42,40 @@ describe('parseYtdlpProgressLine', () => {
     expect(result?.status).toBe('finished')
   })
 
-  it('replaces unquoted NA with null and parses', () => {
+  it('parses percent with trailing % sign (yt-dlp _percent_json format)', () => {
+    const line =
+      '{"percent": "42.5%", "speed": "1234567", "eta": 42, "downloaded": 5242880, "total": 104857600, "status": "downloading"}'
+    const result = parseYtdlpProgressLine(line)
+    expect(result).not.toBeNull()
+    expect(result?.percent).toBe(42.5)
+    expect(result?.speedBps).toBe(1234567)
+  })
+
+  it('handles percent with % and padded whitespace', () => {
+    const line =
+      '{"percent": " 12.3%", "speed": "500000", "eta": 100, "status": "downloading"}'
+    const result = parseYtdlpProgressLine(line)
+    expect(result?.percent).toBe(12.3)
+  })
+
+  it('defaults speed/eta to 0 when yt-dlp reports NA (unquoted)', () => {
     const line =
       '{"percent": "NA", "speed": "NA", "eta": NA, "downloaded": 1024, "total": 572853052, "status": "downloading"}'
     const result = parseYtdlpProgressLine(line)
     expect(result).not.toBeNull()
     expect(result?.percent).toBeGreaterThan(0) // computed from downloaded/total
-    expect(result?.etaSeconds).toBeNull()
+    expect(result?.speedBps).toBe(0)
+    expect(result?.etaSeconds).toBe(0)
+  })
+
+  it('accepts quoted NA strings (new template format)', () => {
+    const line =
+      '{"percent": "NA", "speed": "NA", "eta": "NA", "downloaded": "1024", "total": "572853052", "status": "downloading"}'
+    const result = parseYtdlpProgressLine(line)
+    expect(result).not.toBeNull()
+    expect(result?.percent).toBeGreaterThan(0)
+    expect(result?.speedBps).toBe(0)
+    expect(result?.etaSeconds).toBe(0)
   })
 
   it('returns null for non-progress JSON (missing status)', () => {
@@ -67,66 +92,50 @@ describe('parseYtdlpProgressLine', () => {
 })
 
 describe('extractLatestProgress', () => {
-  it('returns null for empty segments', () => {
-    expect(extractLatestProgress([])).toBeNull()
+  it('returns null for empty log text', () => {
+    expect(extractLatestProgress('')).toBeNull()
   })
 
-  it('returns null when no segment has progress JSON', () => {
-    const segs: CommandLogSegment[] = [
-      { kind: 'stdout', ts: 't1', body: 'no json here\nstill no json' },
-      { kind: 'stderr', ts: 't2', body: 'whatever' },
-    ]
-    expect(extractLatestProgress(segs)).toBeNull()
+  it('returns null when the log has no progress JSON', () => {
+    const log =
+      '2026-06-04T22:20:46.523Z [STDOUT] no json here\n' +
+      '2026-06-04T22:20:47.000Z [STDOUT] still no json\n'
+    expect(extractLatestProgress(log)).toBeNull()
   })
 
-  it('returns the latest progress from the latest stdout segment', () => {
-    const segs: CommandLogSegment[] = [
-      { kind: 'stdout', ts: 't1', body: '{"percent": "10.0", "speed": "1000", "eta": 90, "status": "downloading"}' },
-      { kind: 'stdout', ts: 't2', body: '{"percent": "42.5", "speed": "2000", "eta": 60, "status": "downloading"}' },
-    ]
-    const result = extractLatestProgress(segs)
+  it('returns the latest progress line when found', () => {
+    const log =
+      '2026-06-04T22:20:46.523Z [STDOUT] {"percent":"10.0","speed":"1000","eta":90,"status":"downloading"}\n' +
+      '2026-06-04T22:20:48.000Z [STDOUT] {"percent":"42.5","speed":"2000","eta":60,"status":"downloading"}\n'
+    const result = extractLatestProgress(log)
     expect(result?.percent).toBe(42.5)
     expect(result?.speedBps).toBe(2000)
   })
 
-  it('skips non-stdout segments', () => {
-    const segs: CommandLogSegment[] = [
-      { kind: 'stdout', ts: 't1', body: '{"percent": "10", "speed": "100", "eta": 90, "status": "downloading"}' },
-      { kind: 'system', ts: 't2', body: 'something' },
-      { kind: 'stderr', ts: 't3', body: 'err' },
-      { kind: 'stdout', ts: 't4', body: '{"percent": "75", "speed": "500", "eta": 30, "status": "downloading"}' },
-    ]
-    const result = extractLatestProgress(segs)
+  it('skips non-JSON lines (system / stderr)', () => {
+    const log =
+      '2026-06-04T22:20:46.523Z [SYSTEM] Executing command: yt-dlp ...\n' +
+      '2026-06-04T22:20:48.000Z [STDERR] some warning\n' +
+      '2026-06-04T22:20:50.000Z [STDOUT] {"percent":"75","speed":"500","eta":30,"status":"downloading"}\n'
+    const result = extractLatestProgress(log)
     expect(result?.percent).toBe(75)
   })
 
-  it('strips ANSI escape codes before parsing', () => {
-    const segs: CommandLogSegment[] = [
-      {
-        kind: 'stdout',
-        ts: 't1',
-        body: '\x1b[2J\x1b[H{"percent": "88", "speed": "999", "eta": 5, "status": "downloading"}\x1b[K',
-      },
-    ]
-    const result = extractLatestProgress(segs)
-    expect(result?.percent).toBe(88)
+  it('handles the clean (CLI-stripped) log format', () => {
+    // The CLI strips ANSI escape codes at write time and prefixes each
+    // line with `${ISO timestamp} [KIND] `. This test pins that contract.
+    const log =
+      '2026-06-04T22:20:46.523Z [STDOUT] {"percent":"88","speed":"999","eta":5,"status":"downloading"}\n'
+    expect(extractLatestProgress(log)?.percent).toBe(88)
   })
 
-  it('handles multi-line segment bodies (latest line wins)', () => {
-    const segs: CommandLogSegment[] = [
-      {
-        kind: 'stdout',
-        ts: 't1',
-        body: [
-          'irrelevant text',
-          '{"percent": "10", "speed": "100", "eta": 90, "status": "downloading"}',
-          'more text',
-          '{"percent": "99", "speed": "900", "eta": 1, "status": "downloading"}',
-        ].join('\n'),
-      },
-    ]
-    const result = extractLatestProgress(segs)
-    expect(result?.percent).toBe(99)
+  it('returns the last progress line when multiple are present', () => {
+    const log =
+      'irrelevant text\n' +
+      '2026-06-04T22:20:46.523Z [STDOUT] {"percent":"10","speed":"100","eta":90,"status":"downloading"}\n' +
+      'more text\n' +
+      '2026-06-04T22:20:50.000Z [STDOUT] {"percent":"99","speed":"900","eta":1,"status":"downloading"}\n'
+    expect(extractLatestProgress(log)?.percent).toBe(99)
   })
 })
 
@@ -145,8 +154,8 @@ describe('useYtdlpDownloadProgressQuery', () => {
   })
 
   it('returns null progress when log is empty', async () => {
-    mockedFetchSegments.mockResolvedValue({
-      body: { totalBytes: 0, truncated: false, offset: 0, limit: 0, segments: [] },
+    mockedFetchText.mockResolvedValue({
+      text: '',
       meta: { truncated: false, totalBytes: 0, readOffset: 0, readLimit: 0 },
     })
 
@@ -158,24 +167,13 @@ describe('useYtdlpDownloadProgressQuery', () => {
 
     await new Promise((r) => setTimeout(r, 50))
     expect(result.current.progress).toBeNull()
-    expect(mockedFetchSegments).toHaveBeenCalled()
+    expect(mockedFetchText).toHaveBeenCalled()
   })
 
-  it('parses progress from segments', async () => {
-    mockedFetchSegments.mockResolvedValue({
-      body: {
-        totalBytes: 100,
-        truncated: false,
-        offset: 0,
-        limit: 100,
-        segments: [
-          {
-            kind: 'stdout',
-            ts: 't1',
-            body: '{"percent": "55.5", "speed": "1234567", "eta": 30, "status": "downloading"}',
-          },
-        ],
-      },
+  it('parses progress from raw log text', async () => {
+    mockedFetchText.mockResolvedValue({
+      text:
+        '2026-06-04T22:20:46.523Z [STDOUT] {"percent":"55.5","speed":"1234567","eta":30,"status":"downloading"}\n',
       meta: { truncated: false, totalBytes: 100, readOffset: 0, readLimit: 100 },
     })
 
@@ -199,6 +197,6 @@ describe('useYtdlpDownloadProgressQuery', () => {
       { wrapper },
     )
     await new Promise((r) => setTimeout(r, 10))
-    expect(mockedFetchSegments).not.toHaveBeenCalled()
+    expect(mockedFetchText).not.toHaveBeenCalled()
   })
 })

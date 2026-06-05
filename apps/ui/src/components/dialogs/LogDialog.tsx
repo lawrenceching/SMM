@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCommandLogQuery } from '@/hooks/useCommandLogQuery'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { getJobExecutionId } from '@/components/background-jobs/backgroundJobsPopoverJobUtils'
@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useTranslation } from '@/lib/i18n'
-import { type CommandLogFormat } from '@/api/commandLog'
 import { isTerminalCommandLogText } from '@/lib/commandLogTerminal'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -33,7 +32,6 @@ export function LogDialog({
   isRunning = false,
 }: LogDialogProps) {
   const { t } = useTranslation('components')
-  const [format, setFormat] = useState<CommandLogFormat>('raw')
   const [passiveEnded, setPassiveEnded] = useState(false)
   const jobForExecution = useBackgroundJobsStore((s) =>
     executionId ? s.jobs.find((j) => getJobExecutionId(j) === executionId) : undefined,
@@ -54,16 +52,9 @@ export function LogDialog({
     executionId,
     enabled: open && executionId.length > 0,
     isRunning: effectiveIsRunning,
-    format,
   })
 
-  const bodyText = useMemo(() => {
-    if (!query.data) return ''
-    if (query.data.kind === 'raw') return query.data.text
-    return query.data.segments
-      .map((s) => `[${s.kind}] ${s.ts}\n${s.body}`)
-      .join('\n')
-  }, [query.data])
+  const bodyText = query.data?.text ?? ''
 
   useEffect(() => {
     if (bodyText && isTerminalCommandLogText(bodyText)) {
@@ -88,26 +79,6 @@ export function LogDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
-          <div className="flex gap-1 rounded-md border border-border p-0.5">
-            <Button
-              type="button"
-              size="sm"
-              variant={format === 'raw' ? 'secondary' : 'ghost'}
-              className="h-8 px-2"
-              onClick={() => setFormat('raw')}
-            >
-              {t('statusBar.backgroundJobs.logDialog.raw')}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={format === 'segments' ? 'secondary' : 'ghost'}
-              className="h-8 px-2"
-              onClick={() => setFormat('segments')}
-            >
-              {t('statusBar.backgroundJobs.logDialog.segments')}
-            </Button>
-          </div>
           <Button
             type="button"
             size="sm"

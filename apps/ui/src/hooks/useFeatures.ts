@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
 const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
 const MOBILE_LAYOUT_STORAGE_KEY = "features.isMobileLayoutEnabled"
+const TTY_FOR_YTDLP_STORAGE_KEY = "features.enableTtyForYtdlpCommand"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -32,6 +33,27 @@ function writeMobileLayoutEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return
   try {
     window.localStorage.setItem(MOBILE_LAYOUT_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore
+  }
+}
+
+/** Default: disabled — use pipe mode instead of ConPTY. */
+function readTtyForYtdlpEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(TTY_FOR_YTDLP_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeTtyForYtdlpEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(TTY_FOR_YTDLP_STORAGE_KEY, enabled ? "true" : "false")
   } catch {
     // ignore
   }
@@ -122,6 +144,12 @@ export interface UseFeaturesResult {
    */
   isMobileLayoutEnabled: boolean
   setMobileLayoutEnabled: (enabled: boolean) => void
+  /**
+   * When true, yt-dlp commands use ConPTY (`tty: true`) instead of pipe.
+   * Defaults to false (pipe mode). Persisted in localStorage.
+   */
+  enableTtyForYtdlpCommand: boolean
+  setEnableTtyForYtdlpCommand: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -142,6 +170,10 @@ export function useFeatures(): UseFeaturesResult {
     readMobileLayoutEnabled,
   )
 
+  const [enableTtyForYtdlpCommand, setTtyForYtdlpCommandState] = useState(
+    readTtyForYtdlpEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -152,6 +184,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === MOBILE_LAYOUT_STORAGE_KEY) {
         setIsMobileLayoutEnabled(readMobileLayoutEnabled())
+      }
+      if (event.key === TTY_FOR_YTDLP_STORAGE_KEY) {
+        setEnableTtyForYtdlpCommand(readTtyForYtdlpEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -173,6 +208,11 @@ export function useFeatures(): UseFeaturesResult {
     setIsMobileLayoutEnabled(enabled)
   }, [])
 
+  const setEnableTtyForYtdlpCommand = useCallback((enabled: boolean) => {
+    writeTtyForYtdlpEnabled(enabled)
+    setTtyForYtdlpCommandState(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isTranscribeEnabled,
@@ -182,6 +222,8 @@ export function useFeatures(): UseFeaturesResult {
       setTencentAsrTranscribeEnabled,
       isMobileLayoutEnabled,
       setMobileLayoutEnabled,
+      enableTtyForYtdlpCommand,
+      setEnableTtyForYtdlpCommand,
     }),
     [
       isTranscribeEnabled,
@@ -191,6 +233,8 @@ export function useFeatures(): UseFeaturesResult {
       setTencentAsrTranscribeEnabled,
       isMobileLayoutEnabled,
       setMobileLayoutEnabled,
+      enableTtyForYtdlpCommand,
+      setEnableTtyForYtdlpCommand,
     ],
   )
 }

@@ -35,6 +35,7 @@ function formatDownloadSpeed(bytesPerSecond: number): string {
 
 function formatDownloadEta(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return ''
+  if (seconds === 0) return '0s'
   if (seconds < 60) return `${Math.max(1, Math.ceil(seconds))}s`
   const totalSec = Math.ceil(seconds)
   const hours = Math.floor(totalSec / 3600)

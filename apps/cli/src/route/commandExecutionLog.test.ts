@@ -25,7 +25,7 @@ describe('createCommandExecutionLogWriter', () => {
     }
   });
 
-  it('creates commands/<id>/main.log and records stdout/stderr with markers', async () => {
+  it('creates commands/<id>/main.log and prefixes each line with ISO timestamp + [KIND]', async () => {
     const fixedId = '00000000-0000-4000-8000-000000000001';
     const writer = await createCommandExecutionLogWriter(fixedId);
 
@@ -42,11 +42,8 @@ describe('createCommandExecutionLogWriter', () => {
     writer.close();
 
     const content = readFileSync(writer.logFilePath, 'utf8');
-    expect(content).toContain('--- stream=stdout ');
-    expect(content).toContain('hello-out\n');
-    expect(content).toContain('--- stream=stderr ');
-    expect(content).toContain('hello-err');
-    expect(content).toContain('--- system ');
-    expect(content).toContain('done');
+    expect(content).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z \[STDOUT\] hello-out/m);
+    expect(content).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z \[STDERR\] hello-err/m);
+    expect(content).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z \[SYSTEM\] done/m);
   });
 });

@@ -55,7 +55,7 @@ export async function downloadYtdlpVideo(
   });
 
   const result = await executeCmdToCompletion(
-    { command: "yt-dlp", args, tty: true },
+    { command: "yt-dlp", args },
     { timeoutMs: YTDLP_DOWNLOAD_TIMEOUT_MS }
   );
 

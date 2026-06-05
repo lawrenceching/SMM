@@ -29,39 +29,6 @@ export function parseOptionalXCommandExecutionId(
 
 export const COMMAND_LOG_MAX_BYTES = 512 * 1024;
 
-export type CommandLogSegment = { kind: string; ts: string; body: string };
-
-/**
- * Best-effort parse of {@link createCommandExecutionLogWriter} output into ordered segments.
- */
-export function parseCommandLogToSegments(raw: string): CommandLogSegment[] {
-  const segments: CommandLogSegment[] = [];
-  const header = /^--- stream=(stdout|stderr|system) ts=([^\n]+) ---\n/;
-  let rest = raw;
-  while (rest.length > 0) {
-    const m = rest.match(header);
-    if (!m || m.index !== 0) {
-      const next = rest.search(/\n--- stream=(stdout|stderr|system) ts=/);
-      if (next === -1) {
-        if (rest.trim()) segments.push({ kind: "raw", ts: "", body: rest });
-        break;
-      }
-      const preamble = rest.slice(0, next + 1);
-      if (preamble.trim()) segments.push({ kind: "raw", ts: "", body: preamble });
-      rest = rest.slice(next + 1);
-      continue;
-    }
-    const kind = m[1]!;
-    const ts = m[2]!;
-    rest = rest.slice(m[0].length);
-    const nextIdx = rest.search(/\n--- stream=(stdout|stderr|system) ts=/);
-    const body = nextIdx === -1 ? rest : rest.slice(0, nextIdx);
-    segments.push({ kind, ts, body });
-    rest = nextIdx === -1 ? "" : rest.slice(nextIdx + 1);
-  }
-  return segments;
-}
-
 export function resolveCommandMainLogPath(executionId: string): string | null {
   if (!isCommandExecutionId(executionId)) return null;
   const root = path.resolve(getLogDir(), "commands");
@@ -73,17 +40,18 @@ export function resolveCommandMainLogPath(executionId: string): string | null {
   return file;
 }
 
+/**
+ * GET /api/command-log/:executionId — returns the raw main.log contents
+ * (UTF-8) along with pagination/truncation headers. The UI parses the
+ * text on its end (see `extractLatestProgress`); no server-side
+ * structure is imposed.
+ */
 export function handleCommandLog(app: Hono) {
   app.get("/api/command-log/:executionId", async (c) => {
     const executionId = c.req.param("executionId") ?? "";
     const logPath = resolveCommandMainLogPath(executionId);
     if (!logPath) {
       return c.json({ error: "Invalid execution id" }, 400);
-    }
-
-    const format = c.req.query("format") ?? "raw";
-    if (format !== "raw" && format !== "segments") {
-      return c.json({ error: "Invalid format" }, 400);
     }
 
     let offset = parseInt(c.req.query("offset") ?? "0", 10);
@@ -112,11 +80,7 @@ export function handleCommandLog(app: Hono) {
       c.header("X-Log-Truncated", "false");
       c.header("X-Log-Read-Offset", String(offset));
       c.header("X-Log-Read-Limit", "0");
-      if (format === "raw") {
-        return c.body(new Uint8Array(0), 200);
-      }
-      c.header("Content-Type", "application/json; charset=utf-8");
-      return c.json({ totalBytes: size, truncated: false, offset, limit: 0, segments: [] as CommandLogSegment[] }, 200);
+      return c.body(new Uint8Array(0), 200);
     }
 
     const sliceLimit = Number.isNaN(limit) || limit <= 0
@@ -127,30 +91,13 @@ export function handleCommandLog(app: Hono) {
     try {
       const buf = Buffer.alloc(sliceLimit);
       const { bytesRead } = await fh.read(buf, 0, sliceLimit, offset);
-      const payload = buf.subarray(0, bytesRead);
       const truncated = offset + bytesRead < size;
       c.header("Content-Type", "text/plain; charset=utf-8");
       c.header("X-Log-Total-Bytes", String(size));
       c.header("X-Log-Truncated", truncated ? "true" : "false");
       c.header("X-Log-Read-Offset", String(offset));
       c.header("X-Log-Read-Limit", String(bytesRead));
-
-      if (format === "raw") {
-        return c.body(new Uint8Array(payload), 200);
-      }
-
-      c.header("Content-Type", "application/json; charset=utf-8");
-      const text = payload.toString("utf8");
-      return c.json(
-        {
-          totalBytes: size,
-          truncated,
-          offset,
-          limit: bytesRead,
-          segments: parseCommandLogToSegments(text),
-        },
-        200,
-      );
+      return c.body(new Uint8Array(buf.subarray(0, bytesRead)), 200);
     } catch (err) {
       logger.warn({ err, executionId, logPath }, "[commandLog] read failed");
       return c.json({ error: "Failed to read log" }, 500);
