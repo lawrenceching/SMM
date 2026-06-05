@@ -1,7 +1,7 @@
 /**
  * Background job status type
  */
-export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted';
+export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted' | 'stopped';
 
 /** Per-video row in a download-video job (see docs/design/download-bilibili-videos.md) */
 export type DownloadVideoItemStatus = 'pending' | 'downloading' | 'succeeded' | 'failed';

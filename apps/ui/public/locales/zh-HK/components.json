@@ -228,7 +228,8 @@
         "running": "執行中",
         "succeeded": "已完成",
         "failed": "失敗",
-        "aborted": "已中止"
+        "aborted": "已中止",
+        "stopped": "已停止"
       },
       "messages": {
         "succeeded": "已成功完成",

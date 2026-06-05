@@ -48,6 +48,7 @@ vi.mock('@/lib/i18n', () => ({
       if (key === 'statusBar.backgroundJobs.status.succeeded') return 'succeeded'
       if (key === 'statusBar.backgroundJobs.status.failed') return 'failed'
       if (key === 'statusBar.backgroundJobs.status.aborted') return 'aborted'
+      if (key === 'statusBar.backgroundJobs.status.stopped') return 'stopped'
       if (key === 'statusBar.backgroundJobs.messages.succeeded') return 'Completed successfully'
       if (key === 'statusBar.backgroundJobs.messages.failed') return 'Job failed'
       if (key === 'statusBar.backgroundJobs.messages.aborted') return 'Aborted by user'

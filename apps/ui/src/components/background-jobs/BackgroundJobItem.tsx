@@ -60,6 +60,7 @@ function getStatusIcon(status: JobStatus) {
     case 'failed':
       return <XCircle className="h-3 w-3" />
     case 'aborted':
+    case 'stopped':
       return <StopCircle className="h-3 w-3" />
   }
 }
@@ -75,6 +76,7 @@ function getStatusVariant(status: JobStatus) {
     case 'failed':
       return 'destructive' as const
     case 'aborted':
+    case 'stopped':
       return 'secondary' as const
   }
 }
@@ -90,6 +92,7 @@ function getStatusColor(status: JobStatus) {
     case 'failed':
       return 'text-red-600 dark:text-red-400'
     case 'aborted':
+    case 'stopped':
       return 'text-gray-600 dark:text-gray-400'
   }
 }
