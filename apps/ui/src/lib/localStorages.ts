@@ -2,6 +2,8 @@ const STORAGE_KEY_SELECTED_FOLDER_INDEX = 'selectedFolderIndex';
 const STORAGE_KEY_FILE_PICKER_LAST_DIR = 'filepickerdialog.lastdir';
 const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
 const STORAGE_KEY_COOKIE_GUIDE_URL = 'cookie_guide_url';
+const STORAGE_KEY_PREFER_TMDB_BASE_URL = 'preferTmdbBaseUrl';
+const STORAGE_KEY_PREFER_TVDB_BASE_URL = 'preferTvdbBaseUrl';
 
 const localStorages = {
     get selectedFolderIndex(): number | null {
@@ -62,6 +64,42 @@ const localStorages = {
                 localStorage.setItem(STORAGE_KEY_COOKIE_GUIDE_URL, url);
             } else {
                 localStorage.removeItem(STORAGE_KEY_COOKIE_GUIDE_URL);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get preferTmdbBaseUrl(): string | null {
+        try {
+            return localStorage.getItem(STORAGE_KEY_PREFER_TMDB_BASE_URL);
+        } catch {
+            return null;
+        }
+    },
+    set preferTmdbBaseUrl(value: string | null) {
+        try {
+            if (value) {
+                localStorage.setItem(STORAGE_KEY_PREFER_TMDB_BASE_URL, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_PREFER_TMDB_BASE_URL);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get preferTvdbBaseUrl(): string | null {
+        try {
+            return localStorage.getItem(STORAGE_KEY_PREFER_TVDB_BASE_URL);
+        } catch {
+            return null;
+        }
+    },
+    set preferTvdbBaseUrl(value: string | null) {
+        try {
+            if (value) {
+                localStorage.setItem(STORAGE_KEY_PREFER_TVDB_BASE_URL, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_PREFER_TVDB_BASE_URL);
             }
         } catch {
             // Ignore localStorage errors

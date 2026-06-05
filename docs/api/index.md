@@ -37,3 +37,7 @@ HTTP: `PUT /api/mcp/stop` — stops the MCP server gracefully. No request body. 
 ## McpStatus
 Source Code: apps/cli/src/route/Mcp.ts
 HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as `McpServerState` JSON.
+
+## Discover
+Source Code: apps/cli/src/route/discover.ts
+HTTP: `GET /api/discover` — fetches the remote media-database discovery config from `https://gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json` and returns the normalized `mediaDatabases` array. Each entry has the shape `{ type: 'tmdb' | 'tvdb', url: string, authorizationMethod: 'date-token' | 'none' }`. The CLI never returns an error response — fetch failures (timeout, non-2xx, malformed body) result in an empty list. The UI uses this endpoint at startup to populate the list of candidate TMDB/TVDB endpoints for reachability testing.

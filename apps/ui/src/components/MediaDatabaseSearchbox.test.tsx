@@ -31,16 +31,8 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useTvdbQueries', () => ({
-  useTvdbQueries: () => ({
-    search: vi.fn(),
-  }),
-}))
-
-vi.mock('@/hooks/useTmdbQueries', () => ({
-  useTmdbQueries: () => ({
-    search: vi.fn(),
-  }),
+vi.mock('@/hooks/useMediaDatabaseBaseUrls', () => ({
+  useMediaDatabaseBaseUrls: vi.fn(() => []),
 }))
 
 vi.mock('@/lib/i18n', async (importOriginal) => {

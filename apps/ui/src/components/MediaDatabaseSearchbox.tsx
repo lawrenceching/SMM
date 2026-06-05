@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
 import { getTMDBImageUrl } from "@/api/tmdb"
+import { searchTmdbDirect } from "@/api/tmdbDirect"
 import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import { SUPPORTED_APP_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
@@ -13,8 +14,8 @@ import {
   tvdbTranslationCodesForMediaLanguage,
 } from "@/lib/tvdbSearchDisplay"
 import { buildTvdbSearchResults, type TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
-import { useTvdbQueries } from "@/hooks/useTvdbQueries"
-import { useTmdbQueries } from "@/hooks/useTmdbQueries"
+import { searchTvdbDirect } from "@/lib/TvdbDirectSearch"
+import { useMediaDatabaseBaseUrls } from "@/hooks/useMediaDatabaseBaseUrls"
 
 /** TMDB API language for search and get-by-id. */
 export type TmdbSearchLanguage = "zh-CN" | "en-US" | "ja-JP"
@@ -96,8 +97,9 @@ export function MediaDatabaseSearchbox({
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
 
-  const { search: searchTvdb } = useTvdbQueries()
-  const { search: searchTmdb } = useTmdbQueries()
+  // Get the prioritized, deduplicated list of base URLs to try.
+  const tmdbBaseUrls = useMediaDatabaseBaseUrls("tmdb")
+  const tvdbBaseUrls = useMediaDatabaseBaseUrls("tvdb")
 
   useEffect(() => {
     const db = userConfig?.primaryDatabase
@@ -131,45 +133,84 @@ export function MediaDatabaseSearchbox({
     setSearchResults([])
     setTvdbSearchResultsRaw([])
 
+    const errors: string[] = []
     try {
       if (searchDatabase === "TVDB") {
+        const query = searchQuery.trim()
+        const type = mediaType === "tv" ? "series" : "movie"
 
-        const result: TVDBv4SearchResult[] | undefined = await searchTvdb({
-          query: searchQuery.trim(),
-          type: mediaType === "tv" ? "series" : "movie",
-        })
+        for (const base of tvdbBaseUrls) {
+          try {
+            const result: TVDBv4SearchResult[] | undefined = await searchTvdbDirect(
+              { query, type },
+              {
+                baseUrl: base.url,
+                authorizationMethod: base.authorizationMethod,
+              },
+            )
 
-        if(result === undefined || result.length === 0) {
-          setSearchError(t("errors:searchNoResults"))
-          return
+            if (result && result.length > 0) {
+              const items = buildTvdbSearchResults(result)
+              setTvdbSearchResultsRaw(items)
+              return
+            }
+            // Empty results are not an error — keep trying the next URL
+            // in case a different upstream has more matches.
+          } catch (err) {
+            errors.push(err instanceof Error ? err.message : String(err))
+          }
         }
 
-        const items = buildTvdbSearchResults(result);
-        setTvdbSearchResultsRaw(items)
-
+        // All URLs tried; either all returned empty results or all failed.
+        setSearchError(
+          errors.length > 0
+            ? t("errors:searchFailed")
+            : t("errors:searchNoResults"),
+        )
         return
       }
 
-      const response = await searchTmdb(searchQuery.trim(), mediaType, searchLanguage, {
-        upstreamBaseURL: userConfig?.tmdb?.host,
-        apiKey: userConfig?.tmdb?.apiKey,
-      })
+      // TMDB: try each base URL in order, stop on first success
+      for (const base of tmdbBaseUrls) {
+        try {
+          const response = await searchTmdbDirect(
+            searchQuery.trim(),
+            mediaType,
+            searchLanguage,
+            {
+              baseUrl: base.url,
+              authorizationMethod: base.authorizationMethod,
+            },
+          )
 
-      if (response.error) {
-        setSearchError(response.error)
-        setSearchResults([])
-        return
+          if (response.error) {
+            errors.push(response.error)
+            continue
+          }
+
+          const results = response.results.filter(
+            (item): item is TMDBTVShow | TMDBMovie =>
+              mediaType === "tv" ? "name" in item : "title" in item
+          )
+          setSearchResults(results)
+
+          if (results.length === 0) {
+            // Empty results: try next URL.
+            continue
+          }
+          return
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : String(err))
+        }
       }
 
-      const results = response.results.filter(
-        (item): item is TMDBTVShow | TMDBMovie =>
-          mediaType === "tv" ? "name" in item : "title" in item
+      // All TMDB URLs exhausted.
+      setSearchResults([])
+      setSearchError(
+        errors.length > 0
+          ? t("errors:searchFailed")
+          : t("errors:searchNoResults"),
       )
-      setSearchResults(results)
-
-      if (results.length === 0) {
-        setSearchError(t("errors:searchNoResults"))
-      }
     } catch (error) {
       console.error("Search failed:", error)
       const errorMessage =
@@ -179,7 +220,7 @@ export function MediaDatabaseSearchbox({
     } finally {
       setIsSearching(false)
     }
-  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t])
+  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t, tmdbBaseUrls, tvdbBaseUrls])
 
   const handleSelect = useCallback(
     (item: ImmersiveSearchResultItem) => {
