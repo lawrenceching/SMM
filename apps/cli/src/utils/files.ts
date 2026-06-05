@@ -261,6 +261,28 @@ DeletionDate=${deletionDate}
     }
   }
 
+  /**
+   * Permanently delete a file. ENOENT is treated as success (idempotent).
+   */
+  export async function permanentlyDeleteFile(filePath: string): Promise<void> {
+    try {
+      await unlink(filePath);
+      logger.info({ filePath, operation: 'permanent_delete' }, 'Managed file permanently deleted');
+    } catch (error) {
+      const errorCode = (error as NodeJS.ErrnoException).code;
+
+      if (errorCode === 'ENOENT') {
+        logger.info({ filePath, operation: 'permanent_delete' }, 'Managed file already absent');
+        return;
+      }
+      if (errorCode === 'EACCES' || errorCode === 'EPERM') {
+        throw new Error(`Permission denied: Cannot delete file ${filePath}`);
+      }
+
+      throw new Error(`Failed to delete file ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async function ensureDirectoryExists(dirPath: string): Promise<void> {
     try {
       await access(dirPath, constants.F_OK);

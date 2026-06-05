@@ -12,6 +12,10 @@ HTTP: `GET /api/command-execution/:executionId` — returns `phase` (`unknown` \
 Source Code: apps/cli/src/route/MoveFileToTrash.ts
 HTTP: `POST /api/moveFileToTrash` — moves a file to the system trash/recycle bin on desktop environments (permanent delete on headless/server). Request body: `{ path: string }` (platform absolute path).
 
+## DeleteFile
+Source Code: apps/cli/src/route/DeleteFile.ts
+HTTP: `POST /api/deleteFile` — permanently deletes a managed yt-dlp cookies temp file (`{userDataDir}/temp/ytdlp-cookies-*.txt`). Request body: `{ path: string }` (platform absolute path). Not for general user file deletion.
+
 ## isFolderAvailable
 Source Code: apps/cli/src/route/IsFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md

@@ -1,19 +1,21 @@
 import { YTDLP_DOWNLOAD_ALLOWED_ARGS } from "./constants";
+import { isYtdlpCookiesFromBrowserName } from "./ytdlpCookiesBrowser";
 
-export const YTDLP_COOKIES_FROM_BROWSER_NAMES = ["chrome", "edge", "firefox"] as const;
-export type YtdlpCookiesFromBrowserName = (typeof YTDLP_COOKIES_FROM_BROWSER_NAMES)[number];
+export {
+  YTDLP_COOKIES_FILENAME_PREFIX,
+  YTDLP_COOKIES_FILENAME_PATTERN,
+  buildYtdlpCookiesFilePath,
+  isManagedYtdlpCookiesBasename,
+  isManagedYtdlpCookiesPath,
+  parseYtdlpCookiesFileArg,
+} from "./ytdlpCookies";
+export {
+  YTDLP_COOKIES_FROM_BROWSER_NAMES,
+  isYtdlpCookiesFromBrowserName,
+  type YtdlpCookiesFromBrowserName,
+} from "./ytdlpCookiesBrowser";
 
-export function isYtdlpCookiesFromBrowserName(
-  value: string,
-): value is YtdlpCookiesFromBrowserName {
-  return (YTDLP_COOKIES_FROM_BROWSER_NAMES as readonly string[]).includes(value);
-}
-
-export interface YtdlpDownloadRequestInput {
-  url: string;
-  folder: string;
-  args?: string[];
-  format?: string;
+export interface YtdlpCommonOptionsInput {
   /** Absolute path to Netscape-format cookies file for `--cookies`. */
   cookiesFile?: string;
   /** Browser profile for `--cookies-from-browser` (e.g. chrome, edge, firefox). */
@@ -24,12 +26,66 @@ export interface YtdlpDownloadRequestInput {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
+}
+
+export interface YtdlpDownloadRequestInput extends YtdlpCommonOptionsInput {
+  url: string;
+  folder: string;
+  args?: string[];
+  format?: string;
   /**
    * When set, `--print <printArg>` is appended to the args.
    * Default is undefined (no --print) so progress JSON lines remain on
    * stdout for log-polling progress display.
    */
   printArg?: string;
+}
+
+export type YtdlpInspectMode = "json" | "flat-playlist-json";
+
+export interface YtdlpInspectRequestInput extends YtdlpCommonOptionsInput {
+  url: string;
+  mode?: YtdlpInspectMode;
+}
+
+function appendYtdlpCommonOptions(args: string[], input: YtdlpCommonOptionsInput): void {
+  const proxy = input.proxy?.trim();
+  if (proxy) {
+    args.push("--proxy", proxy);
+  }
+
+  const cookiesFile = input.cookiesFile?.trim();
+  if (cookiesFile) {
+    args.push("--cookies", cookiesFile);
+  }
+
+  const browser = input.cookiesFromBrowser?.trim().toLowerCase();
+  if (browser && isYtdlpCookiesFromBrowserName(browser)) {
+    args.push("--cookies-from-browser", browser);
+  }
+
+  const jsRuntime = input.jsRuntime?.trim();
+  const jsRuntimePath = input.jsRuntimePath?.trim();
+  if (jsRuntime) {
+    args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
+  }
+}
+
+/**
+ * yt-dlp argv for metadata inspection (`-J`, `--flat-playlist -J`, etc.).
+ */
+export function buildYtdlpInspectArgs(input: YtdlpInspectRequestInput): string[] {
+  const args: string[] = [];
+  appendYtdlpCommonOptions(args, input);
+
+  if (input.mode === "flat-playlist-json") {
+    args.push("--flat-playlist", "-J");
+  } else {
+    args.push("-J");
+  }
+
+  args.push(input.url.trim());
+  return args;
 }
 
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
@@ -49,38 +105,17 @@ export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefi
  */
 export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string[] {
   const outputTemplate = `${input.folder.replace(/\\/g, "/")}/%(title)s [%(id)s].%(ext)s`;
-  // --print is controlled by enablePrintArgInYtdlpCommand feature flag.
-  // When set, --print <printArg> is appended; when absent (default),
-  // stdout carries progress JSON lines for log-polling progress display.
   const args: string[] = ["--output", outputTemplate];
 
   if (input.printArg) {
     args.push("--print", input.printArg);
   }
-  const proxy = input.proxy?.trim();
-  if (proxy) {
-    args.push("--proxy", proxy);
-  }
+
+  appendYtdlpCommonOptions(args, input);
 
   const format = input.format?.trim();
   if (format) {
     args.push("-f", format);
-  }
-
-  const cookiesFile = input.cookiesFile?.trim();
-  if (cookiesFile) {
-    args.push("--cookies", cookiesFile);
-  }
-
-  const browser = input.cookiesFromBrowser?.trim().toLowerCase();
-  if (browser && isYtdlpCookiesFromBrowserName(browser)) {
-    args.push("--cookies-from-browser", browser);
-  }
-
-  const jsRuntime = input.jsRuntime?.trim();
-  const jsRuntimePath = input.jsRuntimePath?.trim();
-  if (jsRuntime) {
-    args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
   }
 
   args.push(input.url);

@@ -1126,4 +1126,16 @@ export interface MoveFileToTrashResponseBody {
   error?: string
 }
 
+export interface DeleteFileRequestBody {
+  /** Platform absolute path to a managed yt-dlp cookies temp file. */
+  path: string
+}
+
+export interface DeleteFileResponseBody {
+  data?: {
+    path: string
+  }
+  error?: string
+}
+
 export type FolderType = "tvshow" | "movie" | "music"

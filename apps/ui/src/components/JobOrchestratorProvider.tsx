@@ -40,6 +40,8 @@ import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommand
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
 import type { YtdlpProgressData } from '@/lib/whitelistedCmd/executeCmdToCompletion'
+import { executeYtdlp } from '@/lib/ytdlp/executeYtdlp'
+import { permanentlyDeleteYtdlpCookiesFile } from '@/lib/ytdlpCookiesFile'
 import { useFeatures } from '@/hooks/useFeatures'
 import {
   buildFfmpegConvertArgs,
@@ -378,7 +380,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           const totalVideos = videos.length
           let allSucceeded = true
           let completedVideos = 0
+          const managedCookiesPath = downloadData.ytdlpCookiesFile?.trim() || undefined
 
+          try {
           for (let i = 0; i < videos.length; i++) {
             if (controller.signal.aborted) { wasStopped = true; break }
 
@@ -419,15 +423,14 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                 printArg: ytdlpPrintArg,
               })
 
-              const result = await executeCmdToCompletionWithHeaders(
-                { command: 'yt-dlp', args, tty: ytdlpTty },
-                {
-                  timeoutMs: JOB_TIMEOUT_MS['download-video'],
-                  signal: controller.signal,
-                  executionId,
-                  onProgress: handleYtdlpProgress,
-                },
-              )
+              const result = await executeYtdlp(args, {
+                cleanup: 'none',
+                timeoutMs: JOB_TIMEOUT_MS['download-video'],
+                signal: controller.signal,
+                executionId,
+                tty: ytdlpTty,
+                onProgress: handleYtdlpProgress,
+              })
               if (result.executionId) data.executionId = result.executionId
               if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
 
@@ -491,6 +494,11 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
             success = true
           } else {
             record.status = 'failed'
+          }
+          } finally {
+            if (managedCookiesPath) {
+              await permanentlyDeleteYtdlpCookiesFile(managedCookiesPath)
+            }
           }
           break
         }

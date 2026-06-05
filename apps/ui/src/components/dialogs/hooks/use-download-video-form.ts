@@ -7,7 +7,6 @@ import { useConfig } from "@/hooks/userConfig/useConfig"
 import {
   writeYtdlpCookiesFile,
   buildYtdlpCookiesFilePath,
-  deleteYtdlpCookiesFile,
 } from "@/lib/ytdlpCookiesFile"
 import {
   getCookiesBrowserIds,
@@ -373,11 +372,11 @@ export function useDownloadVideoForm(
     }
 
     const cfBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
+    const userDataDir = appConfig.userDataDir
 
     // Write manual cookies to a temp file if enabled
     let cookiesFile: string | undefined
     if (useCookies && cookiesText.trim()) {
-      const userDataDir = appConfig.userDataDir
       if (userDataDir) {
         try {
           const tempId = `list-formats-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -408,12 +407,8 @@ export function useDownloadVideoForm(
         ...(cookiesFile ? { cookiesFile } : {}),
         ...(useJsRuntime ? { jsRuntime, jsRuntimePath: quickjsPath } : {}),
         ...(proxy.trim() ? { proxy: proxy.trim() } : {}),
+        ...(userDataDir ? { userDataDir } : {}),
       },
-      cookiesFile
-        ? () => {
-            deleteYtdlpCookiesFile(cookiesFile)
-          }
-        : undefined,
     )
   }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, appConfig.userDataDir, listFormats, runUrlValidation, proxy])
 

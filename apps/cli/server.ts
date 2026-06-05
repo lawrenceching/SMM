@@ -26,6 +26,7 @@ import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFil
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
 import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
+import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
@@ -208,6 +209,7 @@ export class Server {
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);
     handleMoveFileToTrash(this.app);
+    handleDeleteFile(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugRenameFilesTaskRoutes(this.app);

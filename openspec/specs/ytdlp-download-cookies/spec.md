@@ -48,3 +48,23 @@ The system SHALL pass yt-dlp **`--cookies-from-browser`** when downloading via e
 
 - **WHEN** the client supplies both `cookiesFile` and `cookiesFromBrowser`
 - **THEN** the yt-dlp invocation SHALL include both `--cookies` and `--cookies-from-browser` in the args array
+
+### Requirement: Managed cookies temp files are permanently deleted after use
+
+The system SHALL treat SMM-written yt-dlp cookie files under `{userDataDir}/temp/ytdlp-cookies-*.txt` as sensitive ephemeral data. After yt-dlp finishes using such a file, the system SHALL permanently delete it via `POST /api/deleteFile` (not `moveFileToTrash`).
+
+#### Scenario: List-formats command deletes cookies after run
+
+- **WHEN** the UI runs `yt-dlp -J` (or equivalent inspect command) with a managed `cookiesFile`
+- **THEN** the cookies file SHALL be permanently deleted when the command completes (success or failure)
+
+#### Scenario: Download job deletes cookies once after job finishes
+
+- **WHEN** a download-video background job used `ytdlpCookiesFile` for one or more yt-dlp download invocations
+- **THEN** the cookies file SHALL be permanently deleted exactly once when the job reaches a terminal status (`succeeded`, `failed`, or `stopped`)
+- **AND** the file SHALL NOT be deleted between per-video downloads in a batch job
+
+#### Scenario: deleteFile rejects non-managed paths
+
+- **WHEN** a client calls `POST /api/deleteFile` with a path outside `{userDataDir}/temp/ytdlp-cookies-*.txt`
+- **THEN** the API SHALL reject the request and SHALL NOT delete the file

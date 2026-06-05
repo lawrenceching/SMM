@@ -2,13 +2,12 @@
 import { validateDownloadUrl } from "@core/download-video-validators";
 import {
   buildYtdlpDownloadArgs,
+  buildYtdlpInspectArgs,
   parseYtdlpDownloadStdout,
   validateYtdlpDownloadExtraArgs,
-  type YtdlpCookiesFromBrowserName,
-  isYtdlpCookiesFromBrowserName,
 } from "@core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
-import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
+import { executeYtdlp } from "@/lib/ytdlp/executeYtdlp";
 
 import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
 import type { PlaylistMetadata, Thumbnail, Version, VideoMetadata } from "@/api/ytdlp/types";
@@ -60,10 +59,9 @@ export async function downloadYtdlpVideo(
     printArg: request.printArg,
   });
 
-  const result = await executeCmdToCompletion(
-    { command: "yt-dlp", args },
-    { timeoutMs: YTDLP_DOWNLOAD_TIMEOUT_MS }
-  );
+  const result = await executeYtdlp(args, {
+    timeoutMs: YTDLP_DOWNLOAD_TIMEOUT_MS,
+  });
 
   if (!result.success) {
     return { error: result.error };
@@ -96,10 +94,7 @@ export async function getYtdlpVersion(): Promise<{ version?: string; error?: str
   if (!probe.available) {
     return { error: probe.error ?? "yt-dlp not found" };
   }
-  const result = await executeCmdToCompletion(
-    { command: "yt-dlp", args: ["--version"] },
-    { timeoutMs: 15_000 }
-  );
+  const result = await executeYtdlp(["--version"], { timeoutMs: 15_000 });
   if (!result.success) {
     return { error: result.error };
   }
@@ -117,12 +112,9 @@ export async function extractYtdlpVideoData(url: string): Promise<YtdlpExtractDa
     return { error: "url is required" };
   }
 
-  const result = await executeCmdToCompletion(
-    {
-      command: "yt-dlp",
-      args: ["--skip-download", "--print", "title=%(title)s ___ artist=%(uploader)s", url],
-    },
-    { timeoutMs: 60_000 }
+  const result = await executeYtdlp(
+    ["--skip-download", "--print", "title=%(title)s ___ artist=%(uploader)s", url],
+    { timeoutMs: 60_000 },
   );
 
   if (!result.success) {
@@ -165,6 +157,8 @@ export interface YtdlpListFormatsRequest {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
+  /** Used to validate managed cookies cleanup on the client. */
+  userDataDir?: string;
 }
 
 export interface ListFormatsResult {
@@ -192,35 +186,21 @@ export async function listYtdlpFormats(
     }
   }
 
-  const args: string[] = [];
+  const args = buildYtdlpInspectArgs({
+    url: req.url,
+    cookiesFile: req.cookiesFile,
+    cookiesFromBrowser: req.cookiesFromBrowser,
+    jsRuntime: req.jsRuntime,
+    jsRuntimePath: req.jsRuntimePath,
+    proxy: req.proxy,
+    mode: "json",
+  });
 
-  const cookiesFile = req.cookiesFile?.trim();
-  if (cookiesFile) {
-    args.push("--cookies", cookiesFile);
-  }
-
-  const browser = req.cookiesFromBrowser?.trim().toLowerCase();
-  if (browser && isYtdlpCookiesFromBrowserName(browser)) {
-    args.push("--cookies-from-browser", browser as YtdlpCookiesFromBrowserName);
-  }
-
-  const jsRuntime = req.jsRuntime?.trim();
-  const jsRuntimePath = req.jsRuntimePath?.trim();
-  if (jsRuntime) {
-    args.push("--js-runtimes", jsRuntimePath ? `${jsRuntime}:${jsRuntimePath}` : jsRuntime);
-  }
-
-  const proxy = req.proxy?.trim();
-  if (proxy) {
-    args.push("--proxy", proxy);
-  }
-
-  args.push("-J", req.url.trim());
-
-  const result = await executeCmdToCompletion(
-    { command: "yt-dlp", args },
-    { timeoutMs: 60_000 }
-  );
+  const result = await executeYtdlp(args, {
+    timeoutMs: 60_000,
+    cleanup: req.cookiesFile?.trim() ? "managed-cookies-after-run" : "none",
+    userDataDir: req.userDataDir,
+  });
 
   if (!result.success) {
     const stderr = result.stderr?.trim() ?? ""
@@ -292,7 +272,7 @@ async function collectExecuteCmdOutput(
   request: { command: "yt-dlp"; args: string[] },
   timeoutMs?: number
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
-  const result = await executeCmdToCompletion(request, { timeoutMs });
+  const result = await executeYtdlp(request.args, { timeoutMs });
   return {
     stdout: result.stdout,
     stderr: result.stderr,
@@ -368,7 +348,7 @@ export async function getBilibiliVideoMetadata(url: string): Promise<BilibiliVid
   const { stdout, stderr, exitCode } = await collectExecuteCmdOutput(
     {
       command: "yt-dlp",
-      args: ["-J", trimmed],
+      args: buildYtdlpInspectArgs({ url: trimmed, mode: "json" }),
     },
     YTDLP_VIDEO_METADATA_TIMEOUT_MS
   );
