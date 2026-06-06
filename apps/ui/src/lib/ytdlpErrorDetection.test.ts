@@ -210,6 +210,94 @@ describe("classifyYtdlpError", () => {
     expect(r.type).toBe("player-request-failed")
   })
 
+  // ── CLI / executeCmd boundary errors ──────────────────────────────
+  // These cover the case where the CLI's own `/api/executeCmd` HTTP
+  // endpoint (or the browser's fetch wrapper) reports a non-success.
+
+  it("http-error (HTTP 500 from CLI, no body)", () => {
+    const r = classify("HTTP 500: Internal Server Error")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("500")
+  })
+
+  it("http-error (HTTP 502, statusText-only fallback)", () => {
+    const r = classify("HTTP 502")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("502")
+  })
+
+  it("http-error (HTTP 503)", () => {
+    const r = classify("HTTP 503: Service Unavailable")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("503")
+  })
+
+  it("http-error (HTTP 504)", () => {
+    const r = classify("HTTP 504: Gateway Timeout")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("504")
+  })
+
+  it("http-error (HTTP 400 with JSON body — test scenario)", () => {
+    // The CLI fetch wrapper always prefixes the error with the status:
+    // "HTTP 400: <body>". This must classify as http-error so the user
+    // sees a meaningful message with the status code, not the generic
+    // "Unknown error (...body)" fallback.
+    const r = classify("HTTP 400: test")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("400")
+  })
+
+  it("http-error (HTTP 404 with JSON body — e.g. executable not found)", () => {
+    const r = classify("HTTP 404: yt-dlp executable not found")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("404")
+  })
+
+  it("http-error (HTTP 401)", () => {
+    const r = classify("HTTP 401: Unauthorized")
+    expect(r.type).toBe("http-error")
+    expect(r.context).toBe("401")
+  })
+
+  it("does NOT classify yt-dlp's 'HTTP Error 502' as http-error", () => {
+    // yt-dlp's own "HTTP Error 5xx" form must keep mapping to http-5xx
+    // so the user gets the "目标服务器故障" hint instead of the CLI
+    // http-error message (which suggests restarting the app).
+    const r = classify("ERROR: HTTP Error 502: Bad Gateway")
+    expect(r.type).toBe("http-5xx")
+  })
+
+  it("does NOT classify yt-dlp's 'HTTP Error 404' as http-error", () => {
+    const r = classify("ERROR: HTTP Error 404: Not Found")
+    expect(r.type).toBe("http-404")
+  })
+
+  it("executable-not-found (yt-dlp)", () => {
+    const r = classify("yt-dlp executable not found")
+    expect(r.type).toBe("executable-not-found")
+  })
+
+  it("executable-not-found (ffmpeg)", () => {
+    const r = classify("ffmpeg executable not found")
+    expect(r.type).toBe("executable-not-found")
+  })
+
+  it("api-network-error (Failed to fetch)", () => {
+    const r = classify("TypeError: Failed to fetch")
+    expect(r.type).toBe("api-network-error")
+  })
+
+  it("api-network-error (NetworkError)", () => {
+    const r = classify("NetworkError when attempting to fetch resource")
+    expect(r.type).toBe("api-network-error")
+  })
+
+  it("api-network-error (Load failed)", () => {
+    const r = classify("Load failed")
+    expect(r.type).toBe("api-network-error")
+  })
+
   // ── Unknown ──────────────────────────────────────────────────────
 
   it("unknown for unrecognized errors", () => {
@@ -226,14 +314,17 @@ describe("getYtdlpErrorMessage", () => {
       "downloadVideo.errors.cookieExpired": "Cookies expired or invalid. [i18n]",
       "downloadVideo.errors.connectionTimeout": "Connection to {{host}} timed out [i18n]",
       "downloadVideo.errors.unknown": "Unknown error. [i18n]",
+      "downloadVideo.errors.httpError": "Unknown error (HTTP {{status}}). Please restart. [i18n]",
+      "downloadVideo.errors.executableNotFound": "Executable not found. [i18n]",
+      "downloadVideo.errors.apiNetworkError": "API network error. [i18n]",
     }
     const template = map[key]
     if (!template) return key
-    // Simple interpolation
-    if (opts && opts.host) {
-      return template.replace("{{host}}", String(opts.host))
-    }
-    return template
+    // Simple interpolation for all `{{var}}` placeholders from opts.
+    return template.replace(/\{\{(\w+)\}\}/g, (_, name) => {
+      const v = opts?.[name]
+      return v == null ? `{{${name}}}` : String(v)
+    })
   }) as (key: string, opts?: Record<string, unknown>) => string
 
   it("returns i18n message when t is provided", () => {
@@ -242,6 +333,31 @@ describe("getYtdlpErrorMessage", () => {
       mockT,
     )
     expect(msg).toBe("Cookies expired or invalid. [i18n]")
+  })
+
+  it("returns i18n message for http-error with status interpolation", () => {
+    const msg = getYtdlpErrorMessage(
+      { type: "http-error", context: "400" },
+      mockT,
+    )
+    expect(msg).toBe("Unknown error (HTTP 400). Please restart. [i18n]")
+  })
+
+  it("returns fallback for http-error with status when no t", () => {
+    const msg = getYtdlpErrorMessage({ type: "http-error", context: "500" })
+    expect(msg).toBe(
+      "未知错误(HTTP 500), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
+    )
+  })
+
+  it("returns i18n message for executable-not-found", () => {
+    const msg = getYtdlpErrorMessage({ type: "executable-not-found" }, mockT)
+    expect(msg).toBe("Executable not found. [i18n]")
+  })
+
+  it("returns i18n message for api-network-error", () => {
+    const msg = getYtdlpErrorMessage({ type: "api-network-error" }, mockT)
+    expect(msg).toBe("API network error. [i18n]")
   })
 
   it("returns fallback for connection-timeout with context", () => {

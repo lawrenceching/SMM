@@ -86,12 +86,16 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string) => {
+      t: (key: string, opts?: Record<string, unknown>) => {
         const dialogs: Record<string, string> = {
           'downloadVideo.urlLabel': 'Video URL',
           'downloadVideo.folderLabel': 'Download Folder',
           'downloadVideo.start': 'Start',
           'downloadVideo.useCookiesFromBrowserLabel': 'From browser',
+          'downloadVideo.errors.httpError': 'Unknown error (HTTP {{status}}). Please try restarting the app. If the problem persists, contact the developer.',
+          'downloadVideo.errors.executableNotFound': 'Required executable not found. Please check the CLI installation.',
+          'downloadVideo.errors.apiNetworkError': 'Cannot reach the service. Please check your network.',
+          'downloadVideo.errors.unknown': 'Unknown error. Check the status bar task list for detailed logs.',
           'downloadVideo.cookiesRequiredForYoutube': 'YouTube requires cookies.',
           'downloadVideo.cookiesEmpty': 'Cookies empty',
           'downloadVideo.cookiesWriteFailed': 'Cookies write failed',
@@ -101,7 +105,12 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
           'downloadVideo.useJsRuntimeLabel': 'Use JS Runtime',
           'downloadVideo.jsRuntimeQuickJS': 'QuickJS',
         }
-        return dialogs[key] ?? key
+        const template = dialogs[key] ?? key
+        // Simple `{{var}}` interpolation for the test mock.
+        return template.replace(/\{\{(\w+)\}\}/g, (_, name) => {
+          const v = opts?.[name]
+          return v == null ? `{{${name}}}` : String(v)
+        })
       },
     }),
   }
@@ -269,5 +278,154 @@ describe('DownloadVideoDialog executeCmd integration (scheme B)', () => {
     expect(downloadReq.args).toContain(`quickjs:${QUICKJS_PATH}`)
     expect(downloadReq.args).toContain(YOUTUBE_URL)
     expect(downloadReq.args).toContain('--cookies-from-browser')
+  })
+
+  // ── executeCmd HTTP error handling (regression for the DVD bug) ──
+  // When the CLI's /api/executeCmd endpoint returns a non-success status
+  // code, the fetch wrapper throws an `Error` that the listing mutation
+  // must classify and surface as a localized, user-actionable message
+  // instead of the generic "未知错误".
+
+  describe('when executeCmd returns a non-success HTTP status', () => {
+    beforeEach(() => {
+      // Bypass QuickJS check by clearing the userAgreed storage and using
+      // a Bilibili URL (handleGo skips the QuickJS probe for non-YouTube).
+      window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    })
+
+    async function triggerGoAndWaitForListingError(): Promise<HTMLElement> {
+      fireEvent.click(screen.getByTestId('download-video-dialog-go-button'))
+      const errEl = await screen.findByTestId('download-video-dialog-listing-error', undefined, {
+        timeout: 5000,
+      })
+      return errEl
+    }
+
+    it('shows a localized "unknown error (HTTP 500)" message for CLI 500', async () => {
+      h.executeCmdToCompletion.mockImplementation(async (request: ExecuteCmdRequest) => {
+        if (isListFormatsRequest(request)) {
+          throw new Error('HTTP 500: Internal Server Error')
+        }
+        return {
+          success: false,
+          stdout: '',
+          stderr: `unexpected executeCmdToCompletion: ${request.args.join(' ')}`,
+          exitCode: 1,
+        }
+      })
+
+      renderWithOrchestrator(<DownloadVideoDialog {...defaultProps} />)
+      fireEvent.change(screen.getByLabelText('Video URL'), {
+        target: { value: YOUTUBE_URL },
+      })
+      // YouTube + no cookies would block Go; enable From browser.
+      fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+
+      const errEl = await triggerGoAndWaitForListingError()
+      // The status code is interpolated into the message; the body is dropped.
+      expect(errEl.textContent).toContain('Unknown error (HTTP 500)')
+      expect(errEl.textContent).toContain('restarting the app')
+    })
+
+    it('shows a localized "unknown error (HTTP 400)" message for CLI 400 with body', async () => {
+      // The CLI fetch wrapper always prefixes the error with the status:
+      // "HTTP 400: <body>". The status must be surfaced, not just the body.
+      h.executeCmdToCompletion.mockImplementation(async (request: ExecuteCmdRequest) => {
+        if (isListFormatsRequest(request)) {
+          throw new Error('HTTP 400: test')
+        }
+        return {
+          success: false,
+          stdout: '',
+          stderr: `unexpected executeCmdToCompletion: ${request.args.join(' ')}`,
+          exitCode: 1,
+        }
+      })
+
+      renderWithOrchestrator(<DownloadVideoDialog {...defaultProps} />)
+      fireEvent.change(screen.getByLabelText('Video URL'), {
+        target: { value: YOUTUBE_URL },
+      })
+      fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+
+      const errEl = await triggerGoAndWaitForListingError()
+      expect(errEl.textContent).toContain('Unknown error (HTTP 400)')
+      expect(errEl.textContent).toContain('restarting the app')
+    })
+
+    it('shows a localized "executable not found" message when CLI returns 404', async () => {
+      h.executeCmdToCompletion.mockImplementation(async (request: ExecuteCmdRequest) => {
+        if (isListFormatsRequest(request)) {
+          throw new Error('yt-dlp executable not found')
+        }
+        return {
+          success: false,
+          stdout: '',
+          stderr: `unexpected executeCmdToCompletion: ${request.args.join(' ')}`,
+          exitCode: 1,
+        }
+      })
+
+      renderWithOrchestrator(<DownloadVideoDialog {...defaultProps} />)
+      fireEvent.change(screen.getByLabelText('Video URL'), {
+        target: { value: YOUTUBE_URL },
+      })
+      fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+
+      const errEl = await triggerGoAndWaitForListingError()
+      expect(errEl.textContent).toContain(
+        'Required executable not found. Please check the CLI installation.',
+      )
+    })
+
+    it('shows a localized "api network error" message on browser fetch failure', async () => {
+      h.executeCmdToCompletion.mockImplementation(async (request: ExecuteCmdRequest) => {
+        if (isListFormatsRequest(request)) {
+          throw new TypeError('Failed to fetch')
+        }
+        return {
+          success: false,
+          stdout: '',
+          stderr: `unexpected executeCmdToCompletion: ${request.args.join(' ')}`,
+          exitCode: 1,
+        }
+      })
+
+      renderWithOrchestrator(<DownloadVideoDialog {...defaultProps} />)
+      fireEvent.change(screen.getByLabelText('Video URL'), {
+        target: { value: YOUTUBE_URL },
+      })
+      fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+
+      const errEl = await triggerGoAndWaitForListingError()
+      expect(errEl.textContent).toContain(
+        'Cannot reach the service. Please check your network.',
+      )
+    })
+
+    it('appends the original error text for genuinely unknown errors', async () => {
+      h.executeCmdToCompletion.mockImplementation(async (request: ExecuteCmdRequest) => {
+        if (isListFormatsRequest(request)) {
+          throw new Error('weird unrecoverable glitch xyz123')
+        }
+        return {
+          success: false,
+          stdout: '',
+          stderr: `unexpected executeCmdToCompletion: ${request.args.join(' ')}`,
+          exitCode: 1,
+        }
+      })
+
+      renderWithOrchestrator(<DownloadVideoDialog {...defaultProps} />)
+      fireEvent.change(screen.getByLabelText('Video URL'), {
+        target: { value: YOUTUBE_URL },
+      })
+      fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
+
+      const errEl = await triggerGoAndWaitForListingError()
+      // Localized fallback + raw cause in parens.
+      expect(errEl.textContent).toContain('Unknown error')
+      expect(errEl.textContent).toContain('weird unrecoverable glitch xyz123')
+    })
   })
 })
