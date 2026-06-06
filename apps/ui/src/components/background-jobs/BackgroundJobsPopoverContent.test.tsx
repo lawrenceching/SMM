@@ -35,6 +35,30 @@ vi.mock('@/stores/statusbarStore', () => ({
   useStatusbarStore: vi.fn(),
 }))
 
+// Mock the failed-command-logs store with a controllable entries list.
+// We need both hook-style (selector) and getState() access, because
+// BackgroundJobsPopoverContent reads entries via a selector and calls
+// clearAll() via getState().
+const mockFailedState: {
+  entries: import('@/stores/failedCommandLogsStore').FailedCommandLogEntry[]
+  removeEntry: ReturnType<typeof vi.fn>
+  clearAll: ReturnType<typeof vi.fn>
+} = {
+  entries: [],
+  removeEntry: vi.fn(),
+  clearAll: vi.fn(),
+}
+
+vi.mock('@/stores/failedCommandLogsStore', () => ({
+  useFailedCommandLogsStore: Object.assign(
+    (selector?: (s: typeof mockFailedState) => unknown) => {
+      if (typeof selector === 'function') return selector(mockFailedState)
+      return mockFailedState
+    },
+    { getState: () => mockFailedState },
+  ),
+}))
+
 vi.mock('@/components/ui/context-menu', () => ({
   ContextMenu: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   ContextMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -114,6 +138,7 @@ function mockPopoverJobs(jobs: BackgroundJob[], isPopoverOpen = true) {
 describe('BackgroundJobsPopoverContent', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockFailedState.entries = []
   })
 
   it('shows log button when subtitle job has executionId and is not running', () => {
@@ -349,5 +374,107 @@ describe('BackgroundJobsPopoverContent', () => {
     expect(stopAllBtn).toHaveTextContent('Stop All')
     fireEvent.click(stopAllBtn)
     expect(mockStopAllJobs).toHaveBeenCalledTimes(1)
+  })
+
+  // Regression: with many jobs + many failed commands the popover used to
+  // grow taller than the viewport, pushing the header (with the clear
+  // button) off-screen. The fix pins the header outside a single scroll
+  // container that holds both the jobs list and the failed-commands list.
+  describe('layout / scroll containment', () => {
+    it('keeps the header outside the scrollable area so the clear button stays reachable', () => {
+      mockPopoverJobs([
+        {
+          id: 'j1',
+          name: 'Run',
+          status: 'running',
+          progress: 10,
+          type: 'generic',
+          data: {},
+        },
+      ])
+
+      const { container } = renderWithQuery(<BackgroundJobsPopoverContent />)
+
+      const scrollContainer = container.querySelector(
+        '[data-testid="background-jobs-scroll-container"]',
+      )
+      expect(scrollContainer).not.toBeNull()
+      // The flexbox-shrink trick: `flex-1` + `min-h-0` lets the scroll
+      // container actually shrink inside its flex parent.
+      expect(scrollContainer).toHaveClass('flex-1')
+      expect(scrollContainer).toHaveClass('min-h-0')
+      expect(scrollContainer).toHaveClass('overflow-y-auto')
+
+      // The jobs list lives inside the scroll container.
+      const list = screen.getByTestId('background-jobs-list')
+      expect(scrollContainer!.contains(list)).toBe(true)
+
+      // The header (which contains the clear button) lives outside the
+      // scroll container, so it can never be pushed off-screen by content.
+      const header = screen.getByTestId('background-jobs-header')
+      expect(scrollContainer!.contains(header)).toBe(false)
+    })
+
+    it('groups the failed-commands list in the same scroll container as the jobs list (no nested scrollbars)', () => {
+      mockFailedState.entries = [
+        {
+          executionId: 'failed-1',
+          title: 'Some failed job',
+          command: 'ffmpeg',
+          error: 'Something went wrong',
+          timestamp: 1_700_000_000_000,
+        },
+      ]
+      mockPopoverJobs([
+        {
+          id: 'j1',
+          name: 'Run',
+          status: 'running',
+          progress: 10,
+          type: 'generic',
+          data: {},
+        },
+      ])
+
+      const { container } = renderWithQuery(<BackgroundJobsPopoverContent />)
+
+      const scrollContainer = container.querySelector(
+        '[data-testid="background-jobs-scroll-container"]',
+      )
+      const failedList = screen.getByTestId('failed-commands-list')
+      const jobsList = screen.getByTestId('background-jobs-list')
+
+      // Both lists share the same scroll container — the parent popover
+      // owns scrolling, so the user only ever sees one scrollbar.
+      expect(scrollContainer!.contains(failedList)).toBe(true)
+      expect(scrollContainer!.contains(jobsList)).toBe(true)
+
+      // The header is still outside, regardless of failed-commands state.
+      const header = screen.getByTestId('background-jobs-header')
+      expect(scrollContainer!.contains(header)).toBe(false)
+    })
+
+    it('still renders the scroll container when there are no failed commands (layout stays consistent)', () => {
+      mockPopoverJobs([
+        {
+          id: 'j1',
+          name: 'Run',
+          status: 'running',
+          progress: 10,
+          type: 'generic',
+          data: {},
+        },
+      ])
+      mockFailedState.entries = []
+
+      const { container } = renderWithQuery(<BackgroundJobsPopoverContent />)
+
+      // The wrapper is unconditional — keeping it always present avoids
+      // layout shifts as failed-commands entries appear/disappear.
+      expect(
+        container.querySelector('[data-testid="background-jobs-scroll-container"]'),
+      ).not.toBeNull()
+      expect(screen.queryByTestId('failed-commands-list')).not.toBeInTheDocument()
+    })
   })
 })

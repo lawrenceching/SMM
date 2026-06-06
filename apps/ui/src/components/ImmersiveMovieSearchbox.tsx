@@ -141,7 +141,7 @@ export function ImmersiveMovieSearchbox({
                         }
                     }}
                 >
-                    <ScrollArea className="max-h-[400px]">
+                    <ScrollArea className="h-[400px]">
                         <div className="p-2">
                             {isSearching ? (
                                 <div className="flex items-center justify-center h-32">

@@ -27,7 +27,7 @@ export function BackgroundJobsPopoverList({
   const { t } = useTranslation('components')
 
   return (
-    <div data-testid="background-jobs-list" className="max-h-80 overflow-y-auto">
+    <div data-testid="background-jobs-list">
       {isLoading ? (
         <div
           data-testid="background-jobs-loading"

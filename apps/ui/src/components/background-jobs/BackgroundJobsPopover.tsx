@@ -53,7 +53,7 @@ export function BackgroundJobsPopover({ className }: BackgroundJobsPopoverProps)
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" side="top" className="w-80 p-0">
+      <PopoverContent align="end" side="top" className="w-80 p-0 max-h-[80vh] flex flex-col">
         <BackgroundJobsPopoverContent />
       </PopoverContent>
     </Popover>

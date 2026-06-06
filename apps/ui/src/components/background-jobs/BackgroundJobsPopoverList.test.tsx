@@ -202,3 +202,29 @@ describe('BackgroundJobsPopoverList — download-video progress', () => {
     expect(screen.getByTestId('background-job-job-1-eta')).toHaveTextContent('1h 1m')
   })
 })
+
+// Regression: the list used to set its own `max-h-80 overflow-y-auto`,
+// which created a nested scrollbar inside the popover's own scroll
+// container. The parent popover now owns scrolling, so the list must
+// not impose any overflow / max-height of its own.
+describe('BackgroundJobsPopoverList — scroll containment', () => {
+  it('does not impose its own scroll container (parent popover owns scrolling)', () => {
+    const job: BackgroundJob = makeDownloadJob()
+
+    renderWithQuery(
+      <BackgroundJobsPopoverList
+        jobs={[job]}
+        isLoading={false}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+      />,
+    )
+
+    const list = screen.getByTestId('background-jobs-list')
+    // No overflow handling on the list itself.
+    expect(list.className).not.toMatch(/overflow/)
+    // No max-height on the list itself.
+    expect(list.className).not.toMatch(/max-h/)
+  })
+})

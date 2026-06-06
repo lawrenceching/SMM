@@ -48,21 +48,23 @@ export function BackgroundJobsPopoverContent() {
           handleClearFailed()
         }}
       />
-      <BackgroundJobsPopoverList
-        jobs={jobs}
-        isLoading={isLoading}
-        stopJob={stopJob}
-        removeJob={removeJob}
-        openLogDialog={openLogDialog}
-        stopAllJobs={stopAllJobs}
-      />
-      {failedEntries.length > 0 && (
-        <FailedCommandsList
-          entries={failedEntries}
-          onRemove={removeFailedEntry}
+      <div data-testid="background-jobs-scroll-container" className="flex-1 min-h-0 overflow-y-auto">
+        <BackgroundJobsPopoverList
+          jobs={jobs}
+          isLoading={isLoading}
+          stopJob={stopJob}
+          removeJob={removeJob}
           openLogDialog={openLogDialog}
+          stopAllJobs={stopAllJobs}
         />
-      )}
+        {failedEntries.length > 0 && (
+          <FailedCommandsList
+            entries={failedEntries}
+            onRemove={removeFailedEntry}
+            openLogDialog={openLogDialog}
+          />
+        )}
+      </div>
     </>
   )
 }
