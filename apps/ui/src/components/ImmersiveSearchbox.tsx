@@ -5,16 +5,23 @@ import { ImmersiveInput } from "./ImmersiveInput"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useTranslation } from "@/lib/i18n"
-import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
+import type { PrimaryDatabase } from "@core/types"
 
-export const SUPPORTED_MEDIA_LANGUAGES = [
-  { code: "zh-CN", name: "简体中文" },
-  { code: "en-US", name: "English (US)" },
-  { code: "ja-JP", name: "日本語" },
-] as const satisfies ReadonlyArray<{ code: PreferMediaLanguage; name: string }>
+export interface SearchLanguageOption {
+  code: string
+  name: string
+}
+
+/**
+ * Maximum number of "priority" language options shown in the default (collapsed)
+ * view of the language dropdown. Anything beyond this is reachable via the
+ * "Show all languages" toggle.
+ */
+export const PRIORITY_LANGUAGE_OPTION_LIMIT = 3
+
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -45,12 +52,31 @@ interface ImmersiveSearchboxProps {
     unrecognizedHint?: string
     searchDatabase?: PrimaryDatabase
     onSearchDatabaseChange?: (value: PrimaryDatabase) => void
-    searchLanguage?: PreferMediaLanguage
-    onSearchLanguageChange?: (value: PreferMediaLanguage) => void
+    /**
+     * Current search language. The format depends on the active database
+     * (IETF for TMDB, ISO 639-3 for TVDB).
+     */
+    searchLanguage?: string
+    onSearchLanguageChange?: (value: string) => void
+    /**
+     * Options to display in the language dropdown. Pass the priority subset
+     * when the dropdown is collapsed; the full list when expanded.
+     */
+    searchLanguageOptions?: ReadonlyArray<SearchLanguageOption>
+    /**
+     * Whether the language dropdown should render every option (true) or
+     * only the priority subset (false). When omitted, defaults to false.
+     */
+    showAllLanguages?: boolean
+    onShowAllLanguagesChange?: (next: boolean) => void
     /** When true, result rows are not selectable (e.g. TVDB search-only mode). */
     disableSelect?: boolean
     /** Shown when disableSelect is true and there are results; explains why selection is disabled. */
     disabledSelectReason?: React.ReactNode
+    /** Internal: forwarded so the consumer can reset session-only state when the popover closes. */
+    onSearchboxOpenChange?: (open: boolean) => void
+    /** Internal: forwards `isSearchOpen` to allow parent to drive session-only state. */
+    isSearchboxOpen?: boolean
 }
 
 export interface ImmersiveSearchResultItem {
@@ -80,11 +106,22 @@ export function ImmersiveSearchbox({
     onSearchDatabaseChange,
     searchLanguage,
     onSearchLanguageChange,
+    searchLanguageOptions,
+    showAllLanguages = false,
+    onShowAllLanguagesChange,
     disableSelect = false,
     disabledSelectReason,
+    onSearchboxOpenChange,
+    isSearchboxOpen: _isSearchboxOpen,
 }: ImmersiveSearchboxProps) {
     const { t } = useTranslation(["components"])
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
+
+    // Forward popover open/close to the parent so session-only state (e.g. the
+    // "show all languages" toggle) can be reset when the popover closes.
+    React.useEffect(() => {
+        onSearchboxOpenChange?.(isSearchOpen)
+    }, [isSearchOpen, onSearchboxOpenChange])
     const [popoverWidth, setPopoverWidth] = React.useState<number | undefined>(undefined)
     const inputContainerRef = React.useRef<HTMLDivElement>(null)
 
@@ -208,17 +245,47 @@ export function ImmersiveSearchbox({
                                     </Label>
                                     <Select
                                         value={searchLanguage}
-                                        onValueChange={(v) => onSearchLanguageChange(v as PreferMediaLanguage)}
+                                        onValueChange={(v) => onSearchLanguageChange?.(v)}
                                     >
                                         <SelectTrigger id="tmdb-search-language" size="sm" className="w-full">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {SUPPORTED_MEDIA_LANGUAGES.map((lang) => (
+                                            {(searchLanguageOptions ?? []).map((lang) => (
                                                 <SelectItem key={lang.code} value={lang.code} data-testid={`tmdb-search-language-option-${lang.code}`}>
                                                     {lang.name}
                                                 </SelectItem>
                                             ))}
+                                            {searchLanguageOptions && searchLanguageOptions.length > 0 && onShowAllLanguagesChange && (
+                                                <>
+                                                    <SelectSeparator />
+                                                    {/* Non-SelectItem toggle: intentionally NOT a `SelectItem` so that
+                                                        clicking it does NOT fire the parent Select's `onValueChange` and
+                                                        does NOT trigger the Select's default close-on-select behavior. */}
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        className="relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent focus:bg-accent text-muted-foreground"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            onShowAllLanguagesChange(!showAllLanguages)
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                e.preventDefault()
+                                                                e.stopPropagation()
+                                                                onShowAllLanguagesChange(!showAllLanguages)
+                                                            }
+                                                        }}
+                                                        data-testid="tmdb-search-language-show-all"
+                                                    >
+                                                        {showAllLanguages
+                                                            ? t("components:tmdbSearchbox.showFewerLanguages" as "components:movie.searchPlaceholder")
+                                                            : t("components:tmdbSearchbox.showAllLanguages" as "components:movie.searchPlaceholder")}
+                                                    </div>
+                                                </>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>

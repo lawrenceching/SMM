@@ -10,7 +10,7 @@ import {
   tvdbSeasonExtendedQueryKey,
   tvdbTvShowMediaMetadataQueryKey,
 } from "@/lib/tvdbQueryKeys"
-import type { HelloResponseBody, MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
+import type { HelloResponseBody, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 import type {
   TVDBv4ArtworkTypeRecord,
@@ -172,9 +172,9 @@ export function useTvdbQueries() {
   const getTvShowMediaMetadata = useCallback(
     (
       seriesId: number,
-      language?: PreferMediaLanguage
+      language?: string
     ): Promise<TvShowMediaMetadata> => {
-      const lang = language ?? "en-US"
+      const lang = language ?? "eng"
       return queryClient.fetchQuery({
         queryKey: tvdbTvShowMediaMetadataQueryKey(seriesId, lang),
         queryFn: async () => {
@@ -196,8 +196,8 @@ export function useTvdbQueries() {
   )
 
   const getMovieMediaMetadata = useCallback(
-    (movieId: number, language?: PreferMediaLanguage): Promise<MovieMediaMetadata> => {
-      const lang = language ?? "en-US"
+    (movieId: number, language?: string): Promise<MovieMediaMetadata> => {
+      const lang = language ?? "eng"
       return queryClient.fetchQuery({
         queryKey: tvdbMovieMediaMetadataQueryKey(movieId, lang),
         queryFn: async () => {

@@ -5,7 +5,7 @@ import { join } from "@/lib/path"
 import { checkFileExists } from "@/lib/utils"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
-import type { MediaMetadata, PreferMediaLanguage, TmdbMovieDetails, TmdbSeriesDetails } from "@core/types"
+import type { MediaMetadata, TmdbMovieDetails, TmdbSeriesDetails } from "@core/types"
 import type {
   TVDBv4Artwork,
   TVDBv4ArtworkTypeRecord,
@@ -15,12 +15,12 @@ import type {
 
 export interface ScrapeFanartMutationVariables {
   mediaMetadata: MediaMetadata
-  language?: PreferMediaLanguage
+  language?: string
 }
 
 interface ResolveFanartDeps {
-  getTvShowById: (id: number, language?: PreferMediaLanguage) => Promise<TmdbSeriesDetails>
-  getMovieById: (id: number, language?: PreferMediaLanguage) => Promise<TmdbMovieDetails>
+  getTvShowById: (id: number, language?: string) => Promise<TmdbSeriesDetails>
+  getMovieById: (id: number, language?: string) => Promise<TmdbMovieDetails>
   getSeriesExtended: (seriesId: number) => Promise<TVDBv4SeriesExtendedResponse | undefined>
   getMovieExtended: (movieId: number) => Promise<TVDBv4MovieBaseRecord | undefined>
   getArtworkTypes: () => Promise<TVDBv4ArtworkTypeRecord[] | undefined>

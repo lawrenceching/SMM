@@ -4,25 +4,25 @@ import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateM
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { Path } from "@core/path"
-import type { MediaMetadata, PreferMediaLanguage, TMDBMovie, TMDBTVShow, TvShowMediaMetadata } from "@core/types"
+import type { MediaMetadata, TMDBMovie, TMDBTVShow, TvShowMediaMetadata } from "@core/types"
 import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation"
 import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
-import type { TmdbSearchLanguage } from "@/components/MediaDatabaseSearchbox"
+import type { SearchLanguage } from "@/components/MediaDatabaseSearchbox"
 import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 
 type ApplyTmdbTvShowSelectionVars = {
   id: number
-  language?: PreferMediaLanguage
+  language?: string
   mediaFolderPath: string
   traceId: string
 }
 
 type ApplyTvdbTvShowSelectionVars = {
   seriesId: number
-  language?: PreferMediaLanguage
+  language?: string
   mediaFolderPath: string
   traceId: string
 }
@@ -32,13 +32,13 @@ export type SelectTvShowForFolderVariables =
       mediaFolderPath: string
       database: "TMDB"
       result: TMDBTVShow | TMDBMovie
-      searchLanguage: TmdbSearchLanguage
+      searchLanguage: SearchLanguage
     }
   | {
       mediaFolderPath: string
       database: "TVDB"
       result: TVDBSearchItem
-      searchLanguage: TmdbSearchLanguage
+      searchLanguage: SearchLanguage
     }
 
 export function useSelectTvShowForFolderMutation() {

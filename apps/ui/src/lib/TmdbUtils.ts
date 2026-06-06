@@ -2,7 +2,6 @@ import { getMovieById } from "@/api/tmdb";
 import { tvShowMediaMetadataFromTmdbDetails } from "./tvShowMediaMetadataFromTmdbDetails";
 import type {
   MovieMediaMetadata,
-  PreferMediaLanguage,
   TmdbMovieDetails,
   TmdbSeriesDetails,
   TvShowMediaMetadata,
@@ -31,8 +30,8 @@ export function buildTvShowMediaMetadataFromTmdbSeriesDetails(
 }
 
 export async function getMovieByIdFromTMDB(
-    id: number, 
-    language?: PreferMediaLanguage, 
+    id: number,
+    language?: string,
     signal?: AbortSignal): Promise<MovieMediaMetadata> {
     const movie = await getMovieById(id, language, signal);
     return movieMediaMetadataFromTmdbMovie(movie);

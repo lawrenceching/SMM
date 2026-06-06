@@ -33,7 +33,7 @@ function buildHeaders(
 export async function searchTmdbDirect(
   keyword: string,
   type: "movie" | "tv",
-  language: "zh-CN" | "en-US" | "ja-JP",
+  language: string,
   options: TmdbDirectSearchOptions,
 ): Promise<TmdbSearchResponseBody> {
   const baseUrl = options.baseUrl.replace(/\/+$/, "")

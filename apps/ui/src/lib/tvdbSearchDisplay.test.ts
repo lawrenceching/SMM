@@ -4,6 +4,7 @@ import {
   getTvdbSearchResultOverview,
   tvdbTranslationCodesForMediaLanguage,
   tvdbTranslationCodesForUiLanguage,
+  tvdbTranslationCodeForSearchLanguage,
 } from "./tvdbSearchDisplay"
 
 describe("tvdbSearchDisplay", () => {
@@ -17,6 +18,12 @@ describe("tvdbSearchDisplay", () => {
     expect(tvdbTranslationCodesForMediaLanguage("en-US")).toEqual(["eng"])
     expect(tvdbTranslationCodesForMediaLanguage("zh-CN")[0]).toBe("zho")
     expect(tvdbTranslationCodesForMediaLanguage("ja-JP")[0]).toBe("jpn")
+  })
+
+  it("wraps a search-time ISO 639-3 code as a single-element array", () => {
+    expect(tvdbTranslationCodeForSearchLanguage("eng")).toEqual(["eng"])
+    expect(tvdbTranslationCodeForSearchLanguage("zho")).toEqual(["zho"])
+    expect(tvdbTranslationCodeForSearchLanguage("fra")).toEqual(["fra"])
   })
 
   it("picks name from translations map by language order", () => {

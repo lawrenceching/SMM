@@ -1,6 +1,6 @@
 import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
-import type { TVDBv4Season } from "@smm/tvdb4/types"
+import type { TVDBv4LanguageRecord, TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"
 export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tvdb'
 
@@ -114,9 +114,21 @@ export function _resetTvdbClientCacheForTesting(): void {
     tvdbClientCache.clear()
 }
 
+/**
+ * Fetch TVDB's list of supported languages (ISO 639-3 codes).
+ * @see https://thetvdb.github.io/v4-api/#/Languages/getAllLanguages
+ */
+export async function getTvdbLanguages(
+    overrides?: GetTVDBv4ClientOverrides,
+): Promise<TVDBv4LanguageRecord[] | undefined> {
+    const tvdb = getTVDBv4Client(overrides)
+    const resp = await tvdb.languages()
+    return resp.status === "success" ? resp.data : undefined
+}
+
 export async function fetchTvdbAndBuildTvShowMediaMetadata(
     seriesId: number,
-    lang: "zh-CN" | "en-US" | "ja-JP",
+    lang: string,
     callbacks: {
         onSeasonsAPIError?: (error: Error) => void,
         onSeriesAPIError?: (error: Error) => void,
@@ -135,7 +147,10 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
 
     const tvdb = getTVDBv4Client(overrides);
 
-    const tvdbLangCode = mapToTvdbLangCode(lang);
+    // The search language is now an ISO 639-3 code (e.g. "eng", "zho").
+    // When callers still pass the legacy 3-value union (`zh-CN`/`en-US`/`ja-JP`),
+    // `mapToTvdbLangCode` performs the conversion.
+    const tvdbLangCode = isPreferMediaLanguage(lang) ? mapToTvdbLangCode(lang) : lang;
     const translationResp = await tvdb.seriesTranslationByLangCode(seriesId, tvdbLangCode)
     if(translationResp.status === 'success') {
         const translatedName = translationResp.data['name'] || ''
@@ -280,7 +295,7 @@ export async function fetchTvdbAndBuildTvShowMediaMetadata(
 
 export async function fetchTvdbAndBuildMovieMediaMetadata(
     movieId: number,
-    lang: "zh-CN" | "en-US" | "ja-JP",
+    lang: string,
     callbacks: {
         onMovieAPIError?: (error: Error) => void,
     },
@@ -294,7 +309,10 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
     }
 
     const tvdb = getTVDBv4Client(overrides)
-    const tvdbLangCode = mapToTvdbLangCode(lang)
+    // The search language is now an ISO 639-3 code (e.g. "eng", "zho").
+    // When callers still pass the legacy 3-value union (`zh-CN`/`en-US`/`ja-JP`),
+    // `mapToTvdbLangCode` performs the conversion.
+    const tvdbLangCode = isPreferMediaLanguage(lang) ? mapToTvdbLangCode(lang) : lang;
 
     const translationResp = await tvdb.movieTranslationByLangCode(movieId, tvdbLangCode)
     if (translationResp.status === 'success') {
@@ -351,4 +369,14 @@ export function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
             console.warn(`[mapToTvdbLangCode] Unknown language: ${lang}, use default eng`)
             return "eng"
     }
+}
+
+/**
+ * Type guard: is the language code one of the 3 legacy IETF tags?
+ * Used by TVDB utilities to decide whether to apply the IETF→ISO 639-3 mapping
+ * (legacy `userConfig.preferMediaLanguage` callers) or pass the value
+ * through unchanged (new search-time ISO 639-3 callers).
+ */
+function isPreferMediaLanguage(lang: string): lang is "zh-CN" | "en-US" | "ja-JP" {
+    return lang === "zh-CN" || lang === "en-US" || lang === "ja-JP"
 }

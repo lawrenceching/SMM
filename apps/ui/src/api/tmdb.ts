@@ -81,7 +81,7 @@ function resolveUpstream(options?: TmdbRequestOptions): TmdbUpstream {
 export async function searchTmdb(
   keyword: string,
   type: 'movie' | 'tv',
-  language: 'zh-CN' | 'en-US' | 'ja-JP',
+  language: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSearchResponseBody> {
   const upstream = resolveUpstream(options)
@@ -105,7 +105,7 @@ export async function searchTmdb(
  */
 export async function getTvShowById(
   id: number,
-  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  language?: string,
   signalOrOptions?: AbortSignal | TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
   const options =
@@ -130,7 +130,7 @@ export async function getTvShowById(
  */
 export async function getMovieById(
   id: number,
-  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  language?: string,
   signalOrOptions?: AbortSignal | TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
   const options =
@@ -147,6 +147,58 @@ export async function getMovieById(
       signal: options?.signal,
     },
     'Failed to get movie',
+  )
+}
+
+/**
+ * One entry from TMDB's `/3/configuration/languages` endpoint.
+ * @see https://developer.themoviedb.org/reference/configuration-languages
+ */
+export interface TmdbLanguageEntry {
+  iso_639_1: string
+  english_name: string
+  name: string
+}
+
+/**
+ * Fetch TMDB's official list of primary translations (IETF tags, e.g. "zh-CN", "en-US").
+ * Used to populate the search-language dropdown.
+ * @see https://developer.themoviedb.org/reference/configuration-primary-translations
+ */
+export async function getTmdbPrimaryTranslations(
+  options?: TmdbRequestOptions,
+): Promise<string[]> {
+  const upstream = resolveUpstream(options)
+  const url = buildProxyUrl(upstream, `/configuration/primary_translations`, "")
+  return fetchJson<string[]>(
+    url,
+    {
+      method: 'GET',
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
+    },
+    'Failed to fetch TMDB primary translations',
+  )
+}
+
+/**
+ * Fetch TMDB's list of ISO 639-1 languages with English and native names.
+ * Used to derive human-readable names for the IETF primary translation tags.
+ * @see https://developer.themoviedb.org/reference/configuration-languages
+ */
+export async function getTmdbLanguages(
+  options?: TmdbRequestOptions,
+): Promise<TmdbLanguageEntry[]> {
+  const upstream = resolveUpstream(options)
+  const url = buildProxyUrl(upstream, `/configuration/languages`, "")
+  return fetchJson<TmdbLanguageEntry[]>(
+    url,
+    {
+      method: 'GET',
+      headers: buildHeaders(upstream),
+      signal: options?.signal,
+    },
+    'Failed to fetch TMDB languages',
   )
 }
 
@@ -180,7 +232,7 @@ export function getTMDBImageUrl(
 export async function getSeason(
   seriesId: number,
   seasonNumber: number,
-  language?: 'zh-CN' | 'en-US' | 'ja-JP',
+  language?: string,
   options?: {
     upstreamBaseURL?: string
     apiKey?: string

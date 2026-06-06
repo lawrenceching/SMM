@@ -81,7 +81,9 @@
   "tmdbSearchbox": {
     "database": "資料庫",
     "searchLanguage": "搜尋語言",
-    "tvdbSearchOnlyHint": "TVDB 結果僅供搜尋。請切換至 TMDB 以選擇並儲存。"
+    "tvdbSearchOnlyHint": "TVDB 結果僅供搜尋。請切換至 TMDB 以選擇並儲存。",
+    "showAllLanguages": "顯示全部語言",
+    "showFewerLanguages": "收起"
   },
   "movie": {
     "searchPlaceholder": "輸入電影名稱",

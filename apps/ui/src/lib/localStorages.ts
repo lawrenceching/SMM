@@ -4,6 +4,8 @@ const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
 const STORAGE_KEY_COOKIE_GUIDE_URL = 'cookie_guide_url';
 const STORAGE_KEY_PREFER_TMDB_BASE_URL = 'preferTmdbBaseUrl';
 const STORAGE_KEY_PREFER_TVDB_BASE_URL = 'preferTvdbBaseUrl';
+const STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE = 'lastSelectedTmdbLanguage';
+const STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE = 'lastSelectedTvdbLanguage';
 
 const localStorages = {
     get selectedFolderIndex(): number | null {
@@ -100,6 +102,44 @@ const localStorages = {
                 localStorage.setItem(STORAGE_KEY_PREFER_TVDB_BASE_URL, value);
             } else {
                 localStorage.removeItem(STORAGE_KEY_PREFER_TVDB_BASE_URL);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get lastSelectedTmdbLanguage(): string | null {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE);
+            return stored && stored.trim() ? stored : null;
+        } catch {
+            return null;
+        }
+    },
+    set lastSelectedTmdbLanguage(value: string | null) {
+        try {
+            if (value && value.trim()) {
+                localStorage.setItem(STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get lastSelectedTvdbLanguage(): string | null {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE);
+            return stored && stored.trim() ? stored : null;
+        } catch {
+            return null;
+        }
+    },
+    set lastSelectedTvdbLanguage(value: string | null) {
+        try {
+            if (value && value.trim()) {
+                localStorage.setItem(STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE);
             }
         } catch {
             // Ignore localStorage errors

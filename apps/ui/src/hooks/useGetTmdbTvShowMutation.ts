@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
-import type { PreferMediaLanguage, TmdbSeriesDetails, TmdbSeasonDetails, TvShowMediaMetadata, TvShowSeasonMetadata, TvShowEpisodeMetadata } from "@core/types"
+import type { TmdbSeriesDetails, TmdbSeasonDetails, TvShowMediaMetadata, TvShowSeasonMetadata, TvShowEpisodeMetadata } from "@core/types"
 import type { TmdbRequestOptions } from "@/api/tmdb"
 
 /**
@@ -8,7 +8,7 @@ import type { TmdbRequestOptions } from "@/api/tmdb"
  * Pass `onMutate` / `onSuccess` / `onError` (and optional `meta` via variables) for component-specific UI updates.
  */
 export function useGetTmdbTvShowMutation<
-  TVariables extends { id: number; language?: PreferMediaLanguage; tmdb?: TmdbRequestOptions },
+  TVariables extends { id: number; language?: string; tmdb?: TmdbRequestOptions },
   TContext = unknown,
 >(
   options?: Omit<

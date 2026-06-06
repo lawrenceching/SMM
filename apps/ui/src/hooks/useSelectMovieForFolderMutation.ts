@@ -3,12 +3,12 @@ import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMed
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
-import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage, TMDBMovie, TMDBTVShow } from "@core/types"
+import type { MediaMetadata, MovieMediaMetadata, TMDBMovie, TMDBTVShow } from "@core/types"
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation"
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
-import type { TmdbSearchLanguage } from "@/components/MediaDatabaseSearchbox"
+import type { SearchLanguage } from "@/components/MediaDatabaseSearchbox"
 import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 
 type ApplyMovieSelectionShared = {
@@ -19,12 +19,12 @@ type ApplyMovieSelectionShared = {
 
 type ApplyTmdbMovieSelectionVars = ApplyMovieSelectionShared & {
   id: number
-  language?: PreferMediaLanguage
+  language?: string
 }
 
 type ApplyTvdbMovieSelectionVars = ApplyMovieSelectionShared & {
   movieId: number
-  language?: PreferMediaLanguage
+  language?: string
 }
 
 export type SelectMovieForFolderVariables =
@@ -33,14 +33,14 @@ export type SelectMovieForFolderVariables =
       baseMetadata: MediaMetadata
       database: "TMDB"
       result: TMDBTVShow | TMDBMovie
-      searchLanguage: TmdbSearchLanguage
+      searchLanguage: SearchLanguage
     }
   | {
       mediaFolderPath: string
       baseMetadata: MediaMetadata
       database: "TVDB"
       result: TVDBSearchItem
-      searchLanguage: TmdbSearchLanguage
+      searchLanguage: SearchLanguage
     }
 
 export function useSelectMovieForFolderMutation() {

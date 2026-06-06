@@ -1,5 +1,6 @@
 import type { PreferMediaLanguage } from "@core/types"
 import type { SupportedLanguage } from "@/lib/i18n"
+import type { TvdbSearchLanguage } from "@/lib/searchLanguage"
 
 /**
  * TVDB `TranslationSimple` / search hits use ISO 639-2/B 3-letter codes (`eng`, `zho`, `yue`, …).
@@ -33,6 +34,17 @@ export function tvdbTranslationCodesForMediaLanguage(lang: PreferMediaLanguage):
     case "ja-JP":
       return ["jpn", "eng"]
   }
+}
+
+/**
+ * For a TVDB search language that is already an ISO 639-3 code
+ * (the format used by the `/v4/languages` endpoint), wrap it as a
+ * single-element array so existing picker code can iterate.
+ */
+export function tvdbTranslationCodeForSearchLanguage(
+  lang: TvdbSearchLanguage,
+): readonly string[] {
+  return [lang]
 }
 
 function pickFromStringMap(

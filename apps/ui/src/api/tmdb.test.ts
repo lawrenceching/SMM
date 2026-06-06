@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getMovieById, getTMDBImageUrl, searchTmdb, getSeason, getTvShowById } from './tmdb'
+import { getMovieById, getTMDBImageUrl, searchTmdb, getSeason, getTvShowById, getTmdbPrimaryTranslations, getTmdbLanguages } from './tmdb'
 
 const REVERSE_PROXY_URL = 'http://127.0.0.1:30005'
 const SMM_TMDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tmdb'
@@ -211,6 +211,63 @@ describe('tmdb routing through reverse proxy', () => {
 
   it('throws a clear error when no reverse proxy URL is available', async () => {
     await expect(searchTmdb('naruto', 'tv', 'en-US', { reverseProxyUrl: null })).rejects.toThrow(
+      /Reverse proxy URL is not available/,
+    )
+  })
+})
+
+describe('getTmdbPrimaryTranslations', () => {
+  function mockOkJson(body: unknown) {
+    return vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+  }
+
+  it('fetches the IETF primary translation list through the reverse proxy', async () => {
+    const fetchSpy = mockOkJson(['en-US', 'zh-CN', 'fr-FR'])
+
+    const result = await getTmdbPrimaryTranslations({ reverseProxyUrl: REVERSE_PROXY_URL })
+
+    expect(result).toEqual(['en-US', 'zh-CN', 'fr-FR'])
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${REVERSE_PROXY_URL}/configuration/primary_translations`)
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    const headers = init.headers as Record<string, string>
+    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
+  })
+
+  it('throws a clear error when no reverse proxy URL is available', async () => {
+    await expect(getTmdbPrimaryTranslations({ reverseProxyUrl: null })).rejects.toThrow(
+      /Reverse proxy URL is not available/,
+    )
+  })
+})
+
+describe('getTmdbLanguages', () => {
+  function mockOkJson(body: unknown) {
+    return vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+  }
+
+  it('fetches the language list (iso_639_1, english_name, name) through the reverse proxy', async () => {
+    const fetchSpy = mockOkJson([
+      { iso_639_1: 'en', english_name: 'English', name: 'English' },
+      { iso_639_1: 'zh', english_name: 'Chinese', name: '中文' },
+    ])
+
+    const result = await getTmdbLanguages({ reverseProxyUrl: REVERSE_PROXY_URL })
+
+    expect(result).toEqual([
+      { iso_639_1: 'en', english_name: 'English', name: 'English' },
+      { iso_639_1: 'zh', english_name: 'Chinese', name: '中文' },
+    ])
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${REVERSE_PROXY_URL}/configuration/languages`)
+  })
+
+  it('throws a clear error when no reverse proxy URL is available', async () => {
+    await expect(getTmdbLanguages({ reverseProxyUrl: null })).rejects.toThrow(
       /Reverse proxy URL is not available/,
     )
   })

@@ -1,4 +1,3 @@
-import type { PreferMediaLanguage } from "@core/types"
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 
 export function tvdbSearchQueryKey(params: TVDBv4SearchParams) {
@@ -37,14 +36,14 @@ export function tvdbSeasonExtendedQueryKey(seasonId: number) {
 
 export function tvdbTvShowMediaMetadataQueryKey(
   seriesId: number,
-  language: PreferMediaLanguage
+  language: string
 ) {
   return ["tvdb", "tvShowMediaMetadata", seriesId, language] as const
 }
 
 export function tvdbMovieMediaMetadataQueryKey(
   movieId: number,
-  language: PreferMediaLanguage
+  language: string
 ) {
   return ["tvdb", "movieMediaMetadata", movieId, language] as const
 }

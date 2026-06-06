@@ -11,7 +11,6 @@ import {
 import { tmdbMovieByIdQueryKey, tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
 import type {
   HelloResponseBody,
-  PreferMediaLanguage,
   TmdbMovieDetails,
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
@@ -56,7 +55,7 @@ export function useTmdbQueries() {
   const getTvShowById = useCallback(
     async (
       id: number,
-      language?: PreferMediaLanguage,
+      language?: string,
       options?: TmdbRequestOptions
     ): Promise<TmdbSeriesDetails> => {
       if (delayInMs > 0) {
@@ -76,7 +75,7 @@ export function useTmdbQueries() {
     async (
       seriesId: number,
       seasonNumber: number,
-      language?: PreferMediaLanguage,
+      language?: string,
       options?: {
         upstreamBaseURL?: string;
         apiKey?: string;
@@ -103,7 +102,7 @@ export function useTmdbQueries() {
   const getMovieById = useCallback(
     async (
       id: number,
-      language?: PreferMediaLanguage,
+      language?: string,
       options?: TmdbRequestOptions
     ): Promise<TmdbMovieDetails> => {
       if (delayInMs > 0) {
@@ -123,7 +122,7 @@ export function useTmdbQueries() {
     async (
       query: string,
       type: "tv" | "movie",
-      language: PreferMediaLanguage,
+      language: string,
       options?: TmdbRequestOptions
     ): Promise<TmdbSearchResponseBody> => {
       if (delayInMs > 0) {

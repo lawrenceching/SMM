@@ -1,13 +1,13 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
-import type { MovieMediaMetadata, PreferMediaLanguage } from "@core/types"
+import type { MovieMediaMetadata } from "@core/types"
 
 /**
  * Fetches TVDB movie details via cached HTTP (`fetchQuery`) and maps to {@link MovieMediaMetadata}.
  * Pass `onMutate` / `onSuccess` / `onError` (and optional `meta` via variables) for component-specific UI updates.
  */
 export function useGetTvdbMovieMutation<
-  TVariables extends { movieId: number; language?: PreferMediaLanguage },
+  TVariables extends { movieId: number; language?: string },
   TContext = unknown,
 >(
   options?: Omit<
