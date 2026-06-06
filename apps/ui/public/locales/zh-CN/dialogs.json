@@ -124,6 +124,9 @@
       "playerRequestFailed": "播放器请求失败, 请重试",
       "optionsError": "yt-dlp 命令行参数有误",
       "downloadCancelled": "下载已被取消",
+      "httpError": "未知错误(HTTP {{status}}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
+      "executableNotFound": "可执行文件未找到, 请检查 CLI 安装",
+      "apiNetworkError": "无法连接到服务, 请检查网络",
       "unknown": "未知错误, 请从状态栏任务列表中查看详细日志"
     }
   },

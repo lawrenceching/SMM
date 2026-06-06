@@ -124,6 +124,9 @@
       "playerRequestFailed": "Player request failed. Please retry.",
       "optionsError": "Invalid yt-dlp command line options.",
       "downloadCancelled": "Download was cancelled.",
+      "httpError": "Unknown error (HTTP {{status}}). Please try restarting the app. If the problem persists, contact the developer.",
+      "executableNotFound": "Required executable not found. Please check the CLI installation.",
+      "apiNetworkError": "Cannot reach the service. Please check your network.",
       "unknown": "Unknown error. Check the status bar task list for detailed logs."
     }
   },

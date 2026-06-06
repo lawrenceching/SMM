@@ -119,7 +119,14 @@ export function executeCmdStream(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        const errorMessage = errorData?.error ?? `HTTP ${response.status}: ${response.statusText}`;
+        // Always prefix the error message with the HTTP status so callers
+        // (DVD listing banner, download toast) can classify the failure as
+        // a CLI HTTP error and surface the status code to the user. The
+        // server's JSON `error` field is appended as additional context.
+        const statusPart = `HTTP ${response.status}${response.statusText ? `: ${response.statusText}` : ''}`;
+        const errorMessage = errorData?.error
+          ? `${statusPart}: ${errorData.error}`
+          : statusPart;
         throw new Error(errorMessage);
       }
 

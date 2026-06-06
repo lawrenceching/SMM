@@ -53,8 +53,7 @@ import {
   parseYtdlpDownloadStdout,
 } from '@core/whitelistedCmd/ytdlp'
 import {
-  classifyYtdlpError,
-  getYtdlpErrorMessage,
+  resolveYtdlpError,
 } from '@/lib/ytdlpErrorDetection'
 
 // ---------------------------------------------------------------------------
@@ -441,15 +440,19 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               if (!result.success) {
                 video.status = 'failed'
                 allSucceeded = false
-                // Classify yt-dlp error for a specific toast message
+                // Single shared error-resolution path — consistent with
+                // the listing banner and the exception catch below.
                 if (!data.ytdlpErrorType) {
-                  const errResult = classifyYtdlpError({
-                    stderr: result.stderr ?? '',
-                    stdout: result.stdout ?? '',
-                    exitCode: result.exitCode,
-                  })
-                  data.ytdlpErrorType = errResult.type
-                  data.ytdlpErrorMessage = getYtdlpErrorMessage(errResult, tRef.current as any)
+                  const resolved = resolveYtdlpError(
+                    {
+                      stderr: result.stderr,
+                      stdout: result.stdout,
+                      exitCode: result.exitCode,
+                    },
+                    tRef.current as any,
+                  )
+                  data.ytdlpErrorType = resolved.type
+                  data.ytdlpErrorMessage = resolved.message
                 }
               } else {
                 const outPath = parseYtdlpDownloadStdout(result.stdout)
@@ -467,16 +470,15 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               }
               video.status = 'failed'
               allSucceeded = false
-              // Classify yt-dlp error from exception message
+              // Single shared error-resolution path — consistent with
+              // the non-success path above and the listing banner.
               if (!data.ytdlpErrorType) {
-                const errMessage = e instanceof Error ? e.message : String(e)
-                const errResult = classifyYtdlpError({
-                  stderr: errMessage,
-                  stdout: '',
-                  exitCode: null,
-                })
-                data.ytdlpErrorType = errResult.type
-                data.ytdlpErrorMessage = getYtdlpErrorMessage(errResult, tRef.current as any)
+                const resolved = resolveYtdlpError(
+                  { message: e instanceof Error ? e.message : String(e) },
+                  tRef.current as any,
+                )
+                data.ytdlpErrorType = resolved.type
+                data.ytdlpErrorMessage = resolved.message
               }
             }
 
@@ -689,11 +691,14 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       } else if (success && config.toasts?.succeeded) {
         toast.success(config.toasts.succeeded(tRef.current))
       } else if (!success) {
-        // Determine the toast message
-        const ytdlpErrorType = data.ytdlpErrorType as string | undefined
+        // Determine the toast message. `ytdlpErrorMessage` — when set by
+        // `resolveYtdlpError` — is always the most informative option (even
+        // for "unknown" errors, since the raw cause is appended).  Fall back
+        // to the job-type's generic toast only when no classified message
+        // exists (e.g. for non-ytdlp job types).
         const ytdlpErrorMessage = data.ytdlpErrorMessage as string | undefined
         let message: string
-        if (ytdlpErrorType && ytdlpErrorMessage && ytdlpErrorType !== 'unknown') {
+        if (ytdlpErrorMessage) {
           message = ytdlpErrorMessage
         } else if (config.toasts?.failed) {
           message = config.toasts.failed(tRef.current)

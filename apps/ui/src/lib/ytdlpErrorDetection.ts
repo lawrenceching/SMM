@@ -3,7 +3,10 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Known yt-dlp error types that can occur during `--list-formats` or download.
+ * Known yt-dlp error types that can occur during `--list-formats` or download,
+ * plus errors that originate from our own CLI `executeCmd` boundary (HTTP status
+ * codes, missing executables, browser fetch failures).
+ *
  * Ordered by detection priority (check more specific patterns first).
  */
 export type YtdlpErrorType =
@@ -31,6 +34,9 @@ export type YtdlpErrorType =
   | "player-request-failed"
   | "options-error"
   | "download-cancelled"
+  | "http-error"
+  | "executable-not-found"
+  | "api-network-error"
   | "unknown"
 
 export interface ClassifyYtdlpErrorInput {
@@ -155,6 +161,19 @@ export const YTDLP_ERROR_I18N_MAP: Record<YtdlpErrorType, YtdlpErrorI18nConfig> 
   "download-cancelled": {
     key: "downloadCancelled",
     fallback: "下载已被取消",
+  },
+  "http-error": {
+    key: "httpError",
+    // {{status}} is interpolated with the actual HTTP status code (e.g. "400").
+    fallback: "未知错误(HTTP {{status}}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
+  },
+  "executable-not-found": {
+    key: "executableNotFound",
+    fallback: "可执行文件未找到, 请检查 CLI 安装",
+  },
+  "api-network-error": {
+    key: "apiNetworkError",
+    fallback: "无法连接到服务, 请检查网络",
   },
   "unknown": {
     key: "unknown",
@@ -295,6 +314,34 @@ export function classifyYtdlpError(input: ClassifyYtdlpErrorInput): YtdlpErrorRe
     return { type: "keyboard-interrupt" }
   }
 
+  // ── CLI / executeCmd boundary errors ────────────────────────
+  // These patterns fire when our own CLI's `/api/executeCmd` HTTP endpoint
+  // (or the browser's fetch wrapper) reports a non-success. The error text
+  // shape here is distinct from yt-dlp's own output (no "HTTP Error" prefix,
+  // no "ERROR:" tag), so we detect it after the yt-dlp-specific patterns.
+
+  // CLI 4xx / 5xx — the CLI fetch wrapper always prefixes non-success
+  // responses with `HTTP <status>` (see `executeCmdStream` and
+  // `executeCmdToCompletionWithHeaders`). The pattern intentionally does NOT
+  // match yt-dlp's `HTTP Error 4xx` / `HTTP Error 5xx` forms (handled
+  // above). The status code is surfaced to the user via the i18n template.
+  const httpStatusMatch = /HTTP ([45]\d\d)/.exec(text)
+  if (httpStatusMatch) {
+    return { type: "http-error", context: httpStatusMatch[1] }
+  }
+
+  // CLI 404 — whitelisted executable not installed on disk
+  // (e.g. "yt-dlp executable not found", "ffmpeg executable not found").
+  if (/executable not found/i.test(text)) {
+    return { type: "executable-not-found" }
+  }
+
+  // Browser fetch failure — CLI server unreachable, offline, CORS, etc.
+  // These surface as TypeError before any HTTP layer is involved.
+  if (/Failed to fetch|NetworkError when attempting to fetch resource|Load failed/i.test(text)) {
+    return { type: "api-network-error" }
+  }
+
   // Content too short
   if (/Incomplete data received/i.test(text)) {
     return { type: "content-too-short" }
@@ -331,11 +378,13 @@ export function getYtdlpErrorMessage(
   if (t) {
     const key = `downloadVideo.errors.${config.key}`
 
-    // For errors with dynamic context (e.g. hostname in connection-timeout),
-    // pass it as an interpolation variable. i18next's `context` option has
-    // special meaning (grammatical context), so we use `host` instead.
+    // For errors with dynamic context (e.g. hostname in connection-timeout,
+    // HTTP status code in http-error), pass it as an interpolation variable.
+    // i18next's `context` option has special meaning (grammatical context),
+    // so we expose the value under semantic names (`host`, `status`)
+    // depending on the error type. Templates use the one they need.
     if (ctx) {
-      const msg = t(key, { defaultValue: config.fallback, host: ctx })
+      const msg = t(key, { defaultValue: config.fallback, host: ctx, status: ctx })
       if (msg !== key) return msg
     }
 
@@ -345,10 +394,95 @@ export function getYtdlpErrorMessage(
 
   // Fallback when t is not available
   if (ctx) {
-    return `连接 ${ctx} 超时`
+    if (result.type === "connection-timeout") {
+      return `连接 ${ctx} 超时`
+    }
+    if (result.type === "http-error") {
+      return `未知错误(HTTP ${ctx}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.`
+    }
   }
 
   return config.fallback
+}
+
+// ---------------------------------------------------------------------------
+// Unified error resolution
+//
+// All DVD error-handling callers (listing banner, download toast) MUST use
+// this single function instead of calling classifyYtdlpError +
+// getYtdlpErrorMessage + unknown-fallback logic manually.  Adding a new
+// error type, improving the unknown fallback, or adjusting the classification
+// strategy here will automatically benefit every call site.
+// ---------------------------------------------------------------------------
+
+/**
+ * Source of a yt-dlp failure, either:
+ * - an exception message (HTTP fetch error, timeout, etc.), **or**
+ * - the stderr / stdout / exitCode from a completed process.
+ */
+export interface YtdlpErrorSource {
+  /** Exception message (e.g. HTTP fetch error, TypeError). */
+  message?: string
+  /** stderr captured from a completed process. */
+  stderr?: string
+  /** stdout captured from a completed process. */
+  stdout?: string
+  /** Process exit code, or null if unknown. */
+  exitCode?: number | null
+}
+
+/** Resolved error ready for display. */
+export interface ResolvedYtdlpError {
+  /** Classified error type (used by the download toast to decide phrasing). */
+  type: YtdlpErrorType
+  /** Localised, user-facing error message (may include the raw cause). */
+  message: string
+}
+
+/**
+ * Single entry point for resolving a yt-dlp failure into a localised,
+ * user-actionable message.
+ *
+ * Handles classification (stderr / exitCode / message), i18n lookup, and the
+ * `unknown` fallback that appends the raw cause text.  All DVD callers —
+ * listing banner and download toast — share this one function so the error
+ * presentation is always consistent.
+ */
+export function resolveYtdlpError(
+  source: YtdlpErrorSource,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): ResolvedYtdlpError {
+  // Build the text used for classification.  When `source.message` is
+  // present (exception path) it already contains the relevant details;
+  // otherwise we use the captured stderr / stdout.
+  const classificationStderr =
+    source.message ?? source.stderr ?? ''
+  const classificationStdout =
+    source.message ? '' : (source.stdout ?? '')
+  const exitCode = source.exitCode ?? null
+
+  const result = classifyYtdlpError({
+    stderr: classificationStderr,
+    stdout: classificationStdout,
+    exitCode,
+  })
+
+  const localisedMessage = getYtdlpErrorMessage(result, t)
+
+  // Raw text that supplements the `unknown` fallback so the user can see the
+  // actual cause (e.g. a CLI HTTP error).
+  const rawText = source.message?.trim()
+    ?? [source.stderr ?? '', source.stdout ?? '']
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+
+  const message =
+    result.type === 'unknown' && rawText.length > 0
+      ? `${localisedMessage} (${rawText})`
+      : localisedMessage
+
+  return { type: result.type, message }
 }
 
 // ---------------------------------------------------------------------------

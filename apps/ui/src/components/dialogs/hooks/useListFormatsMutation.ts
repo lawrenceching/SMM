@@ -2,8 +2,7 @@ import { useCallback, useRef, useState } from "react"
 import { listYtdlpFormats, type YtdlpListFormatsRequest } from "@/api/ytdlp"
 import type { VideoMetadata } from "@/api/ytdlp/types"
 import {
-  classifyYtdlpError,
-  getYtdlpErrorMessage,
+  resolveYtdlpError,
 } from "@/lib/ytdlpErrorDetection"
 import { useTranslation } from "@/lib/i18n"
 
@@ -54,15 +53,13 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
         if (execId) {
           setListingExecutionId(execId)
         }
-        const errMessage = err instanceof Error ? err.message : String(err)
-        // Classify the error using the combined error text
-        const result = classifyYtdlpError({
-          stderr: errMessage,
-          stdout: "",
-          exitCode: null,
-        })
-        const displayMessage = getYtdlpErrorMessage(result, t as any)
-        setListingError(displayMessage)
+        // Unified error resolution — same logic as the download toast path
+        // so both display surfaces stay in sync.
+        const resolved = resolveYtdlpError(
+          { message: err instanceof Error ? err.message : String(err) },
+          t as any,
+        )
+        setListingError(resolved.message)
         setVideoMetadata(null)
         setVideoListEntries(null)
         setIsListing(false)
