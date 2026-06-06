@@ -8,11 +8,17 @@ import type { TMDBTVShow } from "@core/types"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { usePlansStore } from "@/stores/plansStore"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
+import { isRuleBasedRecognizePlanComplete, isRuleBasedRecognizePlanFullyUnchanged } from "@/lib/isRuleBasedRecognizePlanComplete"
+import { useMemo } from "react"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 
 export function TvShowPanelPrompts() {
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
   const plans = usePlansStore((state) => state.plans)
+  const { selectedFolder } = useUIMediaFolderStoreState()
+  const { data: mediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
 
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
   const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
@@ -25,6 +31,36 @@ export function TvShowPanelPrompts() {
     ? (plans.find((p) => p.id === ruleBasedRecognizePrompt.planId) ?? plans.find((p) => p.id === ruleBasedRecognizePrompt.planId))
     : undefined
   const isRuleBasedRecognizeLoading = ruleBasedPlan?.status === 'loading'
+
+  const notAllEpisodesRecognized = useMemo(() => {
+    if (
+      isRuleBasedRecognizeLoading
+      || !ruleBasedPlan
+      || ruleBasedPlan.status !== 'pending'
+      || ruleBasedPlan.task !== 'recognize-media-file'
+    ) {
+      return false
+    }
+    if (!mediaMetadata) {
+      return false
+    }
+    return !isRuleBasedRecognizePlanComplete(ruleBasedPlan.files, mediaMetadata)
+  }, [isRuleBasedRecognizeLoading, ruleBasedPlan, mediaMetadata])
+
+  const allPlanFilesUnchanged = useMemo(() => {
+    if (
+      isRuleBasedRecognizeLoading
+      || !ruleBasedPlan
+      || ruleBasedPlan.status !== 'pending'
+      || ruleBasedPlan.task !== 'recognize-media-file'
+    ) {
+      return false
+    }
+    if (!mediaMetadata) {
+      return false
+    }
+    return isRuleBasedRecognizePlanFullyUnchanged(ruleBasedPlan.files, mediaMetadata)
+  }, [isRuleBasedRecognizeLoading, ruleBasedPlan, mediaMetadata])
 
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
   const closeRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
@@ -195,6 +231,8 @@ export function TvShowPanelPrompts() {
         tvShowTitle={ruleBasedRecognizePrompt.tvShowTitle || ""}
         tvShowTmdbId={ruleBasedRecognizePrompt.tvShowTmdbId || -1}
         isLoading={isRuleBasedRecognizeLoading}
+        notAllEpisodesRecognized={notAllEpisodesRecognized}
+        allPlanFilesUnchanged={allPlanFilesUnchanged}
         isConfirmButtonDisabled={isRuleBasedRecognizeLoading}
         onConfirm={async () => {
           const callback = ruleBasedRecognizePrompt.onConfirm

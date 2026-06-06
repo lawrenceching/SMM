@@ -7,6 +7,8 @@ export interface RuleBasedRecognizePromptProps extends Omit<FloatingPromptProps,
   tvShowTitle: string
   tvShowTmdbId: number
   isLoading?: boolean
+  notAllEpisodesRecognized?: boolean
+  allPlanFilesUnchanged?: boolean
 }
 
 /**
@@ -25,16 +27,22 @@ export function RuleBasedRecognizePrompt({
   tvShowTitle,
   tvShowTmdbId,
   isLoading = false,
+  notAllEpisodesRecognized = false,
+  allPlanFilesUnchanged = false,
   ...promptProps
 }: RuleBasedRecognizePromptProps) {
   const { t } = useTranslation('components')
 
-  const message = t('toolbar.recognizePrompt', {
-    tvShowTitle,
-    tvShowTmdbId,
-    defaultValue: 'Is it {{tvShowTitle}} ({{tvShowTmdbId}})?'
+  const message = t('toolbar.recognizeReviewPrompt', {
+    defaultValue: 'Please review',
   })
   const loadingMessage = t('toolbar.recognizing', { defaultValue: 'Recognizing episodes…' })
+  const notAllEpisodesMessage = t('toolbar.notAllEpisodesRecognized', {
+    defaultValue: 'It seems not all episodes are recognized',
+  })
+  const allPlanFilesUnchangedMessage = t('toolbar.allPlanFilesUnchanged', {
+    defaultValue: 'All episodes already match the current video file mappings. There is nothing to apply.',
+  })
 
   return (
     <FloatingPrompt
@@ -44,19 +52,27 @@ export function RuleBasedRecognizePrompt({
       onCancel={onCancel}
       confirmLabel={confirmLabel}
       cancelLabel={cancelLabel}
-      isConfirmButtonDisabled={isConfirmButtonDisabled ?? isLoading}
+      isConfirmButtonDisabled={(isConfirmButtonDisabled ?? isLoading) || allPlanFilesUnchanged}
       isConfirmDisabled={isConfirmDisabled}
       mode="manual"
       className={cn(className)}
     >
-      <div className="flex items-center gap-2">
-        {isLoading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-            <span className="text-sm">{loadingMessage}</span>
-          </>
-        ) : (
-          <span className="text-sm">{message}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              <span className="text-sm">{loadingMessage}</span>
+            </>
+          ) : (
+            <span className="text-sm">{message}</span>
+          )}
+        </div>
+        {!isLoading && notAllEpisodesRecognized && (
+          <span className="text-sm text-muted-foreground">{notAllEpisodesMessage}</span>
+        )}
+        {!isLoading && allPlanFilesUnchanged && (
+          <span className="text-sm text-muted-foreground">{allPlanFilesUnchangedMessage}</span>
         )}
       </div>
     </FloatingPrompt>

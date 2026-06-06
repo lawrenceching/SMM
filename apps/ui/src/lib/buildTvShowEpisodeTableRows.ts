@@ -5,6 +5,7 @@ import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { findAssociatedFiles } from "@/lib/utils";
 import { mapTagToFileType } from "@/components/TvShowPanelUtils";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
+import { mediaFilePathEqual } from "@/lib/mediaFilePathEqual";
 import Debug from 'debug'
 const debug = Debug('buildTvShowEpisodeTableRows')
 const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
@@ -293,28 +294,53 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
     plan: UIRecognizeMediaFilePlan,
 ) {
 
-  const rows = structuredClone(_in_rows) as TvShowEpisodeDataRow[]
-  const recognizedFiles = plan.files
+  const rows = structuredClone(_in_rows) as TvShowEpisodeTableRow[]
+  const planFilesByKey = new Map(
+    plan.files.map((file) => [`${file.season}:${file.episode}`, file] as const),
+  )
 
-  for(const recognizedFile of recognizedFiles) {
-    const row: TvShowEpisodeDataRow | undefined = rows.find((row) => row.season === recognizedFile.season && row.episode === recognizedFile.episode) as TvShowEpisodeDataRow
-    if(!row) {
-      console.warn(`recognized video file ${recognizedFile.path} for season ${recognizedFile.season} episode ${recognizedFile.episode} but not found in episode table rows`)
+  for (const row of rows) {
+    if (row.type !== 'episode') {
       continue
     }
-    if(row) {
-      row.videoFile = recognizedFile.path;
-      row.newVideoFile = undefined;
-      row.checked = true;
-    }
 
-    if(row.videoFile === undefined) {
-      row.checked = false;
-    }
+    const recognizedFile = planFilesByKey.get(`${row.season}:${row.episode}`)
 
+    if (recognizedFile) {
+      const existingVideoFile = row.videoFile
+      const planPath = recognizedFile.path
+      row.videoFile = planPath
+      row.newVideoFile = undefined
+
+      const unchanged = existingVideoFile != null
+        && planPath != null
+        && mediaFilePathEqual(existingVideoFile, planPath)
+
+      if (unchanged) {
+        row.checked = false
+        row.disabled = true
+      } else {
+        row.checked = planPath !== undefined
+        row.disabled = false
+      }
+    } else {
+      row.checked = false
+      row.disabled = true
+    }
   }
 
-  return rows;
+  for (const recognizedFile of plan.files) {
+    const row = rows.find(
+      (r) => r.type === 'episode' && r.season === recognizedFile.season && r.episode === recognizedFile.episode,
+    )
+    if (!row) {
+      console.warn(
+        `recognized video file ${recognizedFile.path} for season ${recognizedFile.season} episode ${recognizedFile.episode} but not found in episode table rows`,
+      )
+    }
+  }
+
+  return rows
 
 }
 

@@ -59,6 +59,11 @@ export interface TvShowEpisodeDataRow {
   newSubtitle?: string
   newNfo?: string
   checked: boolean
+  /**
+   * Preview 模式下，该行不参与当前 plan 操作：checkbox 不可选，行以 muted 样式展示。
+   * 仍保留 videoFile 等只读信息（如已有 mediaFiles 映射）。
+   */
+  disabled?: boolean
 }
 
 export type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
@@ -609,16 +614,23 @@ export function TvShowEpisodeTable({
               return null
             }
 
+            const isRowDisabled = row.disabled === true
+
             const episodeRow = (
-              <TableRow key={`${row.season}-${row.episode}-${index}`}>
+              <TableRow key={`${row.season}-${row.episode}-${index}`} className={cn(isRowDisabled && 'opacity-50')}>
                 {showCheckboxColumn && (
                   <TableCell className="w-10 shrink-0 px-0 py-1 text-center align-middle">
                     <input
                       type="checkbox"
                       role="checkbox"
-                      className="h-3.5 w-3.5 cursor-pointer"
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        isRowDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                      )}
                       checked={row.checked}
+                      disabled={isRowDisabled}
                       onChange={(e) => {
+                        if (isRowDisabled) return
                         onCheck?.(row, e.target.checked)
                       }}
                     />
@@ -648,7 +660,13 @@ export function TvShowEpisodeTable({
                           </div>
                         </div>
                       ) : (
-                        <div className="truncate" title={row.videoFile}>
+                        <div
+                          className={cn(
+                            "truncate",
+                            isRowDisabled && "text-muted-foreground/60 text-xs",
+                          )}
+                          title={row.videoFile}
+                        >
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
                       )
@@ -747,14 +765,22 @@ export function TvShowEpisodeTable({
                         </div>
                         {row.videoFile ? (
                           <>
-                            <div className="truncate text-muted-foreground text-xs" title={row.videoFile}>
+                            <div
+                              className={cn(
+                                "truncate text-xs",
+                                isRowDisabled ? "text-muted-foreground/60" : "text-muted-foreground",
+                              )}
+                              title={row.videoFile}
+                            >
                               {getDisplayPath(row.videoFile, mediaFolderPath)}
                             </div>
-                            <EpisodeVideoScreenshot
-                              videoPath={row.videoFile}
-                              mediaFolderPath={mediaFolderPath}
-                              folderAbortSignal={folderAbortSignal}
-                            />
+                            {!isRowDisabled && (
+                              <EpisodeVideoScreenshot
+                                videoPath={row.videoFile}
+                                mediaFolderPath={mediaFolderPath}
+                                folderAbortSignal={folderAbortSignal}
+                              />
+                            )}
                           </>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
@@ -776,7 +802,13 @@ export function TvShowEpisodeTable({
                               </div>
                             </>
                           ) : (
-                            <div className="truncate text-muted-foreground text-xs" title={row.videoFile}>
+                            <div
+                              className={cn(
+                                "truncate text-xs",
+                                isRowDisabled ? "text-muted-foreground/60" : "text-muted-foreground",
+                              )}
+                              title={row.videoFile}
+                            >
                               {getDisplayPath(row.videoFile, mediaFolderPath)}
                             </div>
                           )
@@ -795,7 +827,13 @@ export function TvShowEpisodeTable({
                           </div>
                         </div>
                       ) : (
-                        <div className="truncate" title={row.videoFile}>
+                        <div
+                          className={cn(
+                            "truncate",
+                            isRowDisabled && "text-muted-foreground/60 text-xs",
+                          )}
+                          title={row.videoFile}
+                        >
                           {getDisplayPath(row.videoFile, mediaFolderPath)}
                         </div>
                       )

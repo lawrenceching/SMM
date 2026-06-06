@@ -82,11 +82,74 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
     const row1 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 1) as TvShowEpisodeDataRow
     expect(row1.videoFile).toBe('/media/show/S01E01.mkv')
     expect(row1.checked).toBe(true)
+    expect(row1.disabled).toBe(false)
     expect(row1.newVideoFile).toBeUndefined()
 
     const row2 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 2) as TvShowEpisodeDataRow
     expect(row2.videoFile).toBeUndefined()
     expect(row2.checked).toBe(false)
+    expect(row2.disabled).toBe(true)
+  })
+
+  it('keeps existing videoFile but disables row when episode is not in plan', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/existing-S01E01.mkv', true),
+      episodeRow(1, 2, '/media/show/existing-S01E02.mkv', true),
+    ]
+    const plan = recognizePlan([
+      { season: 1, episode: 1, path: '/media/show/S01E01.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
+
+    const row1 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 1) as TvShowEpisodeDataRow
+    expect(row1.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(row1.checked).toBe(true)
+    expect(row1.disabled).toBe(false)
+
+    const row2 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 2) as TvShowEpisodeDataRow
+    expect(row2.videoFile).toBe('/media/show/existing-S01E02.mkv')
+    expect(row2.checked).toBe(false)
+    expect(row2.disabled).toBe(true)
+  })
+
+  it('disables row when plan path matches existing mediaFiles path', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/S01E01.mkv', true),
+      episodeRow(1, 2, '/media/show/S01E02.mkv', true),
+    ]
+    const plan = recognizePlan([
+      { season: 1, episode: 1, path: '/media/show/S01E01.mkv' },
+      { season: 1, episode: 2, path: '/media/show/S01E02.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
+
+    const row1 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 1) as TvShowEpisodeDataRow
+    expect(row1.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(row1.checked).toBe(false)
+    expect(row1.disabled).toBe(true)
+
+    const row2 = result.find((r) => r.type === 'episode' && r.season === 1 && r.episode === 2) as TvShowEpisodeDataRow
+    expect(row2.videoFile).toBe('/media/show/S01E02.mkv')
+    expect(row2.checked).toBe(false)
+    expect(row2.disabled).toBe(true)
+  })
+
+  it('enables row when plan path differs from existing mediaFiles path', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/old-S01E01.mkv', true),
+    ]
+    const plan = recognizePlan([
+      { season: 1, episode: 1, path: '/media/show/S01E01.mkv' },
+    ])
+
+    const result = fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
+
+    const row = result[0] as TvShowEpisodeDataRow
+    expect(row.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(row.checked).toBe(true)
+    expect(row.disabled).toBe(false)
   })
 
   it('clears newVideoFile when filling from plan', () => {
@@ -102,6 +165,7 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
     expect(row.videoFile).toBe('/media/show/S01E01.mkv')
     expect(row.newVideoFile).toBeUndefined()
     expect(row.checked).toBe(true)
+    expect(row.disabled).toBe(false)
   })
 
   it('does not mutate input rows', () => {
@@ -130,10 +194,13 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
 
     expect((result[0] as TvShowEpisodeDataRow).videoFile).toBe('/media/show/S01E01.mkv')
     expect((result[0] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[0] as TvShowEpisodeDataRow).disabled).toBe(false)
     expect((result[1] as TvShowEpisodeDataRow).videoFile).toBe('/media/show/S01E02.mkv')
     expect((result[1] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[1] as TvShowEpisodeDataRow).disabled).toBe(false)
     expect((result[2] as TvShowEpisodeDataRow).videoFile).toBe('/media/show/S02E01.mkv')
     expect((result[2] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[2] as TvShowEpisodeDataRow).disabled).toBe(false)
   })
 
   it('skips recognized files that do not match any row and warns', () => {
@@ -176,6 +243,21 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
     expect(result).toHaveLength(1)
     expect((result[0] as TvShowEpisodeDataRow).videoFile).toBeUndefined()
     expect((result[0] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[0] as TvShowEpisodeDataRow).disabled).toBe(true)
+  })
+
+  it('sets disabled true for episodes not in plan when plan has no files', () => {
+    const rows: TvShowEpisodeTableRow[] = [
+      episodeRow(1, 1, '/media/show/existing.mkv', true),
+    ]
+    const plan = recognizePlan([])
+
+    const result = fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
+
+    const row = result[0] as TvShowEpisodeDataRow
+    expect(row.videoFile).toBe('/media/show/existing.mkv')
+    expect(row.checked).toBe(false)
+    expect(row.disabled).toBe(true)
   })
 
   it('sets checked to false when recognized file path is undefined', () => {
@@ -187,6 +269,7 @@ describe('fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan', () => {
     const row = result[0] as TvShowEpisodeDataRow
     expect(row.videoFile).toBeUndefined()
     expect(row.checked).toBe(false)
+    expect(row.disabled).toBe(false)
   })
 })
 
