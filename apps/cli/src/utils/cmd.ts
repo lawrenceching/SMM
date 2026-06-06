@@ -188,6 +188,112 @@ function argsIncludeFfmpegLocation(args: string[]): boolean {
   return args.includes('--ffmpeg-location');
 }
 
+// ─── Test URL simulation ─────────────────────────────────────────────────────
+
+/** HTTP status text map for common error codes. */
+const HTTP_STATUS_TEXT: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  407: 'Proxy Authentication Required',
+  412: 'Precondition Failed',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+  504: 'Gateway Timeout',
+};
+
+/** Fixed video ID used in all test URL simulations. */
+const TEST_VIDEO_ID = '1fSV26aE5Q';
+
+/**
+ * Parses a test URL in the format `https://test.local/{extractor}/http/{status_code}`.
+ * Returns null if the URL is not a valid test URL.
+ */
+export function parseTestYtDlpUrl(url: string): { extractor: string; statusCode: number } | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || parsed.host !== 'test.local') {
+      return null;
+    }
+    // Path format: /{extractor}/http/{status_code}
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length !== 3) return null;
+    if (parts[1] !== 'http') return null;
+    const statusCode = parseInt(parts[2], 10);
+    if (isNaN(statusCode) || statusCode < 100 || statusCode > 999) return null;
+    return { extractor: parts[0], statusCode };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks if any argument is a test URL.
+ */
+export function isTestYtDlpUrl(args: string[]): boolean {
+  return args.some((arg) => arg.startsWith('https://test.local'));
+}
+
+/**
+ * Extracts the test URL from args, if present.
+ */
+export function extractTestYtDlpUrl(args: string[]): string | null {
+  return args.find((arg) => arg.startsWith('https://test.local')) ?? null;
+}
+
+/**
+ * Capitalizes an extractor name for display (e.g., 'bilibili' -> 'BiliBili').
+ */
+function capitalizeExtractorName(extractor: string): string {
+  // Handle special cases for common extractors
+  const knownNames: Record<string, string> = {
+    bilibili: 'BiliBili',
+    youtube: 'YouTube',
+    niconico: 'Niconico',
+  };
+  if (knownNames[extractor.toLowerCase()]) {
+    return knownNames[extractor.toLowerCase()];
+  }
+  // Default: capitalize first letter
+  return extractor.charAt(0).toUpperCase() + extractor.slice(1);
+}
+
+/**
+ * Builds a simulated yt-dlp error message for a given test URL.
+ * The error format matches yt-dlp's actual error output.
+ */
+export function buildYtDlpSimulatedError(testUrl: string): string {
+  const parsed = parseTestYtDlpUrl(testUrl);
+  if (!parsed) {
+    return `ERROR: Unable to download webpage: test URL parse failed`;
+  }
+  const { extractor, statusCode } = parsed;
+  const statusText = HTTP_STATUS_TEXT[statusCode] ?? 'Unknown Error';
+  const extractorDisplay = capitalizeExtractorName(extractor);
+  return `ERROR: [${extractorDisplay}] ${TEST_VIDEO_ID}: Unable to download webpage: HTTP Error ${statusCode}: ${statusText} (caused by <HTTPError ${statusCode}: ${statusText}>)`;
+}
+
+/**
+ * Builds the bash command arguments to simulate a yt-dlp error.
+ * Uses `printf` to safely output the error message (avoids shell interpretation issues).
+ * Outputs to stderr via >&2 and exits with code 1.
+ */
+export function buildTestYtDlpSimulatedSpawnArgs(errorMessage: string): string[] {
+  // Escape special characters for safe inclusion in a double-quoted shell string.
+  // Double quotes in bash interpret \$, \`, \\, \\, and \" as escape sequences.
+  const escaped = errorMessage
+    .replace(/\\/g, '\\\\')
+    .replace(/\$/g, '\\$')
+    .replace(/`/g, '\\`')
+    .replace(/"/g, '\\"');
+  // Use printf to safely output the error message to stderr, then exit with code 1.
+  const shellCmd = `printf "%s\\n" "${escaped}" >&2; exit 1`;
+  return ['-c', shellCmd];
+}
+
 /** Replace bare `NA` tokens with `null` so JSON.parse succeeds. */
 function sanitizeYtdlpProgressLine(line: string): string {
   return line.replace(/: *NA\b/g, ':null');
@@ -364,7 +470,7 @@ export function _resetYtDlpQueueForTests(): void {
  * has been spawned (events continue to flow async).
  */
 export async function runCommand(opts: RunCommandOptions): Promise<RunCommandResult> {
-  const {
+  let {
     executablePath,
     command,
     args,
@@ -375,22 +481,54 @@ export async function runCommand(opts: RunCommandOptions): Promise<RunCommandRes
     sink,
   } = opts
 
-  const usePty = requestedTty === true && command === 'yt-dlp' && isPtyAvailable()
-  let ptyFallback: PtyFallbackReason | undefined
-  if (requestedTty && command === 'yt-dlp' && !usePty) {
-    ptyFallback = isPtyAvailable()
-      ? 'not-yt-dlp' // unreachable here, kept for type clarity
-      : 'pty-unavailable'
-    const reason = getPtyUnavailableReason()
-    logger.warn(
-      { commandExecutionId: cmdLog.executionId, command, reason: reason ?? 'unknown' },
-      '[runCommand] PTY requested for yt-dlp but unavailable; falling back to pipe spawn',
-    )
-  }
+  // ── Test URL interception ────────────────────────────────────────────────────
+  // When yt-dlp args contain a test.local URL, intercept and simulate the error
+  // via bash instead of calling the real yt-dlp executable.
+  const isTestMode = command === 'yt-dlp' && isTestYtDlpUrl(args);
+  let usePty = false;
+  let ptyFallback: PtyFallbackReason | undefined;
+  let spawnArgs: string[];
+  let spawnEnv: NodeJS.ProcessEnv | undefined;
 
-  const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args, {
-    tty: usePty,
-  })
+  if (isTestMode) {
+    // Skip PTY for test mode — use simple bash simulation
+    usePty = false;
+
+    // Extract the test URL and build the simulated error
+    const testUrl = extractTestYtDlpUrl(args) ?? '';
+    const errorMessage = buildYtDlpSimulatedError(testUrl);
+    const bashArgs = buildTestYtDlpSimulatedSpawnArgs(errorMessage);
+
+    // Override executable to bash and use our simulated args
+    executablePath = 'bash';
+    spawnArgs = bashArgs;
+    spawnEnv = process.env;
+
+    logger.info(
+      { commandExecutionId: cmdLog.executionId, testUrl, errorMessage },
+      '[runCommand] test URL detected, simulating yt-dlp error',
+    );
+    cmdLog.appendSystemNote(`test URL detected: ${testUrl}, simulating yt-dlp error`);
+  } else {
+    // Normal execution path
+    usePty = requestedTty === true && command === 'yt-dlp' && isPtyAvailable();
+    if (requestedTty && command === 'yt-dlp' && !usePty) {
+      ptyFallback = isPtyAvailable()
+        ? 'not-yt-dlp' // unreachable here, kept for type clarity
+        : 'pty-unavailable';
+      const reason = getPtyUnavailableReason();
+      logger.warn(
+        { commandExecutionId: cmdLog.executionId, command, reason: reason ?? 'unknown' },
+        '[runCommand] PTY requested for yt-dlp but unavailable; falling back to pipe spawn',
+      );
+    }
+
+    const resolved = await resolveSpawnArgsAndEnv(command, args, {
+      tty: usePty,
+    });
+    spawnArgs = resolved.args;
+    spawnEnv = resolved.env;
+  }
 
   markCommandExecutionRunning(cmdLog.executionId, command)
   const rt0 = Date.now()
@@ -712,17 +850,41 @@ function spawnAndPump(internals: SpawnInternals): Promise<void> {
 export async function runWhitelistedCommandSync(
   input: RunCommandSyncOptions,
 ): Promise<RunCommandSyncResult> {
-  const resolved = await resolveCommand(input.command)
-  if (resolved.kind === 'not-found') {
-    return { error: `${input.command} executable not found` }
-  }
-  const { executablePath } = resolved
-  const { args: spawnArgs, env: mergedEnv } = await resolveSpawnArgsAndEnv(input.command, input.args)
-  const spawnEnv = input.env ?? mergedEnv
+  // ── Test URL interception ──────────────────────────────────────────────────
+  // When yt-dlp args contain a test.local URL, intercept and simulate the error.
+  const isTestMode = input.command === 'yt-dlp' && isTestYtDlpUrl(input.args);
+  let executablePath: string;
+  let spawnArgs: string[];
+  let spawnEnv: NodeJS.ProcessEnv | undefined;
+  let commandForLog: string;
 
-  const commandForLog = [executablePath, ...spawnArgs]
-    .map((part) => (/\s/.test(part) ? `"${part}"` : part))
-    .join(' ')
+  if (isTestMode) {
+    // Use bash simulation for test URLs
+    executablePath = 'bash';
+    const testUrl = extractTestYtDlpUrl(input.args) ?? '';
+    const errorMessage = buildYtDlpSimulatedError(testUrl);
+    spawnArgs = buildTestYtDlpSimulatedSpawnArgs(errorMessage);
+    spawnEnv = input.env ?? process.env;
+    commandForLog = `bash ${spawnArgs.join(' ')}`;
+
+    logger.info(
+      { command: input.command, testUrl, errorMessage },
+      '[runWhitelistedCommandSync] test URL detected, simulating yt-dlp error',
+    );
+  } else {
+    // Normal execution path
+    const resolved = await resolveCommand(input.command);
+    if (resolved.kind === 'not-found') {
+      return { error: `${input.command} executable not found` };
+    }
+    executablePath = resolved.executablePath;
+    const resolvedArgs = await resolveSpawnArgsAndEnv(input.command, input.args);
+    spawnArgs = resolvedArgs.args;
+    spawnEnv = input.env ?? resolvedArgs.env;
+    commandForLog = [executablePath, ...spawnArgs]
+      .map((part) => (/\s/.test(part) ? `"${part}"` : part))
+      .join(' ');
+  }
 
   const run = async (): Promise<RunCommandSyncResult> => {
     const writerId =

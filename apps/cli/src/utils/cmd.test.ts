@@ -11,6 +11,11 @@ import {
   injectYtdlpProgressArgs,
   isYtdlpProgressJson,
   parseYtdlpProgressLine,
+  parseTestYtDlpUrl,
+  isTestYtDlpUrl,
+  extractTestYtDlpUrl,
+  buildYtDlpSimulatedError,
+  buildTestYtDlpSimulatedSpawnArgs,
   resolveCommand,
   resolveSpawnArgsAndEnv,
   runCommand,
@@ -271,6 +276,111 @@ describe('enqueueYtDlpExecuteCmd', () => {
   })
 })
 
+// ─── Test URL parsing ───────────────────────────────────────────────────────
+
+describe('parseTestYtDlpUrl', () => {
+  it('parses a valid test URL with extractor and status code', () => {
+    const result = parseTestYtDlpUrl('https://test.local/bilibili/http/412');
+    expect(result).toEqual({ extractor: 'bilibili', statusCode: 412 });
+  });
+
+  it('parses URL with youtube extractor and 403', () => {
+    const result = parseTestYtDlpUrl('https://test.local/youtube/http/403');
+    expect(result).toEqual({ extractor: 'youtube', statusCode: 403 });
+  });
+
+  it('parses URL with niconico extractor and 500', () => {
+    const result = parseTestYtDlpUrl('https://test.local/niconico/http/500');
+    expect(result).toEqual({ extractor: 'niconico', statusCode: 500 });
+  });
+
+  it('returns null for non-test.local host', () => {
+    expect(parseTestYtDlpUrl('https://example.com/bilibili/http/412')).toBeNull();
+    expect(parseTestYtDlpUrl('http://test.local/bilibili/http/412')).toBeNull();
+  });
+
+  it('returns null for invalid path format', () => {
+    expect(parseTestYtDlpUrl('https://test.local/bilibili')).toBeNull();
+    expect(parseTestYtDlpUrl('https://test.local/bilibili/412')).toBeNull();
+    expect(parseTestYtDlpUrl('https://test.local/bilibili/http/notanumber')).toBeNull();
+    expect(parseTestYtDlpUrl('https://test.local/bilibili/http/99')).toBeNull();
+    expect(parseTestYtDlpUrl('https://test.local/bilibili/http/1000')).toBeNull();
+  });
+
+  it('returns null for invalid URL', () => {
+    expect(parseTestYtDlpUrl('not-a-url')).toBeNull();
+  });
+});
+
+describe('isTestYtDlpUrl', () => {
+  it('returns true when args contain a test URL', () => {
+    expect(isTestYtDlpUrl(['-J', 'https://test.local/bilibili/http/412'])).toBe(true);
+  });
+
+  it('returns false when no test URL is present', () => {
+    expect(isTestYtDlpUrl(['-J', 'https://www.youtube.com/watch?v=abc'])).toBe(false);
+    expect(isTestYtDlpUrl(['-J'])).toBe(false);
+    expect(isTestYtDlpUrl([])).toBe(false);
+  });
+});
+
+describe('extractTestYtDlpUrl', () => {
+  it('extracts the test URL from args', () => {
+    const result = extractTestYtDlpUrl(['-J', 'https://test.local/bilibili/http/412', '--other']);
+    expect(result).toBe('https://test.local/bilibili/http/412');
+  });
+
+  it('returns null when no test URL is present', () => {
+    expect(extractTestYtDlpUrl(['-J', 'https://youtube.com/watch?v=abc'])).toBeNull();
+  });
+});
+
+describe('buildYtDlpSimulatedError', () => {
+  it('builds correct error message for 412 bilibili URL', () => {
+    const error = buildYtDlpSimulatedError('https://test.local/bilibili/http/412');
+    expect(error).toBe(
+      'ERROR: [BiliBili] 1fSV26aE5Q: Unable to download webpage: HTTP Error 412: Precondition Failed (caused by <HTTPError 412: Precondition Failed>)'
+    );
+  });
+
+  it('builds correct error message for 403 youtube URL', () => {
+    const error = buildYtDlpSimulatedError('https://test.local/youtube/http/403');
+    expect(error).toBe(
+      'ERROR: [YouTube] 1fSV26aE5Q: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>)'
+    );
+  });
+
+  it('uses Unknown Error for unknown status codes', () => {
+    const error = buildYtDlpSimulatedError('https://test.local/bilibili/http/999');
+    expect(error).toContain('Unknown Error');
+    expect(error).toContain('999');
+    expect(error).toContain('BiliBili');
+  });
+
+  it('handles invalid URL gracefully', () => {
+    const error = buildYtDlpSimulatedError('not-a-url');
+    expect(error).toContain('ERROR');
+    expect(error).toContain('test URL parse failed');
+  });
+});
+
+describe('buildTestYtDlpSimulatedSpawnArgs', () => {
+  it('builds bash -c args that output error to stderr and exit 1', () => {
+    const args = buildTestYtDlpSimulatedSpawnArgs('ERROR: test error');
+    expect(args[0]).toBe('-c');
+    expect(args[1]).toContain('printf');
+    expect(args[1]).toContain('>&2');
+    expect(args[1]).toContain('exit 1');
+  });
+
+  it('escapes single quotes in the error message', () => {
+    const args = buildTestYtDlpSimulatedSpawnArgs("ERROR: test with 'quotes'");
+    // The shell command should contain escaped single quotes
+    expect(args[1]).toContain('quotes');
+    expect(args.length).toBe(2); // ['-c', shellCommand]
+  });
+});
+
 // ─── injectYtdlpProgressArgs ─────────────────────────────────────────────────
 
 describe('injectYtdlpProgressArgs', () => {
@@ -282,5 +392,93 @@ describe('injectYtdlpProgressArgs', () => {
     const out = injectYtdlpProgressArgs(['--output', '/tmp/x', 'https://example.com/v'])
     expect(out).toContain('--newline')
     expect(out).toContain('--progress-template')
+  })
+})
+
+// ─── runCommand with test URL interception ──────────────────────────────────
+
+describe('runCommand — test URL interception', () => {
+  let prevLogDir: string | undefined
+  let tmpLogRoot: string
+
+  beforeEach(() => {
+    prevLogDir = process.env.LOG_DIR
+    tmpLogRoot = mkdtempSync(path.join(tmpdir(), 'smm-testurl-'))
+    process.env.LOG_DIR = tmpLogRoot
+    mocks.discoverFfmpeg.mockReset().mockResolvedValue(undefined)
+  })
+  afterEach(() => {
+    if (prevLogDir === undefined) delete process.env.LOG_DIR
+    else process.env.LOG_DIR = prevLogDir
+    if (existsSync(tmpLogRoot)) rmSync(tmpLogRoot, { recursive: true, force: true })
+  })
+
+  it('intercepts test URL and simulates error via bash', async () => {
+    const cmdLog = await createCommandExecutionLogWriter()
+    const stderrEvents: string[] = []
+    const systemEvents: SystemEvent[] = []
+    const sink: Partial<RunCommandSink> = {
+      stderr: (text) => stderrEvents.push(text),
+      system: (e) => systemEvents.push(e),
+    }
+
+    const result = await runCommand({
+      // yt-dlp path is ignored when test URL is detected
+      executablePath: '/fake/ytdlp',
+      command: 'yt-dlp',
+      args: ['-J', 'https://test.local/bilibili/http/412'],
+      cmdLog,
+      timeoutMs: 5000,
+      sink,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.usePty).toBe(false)
+
+    // Wait for the bash process to finish
+    await new Promise((r) => setTimeout(r, 1000))
+
+    // Check that stderr received the error message
+    const fullStderr = stderrEvents.join('')
+    expect(fullStderr).toContain('ERROR')
+    expect(fullStderr).toContain('BiliBili')
+    expect(fullStderr).toContain('412')
+    expect(fullStderr).toContain('Precondition Failed')
+
+    // Check that exit code 1 was emitted
+    const exitEvent = systemEvents.find((e) => e.event === 'exit')
+    expect(exitEvent).toBeDefined()
+    expect(exitEvent?.code).toBe(1)
+
+    // Check that the command log has the simulated execution note
+    const logContent = readFileSync(cmdLog.logFilePath, 'utf8')
+    expect(logContent).toContain('test URL detected')
+  })
+
+  it('does not intercept non-test URLs', async () => {
+    const cmdLog = await createCommandExecutionLogWriter()
+    const systemEvents: SystemEvent[] = []
+    const sink: Partial<RunCommandSink> = {
+      system: (e) => systemEvents.push(e),
+    }
+
+    // Normal URL should not trigger test mode
+    const result = await runCommand({
+      executablePath: process.execPath,
+      command: 'yt-dlp',
+      args: ['-e', 'console.log("normal"); process.exit(0);'],
+      cmdLog,
+      timeoutMs: 5000,
+      sink,
+    })
+
+    expect(result.ok).toBe(true)
+
+    // Wait for process
+    await new Promise((r) => setTimeout(r, 500))
+
+    // Should not have test URL detection in logs
+    const logContent = readFileSync(cmdLog.logFilePath, 'utf8')
+    expect(logContent).not.toContain('test URL detected')
   })
 })
