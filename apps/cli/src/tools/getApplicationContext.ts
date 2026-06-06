@@ -2,13 +2,17 @@ import { acknowledge, findSocketByClientId, getFirstAvailableSocket } from '@/ut
 import { z } from 'zod';
 import type { ToolDefinition } from './types';
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase';
+import { resolveAppLanguage, detectOsLocale } from '@core/locale';
 import { getUserConfig } from '@/utils/config';
 import { getLocalizedToolDescription } from '@/i18n/helpers';
 
 
 async function getLanguage() {
   const userConfig = await getUserConfig();
-  return userConfig.applicationLanguage ?? 'zh-CN';
+  return resolveAppLanguage({
+    configured: userConfig.applicationLanguage,
+    osLocale: detectOsLocale(),
+  });
 }
 
 export async function getSelectedMediaFolder(_clientId?: string) {

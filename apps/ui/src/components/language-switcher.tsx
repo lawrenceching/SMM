@@ -8,14 +8,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useConfig } from "@/hooks/userConfig"
+import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
-import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 
 export function LanguageSwitcher() {
   const { userConfig, setAndSaveUserConfig } = useConfig()
-  const { i18n } = useTranslation()
-  const currentLanguage = (userConfig.applicationLanguage || i18n.language) as SupportedLanguage
+  const { appLanguage: currentLanguage } = useResolvedLanguages()
 
   const handleLanguageChange = async (lang: SupportedLanguage) => {
     await changeLanguage(lang)

@@ -3,8 +3,8 @@ import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveS
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { searchTmdbDirect } from "@/api/tmdbDirect"
 import { useConfig } from "@/hooks/userConfig"
+import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useTranslation } from "@/lib/i18n"
-import { SUPPORTED_APP_LANGUAGES, type SupportedLanguage } from "@/lib/i18n"
 import type { TMDBTVShow, TMDBMovie, PrimaryDatabase, PreferMediaLanguage } from "@core/types"
 import { type TVDBv4SearchResult } from "@smm/tvdb4"
 import {
@@ -18,28 +18,7 @@ import { searchTvdbDirect } from "@/lib/TvdbDirectSearch"
 import { useMediaDatabaseBaseUrls } from "@/hooks/useMediaDatabaseBaseUrls"
 
 /** TMDB API language for search and get-by-id. */
-export type TmdbSearchLanguage = "zh-CN" | "en-US" | "ja-JP"
-
-/** Map app SupportedLanguage to TMDB search API language. Exported for callers that need a default (e.g. NFO / folder-name flow). */
-export function mapSearchLanguageToTmdb(lang: SupportedLanguage): TmdbSearchLanguage {
-  if (lang === "zh-CN") return "zh-CN"
-  if (lang === "en") return "en-US"
-  return "en-US"
-}
-
-function mediaSearchLanguageFromConfigFields(
-  preferMediaLanguage: PreferMediaLanguage | undefined,
-  applicationLanguage: string | undefined,
-  validCodes: ReadonlySet<string>
-): TmdbSearchLanguage {
-  if (preferMediaLanguage) {
-    return preferMediaLanguage
-  }
-  if (applicationLanguage && validCodes.has(applicationLanguage)) {
-    return mapSearchLanguageToTmdb(applicationLanguage as SupportedLanguage)
-  }
-  return "zh-CN"
-}
+export type TmdbSearchLanguage = PreferMediaLanguage
 
 export type { TVDBSearchItem }
 
@@ -80,17 +59,12 @@ export function MediaDatabaseSearchbox({
 }: TMDBSearchboxProps) {
   const { t } = useTranslation(["errors", "components"])
   const { userConfig } = useConfig()
+  const { mediaLanguage: resolvedMediaLanguage } = useResolvedLanguages()
 
-  const validCodes = useMemo(
-    () => new Set(SUPPORTED_APP_LANGUAGES.map((l) => l.code)),
-    []
-  )
   const [searchDatabase, setSearchDatabase] = useState<PrimaryDatabase>(() => {
     return (userConfig?.primaryDatabase || "TMDB") as PrimaryDatabase
   })
-  const [searchLanguage, setSearchLanguage] = useState<TmdbSearchLanguage>(() =>
-    mediaSearchLanguageFromConfigFields(userConfig?.preferMediaLanguage, userConfig?.applicationLanguage, validCodes)
-  )
+  const [searchLanguage, setSearchLanguage] = useState<TmdbSearchLanguage>(resolvedMediaLanguage)
   const [searchQuery, setSearchQuery] = useState(value || "")
   const [searchResults, setSearchResults] = useState<(TMDBTVShow | TMDBMovie)[]>([])
   const [tvdbSearchResultsRaw, setTvdbSearchResultsRaw] = useState<TVDBSearchItem[]>([])
@@ -107,14 +81,8 @@ export function MediaDatabaseSearchbox({
   }, [userConfig?.primaryDatabase])
 
   useEffect(() => {
-    setSearchLanguage(
-      mediaSearchLanguageFromConfigFields(
-        userConfig?.preferMediaLanguage,
-        userConfig?.applicationLanguage,
-        validCodes
-      )
-    )
-  }, [userConfig?.preferMediaLanguage, userConfig?.applicationLanguage, validCodes])
+    setSearchLanguage(resolvedMediaLanguage)
+  }, [resolvedMediaLanguage])
 
   useEffect(() => {
     setSearchQuery(value || "")

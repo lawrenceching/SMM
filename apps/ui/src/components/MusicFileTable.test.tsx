@@ -21,12 +21,16 @@ vi.mock("./LocalFileSubtitleScope", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/i18n", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-  castTranslationFn: (fn: any) => fn,
-}));
+vi.mock("@/lib/i18n", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/i18n")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => key,
+    }),
+    castTranslationFn: (fn: unknown) => fn,
+  };
+});
 
 vi.mock("@/hooks/useGetAssociatedFiles", () => ({
   useGetAssociatedFiles: () => [],

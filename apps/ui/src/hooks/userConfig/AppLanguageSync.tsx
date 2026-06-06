@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { resolveAppLanguage } from "@core/locale"
 import { changeLanguage } from "@/lib/i18n"
 import { useHelloQuery } from "./useHelloQuery"
 import { useUserConfigQuery } from "./useUserConfigQuery"
@@ -6,7 +7,8 @@ import { useUserConfigQuery } from "./useUserConfigQuery"
 const debug = import.meta.env.DEV
 
 /**
- * Keeps i18n in sync with persisted `applicationLanguage` (replaces the effect that lived in ConfigProvider).
+ * Keeps i18n in sync with the resolved application language priority chain:
+ * smm.json > browser > OS > English.
  */
 export function AppLanguageSync() {
   const helloQuery = useHelloQuery()
@@ -16,10 +18,19 @@ export function AppLanguageSync() {
 
   useEffect(() => {
     if (!userConfigQuery.isSuccess) return
-    if (userConfig?.applicationLanguage) {
-      changeLanguage(userConfig.applicationLanguage).catch(console.error)
-    }
-  }, [userConfigQuery.isSuccess, userConfig?.applicationLanguage])
+
+    const resolved = resolveAppLanguage({
+      configured: userConfig?.applicationLanguage,
+      browserLocale: typeof navigator !== "undefined" ? navigator.language : undefined,
+      osLocale: helloQuery.data?.osLocale,
+    })
+
+    changeLanguage(resolved).catch(console.error)
+  }, [
+    userConfigQuery.isSuccess,
+    userConfig?.applicationLanguage,
+    helloQuery.data?.osLocale,
+  ])
 
   useEffect(() => {
     if (!debug || !userConfigQuery.isSuccess) return

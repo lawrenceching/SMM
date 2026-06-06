@@ -5,7 +5,7 @@ import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveMovieSearchbox } from "./ImmersiveMovieSearchbox"
 import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useConfig } from "@/hooks/userConfig"
+import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
@@ -87,7 +87,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     const [searchError, setSearchError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [isUpdatingMovie, setIsUpdatingMovie] = useState(false)
-    const { userConfig } = useConfig()
+    const { mediaLanguage } = useResolvedLanguages()
     const { search: searchTmdb } = useTmdbQueries()
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
@@ -115,11 +115,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
         setSearchResults([])
 
         try {
-            // Get language from user config, default to en-US
-            const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
-            
-            // Perform search for movies
-            const response = await searchTmdb(searchQuery.trim(), 'movie', language)
+            const response = await searchTmdb(searchQuery.trim(), 'movie', mediaLanguage)
 
             if (response.error) {
                 setSearchError(response.error)
@@ -142,7 +138,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
         } finally {
             setIsSearching(false)
         }
-    }, [searchQuery, userConfig, t])
+    }, [searchQuery, mediaLanguage, searchTmdb, t])
 
     const handleSelectResult = useCallback(async (result: TMDBMovie) => {
         if (Number(selectedMediaMetadata?.movie?.id) === result.id) {

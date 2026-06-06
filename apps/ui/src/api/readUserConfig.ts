@@ -5,7 +5,6 @@ import { join } from "@/lib/path";
 import { migrateAIConfig } from "@core/configMigration";
 
 export const defaultUserConfig: UserConfig = {
-  applicationLanguage: 'zh-CN',
   tmdb: {
     host: '',
     apiKey: '',

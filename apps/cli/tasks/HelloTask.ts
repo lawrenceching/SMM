@@ -1,5 +1,6 @@
 import { APP_VERSION } from '../src/version';
 import type { HelloResponseBody } from '@core/types';
+import { detectOsLocale } from '@core/locale';
 import { getLogDir, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
 import { logger } from '../lib/logger';
 
@@ -15,5 +16,6 @@ export async function executeHelloTask(reverseProxyUrl: string | null = null): P
     logDir: getLogDir(),
     tmpDir: getTmpDir(),
     reverseProxyUrl,
+    osLocale: detectOsLocale(),
   }
 }

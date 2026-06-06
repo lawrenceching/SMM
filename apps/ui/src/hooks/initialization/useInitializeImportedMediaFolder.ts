@@ -1,6 +1,8 @@
 import { useLatest } from "react-use";
 import { useJobManager } from "@/hooks/useJobManager";
 import { useConfig } from "@/hooks/userConfig";
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery";
+import { getBrowserLocale, getResolvedLanguages } from "@/hooks/useResolvedLanguages";
 import { nextTraceId } from "@/lib/utils";
 import { Path } from "@core/path";
 import type { OnMediaFolderImportedEventData } from "@/types/eventTypes";
@@ -40,6 +42,8 @@ export function useInitializeImportedMediaFolder() {
     const latestFolders = useLatest(folders);
     const { addMediaFolderInUserConfig, userConfig, appConfig } = useConfig();
     const latestUserConfig = useLatest(userConfig);
+    const helloQuery = useHelloQuery();
+    const latestOsLocale = useLatest(helloQuery.data?.osLocale);
 
     const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const { mutateAsync: initializeMediaMetadata } = useInitializeMediaMetadataMutation()
@@ -92,8 +96,10 @@ export function useInitializeImportedMediaFolder() {
     }, [])
 
     const recognizeTvShow = useCallback(async (mm: MediaMetadata, traceId: string) => {
-        const recognitionLanguage =
-            latestUserConfig.current.preferMediaLanguage ?? "en-US";
+        const recognitionLanguage = getResolvedLanguages(latestUserConfig.current, {
+            browserLocale: getBrowserLocale(),
+            osLocale: latestOsLocale.current,
+        }).mediaLanguage;
         const tmdb = {
             upstreamBaseURL: latestUserConfig.current.tmdb?.host,
             apiKey: latestUserConfig.current.tmdb?.apiKey,
@@ -193,8 +199,10 @@ export function useInitializeImportedMediaFolder() {
     );
 
     const recognizeMovie = useCallback(async (mm: MediaMetadata, traceId: string) => {
-        const recognitionLanguage =
-            latestUserConfig.current.preferMediaLanguage ?? "en-US";
+        const recognitionLanguage = getResolvedLanguages(latestUserConfig.current, {
+            browserLocale: getBrowserLocale(),
+            osLocale: latestOsLocale.current,
+        }).mediaLanguage;
         const tmdb = {
             upstreamBaseURL: latestUserConfig.current.tmdb?.host,
             apiKey: latestUserConfig.current.tmdb?.apiKey,

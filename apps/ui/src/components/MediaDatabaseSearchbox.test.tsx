@@ -54,6 +54,13 @@ vi.mock('@/hooks/userConfig', () => ({
   })),
 }))
 
+vi.mock('@/hooks/useResolvedLanguages', () => ({
+  useResolvedLanguages: vi.fn(() => ({
+    appLanguage: 'en',
+    mediaLanguage: 'en-US',
+  })),
+}))
+
 describe('MediaDatabaseSearchbox', () => {
   const defaultProps = {
     mediaType: 'tv' as const,

@@ -1,3 +1,4 @@
+import { resolveAppLanguage, detectOsLocale } from '@core/locale';
 import { getUserConfig } from '@/utils/config';
 import { getI18n } from './config';
 import logger from '../../lib/logger';
@@ -23,9 +24,10 @@ export async function getToolLanguage(): Promise<string> {
     // Get user config to retrieve language preference
     const userConfig = await getUserConfig();
 
-    // Return user's language preference, defaulting to 'zh-CN' if not set
-    // (matches existing behavior in getApplicationContext.ts)
-    return userConfig.applicationLanguage ?? 'zh-CN';
+    return resolveAppLanguage({
+      configured: userConfig.applicationLanguage,
+      osLocale: detectOsLocale(),
+    });
   } catch (error) {
     // If config retrieval fails, fall back to English
     logger.warn('[i18n] Failed to get user config, using default language: ' + (error instanceof Error ? error.stack : error));

@@ -14,7 +14,7 @@ import { join, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
 import { useTmdbQueries } from "./useTmdbQueries"
 import { useTvdbQueries } from "./useTvdbQueries"
-import { useConfig } from "@/hooks/userConfig"
+import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import Debug from "debug"
 import { isNotNil } from "es-toolkit"
 import type {
@@ -58,24 +58,24 @@ export function useScrapeNfoMutation<TContext = unknown>(
     getEpisodeTranslationByLangCode,
     getMovieTranslationByLangCode,
   } = useTvdbQueries()
-  const { userConfig } = useConfig()
+  const { mediaLanguage } = useResolvedLanguages()
 
   return useMutation({
     ...options,
     mutationFn: async ({ mediaMetadata }: ScrapeNfoMutationVariables) => {
       if (mediaMetadata.type === "tvshow-folder") {
         if (mediaMetadata.tvShow?.database === "TMDB") {
-          debug(`start to scrape TV show nfo files from TMDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+          debug(`start to scrape TV show nfo files from TMDB: mediaLanguage=${mediaLanguage}`)
           const tmdbSeriesId = parseInt(mediaMetadata.tvShow.id, 10)
           const tmdbTvSeriesDetails: TmdbSeriesDetails = await getTvShowById(
             tmdbSeriesId,
-            userConfig.preferMediaLanguage,
+            mediaLanguage,
           )
           const tmdbTvShowSeasons: TmdbSeasonDetails[] = await Promise.all(
             tmdbTvSeriesDetails.seasons
               .map((season) => season.season_number)
               .map((seasonNumber) =>
-                getTvShowSeasonDetails(tmdbSeriesId, seasonNumber, userConfig.preferMediaLanguage),
+                getTvShowSeasonDetails(tmdbSeriesId, seasonNumber, mediaLanguage),
               ),
           )
 
@@ -104,11 +104,10 @@ export function useScrapeNfoMutation<TContext = unknown>(
         }
 
         if (mediaMetadata.tvShow?.database === "TVDB") {
-          debug(`start to scrape TV show nfo files from TVDB: preferMediaLanguage=${userConfig.preferMediaLanguage}`)
+          debug(`start to scrape TV show nfo files from TVDB: mediaLanguage=${mediaLanguage}`)
 
           const tvdbSeriesId = parseInt(mediaMetadata.tvShow.id, 10)
-          const preferLang = userConfig.preferMediaLanguage ?? "en-US"
-          const tvdbLangCode = mapToTvdbLangCode(preferLang)
+          const tvdbLangCode = mapToTvdbLangCode(mediaLanguage)
           const tvdbSeries = await getSeriesExtended(tvdbSeriesId)
           if (!tvdbSeries) {
             throw new Error(`Failed to fetch TVDB series: ${tvdbSeriesId}`)
@@ -181,7 +180,7 @@ export function useScrapeNfoMutation<TContext = unknown>(
           const tmdbMovieId = parseInt(mediaMetadata.movie.id, 10)
           const tmdbMovieDetails: TmdbMovieDetails = await getMovieById(
             tmdbMovieId,
-            userConfig.preferMediaLanguage,
+            mediaLanguage,
           )
           const movieNfo: MovieNFO = buildMovieNfo(tmdbMovieDetails)
           const movieNfoXml = convertMovieNfoToXml(movieNfo)
@@ -192,8 +191,7 @@ export function useScrapeNfoMutation<TContext = unknown>(
 
         if (mediaMetadata.movie?.database === "TVDB") {
           const tvdbMovieId = parseInt(mediaMetadata.movie.id, 10)
-          const preferLang = userConfig.preferMediaLanguage ?? "en-US"
-          const tvdbLangCode = mapToTvdbLangCode(preferLang)
+          const tvdbLangCode = mapToTvdbLangCode(mediaLanguage)
           const tvdbMovie = await getMovieExtended(tvdbMovieId)
           if (!tvdbMovie) {
             throw new Error(`Failed to fetch TVDB movie: ${tvdbMovieId}`)

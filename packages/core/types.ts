@@ -48,7 +48,11 @@ export const DEFAULT_SELECTED_AI_PROVIDER = 'DeepSeek'
  * Represent the user configuration, which is editable to the user.
  */
 export interface UserConfig {
-  applicationLanguage: LanguageCode;
+  /**
+   * UI display language. Undefined means not explicitly configured;
+   * the app resolves language via browser → OS → English.
+   */
+  applicationLanguage?: LanguageCode;
   tmdb: TMDBConfig;
   /**
    * TVDB (TheTVDB) API configuration for search and metadata.
@@ -1005,6 +1009,12 @@ export interface HelloResponseBody {
    * This field is null when the reverse proxy fails to start.
    */
   reverseProxyUrl: string | null;
+
+  /**
+   * OS locale detected by the CLI process (e.g. en-US, zh-CN).
+   * Used by the UI when applicationLanguage is not explicitly configured.
+   */
+  osLocale: string;
 
   /**
    * error message when the hello task fails (e.g. validation, server error)

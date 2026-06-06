@@ -18,8 +18,7 @@ import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration
 import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { useConfig } from "@/hooks/userConfig"
-import { mapSearchLanguageToTmdb } from "./MediaDatabaseSearchbox"
-import type { SupportedLanguage } from "@/lib/i18n"
+import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { usePlansStore, type UIPlan } from "@/stores/plansStore"
@@ -135,6 +134,7 @@ function TvShowPanel() {
   const [openScrape] = scrapeDialog
   const [openMediaFileProperty] = mediaFilePropertyDialog
   const { userConfig } = useConfig()
+  const { mediaLanguage } = useResolvedLanguages()
   const { getTvShowById } = useTmdbQueries()
 
   const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
@@ -235,11 +235,8 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    const lang =
-      userConfig?.preferMediaLanguage ??
-      mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
-    handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: lang })
-  }, [handleSelectResult, userConfig?.applicationLanguage, userConfig?.preferMediaLanguage])
+    handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: mediaLanguage })
+  }, [handleSelectResult, mediaLanguage])
 
   const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
     console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
@@ -253,11 +250,8 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
-    const lang =
-      userConfig?.preferMediaLanguage ??
-      mapSearchLanguageToTmdb((userConfig?.applicationLanguage || "zh-CN") as SupportedLanguage)
-    handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: lang })
-  }, [handleSelectResult, userConfig?.applicationLanguage, userConfig?.preferMediaLanguage])
+    handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: mediaLanguage })
+  }, [handleSelectResult, mediaLanguage])
 
   // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
   const openUseNfoPromptWithCallbacks = useCallback((params: {

@@ -833,6 +833,7 @@ interface SettingsResources {
     title: string
     language: string
     languageDescription: string
+    applicationLanguageUnset: string
     theme: string
     themeDescription: string
     themeLight: string

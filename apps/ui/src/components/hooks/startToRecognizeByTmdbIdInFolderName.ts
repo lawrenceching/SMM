@@ -1,6 +1,7 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UserConfig } from "@core/types"
 import { getTmdbIdFromFolderName } from "@/AppV2Utils"
+import { getResolvedLanguages } from "@/hooks/useResolvedLanguages"
 
 export interface TmdbIdDetectionResult {
   tmdbId: number
@@ -9,7 +10,8 @@ export interface TmdbIdDetectionResult {
 
 export function startToRecognizeByTmdbIdInFolderName(
   mediaMetadata: UIMediaMetadata | undefined,
-  userConfig: UserConfig | undefined
+  userConfig: UserConfig | undefined,
+  opts?: { browserLocale?: string; osLocale?: string },
 ): TmdbIdDetectionResult | null {
   if (mediaMetadata?.mediaFolderPath === undefined) {
     return null
@@ -33,7 +35,9 @@ export function startToRecognizeByTmdbIdInFolderName(
     return null
   }
 
-  const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP'
+  const language = userConfig
+    ? getResolvedLanguages(userConfig, opts).mediaLanguage
+    : 'en-US'
 
   return {
     tmdbId: tmdbIdNumber,

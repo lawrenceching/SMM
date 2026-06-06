@@ -66,12 +66,16 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }))
 
-vi.mock("@/lib/i18n", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-  castTranslationFn: (fn: (key: string) => string) => fn,
-}))
+vi.mock("@/lib/i18n", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/i18n")>()
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => key,
+    }),
+    castTranslationFn: (fn: (key: string) => string) => fn,
+  }
+})
 
 const nestedRow: LocalFileTableRowData = {
   kind: "local",

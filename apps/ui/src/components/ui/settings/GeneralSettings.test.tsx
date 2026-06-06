@@ -22,6 +22,12 @@ vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => mockUseConfig(),
 }));
 
+vi.mock("@/hooks/userConfig/useHelloQuery", () => ({
+  useHelloQuery: () => ({
+    data: { osLocale: "en-US" },
+  }),
+}));
+
 vi.mock("@/providers/theme-provider", () => ({
   useTheme: () => ({
     theme: "light",
@@ -63,5 +69,17 @@ describe("GeneralSettings", () => {
     render(<GeneralSettings />);
     expect(screen.getByTestId("setting-tmdb-host")).toBeInTheDocument();
     expect(screen.getByTestId("setting-tmdb-api-key")).toBeInTheDocument();
+  });
+
+  it("shows follow-system label when application language is not configured", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: { ...defaultUserConfig, applicationLanguage: undefined },
+      setAndSaveUserConfig: vi.fn(),
+    });
+
+    render(<GeneralSettings />);
+    expect(screen.getByTestId("setting-language-trigger")).toHaveTextContent(
+      "general.applicationLanguageUnset",
+    );
   });
 });

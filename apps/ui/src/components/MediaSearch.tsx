@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
 import { getTMDBImageUrl } from '@/api/tmdb';
-import { useConfig } from '@/hooks/userConfig';
+import { useResolvedLanguages } from '@/hooks/useResolvedLanguages';
 import type { TMDBMovie, TMDBTVShow } from '@core/types';
 import { SearchBox } from './SearchBox';
 import { useTmdbQueries } from '@/hooks/useTmdbQueries';
@@ -33,7 +33,7 @@ export function MediaSearch({ onSelect }: MediaSearchProps) {
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { userConfig } = useConfig();
+  const { mediaLanguage } = useResolvedLanguages();
   const { search: searchTmdb } = useTmdbQueries();
 
   /**
@@ -57,9 +57,8 @@ export function MediaSearch({ onSelect }: MediaSearchProps) {
     setResults([]);
 
     try {
-      // Get language from user config, default to en-US
-      const language = (userConfig?.applicationLanguage || 'en-US') as 'zh-CN' | 'en-US' | 'ja-JP';
-      
+      const language = mediaLanguage;
+
       // Map mediaType to TMDB type
       const tmdbType = mediaType === 'movie' ? 'movie' : 'tv';
 

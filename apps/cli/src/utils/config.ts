@@ -12,7 +12,6 @@ const updateMutex = new Mutex();
 export { renameFolderInUserConfig };
 
 const DEFAULT_USER_CONFIG: UserConfig = {
-  applicationLanguage: 'zh-CN',
   tmdb: {
     host: '',
     apiKey: '',

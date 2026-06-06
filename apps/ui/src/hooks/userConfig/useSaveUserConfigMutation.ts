@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { HelloResponseBody, UserConfig } from "@core/types"
+import { resolveAppLanguage } from "@core/locale"
 import { writeFile } from "@/api/writeFile"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { changeLanguage } from "@/lib/i18n"
@@ -19,7 +20,12 @@ export function useSaveUserConfigMutation() {
       const prev =
         queryClient.getQueryData<UserConfig>(userConfigQueryKey(dir)) ?? defaultUserConfig
       if (config.applicationLanguage !== prev.applicationLanguage) {
-        await changeLanguage(config.applicationLanguage)
+        const resolved = resolveAppLanguage({
+          configured: config.applicationLanguage,
+          browserLocale: typeof navigator !== "undefined" ? navigator.language : undefined,
+          osLocale: helloData?.osLocale,
+        })
+        await changeLanguage(resolved)
       }
       const filePath = join(dir, "smm.json")
       await writeFile(filePath, JSON.stringify(config), 'overwrite', traceId)

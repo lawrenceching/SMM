@@ -9,6 +9,8 @@ import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
+import { resolveAppLanguage } from "@core/locale"
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { startMcpServer, stopMcpServer } from "@/api/mcp"
 
 const THEME_OPTIONS = ["light", "dark", "system"] as const
@@ -20,7 +22,21 @@ const PRIMARY_DATABASE_OPTIONS: {
   { value: 'TVDB', labelKey: 'general.primaryDatabaseTvdb' },
 ]
 
+const APPLICATION_LANGUAGE_UNSET = "__unset__"
+type ApplicationLanguageFormValue = SupportedLanguage | typeof APPLICATION_LANGUAGE_UNSET
 const PREFER_MEDIA_LANGUAGE_UNSET = "__unset__"
+const APPLICATION_LANGUAGE_OPTIONS: Array<{
+  value: SupportedLanguage | typeof APPLICATION_LANGUAGE_UNSET
+  labelKey: "general.applicationLanguageUnset" | null
+  name?: string
+}> = [
+  { value: APPLICATION_LANGUAGE_UNSET, labelKey: "general.applicationLanguageUnset" },
+  ...SUPPORTED_APP_LANGUAGES.map((lang) => ({
+    value: lang.code,
+    labelKey: null as null,
+    name: lang.name,
+  })),
+]
 const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{
   value: PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET
   labelKey:
@@ -38,11 +54,13 @@ const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{
 export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
   const { userConfig, setAndSaveUserConfig } = useConfig()
+  const helloQuery = useHelloQuery()
   const { t } = useTranslation(['settings', 'common'])
 
   // Track initial values
   const initialValues = useMemo(() => ({
-    applicationLanguage: userConfig.applicationLanguage || 'zh-CN',
+    applicationLanguage: (userConfig.applicationLanguage ??
+      APPLICATION_LANGUAGE_UNSET) as ApplicationLanguageFormValue,
     tmdbHost: userConfig.tmdb?.host || '',
     tmdbApiKey: userConfig.tmdb?.apiKey || '',
     tmdbProxy: userConfig.tmdb?.httpProxy || '',
@@ -56,7 +74,9 @@ export function GeneralSettings() {
   }), [userConfig])
 
   // Track current form values
-  const [applicationLanguage, setApplicationLanguage] = useState<SupportedLanguage>(initialValues.applicationLanguage as SupportedLanguage)
+  const [applicationLanguage, setApplicationLanguage] = useState<ApplicationLanguageFormValue>(
+    initialValues.applicationLanguage,
+  )
   const [tmdbHost, setTmdbHost] = useState(initialValues.tmdbHost)
   const [tmdbApiKey, setTmdbApiKey] = useState(initialValues.tmdbApiKey)
   const [tmdbProxy, setTmdbProxy] = useState(initialValues.tmdbProxy)
@@ -118,16 +138,24 @@ export function GeneralSettings() {
     const traceId = `GeneralSettings-${nextTraceId()}`;
     console.log(`[${traceId}] GeneralSettings: Saving general settings`)
 
+    const savedApplicationLanguage =
+      applicationLanguage === APPLICATION_LANGUAGE_UNSET ? undefined : applicationLanguage
+
     // Change i18n language if language changed
-    if (applicationLanguage !== userConfig.applicationLanguage) {
-      console.log(`[${traceId}] GeneralSettings: Changing language to ${applicationLanguage}`)
-      await changeLanguage(applicationLanguage)
+    if (savedApplicationLanguage !== userConfig.applicationLanguage) {
+      const resolved = resolveAppLanguage({
+        configured: savedApplicationLanguage,
+        browserLocale: typeof navigator !== "undefined" ? navigator.language : undefined,
+        osLocale: helloQuery.data?.osLocale,
+      })
+      console.log(`[${traceId}] GeneralSettings: Changing language to ${resolved}`)
+      await changeLanguage(resolved)
     }
 
     const parsedMcpPort = Number(mcpPort)
     const updatedConfig = {
       ...userConfig,
-      applicationLanguage: applicationLanguage,
+      applicationLanguage: savedApplicationLanguage,
       tmdb: {
         ...userConfig.tmdb,
         host: tmdbHost || undefined,
@@ -185,15 +213,21 @@ export function GeneralSettings() {
           <Label htmlFor="language">{t('general.language')}</Label>
           <Select
             value={applicationLanguage}
-            onValueChange={(value) => setApplicationLanguage(value as SupportedLanguage)}
+            onValueChange={(value) =>
+              setApplicationLanguage(value as SupportedLanguage | typeof APPLICATION_LANGUAGE_UNSET)
+            }
           >
             <SelectTrigger id="language" data-testid="setting-language-trigger">
               <SelectValue placeholder={t('general.languageDescription')} />
             </SelectTrigger>
             <SelectContent data-testid="setting-language-content">
-              {SUPPORTED_APP_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.code} value={lang.code} data-testid={`setting-language-option-${lang.code}`}>
-                  {lang.name}
+              {APPLICATION_LANGUAGE_OPTIONS.map((opt) => (
+                <SelectItem
+                  key={opt.value}
+                  value={opt.value}
+                  data-testid={`setting-language-option-${opt.value}`}
+                >
+                  {opt.labelKey ? t(opt.labelKey) : opt.name}
                 </SelectItem>
               ))}
             </SelectContent>

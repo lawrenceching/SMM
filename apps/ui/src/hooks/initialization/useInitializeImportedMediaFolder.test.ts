@@ -127,6 +127,12 @@ vi.mock("@/hooks/userConfig", () => ({
     }),
 }));
 
+vi.mock("@/hooks/userConfig/useHelloQuery", () => ({
+    useHelloQuery: () => ({
+        data: { osLocale: "en-US" },
+    }),
+}));
+
 vi.mock("@/lib/mediaFolderRecognitionPipeline", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/lib/mediaFolderRecognitionPipeline")>();
     return {

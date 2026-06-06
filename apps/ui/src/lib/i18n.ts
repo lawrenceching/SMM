@@ -2,6 +2,7 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import Backend from 'i18next-http-backend'
+import { normalizeToAppLanguage } from '@core/locale'
 
 // Supported languages
 export const SUPPORTED_APP_LANGUAGES = [
@@ -26,22 +27,7 @@ const detectionOptions = {
   
   // Convert detected language to supported locale
   convertDetectedLanguage: (lng: string): string => {
-    // Map browser languages to supported locales
-    if (lng.startsWith('zh')) {
-      if (lng === 'zh-HK' || lng.startsWith('zh-HK')) {
-        return 'zh-HK'
-      }
-      if (lng === 'zh-TW' || lng.startsWith('zh-TW')) {
-        return 'zh-TW'
-      }
-      // Default to Simplified Chinese for other zh variants
-      return 'zh-CN'
-    }
-    if (lng.startsWith('en')) {
-      return 'en'
-    }
-    // Fallback to default (Chinese Simplified)
-    return 'zh-CN'
+    return normalizeToAppLanguage(lng) ?? 'en'
   },
 }
 
@@ -53,9 +39,7 @@ export const i18nReady = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    // Default language
-    lng: 'zh-CN',
-    fallbackLng: 'zh-CN',
+    fallbackLng: 'en',
     
     // Namespaces
     ns: ['common', 'components', 'dialogs', 'settings', 'errors', 'validation'],
