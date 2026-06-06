@@ -53,8 +53,8 @@ describe("useTvdbSearchLanguageOptions", () => {
 
     expect(result.current.data).toEqual([
       { code: "eng", name: "English (eng)" },
-      { code: "zho", name: "Chinese (zho)" },
-      { code: "fra", name: "French (fra)" },
+      { code: "zho", name: "中文 (zho)" },
+      { code: "fra", name: "Français (fra)" },
     ])
   })
 

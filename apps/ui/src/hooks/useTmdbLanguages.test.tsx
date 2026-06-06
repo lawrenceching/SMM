@@ -51,8 +51,8 @@ describe("useTmdbSearchLanguageOptions", () => {
 
     expect(result.current.data).toEqual([
       { code: "en-US", name: "English (en-US)" },
-      { code: "zh-CN", name: "Chinese (zh-CN)" },
-      { code: "fr-FR", name: "French (fr-FR)" },
+      { code: "zh-CN", name: "中文 (zh-CN)" },
+      { code: "fr-FR", name: "Français (fr-FR)" },
     ])
   })
 
@@ -87,7 +87,7 @@ describe("useTmdbSearchLanguageOptions", () => {
 
     expect(result.current.data).toEqual([
       { code: "en-US", name: "English (en-US)" },
-      { code: "zh-CN", name: "Chinese (zh-CN)" },
+      { code: "zh-CN", name: "中文 (zh-CN)" },
     ])
   })
 })

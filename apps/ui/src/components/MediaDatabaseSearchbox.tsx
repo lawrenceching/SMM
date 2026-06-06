@@ -26,6 +26,7 @@ import {
   TVDB_PRIORITY_LANGUAGE_CODES,
   type TvdbSearchLanguageOption,
 } from "@/hooks/useTvdbLanguages"
+import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 import localStorages from "@/lib/localStorages"
 import {
   preferMediaLanguageToTvdbCode,
@@ -126,14 +127,15 @@ export function MediaDatabaseSearchbox({
     const prioritySet = new Set(priority)
 
     // Build the priority list from known codes. When `activeLanguageOptions` is
-    // still loading (`undefined`), we fall back to `{ code, name: code }` so that
-    // `SelectItem`s are rendered immediately — this ensures `<SelectValue />` (bare)
-    // can always find a matching item via Radix's item-text lookup.
+    // still loading (`undefined`), we fall back to a native-name placeholder so
+    // that `SelectItem`s are rendered immediately — this ensures
+    // `<SelectValue />` (bare) can always find a matching item via Radix's
+    // item-text lookup.
     const priorityList: Array<TmdbSearchLanguageOption | TvdbSearchLanguageOption> = []
     for (const code of priority) {
       const found = activeLanguageOptions?.find((o) => o.code === code)
       if (found) priorityList.push(found)
-      else priorityList.push({ code, name: code })
+      else priorityList.push({ code, name: getLanguageDisplayName(code) })
     }
 
     // Also include the currently selected language if it is NOT in the priority
@@ -146,7 +148,7 @@ export function MediaDatabaseSearchbox({
       ? undefined
       : (activeLanguageOptions?.find((o) => o.code === searchLanguage) ?? {
           code: searchLanguage,
-          name: searchLanguage,
+          name: getLanguageDisplayName(searchLanguage),
         })
 
     if (!showAllLanguages) {

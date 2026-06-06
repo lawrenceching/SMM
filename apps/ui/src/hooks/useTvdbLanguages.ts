@@ -5,6 +5,7 @@ import { getTvdbLanguages, SMM_TVDB_DEFAULT_UPSTREAM, type GetTVDBv4ClientOverri
 import { useConfig } from "@/hooks/userConfig"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import type { HelloResponseBody } from "@core/types"
+import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 
 const STALE_MS = 24 * 60 * 60 * 1000
 
@@ -64,7 +65,7 @@ export function useTvdbSearchLanguageOptions(): {
       if (!lang.id || seen.has(lang.id)) continue
       seen.add(lang.id)
       const english = lang.name?.trim() || lang.id
-      list.push({ code: lang.id, name: `${english} (${lang.id})` })
+      list.push({ code: lang.id, name: getLanguageDisplayName(lang.id, english) })
     }
     return list
   }, [languages.data])

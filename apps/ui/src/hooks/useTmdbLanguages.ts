@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import type { HelloResponseBody } from "@core/types"
 import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
+import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 
 const STALE_MS = 24 * 60 * 60 * 1000
 
@@ -93,7 +94,7 @@ export function useTmdbSearchLanguageOptions(): {
       const iso6391 = tag.split("-")[0]?.toLowerCase() ?? ""
       const lang = nameByIso6391.get(iso6391)
       const english = lang?.english_name ?? iso6391.toUpperCase()
-      list.push({ code: tag, name: `${english} (${tag})` })
+      list.push({ code: tag, name: getLanguageDisplayName(tag, english) })
     }
     return list
   }, [primary.data, languages.data])

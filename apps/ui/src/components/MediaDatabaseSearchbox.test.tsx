@@ -66,11 +66,11 @@ vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mockFn = vi.fn<any>(() => ({
     data: [
-      { code: 'zh-CN', name: 'Chinese (zh-CN)' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
       { code: 'en-US', name: 'English (en-US)' },
-      { code: 'ja-JP', name: 'Japanese (ja-JP)' },
-      { code: 'fr-FR', name: 'French (fr-FR)' },
-      { code: 'de-DE', name: 'German (de-DE)' },
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
+      { code: 'fr-FR', name: 'Français (fr-FR)' },
+      { code: 'de-DE', name: 'Deutsch (de-DE)' },
     ],
     isLoading: false,
     error: null,
@@ -150,11 +150,11 @@ describe('MediaDatabaseSearchbox', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: [
-        { code: 'zh-CN', name: 'Chinese (zh-CN)' },
+        { code: 'zh-CN', name: '中文 (zh-CN)' },
         { code: 'en-US', name: 'English (en-US)' },
-        { code: 'ja-JP', name: 'Japanese (ja-JP)' },
-        { code: 'fr-FR', name: 'French (fr-FR)' },
-        { code: 'de-DE', name: 'German (de-DE)' },
+        { code: 'ja-JP', name: '日本語 (ja-JP)' },
+        { code: 'fr-FR', name: 'Français (fr-FR)' },
+        { code: 'de-DE', name: 'Deutsch (de-DE)' },
       ],
       isLoading: false,
       error: null,
@@ -313,9 +313,9 @@ describe('MediaDatabaseSearchbox', () => {
 
     expect(mockImmersiveSearchboxProps.current.showAllLanguages).toBe(false)
     expect(mockImmersiveSearchboxProps.current.searchLanguageOptions).toEqual([
-      { code: 'zh-CN', name: 'Chinese (zh-CN)' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
       { code: 'en-US', name: 'English (en-US)' },
-      { code: 'ja-JP', name: 'Japanese (ja-JP)' },
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
     ])
   })
 
@@ -330,11 +330,11 @@ describe('MediaDatabaseSearchbox', () => {
     // The 3 default languages are still pinned at the top, followed by
     // every other language. The defaults are NOT repeated.
     expect(mockImmersiveSearchboxProps.current.searchLanguageOptions).toEqual([
-      { code: 'zh-CN', name: 'Chinese (zh-CN)' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
       { code: 'en-US', name: 'English (en-US)' },
-      { code: 'ja-JP', name: 'Japanese (ja-JP)' },
-      { code: 'fr-FR', name: 'French (fr-FR)' },
-      { code: 'de-DE', name: 'German (de-DE)' },
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
+      { code: 'fr-FR', name: 'Français (fr-FR)' },
+      { code: 'de-DE', name: 'Deutsch (de-DE)' },
     ])
   })
 
@@ -356,7 +356,8 @@ describe('MediaDatabaseSearchbox', () => {
     // When the TanStack Query hook returns `data: undefined` (still loading),
     // `displayedLanguageOptions` must still produce the 3 priority items so
     // that `<SelectValue />` (bare) can find a match and display the current
-    // `searchLanguage`. The fallback items use `{ code, name: code }`.
+    // `searchLanguage`. The fallback items use `getLanguageDisplayName(code)`
+    // to show native-language names even while loading.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: undefined,
@@ -366,11 +367,11 @@ describe('MediaDatabaseSearchbox', () => {
 
     render(<MediaDatabaseSearchbox {...defaultProps} />, { wrapper: createWrapper() })
 
-    // The priority codes are still rendered as fallback items (code-as-name).
+    // The priority codes are rendered as fallback items with native names.
     expect(mockImmersiveSearchboxProps.current.searchLanguageOptions).toEqual([
-      { code: 'zh-CN', name: 'zh-CN' },
-      { code: 'en-US', name: 'en-US' },
-      { code: 'ja-JP', name: 'ja-JP' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
+      { code: 'en-US', name: 'English (en-US)' },
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
     ])
   })
 
@@ -388,12 +389,12 @@ describe('MediaDatabaseSearchbox', () => {
 
     render(<MediaDatabaseSearchbox {...defaultProps} />, { wrapper: createWrapper() })
 
-    // The 3 priority items + the selected "fr-FR" (code-as-name fallback) are rendered.
+    // The 3 priority items + the selected "fr-FR" with native name are rendered.
     expect(mockImmersiveSearchboxProps.current.searchLanguageOptions).toEqual([
-      { code: 'zh-CN', name: 'zh-CN' },
-      { code: 'en-US', name: 'en-US' },
-      { code: 'ja-JP', name: 'ja-JP' },
-      { code: 'fr-FR', name: 'fr-FR' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
+      { code: 'en-US', name: 'English (en-US)' },
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
+      { code: 'fr-FR', name: 'Français (fr-FR)' },
     ])
   })
 
@@ -429,22 +430,22 @@ describe('MediaDatabaseSearchbox', () => {
       (o: { code: string }) => o.code === 'fr-FR',
     )
     expect(frFR).toBeDefined()
-    expect(frFR!.name).toBe('French (fr-FR)')
+    expect(frFR!.name).toBe('Français (fr-FR)')
   })
 
-  it('shows the selected non-priority language with API name in collapsed view when data is loaded', () => {
+  it('shows the selected non-priority language with native name in collapsed view when data is loaded', () => {
     // When a non-priority language is stored in localStorage AND the API has
     // returned the language list, the collapsed view shows the API entry (with
-    // the proper name) rather than the fallback code-as-name item.
+    // the native name) rather than the fallback code-as-name item.
     localStorages.lastSelectedTmdbLanguage = 'fr-FR'
 
     render(<MediaDatabaseSearchbox {...defaultProps} />, { wrapper: createWrapper() })
 
     expect(mockImmersiveSearchboxProps.current.searchLanguageOptions).toEqual([
-      { code: 'zh-CN', name: 'Chinese (zh-CN)' },
+      { code: 'zh-CN', name: '中文 (zh-CN)' },
       { code: 'en-US', name: 'English (en-US)' },
-      { code: 'ja-JP', name: 'Japanese (ja-JP)' },
-      { code: 'fr-FR', name: 'French (fr-FR)' }, // API entry with proper name
+      { code: 'ja-JP', name: '日本語 (ja-JP)' },
+      { code: 'fr-FR', name: 'Français (fr-FR)' },
     ])
   })
 })
