@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Sidebar } from "@/components/v2/Sidebar"
 import { Toolbar } from "@/components/v2/Toolbar"
@@ -20,6 +20,7 @@ import MoviePanel from "./components/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
+import { useFeatures } from "@/hooks/useFeatures"
 import { isNotNil } from "es-toolkit"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import {
@@ -35,6 +36,9 @@ import {
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
 import localStorages from "@/lib/localStorages"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
+import type { ImperativePanelHandle } from "react-resizable-panels"
+import { AIArea } from "@/components/AIArea"
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
 function AppV2Content() {
@@ -42,15 +46,44 @@ function AppV2Content() {
   // No need to call useWebSocket() here anymore
   const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
 
-  const [sidebarWidth, setSidebarWidth] = useState(250) // 初始侧边栏宽度
-  const [isResizing, setIsResizing] = useState(false)
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const resizeRef = useRef<HTMLDivElement>(null)
-
   const { folders: uiFolders, selectedFolder } = useUIMediaFolderStoreState()
+  const { isAiAreaEnabled } = useFeatures()
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
+
+  // AI Area collapse state (only relevant when isAiAreaEnabled)
+  const [isAIAreaCollapsed, setIsAIAreaCollapsed] = useState(false)
+  const [isAIAreaAnimating, setIsAIAreaAnimating] = useState(false)
+  const aiAreaPanelRef = useRef<ImperativePanelHandle>(null)
+  const animateTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  const handleToggleAIArea = useCallback(() => {
+    const panel = aiAreaPanelRef.current
+    if (!panel) return
+
+    // Clear any pending animation timer
+    if (animateTimerRef.current) {
+      clearTimeout(animateTimerRef.current)
+      animateTimerRef.current = undefined
+    }
+
+    setIsAIAreaAnimating(true)
+
+    // Let React commit the transition class to DOM before changing size
+    requestAnimationFrame(() => {
+      if (panel.isCollapsed()) {
+        panel.expand()
+      } else {
+        panel.collapse()
+      }
+    })
+
+    // Remove animation class after transition completes
+    animateTimerRef.current = setTimeout(() => {
+      setIsAIAreaAnimating(false)
+    }, 320)
+  }, [])
 
   // Dialogs
   const { openFolderDialog, filePickerDialog } = useDialogs()
@@ -382,205 +415,108 @@ function AppV2Content() {
     ]
   )
 
-  // 最小和最大侧边栏宽度
-  const MIN_SIDEBAR_WIDTH = 150
-  const MAX_SIDEBAR_WIDTH = 500
-
-  // 开始拖拽调整大小
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsResizing(true)
-  }, [])
-
-  // 处理触摸开始（移动设备）
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    setIsResizing(true)
-  }, [])
-
-  // 拖拽调整大小
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return
-
-      const newWidth = e.clientX
-      if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
-        setSidebarWidth(newWidth)
-      }
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-    }
-
-    // 处理触摸移动（移动设备）
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isResizing) return
-
-      const touch = e.touches[0]
-      if (touch) {
-        const newWidth = touch.clientX
-        if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
-          setSidebarWidth(newWidth)
-        }
-      }
-    }
-
-    const handleTouchEnd = () => {
-      setIsResizing(false)
-    }
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-      document.addEventListener("touchmove", handleTouchMove, { passive: false })
-      document.addEventListener("touchend", handleTouchEnd)
-      document.body.style.cursor = "col-resize"
-      document.body.style.userSelect = "none"
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-      document.removeEventListener("touchmove", handleTouchMove)
-      document.removeEventListener("touchend", handleTouchEnd)
-      document.body.style.cursor = ""
-      document.body.style.userSelect = ""
-    }
-  }, [isResizing])
-
   return (
-    <div className="h-screen w-screen overflow-hidden">
-      <div
-        className="grid-container"
-        style={{
-          display: "grid",
-          gridTemplateAreas: `
-            "warning warning"
-            "toolbar toolbar"
-            "sidebar content"
-            "statusbar statusbar"
-          `,
-          gridTemplateRows: "auto auto 1fr auto",
-          gridTemplateColumns: `${sidebarWidth}px 1fr`,
-          height: "100vh",
-          width: "100vw",
-        }}
-      >
-        {/* Warning Banner */}
-        <div style={{ gridArea: "warning" }}>
-          <AppWarningBanner />
-        </div>
-
-        {/* 工具栏 */}
-        <div
-          className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm"
-          style={{ gridArea: "toolbar" }}
-        >
-          <Toolbar 
-            onOpenFolderMenuClick={handleOpenFolderMenuClick}
-            onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            viewSwitcherDisabled={
-              uiFolders.length === 0 ||
-              !selectedMediaMetadata ||
-              folderStatus === "folder_not_found"
-            }
-          />
-        </div>
-
-        {/* 侧边栏 */}
-        <div
-          ref={sidebarRef}
-          className="relative min-w-0 overflow-hidden border-r border-border bg-muted/30"
-          style={{ gridArea: "sidebar" }}
-        >
-          <Sidebar onDeleteSelected={onDeleteSelected} />
-
-          {/* 拖拽调整大小的手柄 */}
-          <div
-            ref={resizeRef}
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-            className={`absolute top-0 -right-0.5 z-10 h-full w-2 cursor-col-resize touch-none transition-colors ${
-              isResizing ? "bg-primary" : "bg-transparent hover:bg-muted-foreground/30"
-            }`}
-          />
-        </div>
-
-        {/* 内容区 */}
-        <div
-          className="flex flex-col overflow-hidden bg-background"
-          style={{ gridArea: "content" }}
-        >
-          {uiFolders.length === 0 && (
-            <div style={{ padding: "20px", overflow: "auto" }}>
-              <Welcome onImportFolderClick={handleOpenFolderMenuClick} />
+    <div className="h-screen w-screen overflow-hidden flex flex-col">
+      <AppWarningBanner />
+      <div className="flex-1 min-h-0">
+        <ResizablePanelGroup key={isAiAreaEnabled ? "with-ai" : "no-ai"} direction="horizontal">
+          {/* Left panel: Toolbar + (Sidebar | Content) */}
+          <ResizablePanel defaultSize={75} minSize={50}>
+            <div className="flex flex-col h-full">
+              {/* Toolbar */}
+              <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm">
+                <Toolbar 
+                  onOpenFolderMenuClick={handleOpenFolderMenuClick}
+                  onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  viewSwitcherDisabled={
+                    uiFolders.length === 0 ||
+                    !selectedMediaMetadata ||
+                    folderStatus === "folder_not_found"
+                  }
+                  onToggleAIArea={isAiAreaEnabled ? handleToggleAIArea : undefined}
+                  isAIAreaCollapsed={isAIAreaCollapsed}
+                />
+              </div>
+              {/* Sidebar | Content */}
+              <div className="flex-1 min-h-0">
+                <ResizablePanelGroup direction="horizontal">
+                  {/* Sidebar */}
+                  <ResizablePanel defaultSize={20} minSize={15} maxSize={45}>
+                    <div className="min-w-0 overflow-hidden border-r border-border bg-muted/30 h-full">
+                      <Sidebar onDeleteSelected={onDeleteSelected} />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  {/* Content */}
+                  <ResizablePanel>
+                    <div className="flex flex-col overflow-hidden bg-background h-full">
+                      {uiFolders.length === 0 && (
+                        <div style={{ padding: "20px", overflow: "auto" }}>
+                          <Welcome onImportFolderClick={handleOpenFolderMenuClick} />
+                        </div>
+                      )}
+                      {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (
+                        <FolderNotAvailablePanel />
+                      )}
+                      {uiFolders.length > 0 && folderStatus !== "folder_not_found" && selectedMediaMetadata && (
+                        <>
+                          {viewMode === "metadata" && (
+                            <>
+                              {selectedMediaMetadata.type === "tvshow-folder" && (
+                                <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                                  <TvShowPanel />
+                                </div>
+                              )}
+                              {selectedMediaMetadata.type === "movie-folder" && (
+                                <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                                  <MoviePanel />
+                                </div>
+                              )}
+                              {selectedMediaMetadata.type === "music-folder" && (
+                                <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                                  <MusicPanel />
+                                </div>
+                              )}
+                              {selectedMediaMetadata.type !== "tvshow-folder" 
+                              && selectedMediaMetadata.type !== "movie-folder"
+                              && selectedMediaMetadata.type !== "music-folder" 
+                              && (folderStatus === "ok" || folderStatus === "error_loading_metadata")
+                              && (
+                                <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                              )}
+                            </>
+                          )}
+                          {viewMode === "files" && (
+                            <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </div>
             </div>
-          )}
-          {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (
-            <FolderNotAvailablePanel />
-          )}
-          {uiFolders.length > 0 && folderStatus !== "folder_not_found" && selectedMediaMetadata && (
-            <>
-              {viewMode === "metadata" && (
-                <>
-
-                  {selectedMediaMetadata.type === "tvshow-folder" && (
-                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      <TvShowPanel />
-                    </div>
-                  )}
-                  {selectedMediaMetadata.type === "movie-folder" && (
-                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      <MoviePanel />
-                    </div>
-                  )}
-                  {selectedMediaMetadata.type === "music-folder" && (
-                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      <MusicPanel />
-                    </div>
-                  )}
-
-                  {selectedMediaMetadata.type !== "tvshow-folder" 
-                  && selectedMediaMetadata.type !== "movie-folder"
-                  && selectedMediaMetadata.type !== "music-folder" 
-                  && (folderStatus === "ok" || folderStatus === "error_loading_metadata")
-                  && (
-                    <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
-                  )}
-                </>
-              )}
-              {viewMode === "files" && (
-                <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />
-              )}
-            </>
-          )}
-        </div>
-
-        {/* 状态栏 */}
-        <div
-          style={{
-            gridArea: "statusbar",
-          }}
-        >
-          <StatusBar />
-        </div>
+          </ResizablePanel>
+          {isAiAreaEnabled && <ResizableHandle withHandle />}
+          {isAiAreaEnabled && <ResizablePanel
+            ref={aiAreaPanelRef}
+            className={isAIAreaAnimating ? "transition-all duration-300 ease-in-out" : ""}
+            defaultSize={25}
+            minSize={10}
+            maxSize={50}
+            collapsible
+            collapsedSize={0}
+            onCollapse={() => setIsAIAreaCollapsed(true)}
+            onExpand={() => setIsAIAreaCollapsed(false)}
+          >
+            <AIArea />
+          </ResizablePanel>}
+        </ResizablePanelGroup>
       </div>
-
-      {/* 全局拖拽时的遮罩层样式 */}
-      {isResizing && (
-        <style>{`
-          * {
-            cursor: col-resize !important;
-            user-select: none !important;
-          }
-        `}</style>
-      )}
-
+      <StatusBar />
       <Assistant />
-      {/* WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch */}
       <Toaster position="bottom-right" />
     </div>
   )

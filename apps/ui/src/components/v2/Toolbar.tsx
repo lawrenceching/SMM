@@ -1,5 +1,7 @@
 import { Menu } from "@/components/menu"
 import { ViewSwitcher, type ViewMode } from "./ViewSwitcher"
+import { Button } from "@/components/ui/button"
+import { Bot } from "lucide-react"
 
 export interface ToolbarProps {
   onOpenFolderMenuClick?: () => void
@@ -7,6 +9,8 @@ export interface ToolbarProps {
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
   viewSwitcherDisabled?: boolean
+  onToggleAIArea?: () => void
+  isAIAreaCollapsed?: boolean
 }
 
 export function Toolbar({ 
@@ -14,7 +18,9 @@ export function Toolbar({
   onOpenMediaLibraryMenuClick,
   viewMode, 
   onViewModeChange, 
-  viewSwitcherDisabled 
+  viewSwitcherDisabled,
+  onToggleAIArea,
+  isAIAreaCollapsed,
 }: ToolbarProps) {
   return (
     <div
@@ -28,13 +34,26 @@ export function Toolbar({
       }}
     >
       <Menu onOpenFolderMenuClick={onOpenFolderMenuClick} onOpenMediaLibraryMenuClick={onOpenMediaLibraryMenuClick} />
-      {viewMode !== undefined && onViewModeChange && (
-        <ViewSwitcher 
-          viewMode={viewMode} 
-          onViewModeChange={onViewModeChange}
-          disabled={viewSwitcherDisabled}
-        />
-      )}
+      <div className="flex items-center gap-1.5">
+        {viewMode !== undefined && onViewModeChange && (
+          <ViewSwitcher 
+            viewMode={viewMode} 
+            onViewModeChange={onViewModeChange}
+            disabled={viewSwitcherDisabled}
+          />
+        )}
+        {onToggleAIArea && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleAIArea}
+            className="h-8 w-8"
+            title={isAIAreaCollapsed ? "打開AI區域" : "關閉AI區域"}
+          >
+            <Bot className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

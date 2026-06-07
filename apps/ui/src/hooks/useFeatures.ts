@@ -6,6 +6,7 @@ const MOBILE_LAYOUT_STORAGE_KEY = "features.isMobileLayoutEnabled"
 const TTY_FOR_YTDLP_STORAGE_KEY = "features.enableTtyForYtdlpCommand"
 const PRINT_ARG_FOR_YTDLP_STORAGE_KEY = "features.enablePrintArgInYtdlpCommand"
 const DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY = "features.isDisplayFeatureCardsInWelcomeEnabled"
+const AI_AREA_STORAGE_KEY = "features.isAiAreaEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -115,6 +116,27 @@ function writeVideoCaptionerAsrOptionsEnabled(enabled: boolean): void {
   }
 }
 
+/** Default: disabled until the user opts in — feature not yet complete. */
+function readAiAreaEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(AI_AREA_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeAiAreaEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(AI_AREA_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 /** Default: enabled when the user has never set a preference (`null`). */
 function readDisplayFeatureCardsInWelcomeEnabled(): boolean {
   if (typeof window === "undefined") return true
@@ -168,6 +190,10 @@ function getRuntimePlatform(): string | undefined {
 }
 
 export interface UseFeaturesResult {
+  /** When true, the AI Area panel on the right side of the layout is visible.
+   *  Defaults to false while the feature is still under development. */
+  isAiAreaEnabled: boolean
+  setIsAiAreaEnabled: (enabled: boolean) => void
   /** Subtitle / transcribe via VideoCaptioner is supported on this OS build. */
   isTranscribeEnabled: boolean
   /**
@@ -241,6 +267,10 @@ export function useFeatures(): UseFeaturesResult {
     readPrintArgForYtdlpEnabled,
   )
 
+  const [isAiAreaEnabled, setIsAiAreaEnabled] = useState(
+    readAiAreaEnabled,
+  )
+
   const [isDisplayFeatureCardsInWelcomeEnabled, setIsDisplayFeatureCardsInWelcomeEnabled] = useState(
     readDisplayFeatureCardsInWelcomeEnabled,
   )
@@ -261,6 +291,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === PRINT_ARG_FOR_YTDLP_STORAGE_KEY) {
         setPrintArgState(readPrintArgForYtdlpEnabled())
+      }
+      if (event.key === AI_AREA_STORAGE_KEY) {
+        setIsAiAreaEnabled(readAiAreaEnabled())
       }
       if (event.key === DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY) {
         setIsDisplayFeatureCardsInWelcomeEnabled(readDisplayFeatureCardsInWelcomeEnabled())
@@ -295,6 +328,11 @@ export function useFeatures(): UseFeaturesResult {
     setPrintArgState(enabled)
   }, [])
 
+  const setAiAreaEnabled = useCallback((enabled: boolean) => {
+    writeAiAreaEnabled(enabled)
+    setIsAiAreaEnabled(enabled)
+  }, [])
+
   const setIsDisplayFeatureCardsInWelcomeEnabledCallback = useCallback((enabled: boolean) => {
     writeDisplayFeatureCardsInWelcomeEnabled(enabled)
     setIsDisplayFeatureCardsInWelcomeEnabled(enabled)
@@ -313,6 +351,8 @@ export function useFeatures(): UseFeaturesResult {
       setEnableTtyForYtdlpCommand,
       enablePrintArgInYtdlpCommand,
       setEnablePrintArgInYtdlpCommand,
+      isAiAreaEnabled,
+      setAiAreaEnabled,
       isDisplayFeatureCardsInWelcomeEnabled,
       setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     }),
@@ -328,6 +368,8 @@ export function useFeatures(): UseFeaturesResult {
       setEnableTtyForYtdlpCommand,
       enablePrintArgInYtdlpCommand,
       setEnablePrintArgInYtdlpCommand,
+      isAiAreaEnabled,
+      setAiAreaEnabled,
       isDisplayFeatureCardsInWelcomeEnabled,
       setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     ],
