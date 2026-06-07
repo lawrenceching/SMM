@@ -1,6 +1,6 @@
 {
   "name": "@smm/utils",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
