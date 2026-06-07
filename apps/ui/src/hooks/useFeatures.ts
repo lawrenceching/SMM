@@ -352,7 +352,7 @@ export function useFeatures(): UseFeaturesResult {
       enablePrintArgInYtdlpCommand,
       setEnablePrintArgInYtdlpCommand,
       isAiAreaEnabled,
-      setAiAreaEnabled,
+      setIsAiAreaEnabled: setAiAreaEnabled,
       isDisplayFeatureCardsInWelcomeEnabled,
       setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     }),

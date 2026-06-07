@@ -56,7 +56,7 @@ function AppV2Content() {
   const [isAIAreaCollapsed, setIsAIAreaCollapsed] = useState(false)
   const [isAIAreaAnimating, setIsAIAreaAnimating] = useState(false)
   const aiAreaPanelRef = useRef<ImperativePanelHandle>(null)
-  const animateTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const animateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleToggleAIArea = useCallback(() => {
     const panel = aiAreaPanelRef.current
@@ -416,15 +416,15 @@ function AppV2Content() {
   )
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col">
+    <div className="flex h-full w-full flex-col overflow-hidden">
       <AppWarningBanner />
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <ResizablePanelGroup key={isAiAreaEnabled ? "with-ai" : "no-ai"} direction="horizontal">
           {/* Left panel: Toolbar + (Sidebar | Content) */}
           <ResizablePanel defaultSize={75} minSize={50}>
             <div className="flex flex-col h-full">
               {/* Toolbar */}
-              <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm">
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm">
                 <Toolbar 
                   onOpenFolderMenuClick={handleOpenFolderMenuClick}
                   onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}

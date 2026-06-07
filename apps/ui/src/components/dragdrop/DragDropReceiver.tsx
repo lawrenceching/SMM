@@ -160,7 +160,7 @@ export function DragDropReceiver({ children }: { children: ReactNode }) {
   // ---- Electron: event wrapper + overlay --------------------------------
   return (
     <div
-      className="relative h-screen w-screen"
+      className="relative h-full w-full"
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}

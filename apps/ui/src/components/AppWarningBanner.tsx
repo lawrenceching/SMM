@@ -81,7 +81,7 @@ export function AppWarningBanner() {
   return (
     <div
       data-testid="app-warning-banner"
-      className="w-full border-b"
+      className="w-full shrink-0 border-b"
       style={{
         backgroundColor: "oklch(0.98 0.06 50)",
         borderColor: "oklch(0.75 0.12 45)",

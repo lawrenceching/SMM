@@ -28,7 +28,7 @@ export default function AppNavigation() {
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
-      <div className="relative h-screen w-screen overflow-hidden bg-background">
+      <div className="relative h-full w-full overflow-hidden bg-background">
       {/* 列表页 */}
       <div
         className="absolute inset-0 flex h-full w-full flex-col bg-muted/30 transition-transform duration-300 ease-out"

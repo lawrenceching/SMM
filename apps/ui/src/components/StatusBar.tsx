@@ -106,7 +106,7 @@ export function StatusBar({
         <div
             data-testid="status-bar"
             className={cn(
-                "h-8 w-full flex gap-2 items-center",
+                "h-8 w-full shrink-0 flex gap-2 items-center",
                 "bg-muted/50 border-t border-border",
                 "px-4 text-xs",
                 "text-muted-foreground",
