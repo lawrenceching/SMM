@@ -421,10 +421,6 @@ async function startCLI(): Promise<void> {
   }
 }
 
-function stopCLI(): void {
-  void stopCLIGracefully()
-}
-
 async function stopCLIGracefully(): Promise<void> {
   const proc = cliProcess
   if (!proc) {
@@ -552,10 +548,6 @@ function startUIDev(): void {
 /**
  * Stop CLI and UI dev processes
  */
-function stopDevProcesses(): void {
-  void stopDevProcessesGracefully()
-}
-
 async function stopDevProcessesGracefully(): Promise<void> {
   const cliProc = cliDevProcess
   if (cliProc) {
