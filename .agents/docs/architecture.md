@@ -1,5 +1,46 @@
 # Architecture
 
+## Multi-Platform Architecture
+
+All desktop targets (Windows, macOS, Linux, HarmonyOS) use **Electron** as the shell. They share `apps/ui`, `packages/core-routes`, and `packages/core`. The difference is how the backend is hosted: desktop Electron spawns `apps/cli`; HarmonyOS Electron embeds `core-routes` in Main; Docker/Browser runs `apps/cli` without Electron.
+
+```mermaid
+flowchart TB
+  CORE["packages/core"]
+  CR["packages/core-routes"]
+  UI["apps/ui"]
+  CR --> CORE
+
+  subgraph desktop ["Windows · macOS · Linux — apps/electron"]
+    M1["Electron Main"]
+    W1["BrowserWindow"]
+    C1["apps/cli"]
+    M1 -->|"spawn"| C1
+    M1 --> W1
+    W1 -->|"http://localhost"| C1
+    C1 --> UI
+    C1 --> CR
+    M1 -->|"IPC"| W1
+  end
+
+  subgraph ohos ["HarmonyOS — apps/ohos"]
+    M2["Electron Main · main.js"]
+    W2["BrowserWindow"]
+    M2 --> W2
+    W2 -->|"file://"| UI
+    M2 -->|"HTTP /api/*"| CR
+    M2 -->|"IPC"| W2
+  end
+
+  subgraph server ["Docker · Browser — apps/cli"]
+    B["Browser"]
+    C2["apps/cli"]
+    B --> C2
+    C2 --> UI
+    C2 --> CR
+  end
+```
+
 ## Project Level Architecture
 
 This section describe the software architecture among `apps/*` apps.
