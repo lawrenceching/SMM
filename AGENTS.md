@@ -12,6 +12,7 @@
 | **packages/core** | 浏览器和 Node.js 端通用的核心代码, 包含类型定义、路径处理、媒体元数据、用户配置等 |
 | **packages/test** | 测试工具包, 提供测试相关的工具函数 |
 | **packages/utils** | 通用工具包, 提供通用工具函数 |
+| **packages/core-routes**** | 实现通用 HTTP 接口, `apps/cli`, `apps/electron`, `apps/ohos` 都会复用这些接口 | 
 
 ### Apps (应用)
 
@@ -22,6 +23,7 @@
 | **apps/electron** | Electron 桌面应用, 将 ui 和 cli 打包成桌面应用 |
 | **apps/e2e** | 端到端测试, 基于 WebdriverIO |
 | **apps/docker** | Docker 镜像构建配置 |
+| **apps/ohos** | 鸿蒙 HarmonyOS 应用 |
 
 ## 核心模块详解
 

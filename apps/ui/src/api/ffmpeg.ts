@@ -218,6 +218,12 @@ export interface FfmpegTagsRequest {
 export interface FfmpegTagsResponse {
   tags?: Record<string, string>;
   duration?: number;
+  /** Total bitrate (kbps) from format.bit_rate. */
+  bitrateKbps?: number;
+  /** Video stream bitrate (kbps). */
+  videoBitrateKbps?: number;
+  /** Audio stream bitrate (kbps). */
+  audioBitrateKbps?: number;
   error?: string;
   executionId?: string;
 }
@@ -237,7 +243,14 @@ export async function getMediaTags(params: FfmpegTagsRequest): Promise<FfmpegTag
   if (parsed.error) {
     return { error: parsed.error };
   }
-  return { tags: parsed.tags, duration: parsed.duration, executionId: result.executionId };
+  return {
+    tags: parsed.tags,
+    duration: parsed.duration,
+    bitrateKbps: parsed.bitrateKbps,
+    videoBitrateKbps: parsed.videoBitrateKbps,
+    audioBitrateKbps: parsed.audioBitrateKbps,
+    executionId: result.executionId,
+  };
 }
 
 export interface FfmpegWriteTagsRequest {

@@ -20,6 +20,8 @@ export interface LocalFileSubtitleScopeProps {
   localRows: LocalFileTableRowData[]
   selectedLocalRows: LocalFileTableRowData[]
   onClearSelection?: () => void
+  /** When false, all subtitle/AI-related features are hidden. */
+  isAiFeatureEnabled?: boolean
   children: ReactNode
 }
 
@@ -143,6 +145,7 @@ export function LocalFileSubtitleScope({
   localRows,
   selectedLocalRows,
   onClearSelection,
+  isAiFeatureEnabled = true,
   children,
 }: LocalFileSubtitleScopeProps) {
   const { t: tComponents } = useTranslation(["components"])
@@ -158,8 +161,19 @@ export function LocalFileSubtitleScope({
 
   const value = useMemo((): LocalFileSubtitleContextValue => {
     const { availability } = pipeline
+
+    // When AI features are disabled, override all availability to false
+    const effectiveAvailability = isAiFeatureEnabled
+      ? availability
+      : {
+          isTranscribeAvailable: false,
+          isTranslateAvailable: false,
+          isSynthesizeAvailable: false,
+          isProcessAvailable: false,
+        }
+
     return {
-      availability,
+      availability: effectiveAvailability,
       hasTranscribeTargets: pipeline.hasTranscribeTargets,
       hasTranslateTargets: pipeline.hasTranslateTargets,
       hasSynthesizeTargets: pipeline.hasSynthesizeTargets,
@@ -172,10 +186,10 @@ export function LocalFileSubtitleScope({
           state,
           isMultiSelectMode,
           isSelected,
-          availability.isTranscribeAvailable,
-          availability.isTranslateAvailable,
-          availability.isSynthesizeAvailable,
-          availability.isProcessAvailable,
+          effectiveAvailability.isTranscribeAvailable,
+          effectiveAvailability.isTranslateAvailable,
+          effectiveAvailability.isSynthesizeAvailable,
+          effectiveAvailability.isProcessAvailable,
           t,
         )
       },
@@ -187,34 +201,38 @@ export function LocalFileSubtitleScope({
 
   return (
     <LocalFileSubtitleContext.Provider value={value}>
-      <TranscribeDialog
-        isOpen={dialogProps.transcribe.isOpen}
-        onClose={dialogProps.transcribe.onClose}
-        rows={dialogProps.transcribe.rows}
-        defaultSelectedIds={dialogProps.transcribe.defaultSelectedIds}
-        folder={dialogProps.transcribe.folder}
-      />
-      <SubtitleTranslationDialog
-        isOpen={dialogProps.translate.isOpen}
-        onClose={dialogProps.translate.onClose}
-        rows={dialogProps.translate.rows}
-        defaultSelectedIds={dialogProps.translate.defaultSelectedIds}
-        folder={dialogProps.translate.folder}
-      />
-      <SynthesizeSubtitleDialog
-        isOpen={dialogProps.synthesize.isOpen}
-        onClose={dialogProps.synthesize.onClose}
-        rows={dialogProps.synthesize.rows}
-        defaultSelectedIds={dialogProps.synthesize.defaultSelectedIds}
-        folder={dialogProps.synthesize.folder}
-      />
-      <ProcessPipelineDialog
-        isOpen={dialogProps.process.isOpen}
-        onClose={dialogProps.process.onClose}
-        rows={dialogProps.process.rows}
-        defaultSelectedIds={dialogProps.process.defaultSelectedIds}
-        folder={dialogProps.process.folder}
-      />
+      {isAiFeatureEnabled && (
+        <>
+          <TranscribeDialog
+            isOpen={dialogProps.transcribe.isOpen}
+            onClose={dialogProps.transcribe.onClose}
+            rows={dialogProps.transcribe.rows}
+            defaultSelectedIds={dialogProps.transcribe.defaultSelectedIds}
+            folder={dialogProps.transcribe.folder}
+          />
+          <SubtitleTranslationDialog
+            isOpen={dialogProps.translate.isOpen}
+            onClose={dialogProps.translate.onClose}
+            rows={dialogProps.translate.rows}
+            defaultSelectedIds={dialogProps.translate.defaultSelectedIds}
+            folder={dialogProps.translate.folder}
+          />
+          <SynthesizeSubtitleDialog
+            isOpen={dialogProps.synthesize.isOpen}
+            onClose={dialogProps.synthesize.onClose}
+            rows={dialogProps.synthesize.rows}
+            defaultSelectedIds={dialogProps.synthesize.defaultSelectedIds}
+            folder={dialogProps.synthesize.folder}
+          />
+          <ProcessPipelineDialog
+            isOpen={dialogProps.process.isOpen}
+            onClose={dialogProps.process.onClose}
+            rows={dialogProps.process.rows}
+            defaultSelectedIds={dialogProps.process.defaultSelectedIds}
+            folder={dialogProps.process.folder}
+          />
+        </>
+      )}
       {children}
     </LocalFileSubtitleContext.Provider>
   )

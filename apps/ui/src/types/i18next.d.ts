@@ -50,6 +50,7 @@ interface ComponentsResources {
     exit: string
     downloadVideo: string
     formatConversion: string
+    videoCompression: string
   }
   sidebar: {
     mediaFolders: string
@@ -318,6 +319,7 @@ interface ComponentsResources {
       properties: string
       editTags: string
       formatConvert: string
+      videoCompress: string
       downloadStart: string
       downloadStop: string
       downloadRemove: string
@@ -458,6 +460,7 @@ interface ComponentsResources {
       unlink: string
       editTags: string
       properties: string
+      videoCompress: string
       notImplemented: string
     }
     unlinkSuccess: string
@@ -518,6 +521,7 @@ interface ComponentsResources {
     }
     contextMenu: {
       showColumns: string
+      videoCompress: string
     }
     noFilesFound: string
   }
@@ -723,6 +727,114 @@ interface DialogsResources {
     addedDate: string
     preview: string
     convertFormat: string
+  }
+  videoCompression: {
+    title: string
+    description: string
+    presetsTab: string
+    customTab: string
+    sourceLabel: string
+    selectVideo: string
+    selectVideoHint: string
+    noEncodersDetected: string
+    noCompatibleEncoder: string
+    outputContainerLabel: string
+    containerMp4: string
+    containerMkv: string
+    containerWebm: string
+    containerMov: string
+    videoSection: string
+    encoderLabel: string
+    hwAccelLabel: string
+    hwAccelNone: string
+    hwAccelNvenc: string
+    hwAccelQsv: string
+    hwAccelAmf: string
+    hwAccelVideotoolbox: string
+    qualityModeLabel: string
+    qualityModeCrf: string
+    qualityModeTargetBitrate: string
+    qualityModeTargetSize: string
+    crfLabel: string
+    targetBitrateLabel: string
+    targetSizeLabel: string
+    targetBitrateHint: string
+    encoderPresetLabel: string
+    profileLabel: string
+    profileBaseline: string
+    profileMain: string
+    profileHigh: string
+    pixFmtLabel: string
+    pixFmtYuv420p: string
+    pixFmtYuv444p: string
+    pixFmtYuv420p10le: string
+    gopSizeLabel: string
+    resolutionSection: string
+    resolutionLabel: string
+    resolutionOriginal: string
+    resolution480p: string
+    resolution720p: string
+    resolution1080p: string
+    resolution4k: string
+    resolutionCustom: string
+    customWidthLabel: string
+    frameRateLabel: string
+    frameRateOriginal: string
+    frameRate24: string
+    frameRate30: string
+    frameRate60: string
+    frameRateCustom: string
+    customFpsLabel: string
+    frameSkipLabel: string
+    audioSection: string
+    audioModeKeep: string
+    audioModeReencode: string
+    audioModeRemove: string
+    audioCodecLabel: string
+    audioBitrateLabel: string
+    audioSampleRateLabel: string
+    audioChannelsLabel: string
+    audioChannels1: string
+    audioChannels2: string
+    advancedSection: string
+    twoPassLabel: string
+    twoPassHint: string
+    threadsLabel: string
+    hdrLabel: string
+    hdrPreserve: string
+    hdrConvertToSdr: string
+    hdrConvertToSdrWarning: string
+    denoiseLabel: string
+    denoiseNone: string
+    denoiseLight: string
+    denoiseMedium: string
+    denoiseStrong: string
+    sharpenLabel: string
+    metadataLabel: string
+    metadataPreserve: string
+    metadataStrip: string
+    saveToLabel: string
+    browse: string
+    outputFileNameLabel: string
+    start: string
+    duration: string
+    presetCardSpeedName: string
+    presetCardSpeedDesc: string
+    presetCardBalancedName: string
+    presetCardBalancedDesc: string
+    presetCardQualityName: string
+    presetCardQualityDesc: string
+    presetCardExtremeName: string
+    presetCardExtremeDesc: string
+    presetCardAudioOnlyName: string
+    presetCardAudioOnlyDesc: string
+    invalidParams: string
+    success: string
+    estimatedOutputLabel: string
+    sizeMb: string
+    pctSmaller: string
+    pctLarger: string
+    estimateCaveat: string
   }
   formatConverter: {
     title: string

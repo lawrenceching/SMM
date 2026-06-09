@@ -47,7 +47,7 @@ function AppV2Content() {
   const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
 
   const { folders: uiFolders, selectedFolder } = useUIMediaFolderStoreState()
-  const { isAiAreaEnabled } = useFeatures()
+  const { isAiAreaEnabled, isAiFeatureEnabled } = useFeatures()
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("metadata")
@@ -516,7 +516,7 @@ function AppV2Content() {
         </ResizablePanelGroup>
       </div>
       <StatusBar />
-      <Assistant />
+      {isAiFeatureEnabled && <Assistant />}
       <Toaster position="bottom-right" />
     </div>
   )

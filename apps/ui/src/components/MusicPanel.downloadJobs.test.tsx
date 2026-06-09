@@ -170,6 +170,7 @@ describe('MusicPanel download-video jobs', () => {
     vi.mocked(useDialogs).mockReturnValue({
       mediaFilePropertyDialog: [vi.fn(), vi.fn()],
       formatConverterDialog: [vi.fn(), vi.fn()],
+      videoCompressionDialog: [vi.fn(), vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
       spinnerDialog: [vi.fn(), vi.fn()],

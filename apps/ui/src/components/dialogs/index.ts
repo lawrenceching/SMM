@@ -12,6 +12,7 @@ export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
 export { ScrapeDialogV2 } from "./ScrapeDialogV2"
 export { FormatConverterDialog } from "./format-converter-dialog"
+export { VideoCompressionDialog } from "./video-compression-dialog"
 export { DeleteTrackDialog } from "./delete-track-dialog"
 export { MediaFilePropertyDialog } from "./media-file-property-dialog"
 export { TranscribeDialog } from "./TranscribeDialog"
@@ -45,6 +46,7 @@ export type {
   TrackProperties,
   MediaFilePropertyDialogProps,
   FormatConverterDialogProps,
+  VideoCompressionDialogProps,
   DeleteTrackDialogProps,
   TranscribeAsrEngine,
   TranscribeProvider,

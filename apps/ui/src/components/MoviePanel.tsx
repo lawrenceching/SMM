@@ -104,7 +104,7 @@ function MoviePanel() {
     },
     [fetchMediaMetadata],
   )
-  const { scrapeDialog } = useDialogs()
+  const { scrapeDialog, videoCompressionDialog } = useDialogs()
   const [openScrape] = scrapeDialog
 
   const toolbarOptions: ToolbarOption[] = [
@@ -406,6 +406,14 @@ function MoviePanel() {
     setIsProcessPipelineOpen(true)
   }, [hasProcessTargets])
 
+  const handleVideoCompressClick = useCallback(
+    (filePath: string) => {
+      const [openVideoCompression] = videoCompressionDialog
+      openVideoCompression({ filePath })
+    },
+    [videoCompressionDialog],
+  )
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TranscribeDialog
@@ -483,6 +491,7 @@ function MoviePanel() {
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             preview={isPreviewingForRename}
+            onVideoCompressClick={handleVideoCompressClick}
           />
         )}
       </div>

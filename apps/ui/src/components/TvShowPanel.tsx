@@ -129,7 +129,7 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { filePickerDialog, scrapeDialog, mediaFilePropertyDialog } = useDialogs()
+  const { filePickerDialog, scrapeDialog, mediaFilePropertyDialog, videoCompressionDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
   const [openMediaFileProperty] = mediaFilePropertyDialog
@@ -146,7 +146,7 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
+  const { isAiFeatureEnabled, isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
   const isTranscribeAvailable =
     isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
@@ -353,9 +353,9 @@ function TvShowPanel() {
   }, [mediaMetadata, userConfig, handleTmdbIdDetected])
 
   const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
-    if (!mediaMetadata) return
+    if (!isAiFeatureEnabled || !mediaMetadata) return
     await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, setPlanById)
-  }, [mediaMetadata, persistUiMediaMetadata, setPlanById])
+  }, [isAiFeatureEnabled, mediaMetadata, persistUiMediaMetadata, setPlanById])
 
   const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
     console.log('[TvShowPanel] User clicked the confirm button in RuleBasedRecognizePrompt', structuredClone(plan))
@@ -440,10 +440,15 @@ function TvShowPanel() {
   }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata])
 
   /**
-   * Open AI based rename file prompt
+   * Open AI based rename file prompt (only when AI features are enabled)
    */
   useEffect(() => {
-    if (!mediaMetadata?.mediaFolderPath) return
+    if (!isAiFeatureEnabled || !mediaMetadata?.mediaFolderPath) {
+      if (!isAiFeatureEnabled) {
+        closeAiBasedRenameFilePrompt()
+      }
+      return
+    }
     const plan = plans.find(
       (p): p is UIRenameFilesPlan => 
         p.task === "rename-files" &&
@@ -469,7 +474,7 @@ function TvShowPanel() {
       closeAiBasedRenameFilePrompt()
       // Do not close recognize prompt here; handlePendingPlans manages AiBasedRecognizePrompt.
     }
-  }, [plans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleRenamePromptConfirm])
+  }, [isAiFeatureEnabled, plans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleRenamePromptConfirm])
 
   // Use WebSocket events hook
   useTvShowWebSocketEvents({
@@ -736,7 +741,7 @@ function TvShowPanel() {
   )
 
   const handlePropertiesForRow = useCallback(
-    (row: TvShowEpisodeDataRow) => { 
+    (row: TvShowEpisodeDataRow) => {
       const seasonNo = row.season;
       const episodeNo = row.episode;
 
@@ -754,6 +759,28 @@ function TvShowPanel() {
       }
     },
     [mediaMetadata, openMediaFileProperty]
+  )
+
+  const handleVideoCompressForRow = useCallback(
+    (row: TvShowEpisodeDataRow) => {
+      const seasonNo = row.season;
+      const episodeNo = row.episode;
+      const videoPath = mediaMetadata?.mediaFiles?.find(
+        (f) => f.seasonNumber === seasonNo && f.episodeNumber === episodeNo,
+      )?.absolutePath
+      if (!videoPath) {
+        console.warn(
+          `[TvShowPanel] handleVideoCompressForRow: no video path found for season ${seasonNo} episode ${episodeNo}`,
+        )
+        return
+      }
+      const [openVideoCompression] = videoCompressionDialog
+      openVideoCompression({
+        filePath: videoPath,
+        title: row.episodeTitle ?? `S${seasonNo}E${episodeNo}`,
+      })
+    },
+    [mediaMetadata, videoCompressionDialog],
   )
   
   /**
@@ -794,6 +821,7 @@ function TvShowPanel() {
           return Promise.resolve()
         },
         toast,
+        isAiFeatureEnabled,
       })
     }
   }, [plan])
@@ -964,6 +992,7 @@ function TvShowPanel() {
             onSelectFileContextMenuClick={handleSelectFileContextMenuClick}
             onUnlinkContextMenuClick={handleUnlinkEpisode}
             onPropertiesContextMenuClick={handlePropertiesForRow}
+            onVideoCompressContextMenuClick={handleVideoCompressForRow}
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}

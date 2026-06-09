@@ -959,6 +959,8 @@ export interface HandlePendingPlansParams {
   handleRuleBasedRecognizeConfirmCallback?: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
   updatePlan: (planId: string, status: UpdatePlanStatus) => Promise<void>
   toast: typeof toast
+  /** When false, skip opening AI-based recognize prompts. */
+  isAiFeatureEnabled?: boolean
 }
 
 /**
@@ -976,6 +978,12 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
   } = params
 
   if (!mediaMetadata?.mediaFolderPath) {
+    return
+  }
+
+  // AI features are disabled — close any open prompt and skip
+  if (!params.isAiFeatureEnabled) {
+    closeAiBasedRecognizePrompt()
     return
   }
 

@@ -5,6 +5,7 @@ import {
   emitTrackDeleteEvent,
   emitTrackPropertiesEvent,
   emitTrackFormatConvertEvent,
+  emitTrackVideoCompressEvent,
 } from "@/lib/musicEvents"
 import { openFile } from "@/api/openFile"
 import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
@@ -141,6 +142,16 @@ export function MusicFileTable({
         }),
       onFormatConvert: () =>
         emitTrackFormatConvertEvent({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          duration: track.duration,
+          thumbnail: track.thumbnail,
+          addedDate: new Date(),
+          path: track.path,
+        }),
+      onVideoCompress: () =>
+        emitTrackVideoCompressEvent({
           id: track.id,
           title: track.title,
           artist: track.artist,

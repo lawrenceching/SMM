@@ -44,7 +44,10 @@ import { permanentlyDeleteYtdlpCookiesFile } from '@/lib/ytdlpCookiesFile'
 import { useFeatures } from '@/hooks/useFeatures'
 import {
   buildFfmpegConvertArgs,
+  buildFfmpegCompressArgs,
   buildFfmpegWriteTagsArgs,
+  type FfmpegCompressProbe,
+  type FfmpegCompressRun,
   type FfmpegConvertFormat,
   type FfmpegConvertPreset,
 } from '@/lib/whitelistedCmd'
@@ -211,7 +214,55 @@ const JOB_TIMEOUT_MS: Record<string, number> = {
   'synthesize': 60 * 60 * 1000,            // 1 hour
   'process': 2 * 60 * 60 * 1000,           // 2 hours
   'ffmpeg-convert': 60 * 60 * 1000,        // 1 hour
+  'ffmpeg-compress': 2 * 60 * 60 * 1000,   // 2 hours (compression may take longer)
   'ffmpeg-write-tags': 5 * 60 * 1000,      // 5 min
+}
+
+/** Run ffprobe on a video file to gather duration, width, height. */
+async function probeVideoForCompression(filePath: string): Promise<FfmpegCompressProbe> {
+  const emptyProbe: FfmpegCompressProbe = { durationSec: 0, width: 0, height: 0 }
+  try {
+    const result = await executeCmdToCompletionWithHeaders(
+      {
+        command: 'ffprobe',
+        args: [
+          '-v', 'error',
+          '-print_format', 'json',
+          '-show_format',
+          '-show_streams',
+          filePath,
+        ],
+      },
+      { timeoutMs: 30_000 },
+    )
+    if (!result.success) return emptyProbe
+    const parsed = JSON.parse(result.stdout) as {
+      format?: { duration?: string }
+      streams?: Array<{ codec_type?: string; width?: number; height?: number }>
+    }
+    const durationSec = parsed.format?.duration
+      ? Number.parseFloat(parsed.format.duration)
+      : 0
+    const videoStream = (parsed.streams ?? []).find((s) => s.codec_type === 'video')
+    return {
+      durationSec: Number.isFinite(durationSec) ? durationSec : 0,
+      width: videoStream?.width ?? 0,
+      height: videoStream?.height ?? 0,
+    }
+  } catch {
+    return emptyProbe
+  }
+}
+
+/** Best-effort cleanup of a 2-pass ffmpeg log file. */
+async function cleanupPassLog(logPath: string): Promise<void> {
+  if (!logPath) return
+  try {
+    const { moveFileToTrash } = await import('@/api/moveFileToTrash')
+    await moveFileToTrash(logPath)
+  } catch {
+    // best effort
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -597,22 +648,90 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         case 'ffmpeg-convert': {
           const cd = data as unknown as FfmpegConvertBackgroundJobData
           const executionId = crypto.randomUUID()
+          const isCompress = cd.compressOptions != null
 
-          const args = buildFfmpegConvertArgs(
-            cd.inputPathPlatform,
-            cd.outputPathPlatform,
-            cd.outputFormat as FfmpegConvertFormat,
-            cd.preset as FfmpegConvertPreset,
-            cd.imageOptions,
-          )
-          const result = await executeCmdToCompletionWithHeaders(
-            { command: 'ffmpeg', args },
-            { timeoutMs: JOB_TIMEOUT_MS['ffmpeg-convert'], signal: controller.signal, executionId },
-          )
+          if (!isCompress) {
+            const args = buildFfmpegConvertArgs(
+              cd.inputPathPlatform,
+              cd.outputPathPlatform,
+              cd.outputFormat as FfmpegConvertFormat,
+              cd.preset as FfmpegConvertPreset,
+              cd.imageOptions,
+            )
+            const result = await executeCmdToCompletionWithHeaders(
+              { command: 'ffmpeg', args },
+              { timeoutMs: JOB_TIMEOUT_MS['ffmpeg-convert'], signal: controller.signal, executionId },
+            )
 
-          if (result.executionId) data.executionId = result.executionId
-          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-          success = result.success
+            if (result.executionId) data.executionId = result.executionId
+            if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+            success = result.success
+          } else {
+            // Compression: probe source then build args (potentially 2-pass)
+            const probe = await probeVideoForCompression(cd.inputPathPlatform)
+            const run: FfmpegCompressRun = buildFfmpegCompressArgs(
+              cd.inputPathPlatform,
+              cd.outputPathPlatform,
+              cd.compressOptions!,
+              probe,
+            )
+
+            if (run.kind === 'single') {
+              const result = await executeCmdToCompletionWithHeaders(
+                { command: 'ffmpeg', args: run.args },
+                {
+                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
+                  signal: controller.signal,
+                  executionId,
+                },
+              )
+              if (result.executionId) data.executionId = result.executionId
+              if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
+              success = result.success
+            } else {
+              // Two-pass: pass 1 then pass 2
+              const pass1Result = await executeCmdToCompletionWithHeaders(
+                { command: 'ffmpeg', args: run.pass1Args },
+                {
+                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
+                  signal: controller.signal,
+                  executionId: crypto.randomUUID(),
+                },
+              )
+              if (pass1Result.executionId) data.executionId = pass1Result.executionId
+              if (pass1Result.logRelativePath) data.logRelativePath = pass1Result.logRelativePath ?? undefined
+
+              if (controller.signal.aborted || !pass1Result.success) {
+                await cleanupPassLog(run.passLogPath)
+                if (controller.signal.aborted) {
+                  wasStopped = true
+                } else {
+                  record.status = 'failed'
+                }
+                break
+              }
+
+              // Update progress to 50% after pass 1
+              record.progress = 50
+              record.updatedAt = Date.now()
+              record.data = JSON.stringify(data)
+              await putJob(record)
+              await syncFromIndexedDB('compress:pass1-done')
+
+              const pass2Result = await executeCmdToCompletionWithHeaders(
+                { command: 'ffmpeg', args: run.pass2Args },
+                {
+                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
+                  signal: controller.signal,
+                  executionId: crypto.randomUUID(),
+                },
+              )
+              if (pass2Result.executionId) data.executionId = pass2Result.executionId
+              if (pass2Result.logRelativePath) data.logRelativePath = pass2Result.logRelativePath ?? undefined
+              success = pass2Result.success
+              await cleanupPassLog(run.passLogPath)
+            }
+          }
 
           if (controller.signal.aborted) wasStopped = true
           record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')

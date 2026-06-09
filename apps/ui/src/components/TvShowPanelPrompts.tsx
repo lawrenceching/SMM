@@ -13,8 +13,11 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { isRuleBasedRecognizePlanComplete, isRuleBasedRecognizePlanFullyUnchanged } from "@/lib/isRuleBasedRecognizePlanComplete"
 import { useMemo } from "react"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
+import { useFeatures } from "@/hooks/useFeatures"
 
 export function TvShowPanelPrompts() {
+  const { isAiFeatureEnabled } = useFeatures()
+
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
   const plans = usePlansStore((state) => state.plans)
   const { selectedFolder } = useUIMediaFolderStoreState()
@@ -185,46 +188,50 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      <AiBasedRenameFilePrompt
-        isOpen={aiBasedRenameFilePrompt.isOpen}
-        status={aiBasedRenameFilePrompt.status || "generating"}
-        onConfirm={() => {
-          const callback = aiBasedRenameFilePrompt.onConfirm
-          closeAiBasedRenameFilePrompt()
-          if (callback) {
-            callback()
-          }
-        }}
-        onCancel={() => {
-          closeAiBasedRenameFilePrompt()
-          const cancelCallback = aiBasedRenameFilePrompt.onCancel
-          if (cancelCallback) {
-            cancelCallback()
-          }
-        }}
-      />
+      {isAiFeatureEnabled && (
+        <AiBasedRenameFilePrompt
+          isOpen={aiBasedRenameFilePrompt.isOpen}
+          status={aiBasedRenameFilePrompt.status || "generating"}
+          onConfirm={() => {
+            const callback = aiBasedRenameFilePrompt.onConfirm
+            closeAiBasedRenameFilePrompt()
+            if (callback) {
+              callback()
+            }
+          }}
+          onCancel={() => {
+            closeAiBasedRenameFilePrompt()
+            const cancelCallback = aiBasedRenameFilePrompt.onCancel
+            if (cancelCallback) {
+              cancelCallback()
+            }
+          }}
+        />
+      )}
 
-      <AiBasedRecognizePrompt
-        isOpen={aiBasedRecognizePrompt.isOpen}
-        status={aiBasedRecognizePrompt.status || "generating"}
-        onConfirm={() => {
-          const callback = aiBasedRecognizePrompt.onConfirm
-          closeAiBasedRecognizePrompt()
-          if (callback) {
-            callback()
-          }
-        }}
-        onCancel={() => {
-          closeAiBasedRecognizePrompt()
-          const cancelCallback = aiBasedRecognizePrompt.onCancel
-          if (cancelCallback) {
-            cancelCallback()
-          }
-        }}
-        confirmLabel={aiBasedRecognizePrompt.confirmButtonLabel || ""}
-        isConfirmButtonDisabled={aiBasedRecognizePrompt.confirmButtonDisabled || false}
-        isConfirmDisabled={aiBasedRecognizePrompt.isRenaming || false}
-      />
+      {isAiFeatureEnabled && (
+        <AiBasedRecognizePrompt
+          isOpen={aiBasedRecognizePrompt.isOpen}
+          status={aiBasedRecognizePrompt.status || "generating"}
+          onConfirm={() => {
+            const callback = aiBasedRecognizePrompt.onConfirm
+            closeAiBasedRecognizePrompt()
+            if (callback) {
+              callback()
+            }
+          }}
+          onCancel={() => {
+            closeAiBasedRecognizePrompt()
+            const cancelCallback = aiBasedRecognizePrompt.onCancel
+            if (cancelCallback) {
+              cancelCallback()
+            }
+          }}
+          confirmLabel={aiBasedRecognizePrompt.confirmButtonLabel || ""}
+          isConfirmButtonDisabled={aiBasedRecognizePrompt.confirmButtonDisabled || false}
+          isConfirmDisabled={aiBasedRecognizePrompt.isRenaming || false}
+        />
+      )}
 
       <RuleBasedRecognizePrompt
         isOpen={ruleBasedRecognizePrompt.isOpen}

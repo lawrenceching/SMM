@@ -15,7 +15,8 @@
     "cleanUp": "Clean Up",
     "exit": "Exit",
     "downloadVideo": "Download Video",
-    "formatConversion": "Format conversion"
+    "formatConversion": "Format conversion",
+    "videoCompression": "Video Compression"
   },
   "sidebar": {
     "mediaFolders": "Media Folders",
@@ -475,6 +476,7 @@
       "unlink": "Unlink",
       "editTags": "Edit tags",
       "properties": "Properties",
+      "videoCompress": "Video Compression",
       "notImplemented": "Not Implemented Yet"
     },
     "unlinkSuccess": "Episode unlinked successfully",
@@ -509,7 +511,8 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "Show..."
+      "showColumns": "Show...",
+      "videoCompress": "Video Compression"
     },
     "noFilesFound": "No files found"
   },

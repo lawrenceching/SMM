@@ -15,7 +15,8 @@
     "cleanUp": "清理",
     "exit": "退出",
     "downloadVideo": "下载视频",
-    "formatConversion": "格式转换"
+    "formatConversion": "格式转换",
+    "videoCompression": "视频压缩"
   },
   "sidebar": {
     "mediaFolders": "媒体文件夹",
@@ -298,8 +299,8 @@
       "delete": "删除",
       "properties": "属性",
       "editTags": "编辑标签",
-      "properties": "属性",
       "formatConvert": "格式转换",
+      "videoCompress": "视频压缩",
       "downloadStart": "开始",
       "downloadStop": "停止",
       "downloadRemove": "删除",
@@ -474,7 +475,8 @@
       "unlink": "取消关联",
       "editTags": "编辑标签",
       "properties": "属性",
-      "notImplemented": "尚未实现"
+      "notImplemented": "尚未实现",
+      "videoCompress": "视频压缩"
     },
     "unlinkSuccess": "已取消剧集关联",
     "unlinkFailed": "取消剧集关联失败",
@@ -508,7 +510,8 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "显示..."
+      "showColumns": "显示...",
+      "videoCompress": "视频压缩"
     },
     "noFilesFound": "未找到文件"
   },
@@ -524,4 +527,3 @@
     "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。"
   }
 }
-

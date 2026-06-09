@@ -15,6 +15,7 @@ import {
   ScrapeDialog,
   ScrapeDialogV2,
   FormatConverterDialog,
+  VideoCompressionDialog,
   MediaFilePropertyDialog,
   ExecuteCmdDialog,
   AddTestBackgroundJobDialog,
@@ -106,6 +107,10 @@ interface DialogContextValue {
     openFormatConverter: (track?: TrackProperties | string) => void,
     closeFormatConverter: () => void
   ]
+  videoCompressionDialog: [
+    openVideoCompression: (input?: { filePath?: string; title?: string; duration?: number } | string) => void,
+    closeVideoCompression: () => void
+  ]
   executeCmdDialog: [
     openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
     closeExecuteCmd: () => void
@@ -190,6 +195,12 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Format converter dialog state
   const [isFormatConverterOpen, setIsFormatConverterOpen] = useState(false)
   const [formatConverterTrack, setFormatConverterTrack] = useState<TrackProperties | undefined>(undefined)
+
+  // Video compression dialog state
+  const [isVideoCompressionOpen, setIsVideoCompressionOpen] = useState(false)
+  const [videoCompressionFilePath, setVideoCompressionFilePath] = useState<string | undefined>(undefined)
+  const [videoCompressionTitle, setVideoCompressionTitle] = useState<string | undefined>(undefined)
+  const [videoCompressionDuration, setVideoCompressionDuration] = useState<number | undefined>(undefined)
 
   // Execute command dialog state
   const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
@@ -419,6 +430,35 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const openVideoCompression = useCallback(
+    (input?: { filePath?: string; title?: string; duration?: number } | string) => {
+      if (input === undefined) {
+        setVideoCompressionFilePath(undefined)
+        setVideoCompressionTitle(undefined)
+        setVideoCompressionDuration(undefined)
+      } else if (typeof input === "string") {
+        setVideoCompressionFilePath(input)
+        setVideoCompressionTitle(undefined)
+        setVideoCompressionDuration(undefined)
+      } else {
+        setVideoCompressionFilePath(input.filePath)
+        setVideoCompressionTitle(input.title)
+        setVideoCompressionDuration(input.duration)
+      }
+      setIsVideoCompressionOpen(true)
+    },
+    [],
+  )
+
+  const closeVideoCompression = useCallback(() => {
+    setIsVideoCompressionOpen(false)
+    setTimeout(() => {
+      setVideoCompressionFilePath(undefined)
+      setVideoCompressionTitle(undefined)
+      setVideoCompressionDuration(undefined)
+    }, 200)
+  }, [])
+
 
 
   const openExecuteCmd = useCallback((initialCommand?: ExecuteCmdType) => {
@@ -471,6 +511,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     scrapeDialog: [openScrape, closeScrape],
     mediaFilePropertyDialog: [openMediaFileProperty, closeMediaFileProperty],
     formatConverterDialog: [openFormatConverter, closeFormatConverter],
+    videoCompressionDialog: [openVideoCompression, closeVideoCompression],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
     addTestBackgroundJobDialog: [openAddTestBackgroundJob, closeAddTestBackgroundJob],
     logDialog: [openLogDialog, closeLogDialog],
@@ -571,6 +612,17 @@ export function DialogProvider({ children }: DialogProviderProps) {
         track={formatConverterTrack}
         onOpenFilePicker={openFilePicker}
         onSelectSource={(track: TrackProperties) => setFormatConverterTrack(track)}
+      />
+      <VideoCompressionDialog
+        isOpen={isVideoCompressionOpen}
+        onClose={closeVideoCompression}
+        filePath={videoCompressionFilePath}
+        title={videoCompressionTitle}
+        duration={videoCompressionDuration}
+        onOpenFilePicker={openFilePicker}
+        onSelectSource={(filePath: string, _name: string) => {
+          setVideoCompressionFilePath(filePath)
+        }}
       />
       <ExecuteCmdDialog
         isOpen={isExecuteCmdOpen}

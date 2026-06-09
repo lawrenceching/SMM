@@ -345,6 +345,27 @@ export interface FormatConverterDialogProps {
   onSelectSource?: (track: TrackProperties) => void
 }
 
+export interface VideoCompressionDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  /** Source video path; when omitted, dialog shows a 'select a file' placeholder. */
+  filePath?: string
+  /** Display name for the source video (shown in the source card). */
+  title?: string
+  /** Duration in seconds; shown beside the source title when available. */
+  duration?: number
+  onOpenFilePicker?: (
+    onSelect: (file: FileItem) => void,
+    options?: { selectFolder?: boolean; initialPath?: string },
+  ) => void
+  /**
+   * Called when the user invokes the file picker from the empty-state.
+   * Receives the picked file's absolute path. The dialog stays open;
+   * the parent can update the filePath prop in response.
+   */
+  onSelectSource?: (filePath: string, fileName: string) => void
+}
+
 
 
 export type ExecuteCmdType = "ffmpeg" | "ffprobe" | "yt-dlp" | "videocaptioner"

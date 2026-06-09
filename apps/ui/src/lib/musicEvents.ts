@@ -1,12 +1,13 @@
 import type { Track } from '@/components/MediaPlayer';
 
-export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties' | 'track:formatConvert';
+export type MusicEventType = 'track:open' | 'track:delete' | 'track:properties' | 'track:formatConvert' | 'track:videoCompress';
 
 export const MUSIC_EVENT_NAMES: Record<MusicEventType, MusicEventType> = {
   'track:open': 'track:open',
   'track:delete': 'track:delete',
   'track:properties': 'track:properties',
   'track:formatConvert': 'track:formatConvert',
+  'track:videoCompress': 'track:videoCompress',
 };
 
 export interface BaseMusicEventDetail {
@@ -34,12 +35,18 @@ export interface TrackFormatConvertEventDetail extends BaseMusicEventDetail {
   trackTitle: string;
 }
 
+export interface TrackVideoCompressEventDetail extends BaseMusicEventDetail {
+  trackPath?: string;
+  trackTitle: string;
+}
+
 
 export type MusicEventDetail = 
   | TrackOpenEventDetail 
   | TrackDeleteEventDetail 
   | TrackPropertiesEventDetail 
-  | TrackFormatConvertEventDetail;
+  | TrackFormatConvertEventDetail
+  | TrackVideoCompressEventDetail;
 
 export function createTrackOpenEvent(track: Track): CustomEvent<TrackOpenEventDetail> {
   return new CustomEvent<TrackOpenEventDetail>(MUSIC_EVENT_NAMES['track:open'], {
@@ -114,6 +121,24 @@ export function createTrackFormatConvertEvent(track: Track): CustomEvent<TrackFo
 
 export function emitTrackFormatConvertEvent(track: Track): void {
   const event = createTrackFormatConvertEvent(track);
+  emitMusicEvent(event);
+}
+
+export function createTrackVideoCompressEvent(track: Track): CustomEvent<TrackVideoCompressEventDetail> {
+  return new CustomEvent<TrackVideoCompressEventDetail>(MUSIC_EVENT_NAMES['track:videoCompress'], {
+    bubbles: true,
+    composed: true,
+    detail: {
+      trackId: track.id,
+      timestamp: Date.now(),
+      trackPath: track.path,
+      trackTitle: track.title,
+    },
+  });
+}
+
+export function emitTrackVideoCompressEvent(track: Track): void {
+  const event = createTrackVideoCompressEvent(track);
   emitMusicEvent(event);
 }
 

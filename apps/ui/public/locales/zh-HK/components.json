@@ -14,7 +14,8 @@
     "cleanUp": "清理",
     "exit": "結束",
     "downloadVideo": "下載影片",
-    "formatConversion": "格式轉換"
+    "formatConversion": "格式轉換",
+    "videoCompression": "影片壓縮"
   },
   "sidebar": {
     "mediaFolders": "媒體資料夾",
@@ -296,8 +297,8 @@
       "delete": "刪除",
       "properties": "屬性",
       "editTags": "編輯標籤",
-      "properties": "屬性",
       "formatConvert": "格式轉換",
+      "videoCompress": "视频压缩",
       "downloadStart": "開始",
       "downloadStop": "停止",
       "downloadRemove": "刪除",
@@ -471,7 +472,8 @@
       "unlink": "取消關聯",
       "editTags": "編輯標籤",
       "properties": "屬性",
-      "notImplemented": "尚未實現"
+      "notImplemented": "尚未實現",
+      "videoCompress": "视频压缩"
     },
     "unlinkSuccess": "已取消劇集關聯",
     "unlinkFailed": "取消劇集關聯失敗",
@@ -505,7 +507,8 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "顯示..."
+      "showColumns": "顯示...",
+      "videoCompress": "视频压缩"
     },
     "noFilesFound": "未找到檔案"
   },
@@ -514,6 +517,7 @@
       "importFolder": "匯入資料夾",
       "downloadVideo": "下載影片",
       "formatConversion": "格式轉換",
+      "videoCompression": "影片壓縮",
       "github": "Github"
     }
   },
@@ -521,4 +525,3 @@
     "noRecognizedFiles": "無法辨識任何劇集。建議改用 AI 辨識。"
   }
 }
-

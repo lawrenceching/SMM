@@ -16,11 +16,13 @@ import {
   Sparkles,
   ChevronRight,
   ChevronDown,
+  Film,
 } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
+import { isVideoFile } from "@/lib/recognizeEpisodes"
 import { MusicRowMediaCells } from "./musicTableRowShared"
 import { SubtitleContextMenuItems } from "./SubtitleContextMenuItems"
 import type {
@@ -174,6 +176,10 @@ export function LocalFileRow({
         <ContextMenuItem onClick={fileMenu.onFormatConvert}>
           <FileText className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.formatConvert")}
+        </ContextMenuItem>
+        <ContextMenuItem onClick={fileMenu.onVideoCompress} disabled={!isVideoFile(row.path)}>
+          <Film className="mr-2 size-4" />
+          {t("mediaPlayer.trackContextMenu.videoCompress")}
         </ContextMenuItem>
         <ContextMenuItem
           disabled={!canSummarize || !onSummarize}

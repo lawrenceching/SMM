@@ -163,6 +163,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
     configDialog,
     downloadVideoDialog,
     formatConverterDialog,
+    videoCompressionDialog,
     openFolderDialog,
     filePickerDialog,
     executeCmdDialog,
@@ -173,6 +174,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
   const [openFormatConverter] = formatConverterDialog
+  const [openVideoCompression] = videoCompressionDialog
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const [openExecuteCmd] = executeCmdDialog
@@ -259,6 +261,14 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           onClick: () => {
             logMenuAction("format-conversion.click")
             openFormatConverter()
+          }
+        },
+        {
+          name: t('menu.videoCompression'),
+          id: 'video-compression',
+          onClick: () => {
+            logMenuAction("video-compression.click")
+            openVideoCompression()
           }
         },
         {

@@ -9,6 +9,7 @@ export interface LocalFileTableRowFileMenu {
   onDelete: () => void
   onProperties: () => void
   onFormatConvert: () => void
+  onVideoCompress: () => void
   onSummarize: () => void
   canSummarize: boolean
 }

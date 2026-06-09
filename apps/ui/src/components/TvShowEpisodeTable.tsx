@@ -84,6 +84,8 @@ interface TvShowEpisodeTableProps {
   mediaFolderPath?: string
   /** Called when user chooses "Select File" from context menu; row is the row data. */
   onSelectFileContextMenuClick?: (row: TvShowEpisodeDataRow) => void
+  /** Called when user chooses "Video Compression" from context menu; row is the row data. */
+  onVideoCompressContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Unlink" from context menu; row is the row data. */
   onUnlinkContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Properties" from context menu; row is the row data. */
@@ -372,6 +374,7 @@ export function TvShowEpisodeTable({
   // checkboxes,
   mediaFolderPath,
   onSelectFileContextMenuClick: onSelectFileContextMenuClick,
+  onVideoCompressContextMenuClick,
   onUnlinkContextMenuClick,
   onPropertiesContextMenuClick,
   preview,
@@ -938,6 +941,12 @@ export function TvShowEpisodeTable({
                     }}
                   >
                     {t('tvShowEpisodeTable.contextMenu.unlink')}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    disabled={!row.videoFile}
+                    onClick={() => onVideoCompressContextMenuClick?.(row)}
+                  >
+                    {t('tvShowEpisodeTable.contextMenu.videoCompress')}
                   </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>

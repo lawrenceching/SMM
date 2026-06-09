@@ -26,6 +26,7 @@ import {
   type TrackDeleteEventDetail,
   type TrackPropertiesEventDetail,
   type TrackFormatConvertEventDetail,
+  type TrackVideoCompressEventDetail,
   MUSIC_EVENT_NAMES,
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
@@ -39,6 +40,7 @@ import { absolutePosixMusicFilePath, displayPathForFile } from "@/lib/transcribe
 import { isAbsPath } from "@/lib/path";
 import { syncTracks } from "@/lib/musicPanelSyncTracks";
 import { LocalFileSubtitleScope, useLocalFileSubtitle } from "./LocalFileSubtitleScope";
+import { useFeatures } from "@/hooks/useFeatures";
 
 interface PendingDelete {
   /** Platform absolute path passed to moveFileToTrash API. */
@@ -50,6 +52,7 @@ interface PendingDelete {
 
 export function MusicPanel() {
   const { t } = useTranslation(["dialogs"]);
+  const { isAiFeatureEnabled } = useFeatures();
   const { folders, selectedFolder } = useUIMediaFolderStoreState();
   const {
     data: queriedMediaMetadata,
@@ -176,11 +179,13 @@ export function MusicPanel() {
     confirmationDialog,
     downloadVideoDialog,
     formatConverterDialog,
+    videoCompressionDialog,
   } = useDialogs();
   const [openMediaFileProperty] = mediaFilePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
   const [openFormatConverter] = formatConverterDialog;
+  const [openVideoCompression] = videoCompressionDialog;
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
@@ -500,6 +505,24 @@ export function MusicPanel() {
     });
   }, [tracks, openFormatConverter]);
 
+  const handleTrackVideoCompress = useCallback((event: CustomEvent<TrackVideoCompressEventDetail>) => {
+    const { trackId } = event.detail;
+    const track = tracks?.find((t) => t.id === trackId);
+    if (!track) {
+      toast.error(`Track with ID ${trackId} could not be found.`);
+      return;
+    }
+    if (!track.path) {
+      toast.error("This track has no file path.");
+      return;
+    }
+    openVideoCompression({
+      filePath: track.path,
+      title: track.title,
+      duration: track.duration,
+    });
+  }, [tracks, openVideoCompression]);
+
 
 
   const handleDownloadClick = useCallback(() => {
@@ -538,13 +561,17 @@ export function MusicPanel() {
         MUSIC_EVENT_NAMES['track:formatConvert'],
         handleTrackFormatConvert,
       ),
+      addMusicEventListener<TrackVideoCompressEventDetail>(
+        MUSIC_EVENT_NAMES['track:videoCompress'],
+        handleTrackVideoCompress,
+      ),
 
     ];
 
     return () => {
       for (const unsub of subscriptions) unsub();
     };
-  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert]);
+  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackVideoCompress]);
 
   const clearSelection = useCallback(() => setSelectedTrackIds([]), []);
 
@@ -557,6 +584,7 @@ export function MusicPanel() {
         localRows={musicFileRowsForDialogs}
         selectedLocalRows={selectedLocalRows}
         onClearSelection={clearSelection}
+        isAiFeatureEnabled={isAiFeatureEnabled}
       >
         <div className="shrink-0 px-4 pt-4">
           <MusicPanelSubtitleHeader

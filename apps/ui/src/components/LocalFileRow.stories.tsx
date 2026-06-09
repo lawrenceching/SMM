@@ -81,6 +81,7 @@ const fileMenu = {
   onDelete: action("onDelete"),
   onProperties: action("onProperties"),
   onFormatConvert: action("onFormatConvert"),
+  onVideoCompress: action("onVideoCompress"),
   onSummarize: action("onSummarize"),
   canSummarize: false,
 }

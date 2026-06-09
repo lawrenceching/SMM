@@ -46,6 +46,8 @@ interface MovieEpisodeTableProps {
   mediaFolderPath?: string
   /** When true, shows rename preview with strikethrough old name and new name. */
   preview?: boolean
+  /** Called when user chooses "Video Compression" from the context menu of the video row. */
+  onVideoCompressClick?: (filePath: string) => void
 }
 
 function CheckCell({ value }: { value: string | undefined }) {
@@ -128,7 +130,7 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
   nfo: true,
 }
 
-export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpisodeTableProps) {
+export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompressClick }: MovieEpisodeTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const { t } = useTranslation(["components", "dialogs"])
   const columnLabels = getColumnLabels(t as (key: string, options?: Record<string, unknown>) => string)
@@ -304,6 +306,12 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview }: MovieEpiso
                   }}
                 >
                   {t('episodeFile.rename', { ns: 'components' })}
+                </ContextMenuItem>
+                <ContextMenuItem
+                  disabled={!videoRow.file || !onVideoCompressClick}
+                  onClick={() => videoRow.file && onVideoCompressClick?.(videoRow.file)}
+                >
+                  {t('movieEpisodeTable.contextMenu.videoCompress')}
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>

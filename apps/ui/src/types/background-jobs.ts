@@ -1,7 +1,10 @@
 /**
  * Background job status type
  */
-import type { FfmpegConvertImageOptions } from '@core/whitelistedCmd/constants'
+import type {
+  FfmpegCompressOptions,
+  FfmpegConvertImageOptions,
+} from '@core/whitelistedCmd/constants'
 
 export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted' | 'stopped';
 
@@ -244,6 +247,12 @@ export interface FfmpegConvertBackgroundJobData {
   outputFormat: string
   preset: string
   imageOptions?: FfmpegConvertImageOptions
+  /**
+   * When set, signals a *video compression* job and unlocks the full
+   * compression feature set. The orchestrator routes this through
+   * `buildFfmpegCompressArgs` instead of `buildFfmpegConvertArgs`.
+   */
+  compressOptions?: FfmpegCompressOptions
   /** Source file display name. */
   title: string
   executionId?: string

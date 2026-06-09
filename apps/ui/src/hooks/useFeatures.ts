@@ -7,6 +7,7 @@ const TTY_FOR_YTDLP_STORAGE_KEY = "features.enableTtyForYtdlpCommand"
 const PRINT_ARG_FOR_YTDLP_STORAGE_KEY = "features.enablePrintArgInYtdlpCommand"
 const DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY = "features.isDisplayFeatureCardsInWelcomeEnabled"
 const AI_AREA_STORAGE_KEY = "features.isAiAreaEnabled"
+const AI_FEATURE_STORAGE_KEY = "features.isAiFeatureEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -138,6 +139,27 @@ function writeAiAreaEnabled(enabled: boolean): void {
 }
 
 /** Default: enabled when the user has never set a preference (`null`). */
+function readAiFeatureEnabled(): boolean {
+  if (typeof window === "undefined") return true
+  try {
+    const v = window.localStorage.getItem(AI_FEATURE_STORAGE_KEY)
+    if (v === null) return true
+    return v === "true"
+  } catch {
+    return true
+  }
+}
+
+function writeAiFeatureEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(AI_FEATURE_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+/** Default: enabled when the user has never set a preference (`null`). */
 function readDisplayFeatureCardsInWelcomeEnabled(): boolean {
   if (typeof window === "undefined") return true
   try {
@@ -190,6 +212,11 @@ function getRuntimePlatform(): string | undefined {
 }
 
 export interface UseFeaturesResult {
+  /** Master toggle for all AI features. When false, all AI-related components
+   *  (Assistant chat, AI-based recognize/rename prompts, etc.) are hidden.
+   *  Defaults to true. Persisted in localStorage under `features.isAiFeatureEnabled`. */
+  isAiFeatureEnabled: boolean
+  setIsAiFeatureEnabled: (enabled: boolean) => void
   /** When true, the AI Area panel on the right side of the layout is visible.
    *  Defaults to false while the feature is still under development. */
   isAiAreaEnabled: boolean
@@ -267,6 +294,10 @@ export function useFeatures(): UseFeaturesResult {
     readPrintArgForYtdlpEnabled,
   )
 
+  const [isAiFeatureEnabled, setIsAiFeatureEnabledState] = useState(
+    readAiFeatureEnabled,
+  )
+
   const [isAiAreaEnabled, setIsAiAreaEnabled] = useState(
     readAiAreaEnabled,
   )
@@ -291,6 +322,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === PRINT_ARG_FOR_YTDLP_STORAGE_KEY) {
         setPrintArgState(readPrintArgForYtdlpEnabled())
+      }
+      if (event.key === AI_FEATURE_STORAGE_KEY) {
+        setIsAiFeatureEnabledState(readAiFeatureEnabled())
       }
       if (event.key === AI_AREA_STORAGE_KEY) {
         setIsAiAreaEnabled(readAiAreaEnabled())
@@ -333,6 +367,11 @@ export function useFeatures(): UseFeaturesResult {
     setIsAiAreaEnabled(enabled)
   }, [])
 
+  const setIsAiFeatureEnabled = useCallback((enabled: boolean) => {
+    writeAiFeatureEnabled(enabled)
+    setIsAiFeatureEnabledState(enabled)
+  }, [])
+
   const setIsDisplayFeatureCardsInWelcomeEnabledCallback = useCallback((enabled: boolean) => {
     writeDisplayFeatureCardsInWelcomeEnabled(enabled)
     setIsDisplayFeatureCardsInWelcomeEnabled(enabled)
@@ -340,6 +379,8 @@ export function useFeatures(): UseFeaturesResult {
 
   return useMemo(
     () => ({
+      isAiFeatureEnabled,
+      setIsAiFeatureEnabled,
       isTranscribeEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
@@ -357,6 +398,8 @@ export function useFeatures(): UseFeaturesResult {
       setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
     }),
     [
+      isAiFeatureEnabled,
+      setIsAiFeatureEnabled,
       isTranscribeEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
