@@ -9,6 +9,7 @@ import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
 import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
+import { startCoreRoutesServer, stopCoreRoutesServer } from './src/coreRoutesServer';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
 
@@ -102,8 +103,13 @@ const server = new Server({
   },
 });
 
+const coreRoutesServer = await startCoreRoutesServer();
+
 registerGracefulShutdown({
-  stopServer: () => server.stop(),
+  stopServer: async () => {
+    await stopCoreRoutesServer(coreRoutesServer);
+    await server.stop();
+  },
 });
 
 server.start();

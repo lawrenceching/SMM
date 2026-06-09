@@ -1,0 +1,27 @@
+{
+  "name": "@smm/core-routes",
+  "version": "1.3.8",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Framework-agnostic HTTP route handlers for SMM",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "build": "bun build src/index.ts --outfile dist/core-routes.js --target node --format esm",
+    "build:cjs": "bun build src/index.ts --outfile dist/core-routes.cjs --target node --format cjs",
+    "build:ohos": "bun build src/index.ts --outfile ../../apps/ohos/web_engine/src/main/resources/resfile/resources/app/core-routes.js --target node --format cjs --minify"
+  },
+  "dependencies": {
+    "@smm/core": "workspace:*",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
+  }
+}

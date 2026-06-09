@@ -31,6 +31,7 @@
       "@core/*": ["../../packages/core/*"],
       "@smm/core": ["../../packages/core/types.ts"],
       "@smm/core/*": ["../../packages/core/*"],
+      "@smm/core-routes": ["../../packages/core-routes/src/index.ts"],
       "@smm/tvdb4": ["../../packages/tvdb4/src/index.ts"],
       "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"],
       "@smm/test": ["../../packages/test/src/index.ts"],
