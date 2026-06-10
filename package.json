@@ -35,6 +35,7 @@
     "typecheck:electron": "cd apps/electron && pnpm run typecheck",
     "ci": "pnpm run build && pnpm run test && pnpm run typecheck",
     "ci:cli": "cd apps/cli && pnpm run test && pnpm run typecheck",
+    "build:ohos": "bash ./ci/build-ohos.sh",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm i && pnpm run build:cli",
     "changeset:publish": "changeset publish"

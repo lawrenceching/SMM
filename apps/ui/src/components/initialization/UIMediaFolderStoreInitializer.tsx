@@ -1,14 +1,18 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { isFolderAvailable } from "@/api/isFolderAvailable"
 import { useRecheckSelectedFolderAvailability } from "@/hooks/initialization/useRecheckSelectedFolderAvailability"
 import { useConfig } from "@/hooks/userConfig"
+import { helloQueryKey } from "@/lib/appQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useEffect, useRef } from "react"
 import { Path } from "@core/path"
+import type { HelloResponseBody } from "@core/types"
 import localStorages from "@/lib/localStorages"
 
 export function UIMediaFolderStoreInitializer() {
   useRecheckSelectedFolderAvailability()
 
+  const queryClient = useQueryClient()
   const { userConfig, isLoading, isUserConfigLoaded } = useConfig()
   const setFolders = useUIMediaFolderStore((s) => s.setFolders)
   const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder)
@@ -41,9 +45,14 @@ export function UIMediaFolderStoreInitializer() {
     initializedRef.current = true
 
     void (async () => {
+      const coreRoutesPort = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.coreRoutesPort
+      if (coreRoutesPort === undefined) {
+        return
+      }
+
       for (const row of folders) {
         try {
-          const available = await isFolderAvailable(row.path)
+          const available = await isFolderAvailable(row.path, coreRoutesPort)
           if (!available) {
             updateFolderStatus(row.path, "folder_not_found")
           }
@@ -53,6 +62,7 @@ export function UIMediaFolderStoreInitializer() {
       }
     })()
   }, [
+    queryClient,
     setFolders,
     setSelectedFolder,
     updateFolderStatus,

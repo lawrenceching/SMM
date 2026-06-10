@@ -1,11 +1,13 @@
 import { Path } from "@core/path"
 import React from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { isFolderAvailable } from "@/api/isFolderAvailable"
 import { UIMediaFolderStoreInitializer } from "./UIMediaFolderStoreInitializer"
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
+import { helloQueryKey } from "@/lib/appQueryKeys"
 import localStorages from "@/lib/localStorages"
 
 vi.mock("@/api/isFolderAvailable", () => ({
@@ -53,6 +55,15 @@ const mockUseConfig = useConfig as unknown as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStore = useUIMediaFolderStore as unknown as ReturnType<typeof vi.fn>
 const mockIsFolderAvailable = vi.mocked(isFolderAvailable)
 
+function renderInitializer(queryClient = new QueryClient()) {
+  queryClient.setQueryData(helloQueryKey, { coreRoutesPort: 30001 })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <UIMediaFolderStoreInitializer />
+    </QueryClientProvider>,
+  )
+}
+
 // The new signature is `isFolderAvailable(path, coreRoutesPort, signal?)`.
 // Tests assert against the path (positional arg0) and ignore the rest.
 function pathFromCall(call: unknown): string {
@@ -81,7 +92,7 @@ describe("UIMediaFolderStoreInitializer", () => {
       isUserConfigLoaded: false,
     })
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     expect(mockSetFolders).not.toHaveBeenCalled()
     expect(mockSetSelectedFolder).not.toHaveBeenCalled()
@@ -96,8 +107,18 @@ describe("UIMediaFolderStoreInitializer", () => {
       isUserConfigLoaded: true,
     })
 
-    const { rerender } = render(<UIMediaFolderStoreInitializer />)
-    rerender(<UIMediaFolderStoreInitializer />)
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(helloQueryKey, { coreRoutesPort: 30001 })
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <UIMediaFolderStoreInitializer />
+      </QueryClientProvider>,
+    )
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <UIMediaFolderStoreInitializer />
+      </QueryClientProvider>,
+    )
 
     expect(mockSetFolders).toHaveBeenCalledTimes(1)
     expect(mockSetFolders).toHaveBeenCalledWith([
@@ -119,7 +140,7 @@ describe("UIMediaFolderStoreInitializer", () => {
       isUserConfigLoaded: true,
     })
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     expect(mockSetSelectedFolder).toHaveBeenCalledTimes(1)
     expect(mockSetSelectedFolder).toHaveBeenCalledWith(Path.toPlatformPath("C:/Movies/A"))
@@ -136,7 +157,7 @@ describe("UIMediaFolderStoreInitializer", () => {
       isUserConfigLoaded: true,
     })
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     expect(mockSetSelectedFolder).toHaveBeenCalledTimes(1)
     expect(mockSetSelectedFolder).toHaveBeenCalledWith(Path.toPlatformPath("C:/Movies/A"))
@@ -149,7 +170,7 @@ describe("UIMediaFolderStoreInitializer", () => {
       isUserConfigLoaded: true,
     })
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     await waitFor(() => {
       expect(mockIsFolderAvailable).toHaveBeenCalledTimes(2)
@@ -170,7 +191,7 @@ describe("UIMediaFolderStoreInitializer", () => {
 
     mockIsFolderAvailable.mockImplementation(async (p: string) => p === missingPath ? false : true)
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     await waitFor(() => {
       expect(mockUpdateFolderStatus).toHaveBeenCalledWith(missingPath, "folder_not_found")
@@ -186,7 +207,7 @@ describe("UIMediaFolderStoreInitializer", () => {
     })
     mockIsFolderAvailable.mockResolvedValue(true)
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     await waitFor(() => {
       expect(mockIsFolderAvailable).toHaveBeenCalled()
@@ -202,7 +223,7 @@ describe("UIMediaFolderStoreInitializer", () => {
     })
     mockIsFolderAvailable.mockRejectedValue(new Error("network"))
 
-    render(<UIMediaFolderStoreInitializer />)
+    renderInitializer()
 
     await waitFor(() => {
       expect(mockIsFolderAvailable).toHaveBeenCalled()
