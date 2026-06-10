@@ -145,7 +145,10 @@ export interface UserConfig {
 }
 
 /**
- * Request body for POST /api/execute endpoint
+ * Request body for POST /api/execute endpoint.
+ *
+ * Note: the bootstrap application handshake is exposed separately at
+ * POST /api/hello (no request body required, returns `HelloResponseBody`).
  */
 export interface ApiExecutePostRequestBody {
   name: string;

@@ -225,14 +225,8 @@ export interface HelloResponse {
  * @returns The hello API response containing user data directories
  */
 export async function hello(): Promise<HelloResponse> {
-    const response = await fetch('http://localhost:30000/api/execute', {
+    const response = await fetch('http://localhost:30000/api/hello', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: 'hello',
-        }),
     })
     const data = await response.json() as HelloResponse
     console.log('API response:', data)

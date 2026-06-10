@@ -2,10 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import path from 'path';
-import { z } from 'zod/v3';
 import { initializeSocketIO } from './src/utils/socketIO.ts';
-import { executeHelloTask } from './tasks/HelloTask';
-import { executeGetSelectedMediaMetadataTask } from './tasks/GetSelectedMediaMetadataTask';
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleWriteFile } from './src/route/WriteFile';
@@ -42,6 +39,7 @@ import { handleUpdatePlan } from './src/route/UpdatePlan';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
+import { registerExecuteRoutes } from './src/route/execute';
 import { handleCommandLog } from './src/route/commandLog';
 import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
@@ -185,14 +183,6 @@ export class Server {
       }),
     );
 
-    // Zod schema for request body validation
-    const executeRequestSchema = z.object({
-      name: z.enum(['hello', 'system', 'GetSelectedMediaMetadata'], {
-        message: 'name must be one of: "hello", "system", "GetSelectedMediaMetadata"'
-      }),
-      data: z.any()
-    });
-
     // Register route handlers
     handleChatRequest(this.app);
     handleReadFile(this.app);
@@ -237,48 +227,8 @@ export class Server {
     handleSpeedtest(this.app);
     handleDiscover(this.app);
     handleShutdown(this.app);
-    // POST /api/execute - Special orchestration route for multiple tasks
-    this.app.post('/api/execute', async (c) => {
-      try {
-        const rawBody = await c.req.json();
-        
-        // Validate request body with Zod
-        const validationResult = executeRequestSchema.safeParse(rawBody);
-        
-        if (!validationResult.success) {
-          return c.json({ 
-            error: 'Validation failed',
-            details: validationResult.error.issues.map((err) => ({
-              path: err.path.join('.'),
-              message: err.message
-            }))
-          }, 400);
-        }
-
-        const body = validationResult.data;
-
-        // Execute task based on name
-        if (body.name === 'hello') {
-          const result = await executeHelloTask(this.proxyManager.url);
-          return c.json(result);
-        }
-
-        if (body.name === 'GetSelectedMediaMetadata') {
-          const result = await executeGetSelectedMediaMetadataTask();
-          return c.json(result);
-        }
-
-        // Handle other task names (e.g., 'system')
-        return c.json({ 
-          error: `Task "${body.name}" is not yet implemented`
-        }, 501);
-      } catch (error) {
-        return c.json({ 
-          error: 'Invalid JSON body or parsing error',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }, 400);
-      }
-    });
+    // Register /api/hello and /api/execute routes (extracted for testability).
+    registerExecuteRoutes(this.app, this.proxyManager);
 
     // Socket.IO is handled via engine in Bun.serve, not as a Hono route
 
