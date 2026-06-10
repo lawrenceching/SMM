@@ -3,10 +3,30 @@
 
 ## POST /api/readFile
 
+Implementation:
+- `packages/core-routes/src/readFile.ts` — pure function `doReadFile`.
+- `packages/core-routes/src/routes/readFileRoute.ts` — Node `http`
+ handler `handleReadFilePost`.
+- `apps/cli/src/route/ReadFile.ts` — Hono adapter (thin shell that
+ calls `doReadFile`).
+
+Served by both the Hono Bun server (apps/cli port 30000) and the
+core-routes Node `http` server (port from
+`HelloResponseBody.coreRoutesPort`).
+
 Request body:
 ```typescript
 interface ReadFileRequestBody {
+  /**
+   * Absolute path of file, it could be POSIX path or Windows path
+   */
   path: string;
+  /**
+   * Default is true. When false, allowlist validation is skipped.
+   * Used by `TvShowPanelUtils.ts` to read NFO files for episodes
+   * outside the configured media folders.
+   */
+  requireValidPath?: boolean;
 }
 ```
 

@@ -4,6 +4,7 @@ import { createRequestUrl, sendJson } from "./http.ts";
 import { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
 import { handleHelloPost } from "./routes/helloRoute.ts";
 import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
+import { handleReadFilePost } from "./routes/readFileRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
@@ -13,6 +14,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
+  handleReadFilePost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -58,3 +60,4 @@ export { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute
 export { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 export { handleHelloPost } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
+export { handleReadFilePost } from "./routes/readFileRoute.ts";

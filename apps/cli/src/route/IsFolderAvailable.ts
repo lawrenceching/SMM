@@ -1,6 +1,9 @@
 import { buildAllowlist } from '@/utils/buildAllowlist';
-import { doReadFile as doReadFileCore } from '@smm/core-routes';
-import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
+import {
+ doIsFolderAvailable as doIsFolderAvailableCore,
+ type IsFolderAvailableRequestBody,
+ type IsFolderAvailableResponseBody,
+} from '@smm/core-routes';
 import type { Hono } from 'hono';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
 
@@ -12,23 +15,23 @@ const coreRoutesLogger = {
  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
-export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
+export async function processIsFolderAvailable(body: IsFolderAvailableRequestBody): Promise<IsFolderAvailableResponseBody> {
  const allowlist = await buildAllowlist();
- return doReadFileCore(body, { allowlist, logger: coreRoutesLogger });
+ return doIsFolderAvailableCore(body, { allowlist, logger: coreRoutesLogger });
 }
 
-export function handleReadFile(app: Hono) {
- app.post('/api/readFile', async (c) => {
+export function handleIsFolderAvailable(app: Hono) {
+ app.post('/api/isFolderAvailable', async (c) => {
  try {
  const rawBody = await c.req.json();
  logHttpReqIn(c, rawBody);
- const result = await processReadFile(rawBody);
+ const result = await processIsFolderAvailable(rawBody);
  logHttpRespOut(c, result,200);
  return c.json(result);
  } catch (error) {
- logger.error({ error }, 'ReadFile route error:');
+ logger.error({ error }, 'IsFolderAvailable route error:');
  const respBody = {
- error: 'Failed to process read file request',
+ error: 'Failed to process is folder available request',
  details: error instanceof Error ? error.message : 'Unknown error'
  };
  logHttpRespOut(c, respBody,500);

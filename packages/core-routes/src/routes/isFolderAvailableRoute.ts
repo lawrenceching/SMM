@@ -42,7 +42,7 @@ export async function handleIsFolderAvailablePost(
  return true;
  }
 
- const result = await doIsFolderAvailable(rawBody);
+ const result = await doIsFolderAvailable(rawBody, ctx.config);
  sendJson(res,200, result);
  return true;
  } catch (error) {

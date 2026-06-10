@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
 import { z } from "zod/v3";
+import type { CoreRoutesConfig } from "./types.ts";
 
 /**
  * Request body for `POST /api/isFolderAvailable`.
@@ -58,11 +59,17 @@ export async function checkFolderPathAvailable(folderPath: string): Promise<bool
  */
 export async function doIsFolderAvailable(
  body: IsFolderAvailableRequestBody,
+ _config: Partial<CoreRoutesConfig> = {},
 ): Promise<IsFolderAvailableResponseBody> {
  const parsed = isFolderAvailableRequestSchema.safeParse(body);
  if (!parsed.success) {
  return { available: false };
  }
  const available = await checkFolderPathAvailable(parsed.data.path);
+ if (available) {
+ _config.logger?.debug({ path: parsed.data.path }, "doIsFolderAvailable: folder exists");
+ } else {
+ _config.logger?.info({ path: parsed.data.path }, "doIsFolderAvailable: folder not found");
+ }
  return { available };
 }

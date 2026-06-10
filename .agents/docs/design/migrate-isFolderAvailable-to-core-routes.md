@@ -1,5 +1,14 @@
 # Migrate `isFolderAvailable` API to `packages/core-routes`
 
+> **Follow-up (2026-06-11)**: The Hono shell at
+> `apps/cli/src/route/IsFolderAvailable.ts` was subsequently restored
+> to keep the UI transparent — the UI no longer reads
+> `HelloResponseBody.coreRoutesPort`. See
+> `.agents/docs/design/migrate-readFile-to-core-routes.md` for the
+> consolidated migration. The `coreRoutesPort` field on the hello
+> response is retained for forward compatibility but has no UI
+> consumers.
+
 Move the folder-availability check (`POST /api/isFolderAvailable`) from
 `apps/cli` to `packages/core-routes` as a framework-agnostic pure
 function plus a Node `http` handler. The Hono wrapper in `apps/cli`

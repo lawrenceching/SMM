@@ -26,9 +26,22 @@ CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback wh
 Source Code: packages/core-routes/src/isFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md
 
-Served by the core-routes Node `http` server (port from
+Served by both the Hono Bun server (apps/cli port 30000) and the
+core-routes Node `http` server (port from
 `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI,
-18081 on HarmonyOS).
+18081 on HarmonyOS). The UI calls the Hono server via the relative
+URL `/api/isFolderAvailable`.
+
+## ReadFile
+Source Code: packages/core-routes/src/readFile.ts
+Document: docs/api/ReadFileAPI.md
+
+Served by both the Hono Bun server (apps/cli port 30000) and the
+core-routes Node `http` server (port from
+`HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI,
+18081 on HarmonyOS). The UI calls the Hono server via the relative
+URL `/api/readFile`. The Hono shell at `apps/cli/src/route/ReadFile.ts`
+delegates to `doReadFile` from `@smm/core-routes`.
 
 ## ExecuteCmd
 Source Code: apps/cli/src/route/executeCmd.ts

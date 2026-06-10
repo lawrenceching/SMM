@@ -10,6 +10,12 @@ export {
 export { doListFiles } from "./listFiles.ts";
 export { doWriteFile, isError, ExistedFileError } from "./writeFile.ts";
 export {
+  checkFileIsReadable,
+  doReadFile,
+  type ReadFileRequestBody,
+  type ReadFileResponseBody,
+} from "./readFile.ts";
+export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
@@ -19,4 +25,5 @@ export {
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
+  handleReadFilePost,
 } from "./register.ts";

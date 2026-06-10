@@ -46,18 +46,21 @@ __export(exports_src, {
   registerCoreRoutes: () => registerCoreRoutes,
   isError: () => isError,
   handleWriteFilePost: () => handleWriteFilePost,
+  handleReadFilePost: () => handleReadFilePost,
   handleListFilesPost: () => handleListFilesPost,
   handleListFilesGet: () => handleListFilesGet,
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   doWriteFile: () => doWriteFile,
+  doReadFile: () => doReadFile,
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
   createCoreRoutesRequestHandler: () => createCoreRoutesRequestHandler,
   coreRouteHandlers: () => coreRouteHandlers,
   checkFolderPathAvailable: () => checkFolderPathAvailable,
+  checkFileIsReadable: () => checkFileIsReadable,
   ExistedFileError: () => ExistedFileError
 });
 module.exports = __toCommonJS(exports_src);
@@ -4061,12 +4064,17 @@ async function checkFolderPathAvailable(folderPath) {
     return false;
   }
 }
-async function doIsFolderAvailable(body) {
+async function doIsFolderAvailable(body, _config = {}) {
   const parsed = isFolderAvailableRequestSchema.safeParse(body);
   if (!parsed.success) {
     return { available: false };
   }
   const available = await checkFolderPathAvailable(parsed.data.path);
+  if (available) {
+    _config.logger?.debug({ path: parsed.data.path }, "doIsFolderAvailable: folder exists");
+  } else {
+    _config.logger?.info({ path: parsed.data.path }, "doIsFolderAvailable: folder not found");
+  }
   return { available };
 }
 // src/listFiles.ts
@@ -4522,6 +4530,10 @@ var ExistedFileError = "File Already Existed";
 function existedFileError(path2) {
   return `${ExistedFileError}: ${path2}`;
 }
+var FileNotFoundError = "File Not Found";
+function fileNotFoundError(path2) {
+  return `${FileNotFoundError}: ${path2}`;
+}
 
 // src/writeFile.ts
 var writeFileRequestSchema = exports_external.object({
@@ -4645,6 +4657,78 @@ async function doWriteFile(body, config, traceId = "") {
       name: error.name
     } : { error };
     logger?.error({ traceId, error: loggableError }, "doWriteFile: Unexpected error");
+    return {
+      error: `Unexpected error: ${error instanceof Error ? error.message : "Unknown error"}`
+    };
+  }
+}
+// src/readFile.ts
+var import_node_path3 = __toESM(require("node:path"));
+var import_promises4 = require("node:fs/promises");
+var import_node_fs2 = require("node:fs");
+var readFileRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "Path is required"),
+  requireValidPath: exports_external.boolean().optional()
+});
+async function fileExists2(filePath) {
+  try {
+    await import_promises4.access(filePath, import_node_fs2.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function checkFileIsReadable(filePath) {
+  if (!await fileExists2(filePath)) {
+    return null;
+  }
+  try {
+    return await import_promises4.readFile(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+}
+async function doReadFile(body, config) {
+  const { logger, allowlist } = config;
+  try {
+    const validationResult = readFileRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doReadFile: validation failed");
+      return {
+        error: `Validation failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: filePath, requireValidPath } = validationResult.data;
+    logger?.debug({ filePath, requireValidPath }, "doReadFile: processing request");
+    const posixPath = Path.posix(filePath);
+    const resolvedPath = import_node_path3.default.posix.resolve(posixPath);
+    if (requireValidPath === undefined || requireValidPath === true) {
+      const isAllowed = validatePathIsInAllowlist(resolvedPath, allowlist);
+      if (!isAllowed) {
+        logger?.warn({ filePath }, "doReadFile: path not in allowlist");
+        return {
+          error: `Path "${filePath}" is not in the allowlist`
+        };
+      }
+    }
+    const platformPath = Path.toPlatformPath(resolvedPath);
+    try {
+      const data = await checkFileIsReadable(platformPath);
+      if (data === null) {
+        logger?.info({ filePath, platformPath }, "doReadFile: file not found");
+        return {
+          error: fileNotFoundError(filePath)
+        };
+      }
+      return { data };
+    } catch (error) {
+      logger?.error({ filePath, platformPath, error }, "doReadFile: failed to read file");
+      return {
+        error: `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+  } catch (error) {
+    logger?.error({ error }, "doReadFile: unexpected error");
     return {
       error: `Unexpected error: ${error instanceof Error ? error.message : "Unknown error"}`
     };
@@ -4784,12 +4868,33 @@ async function handleIsFolderAvailablePost(req, res, ctx) {
       });
       return true;
     }
-    const result = await doIsFolderAvailable(rawBody);
+    const result = await doIsFolderAvailable(rawBody, ctx.config);
     sendJson(res, 200, result);
     return true;
   } catch (error) {
     ctx.config.logger?.debug({ error }, "[IsFolderAvailable] invalid JSON");
     sendJson(res, 400, { error: "Invalid JSON body" });
+    return true;
+  }
+}
+
+// src/routes/readFileRoute.ts
+async function handleReadFilePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/readFile") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[ReadFile] POST /api/readFile");
+    const result = await doReadFile(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error) {
+    ctx.config.logger?.error({ error }, "ReadFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
     return true;
   }
 }
@@ -4831,7 +4936,8 @@ var coreRouteHandlers = [
   handleListFilesPost,
   handleWriteFilePost,
   handleHelloPost,
-  handleIsFolderAvailablePost
+  handleIsFolderAvailablePost,
+  handleReadFilePost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;

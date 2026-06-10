@@ -1,10 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { useEffect } from "react"
-import { isFolderAvailable } from "@/api/isFolderAvailable"
-import { helloQueryKey } from "@/lib/appQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import type { HelloResponseBody } from "@core/types"
+import { useEffect } from "react"
+import { isFolderAvailable } from "@/api/isFolderAvailable"
 
 /** While these are active, availability must not overwrite with `ok` (other flows own the row). */
 const skipOkOverlay: ReadonlySet<UIMediaFolderStatus> = new Set([
@@ -21,7 +18,6 @@ const skipOkOverlay: ReadonlySet<UIMediaFolderStatus> = new Set([
 export function useRecheckSelectedFolderAvailability() {
  const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder)
  const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
- const queryClient = useQueryClient()
 
  useEffect(() => {
  if (!selectedFolder) return
@@ -29,17 +25,8 @@ export function useRecheckSelectedFolderAvailability() {
  const ac = new AbortController()
 
  void (async () => {
- const coreRoutesPort = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.coreRoutesPort
- if (coreRoutesPort === undefined) {
- // hello has not loaded yet — bootstrap guarantees it does
- // (AppInitializer → useReloadAppConfig → hello() → setQueryData)
- // before this hook first fires. Bail silently so we don't
- //404 the not-yet-known port.
- return
- }
-
  try {
- const available = await isFolderAvailable(selectedFolder, coreRoutesPort, ac.signal)
+ const available = await isFolderAvailable(selectedFolder, ac.signal)
  if (ac.signal.aborted) return
 
  const folder = useUIMediaFolderStore
@@ -66,5 +53,5 @@ export function useRecheckSelectedFolderAvailability() {
  return () => {
  ac.abort()
  }
- }, [selectedFolder, updateFolderStatus, queryClient])
+ }, [selectedFolder, updateFolderStatus])
 }

@@ -5,6 +5,7 @@ import path from 'path';
 import { initializeSocketIO } from './src/utils/socketIO.ts';
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
+import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
@@ -185,6 +186,7 @@ export class Server {
     // Register route handlers
     handleChatRequest(this.app);
     handleReadFile(this.app);
+    handleIsFolderAvailable(this.app);
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);

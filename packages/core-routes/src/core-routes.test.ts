@@ -213,3 +213,126 @@ describe("POST /api/isFolderAvailable", () => {
     expect(body.error).toBe("Validation failed");
   });
 });
+
+describe("POST /api/readFile", () => {
+  function toPosix(p: string): string {
+    if (path.sep === "/") return p;
+    return p.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+  }
+
+  async function requestReadFile(
+    rawBody: string | undefined,
+    allowlist: string[],
+  ) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/readFile";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns 200 with data for an existing file in allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-"));
+    const filePath = path.join(dir, "a.txt");
+    await writeFile(filePath, "hello world", "utf-8");
+    try {
+      const { status, body } = await requestReadFile(
+        JSON.stringify({ path: filePath }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect(body.data).toBe("hello world");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 200 with allowlist error for an out-of-allowlist path (default)", async () => {
+    const { status, body } = await requestReadFile(
+      JSON.stringify({ path: "/definitely/outside/allowlist.txt" }),
+      ["/allowed-only"],
+    );
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("not in the allowlist");
+  });
+
+  it("returns 200 with data when requireValidPath: false skips allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-skip-"));
+    const filePath = path.join(dir, "x.txt");
+    await writeFile(filePath, "outside", "utf-8");
+    try {
+      const { status, body } = await requestReadFile(
+        JSON.stringify({ path: filePath, requireValidPath: false }),
+        ["/allowed-only"],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect(body.data).toBe("outside");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 200 with File Not Found for a missing path", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-"));
+    try {
+      const { status, body } = await requestReadFile(
+        JSON.stringify({ path: path.join(dir, "missing.txt") }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.data).toBeUndefined();
+      expect(body.error).toContain("File Not Found");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 400 for invalid JSON", async () => {
+    const { status, body } = await requestReadFile("not-json", []);
+    expect(status).toBe(400);
+    expect(body.error).toBe("Invalid JSON body");
+  });
+
+  it("returns 200 with validation error for missing path", async () => {
+    const { status, body } = await requestReadFile(JSON.stringify({}), []);
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("Validation failed");
+  });
+
+  it("returns 200 with validation error for empty path", async () => {
+    const { status, body } = await requestReadFile(JSON.stringify({ path: "" }), []);
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("Validation failed");
+  });
+});
