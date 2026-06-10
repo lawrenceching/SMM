@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { executeHelloTask } from '../../tasks/HelloTask';
+import { doHello } from '@smm/core-routes';
+import { buildHelloOptions } from '../../tasks/HelloTask';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
 import type { ReverseProxyManager } from '@/proxy/reverseProxy';
 
@@ -33,7 +34,7 @@ export function registerExecuteRoutes(app: Hono, proxyManager: ReverseProxyManag
   // Returns environment paths, version, reverse-proxy URL and OS locale.
   // Body is ignored; an empty body is acceptable.
   app.post('/api/hello', async (c) => {
-    const result = await executeHelloTask(proxyManager.url);
+    const result = doHello(buildHelloOptions(proxyManager.url));
     return c.json(result);
   });
 

@@ -4,6 +4,7 @@ import {
   type CoreRoutesLogger,
 } from "@smm/core-routes";
 import { buildAllowlist } from "@/utils/buildAllowlist";
+import { buildHelloOptions } from "../tasks/HelloTask";
 import { logger } from "../lib/logger";
 
 const DEFAULT_PORT = 3001;
@@ -21,7 +22,7 @@ export async function startCoreRoutesServer(): Promise<http.Server> {
   const port = parseInt(process.env.CORE_ROUTES_PORT ?? String(DEFAULT_PORT), 10);
   const allowlist = await buildAllowlist();
   const handler = createCoreRoutesRequestHandler(
-    { allowlist, logger: createCoreRoutesLogger() },
+    { allowlist, logger: createCoreRoutesLogger(), hello: buildHelloOptions(null) },
     { fallbackPort: port },
   );
 

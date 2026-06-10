@@ -48,9 +48,11 @@ __export(exports_src, {
   handleWriteFilePost: () => handleWriteFilePost,
   handleListFilesPost: () => handleListFilesPost,
   handleListFilesGet: () => handleListFilesGet,
+  handleHelloPost: () => handleHelloPost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   doWriteFile: () => doWriteFile,
   doListFiles: () => doListFiles,
+  doHello: () => doHello,
   createCoreRoutesRequestHandler: () => createCoreRoutesRequestHandler,
   coreRouteHandlers: () => coreRouteHandlers,
   ExistedFileError: () => ExistedFileError
@@ -60,6 +62,13 @@ module.exports = __toCommonJS(exports_src);
 // src/allowlist.ts
 function validatePathIsInAllowlist(filePath, allowlist) {
   return allowlist.some((allowlistItem) => filePath.startsWith(allowlistItem));
+}
+// src/hello.ts
+function doHello(options) {
+  return {
+    uptime: process.uptime(),
+    ...options
+  };
 }
 // ../../node_modules/.pnpm/zod@4.3.6/node_modules/zod/v3/external.js
 var exports_external = {};
@@ -4714,6 +4723,20 @@ async function handleListFilesPost(req, res, ctx) {
   }
 }
 
+// src/routes/helloRoute.ts
+async function handleHelloPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/hello") {
+    return false;
+  }
+  if (ctx.config.hello === undefined) {
+    sendJson(res, 200, { error: "hello not configured" });
+    return true;
+  }
+  const result = doHello(ctx.config.hello);
+  sendJson(res, 200, result);
+  return true;
+}
+
 // src/routes/writeFileRoute.ts
 async function handleWriteFilePost(req, res, ctx) {
   if (req.method !== "POST" || ctx.url.pathname !== "/api/writeFile") {
@@ -4749,7 +4772,8 @@ async function handleWriteFilePost(req, res, ctx) {
 var coreRouteHandlers = [
   handleListFilesGet,
   handleListFilesPost,
-  handleWriteFilePost
+  handleWriteFilePost,
+  handleHelloPost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;

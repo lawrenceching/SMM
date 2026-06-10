@@ -66,15 +66,19 @@ describe("doWriteFile", () => {
 });
 
 describe("handleCoreRoutesRequest", () => {
-  it("returns 404 for unknown routes", async () => {
+  async function requestCoreRoute(
+    method: string,
+    url: string,
+    config: { allowlist: string[]; hello?: import("../src/hello.ts").HelloOptions },
+  ) {
     const { handleCoreRoutesRequest } = await import("../src/register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
     const { Socket } = await import("node:net");
 
     const socket = new Socket();
     const req = new IncomingMessage(socket);
-    req.method = "GET";
-    req.url = "/api/unknown";
+    req.method = method;
+    req.url = url;
 
     let status = 0;
     let body = "";
@@ -88,10 +92,42 @@ describe("handleCoreRoutesRequest", () => {
       return res;
     }) as typeof res.end;
 
-    await handleCoreRoutesRequest(req, res, { allowlist: [] }, 3001);
+    await handleCoreRoutesRequest(req, res, config, 3001);
 
-    expect(status).toBe(404);
-    expect(JSON.parse(body).error).toContain("Not found");
     socket.destroy();
+    return { status, body: JSON.parse(body) as Record<string, unknown> };
+  }
+
+  it("returns 404 for unknown routes", async () => {
+    const { status, body } = await requestCoreRoute("GET", "/api/unknown", { allowlist: [] });
+    expect(status).toBe(404);
+    expect(body.error).toContain("Not found");
+  });
+
+  it("returns HelloResponseBody when config.hello is provided", async () => {
+    const { status, body } = await requestCoreRoute("POST", "/api/hello", {
+      allowlist: [],
+      hello: {
+        version: "1.3.8",
+        userDataDir: "/tmp/userData",
+        appDataDir: "/tmp/appData",
+        logDir: "/tmp/logs",
+        tmpDir: "/tmp",
+        reverseProxyUrl: null,
+        osLocale: "en-US",
+      },
+    });
+
+    expect(status).toBe(200);
+    expect(body.version).toBe("1.3.8");
+    expect(body.userDataDir).toBe("/tmp/userData");
+    expect(typeof body.uptime).toBe("number");
+  });
+
+  it('returns { error: "hello not configured" } when config.hello is undefined', async () => {
+    const { status, body } = await requestCoreRoute("POST", "/api/hello", { allowlist: [] });
+
+    expect(status).toBe(200);
+    expect(body.error).toBe("hello not configured");
   });
 });

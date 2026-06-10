@@ -1,5 +1,8 @@
 # Split `hello` task out of `/api/execute` into `/api/hello`
 
+> The hello business logic has since been moved to `packages/core-routes`; see
+> `.agents/docs/design/migrate-hello-to-core-routes.md`.
+
 [brief the change here.]
 
 Refactor the `hello` task out of the generic `POST /api/execute` orchestration

@@ -89,6 +89,8 @@ export interface CoreRoutesConfig {
   allowlist: string[];
   /** 可选日志接口，不传则静默 */
   logger?: CoreRoutesLogger;
+  /** 可选；设置后 POST /api/hello 通过 doHello 返回 bootstrap 握手数据 */
+  hello?: HelloOptions;
 }
 
 export interface RouteContext {
@@ -109,9 +111,11 @@ export type RouteHandler = (
 |------|------|
 | `doListFiles(body)` | 纯业务逻辑，可被 Hono handler 复用 |
 | `doWriteFile(body, config)` | 纯业务逻辑，含 allowlist 校验 |
+| `doHello(options)` | bootstrap 握手纯函数（无 I/O） |
 | `validatePathIsInAllowlist(path, allowlist)` | 路径校验工具 |
 | `handleListFilesGet` / `handleListFilesPost` | 单独 Node.js 路由 handler |
 | `handleWriteFilePost` | 单独 Node.js 路由 handler |
+| `handleHelloPost` | 单独 Node.js 路由 handler |
 | `createCoreRoutesRequestHandler(config)` | 返回 `(req, res) => void`，供 `http.createServer` 使用 |
 | `registerCoreRoutes(server, config)` | 在已有 `http.Server` 上挂载 request 监听器 |
 
@@ -122,6 +126,7 @@ export type RouteHandler = (
 | GET | `/api/listFiles` | `handleListFilesGet` |
 | POST | `/api/listFiles` | `handleListFilesPost` |
 | POST | `/api/writeFile` | `handleWriteFilePost` |
+| POST | `/api/hello` | `handleHelloPost` |
 
 **writeFile 改造要点**：
 - 将 `Bun.file` / `Bun.write` 替换为 `node:fs/promises` 的 `writeFile`

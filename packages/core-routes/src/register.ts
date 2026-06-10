@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type http from "node:http";
 import { createRequestUrl, sendJson } from "./http.ts";
 import { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
+import { handleHelloPost } from "./routes/helloRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
@@ -9,6 +10,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
+  handleHelloPost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -52,3 +54,4 @@ export function registerCoreRoutes(server: http.Server, config: CoreRoutesConfig
 
 export { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
 export { handleWriteFilePost } from "./routes/writeFileRoute.ts";
+export { handleHelloPost } from "./routes/helloRoute.ts";

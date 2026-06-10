@@ -2,9 +2,15 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { registerExecuteRoutes } from './execute';
 
-vi.mock('../../tasks/HelloTask', () => ({
-  executeHelloTask: vi.fn(async (reverseProxyUrl: string | null) => ({
+vi.mock('@smm/core-routes', () => ({
+  doHello: vi.fn((options: Record<string, unknown>) => ({
     uptime: 1.5,
+    ...options,
+  })),
+}));
+
+vi.mock('../../tasks/HelloTask', () => ({
+  buildHelloOptions: vi.fn((reverseProxyUrl: string | null) => ({
     version: '1.2.3-test',
     userDataDir: '/tmp/userData',
     appDataDir: '/tmp/appData',
