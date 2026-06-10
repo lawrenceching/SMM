@@ -1,0 +1,20 @@
+[package]
+name = "hello_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi-ohos = { version = "1.0", default-features = false, features = ["napi4"] }
+napi-derive-ohos = { version = "1.0" }
+
+[build-dependencies]
+napi-build-ohos = { version = "1.0" }
+
+[profile.release]
+lto = true
+opt-level = "z"
+strip = true
+codegen-units = 1

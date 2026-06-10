@@ -1,0 +1,527 @@
+{
+  "menu": {
+    "file": "檔案",
+    "edit": "編輯",
+    "view": "檢視",
+    "help": "說明",
+    "openFolder": "開啟資料夾",
+    "openMediaLibrary": "開啟媒體庫",
+    "developer": "開發者",
+    "openAppDataFolder": "開啟應用程式資料資料夾",
+    "openLogFolder": "開啟日誌資料夾",
+    "addTestBackgroundJob": "新增測試任務",
+    "config": "設定",
+    "cleanUp": "清理",
+    "exit": "結束",
+    "downloadVideo": "下載影片",
+    "formatConversion": "格式轉換",
+    "videoCompression": "影片壓縮"
+  },
+  "sidebar": {
+    "mediaFolders": "媒體資料夾",
+    "addFolder": "新增資料夾"
+  },
+  "folderNotAvailablePanel": {
+    "title": "資料夾無法使用",
+    "description": "無法連線到此媒體資料夾。路徑可能已被移動、重新命名或刪除，亦可能磁碟機尚未連線。"
+  },
+  "mediaFolder": {
+    "rename": "重新命名",
+    "openInExplorer": "在檔案總管中開啟",
+    "delete": "刪除",
+    "deleteWarning": "不會從磁碟刪除",
+    "renameTitle": "重新命名媒體",
+    "renameDescription": "輸入此媒體的新名稱",
+    "renameError": "無法重新命名資料夾：{{error}}",
+    "initializing": "正在初始化媒體目錄...",
+    "folderNotFound": "資料夾未找到",
+    "errorLoadingMetadata": "載入元資料時出錯"
+  },
+  "toolbar": {
+    "refresh": "重新整理",
+    "settings": "設定",
+    "plex": "Plex",
+    "emby": "Emby",
+    "confirm": "確認",
+    "cancel": "取消",
+    "selectPlaceholder": "選擇...",
+    "generating": "生成中...",
+    "aiGenerating": "AI正在生成檔案名稱...",
+    "aiRenaming": "AI正在重新命名劇集，請稍候...",
+    "aiReview": "AI將重新命名劇集，請查看...",
+    "aiRecognizing": "AI正在識別劇集...",
+    "aiReviewEpisodes": "檢視已識別的劇集",
+    "recognizePrompt": "可能是 {{tvShowTitle}} ({{tvShowTmdbId}})?",
+    "recognizeReviewPrompt": "請核對",
+    "notAllEpisodesRecognized": "似乎並非所有集數都已識別",
+    "allPlanFilesUnchanged": "所有集數已與當前視頻檔案對應關係一致，無需變更。",
+    "useNfoMetadata": "使用NFO檔案中的媒體元資料？",
+    "useTmdbIdFromFolderName": "使用資料夾名稱中的TMDB ID？",
+    "queryTmdbFailed": "查詢TMDB失敗",
+    "recognizeEpisodesSuccess": "成功識別影片檔案"
+  },
+  "assistant": {
+    "open": "開啟助手",
+    "close": "關閉助手"
+  },
+  "tvShow": {
+    "searchPlaceholder": "輸入電視劇名稱",
+    "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電視劇/動畫",
+    "unrecognizedFolderHint": "無法識別資料夾，請在此處輸入電視劇/電影名稱",
+    "overview": "概述",
+    "genres": "類型",
+    "genreLabel": "類型 {{genreId}}",
+    "rename": "重新命名",
+    "recognize": "識別",
+    "scrape": "刮削",
+    "notAvailable": "不可用",
+    "more": "更多",
+    "openInTmdb": "在TMDB中開啟",
+    "openInTvdb": "在TVDB中開啟",
+    "layoutSimple": "簡單佈局",
+    "layoutDetail": "詳情佈局",
+    "layoutPreview": "預覽模式"
+  },
+  "tmdbSearchbox": {
+    "database": "資料庫",
+    "searchLanguage": "搜尋語言",
+    "tvdbSearchOnlyHint": "TVDB 結果僅供搜尋。請切換至 TMDB 以選擇並儲存。",
+    "showAllLanguages": "顯示全部語言",
+    "showFewerLanguages": "收起"
+  },
+  "movie": {
+    "searchPlaceholder": "輸入電影名稱",
+    "searchPlaceholderUnrecognized": "未識別媒體庫, 請在此處輸入並搜尋電影",
+    "unrecognizedFolderHint": "無法識別資料夾，請在此處輸入電視劇/電影名稱",
+    "overview": "概述",
+    "genres": "類型",
+    "genreLabel": "類型 {{genreId}}",
+    "rename": "重新命名",
+    "scrape": "刮削",
+    "notAvailable": "不可用",
+    "more": "更多",
+    "openInTmdb": "在TMDB中開啟",
+    "openInTvdb": "在TVDB中開啟",
+    "searchNoResults": "未找到結果",
+    "searchFailed": "搜尋TMDB失敗",
+    "noMediaPathError": "媒體資料夾路徑不可用"
+  },
+  "episodeFile": {
+    "open": "開啟",
+    "rename": "重新命名",
+    "renameSuccess": "檔案重新命名成功",
+    "renameFailed": "檔案重新命名失敗",
+    "selectFile": "選擇檔案"
+  },
+  "viewSwitcher": {
+    "metadataView": "元資料檢視",
+    "filesView": "檔案檢視"
+  },
+  "fileExplorer": {
+    "root": "根目錄",
+    "current": "目前",
+    "searchPlaceholder": "搜尋檔案和資料夾...",
+    "loading": "載入中...",
+    "loadFailed": "載入檔案失敗",
+    "errorTitle": "載入檔案時發生錯誤",
+    "noMatches": "未找到符合項目",
+    "emptyDirectory": "空目錄",
+    "noMatchesDescription": "沒有檔案符合 \"{{query}}\"",
+    "emptyDirectoryDescription": "此資料夾不包含任何檔案",
+    "folderContents": "此資料夾包含 {{files}} 個檔案 和 {{folders}} 個資料夾",
+    "statusBar": "{{folders}} 個資料夾, {{files}} 個檔案",
+    "searchStatus": "顯示 {{showing}} / {{total}} 項",
+    "goToParent": "移至父資料夾",
+    "drives": "磁碟機",
+    "drivesStatus": "{{count}} 個磁碟機",
+    "driveSelector": "選擇磁碟機",
+    "driveSelectorPlaceholder": "選擇磁碟機...",
+    "home": "使用者目錄"
+  },
+  "episodeSection": {
+    "notAvailable": "不可用",
+    "minutes": "分鐘",
+    "noFiles": "此劇集沒有關聯檔案",
+    "deleted": "已刪除",
+    "fileTypes": {
+      "video": "影片",
+      "subtitle": "字幕",
+      "audio": "音訊",
+      "nfo": "NFO",
+      "poster": "海報",
+      "file": "檔案"
+    }
+  },
+  "thread": {
+    "welcome": {
+      "title": "你好！",
+      "subtitle": "今天我能為您做些什麼？",
+      "configNotComplete": "你尚未完成 {{selectedAIProvider}} 的配置",
+      "openSettings": "開啟設定"
+    },
+    "suggestions": {
+      "recognizeVideoFiles": {
+        "title": "識別影片檔案",
+        "label": "智能識別和匹配劇集",
+        "prompt": "幫我匹配每一集對應的影片檔案"
+      },
+      "organizeFiles": {
+        "title": "整理檔案名稱",
+        "label": "按Plex規則重新命名檔案",
+        "prompt": "按 Plex 規則整理當前媒體資料夾\nPlex 規則為:\n{季目錄名}/{電視劇/動畫名} - S{季數}E{集數} - {標題}.{檔案後綴名}"
+      }
+    },
+    "clearChat": "清空聊天紀錄",
+    "clearChatTooltip": "清除目前與 AI 的對話"
+  },
+  "statusBar": {
+    "mcp": {
+      "serverOn": "MCP伺服器已開啟",
+      "serverOff": "MCP伺服器已關閉",
+      "serverError": "MCP伺服器錯誤",
+      "unknownError": "未知錯誤",
+      "title": "MCP伺服器",
+      "subtitle": "模型上下文協定",
+      "turnOff": "關閉MCP伺服器",
+      "turnOn": "開啟MCP伺服器",
+      "address": "地址",
+      "protocol": "協定",
+      "protocolValue": "串流HTTP",
+      "disabledMessage": "在設定 → 常規中啟用MCP以在獨立連接埠上公開伺服器。",
+      "startFailedOnLoad": "MCP伺服器在啟動後意外停止。請檢查伺服器日誌了解詳情。",
+      "documentation": "文件"
+    },
+    "database": {
+      "title": "資料庫連線",
+      "subtitle": "TMDB 與 TVDB 狀態",
+      "tmdb": "TMDB",
+      "tvdb": "TVDB",
+      "connected": "已連線",
+      "disconnected": "連線失敗",
+      "checkFailed": "檢查失敗",
+      "checking": "檢測中...",
+      "warningAriaLabel": "資料庫連線警告"
+    },
+    "versionUpdate": {
+      "title": "發現新版本",
+      "description": "SMM 有新版本（{{latest}}），目前為 {{current}}。",
+      "currentLabel": "目前版本",
+      "latestLabel": "最新版本",
+      "download": "前往下載",
+      "later": "稍後",
+      "ariaLabel": "有新版本可用，點擊查看詳情"
+    },
+    "messages": {
+      "tmdbAvailable": "TMDB 可用",
+      "tmdbUnavailable": "TMDB 不可用",
+      "tmdbCheckFailed": "TMDB 檢查失敗",
+      "tvdbAvailable": "TVDB 可用",
+      "tvdbUnavailable": "TVDB 不可用",
+      "tvdbCheckFailed": "TVDB 檢查失敗",
+      "videoCaptionerAvailable": "VideoCaptioner 可用",
+      "videoCaptionerNotFound": "找不到 videocaptioner",
+      "transcribeUnavailableOnOs": "生成字幕功能在目前作業系統上不可用",
+      "learnMore": "了解更多"
+    },
+    "backgroundJobs": {
+      "title": "背景工作",
+      "subtitle": "{{running}} 個執行中，{{pending}} 個待處理",
+      "empty": "沒有背景工作",
+      "triggerAriaLabel": "檢視 {{count}} 個背景工作",
+      "abortAriaLabel": "中止 {{name}}",
+      "status": {
+        "pending": "待處理",
+        "running": "執行中",
+        "succeeded": "已完成",
+        "failed": "失敗",
+        "aborted": "已中止",
+        "stopped": "已停止"
+      },
+      "messages": {
+        "succeeded": "已成功完成",
+        "failed": "工作失敗",
+        "aborted": "使用者已中止"
+      },
+      "toasts": {
+        "genericFailed": "工作「{{name}}」失敗"
+      },
+      "delete": "刪除",
+      "deleteDisabledRunning": "執行中的任務無法刪除",
+      "stopAll": "停止全部",
+      "clearFinished": "清理",
+      "clearFinishedTooltip": "清理除執行中以外的任務",
+      "clearFinishedAria": "清理除執行中以外的任務",
+      "clearFailed": "未能刪除 {{count}} 個任務",
+      "logButton": "記錄",
+      "logButtonAria": "檢視 {{name}} 的命令記錄",
+      "jobNames": {
+        "downloadVideo": "下載影片",
+        "downloadVideoEpisodes": "劇集 ({{count}} 個影片)",
+        "transcribe": "生成字幕",
+        "translate": "翻譯字幕",
+        "synthesize": "合成字幕",
+        "process": "字幕流程",
+        "ffmpeg-convert": "格式轉換",
+        "ffmpeg-write-tags": "寫入標籤",
+        "typedJob": "{{type}}：{{detail}}"
+      },
+      "logDialog": {
+        "title": "命令記錄 — {{jobTitle}}",
+        "raw": "原文",
+        "segments": "分段",
+        "refresh": "重新整理",
+        "loading": "載入中…",
+        "truncated": "此檢視可能已截斷；回應標頭含總大小，完整內容請查看磁碟上的記錄檔。",
+        "loadError": "無法載入命令記錄。",
+        "empty": "記錄為空。",
+        "live": "即時",
+        "contentAria": "命令記錄內容"
+      }
+    }
+  },
+  "mediaPlayer": {
+    "select": "選擇",
+    "download": "下載",
+    "downloadingTooltip": "正在下載…",
+    "transcribingTooltip": "正在產生字幕…",
+    "transcribeFailedTooltip": "字幕產生失敗",
+    "translateRunningTooltip": "正在翻譯字幕…",
+    "translateFailedTooltip": "字幕翻譯失敗",
+    "synthesizeRunningTooltip": "正在將字幕合成到影片…",
+    "synthesizeFailedTooltip": "字幕合成失敗",
+    "processRunningTooltip": "正在執行字幕流程…",
+    "processFailedTooltip": "字幕流程失敗",
+    "trackContextMenu": {
+      "open": "開啟",
+      "openError": "開啟檔案失敗",
+      "delete": "刪除",
+      "properties": "屬性",
+      "editTags": "編輯標籤",
+      "formatConvert": "格式轉換",
+      "videoCompress": "视频压缩",
+      "downloadStart": "開始",
+      "downloadStop": "停止",
+      "downloadRemove": "刪除",
+      "subtitle": "字幕",
+      "transcribe": "產生字幕",
+      "transcribeStop": "停止產生字幕",
+      "translate": "翻譯字幕",
+      "translateStop": "停止翻譯字幕",
+      "synthesize": "合成字幕",
+      "synthesizeStop": "停止合成字幕",
+      "process": "全流程處理",
+      "processStop": "停止流程",
+      "summarize": "總結",
+      "summarizeError": "無法獲取目前檔案的路徑",
+      "summarizeNoSubtitle": "未找到關聯的字幕檔案",
+      "summarizeNoDefaultAi": "未設定預設AI",
+      "summarizeNoBaseUrl": "{{name}} 的 baseURL 未設定",
+      "summarizeNoModel": "{{name}} 的模型未設定",
+      "summarizeNoAiConfig": "請先在設定中設定 AI 提供者",
+      "summarizeNoProxy": "反向代理未就緒，請重新啟動服務",
+      "summarizeSuccess": "總結已儲存到 {{path}}",
+      "summarizeFailed": "總結失敗：{{error}}"
+    },
+    "noTracksFound": "未找到音軌",
+    "tryAdjustingFilter": "嘗試調整您的搜尋或篩選條件"
+  },
+  "musicFileTable": {
+    "selectAllAria": "全選",
+    "columns": {
+      "index": "#",
+      "cover": "封面",
+      "title": "標題",
+      "artist": "藝術家",
+      "duration": "時長"
+    }
+  },
+  "associatedFiles": {
+    "type": {
+      "subtitle": "字幕",
+      "audio": "音頻",
+      "thumbnail": "封面",
+      "summary": "摘要"
+    }
+  },
+  "localFileTableRow": {
+    "expand": "展開",
+    "collapse": "收縮",
+    "noAssociatedFiles": "沒有找到任何字幕、封面、音頻等關聯文件",
+    "job": {
+      "transcribing": "正在生成字幕",
+      "translating": "正在翻譯字幕",
+      "synthesising": "正在合成字幕",
+      "processing": "正在處理字幕"
+    }
+  },
+  "subtitleTranslationDialog": {
+    "title": "翻譯字幕",
+    "description": "為所選字幕選擇翻譯引擎與目標語言。",
+    "translator": "翻譯引擎",
+    "translators": {
+      "bing": "Bing",
+      "google": "Google",
+      "llm": "大型語言模型"
+    },
+    "targetLanguage": "目標語言",
+    "reflect": "雙語對照輸出",
+    "apiKey": "API 金鑰",
+    "apiBase": "API 基礎網址",
+    "model": "模型",
+    "layout": "排版",
+    "layoutOptional": "可選排版",
+    "layoutNone": "無",
+    "confirm": "開始翻譯",
+    "cancel": "取消",
+    "noSubtitleFile": "此媒體項目未關聯字幕檔。",
+    "toastStart": "已開始翻譯",
+    "toastSucceeded": "翻譯完成",
+    "toastFailed": "翻譯失敗"
+  },
+  "synthesizeSubtitleDialog": {
+    "title": "將字幕合成到影片",
+    "description": "選擇輸出選項以及要封裝或燒錄的字幕／影片組合。",
+    "subtitleMode": "字幕模式",
+    "subtitleModes": {
+      "soft": "軟字幕（封裝）",
+      "hard": "硬字幕（燒錄）"
+    },
+    "quality": "畫質",
+    "qualities": {
+      "ultra": "極高",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "style": "樣式預設",
+    "stylePlaceholder": "可選（如 anime）",
+    "renderMode": "渲染模式",
+    "renderModeDefault": "預設",
+    "renderModes": {
+      "ass": "ASS 描邊",
+      "rounded": "圓角背景"
+    },
+    "layout": "雙語排版",
+    "layoutDefault": "無",
+    "confirm": "開始合成",
+    "cancel": "取消",
+    "noSubtitleFile": "此影片未關聯字幕檔。",
+    "notVideoFile": "合成需要影片檔案（不支援純音訊）。",
+    "toastStart": "已開始合成",
+    "toastSucceeded": "合成完成",
+    "toastFailed": "合成失敗"
+  },
+  "processPipelineDialog": {
+    "title": "字幕流程",
+    "description": "使用 VideoCaptioner 對所選檔案進行轉寫、可選翻譯與可選影片合成。",
+    "noMediaPath": "此列沒有可用的媒體路徑。",
+    "language": "語言",
+    "format": "輸出格式",
+    "wordTimestamps": "詞級時間戳",
+    "noOptimize": "跳過字幕最佳化",
+    "noSplit": "跳過分行",
+    "noTranslate": "跳過翻譯",
+    "translator": "翻譯引擎",
+    "targetLanguage": "目標語言",
+    "reflect": "雙語對照輸出",
+    "subtitleLayout": "雙語排版",
+    "layoutOptional": "可選",
+    "promptOptional": "可選翻譯提示詞",
+    "llmApiKey": "LLM API 金鑰",
+    "llmApiBase": "LLM API 基礎網址（可選）",
+    "llmModel": "LLM 模型（可選）",
+    "noSynthesize": "跳過合成",
+    "subtitleMode": "字幕模式",
+    "quality": "畫質",
+    "styleOptional": "樣式（可選）",
+    "renderMode": "渲染模式",
+    "synthesizeLayout": "合成排版",
+    "toastStart": "流程已開始",
+    "toastSucceeded": "流程已完成",
+    "toastFailed": "流程失敗",
+    "noMediaFolder": "媒體資料夾不可用，無法開始流程。",
+    "notEligible": "此項不符合流程條件。",
+    "partialFailure": "{{count}} 個流程任務未能加入佇列。"
+  },
+  "downloadVideoDialog": {
+    "toastStart": "開始下載",
+    "toastSucceeded": "下載完成",
+    "toastFailed": "下載失敗"
+  },
+  "transcribeDialog": {
+    "toastStart": "開始生成字幕",
+    "toastSucceeded": "字幕生成完成",
+    "toastFailed": "字幕生成失敗"
+  },
+  "tvShowEpisodeTable": {
+    "columns": {
+      "id": "ID",
+      "video": "影片",
+      "thumbnail": "封面",
+      "subtitle": "字幕",
+      "nfo": "NFO"
+    },
+    "header": {
+      "videoFile": "影片檔案",
+      "thumb": "封面",
+      "cover": "封面",
+      "sub": "字幕"
+    },
+    "contextMenu": {
+      "showColumns": "顯示...",
+      "unlink": "取消關聯",
+      "editTags": "編輯標籤",
+      "properties": "屬性",
+      "notImplemented": "尚未實現",
+      "videoCompress": "视频压缩"
+    },
+    "unlinkSuccess": "已取消劇集關聯",
+    "unlinkFailed": "取消劇集關聯失敗",
+    "expand": "展開",
+    "collapse": "收起",
+    "noFile": "-",
+    "renameCheckboxHeader": "",
+    "renameCheckboxTitle": "參與重新命名",
+    "renameCheckboxAria": "參與重新命名",
+    "noFilesSelectedForRename": "未選擇要重新命名的檔案",
+    "unrecognizedVideoFile": "無法識別影片檔案"
+  },
+  "movieEpisodeTable": {
+    "columns": {
+      "file": "檔案",
+      "thumbnail": "封面",
+      "subtitle": "字幕",
+      "nfo": "NFO"
+    },
+    "header": {
+      "type": "類型",
+      "file": "檔案",
+      "poster": "封面",
+      "sub": "字幕",
+      "nfo": "NFO"
+    },
+    "rowTypes": {
+      "video": "影片",
+      "poster": "封面",
+      "sub": "字幕",
+      "nfo": "NFO"
+    },
+    "contextMenu": {
+      "showColumns": "顯示...",
+      "videoCompress": "视频压缩"
+    },
+    "noFilesFound": "未找到檔案"
+  },
+  "welcome": {
+    "featureCards": {
+      "importFolder": "匯入資料夾",
+      "downloadVideo": "下載影片",
+      "formatConversion": "格式轉換",
+      "videoCompression": "影片壓縮",
+      "github": "Github"
+    }
+  },
+  "toast": {
+    "noRecognizedFiles": "無法辨識任何集數。建議改用 AI 辨識。"
+  }
+}

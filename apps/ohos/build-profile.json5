@@ -1,0 +1,60 @@
+{
+  "app": {
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.5(17)",
+        "compatibleSdkVersionStage": "release",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "nativeLib": {
+            "collectAllLibs": true
+          }
+        },
+        "targetSdkVersion": "6.1.1(24)"
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\lawrence\\.ohos\\config\\default_ohos_hap_demo_k3UKO1I1EZ3cNFYHkcFlvUIJAFxvpLEI6tAwxbrW3gU=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A02AAED1C3DB01250B80859D566F81AFA8C9E6B1A5E654B9CE7FAB15F9C313370473A0D2A0937",
+          "profile": "C:\\Users\\lawrence\\.ohos\\config\\default_ohos_hap_demo_k3UKO1I1EZ3cNFYHkcFlvUIJAFxvpLEI6tAwxbrW3gU=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\lawrence\\.ohos\\config\\default_ohos_hap_demo_k3UKO1I1EZ3cNFYHkcFlvUIJAFxvpLEI6tAwxbrW3gU=.p12",
+          "storePassword": "0000001A85C8E0131C7272FD423D300523FB9797424C85F369E49697CC1C985A9418D00DC720BD1A7977"
+        }
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "electron",
+      "srcPath": "./electron",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "web_engine",
+      "srcPath": "./web_engine"
+    }
+  ]
+}

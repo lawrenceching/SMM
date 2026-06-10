@@ -1,0 +1,13 @@
+{
+  "license": "",
+  "devDependencies": {},
+  "author": "",
+  "name": "electron",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "version": "1.0.0",
+  "dependencies": {
+    "web_engine": 'file:../web_engine',
+    "librust_hello.so": "file:./src/main/native/librust_hello"
+  }
+}

@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>方案 A 验证 — 导入文件夹</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0f1419;
+        color: #e7ecf3;
+        line-height: 1.5;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 8px; }
+      p.sub { color: #8b98a8; margin: 0 0 20px; font-size: 0.9rem; }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 20px;
+        background: #10b981;
+        color: #fff;
+        font-weight: 600;
+      }
+      button:hover { background: #059669; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 4px; }
+      .btn-rust-health { background: #22c55e; }
+      .btn-rust-health:hover { background: #16a34a; }
+      .btn-rust-select { background: #6366f1; }
+      .btn-rust-select:hover { background: #4f46e5; }
+      .btn-main-hello { background: #f59e0b; }
+      .btn-main-hello:hover { background: #d97706; }
+      section {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #1a2332;
+        border: 1px solid #2d3a4d;
+      }
+      section h2 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #8b98a8;
+        margin: 0 0 10px;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-size: 0.82rem;
+        font-family: ui-monospace, "Cascadia Code", monospace;
+      }
+      .ok { color: #34d399; }
+      .warn { color: #fbbf24; }
+      .err { color: #f87171; }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 6px;
+      }
+      .badge-ok { background: #064e3b; color: #6ee7b7; }
+      .badge-fail { background: #450a0a; color: #fca5a5; }
+    </style>
+  </head>
+  <body>
+    <h1>方案 A：Electron dialog.showOpenDialog</h1>
+    <p class="sub">
+      Dialog：<code>window.electron.dialog.showOpenDialog</code> → DialogAdapter<br>
+      Rust HTTP：<code>fetch('http://127.0.0.1:18080/...')</code><br>
+      Main HTTP：<code>fetch('http://127.0.0.1:18081/hello')</code>
+    </p>
+
+    <div class="btn-row">
+      <button type="button" id="btn-import">导入文件夹（方案 A · Electron dialog）</button>
+      <button type="button" id="btn-main-hello" class="btn-main-hello">Hello to Electron Main process</button>
+      <button type="button" id="btn-rust-health" class="btn-rust-health">Rust HTTP · /health</button>
+      <button type="button" id="btn-rust-select" class="btn-rust-select">Rust HTTP · /selectFile</button>
+    </div>
+
+    <section>
+      <h2>环境检测</h2>
+      <pre id="env-probe">检测中…</pre>
+    </section>
+
+    <section>
+      <h2>调用结果</h2>
+      <pre id="result">尚未调用</pre>
+    </section>
+
+    <section>
+      <h2>日志</h2>
+      <pre id="log"></pre>
+    </section>
+
+    <script>
+      const logEl = document.getElementById('log');
+      const resultEl = document.getElementById('result');
+      const envEl = document.getElementById('env-probe');
+      const btn = document.getElementById('btn-import');
+      const btnMainHello = document.getElementById('btn-main-hello');
+      const btnRustHealth = document.getElementById('btn-rust-health');
+      const btnRust = document.getElementById('btn-rust-select');
+      const MAIN_HTTP_BASE = 'http://127.0.0.1:18081';
+      const RUST_HTTP_BASE = 'http://127.0.0.1:18080';
+
+      function log(msg) {
+        const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        console.log(line);
+        logEl.textContent = (logEl.textContent ? logEl.textContent + '\n' : '') + line;
+      }
+
+      function headersToObject(resp) {
+        const out = {};
+        resp.headers.forEach((value, key) => {
+          out[key] = value;
+        });
+        return out;
+      }
+
+      function formatHttpResponse(resp, body) {
+        const headers = headersToObject(resp);
+        return (
+          `Status: ${resp.status} ${resp.statusText}\n\n` +
+          `Headers:\n${JSON.stringify(headers, null, 2)}\n\n` +
+          `Body:\n${body}`
+        );
+      }
+
+      async function fetchLocalHttp(base, path, { disableButtons = [], label = 'HTTP' } = {}) {
+        disableButtons.forEach((b) => { b.disabled = true; });
+        resultEl.textContent = `${path} 请求中…`;
+        resultEl.className = '';
+
+        const url = `${base}${path}`;
+        try {
+          log('fetch ' + url);
+          const resp = await fetch(url);
+          const body = await resp.text();
+          log(`${path} => HTTP ${resp.status}`);
+          resultEl.textContent = formatHttpResponse(resp, body);
+          resultEl.className = resp.ok ? 'ok' : 'err';
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          resultEl.textContent = `${label} 错误 (${path}): ${msg}`;
+          resultEl.className = 'err';
+          log(`${label} 错误: ` + msg);
+        } finally {
+          disableButtons.forEach((b) => { b.disabled = false; });
+        }
+      }
+
+      function probeEnvironment() {
+        const lines = [];
+        const badge = (ok) => ok
+          ? '<span class="badge badge-ok">OK</span>'
+          : '<span class="badge badge-fail">MISSING</span>';
+
+        lines.push(`${badge(typeof window !== 'undefined')} window`);
+
+        const electron = window.electron;
+        lines.push(`${badge(electron !== undefined)} window.electron`);
+
+        const dialog = electron?.dialog;
+        lines.push(`${badge(dialog !== undefined)} window.electron.dialog`);
+        lines.push(`${badge(typeof dialog?.showOpenDialog === 'function')} window.electron.dialog.showOpenDialog`);
+
+        if (electron) {
+          lines.push('');
+          lines.push('electron keys: ' + Object.keys(electron).join(', '));
+          if (dialog) lines.push('dialog keys: ' + Object.keys(dialog).join(', '));
+        }
+
+        envEl.innerHTML = lines.join('\n').replace(/\n/g, '<br>');
+        return typeof dialog?.showOpenDialog === 'function';
+      }
+
+      async function openNativeFolderDialog(title) {
+        const electron = window.electron;
+        if (!electron?.dialog?.showOpenDialog) {
+          throw new Error('window.electron.dialog.showOpenDialog 不可用');
+        }
+
+        log('showOpenDialog({ properties: ["openDirectory"] })');
+        const result = await electron.dialog.showOpenDialog({
+          properties: ['openDirectory'],
+          title: title,
+        });
+        log('showOpenDialog 返回: ' + JSON.stringify(result, null, 2));
+        return result;
+      }
+
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        resultEl.textContent = '等待用户选择…';
+        resultEl.className = '';
+
+        try {
+          const result = await openNativeFolderDialog('选择要导入的文件夹');
+
+          if (result.canceled) {
+            resultEl.textContent = '用户取消了选择';
+            resultEl.className = 'warn';
+            return;
+          }
+
+          if (!result.filePaths?.length) {
+            resultEl.textContent = '未返回路径（filePaths 为空）';
+            resultEl.className = 'err';
+            return;
+          }
+
+          const path = result.filePaths[0];
+          const name = path.split(/[/\\]/).pop() || path;
+          resultEl.textContent =
+            '选择成功\n\n' +
+            '文件夹名: ' + name + '\n' +
+            '路径: ' + path + '\n\n' +
+            '完整响应:\n' + JSON.stringify(result, null, 2);
+          resultEl.className = 'ok';
+
+          document.dispatchEvent(new CustomEvent('ui.mediaFolderImported', {
+            detail: {
+              type: 'movie',
+              folderPathInPlatformFormat: path,
+              traceId: 'SchemeA-Test-' + Date.now(),
+            },
+          }));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          resultEl.textContent = '错误: ' + msg + (err.stack ? '\n\n' + err.stack : '');
+          resultEl.className = 'err';
+          log('错误: ' + msg);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      btnMainHello.addEventListener('click', () => {
+        fetchLocalHttp(MAIN_HTTP_BASE, '/hello', {
+          disableButtons: [btnMainHello],
+          label: 'Main HTTP',
+        });
+      });
+
+      btnRustHealth.addEventListener('click', () => {
+        fetchLocalHttp(RUST_HTTP_BASE, '/health', {
+          disableButtons: [btnRustHealth],
+          label: 'Rust HTTP',
+        });
+      });
+
+      btnRust.addEventListener('click', () => {
+        fetchLocalHttp(RUST_HTTP_BASE, '/selectFile', {
+          disableButtons: [btnRust],
+          label: 'Rust HTTP',
+        });
+      });
+
+      const ready = probeEnvironment();
+      if (!ready) {
+        log('window.electron.dialog.showOpenDialog 不可用 — 请检查 preload / 主进程桥接');
+        btn.disabled = true;
+      }
+    </script>
+  </body>
+</html>

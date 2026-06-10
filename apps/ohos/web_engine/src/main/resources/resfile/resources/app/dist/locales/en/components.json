@@ -1,0 +1,531 @@
+{
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "help": "Help",
+    "openFolder": "Open Folder",
+    "openMediaLibrary": "Open Media Library",
+    "developer": "Developer",
+    "openAppDataFolder": "Open App Data Folder",
+    "openLogFolder": "Open Log Folder",
+    "openExecuteCmd": "Execute Command",
+    "addTestBackgroundJob": "Add test background job",
+    "config": "Config",
+    "cleanUp": "Clean Up",
+    "exit": "Exit",
+    "downloadVideo": "Download Video",
+    "formatConversion": "Format conversion",
+    "videoCompression": "Video Compression"
+  },
+  "sidebar": {
+    "mediaFolders": "Media Folders",
+    "addFolder": "Add Folder"
+  },
+  "folderNotAvailablePanel": {
+    "title": "Folder unavailable",
+    "description": "This media folder cannot be reached. It may have been moved, renamed, or deleted, or the drive may be disconnected."
+  },
+  "mediaFolder": {
+    "rename": "Rename",
+    "openInExplorer": "Open in Explorer",
+    "delete": "Delete",
+    "deleteWarning": "will NOT delete from disk",
+    "renameTitle": "Rename Media",
+    "renameDescription": "Enter the new name for this media",
+    "renameError": "Could not rename folder: {{error}}",
+    "initializing": "Initializing media folder...",
+    "folderNotFound": "Folder not found",
+    "errorLoadingMetadata": "Error loading metadata"
+  },
+  "toolbar": {
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "plex": "Plex",
+    "emby": "Emby",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "selectPlaceholder": "Select...",
+    "generating": "Generating...",
+    "aiGenerating": "AI is generating file names...",
+    "aiRenaming": "AI is renaming episodes, please wait...",
+    "aiReview": "AI is going to rename episodes, please review...",
+    "aiRecognizing": "AI is recognizing episodes...",
+    "aiReviewEpisodes": "Review recognized episodes",
+    "recognizePrompt": "Is it {{tvShowTitle}} ({{tvShowTmdbId}})?",
+    "recognizeReviewPrompt": "Please review",
+    "notAllEpisodesRecognized": "It seems not all episodes are recognized",
+    "allPlanFilesUnchanged": "All episodes already match the current video file mappings. There is nothing to apply.",
+    "useNfoMetadata": "Use media metadata from NFO file?",
+    "useTmdbIdFromFolderName": "Use TMDB ID from folder name?",
+    "queryingTmdb": "Querying TMDB...",
+    "queryTmdbFailed": "Failed to query TMDB",
+    "recognizeEpisodesSuccess": "Successfully recognized video files"
+  },
+  "assistant": {
+    "open": "Open Assistant",
+    "close": "Close Assistant"
+  },
+  "tvShow": {
+    "searchPlaceholder": "Enter TV show name",
+    "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for TV shows/anime here",
+    "unrecognizedFolderHint": "Folder not recognized. Please enter the TV show name here.",
+    "overview": "Overview",
+    "genres": "Genres",
+    "genreLabel": "Genre {{genreId}}",
+    "rename": "Rename",
+    "recognize": "Recognize",
+    "scrape": "Scrape",
+    "notAvailable": "N/A",
+    "more": "More",
+    "openInTmdb": "Open in TMDB",
+    "openInTvdb": "Open in TVDB",
+    "layoutSimple": "Simple layout",
+    "layoutDetail": "Detail layout",
+    "layoutPreview": "Preview layout"
+  },
+  "tmdbSearchbox": {
+    "database": "Database",
+    "searchLanguage": "Search language",
+    "tvdbSearchOnlyHint": "TVDB results are for search only. Switch to TMDB to select and save.",
+    "showAllLanguages": "Show all languages",
+    "showFewerLanguages": "Show fewer languages"
+  },
+  "movie": {
+    "searchPlaceholder": "Enter movie name",
+    "searchPlaceholderUnrecognized": "Unrecognized media library, please enter and search for movies here",
+    "unrecognizedFolderHint": "Folder not recognized. Please enter the movie name here.",
+    "overview": "Overview",
+    "genres": "Genres",
+    "genreLabel": "Genre {{genreId}}",
+    "rename": "Rename",
+    "scrape": "Scrape",
+    "notAvailable": "N/A",
+    "more": "More",
+    "openInTmdb": "Open in TMDB",
+    "openInTvdb": "Open in TVDB",
+    "searchNoResults": "No results found",
+    "searchFailed": "Failed to search TMDB",
+    "noMediaPathError": "No media folder path available"
+  },
+  "episodeFile": {
+    "open": "Open",
+    "rename": "Rename",
+    "renameSuccess": "File renamed successfully",
+    "renameFailed": "Failed to rename file",
+    "selectFile": "Select File"
+  },
+  "viewSwitcher": {
+    "metadataView": "Metadata View",
+    "filesView": "Files View"
+  },
+  "fileExplorer": {
+    "root": "Root",
+    "current": "Current",
+    "searchPlaceholder": "Search files and folders...",
+    "loading": "Loading...",
+    "loadFailed": "Failed to load files",
+    "errorTitle": "Error loading files",
+    "noMatches": "No matches found",
+    "emptyDirectory": "Empty directory",
+    "noMatchesDescription": "No files match \"{{query}}\"",
+    "emptyDirectoryDescription": "This folder contains no files",
+    "folderContents": "This folder contains {{files}} {{fileLabel}} and {{folders}} {{folderLabel}}",
+    "statusBar": "{{folders}} folders, {{files}} files",
+    "searchStatus": "Showing {{showing}} of {{total}} items",
+    "goToParent": "Go to parent folder",
+    "drives": "Drives",
+    "drivesStatus": "{{count}} drives",
+    "driveSelector": "Select Drive",
+    "driveSelectorPlaceholder": "Select a drive...",
+    "home": "Home"
+  },
+  "episodeSection": {
+    "notAvailable": "N/A",
+    "minutes": "min",
+    "noFiles": "No files associated with this episode",
+    "deleted": "Deleted",
+    "fileTypes": {
+      "video": "Video",
+      "subtitle": "Subtitle",
+      "audio": "Audio",
+      "nfo": "NFO",
+      "poster": "Poster",
+      "file": "File"
+    }
+  },
+  "thread": {
+    "welcome": {
+      "title": "Hello there!",
+      "subtitle": "How can I help you today?",
+      "configNotComplete": "You have not completed the configuration for {{selectedAIProvider}}",
+      "openSettings": "Open Settings"
+    },
+    "suggestions": {
+      "recognizeVideoFiles": {
+        "title": "Recognize Video Files",
+        "label": "Intelligently recognize and match episodes",
+        "prompt": "Help me match each episode to its corresponding video file"
+      },
+      "organizeFiles": {
+        "title": "Organize File Names",
+        "label": "Rename files according to Plex rules",
+        "prompt": "Organize the current media folder according to Plex rules\nPlex rules are:\n{SeasonFolder}/{TV Show/Anime Name} - S{Season}E{Episode} - {Title}.{Extension}"
+      }
+    },
+    "clearChat": "Clear chat",
+    "clearChatTooltip": "Clear conversation with the AI"
+  },
+  "statusBar": {
+    "mcp": {
+      "serverOn": "MCP server on",
+      "serverOff": "MCP server off",
+      "serverError": "MCP server error",
+      "unknownError": "Unknown error",
+      "title": "MCP Server",
+      "subtitle": "Model Context Protocol",
+      "turnOff": "Turn MCP server off",
+      "turnOn": "Turn MCP server on",
+      "address": "Address",
+      "protocol": "Protocol",
+      "protocolValue": "Streamable HTTP",
+      "disabledMessage": "Enable MCP in Settings → General to expose server on its own port.",
+      "startFailedOnLoad": "MCP server stopped unexpectedly after startup. Check the server logs for details.",
+      "documentation": "Documentation"
+    },
+    "database": {
+      "title": "Database Connection",
+      "subtitle": "TMDB & TVDB Status",
+      "tmdb": "TMDB",
+      "tvdb": "TVDB",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "checkFailed": "Check failed",
+      "checking": "Checking...",
+      "warningAriaLabel": "Database connection warning"
+    },
+    "versionUpdate": {
+      "title": "New version available",
+      "description": "A newer version of SMM is available ({{latest}}). You are running {{current}}.",
+      "currentLabel": "Current version",
+      "latestLabel": "Latest version",
+      "download": "Go to download",
+      "later": "Later",
+      "ariaLabel": "New version available, click for details"
+    },
+    "messages": {
+      "tmdbAvailable": "TMDB is available",
+      "tmdbUnavailable": "TMDB is unavailable",
+      "tmdbCheckFailed": "TMDB check failed",
+      "tvdbAvailable": "TVDB is available",
+      "tvdbUnavailable": "TVDB is unavailable",
+      "tvdbCheckFailed": "TVDB check failed",
+      "videoCaptionerAvailable": "VideoCaptioner is available",
+      "videoCaptionerNotFound": "videocaptioner not found",
+      "transcribeUnavailableOnOs": "Subtitle generation is not available on this operating system.",
+      "learnMore": "Learn more"
+    },
+    "backgroundJobs": {
+      "title": "Background Jobs",
+      "subtitle": "{{running}} running, {{pending}} pending",
+      "empty": "No background jobs",
+      "triggerAriaLabel_one": "View {{count}} background job",
+      "triggerAriaLabel_other": "View {{count}} background jobs",
+      "abortAriaLabel": "Abort {{name}}",
+      "status": {
+        "pending": "pending",
+        "running": "running",
+        "succeeded": "succeeded",
+        "failed": "failed",
+        "aborted": "aborted",
+        "stopped": "stopped"
+      },
+      "messages": {
+        "succeeded": "Completed successfully",
+        "failed": "Job failed",
+        "aborted": "Aborted by user"
+      },
+      "toasts": {
+        "genericFailed": "Job \"{{name}}\" failed"
+      },
+      "delete": "Delete",
+      "deleteDisabledRunning": "Cannot delete while running",
+      "stopAll": "Stop All",
+      "clearFinished": "Clear",
+      "clearFinishedTooltip": "Remove all jobs except those currently running",
+      "clearFinishedAria": "Remove all jobs except those currently running",
+      "clearFailed": "Failed to remove {{count}} job(s)",
+      "logButton": "Log",
+      "logButtonAria": "View command log for {{name}}",
+      "jobNames": {
+        "downloadVideo": "Download Video",
+        "downloadVideoEpisodes": "Episodes ({{count}} videos)",
+        "transcribe": "Transcribe",
+        "translate": "Translate",
+        "synthesize": "Synthesize",
+        "process": "Process",
+        "ffmpeg-convert": "Format conversion",
+        "ffmpeg-write-tags": "Write tags",
+        "typedJob": "{{type}}: {{detail}}"
+      },
+      "logDialog": {
+        "title": "Command log — {{jobTitle}}",
+        "raw": "Raw",
+        "segments": "Segments",
+        "refresh": "Refresh",
+        "loading": "Loading…",
+        "truncated": "This view may be truncated. Headers report total size; open the log file on disk for the full output.",
+        "loadError": "Could not load the command log.",
+        "empty": "Log is empty.",
+        "live": "Live",
+        "contentAria": "Command log output"
+      }
+    }
+  },
+  "mediaPlayer": {
+    "select": "Select",
+    "download": "Download",
+    "downloadingTooltip": "Downloading…",
+    "transcribingTooltip": "Generating subtitles…",
+    "transcribeFailedTooltip": "Subtitle generation failed",
+    "translateRunningTooltip": "Translating subtitles…",
+    "translateFailedTooltip": "Subtitle translation failed",
+    "synthesizeRunningTooltip": "Synthesizing subtitles into video…",
+    "synthesizeFailedTooltip": "Subtitle synthesis failed",
+    "processRunningTooltip": "Running subtitle pipeline…",
+    "processFailedTooltip": "Subtitle pipeline failed",
+    "trackContextMenu": {
+      "open": "Open",
+      "openError": "Failed to open file",
+      "delete": "Delete",
+      "properties": "Properties",
+      "editTags": "Edit tags",
+      "properties": "Properties",
+      "formatConvert": "Format conversion",
+      "downloadStart": "Start",
+      "downloadStop": "Stop",
+      "downloadRemove": "Remove",
+      "subtitle": "Subtitle",
+      "transcribe": "Transcribe",
+      "transcribeStop": "Stop transcribing",
+      "translate": "Translate",
+      "translateStop": "Stop translating",
+      "synthesize": "Synthesize",
+      "synthesizeStop": "Stop synthesizing",
+      "process": "Pipeline",
+      "processStop": "Stop pipeline",
+      "summarize": "Summarize",
+      "summarizeError": "Cannot resolve file path",
+      "summarizeNoSubtitle": "No associated subtitle file found",
+      "summarizeNoDefaultAi": "No default AI provider configured",
+      "summarizeNoBaseUrl": "The baseURL of {{name}} is not configured",
+      "summarizeNoModel": "The model of {{name}} is not configured",
+      "summarizeNoAiConfig": "Please configure an AI provider in Settings",
+      "summarizeNoProxy": "Reverse proxy is not ready, please restart the server",
+      "summarizeSuccess": "Summary saved to {{path}}",
+      "summarizeFailed": "Summarize failed: {{error}}"
+    },
+    "noTracksFound": "No tracks found",
+    "tryAdjustingFilter": "Try adjusting your search or filter"
+  },
+  "musicFileTable": {
+    "selectAllAria": "Select all",
+    "columns": {
+      "index": "#",
+      "cover": "Cover",
+      "title": "Title",
+      "artist": "Artist",
+      "duration": "Duration"
+    }
+  },
+  "associatedFiles": {
+    "type": {
+      "subtitle": "Subtitle",
+      "audio": "Audio",
+      "thumbnail": "Cover",
+      "summary": "Summary"
+    }
+  },
+  "localFileTableRow": {
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noAssociatedFiles": "No associated files found (subtitles, covers, audio, etc.)",
+    "job": {
+      "transcribing": "Transcribing",
+      "translating": "Translating subtitles",
+      "synthesising": "Synthesizing subtitles",
+      "processing": "Processing subtitles",
+      "summarizing": "Summarizing..."
+    }
+  },
+  "subtitleTranslationDialog": {
+    "title": "Translate subtitles",
+    "description": "Choose translator and target language for the selected subtitle files.",
+    "translator": "Translator",
+    "translators": {
+      "bing": "Bing",
+      "google": "Google",
+      "llm": "LLM"
+    },
+    "targetLanguage": "Target language",
+    "reflect": "Reflect bilingual output",
+    "apiKey": "API key",
+    "apiBase": "API base URL",
+    "model": "Model",
+    "layout": "Layout",
+    "layoutOptional": "Optional layout",
+    "layoutNone": "None",
+    "confirm": "Start translation",
+    "cancel": "Cancel",
+    "noSubtitleFile": "No subtitle file linked to this media entry.",
+    "toastStart": "Translation started",
+    "toastSucceeded": "Translation finished",
+    "toastFailed": "Translation failed"
+  },
+  "synthesizeSubtitleDialog": {
+    "title": "Synthesize subtitles into video",
+    "description": "Choose output options and video/subtitle pairs to mux or burn with VideoCaptioner.",
+    "subtitleMode": "Subtitle mode",
+    "subtitleModes": {
+      "soft": "Soft (mux)",
+      "hard": "Hard (burn-in)"
+    },
+    "quality": "Video quality",
+    "qualities": {
+      "ultra": "Ultra",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "style": "Style preset",
+    "stylePlaceholder": "Optional (e.g. anime)",
+    "renderMode": "Render mode",
+    "renderModeDefault": "Default",
+    "renderModes": {
+      "ass": "ASS outline",
+      "rounded": "Rounded background"
+    },
+    "layout": "Bilingual layout",
+    "layoutDefault": "None",
+    "confirm": "Start synthesis",
+    "cancel": "Cancel",
+    "noSubtitleFile": "No subtitle file linked to this video.",
+    "notVideoFile": "Synthesis requires a video file (not audio-only).",
+    "toastStart": "Synthesis started",
+    "toastSucceeded": "Synthesis finished",
+    "toastFailed": "Synthesis failed"
+  },
+  "processPipelineDialog": {
+    "title": "Process pipeline",
+    "description": "Transcribe, optionally translate, and optionally synthesize into video for the selected files using VideoCaptioner.",
+    "noMediaPath": "No media path for this row.",
+    "language": "Language",
+    "format": "Output format",
+    "wordTimestamps": "Word timestamps",
+    "noOptimize": "Skip subtitle optimization",
+    "noSplit": "Skip line splitting",
+    "noTranslate": "Skip translation",
+    "translator": "Translator",
+    "targetLanguage": "Target language",
+    "reflect": "Reflect / bilingual output",
+    "subtitleLayout": "Bilingual layout",
+    "layoutOptional": "Optional",
+    "promptOptional": "Optional translation prompt",
+    "llmApiKey": "LLM API key",
+    "llmApiBase": "LLM API base URL (optional)",
+    "llmModel": "LLM model (optional)",
+    "noSynthesize": "Skip synthesis",
+    "subtitleMode": "Subtitle mode",
+    "quality": "Quality",
+    "styleOptional": "Style (optional)",
+    "renderMode": "Render mode",
+    "synthesizeLayout": "Synthesis layout",
+    "toastStart": "Pipeline started",
+    "toastSucceeded": "Pipeline finished",
+    "toastFailed": "Pipeline failed",
+    "noMediaFolder": "Media folder is not available; cannot start pipeline.",
+    "notEligible": "This item is not eligible for the pipeline.",
+    "partialFailure": "{{count}} pipeline job(s) could not be enqueued."
+  },
+  "downloadVideoDialog": {
+    "toastStart": "Download started",
+    "toastSucceeded": "Download finished",
+    "toastFailed": "Download failed"
+  },
+  "transcribeDialog": {
+    "toastStart": "Transcription started",
+    "toastSucceeded": "Transcription finished",
+    "toastFailed": "Transcription failed"
+  },
+  "tvShowEpisodeTable": {
+    "columns": {
+      "id": "ID",
+      "video": "Video",
+      "thumbnail": "Thumbnail",
+      "subtitle": "Subtitle",
+      "nfo": "NFO"
+    },
+    "header": {
+      "videoFile": "Video File",
+      "thumb": "Thumb",
+      "cover": "Cover",
+      "sub": "Sub"
+    },
+    "contextMenu": {
+      "showColumns": "Show...",
+      "unlink": "Unlink",
+      "editTags": "Edit tags",
+      "properties": "Properties",
+      "videoCompress": "Video Compression",
+      "notImplemented": "Not Implemented Yet"
+    },
+    "unlinkSuccess": "Episode unlinked successfully",
+    "unlinkFailed": "Failed to unlink episode",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noFile": "-",
+    "renameCheckboxHeader": "",
+    "renameCheckboxTitle": "Include in rename",
+    "renameCheckboxAria": "Include in rename",
+    "noFilesSelectedForRename": "No files selected for rename",
+    "unrecognizedVideoFile": "Cannot recognize video file"
+  },
+  "movieEpisodeTable": {
+    "columns": {
+      "file": "File",
+      "thumbnail": "Poster",
+      "subtitle": "Subtitle",
+      "nfo": "NFO"
+    },
+    "header": {
+      "type": "Type",
+      "file": "File",
+      "poster": "Poster",
+      "sub": "Sub",
+      "nfo": "NFO"
+    },
+    "rowTypes": {
+      "video": "Video",
+      "poster": "Poster",
+      "sub": "Sub",
+      "nfo": "NFO"
+    },
+    "contextMenu": {
+      "showColumns": "Show...",
+      "videoCompress": "Video Compression"
+    },
+    "noFilesFound": "No files found"
+  },
+  "welcome": {
+    "featureCards": {
+      "importFolder": "Import Folder",
+      "downloadVideo": "Download Video",
+      "formatConversion": "Format Conversion",
+      "github": "Github"
+    }
+  },
+  "toast": {
+    "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead."
+  }
+}
+

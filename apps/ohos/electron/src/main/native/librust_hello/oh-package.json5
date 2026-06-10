@@ -1,0 +1,7 @@
+{
+  "name": "librust_hello.so",
+  "version": "1.0.0",
+  "description": "Rust hello PoC native module (ohos-rs / napi-ohos)",
+  "main": "librust_hello.so",
+  "types": "./index.d.ts"
+}

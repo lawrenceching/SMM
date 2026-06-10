@@ -1,0 +1,13 @@
+{
+    "name": "ohos",
+    "version": "0.0.1",
+    "description": "SMM for HarmonyOS",
+    "scripts": {
+        "build:electron-common": "pnpm --filter @smm/electron-common build",
+        "build:core-routes": "pnpm --filter @smm/core-routes build:cjs",
+        "copy-electron-common": "cp ../../packages/electron-common/dist/electron-common.cjs ./web_engine/src/main/resources/resfile/resources/app/electron-common.cjs && cp ../../packages/electron-common/ohos/preload.js ./web_engine/src/main/resources/resfile/resources/app/preload.js",
+        "copy-core-routes": "cp ../../packages/core-routes/dist/core-routes.cjs ./web_engine/src/main/resources/resfile/resources/app/core-routes.js",
+        "copy-ui": "cp -r ../../apps/ui/dist ./web_engine/src/main/resources/resfile/resources/app/dist",
+        "build": "pnpm run build:electron-common && pnpm run build:core-routes && pnpm run copy-electron-common && pnpm run copy-core-routes && pnpm run copy-ui"
+    }
+}

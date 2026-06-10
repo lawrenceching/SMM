@@ -1,0 +1,135 @@
+{
+  "title": "Settings",
+  "general": {
+    "title": "General",
+    "language": "Language",
+    "languageDescription": "Select the display language for the application",
+    "applicationLanguageUnset": "Follow system",
+    "theme": "Appearance",
+    "themeDescription": "Choose light, dark, or match your system setting",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "tmdbHost": "TMDB Host",
+    "tmdbHostPlaceholder": "https://api.themoviedb.org/3",
+    "tmdbApiKey": "TMDB API Key",
+    "tmdbApiKeyPlaceholder": "Enter your TMDB API key",
+    "primaryDatabase": "Primary Database",
+    "primaryDatabaseDescription": "Default database for media search (TMDB or TVDB)",
+    "primaryDatabaseTmdb": "TMDB",
+    "primaryDatabaseTvdb": "TVDB",
+    "preferMediaLanguage": "Preferred Media Language",
+    "preferMediaLanguageDescription": "Preferred language for media metadata/search. When unset, follows app language (config → browser → OS → English).",
+    "preferMediaLanguageUnset": "Follow system",
+    "preferMediaLanguageZhCn": "Chinese (Simplified, zh-CN)",
+    "preferMediaLanguageEnUs": "English (US, en-US)",
+    "preferMediaLanguageJaJp": "Japanese (ja-JP)",
+    "tvdbHost": "TVDB Host",
+    "tvdbHostPlaceholder": "https://api4.thetvdb.com/v4",
+    "tvdbApiKey": "TVDB API Key",
+    "tvdbApiKeyPlaceholder": "Enter your TVDB API key",
+    "httpProxy": "HTTP Proxy",
+    "httpProxyPlaceholder": "http://proxy.example.com:8080",
+    "enableMcpServer": "Enable MCP server",
+    "enableMcpServerDescription": "Run the MCP (Model Context Protocol) server on its own port for external clients",
+    "mcpHost": "MCP host",
+    "mcpHostPlaceholder": "127.0.0.1",
+    "mcpPort": "MCP port",
+    "mcpPortPlaceholder": "30001"
+  },
+  "externalApps": {
+    "title": "External Applications",
+    "description": "Configure paths to external executable tools",
+    "ytdlpExecutablePath": "yt-dlp Executable Path",
+    "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "executablePathHintAppDiscovery": "Using the app-discovered path (shown in the field placeholder). Leave empty and save to keep using it, or enter a custom path to override.",
+    "executablePathHintUserConfig": "Using your saved custom path from settings.",
+    "selectYtdlpExecutable": "Select yt-dlp Executable",
+    "selectYtdlpExecutableDescription": "Choose the yt-dlp executable file",
+    "ffmpegExecutablePath": "ffmpeg Executable Path",
+    "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
+    "selectFfmpegExecutable": "Select ffmpeg Executable",
+    "selectFfmpegExecutableDescription": "Choose the ffmpeg executable file",
+    "videoCaptionerExecutablePath": "VideoCaptioner Executable Path",
+    "videoCaptionerExecutablePathUnavailable": "Not found",
+    "useBundledFfmpegForVideoCaptioner": "Use bundled ffmpeg for VideoCaptioner",
+    "quickjsExecutablePath": "QuickJS Executable Path",
+    "quickjsExecutablePathPlaceholder": "C:\\path\\to\\qjs.exe",
+    "selectQuickjsExecutable": "Select QuickJS Executable",
+    "selectQuickjsExecutableDescription": "Choose the QuickJS executable file",
+    "browse": "Browse"
+  },
+  "ai": {
+    "title": "AI Settings",
+    "description": "Configure AI provider settings for media metadata processing",
+    "noProviders": "No AI providers configured. Click \"Add Provider\" to add one.",
+    "providerName": "Provider Name",
+    "providerNamePlaceholder": "My Provider",
+    "setActive": "Set as active provider",
+    "addProvider": "Add Provider",
+    "deleteProvider": "Delete provider",
+    "nameRequired": "Provider name is required",
+    "nameDuplicate": "Provider name \"{{name}}\" already exists",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "model": "Model",
+    "modelPlaceholder": "model-name",
+    "check": "Check",
+    "checkSuccess": "Connected successfully",
+    "checkError": "Connection failed",
+    "checkChecking": "Checking..."
+  },
+  "feedback": {
+    "title": "Feedback",
+    "description": "Share your feedback, report bugs, or suggest new features",
+    "open": "Open",
+    "openLink": "Open link",
+    "links": {
+      "githubIssues": {
+        "title": "GitHub · Report Bugs",
+        "description": "Open GitHub Issues to report bugs."
+      },
+      "githubDiscussions": {
+        "title": "GitHub · Feedback or Discussion",
+        "description": "Open GitHub Discussions for feedback and questions."
+      },
+      "gitcodeIssues": {
+        "title": "GitCode · Report issues (Mainland China)",
+        "description": "Open GitCode Issues (recommended in mainland China)."
+      },
+      "gitcodeDiscussions": {
+        "title": "GitCode · Discussions (Mainland China)",
+        "description": "Open GitCode Discussions (recommended in mainland China)."
+      }
+    },
+    "type": "Type",
+    "typeBug": "Bug Report",
+    "typeFeature": "Feature Request",
+    "typeImprovement": "Improvement",
+    "typeOther": "Other",
+    "message": "Message",
+    "messagePlaceholder": "Please describe your feedback in detail...",
+    "send": "Send Feedback"
+  },
+  "renameRules": {
+    "title": "Rename Rules",
+    "description": "Configure file renaming rules for media files",
+    "addRule": "Add Rule",
+    "selectedRule": "Selected Rename Rule",
+    "selectPlaceholder": "Select a rename rule",
+    "noRulesAvailable": "No rules available",
+    "availableRules": "Available Rules",
+    "emptyState": "No rename rules configured. Click \"Add Rule\" to create one."
+  },
+  "sidebar": {
+    "title": "Settings",
+    "general": "General",
+    "ai": "AI",
+    "renameRules": "Rename Rules",
+    "externalApps": "External Apps",
+    "feedback": "Feedback"
+  }
+}
+

@@ -11,3 +11,6 @@ bin/
 node_modules/
 .env.local
 *.log
+
+
+apps/ohos/docs/*

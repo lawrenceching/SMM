@@ -1,0 +1,135 @@
+{
+  "title": "设置",
+  "general": {
+    "title": "常规",
+    "language": "语言",
+    "languageDescription": "选择应用程序的显示语言",
+    "applicationLanguageUnset": "跟随系统",
+    "theme": "外观",
+    "themeDescription": "选择亮色、暗色或跟随系统",
+    "themeLight": "亮色",
+    "themeDark": "暗色",
+    "themeSystem": "跟随系统",
+    "tmdbHost": "TMDB 主机",
+    "tmdbHostPlaceholder": "https://api.themoviedb.org/3",
+    "tmdbApiKey": "TMDB API 密钥",
+    "tmdbApiKeyPlaceholder": "请输入您的 TMDB API 密钥",
+    "primaryDatabase": "主数据库",
+    "primaryDatabaseDescription": "媒体搜索的默认数据库（TMDB 或 TVDB）",
+    "primaryDatabaseTmdb": "TMDB",
+    "primaryDatabaseTvdb": "TVDB",
+    "preferMediaLanguage": "媒体偏好语言",
+    "preferMediaLanguageDescription": "媒体元数据/搜索的优先语言。不设置时跟随应用语言（配置 → 浏览器 → 操作系统 → 英语）。",
+    "preferMediaLanguageUnset": "跟随系统",
+    "preferMediaLanguageZhCn": "简体中文 (zh-CN)",
+    "preferMediaLanguageEnUs": "英语（美国）(en-US)",
+    "preferMediaLanguageJaJp": "日语 (ja-JP)",
+    "tvdbHost": "TVDB 主机",
+    "tvdbHostPlaceholder": "https://api4.thetvdb.com/v4",
+    "tvdbApiKey": "TVDB API 密钥",
+    "tvdbApiKeyPlaceholder": "请输入您的 TVDB API 密钥",
+    "httpProxy": "HTTP 代理",
+    "httpProxyPlaceholder": "http://proxy.example.com:8080",
+    "enableMcpServer": "启用 MCP 服务器",
+    "enableMcpServerDescription": "在独立端口上运行 MCP（模型上下文协议）服务器供外部客户端连接",
+    "mcpHost": "MCP 主机",
+    "mcpHostPlaceholder": "127.0.0.1",
+    "mcpPort": "MCP 端口",
+    "mcpPortPlaceholder": "30001"
+  },
+  "externalApps": {
+    "title": "外部应用",
+    "description": "配置外部可执行工具的路径",
+    "ytdlpExecutablePath": "yt-dlp 可执行文件路径",
+    "ytdlpExecutablePathPlaceholder": "C:\\path\\to\\yt-dlp.exe",
+    "executablePathHintAppDiscovery": "当前使用应用自动发现的路径（显示在输入框占位符中）。留空并保存可继续使用该路径；输入自定义路径可覆盖。",
+    "executablePathHintUserConfig": "当前使用您在设置中保存的自定义路径。",
+    "selectYtdlpExecutable": "选择 yt-dlp 可执行文件",
+    "selectYtdlpExecutableDescription": "选择 yt-dlp 可执行文件",
+    "ffmpegExecutablePath": "ffmpeg 可执行文件路径",
+    "ffmpegExecutablePathPlaceholder": "C:\\path\\to\\ffmpeg.exe",
+    "selectFfmpegExecutable": "选择 ffmpeg 可执行文件",
+    "selectFfmpegExecutableDescription": "选择 ffmpeg 可执行文件",
+    "videoCaptionerExecutablePath": "VideoCaptioner 可执行文件路径",
+    "videoCaptionerExecutablePathUnavailable": "未找到",
+    "useBundledFfmpegForVideoCaptioner": "使用程序自带的 ffmpeg",
+    "quickjsExecutablePath": "QuickJS 可执行文件路径",
+    "quickjsExecutablePathPlaceholder": "C:\\path\\to\\qjs.exe",
+    "selectQuickjsExecutable": "选择 QuickJS 可执行文件",
+    "selectQuickjsExecutableDescription": "选择 QuickJS 可执行文件",
+    "browse": "浏览"
+  },
+  "ai": {
+    "title": "AI 设置",
+    "description": "配置用于媒体元数据处理的 AI 提供商设置",
+    "noProviders": "尚未配置 AI 提供商。点击“添加提供商”添加一个。",
+    "providerName": "提供商名称",
+    "providerNamePlaceholder": "我的提供商",
+    "setActive": "设为当前使用的提供商",
+    "addProvider": "添加提供商",
+    "deleteProvider": "删除提供商",
+    "nameRequired": "提供商名称不能为空",
+    "nameDuplicate": "提供商名称 \"{{name}}\" 已存在",
+    "baseUrl": "基础 URL",
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "apiKey": "API 密钥",
+    "apiKeyPlaceholder": "请输入您的 API 密钥",
+    "model": "模型",
+    "modelPlaceholder": "模型名称",
+    "check": "检查",
+    "checkSuccess": "连接成功",
+    "checkError": "连接失败",
+    "checkChecking": "检查中..."
+  },
+  "feedback": {
+    "title": "反馈",
+    "description": "分享您的反馈、报告错误或建议新功能",
+    "open": "打开",
+    "openLink": "打开链接",
+    "links": {
+      "githubIssues": {
+        "title": "GitHub · 报告问题（Bug）",
+        "description": "打开 GitHub Issues 来报告错误。"
+      },
+      "githubDiscussions": {
+        "title": "GitHub · 反馈/讨论",
+        "description": "打开 GitHub Discussions 提交反馈或提问。"
+      },
+      "gitcodeIssues": {
+        "title": "GitCode · 反馈问题（中国大陆）",
+        "description": "打开 GitCode Issues（中国大陆建议使用）。"
+      },
+      "gitcodeDiscussions": {
+        "title": "GitCode · 用户反馈/讨论（中国大陆）",
+        "description": "打开 GitCode Discussions（中国大陆建议使用）。"
+      }
+    },
+    "type": "类型",
+    "typeBug": "错误报告",
+    "typeFeature": "功能请求",
+    "typeImprovement": "改进建议",
+    "typeOther": "其他",
+    "message": "消息",
+    "messagePlaceholder": "请详细描述您的反馈...",
+    "send": "发送反馈"
+  },
+  "renameRules": {
+    "title": "重命名规则",
+    "description": "配置媒体文件的重命名规则",
+    "addRule": "添加规则",
+    "selectedRule": "选中的重命名规则",
+    "selectPlaceholder": "选择重命名规则",
+    "noRulesAvailable": "没有可用的规则",
+    "availableRules": "可用规则",
+    "emptyState": "未配置重命名规则。点击“添加规则”创建一个。"
+  },
+  "sidebar": {
+    "title": "设置",
+    "general": "常规",
+    "ai": "AI",
+    "renameRules": "重命名规则",
+    "externalApps": "外部应用",
+    "feedback": "反馈"
+  }
+}
+
