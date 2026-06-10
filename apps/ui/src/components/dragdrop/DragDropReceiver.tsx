@@ -10,17 +10,11 @@ import {
   type OnMediaFolderImportedEventData,
 } from "@/types/eventTypes"
 import { nextTraceId } from "@/lib/utils"
+import { isElectron } from "@/lib/isElectron"
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function isElectron(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof (window as any).electron !== "undefined"
-  )
-}
 
 /**
  * Retrieve the real filesystem path from a dropped `File` object.

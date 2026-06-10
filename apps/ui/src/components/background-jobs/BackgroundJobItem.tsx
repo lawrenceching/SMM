@@ -17,12 +17,13 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
-import { isDownloadVideoJob } from '@/types/background-jobs'
+import { isDownloadVideoJob, isFfmpegConvertBackgroundJob } from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
 import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/i18n'
 import { canOpenCommandLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
 import { useYtdlpDownloadProgressQuery } from '@/hooks/useYtdlpDownloadProgressQuery'
+import { useFfmpegProgressQuery } from '@/hooks/useFfmpegProgressQuery'
 
 function formatDownloadSpeed(bytesPerSecond: number): string {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '0 B/s'
@@ -35,7 +36,7 @@ function formatDownloadSpeed(bytesPerSecond: number): string {
   return `${bytesPerSecond} B/s`
 }
 
-function formatDownloadEta(seconds: number): string {
+function formatEta(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return ''
   if (seconds === 0) return '0s'
   if (seconds < 60) return `${Math.max(1, Math.ceil(seconds))}s`
@@ -158,24 +159,42 @@ export function BackgroundJobItem({
   const { t } = useTranslation('components')
   const displayName = getJobDisplayName(job, t)
 
-  // For download-video jobs, poll the CLI command log for real-time progress.
+  // For jobs with command logs, poll the log for real-time progress.
   // Single source of truth: main.log. IDB never holds transient fields.
+  // - download-video → yt-dlp progress JSON
+  // - ffmpeg-convert  → ffmpeg `frame=… time=…` lines (see
+  //                     docs/design/ffmpeg-progress-display.md)
   const isDownload = isDownloadVideoJob(job)
-  const executionId = isDownload ? getJobExecutionId(job) : undefined
+  const isFfmpegConvert = isFfmpegConvertBackgroundJob(job)
+  const executionId = getJobExecutionId(job) ?? ''
   const isJobRunning = job.status === 'running'
-  const { progress: liveProgress } = useYtdlpDownloadProgressQuery({
-    executionId: executionId ?? '',
-    isRunning: isJobRunning,
+  const shouldPollLog = isJobRunning && (isDownload || isFfmpegConvert) && executionId.length > 0
+  const { progress: ytdlpLiveProgress } = useYtdlpDownloadProgressQuery({
+    executionId,
+    isRunning: shouldPollLog && isDownload,
+  })
+  const { progress: ffmpegLiveProgress } = useFfmpegProgressQuery({
+    executionId,
+    isRunning: shouldPollLog && isFfmpegConvert,
   })
 
-  // Live percent comes from log poll. Fall back to IDB's overall progress
-  // (set per-video-completed) for non-download jobs or before the first
-  // progress line lands.
-  const livePercent = isDownload ? liveProgress?.percent : undefined
+  // Live percent comes from the appropriate log-poll hook. Falls back to
+  // IDB's overall progress before the first progress line lands.
+  const livePercent =
+    isDownload
+      ? ytdlpLiveProgress?.percent
+      : isFfmpegConvert
+        ? ffmpegLiveProgress?.percent ?? undefined
+        : undefined
   const overallPercent = Math.max(0, Math.min(100, job.progress))
   const percent = livePercent ?? overallPercent
-  const speedBps = isDownload ? liveProgress?.speedBps : undefined
-  const etaSeconds = isDownload ? liveProgress?.etaSeconds : undefined
+  const speedBps = isDownload ? ytdlpLiveProgress?.speedBps : undefined
+  const etaSeconds =
+    isDownload
+      ? ytdlpLiveProgress?.etaSeconds ?? undefined
+      : isFfmpegConvert
+        ? ffmpegLiveProgress?.etaSeconds ?? undefined
+        : undefined
 
   return (
     <ContextMenu>
@@ -222,12 +241,12 @@ export function BackgroundJobItem({
                         {formatDownloadSpeed(speedBps)}
                       </p>
                     )}
-                    {isDownload && etaSeconds != null && (
+                    {(isDownload || isFfmpegConvert) && etaSeconds != null && (
                       <p
                         data-testid={`background-job-${job.id}-eta`}
                         className="text-xs text-muted-foreground"
                       >
-                        {formatDownloadEta(etaSeconds)}
+                        {formatEta(etaSeconds)}
                       </p>
                     )}
                   </div>

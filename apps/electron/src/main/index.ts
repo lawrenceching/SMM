@@ -1,4 +1,5 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { registerDialogIpcHandlers } from '@smm/electron-common'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
@@ -642,26 +643,8 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // Dialog IPC handler
-  ipcMain.handle('dialog:showOpenDialog', async (_event, options: Electron.OpenDialogOptions): Promise<Electron.OpenDialogReturnValue> => {
-    console.log('[Main] dialog:showOpenDialog called with options:', options)
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.length > 0 ? windows[0] : null
-    
-    if (!mainWindow) {
-      console.error('[Main] No window available for dialog')
-      return { canceled: true, filePaths: [] }
-    }
-    
-    try {
-      const result = await dialog.showOpenDialog(mainWindow, options)
-      console.log('[Main] dialog.showOpenDialog result:', result)
-      return result
-    } catch (error) {
-      console.error('[Main] Error showing dialog:', error)
-      return { canceled: true, filePaths: [] }
-    }
-  })
+  // Dialog IPC handlers (shared with HarmonyOS shell)
+  registerDialogIpcHandlers(ipcMain)
 
   // ExecuteChannel IPC handler
   ipcMain.handle('ExecuteChannel', async (_event, request: ExecuteChannelRequest): Promise<ExecuteChannelResponse> => {

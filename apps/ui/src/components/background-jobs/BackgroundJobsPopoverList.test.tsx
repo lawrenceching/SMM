@@ -6,19 +6,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BackgroundJobsPopoverList } from './BackgroundJobsPopoverList'
 import type { BackgroundJob, DownloadVideoBackgroundJob } from '@/types/background-jobs'
 import type { YtdlpDownloadProgress } from '@/hooks/useYtdlpDownloadProgressQuery'
+import type { FfmpegProgress } from '@/hooks/useFfmpegProgressQuery'
 import type { ReactNode } from 'react'
 
 const openLogDialog = vi.fn()
 const stopJob = vi.fn()
 const removeJob = vi.fn().mockResolvedValue(undefined)
 
-// Mock the yt-dlp progress hook so tests don't need a real QueryClient
-// with network fetch. Each test can set mockProgress to simulate log data.
+// Mock the progress hooks so tests don't need a real QueryClient with
+// network fetch. Each test can set mockProgress / mockFfmpegProgress to
+// simulate log data.
 let mockProgress: YtdlpDownloadProgress | null = null
+let mockFfmpegProgress: FfmpegProgress | null = null
 vi.mock('@/hooks/useYtdlpDownloadProgressQuery', () => ({
   useYtdlpDownloadProgressQuery: () => ({ progress: mockProgress, isPending: false, isFetching: false, error: null }),
   parseYtdlpProgressLine: null,
   extractLatestProgress: null,
+}))
+vi.mock('@/hooks/useFfmpegProgressQuery', () => ({
+  useFfmpegProgressQuery: () => ({ progress: mockFfmpegProgress, isPending: false, isFetching: false, error: null }),
+  parseFfmpegProgressLine: null,
+  parseHmsTime: null,
+  extractLatestFfmpegProgress: null,
+  stripLogLinePrefix: null,
+  findHmsToken: null,
 }))
 
 vi.mock('@/components/ui/context-menu', () => ({
@@ -104,6 +115,7 @@ describe('BackgroundJobsPopoverList — download-video progress', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockProgress = null
+    mockFfmpegProgress = null
   })
 
   it('renders running download-video job with speed and ETA when present in mock', () => {
@@ -226,5 +238,126 @@ describe('BackgroundJobsPopoverList — scroll containment', () => {
     expect(list.className).not.toMatch(/overflow/)
     // No max-height on the list itself.
     expect(list.className).not.toMatch(/max-h/)
+  })
+})
+
+describe('BackgroundJobsPopoverList — ffmpeg-convert progress', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockProgress = null
+    mockFfmpegProgress = null
+  })
+
+  function makeFfmpegConvertJob(): BackgroundJob {
+    return {
+      id: 'ffmpeg-1',
+      name: 'Convert: clip.mp4',
+      status: 'running',
+      progress: 0,
+      type: 'ffmpeg-convert',
+      data: {
+        folder: '/tmp',
+        inputPath: '/tmp/clip.mp4',
+        inputPathPlatform: 'C:\\tmp\\clip.mp4',
+        outputPath: '/tmp/clip-conv.mp4',
+        outputPathPlatform: 'C:\\tmp\\clip-conv.mp4',
+        outputFormat: 'mp4h264',
+        preset: 'balanced',
+        title: 'clip.mp4',
+        executionId: 'exec-1',
+      },
+    }
+  }
+
+  it('renders percent and ETA for a running ffmpeg-convert job', () => {
+    mockFfmpegProgress = {
+      percent: 42,
+      currentSeconds: 75.6,
+      totalSeconds: 180,
+      etaSeconds: 12.5,
+      speedMultiplier: 8.4,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobsPopoverList
+        jobs={[job]}
+        isLoading={false}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+      />,
+    )
+
+    expect(screen.getByTestId('background-job-ffmpeg-1-progress')).toBeInTheDocument()
+    expect(screen.getByTestId('background-job-ffmpeg-1-eta')).toHaveTextContent('13s')
+  })
+
+  it('omits ETA element when ffmpeg has no eta (missing speed=)', () => {
+    mockFfmpegProgress = {
+      percent: 50,
+      currentSeconds: 60,
+      totalSeconds: 120,
+      etaSeconds: null,
+      speedMultiplier: null,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobsPopoverList
+        jobs={[job]}
+        isLoading={false}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+      />,
+    )
+
+    expect(screen.queryByTestId('background-job-ffmpeg-1-eta')).toBeNull()
+  })
+
+  it('omits ETA element when ffmpeg progress is not yet available', () => {
+    mockFfmpegProgress = null
+    const job = makeFfmpegConvertJob()
+    job.progress = 25
+
+    renderWithQuery(
+      <BackgroundJobsPopoverList
+        jobs={[job]}
+        isLoading={false}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+      />,
+    )
+
+    expect(screen.getByTestId('background-job-ffmpeg-1-progress')).toBeInTheDocument()
+    expect(screen.queryByTestId('background-job-ffmpeg-1-eta')).toBeNull()
+  })
+
+  it('does not render speed element for ffmpeg-convert jobs (B/s is yt-dlp only)', () => {
+    mockFfmpegProgress = {
+      percent: 80,
+      currentSeconds: 96,
+      totalSeconds: 120,
+      etaSeconds: 3,
+      speedMultiplier: 8,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobsPopoverList
+        jobs={[job]}
+        isLoading={false}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+      />,
+    )
+
+    expect(screen.queryByTestId('background-job-ffmpeg-1-speed')).toBeNull()
   })
 })

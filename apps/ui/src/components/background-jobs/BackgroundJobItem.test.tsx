@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { BackgroundJobItem } from './BackgroundJobItem'
 import type { BackgroundJob } from '@/types/background-jobs'
 import type { YtdlpDownloadProgress } from '@/hooks/useYtdlpDownloadProgressQuery'
+import type { FfmpegProgress } from '@/hooks/useFfmpegProgressQuery'
 
 const openLogDialog = vi.fn()
 const stopJob = vi.fn()
@@ -14,10 +15,19 @@ const removeJob = vi.fn().mockResolvedValue(undefined)
 const stopAllJobs = vi.fn().mockResolvedValue(undefined)
 
 let mockProgress: YtdlpDownloadProgress | null = null
+let mockFfmpegProgress: FfmpegProgress | null = null
 vi.mock('@/hooks/useYtdlpDownloadProgressQuery', () => ({
   useYtdlpDownloadProgressQuery: () => ({ progress: mockProgress, isPending: false, isFetching: false, error: null }),
   parseYtdlpProgressLine: null,
   extractLatestProgress: null,
+}))
+vi.mock('@/hooks/useFfmpegProgressQuery', () => ({
+  useFfmpegProgressQuery: () => ({ progress: mockFfmpegProgress, isPending: false, isFetching: false, error: null }),
+  parseFfmpegProgressLine: null,
+  parseHmsTime: null,
+  extractLatestFfmpegProgress: null,
+  stripLogLinePrefix: null,
+  findHmsToken: null,
 }))
 
 vi.mock('@/components/ui/context-menu', () => ({
@@ -93,6 +103,7 @@ describe('BackgroundJobItem — context menu (Stop All)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockProgress = null
+    mockFfmpegProgress = null
   })
 
   it('renders the Stop All menu item alongside the Delete menu item', () => {
@@ -195,5 +206,127 @@ describe('BackgroundJobItem — context menu (Stop All)', () => {
     expect(screen.getByTestId('background-job-job-1-abort-button')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('background-job-job-1-abort-button'))
     expect(stopJob).toHaveBeenCalledWith('job-1')
+  })
+})
+
+describe('BackgroundJobItem — ffmpeg-convert progress', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockProgress = null
+    mockFfmpegProgress = null
+  })
+
+  function makeFfmpegConvertJob(): BackgroundJob {
+    return {
+      id: 'ffmpeg-1',
+      name: 'Convert: clip.mp4',
+      status: 'running',
+      progress: 0,
+      type: 'ffmpeg-convert',
+      data: {
+        folder: '/tmp',
+        inputPath: '/tmp/clip.mp4',
+        inputPathPlatform: 'C:\\tmp\\clip.mp4',
+        outputPath: '/tmp/clip-conv.mp4',
+        outputPathPlatform: 'C:\\tmp\\clip-conv.mp4',
+        outputFormat: 'mp4h264',
+        preset: 'balanced',
+        title: 'clip.mp4',
+        executionId: 'exec-1',
+      },
+    }
+  }
+
+  it('renders percent and ETA when ffmpeg progress is available', () => {
+    mockFfmpegProgress = {
+      percent: 42.5,
+      currentSeconds: 76.2,
+      totalSeconds: 179.7,
+      etaSeconds: 12.4,
+      speedMultiplier: 8.4,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.getByTestId('background-job-ffmpeg-1-progress')).toBeInTheDocument()
+    expect(screen.getByTestId('background-job-ffmpeg-1-eta')).toHaveTextContent('13s')
+  })
+
+  it('omits ETA element when ffmpeg progress has no eta (e.g. speed= missing)', () => {
+    mockFfmpegProgress = {
+      percent: 50,
+      currentSeconds: 60,
+      totalSeconds: 120,
+      etaSeconds: null,
+      speedMultiplier: null,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.queryByTestId('background-job-ffmpeg-1-eta')).toBeNull()
+  })
+
+  it('falls back to IDB job.progress when ffmpeg progress is not yet available', () => {
+    mockFfmpegProgress = null
+    const job = makeFfmpegConvertJob()
+    job.progress = 25
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.getByTestId('background-job-ffmpeg-1-progress')).toBeInTheDocument()
+    expect(screen.queryByTestId('background-job-ffmpeg-1-eta')).toBeNull()
+    expect(screen.queryByTestId('background-job-ffmpeg-1-speed')).toBeNull()
+  })
+
+  it('does not render speed element for ffmpeg-convert jobs (no B/s)', () => {
+    mockFfmpegProgress = {
+      percent: 80,
+      currentSeconds: 96,
+      totalSeconds: 120,
+      etaSeconds: 3,
+      speedMultiplier: 8,
+      updatedAt: Date.now(),
+    }
+    const job = makeFfmpegConvertJob()
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.queryByTestId('background-job-ffmpeg-1-speed')).toBeNull()
   })
 })

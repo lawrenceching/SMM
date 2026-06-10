@@ -36,6 +36,8 @@ import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubt
 import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
+import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
+import { isElectron } from "@/lib/isElectron"
 import { useJobs } from "@/hooks/useJobOrchestrator"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import type { MediaMetadata } from "@core/types"
@@ -137,8 +139,6 @@ function TvShowPanel() {
   const { mediaLanguage } = useResolvedLanguages()
   const { getTvShowById } = useTmdbQueries()
 
-  const isElectron = typeof window !== 'undefined' && typeof (window as any).electron !== 'undefined'
-  
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
     { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
@@ -565,33 +565,23 @@ function TvShowPanel() {
     // Convert media folder path from POSIX to platform-specific format for the file picker
     const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
 
-    if (isElectron) {
-      // Use native file dialog in Electron environment
-      const electron = (window as any).electron
-      if (electron?.dialog?.showOpenDialog) {
-        electron.dialog.showOpenDialog({
-          properties: ['openFile'],
-          title: "Select Video File",
-          defaultPath: mediaFolderPlatformPath,
-          filters: [
-            { name: 'Video Files', extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'ts'] },
-            { name: 'All Files', extensions: ['*'] }
-          ]
-        }).then((result: any) => {
-          if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
-            const selectedFile = {
-              path: result.filePaths[0],
-              isDirectory: false
-            }
-            handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
-          }
-        }).catch((error: Error) => {
-          console.error('[handleOpenFilePickerForEpisode] Error opening native dialog:', error)
-          toast.error(`Failed to open file dialog: ${error.message}`)
-        })
-      } else {
-        toast.error("Native dialog not available")
-      }
+    if (isElectron()) {
+      void openNativeOpenDialog({
+        properties: ['openFile'],
+        title: "Select Video File",
+        defaultPath: mediaFolderPlatformPath,
+        filters: [
+          { name: 'Video Files', extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'ts'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      }).then((selectedFile) => {
+        if (selectedFile) {
+          handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
+        }
+      }).catch((error: Error) => {
+        console.error('[handleOpenFilePickerForEpisode] Error opening native dialog:', error)
+        toast.error(`Failed to open file dialog: ${error.message}`)
+      })
     } else {
       // Use custom file picker dialog in web environment
       const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
@@ -605,7 +595,7 @@ function TvShowPanel() {
         initialPath: mediaFolderPlatformPath
       })
     }
-  }, [mediaMetadata, isElectron, openFilePicker, handleEpisodeFileSelect])
+  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect])
 
   // Handler for rule-based recognition button click
   const handleRuleBasedRecognizeButtonClick = useCallback(() => {

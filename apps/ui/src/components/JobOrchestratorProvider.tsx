@@ -689,13 +689,17 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
               success = result.success
             } else {
-              // Two-pass: pass 1 then pass 2
+              // Two-pass: pass 1 then pass 2. Both passes share the case-level
+              // executionId so they append to a single `main.log` — see
+              // docs/design/ffmpeg-progress-display.md. The popover then sees
+              // a continuous stream of progress lines across the whole
+              // compression.
               const pass1Result = await executeCmdToCompletionWithHeaders(
                 { command: 'ffmpeg', args: run.pass1Args },
                 {
                   timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
                   signal: controller.signal,
-                  executionId: crypto.randomUUID(),
+                  executionId,
                 },
               )
               if (pass1Result.executionId) data.executionId = pass1Result.executionId
@@ -723,7 +727,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
                 {
                   timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
                   signal: controller.signal,
-                  executionId: crypto.randomUUID(),
+                  executionId,
                 },
               )
               if (pass2Result.executionId) data.executionId = pass2Result.executionId

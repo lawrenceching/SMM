@@ -1,13 +1,16 @@
 import { Path } from "@core/path";
 import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from "@core/types";
 
+function getElectronApi():
+  | { executeChannel: (request: { name: string; data: string }) => Promise<OpenInFileManagerResponseBody> }
+  | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
 
-// Check if running in Electron environment
-function isElectron(): boolean {
-  return typeof window !== 'undefined' && (
-    typeof (window as any).electron !== 'undefined' || 
-    typeof (window as any).api !== 'undefined'
-  );
+  return (window as Window & { api?: { executeChannel: typeof Function } }).api as
+    | { executeChannel: (request: { name: string; data: string }) => Promise<OpenInFileManagerResponseBody> }
+    | undefined;
 }
 
 /**
@@ -15,13 +18,12 @@ function isElectron(): boolean {
  * @param pathInPosix - Absolute path in POSIX format
  */
 export async function openInFileManagerApi(pathInPosix: string): Promise<OpenInFileManagerResponseBody> {
-
-  if(isElectron()) {
+  const api = getElectronApi();
+  if (api?.executeChannel) {
     const req = {
       name: 'open-in-file-manager',
       data: Path.toPlatformPath(pathInPosix),
     }
-    const api = (window as any).api;
     return await api.executeChannel(req);
   }
 

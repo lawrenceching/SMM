@@ -36,6 +36,8 @@ import {
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/MusicPanel"
 import localStorages from "@/lib/localStorages"
+import { isElectron } from "@/lib/isElectron"
+import { openNativeFolderDialog } from "@/lib/nativeFolderDialog"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import { AIArea } from "@/components/AIArea"
@@ -95,24 +97,6 @@ function AppV2Content() {
   // Media metadata
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
 
-  // Check if running in Electron environment
-  const isElectron = useCallback(() => {
-    const hasWindow = typeof window !== 'undefined'
-    const hasElectron = hasWindow && typeof (window as any).electron !== 'undefined'
-    const electronValue = hasWindow ? (window as any).electron : undefined
-    
-    console.log('[isElectron] Debug:', {
-      hasWindow,
-      hasElectron,
-      electronValue,
-      windowKeys: hasWindow ? Object.keys(window).filter(key => key.includes('electron') || key.includes('Electron')) : [],
-      electronKeys: electronValue ? Object.keys(electronValue) : [],
-      result: hasWindow && hasElectron
-    })
-    
-    return hasWindow && hasElectron
-  }, [])
-
   /** When metadata loads with a selection but folder store is still empty, align store (e.g. restored index). */
   useEffect(() => {
     const path = selectedMediaMetadata?.mediaFolderPath
@@ -147,125 +131,11 @@ function AppV2Content() {
     localStorages.sidebarSelectedFolder = normalizedSelectedFolder ?? null
   }, [isUserConfigLoaded, selectedFolder, userConfig.folders])
 
-  // Open native file dialog in Electron
-  const openNativeFileDialog = useCallback(async (options?: { title?: string }): Promise<FileItem | null> => {
-    const title = options?.title ?? 'Select Folder'
-    console.log('[openNativeFileDialog] Function called')
-    
-    try {
-      const hasWindow = typeof window !== 'undefined'
-      console.log('[openNativeFileDialog] hasWindow:', hasWindow)
-      
-      if (!hasWindow) {
-        console.log('[openNativeFileDialog] window is undefined, returning null')
-        return null
-      }
-      
-      const electron = (window as any).electron
-      console.log('[openNativeFileDialog] electron object:', {
-        exists: electron !== undefined,
-        type: typeof electron,
-        keys: electron ? Object.keys(electron) : [],
-        electronValue: electron
-      })
-      
-      if (!electron) {
-        console.log('[openNativeFileDialog] electron is undefined, returning null')
-        return null
-      }
-      
-      console.log('[openNativeFileDialog] electron.dialog:', {
-        exists: electron.dialog !== undefined,
-        type: typeof electron.dialog,
-        keys: electron.dialog ? Object.keys(electron.dialog) : [],
-        dialogValue: electron.dialog
-      })
-      
-      if (!electron.dialog) {
-        console.log('[openNativeFileDialog] electron.dialog is undefined, returning null')
-        return null
-      }
-      
-      console.log('[openNativeFileDialog] electron.dialog.showOpenDialog:', {
-        exists: electron.dialog.showOpenDialog !== undefined,
-        type: typeof electron.dialog.showOpenDialog,
-        isFunction: typeof electron.dialog.showOpenDialog === 'function'
-      })
-      
-      if (!electron.dialog.showOpenDialog) {
-        console.log('[openNativeFileDialog] electron.dialog.showOpenDialog is undefined, returning null')
-        return null
-      }
-      
-      console.log('[openNativeFileDialog] Calling electron.dialog.showOpenDialog with options:', {
-        properties: ['openDirectory'],
-        title
-      })
-      
-      const result = await electron.dialog.showOpenDialog({
-        properties: ['openDirectory'],
-        title
-      })
-      
-      console.log('[openNativeFileDialog] Dialog result:', {
-        result,
-        canceled: result.canceled,
-        filePaths: result.filePaths,
-        filePathsLength: result.filePaths?.length,
-        filePathsType: typeof result.filePaths,
-        resultKeys: Object.keys(result)
-      })
-      
-      if (result.canceled) {
-        console.log('[openNativeFileDialog] Dialog was canceled by user')
-        return null
-      }
-      
-      if (!result.filePaths) {
-        console.log('[openNativeFileDialog] result.filePaths is undefined or null')
-        return null
-      }
-      
-      if (result.filePaths.length === 0) {
-        console.log('[openNativeFileDialog] result.filePaths is empty array')
-        return null
-      }
-      
-      const path = result.filePaths[0]
-      const name = path.split(/[/\\]/).pop() || path
-      
-      console.log('[openNativeFileDialog] Returning file item:', {
-        name,
-        path,
-        isDirectory: true
-      })
-      
-      return {
-        name,
-        path,
-        isDirectory: true
-      }
-    } catch (error) {
-      console.error('[openNativeFileDialog] Error caught:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorType: error?.constructor?.name,
-        errorKeys: error ? Object.keys(error) : []
-      })
-      return null
-    }
-  }, [isElectron])
-
   const handleOpenFolderMenuClick = useCallback(() => {
     if (isElectron()) {
-      // First, open the native file dialog to get the folder path
-      openNativeFileDialog().then((selectedFile) => {
+      openNativeFolderDialog().then((selectedFile) => {
         if (selectedFile) {
-          console.log(`Selected folder: ${selectedFile.path}`)
-          // Then open the folder type selection dialog with the selected folder path
           openOpenFolder((type: FolderType) => {
-            console.log(`Selected folder type: ${type}`)
             const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
             const data: OnMediaFolderImportedEventData = {
               type: type,
@@ -279,9 +149,7 @@ function AppV2Content() {
       })
     } else {
       openFilePicker((file: FileItem) => {
-        console.log(`Selected folder: ${file.path}`)
         openOpenFolder((type: FolderType) => {
-          console.log(`Selected folder type: ${type}`)
           const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
           const data: OnMediaFolderImportedEventData = {
             type: type,
@@ -297,11 +165,11 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
+  }, [openOpenFolder, openFilePicker])
 
   const handleOpenMediaLibraryMenuClick = useCallback(() => {
     if (isElectron()) {
-      openNativeFileDialog({ title: 'Select Media Library' }).then((selectedFile) => {
+      openNativeFolderDialog({ title: 'Select Media Library' }).then((selectedFile) => {
         if (selectedFile) {
           openOpenFolder((type: FolderType) => {
             const detail: OnMediaLibraryImportedEventData = {
@@ -329,7 +197,7 @@ function AppV2Content() {
         selectFolder: true
       })
     }
-  }, [isElectron, openOpenFolder, openNativeFileDialog, openFilePicker])
+  }, [openOpenFolder, openFilePicker])
 
   const onDeleteSelected = useCallback(
     async (paths: string[]) => {
