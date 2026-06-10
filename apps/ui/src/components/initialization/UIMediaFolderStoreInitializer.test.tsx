@@ -53,6 +53,13 @@ const mockUseConfig = useConfig as unknown as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStore = useUIMediaFolderStore as unknown as ReturnType<typeof vi.fn>
 const mockIsFolderAvailable = vi.mocked(isFolderAvailable)
 
+// The new signature is `isFolderAvailable(path, coreRoutesPort, signal?)`.
+// Tests assert against the path (positional arg0) and ignore the rest.
+function pathFromCall(call: unknown): string {
+ const args = (call as unknown as [string, ...unknown[]] | undefined) ?? []
+ return args[0] ?? ""
+}
+
 describe("UIMediaFolderStoreInitializer", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -147,8 +154,10 @@ describe("UIMediaFolderStoreInitializer", () => {
     await waitFor(() => {
       expect(mockIsFolderAvailable).toHaveBeenCalledTimes(2)
     })
-    expect(mockIsFolderAvailable).toHaveBeenCalledWith(Path.toPlatformPath("C:/Movies/A"))
-    expect(mockIsFolderAvailable).toHaveBeenCalledWith(Path.toPlatformPath("C:/Shows/B"))
+    expect(mockIsFolderAvailable.mock.calls.map(pathFromCall)).toEqual([
+      Path.toPlatformPath("C:/Movies/A"),
+      Path.toPlatformPath("C:/Shows/B"),
+    ])
   })
 
   it("sets folder_not_found when isFolderAvailable returns false", async () => {

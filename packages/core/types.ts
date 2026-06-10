@@ -1020,6 +1020,15 @@ export interface HelloResponseBody {
   osLocale: string;
 
   /**
+   * Port that the core-routes Node `http` server is listening on.
+   * The UI uses this to call endpoints that live on core-routes
+   * (e.g. `POST /api/isFolderAvailable`) when the UI's origin is
+   * the Hono Bun server (cli port 30000) instead of the core-routes
+   * Node server.
+   */
+  coreRoutesPort: number;
+
+  /**
    * error message when the hello task fails (e.g. validation, server error)
    */
   error?: string;

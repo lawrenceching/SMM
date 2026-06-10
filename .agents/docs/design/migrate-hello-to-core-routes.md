@@ -11,7 +11,12 @@ its underlying call is delegated to the new `doHello` in
 Node `http` handler in its main process) only needs to pass the new
 config fields to start serving `/api/hello` automatically.
 
-[Complete the checklist below]
+> Follow-up: the hello response now also includes `coreRoutesPort` so
+> the UI can call non-hello endpoints on the core-routes Node server
+> directly (e.g. `POST /api/isFolderAvailable`). See
+> `.agents/docs/design/migrate-isFolderAvailable-to-core-routes.md`.
+
+[Complete the checklist below]  
 [ ] New UI component - check this if new UI component added
 [ ] New user config - check this if new user config introduced
 [ ] Electron only - check this if new feature only work in Electron env.
@@ -280,7 +285,7 @@ sequenceDiagram
    - `reverseProxyUrl` is not available when the core-routes server
      starts (the proxy manager starts later). Two viable options:
      - (a) Read it lazily: pass a getter object (changes the
-       `HelloOptions` type to allow a function). **Rejected** —
+       `HelloOptions` type to allow a function). **Rejected** -
        unnecessary complexity; the cli UI uses the Hono port, not the
        core-routes port.
      - (b) Pass `null` for `reverseProxyUrl` in the core-routes
@@ -326,25 +331,25 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [ ] `.agents/docs/design/split-hello-from-execute-api.md` —
+- [ ] `.agents/docs/design/split-hello-from-execute-api.md` -
       add a one-line note at the top pointing to this doc as the
       follow-up: "The hello business logic has since been moved to
       `packages/core-routes`; see
       `.agents/docs/design/migrate-hello-to-core-routes.md`."
-- [ ] `.agents/docs/design/core-routes.md` — extend the route table
+- [ ] `.agents/docs/design/core-routes.md` - extend the route table
       with `POST /api/hello → handleHelloPost` and note that the
       `hello` field is added to `CoreRoutesConfig`.
 
 ## 8. Post Verification
 
-- [ ] `pnpm --filter @smm/core-routes test` — new hello tests pass,
+- [ ] `pnpm --filter @smm/core-routes test` - new hello tests pass,
       existing tests still pass.
-- [ ] `pnpm --filter cli test` — execute route tests still pass; the
+- [ ] `pnpm --filter cli test` - execute route tests still pass; the
       Hono `/api/hello` route still returns 200.
 - [ ] `pnpm --filter @smm/core-routes typecheck`,
       `pnpm --filter cli typecheck`.
-- [ ] `pnpm typecheck` (root) — no new errors.
-- [ ] `pnpm --filter @smm/core-routes build` — produces
+- [ ] `pnpm typecheck` (root) - no new errors.
+- [ ] `pnpm --filter @smm/core-routes build` - produces
       `dist/core-routes.js` with the new hello code.
 - [ ] Manual smoke (cli): `pnpm dev:cli` then
       `curl -X POST http://localhost:30000/api/hello` →

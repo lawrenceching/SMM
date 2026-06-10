@@ -21,8 +21,9 @@ function createCoreRoutesLogger(): CoreRoutesLogger {
 export async function startCoreRoutesServer(): Promise<http.Server> {
   const port = parseInt(process.env.CORE_ROUTES_PORT ?? String(DEFAULT_PORT), 10);
   const allowlist = await buildAllowlist();
+  const helloOptions = { ...buildHelloOptions(null), coreRoutesPort: port };
   const handler = createCoreRoutesRequestHandler(
-    { allowlist, logger: createCoreRoutesLogger(), hello: buildHelloOptions(null) },
+    { allowlist, logger: createCoreRoutesLogger(), hello: helloOptions },
     { fallbackPort: port },
   );
 

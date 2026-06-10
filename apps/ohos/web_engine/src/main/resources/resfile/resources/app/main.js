@@ -239,6 +239,7 @@ function buildHelloConfig() {
         tmpDir,
         reverseProxyUrl: null,
         osLocale: app.getLocale(),
+        coreRoutesPort: MAIN_HTTP_PORT,
     };
 }
 

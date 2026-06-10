@@ -20,6 +20,9 @@ function doHello(options) {
     ...options
   };
 }
+// src/isFolderAvailable.ts
+import { stat } from "node:fs/promises";
+
 // ../../node_modules/.pnpm/zod@4.3.6/node_modules/zod/v3/external.js
 var exports_external = {};
 __export(exports_external, {
@@ -3993,9 +3996,29 @@ var coerce = {
   date: (arg) => ZodDate.create({ ...arg, coerce: true })
 };
 var NEVER = INVALID;
+// src/isFolderAvailable.ts
+var isFolderAvailableRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "path is required")
+});
+async function checkFolderPathAvailable(folderPath) {
+  try {
+    const s = await stat(folderPath);
+    return s.isDirectory();
+  } catch {
+    return false;
+  }
+}
+async function doIsFolderAvailable(body) {
+  const parsed = isFolderAvailableRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { available: false };
+  }
+  const available = await checkFolderPathAvailable(parsed.data.path);
+  return { available };
+}
 // src/listFiles.ts
 import os from "node:os";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, stat as stat2 } from "node:fs/promises";
 import path from "node:path";
 
 // ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/flatten.mjs
@@ -4331,7 +4354,7 @@ async function doListFiles(body, config = {}) {
     const validatedPath = path.resolve(folderPath);
     logger?.info({ requestId, validatedPath }, "[ListFiles] resolved absolute path");
     try {
-      const stats = await stat(validatedPath);
+      const stats = await stat2(validatedPath);
       logger?.info({ requestId, validatedPath, isDirectory: stats.isDirectory(), isFile: stats.isFile() }, "[ListFiles] stat result");
       if (!stats.isDirectory()) {
         logger?.info({ requestId, validatedPath }, "[ListFiles] path is not a directory");
@@ -4363,7 +4386,7 @@ async function doListFiles(body, config = {}) {
         for (const item of items) {
           const fullPath = path.join(dirPath, item);
           try {
-            const itemStats = await stat(fullPath);
+            const itemStats = await stat2(fullPath);
             const isFile = itemStats.isFile();
             const isDirectory = itemStats.isDirectory();
             const filename = path.basename(item);
@@ -4687,6 +4710,37 @@ async function handleHelloPost(req, res, ctx) {
   return true;
 }
 
+// src/routes/isFolderAvailableRoute.ts
+var isFolderAvailableRequestSchema2 = exports_external.object({
+  path: exports_external.string().min(1, "path is required")
+});
+async function handleIsFolderAvailablePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/isFolderAvailable") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    const validationResult = isFolderAvailableRequestSchema2.safeParse(rawBody);
+    if (!validationResult.success) {
+      sendJson(res, 400, {
+        error: "Validation failed",
+        details: validationResult.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+      return true;
+    }
+    const result = await doIsFolderAvailable(rawBody);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error) {
+    ctx.config.logger?.debug({ error }, "[IsFolderAvailable] invalid JSON");
+    sendJson(res, 400, { error: "Invalid JSON body" });
+    return true;
+  }
+}
+
 // src/routes/writeFileRoute.ts
 async function handleWriteFilePost(req, res, ctx) {
   if (req.method !== "POST" || ctx.url.pathname !== "/api/writeFile") {
@@ -4723,7 +4777,8 @@ var coreRouteHandlers = [
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
-  handleHelloPost
+  handleHelloPost,
+  handleIsFolderAvailablePost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;
@@ -4753,12 +4808,15 @@ export {
   handleWriteFilePost,
   handleListFilesPost,
   handleListFilesGet,
+  handleIsFolderAvailablePost,
   handleHelloPost,
   handleCoreRoutesRequest,
   doWriteFile,
   doListFiles,
+  doIsFolderAvailable,
   doHello,
   createCoreRoutesRequestHandler,
   coreRouteHandlers,
+  checkFolderPathAvailable,
   ExistedFileError
 };

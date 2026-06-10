@@ -5,7 +5,9 @@ import { doHello, type HelloOptions } from '@smm/core-routes';
 import { getLogDir, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
 import { logger } from '../lib/logger';
 
-export function buildHelloOptions(reverseProxyUrl: string | null = null): HelloOptions {
+export function buildHelloOptions(
+  reverseProxyUrl: string | null = null,
+): Omit<HelloOptions, "coreRoutesPort"> {
   return {
     version: APP_VERSION,
     userDataDir: getUserDataDir(),

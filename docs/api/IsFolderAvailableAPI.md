@@ -2,7 +2,14 @@
 
 Checks whether a filesystem path exists, can be read by the CLI server process, and refers to a directory (including a symlink whose target is a directory).
 
-**Implementation**: `apps/cli/src/route/IsFolderAvailable.ts`
+**Implementation**:
+- `packages/core-routes/src/isFolderAvailable.ts` — pure function (`doIsFolderAvailable`, `checkFolderPathAvailable`)
+- `packages/core-routes/src/routes/isFolderAvailableRoute.ts` — Node `http` handler (`handleIsFolderAvailablePost`)
+
+The route is served by the core-routes Node `http` server, **not** the
+Hono Bun server. The port is reported in `HelloResponseBody.coreRoutesPort`
+(port 3001 on the desktop CLI, port 18081 on the HarmonyOS Electron
+main process).
 
 **UI client**: `apps/ui/src/api/isFolderAvailable.ts`
 

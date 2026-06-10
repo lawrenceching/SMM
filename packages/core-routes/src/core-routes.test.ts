@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import { validatePathIsInAllowlist } from "../src/allowlist.ts";
 
@@ -70,6 +71,7 @@ describe("handleCoreRoutesRequest", () => {
     method: string,
     url: string,
     config: { allowlist: string[]; hello?: import("../src/hello.ts").HelloOptions },
+    rawBody?: string,
   ) {
     const { handleCoreRoutesRequest } = await import("../src/register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
@@ -79,6 +81,12 @@ describe("handleCoreRoutesRequest", () => {
     const req = new IncomingMessage(socket);
     req.method = method;
     req.url = url;
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
 
     let status = 0;
     let body = "";
@@ -95,7 +103,7 @@ describe("handleCoreRoutesRequest", () => {
     await handleCoreRoutesRequest(req, res, config, 3001);
 
     socket.destroy();
-    return { status, body: JSON.parse(body) as Record<string, unknown> };
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
   }
 
   it("returns 404 for unknown routes", async () => {
@@ -115,6 +123,7 @@ describe("handleCoreRoutesRequest", () => {
         tmpDir: "/tmp",
         reverseProxyUrl: null,
         osLocale: "en-US",
+        coreRoutesPort: 3001,
       },
     });
 
@@ -129,5 +138,78 @@ describe("handleCoreRoutesRequest", () => {
 
     expect(status).toBe(200);
     expect(body.error).toBe("hello not configured");
+  });
+});
+
+describe("POST /api/isFolderAvailable", () => {
+  async function requestIsFolderAvailable(rawBody: string | undefined) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/isFolderAvailable";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist: [] }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns 200 with available true for an existing directory", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-ifa-"));
+    try {
+      const { status, body } = await requestIsFolderAvailable(JSON.stringify({ path: dir }));
+      expect(status).toBe(200);
+      expect(body.available).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 200 with available false for a missing path", async () => {
+    const { status, body } = await requestIsFolderAvailable(
+      JSON.stringify({ path: "/definitely/does/not/exist/anywhere" }),
+    );
+    expect(status).toBe(200);
+    expect(body.available).toBe(false);
+  });
+
+  it("returns 400 for invalid JSON", async () => {
+    const { status, body } = await requestIsFolderAvailable("not-json");
+    expect(status).toBe(400);
+    expect(body.error).toBe("Invalid JSON body");
+  });
+
+  it("returns 400 for missing path", async () => {
+    const { status, body } = await requestIsFolderAvailable(JSON.stringify({}));
+    expect(status).toBe(400);
+    expect(body.error).toBe("Validation failed");
+  });
+
+  it("returns 400 for empty path", async () => {
+    const { status, body } = await requestIsFolderAvailable(JSON.stringify({ path: "" }));
+    expect(status).toBe(400);
+    expect(body.error).toBe("Validation failed");
   });
 });

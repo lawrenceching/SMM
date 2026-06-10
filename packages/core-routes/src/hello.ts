@@ -12,6 +12,14 @@ export interface HelloOptions {
   reverseProxyUrl: string | null;
   /** OS locale, e.g. "en-US", "zh-CN". */
   osLocale: string;
+  /**
+   * Port that the core-routes Node `http` server is listening on.
+   * The UI uses this to call endpoints that live on core-routes
+   * (e.g. `POST /api/isFolderAvailable`) when the UI's origin is
+   * the Hono Bun server (cli port 30000), not the core-routes Node
+   * server. Defaults to 3001 (the standard core-routes fallback port).
+   */
+  coreRoutesPort: number;
 }
 
 export function doHello(options: HelloOptions): HelloResponseBody {

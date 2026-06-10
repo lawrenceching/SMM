@@ -36,7 +36,7 @@ describe("useRenameMediaFolderMutation", () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
     })
-    queryClient.setQueryData(helloQueryKey, { userDataDir: "/data/dir" })
+    queryClient.setQueryData(helloQueryKey, { userDataDir: "/data/dir", coreRoutesPort: 3001 })
 
     const removeQueriesSpy = vi.spyOn(queryClient, "removeQueries")
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries")

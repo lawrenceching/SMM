@@ -14,3 +14,5 @@ node_modules/
 
 
 apps/ohos/docs/*
+apps/ohos/web_engine/src/main/resources/resfile/resources/app/dist/*
+packages/core-routes/dist/*

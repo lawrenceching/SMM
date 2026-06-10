@@ -1,14 +1,17 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { isFolderAvailable } from "@/api/isFolderAvailable"
+import { helloQueryKey } from "@/lib/appQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
+import type { HelloResponseBody } from "@core/types"
 
 /** While these are active, availability must not overwrite with `ok` (other flows own the row). */
 const skipOkOverlay: ReadonlySet<UIMediaFolderStatus> = new Set([
-  "loading",
-  "updating",
-  "initializing",
-  "pending_for_initialization",
+ "loading",
+ "updating",
+ "initializing",
+ "pending_for_initialization",
 ])
 
 /**
@@ -16,42 +19,52 @@ const skipOkOverlay: ReadonlySet<UIMediaFolderStatus> = new Set([
  * so {@link UIMediaFolder.status} reflects current disk availability.
  */
 export function useRecheckSelectedFolderAvailability() {
-  const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder)
-  const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
+ const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder)
+ const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
+ const queryClient = useQueryClient()
 
-  useEffect(() => {
-    if (!selectedFolder) return
+ useEffect(() => {
+ if (!selectedFolder) return
 
-    const ac = new AbortController()
+ const ac = new AbortController()
 
-    void (async () => {
-      try {
-        const available = await isFolderAvailable(selectedFolder, ac.signal)
-        if (ac.signal.aborted) return
+ void (async () => {
+ const coreRoutesPort = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.coreRoutesPort
+ if (coreRoutesPort === undefined) {
+ // hello has not loaded yet — bootstrap guarantees it does
+ // (AppInitializer → useReloadAppConfig → hello() → setQueryData)
+ // before this hook first fires. Bail silently so we don't
+ //404 the not-yet-known port.
+ return
+ }
 
-        const folder = useUIMediaFolderStore
-          .getState()
-          .folders.find((f) => f.path === selectedFolder)
-        const current = folder?.status
+ try {
+ const available = await isFolderAvailable(selectedFolder, coreRoutesPort, ac.signal)
+ if (ac.signal.aborted) return
 
-        if (!available) {
-          updateFolderStatus(selectedFolder, "folder_not_found")
-          return
-        }
+ const folder = useUIMediaFolderStore
+ .getState()
+ .folders.find((f) => f.path === selectedFolder)
+ const current = folder?.status
 
-        if (current && skipOkOverlay.has(current)) {
-          return
-        }
+ if (!available) {
+ updateFolderStatus(selectedFolder, "folder_not_found")
+ return
+ }
 
-        updateFolderStatus(selectedFolder, "ok")
-      } catch {
-        if (ac.signal.aborted) return
-        /* keep previous status on HTTP/network errors */
-      }
-    })()
+ if (current && skipOkOverlay.has(current)) {
+ return
+ }
 
-    return () => {
-      ac.abort()
-    }
-  }, [selectedFolder, updateFolderStatus])
+ updateFolderStatus(selectedFolder, "ok")
+ } catch {
+ if (ac.signal.aborted) return
+ /* keep previous status on HTTP/network errors */
+ }
+ })()
+
+ return () => {
+ ac.abort()
+ }
+ }, [selectedFolder, updateFolderStatus, queryClient])
 }

@@ -23,8 +23,12 @@ HTTP: `POST /api/shutdown` — localhost-only graceful shutdown used by the Elec
 CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback when the prior run was hard-killed).
 
 ## isFolderAvailable
-Source Code: apps/cli/src/route/IsFolderAvailable.ts
+Source Code: packages/core-routes/src/isFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md
+
+Served by the core-routes Node `http` server (port from
+`HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI,
+18081 on HarmonyOS).
 
 ## ExecuteCmd
 Source Code: apps/cli/src/route/executeCmd.ts
