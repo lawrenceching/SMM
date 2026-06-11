@@ -50,7 +50,12 @@ import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdo
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
-import { createReverseProxyManager, type ReverseProxyManager } from '@/proxy/reverseProxy';
+import {
+  createReverseProxyManager,
+  DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  type ReverseProxyConfig,
+  type ReverseProxyManager,
+} from '@smm/core-routes';
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as Engine } from '@socket.io/bun-engine';
 import { initI18n } from './src/i18n/config';
@@ -70,7 +75,7 @@ export class Server {
   private root: string;
   private io: SocketIOServer;
   private engine: Engine;
-  private proxyManager: ReverseProxyManager;
+  private proxyManager: ReverseProxyManager | null = null;
   private beforeStop?: () => Promise<void>;
   private stopping = false;
 
@@ -130,7 +135,7 @@ export class Server {
       }, 'request completed');
     });
 
-    this.proxyManager = createReverseProxyManager();
+    this.proxyManager = null;
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -227,8 +232,8 @@ export class Server {
     handleSpeedtest(this.app);
     handleDiscover(this.app);
     handleShutdown(this.app);
-    // Register /api/hello and /api/execute routes (extracted for testability).
-    registerExecuteRoutes(this.app, this.proxyManager);
+    // /api/hello and /api/execute are registered in start() once the
+    // reverse proxy manager is available.
 
     // Socket.IO is handled via engine in Bun.serve, not as a Hono route
 
@@ -263,11 +268,18 @@ export class Server {
     });
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.server) {
       logger.warn('Server is already running.');
       return;
     }
+
+    // Build the reverse proxy config from userConfig (mcpPort reservation +
+    // AI provider host allowlist). This must run before Bun.serve so that the
+    // /api/hello route can read the proxyManager's url.
+    const proxyConfig = await buildReverseProxyConfig();
+    this.proxyManager = createReverseProxyManager(proxyConfig);
+    registerExecuteRoutes(this.app, this.proxyManager);
 
     const { websocket } = this.engine.handler();
 
@@ -351,7 +363,7 @@ export class Server {
       return;
     }
 
-    this.proxyManager.stop();
+    await this.proxyManager?.stop();
     getFolderWatcher().stopAllWatching();
     this.server.stop();
     this.server = null;
@@ -374,4 +386,46 @@ export class Server {
   isRunning(): boolean {
     return this.server !== null;
   }
+}
+
+/**
+ * Build the reverse proxy config from the current user config:
+ * - reservedPorts: the configured MCP server port (default 30001) so the
+ *   proxy scan does not collide with it.
+ * - allowedUpstreamHosts: the SMM defaults plus any AI provider hosts the
+ *   user has configured (used by the summarize feature).
+ *
+ * User config read failures are non-fatal: the proxy will still start with
+ * defaults so the rest of the CLI can serve requests.
+ */
+async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
+  const reservedPorts = new Set<number>();
+  const allowedUpstreamHosts = new Set<string>(DEFAULT_ALLOWED_UPSTREAM_HOSTS);
+
+  try {
+    const userConfig = await getUserConfig();
+    const configuredMcpPort = Number(userConfig.mcpPort ?? 30001);
+    if (Number.isFinite(configuredMcpPort)) {
+      reservedPorts.add(configuredMcpPort);
+    }
+
+    if (userConfig.aiProviders?.length) {
+      for (const p of userConfig.aiProviders) {
+        if (!p.baseURL) continue;
+        try {
+          allowedUpstreamHosts.add(new URL(p.baseURL).hostname);
+          logger.info(
+            { host: new URL(p.baseURL).hostname },
+            '[Reverse Proxy] Added AI provider host to whitelist',
+          );
+        } catch {
+          logger.warn({ baseURL: p.baseURL }, 'Invalid baseURL in AI provider config');
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');
+  }
+
+  return { reservedPorts, allowedUpstreamHosts, logger };
 }

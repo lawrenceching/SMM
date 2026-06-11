@@ -2,6 +2,26 @@ export type { CoreRoutesConfig, CoreRoutesLogger, RouteContext, RouteHandler } f
 export { validatePathIsInAllowlist } from "./allowlist.ts";
 export { doHello, type HelloOptions } from "./hello.ts";
 export {
+  buildUpstreamUrl,
+  DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  filterRequestHeaders,
+  filterResponseHeaders,
+  handleProxyRequest,
+  PORT_RANGE_END,
+  PORT_RANGE_START,
+  validateUpstreamBaseURL,
+  type ReverseProxyConfig,
+  type ReverseProxyLogger,
+} from "./reverseProxy.ts";
+export {
+  createReverseProxyManager,
+  createReverseProxyRequestHandler,
+  findAvailableReverseProxyPort,
+  type ReverseProxyManager,
+  type ReverseProxyManagerConfig,
+} from "./reverseProxyNode.ts";
+export { createNodeHttpFetch } from "./nodeHttpFetch.ts";
+export {
   checkFolderPathAvailable,
   doIsFolderAvailable,
   type IsFolderAvailableRequestBody,

@@ -28,7 +28,11 @@ vi.mock('../../tasks/GetSelectedMediaMetadataTask', () => ({
 }));
 
 function makeProxyManager(url: string | null) {
-  return { url } as { url: string | null };
+  return {
+    url,
+    start: async () => {},
+    stop: async () => {},
+  };
 }
 
 describe('/api/hello — bootstrap handshake', () => {

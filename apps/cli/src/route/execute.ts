@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { doHello } from '@smm/core-routes';
 import { buildHelloOptions } from '../../tasks/HelloTask';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
-import type { ReverseProxyManager } from '@/proxy/reverseProxy';
+import type { ReverseProxyManager } from '@smm/core-routes';
 
 /**
  * Zod schema for /api/execute request body validation.

@@ -3,11 +3,19 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
-const { createCoreRoutesRequestHandler } = require('./core-routes.js');
+const {
+    createCoreRoutesRequestHandler,
+    createNodeHttpFetch,
+    createReverseProxyManager,
+    createReverseProxyRequestHandler,
+    DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+} = require('./core-routes.js');
 const { registerFileAccessPersistIpcHandlers } = require('./electron-common.cjs');
 
 let mainWindow, tray;
 let mainHttpServer = null;
+let reverseProxyManager = null;
+let reverseProxyUrl = null;
 
 const useDevPage = false;
 
@@ -238,14 +246,38 @@ function buildHelloConfig() {
         appDataDir: userDataDir,
         logDir,
         tmpDir,
-        reverseProxyUrl: null,
+        reverseProxyUrl,
         osLocale: app.getLocale(),
         coreRoutesPort: MAIN_HTTP_PORT,
     };
 }
 
-function startMainHttpServer() {
+async function startMainHttpServer() {
     if (mainHttpServer) return;
+
+    // Start the reverse proxy first so its URL can be reported in /api/hello
+    // and so it shares the main HTTP server's lifecycle.
+    const proxyLogger = {
+        debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? 'debug'}`, obj),
+        info: (obj, msg) => console.info(`[reverse-proxy] ${msg ?? 'info'}`, obj),
+        warn: (obj, msg) => console.warn(`[reverse-proxy] ${msg ?? 'warn'}`, obj),
+        error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? 'error'}`, obj),
+    };
+    // OHOS Electron: global fetch (undici) requires WebAssembly. Use node:http instead.
+    const reverseProxyConfig = {
+        allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+        logger: proxyLogger,
+        fetchImpl: createNodeHttpFetch(),
+    };
+
+    reverseProxyManager = createReverseProxyManager(reverseProxyConfig);
+    try {
+        await reverseProxyManager.start();
+        reverseProxyUrl = reverseProxyManager.url;
+        console.log(`[main] reverse proxy listening on ${reverseProxyUrl}`);
+    } catch (err) {
+        console.error('[main] failed to start reverse proxy:', err);
+    }
 
     const allowlist = buildCoreRoutesAllowlist();
     console.log('[main] core-routes allowlist:', allowlist);
@@ -254,6 +286,8 @@ function startMainHttpServer() {
         { allowlist, logger: createCoreRoutesLogger(), hello: buildHelloConfig() },
         { fallbackPort: MAIN_HTTP_PORT },
     );
+
+    const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
 
     mainHttpServer = http.createServer((req, res) => {
         applyCorsHeaders(req, res);
@@ -274,6 +308,11 @@ function startMainHttpServer() {
 
         if (url.startsWith('/api/')) {
             coreRoutesHandler(req, res);
+            return;
+        }
+
+        if (url.startsWith('/tmdb/') || url.startsWith('/tvdb/')) {
+            reverseProxyHandler(req, res);
             return;
         }
 
@@ -316,11 +355,9 @@ ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
 registerFileAccessPersistIpcHandlers(ipcMain);
 
 app.whenReady().then(() => {
-    try {
-        startMainHttpServer();
-    } catch (err) {
+    startMainHttpServer().catch((err) => {
         console.error('[main] failed to start HTTP server:', err);
-    }
+    });
 
     session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
         const redirect = resolveRedirect(details.url);

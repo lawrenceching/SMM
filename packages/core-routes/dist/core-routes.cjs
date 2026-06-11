@@ -42,26 +42,37 @@ var __export = (target, all) => {
 // src/index.ts
 var exports_src = {};
 __export(exports_src, {
+  validateUpstreamBaseURL: () => validateUpstreamBaseURL,
   validatePathIsInAllowlist: () => validatePathIsInAllowlist,
   registerCoreRoutes: () => registerCoreRoutes,
   isError: () => isError,
   handleWriteFilePost: () => handleWriteFilePost,
   handleReadFilePost: () => handleReadFilePost,
+  handleProxyRequest: () => handleProxyRequest,
   handleListFilesPost: () => handleListFilesPost,
   handleListFilesGet: () => handleListFilesGet,
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
+  findAvailableReverseProxyPort: () => findAvailableReverseProxyPort,
+  filterResponseHeaders: () => filterResponseHeaders,
+  filterRequestHeaders: () => filterRequestHeaders,
   doWriteFile: () => doWriteFile,
   doReadFile: () => doReadFile,
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
+  createReverseProxyRequestHandler: () => createReverseProxyRequestHandler,
+  createReverseProxyManager: () => createReverseProxyManager,
   createCoreRoutesRequestHandler: () => createCoreRoutesRequestHandler,
   coreRouteHandlers: () => coreRouteHandlers,
   checkFolderPathAvailable: () => checkFolderPathAvailable,
   checkFileIsReadable: () => checkFileIsReadable,
-  ExistedFileError: () => ExistedFileError
+  buildUpstreamUrl: () => buildUpstreamUrl,
+  PORT_RANGE_START: () => PORT_RANGE_START,
+  PORT_RANGE_END: () => PORT_RANGE_END,
+  ExistedFileError: () => ExistedFileError,
+  DEFAULT_ALLOWED_UPSTREAM_HOSTS: () => DEFAULT_ALLOWED_UPSTREAM_HOSTS
 });
 module.exports = __toCommonJS(exports_src);
 
@@ -74,6 +85,400 @@ function doHello(options) {
   return {
     uptime: process.uptime(),
     ...options
+  };
+}
+// src/reverseProxyDiagnostics.ts
+var import_node_crypto = require("node:crypto");
+var PREVIEW_MAX_BYTES = 4096;
+function fingerprintProxyBody(data) {
+  const buf = Buffer.from(data instanceof ArrayBuffer ? new Uint8Array(data) : data);
+  const sha256Prefix = import_node_crypto.createHash("sha256").update(buf).digest("hex").slice(0, 16);
+  const hexPrefix = buf.subarray(0, Math.min(32, buf.length)).toString("hex");
+  const looksCompressed = buf.length >= 2 && (hexPrefix.startsWith("1f8b") || hexPrefix.startsWith("6500b0"));
+  let textPreview;
+  if (!looksCompressed) {
+    const preview = buf.subarray(0, Math.min(PREVIEW_MAX_BYTES, buf.length));
+    const text = preview.toString("utf8");
+    if (text.includes("{") || text.includes("[") || text.includes("<")) {
+      textPreview = text;
+    }
+  }
+  return {
+    byteLength: buf.length,
+    sha256Prefix,
+    hexPrefix,
+    textPreview,
+    looksCompressed
+  };
+}
+function summarizeIncomingHeaders(headers) {
+  const summary = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined)
+      continue;
+    summary[key] = value;
+  }
+  return summary;
+}
+function summarizeResponseHeaders(headers) {
+  const summary = {};
+  headers.forEach((value, key) => {
+    summary[key] = value;
+  });
+  return summary;
+}
+
+// src/reverseProxy.ts
+var PORT_RANGE_START = 30000;
+var PORT_RANGE_END = 31000;
+var DEFAULT_ALLOWED_UPSTREAM_HOSTS = new Set([
+  "api.themoviedb.org",
+  "api4.thetvdb.com",
+  "tmdb-mcp-server.imlc.me",
+  "httpbin.io",
+  "api.deepseek.com",
+  "api.openai.com",
+  "openrouter.ai",
+  "open.bigmodel.cn"
+]);
+var HOP_BY_HOP_REQUEST_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade"
+]);
+var HOP_BY_HOP_RESPONSE_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "content-length",
+  "content-encoding"
+]);
+var PROXY_CONTROL_HEADERS = new Set([
+  "x-smm-proxy-upstream-baseurl"
+]);
+function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
+  const base = new URL(upstreamBaseURL);
+  const basePath = base.pathname.replace(/\/+$/, "");
+  const normalizedPath = incomingPath.startsWith("/") ? incomingPath : `/${incomingPath}`;
+  const path = `${basePath}${normalizedPath}`;
+  const query = incomingSearch.startsWith("?") ? incomingSearch : "";
+  return `${base.origin}${path}${query}`;
+}
+function validateUpstreamBaseURL(headerValue, allowedUpstreamHosts) {
+  let upstreamUrl;
+  try {
+    upstreamUrl = new URL(headerValue);
+  } catch {
+    throw new Error(`Invalid upstream base URL: "${headerValue}"`);
+  }
+  if (upstreamUrl.protocol !== "https:" && upstreamUrl.protocol !== "http:") {
+    throw new Error(`Upstream base URL must use http or https protocol, got: "${upstreamUrl.protocol}"`);
+  }
+  if (!allowedUpstreamHosts.has(upstreamUrl.hostname)) {
+    throw new Error(`Upstream host "${upstreamUrl.hostname}" is not allowed. Allowed hosts: ${[...allowedUpstreamHosts].join(", ")}`);
+  }
+  return upstreamUrl;
+}
+function filterRequestHeaders(request, upstreamUrl) {
+  const headers = new Headers;
+  request.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey))
+      return;
+    if (PROXY_CONTROL_HEADERS.has(lowerKey))
+      return;
+    headers.set(key, value);
+  });
+  headers.set("Host", upstreamUrl.host);
+  return headers;
+}
+function filterResponseHeaders(response) {
+  const headers = new Headers;
+  response.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_RESPONSE_HEADERS.has(lowerKey))
+      return;
+    headers.set(key, value);
+  });
+  return headers;
+}
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Max-Age": "86400"
+  };
+}
+function applyCorsToBody(body, init = {}) {
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(corsHeaders())) {
+    if (!headers.has(key)) {
+      headers.set(key, value);
+    }
+  }
+  return new Response(body, {
+    status: init.status ?? 200,
+    statusText: init.statusText,
+    headers
+  });
+}
+function noopLogger() {
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {}
+  };
+}
+async function handleProxyRequest(request, config = {}) {
+  const logger = config.logger ?? noopLogger();
+  const allowedUpstreamHosts = config.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+  const fetchImpl = config.fetchImpl ?? fetch;
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+  const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
+  if (!upstreamBaseURL) {
+    return applyCorsToBody(JSON.stringify({ error: "Missing X-SMM-Proxy-Upstream-BaseURL header" }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
+  let upstreamUrl;
+  try {
+    upstreamUrl = validateUpstreamBaseURL(upstreamBaseURL, allowedUpstreamHosts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid upstream base URL";
+    return applyCorsToBody(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  const incomingUrl = new URL(request.url);
+  const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingUrl.pathname, incomingUrl.search);
+  try {
+    const reqHeaders = filterRequestHeaders(request, upstreamUrl);
+    const method = request.method;
+    const upstreamReq = new Request(forwardUrl, {
+      method,
+      headers: reqHeaders,
+      body: method !== "GET" && method !== "HEAD" ? request.body : undefined,
+      ...method !== "GET" && method !== "HEAD" ? { duplex: "half" } : {}
+    });
+    logger.info({
+      method,
+      forwardUrl,
+      upstreamHost: upstreamUrl.host,
+      clientUrl: request.url,
+      clientAcceptEncoding: request.headers.get("accept-encoding"),
+      upstreamBaseURL
+    }, "[Reverse Proxy] forwarding request");
+    const response = await fetchImpl(upstreamReq);
+    const respHeaders = filterResponseHeaders(response);
+    const respBody = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") ?? "";
+    const bodyFingerprint = fingerprintProxyBody(respBody);
+    logger.info({
+      method,
+      forwardUrl,
+      status: response.status,
+      contentType: contentType || undefined,
+      fetchImplHeaders: summarizeResponseHeaders(response.headers),
+      filteredHeaders: summarizeResponseHeaders(respHeaders),
+      body: bodyFingerprint
+    }, "[Reverse Proxy] fetchImpl body (stage: after fetchImpl)");
+    const clientResponse = applyCorsToBody(respBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: respHeaders
+    });
+    logger.info({
+      method,
+      forwardUrl,
+      clientHeaders: summarizeResponseHeaders(clientResponse.headers),
+      body: bodyFingerprint
+    }, "[Reverse Proxy] client response prepared (stage: after applyCors)");
+    return clientResponse;
+  } catch (error) {
+    logger.error({ err: error, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
+    return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
+  }
+}
+// src/reverseProxyNode.ts
+var import_node_http = __toESM(require("node:http"));
+var import_node_net = __toESM(require("node:net"));
+var import_node_stream = require("node:stream");
+function createReverseProxyRequestHandler(config = {}) {
+  return async (req, res) => {
+    try {
+      config.logger?.info({
+        method: req.method,
+        url: req.url,
+        clientHeaders: summarizeIncomingHeaders(req.headers)
+      }, "[Reverse Proxy] client request received (stage: node handler)");
+      const webRequest = incomingMessageToRequest(req);
+      const webResponse = await handleProxyRequest(webRequest, config);
+      await sendNodeResponse(res, webResponse, config.logger);
+    } catch (error) {
+      const logger = config.logger;
+      if (logger) {
+        logger.error({ err: error, method: req.method, url: req.url }, "[Reverse Proxy] node handler error");
+      }
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      }
+      res.end("Internal Server Error");
+    }
+  };
+}
+function incomingMessageToRequest(req) {
+  const host = req.headers.host ?? "127.0.0.1";
+  const url = `http://${host}${req.url ?? "/"}`;
+  const headers = new Headers;
+  copyIncomingHeaders(req.headers, headers);
+  const method = req.method ?? "GET";
+  const init = { method, headers };
+  if (method !== "GET" && method !== "HEAD") {
+    init.body = import_node_stream.Readable.toWeb(req);
+    init.duplex = "half";
+  }
+  return new Request(url, init);
+}
+function copyIncomingHeaders(source, target) {
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined)
+      continue;
+    if (Array.isArray(value)) {
+      for (const v of value)
+        target.append(key, v);
+    } else {
+      target.set(key, value);
+    }
+  }
+}
+async function sendNodeResponse(res, response, logger) {
+  const body = response.body === null ? null : Buffer.from(await response.arrayBuffer());
+  const outgoingHeaders = {};
+  res.statusCode = response.status;
+  res.statusMessage = response.statusText;
+  response.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === "content-length" || lowerKey === "content-encoding") {
+      return;
+    }
+    try {
+      res.setHeader(key, value);
+      outgoingHeaders[key] = value;
+    } catch {}
+  });
+  if (body === null || body.length === 0) {
+    logger?.info({
+      status: response.status,
+      outgoingHeaders,
+      body: null
+    }, "[Reverse Proxy] client response sent (stage: sendNodeResponse)");
+    res.end();
+    return;
+  }
+  res.setHeader("Content-Length", body.length);
+  outgoingHeaders["Content-Length"] = String(body.length);
+  logger?.info({
+    status: response.status,
+    outgoingHeaders,
+    webResponseHeaders: summarizeResponseHeaders(response.headers),
+    body: fingerprintProxyBody(body)
+  }, "[Reverse Proxy] client response sent (stage: sendNodeResponse)");
+  res.end(body);
+}
+function tryListen(port, hostname = "127.0.0.1") {
+  return new Promise((resolve) => {
+    const tester = import_node_net.default.createServer();
+    tester.once("error", () => {
+      tester.removeAllListeners();
+      resolve(false);
+    });
+    tester.once("listening", () => {
+      tester.close(() => resolve(true));
+    });
+    tester.listen(port, hostname);
+  });
+}
+async function findAvailableReverseProxyPort(reservedPorts = new Set, portRange = {
+  start: PORT_RANGE_START,
+  end: PORT_RANGE_END
+}) {
+  for (let port = portRange.start;port <= portRange.end; port++) {
+    if (reservedPorts.has(port))
+      continue;
+    if (await tryListen(port))
+      return port;
+  }
+  throw new Error(`Could not find an available port in range ${portRange.start}-${portRange.end}`);
+}
+function createReverseProxyManager(config = {}) {
+  let server = null;
+  let currentUrl = null;
+  const handler = createReverseProxyRequestHandler(config);
+  async function start() {
+    if (server) {
+      config.logger?.warn({}, "[Reverse Proxy] already running");
+      return;
+    }
+    let port;
+    try {
+      if (typeof config.port === "number") {
+        port = config.port;
+      } else {
+        port = await findAvailableReverseProxyPort(config.reservedPorts, config.portRange);
+      }
+    } catch (error) {
+      config.logger?.error({ err: error }, "[Reverse Proxy] failed to find available port");
+      currentUrl = null;
+      return;
+    }
+    const newServer = import_node_http.default.createServer(handler);
+    await new Promise((resolve, reject) => {
+      newServer.once("error", (err) => {
+        newServer.removeListener("listening", onListening);
+        reject(err);
+      });
+      const onListening = () => {
+        newServer.removeListener("error", onError);
+        resolve();
+      };
+      const onError = (err) => reject(err);
+      newServer.once("listening", onListening);
+      newServer.listen(port, "127.0.0.1");
+    });
+    server = newServer;
+    currentUrl = `http://127.0.0.1:${port}`;
+    config.logger?.info({ url: currentUrl }, "[Reverse Proxy] started");
+  }
+  async function stop() {
+    if (!server)
+      return;
+    const s = server;
+    server = null;
+    currentUrl = null;
+    await new Promise((resolve) => {
+      s.close(() => resolve());
+    });
+    config.logger?.info({}, "[Reverse Proxy] stopped");
+  }
+  return {
+    get url() {
+      return currentUrl;
+    },
+    start,
+    stop
   };
 }
 // src/isFolderAvailable.ts
