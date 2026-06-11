@@ -33,6 +33,7 @@ import { useCallback, useRef } from "react";
 import type { FolderType } from "@core/types";
 import { useInitializeMediaMetadataMutation, useUpdateMediaMetadataMutation } from "../mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
+import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess";
 
 export function useInitializeImportedMediaFolder() {
 
@@ -393,20 +394,23 @@ export function useInitializeImportedMediaFolder() {
     }, [])
 
     const onError = useCallback((_folder: string, error: Error) => {
-
-        if (!jobId.current) {
-            return;
-        }
-
         if (error instanceof Error && error.name === 'TimeoutError') {
             toast.error('初始化目录超时');
-            updateJob(jobId.current, { status: "aborted" });
         } else {
             const unknownErrorStack = error instanceof Error
                 ? (error.stack || error.message)
                 : String(error);
             console.error(`Unknown error during media folder initialization:\n${unknownErrorStack}`);
             toast.error(`因未知原因, 目录初始化失败:\n${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        if (!jobId.current) {
+            return;
+        }
+
+        if (error instanceof Error && error.name === 'TimeoutError') {
+            updateJob(jobId.current, { status: "aborted" });
+        } else {
             updateJob(jobId.current, { status: "failed" });
         }
 
@@ -425,6 +429,8 @@ export function useInitializeImportedMediaFolder() {
                 traceId,
                 path: folderPathInPlatformFormat,
             }, 'started initialization')
+
+            await persistHarmonyOSFileAccess([folderPathInPlatformFormat]);
 
             onStart(folderPathInPlatformFormat);
 

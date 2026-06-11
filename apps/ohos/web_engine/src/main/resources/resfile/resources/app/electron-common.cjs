@@ -29,7 +29,9 @@ var __export = (target, all) => {
 // src/index.ts
 var exports_src = {};
 __export(exports_src, {
+  registerFileAccessPersistIpcHandlers: () => registerFileAccessPersistIpcHandlers,
   registerDialogIpcHandlers: () => registerDialogIpcHandlers,
+  FILE_ACCESS_PERSIST_CHANNEL: () => FILE_ACCESS_PERSIST_CHANNEL,
   DIALOG_SHOW_SAVE_CHANNEL: () => DIALOG_SHOW_SAVE_CHANNEL,
   DIALOG_SHOW_OPEN_CHANNEL: () => DIALOG_SHOW_OPEN_CHANNEL
 });
@@ -38,6 +40,7 @@ module.exports = __toCommonJS(exports_src);
 // src/channels.ts
 var DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
 var DIALOG_SHOW_SAVE_CHANNEL = "dialog:showSaveDialog";
+var FILE_ACCESS_PERSIST_CHANNEL = "fileAccess:persist";
 // src/dialogIpc.ts
 var import_electron = require("electron");
 function defaultGetWindow(event) {
@@ -62,5 +65,47 @@ function registerDialogIpcHandlers(ipcMain, options) {
       console.error("[electron-common] dialog:showSaveDialog failed:", err);
       throw err;
     }
+  });
+}
+// src/fileAccessPersistIpc.ts
+var import_electron2 = require("electron");
+var SAVE_URIS_BINDING = "PermissionManagerAdapter.SaveUris";
+function isHarmonyOSElectron() {
+  return process.platform === "ohos";
+}
+function validatePaths(paths) {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw new Error("fileAccess:persist requires a non-empty paths array");
+  }
+  if (!paths.every((p) => typeof p === "string" && p.length > 0)) {
+    throw new Error("fileAccess:persist paths must be non-empty strings");
+  }
+  return paths;
+}
+function registerFileAccessPersistIpcHandlers(ipcMain) {
+  ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
+    const paths = validatePaths(payload?.paths);
+    if (!isHarmonyOSElectron()) {
+      return { ok: true, skipped: true };
+    }
+    const sp = import_electron2.systemPreferences;
+    if (typeof sp.fileAccessPersist !== "function") {
+      throw new Error("systemPreferences.fileAccessPersist is not available on this platform");
+    }
+    try {
+      sp.fileAccessPersist(paths);
+    } catch (err) {
+      console.error("[electron-common] systemPreferences.fileAccessPersist failed:", err);
+      throw err;
+    }
+    if (typeof sp.callArkTSFunction === "function") {
+      try {
+        sp.callArkTSFunction(SAVE_URIS_BINDING, "void", [paths]);
+      } catch (err) {
+        console.error("[electron-common] SaveUris via callArkTSFunction failed:", err);
+        throw err;
+      }
+    }
+    return { ok: true };
   });
 }

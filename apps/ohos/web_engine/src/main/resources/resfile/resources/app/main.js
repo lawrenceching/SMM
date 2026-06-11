@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const http = require('http');
 const { createCoreRoutesRequestHandler } = require('./core-routes.js');
+const { registerFileAccessPersistIpcHandlers } = require('./electron-common.cjs');
 
 let mainWindow, tray;
 let mainHttpServer = null;
@@ -311,6 +312,8 @@ ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
         throw err;
     }
 });
+
+registerFileAccessPersistIpcHandlers(ipcMain);
 
 app.whenReady().then(() => {
     try {

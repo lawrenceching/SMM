@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { createDialogPreloadApi } from '@smm/electron-common/preload'
+import { createDialogPreloadApi, createFileAccessPersistPreloadApi } from '@smm/electron-common/preload'
 
 interface ExecuteChannelRequest {
   name: string
@@ -31,13 +31,15 @@ const api = {
 }
 
 const dialogAPI = createDialogPreloadApi(ipcRenderer)
+const fileAccessAPI = createFileAccessPersistPreloadApi(ipcRenderer)
 
 console.log('[Preload] API object created:', { hasGetPathForFile: typeof api.getPathForFile === 'function' })
 
 // Merge electronAPI with dialog API
 const enhancedElectronAPI = {
   ...electronAPI,
-  dialog: dialogAPI
+  dialog: dialogAPI,
+  fileAccess: fileAccessAPI,
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

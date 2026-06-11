@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { registerDialogIpcHandlers } from '@smm/electron-common'
+import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers } from '@smm/electron-common'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
@@ -645,6 +645,7 @@ app.whenReady().then(() => {
 
   // Dialog IPC handlers (shared with HarmonyOS shell)
   registerDialogIpcHandlers(ipcMain)
+  registerFileAccessPersistIpcHandlers(ipcMain)
 
   // ExecuteChannel IPC handler
   ipcMain.handle('ExecuteChannel', async (_event, request: ExecuteChannelRequest): Promise<ExecuteChannelResponse> => {

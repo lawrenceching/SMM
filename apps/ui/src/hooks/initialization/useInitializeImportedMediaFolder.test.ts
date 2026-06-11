@@ -25,6 +25,7 @@ const h = vi.hoisted(() => {
     });
     const toast = { error: vi.fn() };
     const withTimeout = vi.fn((fn: () => Promise<unknown>) => fn());
+    const persistHarmonyOSFileAccess = vi.fn().mockResolvedValue(undefined);
     return {
         getMediaMetadata,
         updateMediaMetadata,
@@ -42,6 +43,7 @@ const h = vi.hoisted(() => {
         mutationHook,
         toast,
         withTimeout,
+        persistHarmonyOSFileAccess,
     };
 });
 
@@ -176,6 +178,10 @@ vi.mock("@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation", 
     useRecognizeMovieByTvdbIdInFolderNameMutation: h.mutationHook,
 }));
 
+vi.mock("@/lib/persistHarmonyOSFileAccess", () => ({
+    persistHarmonyOSFileAccess: h.persistHarmonyOSFileAccess,
+}));
+
 import { useInitializeImportedMediaFolder } from "./useInitializeImportedMediaFolder";
 
 describe("useInitializeImportedMediaFolder", () => {
@@ -202,6 +208,7 @@ describe("useInitializeImportedMediaFolder", () => {
         vi.clearAllMocks();
         h.addJob.mockReturnValue("job-1");
         h.withTimeout.mockImplementation((fn: () => Promise<unknown>) => fn());
+        h.persistHarmonyOSFileAccess.mockResolvedValue(undefined);
         baseMm = {
             ...createMediaMetadata(folderPath, "tvshow-folder"),
             status: "idle",
@@ -270,6 +277,7 @@ describe("useInitializeImportedMediaFolder", () => {
             await result.current.initializeImportedMediaFolder(event);
         });
 
+        expect(h.persistHarmonyOSFileAccess).toHaveBeenCalledWith([folderPath]);
         expect(h.initializeMediaMetadata).toHaveBeenCalledWith({
             folderPathInPlatformFormat: folderPath,
             type: "tvshow-folder",
@@ -277,6 +285,32 @@ describe("useInitializeImportedMediaFolder", () => {
         });
 
         assertSuccessfulTvShowInitializationPipeline();
+    });
+
+    it("aborts initialization when HarmonyOS file access persist fails", async () => {
+        h.persistHarmonyOSFileAccess.mockRejectedValue(
+            new Error("无法持久化文件夹访问权限"),
+        );
+
+        const { result } = renderHook(() => useInitializeImportedMediaFolder());
+
+        const detail: OnMediaFolderImportedEventData = {
+            type: "tvshow",
+            folderPathInPlatformFormat: folderPath,
+            traceId: "evt-trace",
+        };
+        const event = new CustomEvent("ui.mediaFolderImported", { detail }) as Event;
+
+        await act(async () => {
+            await result.current.initializeImportedMediaFolder(event);
+        });
+
+        expect(h.persistHarmonyOSFileAccess).toHaveBeenCalledWith([folderPath]);
+        expect(h.initializeMediaMetadata).not.toHaveBeenCalled();
+        expect(h.toast.error).toHaveBeenCalledWith(
+            expect.stringContaining("无法持久化文件夹访问权限"),
+        );
+        expect(h.addJob).not.toHaveBeenCalled();
     });
 
     it("initialize TV show library", async () => {

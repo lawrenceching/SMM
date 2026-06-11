@@ -34,6 +34,8 @@ To rebuild only the shared Electron IPC/preload after changing `packages/electro
 pnpm --filter ohos build:electron-common
 ```
 
+HarmonyOS file access persist IPC (`fileAccess:persist`) is registered in `main.js` via `registerFileAccessPersistIpcHandlers`. The preload exposes `window.electron.fileAccess.persist(paths)` which calls `systemPreferences.fileAccessPersist()` in the main process.
+
 ## References
 
 https://gitcode.com/openharmony-sig/electron
