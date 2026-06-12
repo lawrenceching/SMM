@@ -19,7 +19,6 @@ import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { DeviceInfoAdapter } from '../adapter/DeviceInfoAdapter';
 import { DisplayAdapter } from  '../adapter/DisplayAdapter';
 import { NativeThemeAdapter } from '../adapter/NativeThemeAdapter';
-import { PermissionManagerAdapter } from '../adapter/PermissionManagerAdapter';
 import { WindowStyle, IStyleData, IUpdateStyle } from '../common/WindowStyle';
 import { WebBaseAbility } from './WebBaseAbility';
 import lazy { GlobalThisHelper } from '../utils/GlobalThisHelper';
@@ -93,8 +92,6 @@ export class WebAbility extends WebBaseAbility {
     this.displayAdapter = Inject.get(DisplayAdapter);
     this.nativeThemeAdapter = Inject.get(NativeThemeAdapter);
     this.contextAdapter = Inject.get(ContextAdapter);
-
-    Inject.get(PermissionManagerAdapter).initPermissions();
 
     this.deviceInfoAdapter = Inject.get(DeviceInfoAdapter);
     this.appLifecycleAdapter = Inject.get(AppLifecycleAdapter);

@@ -10,7 +10,6 @@ import { NativeThemeAdapter } from '../adapter/NativeThemeAdapter';
 import { Configuration } from '@ohos.app.ability.Configuration';
 import Inject from '../common/InjectModule';
 import { WindowBound } from '../interface/CommonInterface';
-import { PermissionManagerAdapter } from '../adapter/PermissionManagerAdapter';
 import { UIExtensionContentSession } from '@kit.AbilityKit';
 import { JSON } from '@kit.ArkTS';
 import { AbilityManager } from '../common/AbilityManager';
@@ -33,7 +32,6 @@ export class WebEmbeddedAbility extends WebBaseExtensionAbility {
   onCreate(launchParam: AbilityConstant.LaunchParam) {
     this.abilityManager = Inject.get(AbilityManager);
     this.nativeThemeAdapter = Inject.get(NativeThemeAdapter);
-    Inject.get(PermissionManagerAdapter).initPermissions();
   }
 
   onSessionCreate(want: Want, session: UIExtensionContentSession) {

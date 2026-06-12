@@ -12,9 +12,7 @@ import LogUtil from '../utils/LogUtil';
 import LogMethod from '../common/LogDecorator';
 import LaunchHelper from '../utils/LaunchHelper';
 import { ContextAdapter } from './ContextAdapter';
-import { fileShare } from '@kit.CoreFileKit';
-import preferences from '@ohos.data.preferences';
-import prompt from '@ohos.promptAction'
+import { fileShare, fileUri } from '@kit.CoreFileKit';
 import { promptAction } from '@kit.ArkUI';
 import { Want } from '@kit.AbilityKit';
 
@@ -25,8 +23,6 @@ const EMPTY_ARRAY: number = -1;
 const TAG: string = 'PermissionManagerAdapter';
 const REQUEST_PERMISSION_FAIL: number = -2;
 const REQUEST_PERMISSION_SUCCESS: number = 0;
-let dataPreferences: preferences.Preferences | null = null;
-let options: preferences.Options = { name: 'myStore' };
 
 interface ConfirmParams {
   title: string,
@@ -74,7 +70,6 @@ export class PermissionManagerAdapter extends BaseAdapter {
   private atManager: abilityAccessCtrl.AtManager;
   private tokenId: number = 0;
   private ctxAdapter: ContextAdapter;
-  private isInitialized: boolean = false;
   private appLabelId: number = 0;
   private bundleName: string = 'com.huawei.ohos_electron';
   private bundleFlags = bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
@@ -166,69 +161,44 @@ export class PermissionManagerAdapter extends BaseAdapter {
   }
 
   @LogMethod
-  public async initPermissions(): Promise<void> {
-    if (this.isInitialized) {
+  public reactivateFolders(paths: string[], callback: (code: number) => void) {
+    const uris = this.normalizeToFileUris(paths);
+    if (uris.length === 0) {
+      callback(EMPTY_ARRAY);
       return;
     }
-    this.activateFileAccessPersist(this.getUris(), (code) => {
-      if (code === ACTIVATE_SUCCESS) {
-        this.isInitialized = true;
-      } else {
-        LogUtil.error(TAG, '[CPM20251222017870] No URI required for activation or activation failed');
+    this.activateFileAccessPersist(uris, callback);
+  }
+
+  private normalizeToFileUris(paths: string[]): string[] {
+    const uris = new Set<string>();
+    paths.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+      if (entry.startsWith('file://')) {
+        uris.add(entry);
+        return;
+      }
+      try {
+        uris.add(fileUri.getUriFromPath(entry));
+      } catch (err) {
+        LogUtil.error(TAG, `normalizeToFileUris failed path=${entry}: ${JSON.stringify(err)}`);
       }
     });
-  }
-
-  @LogMethod
-  public saveUris(uris: string[]) {
-    try {
-      dataPreferences = preferences.getPreferencesSync(this.ctxAdapter.getContext(), options);
-    } catch (err) {
-      LogUtil.error(TAG, `Failed to get preference. Code:${err.code}, message:${err.message}`);
-    }
-    if (dataPreferences) {
-      try {
-        dataPreferences.putSync('defaultDownloadUri', JSON.stringify(uris));
-        dataPreferences.flush((err: BusinessError) => {
-          if (err) {
-            LogUtil.error(TAG, `Failed to flush. Code:${err.code}, message:${err.message}`);
-            return;
-          }
-          LogUtil.info(TAG, 'Succeeded in flushing.');
-        });
-      } catch (err) {
-        LogUtil.error(TAG, `Failed to save uris. Code:${err.code}, message:${err.message}`);
-      }
-    }
-  }
-
-  @LogMethod
-  private getUris(): string[] {
-    try {
-      dataPreferences = preferences.getPreferencesSync(this.ctxAdapter.getContext(), options);
-    } catch (err) {
-      LogUtil.error(TAG, `Failed to get preference. Code:${err.code}, message:${err.message}`);
-    }
-    if (dataPreferences) {
-      try {
-        let uris: string = dataPreferences.getSync('defaultDownloadUri', '[]') as string;
-        return JSON.parse(uris);
-      } catch (err) {
-        LogUtil.error(TAG, `Failed to get uris. Code:${err.code}, message:${err.message}`);
-      }
-    }
-    return [];
+    return Array.from(uris);
   }
 
   @LogMethod
   public activateFileAccessPersist(uris: string[], callback: (code: number) => void) {
-    if (uris.length === 0) {
-      LogUtil.error(TAG,'[CPM20251222017870] No URI required to activate');
+    const normalizedUris = this.normalizeToFileUris(uris);
+    if (normalizedUris.length === 0) {
+      LogUtil.error(TAG, 'activateFileAccessPersist: no URI to activate');
       callback(EMPTY_ARRAY);
       return;
     }
     let policies = new Array<fileShare.PolicyInfo>();
-    uris.forEach((uri) => {
+    normalizedUris.forEach((uri) => {
       let policyReadWrite: fileShare.PolicyInfo = {
         uri: uri,
         operationMode: fileShare.OperationMode.READ_MODE |
@@ -238,21 +208,21 @@ export class PermissionManagerAdapter extends BaseAdapter {
     });
     fileShare.activatePermission(policies).then(() => {
       callback(ACTIVATE_SUCCESS);
-      LogUtil.error(TAG, `[CPM20251222017870] activeFileAccessPersist ok`);
     }).catch((err: BusinessError<Array<fileShare.PolicyErrorResult>>) => {
       callback(err.code);
-      LogUtil.error(TAG, `[CPM20251222017870] activeFileAccessPersist failed: ${JSON.stringify(err)}`);
+      LogUtil.error(TAG, `activateFileAccessPersist failed code=${err.code}: ${JSON.stringify(err)}`);
     });
   }
 
   @LogMethod
   public fileAccessPersist(uris: string[]) {
-    if (uris.length === 0) {
-      LogUtil.error(TAG, 'No URI needs to be persisted');
+    const normalizedUris = this.normalizeToFileUris(uris);
+    if (normalizedUris.length === 0) {
+      LogUtil.error(TAG, 'fileAccessPersist: no URI to persist');
       return;
     }
     let policies = new Array<fileShare.PolicyInfo>();
-    uris.forEach((uri) => {
+    normalizedUris.forEach((uri) => {
       let policyReadWrite: fileShare.PolicyInfo = {
         uri: uri,
         operationMode: fileShare.OperationMode.READ_MODE |

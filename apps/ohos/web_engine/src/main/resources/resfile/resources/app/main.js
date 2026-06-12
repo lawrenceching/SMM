@@ -10,7 +10,7 @@ const {
     createReverseProxyRequestHandler,
     DEFAULT_ALLOWED_UPSTREAM_HOSTS,
 } = require('./core-routes.js');
-const { registerFileAccessPersistIpcHandlers } = require('./electron-common.cjs');
+const { registerOhosFileAccessPermission } = require('./activate-ohos-file-access-permission.js');
 
 let mainWindow, tray;
 let mainHttpServer = null;
@@ -52,10 +52,6 @@ const TEST_INDEX = path.join(APP_ROOT, 'testPage', 'index.html')
 // 解析成 file:///assets/xxx.js（根目录变成 /），导致 404。
 // 这里用 webRequest.onBeforeRequest + redirectURL 把这类请求重定向到
 // file:///.../dist/assets/xxx.js。为了安全，只对 DIST_DIR 下的根级项放行。
-
-console.log(`>>> process.platform=${process.platform}`)
-console.log(`>>> os.homedir=${os.homedir()}`)
-console.log(`>>> os.tmpdir=${os.tmpdir()}`)
 
 const allowedRootItems = new Set();
 try {
@@ -352,7 +348,7 @@ ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
     }
 });
 
-registerFileAccessPersistIpcHandlers(ipcMain);
+registerOhosFileAccessPermission(ipcMain);
 
 app.whenReady().then(() => {
     startMainHttpServer().catch((err) => {

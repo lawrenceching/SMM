@@ -2,6 +2,7 @@ import { isFolderAvailable } from "@/api/isFolderAvailable"
 import { useRecheckSelectedFolderAvailability } from "@/hooks/initialization/useRecheckSelectedFolderAvailability"
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
+import { reactivateHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
 import { useEffect, useRef } from "react"
 import { Path } from "@core/path"
 import localStorages from "@/lib/localStorages"
@@ -14,10 +15,16 @@ export function UIMediaFolderStoreInitializer() {
  const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder)
  const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
  const initializedRef = useRef(false)
+ const reactivatedRef = useRef(false)
 
  useEffect(() => {
  if (isLoading || !isUserConfigLoaded) {
  return
+ }
+
+ if (!reactivatedRef.current && userConfig.folders.length > 0) {
+ reactivatedRef.current = true
+ void reactivateHarmonyOSFileAccess(userConfig.folders)
  }
 
  if (initializedRef.current) {

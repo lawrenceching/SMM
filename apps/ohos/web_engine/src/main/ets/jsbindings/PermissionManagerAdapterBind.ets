@@ -26,8 +26,8 @@ function activateFileAccessPersist(uris: string[], callback: (code: number) => v
   implPermissionManagerAdapter().activateFileAccessPersist(uris, callback);
 }
 
-function saveUris(uris: string[]) {
-  implPermissionManagerAdapter().saveUris(uris);
+function reactivateFolders(uris: string[]) {
+  implPermissionManagerAdapter().reactivateFolders(uris, () => {});
 }
 
 async function openPermissionConfirm(type: string, callback: (index: number) => void) {
@@ -40,7 +40,7 @@ export class PermissionManagerAdapterBind {
     JsBindingUtils.bindFunction('PermissionManagerAdapter.CheckPermissions', checkPermissions);
     JsBindingUtils.bindFunction('PermissionManagerAdapter.FileAccessPersist', fileAccessPersist);
     JsBindingUtils.bindFunction('PermissionManagerAdapter.ActivateFileAccessPersist', activateFileAccessPersist);
-    JsBindingUtils.bindFunction('PermissionManagerAdapter.SaveUris', saveUris);
+    JsBindingUtils.bindFunction('PermissionManagerAdapter.ReactivateFolders', reactivateFolders);
     JsBindingUtils.bindFunction('PermissionManagerAdapter.OpenPermissionConfirm', openPermissionConfirm);
   }
 }

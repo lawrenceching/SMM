@@ -31,7 +31,9 @@ var exports_src = {};
 __export(exports_src, {
   registerFileAccessPersistIpcHandlers: () => registerFileAccessPersistIpcHandlers,
   registerDialogIpcHandlers: () => registerDialogIpcHandlers,
+  activateHarmonyOSFileAccess: () => activateHarmonyOSFileAccess,
   FILE_ACCESS_PERSIST_CHANNEL: () => FILE_ACCESS_PERSIST_CHANNEL,
+  FILE_ACCESS_ACTIVATE_CHANNEL: () => FILE_ACCESS_ACTIVATE_CHANNEL,
   DIALOG_SHOW_SAVE_CHANNEL: () => DIALOG_SHOW_SAVE_CHANNEL,
   DIALOG_SHOW_OPEN_CHANNEL: () => DIALOG_SHOW_OPEN_CHANNEL
 });
@@ -41,6 +43,7 @@ module.exports = __toCommonJS(exports_src);
 var DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
 var DIALOG_SHOW_SAVE_CHANNEL = "dialog:showSaveDialog";
 var FILE_ACCESS_PERSIST_CHANNEL = "fileAccess:persist";
+var FILE_ACCESS_ACTIVATE_CHANNEL = "fileAccess:activate";
 // src/dialogIpc.ts
 var import_electron = require("electron");
 function defaultGetWindow(event) {
@@ -69,18 +72,32 @@ function registerDialogIpcHandlers(ipcMain, options) {
 }
 // src/fileAccessPersistIpc.ts
 var import_electron2 = require("electron");
-var SAVE_URIS_BINDING = "PermissionManagerAdapter.SaveUris";
+var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
 function isHarmonyOSElectron() {
-  return process.platform === "ohos";
+  return process.platform === "ohos" || process.platform === "openharmony";
 }
 function validatePaths(paths) {
   if (!Array.isArray(paths) || paths.length === 0) {
-    throw new Error("fileAccess:persist requires a non-empty paths array");
+    throw new Error("fileAccess paths requires a non-empty paths array");
   }
   if (!paths.every((p) => typeof p === "string" && p.length > 0)) {
-    throw new Error("fileAccess:persist paths must be non-empty strings");
+    throw new Error("fileAccess paths must be non-empty strings");
   }
   return paths;
+}
+function callReactivateFolders(paths) {
+  const sp = import_electron2.systemPreferences;
+  if (typeof sp.callArkTSFunction !== "function") {
+    console.warn("[electron-common] callArkTSFunction unavailable; skipped ReactivateFolders");
+    return;
+  }
+  sp.callArkTSFunction(REACTIVATE_FOLDERS_BINDING, "void", [paths]);
+}
+function activateHarmonyOSFileAccess(paths) {
+  if (!isHarmonyOSElectron()) {
+    return;
+  }
+  callReactivateFolders(validatePaths(paths));
 }
 function registerFileAccessPersistIpcHandlers(ipcMain) {
   ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
@@ -92,20 +109,16 @@ function registerFileAccessPersistIpcHandlers(ipcMain) {
     if (typeof sp.fileAccessPersist !== "function") {
       throw new Error("systemPreferences.fileAccessPersist is not available on this platform");
     }
-    try {
-      sp.fileAccessPersist(paths);
-    } catch (err) {
-      console.error("[electron-common] systemPreferences.fileAccessPersist failed:", err);
-      throw err;
+    sp.fileAccessPersist(paths);
+    callReactivateFolders(paths);
+    return { ok: true };
+  });
+  ipcMain.handle(FILE_ACCESS_ACTIVATE_CHANNEL, async (_event, payload) => {
+    const paths = validatePaths(payload?.paths);
+    if (!isHarmonyOSElectron()) {
+      return { ok: true, skipped: true };
     }
-    if (typeof sp.callArkTSFunction === "function") {
-      try {
-        sp.callArkTSFunction(SAVE_URIS_BINDING, "void", [paths]);
-      } catch (err) {
-        console.error("[electron-common] SaveUris via callArkTSFunction failed:", err);
-        throw err;
-      }
-    }
+    callReactivateFolders(paths);
     return { ok: true };
   });
 }

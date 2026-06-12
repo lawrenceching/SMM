@@ -7,6 +7,7 @@ interface FileAccessPersistResult {
 
 interface ElectronFileAccessApi {
   persist: (paths: string[]) => Promise<FileAccessPersistResult>
+  activate?: (paths: string[]) => Promise<FileAccessPersistResult>
 }
 
 function getFileAccessApi(): ElectronFileAccessApi | undefined {
@@ -34,5 +35,22 @@ export async function persistHarmonyOSFileAccess(paths: string[]): Promise<void>
   const result = await fileAccess.persist(paths)
   if (!result?.ok) {
     throw new Error("无法持久化文件夹访问权限")
+  }
+}
+
+/** Re-activate persisted folder access when config is loaded (HarmonyOS only). */
+export async function reactivateHarmonyOSFileAccess(paths: string[]): Promise<void> {
+  if (!isHarmonyOS() || paths.length === 0) {
+    return
+  }
+
+  const fileAccess = getFileAccessApi()
+  if (!fileAccess?.activate) {
+    return
+  }
+
+  const result = await fileAccess.activate(paths)
+  if (!result?.ok) {
+    throw new Error("无法重新激活文件夹访问权限")
   }
 }

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { FILE_ACCESS_PERSIST_CHANNEL } from "./channels"
+import { FILE_ACCESS_ACTIVATE_CHANNEL, FILE_ACCESS_PERSIST_CHANNEL } from "./channels"
 import { registerFileAccessPersistIpcHandlers } from "./fileAccessPersistIpc"
 import { createFileAccessPersistPreloadApi } from "./preload/fileAccessPersistApi"
 
@@ -33,7 +33,32 @@ describe("registerFileAccessPersistIpcHandlers", () => {
 
     registerFileAccessPersistIpcHandlers(ipcMain as never)
 
-    expect(channels).toEqual([FILE_ACCESS_PERSIST_CHANNEL])
+    expect(channels).toEqual([FILE_ACCESS_PERSIST_CHANNEL, FILE_ACCESS_ACTIVATE_CHANNEL])
+  })
+
+  it("calls ReactivateFolders on openharmony platform", async () => {
+    const { systemPreferences } = await import("electron")
+    const originalPlatform = process.platform
+    Object.defineProperty(process, "platform", { value: "openharmony" })
+
+    let handler: ((...args: unknown[]) => Promise<unknown>) | undefined
+    const ipcMain = {
+      handle: (_channel: string, fn: (...args: unknown[]) => Promise<unknown>) => {
+        handler = fn
+      },
+    }
+
+    registerFileAccessPersistIpcHandlers(ipcMain as never)
+    const result = await handler!(null, { paths: ["/storage/Users/currentUser/Download/test"] })
+
+    expect(result).toEqual({ ok: true })
+    expect(systemPreferences.callArkTSFunction).toHaveBeenCalledWith(
+      "PermissionManagerAdapter.ReactivateFolders",
+      "void",
+      [["/storage/Users/currentUser/Download/test"]],
+    )
+
+    Object.defineProperty(process, "platform", { value: originalPlatform })
   })
 
   it("no-ops on non-OHOS platforms", async () => {
