@@ -129,6 +129,7 @@ export type RouteHandler = (
 | POST | `/api/hello` | `handleHelloPost` |
 | POST | `/api/isFolderAvailable` | `handleIsFolderAvailablePost` |
 | POST | `/api/readFile` | `handleReadFilePost` |
+| POST | `/api/deleteFile` | `handleDeleteFilePost` |
 
 **writeFile 改造要点**：
 - 将 `Bun.file` / `Bun.write` 替换为 `node:fs/promises` 的 `writeFile`

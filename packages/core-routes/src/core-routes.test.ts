@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Buffer } from "node:buffer";
@@ -334,5 +334,109 @@ describe("POST /api/readFile", () => {
     expect(status).toBe(200);
     expect(body.data).toBeUndefined();
     expect(body.error).toContain("Validation failed");
+  });
+});
+
+describe("POST /api/deleteFile", () => {
+  function toPosix(p: string): string {
+    if (path.sep === "/") return p;
+    return p.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+  }
+
+  async function requestDeleteFile(rawBody: string | undefined, allowlist: string[]) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/deleteFile";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("deletes an existing file in the allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-delete-"));
+    const filePath = path.join(dir, "doomed.txt");
+    await writeFile(filePath, "x", "utf-8");
+    try {
+      const { status, body } = await requestDeleteFile(
+        JSON.stringify({ path: filePath }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect((body.data as { path?: string } | undefined)?.path).toBeTruthy();
+      await expect(stat(filePath)).rejects.toThrow();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("treats a missing file as idempotent success", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-delete-missing-"));
+    try {
+      const { status, body } = await requestDeleteFile(
+        JSON.stringify({ path: path.join(dir, "ghost.txt") }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect((body.data as { path?: string } | undefined)?.path).toBeTruthy();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns allowlist error for an out-of-allowlist path", async () => {
+    const { status, body } = await requestDeleteFile(
+      JSON.stringify({ path: "/definitely/outside/allowlist.txt" }),
+      ["/allowed-only"],
+    );
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("not in the allowlist");
+  });
+
+  it("returns 400 for invalid JSON", async () => {
+    const { status, body } = await requestDeleteFile("not-json", []);
+    expect(status).toBe(400);
+    expect(body.error).toBe("Invalid JSON body");
+  });
+
+  it("returns 200 with validation error for missing path", async () => {
+    const { status, body } = await requestDeleteFile(JSON.stringify({}), []);
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("Validation Failed");
+  });
+
+  it("returns 200 with validation error for empty path", async () => {
+    const { status, body } = await requestDeleteFile(JSON.stringify({ path: "" }), []);
+    expect(status).toBe(200);
+    expect(body.data).toBeUndefined();
+    expect(body.error).toContain("Validation Failed");
   });
 });

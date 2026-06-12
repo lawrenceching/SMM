@@ -1,84 +1,50 @@
-import { z } from 'zod/v3';
-import { stat } from 'node:fs/promises';
-import path from 'path';
-import { isManagedYtdlpCookiesPath } from '@core/whitelistedCmd/ytdlpCookies';
-import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@core/types';
-import type { Hono } from 'hono';
-import { getUserDataDir } from '@/utils/config';
-import { logger } from '../../lib/logger';
-import { permanentlyDeleteFile } from '../utils/files';
+import type { Hono } from "hono";
+import {
+  doDeleteFile as doDeleteFileCore,
+  type DeleteFileRequestBody,
+  type DeleteFileResponseBody,
+} from "@smm/core-routes";
+import { buildAllowlist } from "@/utils/buildAllowlist";
+import { logger, logHttpReqIn, logHttpRespOut } from "../../lib/logger";
 
-const deleteFileRequestSchema = z.object({
-  path: z.string().min(1, 'Path is required'),
-});
+const coreRoutesLogger = {
+  debug: (obj, msg) => logger.debug(obj, msg),
+  info: (obj, msg) => logger.info(obj, msg),
+  warn: (obj, msg) => logger.warn(obj, msg),
+  error: (obj, msg) => logger.error(obj, msg),
+};
 
-export async function doDeleteFile(body: DeleteFileRequestBody): Promise<DeleteFileResponseBody> {
-  try {
-    const validationResult = deleteFileRequestSchema.safeParse(body);
-    if (!validationResult.success) {
-      return {
-        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(', ')}`,
-      };
-    }
-
-    let filePath = validationResult.data.path;
-    const resolvedPath = path.resolve(filePath);
-    const userDataDir = path.resolve(getUserDataDir());
-
-    if (!isManagedYtdlpCookiesPath(resolvedPath, userDataDir)) {
-      logger.warn({ filePath: resolvedPath }, '[deleteFile] rejected path outside managed cookies allowlist');
-      return {
-        error: 'Path is not an allowed managed yt-dlp cookies file',
-      };
-    }
-
-    try {
-      const fileStats = await stat(resolvedPath);
-      if (!fileStats.isFile()) {
-        return {
-          error: `Path Is Directory: ${filePath} is a directory, not a file`,
-        };
-      }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        logger.info({ filePath: resolvedPath }, '[deleteFile] file already absent');
-        return { data: { path: resolvedPath } };
-      }
-      return {
-        error: `Cannot access file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
-    }
-
-    try {
-      await permanentlyDeleteFile(resolvedPath);
-      return { data: { path: resolvedPath } };
-    } catch (error) {
-      logger.error({ filePath: resolvedPath, error }, '[deleteFile] permanent delete failed');
-      return {
-        error: `Delete File Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
-    }
-  } catch (error) {
-    return {
-      error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
-  }
+/**
+ * Hono shell for `POST /api/deleteFile`.
+ *
+ * Delegates to `doDeleteFile` in `@smm/core-routes`. Path validation
+ * is now allowlist-based (any path inside the allowlist is deletable;
+ * previously restricted to `{userDataDir}/temp/ytdlp-cookies-*.txt`
+ * via `isManagedYtdlpCookiesPath`).
+ */
+export async function processDeleteFile(
+  body: DeleteFileRequestBody,
+): Promise<DeleteFileResponseBody> {
+  const allowlist = await buildAllowlist();
+  return doDeleteFileCore(body, { allowlist, logger: coreRoutesLogger });
 }
 
 export function handleDeleteFile(app: Hono) {
-  app.post('/api/deleteFile', async (c) => {
+  app.post("/api/deleteFile", async (c) => {
     try {
       const rawBody = await c.req.json();
-      const result = await doDeleteFile(rawBody);
+      logHttpReqIn(c, rawBody);
+      const result = await processDeleteFile(rawBody);
+      logHttpRespOut(c, result, 200);
       return c.json(result, 200);
     } catch (error) {
-      logger.error({ error }, 'DeleteFile route error');
-      return c.json(
-        {
-          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process delete file request'}`,
-        },
-        200,
-      );
+      const respBody = {
+        error: `Unexpected Error: ${
+          error instanceof Error ? error.message : "Failed to process delete file request"
+        }`,
+      };
+      logHttpRespOut(c, respBody, 200);
+      return c.json(respBody, 200);
     }
   });
 }

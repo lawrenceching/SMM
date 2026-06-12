@@ -53,6 +53,7 @@ __export(exports_src, {
   handleListFilesGet: () => handleListFilesGet,
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
+  handleDeleteFilePost: () => handleDeleteFilePost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   findAvailableReverseProxyPort: () => findAvailableReverseProxyPort,
   filterResponseHeaders: () => filterResponseHeaders,
@@ -62,8 +63,10 @@ __export(exports_src, {
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
+  doDeleteFile: () => doDeleteFile,
   createReverseProxyRequestHandler: () => createReverseProxyRequestHandler,
   createReverseProxyManager: () => createReverseProxyManager,
+  createNodeHttpFetch: () => createNodeHttpFetch,
   createCoreRoutesRequestHandler: () => createCoreRoutesRequestHandler,
   coreRouteHandlers: () => coreRouteHandlers,
   checkFolderPathAvailable: () => checkFolderPathAvailable,
@@ -87,47 +90,6 @@ function doHello(options) {
     ...options
   };
 }
-// src/reverseProxyDiagnostics.ts
-var import_node_crypto = require("node:crypto");
-var PREVIEW_MAX_BYTES = 4096;
-function fingerprintProxyBody(data) {
-  const buf = Buffer.from(data instanceof ArrayBuffer ? new Uint8Array(data) : data);
-  const sha256Prefix = import_node_crypto.createHash("sha256").update(buf).digest("hex").slice(0, 16);
-  const hexPrefix = buf.subarray(0, Math.min(32, buf.length)).toString("hex");
-  const looksCompressed = buf.length >= 2 && (hexPrefix.startsWith("1f8b") || hexPrefix.startsWith("6500b0"));
-  let textPreview;
-  if (!looksCompressed) {
-    const preview = buf.subarray(0, Math.min(PREVIEW_MAX_BYTES, buf.length));
-    const text = preview.toString("utf8");
-    if (text.includes("{") || text.includes("[") || text.includes("<")) {
-      textPreview = text;
-    }
-  }
-  return {
-    byteLength: buf.length,
-    sha256Prefix,
-    hexPrefix,
-    textPreview,
-    looksCompressed
-  };
-}
-function summarizeIncomingHeaders(headers) {
-  const summary = {};
-  for (const [key, value] of Object.entries(headers)) {
-    if (value === undefined)
-      continue;
-    summary[key] = value;
-  }
-  return summary;
-}
-function summarizeResponseHeaders(headers) {
-  const summary = {};
-  headers.forEach((value, key) => {
-    summary[key] = value;
-  });
-  return summary;
-}
-
 // src/reverseProxy.ts
 var PORT_RANGE_START = 30000;
 var PORT_RANGE_END = 31000;
@@ -273,40 +235,21 @@ async function handleProxyRequest(request, config = {}) {
       body: method !== "GET" && method !== "HEAD" ? request.body : undefined,
       ...method !== "GET" && method !== "HEAD" ? { duplex: "half" } : {}
     });
-    logger.info({
-      method,
-      forwardUrl,
-      upstreamHost: upstreamUrl.host,
-      clientUrl: request.url,
-      clientAcceptEncoding: request.headers.get("accept-encoding"),
-      upstreamBaseURL
-    }, "[Reverse Proxy] forwarding request");
+    logger.info({ method, forwardUrl, upstreamHost: upstreamUrl.host }, "[Reverse Proxy] forwarding request");
     const response = await fetchImpl(upstreamReq);
     const respHeaders = filterResponseHeaders(response);
     const respBody = await response.arrayBuffer();
-    const contentType = response.headers.get("content-type") ?? "";
-    const bodyFingerprint = fingerprintProxyBody(respBody);
     logger.info({
       method,
       forwardUrl,
       status: response.status,
-      contentType: contentType || undefined,
-      fetchImplHeaders: summarizeResponseHeaders(response.headers),
-      filteredHeaders: summarizeResponseHeaders(respHeaders),
-      body: bodyFingerprint
-    }, "[Reverse Proxy] fetchImpl body (stage: after fetchImpl)");
-    const clientResponse = applyCorsToBody(respBody, {
+      responseBytes: respBody.byteLength
+    }, "[Reverse Proxy] upstream response");
+    return applyCorsToBody(respBody, {
       status: response.status,
       statusText: response.statusText,
       headers: respHeaders
     });
-    logger.info({
-      method,
-      forwardUrl,
-      clientHeaders: summarizeResponseHeaders(clientResponse.headers),
-      body: bodyFingerprint
-    }, "[Reverse Proxy] client response prepared (stage: after applyCors)");
-    return clientResponse;
   } catch (error) {
     logger.error({ err: error, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
     return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
@@ -319,14 +262,9 @@ var import_node_stream = require("node:stream");
 function createReverseProxyRequestHandler(config = {}) {
   return async (req, res) => {
     try {
-      config.logger?.info({
-        method: req.method,
-        url: req.url,
-        clientHeaders: summarizeIncomingHeaders(req.headers)
-      }, "[Reverse Proxy] client request received (stage: node handler)");
       const webRequest = incomingMessageToRequest(req);
       const webResponse = await handleProxyRequest(webRequest, config);
-      await sendNodeResponse(res, webResponse, config.logger);
+      await sendNodeResponse(res, webResponse);
     } catch (error) {
       const logger = config.logger;
       if (logger) {
@@ -364,9 +302,8 @@ function copyIncomingHeaders(source, target) {
     }
   }
 }
-async function sendNodeResponse(res, response, logger) {
+async function sendNodeResponse(res, response) {
   const body = response.body === null ? null : Buffer.from(await response.arrayBuffer());
-  const outgoingHeaders = {};
   res.statusCode = response.status;
   res.statusMessage = response.statusText;
   response.headers.forEach((value, key) => {
@@ -376,26 +313,13 @@ async function sendNodeResponse(res, response, logger) {
     }
     try {
       res.setHeader(key, value);
-      outgoingHeaders[key] = value;
     } catch {}
   });
   if (body === null || body.length === 0) {
-    logger?.info({
-      status: response.status,
-      outgoingHeaders,
-      body: null
-    }, "[Reverse Proxy] client response sent (stage: sendNodeResponse)");
     res.end();
     return;
   }
   res.setHeader("Content-Length", body.length);
-  outgoingHeaders["Content-Length"] = String(body.length);
-  logger?.info({
-    status: response.status,
-    outgoingHeaders,
-    webResponseHeaders: summarizeResponseHeaders(response.headers),
-    body: fingerprintProxyBody(body)
-  }, "[Reverse Proxy] client response sent (stage: sendNodeResponse)");
   res.end(body);
 }
 function tryListen(port, hostname = "127.0.0.1") {
@@ -479,6 +403,138 @@ function createReverseProxyManager(config = {}) {
     },
     start,
     stop
+  };
+}
+// src/nodeHttpFetch.ts
+var import_node_http2 = __toESM(require("node:http"));
+var import_node_https = __toESM(require("node:https"));
+var import_node_zlib = __toESM(require("node:zlib"));
+var import_node_util = require("node:util");
+var gunzip = import_node_util.promisify(import_node_zlib.default.gunzip);
+var inflate = import_node_util.promisify(import_node_zlib.default.inflate);
+var brotliDecompress = import_node_util.promisify(import_node_zlib.default.brotliDecompress);
+var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "host"
+]);
+var STRIPPED_RESPONSE_HEADERS = new Set([
+  "content-encoding",
+  "content-length"
+]);
+async function decompressBody(buf, contentEncoding) {
+  if (!contentEncoding || typeof contentEncoding !== "string") {
+    return buf;
+  }
+  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
+  if (encoding === "gzip" || encoding === "x-gzip") {
+    return gunzip(buf);
+  }
+  if (encoding === "deflate") {
+    return inflate(buf);
+  }
+  if (encoding === "br") {
+    return brotliDecompress(buf);
+  }
+  return buf;
+}
+function buildOutgoingHeaders(request) {
+  const headers = {};
+  request.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_REQUEST_HEADERS2.has(lowerKey))
+      return;
+    if (lowerKey === "accept-encoding")
+      return;
+    headers[key] = value;
+  });
+  return headers;
+}
+function buildResponseHeaders(source, bodyLength) {
+  const headers = new Headers;
+  for (const [key, val] of Object.entries(source)) {
+    if (val === undefined)
+      continue;
+    const lowerKey = key.toLowerCase();
+    if (STRIPPED_RESPONSE_HEADERS.has(lowerKey))
+      continue;
+    if (Array.isArray(val)) {
+      for (const v of val)
+        headers.append(key, v);
+    } else {
+      headers.append(key, val);
+    }
+  }
+  headers.set("Content-Length", String(bodyLength));
+  return headers;
+}
+function requestViaNodeHttp(request) {
+  const url = new URL(request.url);
+  const isHttps = url.protocol === "https:";
+  if (!isHttps && url.protocol !== "http:") {
+    return Promise.reject(new Error(`Unsupported URL protocol: ${url.protocol}`));
+  }
+  const method = request.method.toUpperCase();
+  const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
+  const pathWithQuery = `${url.pathname}${url.search}`;
+  const headers = buildOutgoingHeaders(request);
+  return new Promise((resolve, reject) => {
+    const onResponse = (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        (async () => {
+          try {
+            const wireBody = Buffer.concat(chunks);
+            const body = await decompressBody(wireBody, res.headers["content-encoding"]);
+            const bodyBytes = Buffer.from(body);
+            resolve(new Response(bodyBytes, {
+              status: res.statusCode ?? 502,
+              statusText: res.statusMessage ?? "",
+              headers: buildResponseHeaders(res.headers, bodyBytes.length)
+            }));
+          } catch (error) {
+            reject(error);
+          }
+        })();
+      });
+      res.on("error", reject);
+    };
+    (async () => {
+      try {
+        let requestBody;
+        if (method !== "GET" && method !== "HEAD") {
+          requestBody = Buffer.from(await request.arrayBuffer());
+        }
+        const requestOptions = {
+          hostname: url.hostname,
+          port,
+          path: pathWithQuery,
+          method: request.method,
+          headers
+        };
+        const req = isHttps ? import_node_https.default.request(requestOptions, onResponse) : import_node_http2.default.request(requestOptions, onResponse);
+        req.on("error", reject);
+        if (requestBody !== undefined && requestBody.length > 0) {
+          req.write(requestBody);
+        }
+        req.end();
+      } catch (error) {
+        reject(error);
+      }
+    })();
+  });
+}
+function createNodeHttpFetch() {
+  return (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    return requestViaNodeHttp(request);
   };
 }
 // src/isFolderAvailable.ts
@@ -5139,6 +5195,80 @@ async function doReadFile(body, config) {
     };
   }
 }
+// src/deleteFile.ts
+var import_node_path4 = __toESM(require("node:path"));
+var import_promises5 = require("node:fs/promises");
+var deleteFileRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "Path is required")
+});
+async function doDeleteFile(body, config) {
+  const { logger, allowlist } = config;
+  try {
+    const validationResult = deleteFileRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doDeleteFile: validation failed");
+      return {
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: filePath } = validationResult.data;
+    logger?.debug({ filePath }, "doDeleteFile: processing request");
+    const resolvedPath = import_node_path4.default.resolve(filePath);
+    const posixPath = Path.posix(resolvedPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
+      return {
+        error: `Path "${filePath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    try {
+      const fileStats = await import_promises5.stat(platformPath);
+      if (!fileStats.isFile()) {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
+        return {
+          error: `Path Is Directory: ${filePath} is a directory, not a file`
+        };
+      }
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent");
+        return { data: { path: platformPath } };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: cannot access file");
+      return {
+        error: `Cannot access file: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+    try {
+      await import_promises5.unlink(platformPath);
+      logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
+      return { data: { path: platformPath } };
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent during unlink");
+        return { data: { path: platformPath } };
+      }
+      if (errorCode === "EACCES" || errorCode === "EPERM") {
+        logger?.warn({ filePath: platformPath }, "doDeleteFile: permission denied");
+        return {
+          error: `Permission denied: Cannot delete file ${filePath}`
+        };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: unlink failed");
+      return {
+        error: `Failed to delete file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+  } catch (error) {
+    logger?.error({ error }, "doDeleteFile: unexpected error");
+    return {
+      error: `Unexpected Error: ${error instanceof Error ? error.message : "Unknown error"}`
+    };
+  }
+}
 // src/http.ts
 function createRequestUrl(req, fallbackPort) {
   const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
@@ -5335,6 +5465,27 @@ async function handleWriteFilePost(req, res, ctx) {
   }
 }
 
+// src/routes/deleteFileRoute.ts
+async function handleDeleteFilePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/deleteFile") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DeleteFile] POST /api/deleteFile");
+    const result = await doDeleteFile(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error) {
+    ctx.config.logger?.error({ error }, "DeleteFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -5342,7 +5493,8 @@ var coreRouteHandlers = [
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
-  handleReadFilePost
+  handleReadFilePost,
+  handleDeleteFilePost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;

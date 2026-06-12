@@ -6,6 +6,7 @@ import { handleHelloPost } from "./routes/helloRoute.ts";
 import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 import { handleReadFilePost } from "./routes/readFileRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
+import { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -15,6 +16,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleHelloPost,
   handleIsFolderAvailablePost,
   handleReadFilePost,
+  handleDeleteFilePost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -61,3 +63,4 @@ export { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 export { handleHelloPost } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 export { handleReadFilePost } from "./routes/readFileRoute.ts";
+export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";

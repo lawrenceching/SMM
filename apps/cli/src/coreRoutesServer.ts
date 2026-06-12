@@ -4,6 +4,7 @@ import {
   type CoreRoutesLogger,
 } from "@smm/core-routes";
 import { buildAllowlist } from "@/utils/buildAllowlist";
+import { getAppDataDir } from "@/utils/config";
 import { buildHelloOptions } from "../tasks/HelloTask";
 import { logger } from "../lib/logger";
 
@@ -21,9 +22,15 @@ function createCoreRoutesLogger(): CoreRoutesLogger {
 export async function startCoreRoutesServer(): Promise<http.Server> {
   const port = parseInt(process.env.CORE_ROUTES_PORT ?? String(DEFAULT_PORT), 10);
   const allowlist = await buildAllowlist();
+  const appDataDir = getAppDataDir();
   const helloOptions = { ...buildHelloOptions(null), coreRoutesPort: port };
   const handler = createCoreRoutesRequestHandler(
-    { allowlist, logger: createCoreRoutesLogger(), hello: helloOptions },
+    {
+      allowlist,
+      logger: createCoreRoutesLogger(),
+      hello: helloOptions,
+      appDataDir,
+    },
     { fallbackPort: port },
   );
 

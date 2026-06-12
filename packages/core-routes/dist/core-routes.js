@@ -20,6 +20,453 @@ function doHello(options) {
     ...options
   };
 }
+// src/reverseProxy.ts
+var PORT_RANGE_START = 30000;
+var PORT_RANGE_END = 31000;
+var DEFAULT_ALLOWED_UPSTREAM_HOSTS = new Set([
+  "api.themoviedb.org",
+  "api4.thetvdb.com",
+  "tmdb-mcp-server.imlc.me",
+  "httpbin.io",
+  "api.deepseek.com",
+  "api.openai.com",
+  "openrouter.ai",
+  "open.bigmodel.cn"
+]);
+var HOP_BY_HOP_REQUEST_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade"
+]);
+var HOP_BY_HOP_RESPONSE_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "content-length",
+  "content-encoding"
+]);
+var PROXY_CONTROL_HEADERS = new Set([
+  "x-smm-proxy-upstream-baseurl"
+]);
+function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
+  const base = new URL(upstreamBaseURL);
+  const basePath = base.pathname.replace(/\/+$/, "");
+  const normalizedPath = incomingPath.startsWith("/") ? incomingPath : `/${incomingPath}`;
+  const path = `${basePath}${normalizedPath}`;
+  const query = incomingSearch.startsWith("?") ? incomingSearch : "";
+  return `${base.origin}${path}${query}`;
+}
+function validateUpstreamBaseURL(headerValue, allowedUpstreamHosts) {
+  let upstreamUrl;
+  try {
+    upstreamUrl = new URL(headerValue);
+  } catch {
+    throw new Error(`Invalid upstream base URL: "${headerValue}"`);
+  }
+  if (upstreamUrl.protocol !== "https:" && upstreamUrl.protocol !== "http:") {
+    throw new Error(`Upstream base URL must use http or https protocol, got: "${upstreamUrl.protocol}"`);
+  }
+  if (!allowedUpstreamHosts.has(upstreamUrl.hostname)) {
+    throw new Error(`Upstream host "${upstreamUrl.hostname}" is not allowed. Allowed hosts: ${[...allowedUpstreamHosts].join(", ")}`);
+  }
+  return upstreamUrl;
+}
+function filterRequestHeaders(request, upstreamUrl) {
+  const headers = new Headers;
+  request.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey))
+      return;
+    if (PROXY_CONTROL_HEADERS.has(lowerKey))
+      return;
+    headers.set(key, value);
+  });
+  headers.set("Host", upstreamUrl.host);
+  return headers;
+}
+function filterResponseHeaders(response) {
+  const headers = new Headers;
+  response.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_RESPONSE_HEADERS.has(lowerKey))
+      return;
+    headers.set(key, value);
+  });
+  return headers;
+}
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Max-Age": "86400"
+  };
+}
+function applyCorsToBody(body, init = {}) {
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(corsHeaders())) {
+    if (!headers.has(key)) {
+      headers.set(key, value);
+    }
+  }
+  return new Response(body, {
+    status: init.status ?? 200,
+    statusText: init.statusText,
+    headers
+  });
+}
+function noopLogger() {
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {}
+  };
+}
+async function handleProxyRequest(request, config = {}) {
+  const logger = config.logger ?? noopLogger();
+  const allowedUpstreamHosts = config.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+  const fetchImpl = config.fetchImpl ?? fetch;
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+  const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
+  if (!upstreamBaseURL) {
+    return applyCorsToBody(JSON.stringify({ error: "Missing X-SMM-Proxy-Upstream-BaseURL header" }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
+  let upstreamUrl;
+  try {
+    upstreamUrl = validateUpstreamBaseURL(upstreamBaseURL, allowedUpstreamHosts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid upstream base URL";
+    return applyCorsToBody(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  const incomingUrl = new URL(request.url);
+  const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingUrl.pathname, incomingUrl.search);
+  try {
+    const reqHeaders = filterRequestHeaders(request, upstreamUrl);
+    const method = request.method;
+    const upstreamReq = new Request(forwardUrl, {
+      method,
+      headers: reqHeaders,
+      body: method !== "GET" && method !== "HEAD" ? request.body : undefined,
+      ...method !== "GET" && method !== "HEAD" ? { duplex: "half" } : {}
+    });
+    logger.info({ method, forwardUrl, upstreamHost: upstreamUrl.host }, "[Reverse Proxy] forwarding request");
+    const response = await fetchImpl(upstreamReq);
+    const respHeaders = filterResponseHeaders(response);
+    const respBody = await response.arrayBuffer();
+    logger.info({
+      method,
+      forwardUrl,
+      status: response.status,
+      responseBytes: respBody.byteLength
+    }, "[Reverse Proxy] upstream response");
+    return applyCorsToBody(respBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: respHeaders
+    });
+  } catch (error) {
+    logger.error({ err: error, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
+    return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
+  }
+}
+// src/reverseProxyNode.ts
+import http from "node:http";
+import net from "node:net";
+import { Readable } from "node:stream";
+function createReverseProxyRequestHandler(config = {}) {
+  return async (req, res) => {
+    try {
+      const webRequest = incomingMessageToRequest(req);
+      const webResponse = await handleProxyRequest(webRequest, config);
+      await sendNodeResponse(res, webResponse);
+    } catch (error) {
+      const logger = config.logger;
+      if (logger) {
+        logger.error({ err: error, method: req.method, url: req.url }, "[Reverse Proxy] node handler error");
+      }
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      }
+      res.end("Internal Server Error");
+    }
+  };
+}
+function incomingMessageToRequest(req) {
+  const host = req.headers.host ?? "127.0.0.1";
+  const url = `http://${host}${req.url ?? "/"}`;
+  const headers = new Headers;
+  copyIncomingHeaders(req.headers, headers);
+  const method = req.method ?? "GET";
+  const init = { method, headers };
+  if (method !== "GET" && method !== "HEAD") {
+    init.body = Readable.toWeb(req);
+    init.duplex = "half";
+  }
+  return new Request(url, init);
+}
+function copyIncomingHeaders(source, target) {
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined)
+      continue;
+    if (Array.isArray(value)) {
+      for (const v of value)
+        target.append(key, v);
+    } else {
+      target.set(key, value);
+    }
+  }
+}
+async function sendNodeResponse(res, response) {
+  const body = response.body === null ? null : Buffer.from(await response.arrayBuffer());
+  res.statusCode = response.status;
+  res.statusMessage = response.statusText;
+  response.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === "content-length" || lowerKey === "content-encoding") {
+      return;
+    }
+    try {
+      res.setHeader(key, value);
+    } catch {}
+  });
+  if (body === null || body.length === 0) {
+    res.end();
+    return;
+  }
+  res.setHeader("Content-Length", body.length);
+  res.end(body);
+}
+function tryListen(port, hostname = "127.0.0.1") {
+  return new Promise((resolve) => {
+    const tester = net.createServer();
+    tester.once("error", () => {
+      tester.removeAllListeners();
+      resolve(false);
+    });
+    tester.once("listening", () => {
+      tester.close(() => resolve(true));
+    });
+    tester.listen(port, hostname);
+  });
+}
+async function findAvailableReverseProxyPort(reservedPorts = new Set, portRange = {
+  start: PORT_RANGE_START,
+  end: PORT_RANGE_END
+}) {
+  for (let port = portRange.start;port <= portRange.end; port++) {
+    if (reservedPorts.has(port))
+      continue;
+    if (await tryListen(port))
+      return port;
+  }
+  throw new Error(`Could not find an available port in range ${portRange.start}-${portRange.end}`);
+}
+function createReverseProxyManager(config = {}) {
+  let server = null;
+  let currentUrl = null;
+  const handler = createReverseProxyRequestHandler(config);
+  async function start() {
+    if (server) {
+      config.logger?.warn({}, "[Reverse Proxy] already running");
+      return;
+    }
+    let port;
+    try {
+      if (typeof config.port === "number") {
+        port = config.port;
+      } else {
+        port = await findAvailableReverseProxyPort(config.reservedPorts, config.portRange);
+      }
+    } catch (error) {
+      config.logger?.error({ err: error }, "[Reverse Proxy] failed to find available port");
+      currentUrl = null;
+      return;
+    }
+    const newServer = http.createServer(handler);
+    await new Promise((resolve, reject) => {
+      newServer.once("error", (err) => {
+        newServer.removeListener("listening", onListening);
+        reject(err);
+      });
+      const onListening = () => {
+        newServer.removeListener("error", onError);
+        resolve();
+      };
+      const onError = (err) => reject(err);
+      newServer.once("listening", onListening);
+      newServer.listen(port, "127.0.0.1");
+    });
+    server = newServer;
+    currentUrl = `http://127.0.0.1:${port}`;
+    config.logger?.info({ url: currentUrl }, "[Reverse Proxy] started");
+  }
+  async function stop() {
+    if (!server)
+      return;
+    const s = server;
+    server = null;
+    currentUrl = null;
+    await new Promise((resolve) => {
+      s.close(() => resolve());
+    });
+    config.logger?.info({}, "[Reverse Proxy] stopped");
+  }
+  return {
+    get url() {
+      return currentUrl;
+    },
+    start,
+    stop
+  };
+}
+// src/nodeHttpFetch.ts
+import http2 from "node:http";
+import https from "node:https";
+import zlib from "node:zlib";
+import { promisify } from "node:util";
+var gunzip = promisify(zlib.gunzip);
+var inflate = promisify(zlib.inflate);
+var brotliDecompress = promisify(zlib.brotliDecompress);
+var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "host"
+]);
+var STRIPPED_RESPONSE_HEADERS = new Set([
+  "content-encoding",
+  "content-length"
+]);
+async function decompressBody(buf, contentEncoding) {
+  if (!contentEncoding || typeof contentEncoding !== "string") {
+    return buf;
+  }
+  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
+  if (encoding === "gzip" || encoding === "x-gzip") {
+    return gunzip(buf);
+  }
+  if (encoding === "deflate") {
+    return inflate(buf);
+  }
+  if (encoding === "br") {
+    return brotliDecompress(buf);
+  }
+  return buf;
+}
+function buildOutgoingHeaders(request) {
+  const headers = {};
+  request.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_REQUEST_HEADERS2.has(lowerKey))
+      return;
+    if (lowerKey === "accept-encoding")
+      return;
+    headers[key] = value;
+  });
+  return headers;
+}
+function buildResponseHeaders(source, bodyLength) {
+  const headers = new Headers;
+  for (const [key, val] of Object.entries(source)) {
+    if (val === undefined)
+      continue;
+    const lowerKey = key.toLowerCase();
+    if (STRIPPED_RESPONSE_HEADERS.has(lowerKey))
+      continue;
+    if (Array.isArray(val)) {
+      for (const v of val)
+        headers.append(key, v);
+    } else {
+      headers.append(key, val);
+    }
+  }
+  headers.set("Content-Length", String(bodyLength));
+  return headers;
+}
+function requestViaNodeHttp(request) {
+  const url = new URL(request.url);
+  const isHttps = url.protocol === "https:";
+  if (!isHttps && url.protocol !== "http:") {
+    return Promise.reject(new Error(`Unsupported URL protocol: ${url.protocol}`));
+  }
+  const method = request.method.toUpperCase();
+  const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
+  const pathWithQuery = `${url.pathname}${url.search}`;
+  const headers = buildOutgoingHeaders(request);
+  return new Promise((resolve, reject) => {
+    const onResponse = (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        (async () => {
+          try {
+            const wireBody = Buffer.concat(chunks);
+            const body = await decompressBody(wireBody, res.headers["content-encoding"]);
+            const bodyBytes = Buffer.from(body);
+            resolve(new Response(bodyBytes, {
+              status: res.statusCode ?? 502,
+              statusText: res.statusMessage ?? "",
+              headers: buildResponseHeaders(res.headers, bodyBytes.length)
+            }));
+          } catch (error) {
+            reject(error);
+          }
+        })();
+      });
+      res.on("error", reject);
+    };
+    (async () => {
+      try {
+        let requestBody;
+        if (method !== "GET" && method !== "HEAD") {
+          requestBody = Buffer.from(await request.arrayBuffer());
+        }
+        const requestOptions = {
+          hostname: url.hostname,
+          port,
+          path: pathWithQuery,
+          method: request.method,
+          headers
+        };
+        const req = isHttps ? https.request(requestOptions, onResponse) : http2.request(requestOptions, onResponse);
+        req.on("error", reject);
+        if (requestBody !== undefined && requestBody.length > 0) {
+          req.write(requestBody);
+        }
+        req.end();
+      } catch (error) {
+        reject(error);
+      }
+    })();
+  });
+}
+function createNodeHttpFetch() {
+  return (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    return requestViaNodeHttp(request);
+  };
+}
 // src/isFolderAvailable.ts
 import { stat } from "node:fs/promises";
 
@@ -4678,6 +5125,80 @@ async function doReadFile(body, config) {
     };
   }
 }
+// src/deleteFile.ts
+import path4 from "node:path";
+import { stat as stat3, unlink } from "node:fs/promises";
+var deleteFileRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "Path is required")
+});
+async function doDeleteFile(body, config) {
+  const { logger, allowlist } = config;
+  try {
+    const validationResult = deleteFileRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doDeleteFile: validation failed");
+      return {
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: filePath } = validationResult.data;
+    logger?.debug({ filePath }, "doDeleteFile: processing request");
+    const resolvedPath = path4.resolve(filePath);
+    const posixPath = Path.posix(resolvedPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
+      return {
+        error: `Path "${filePath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    try {
+      const fileStats = await stat3(platformPath);
+      if (!fileStats.isFile()) {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
+        return {
+          error: `Path Is Directory: ${filePath} is a directory, not a file`
+        };
+      }
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent");
+        return { data: { path: platformPath } };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: cannot access file");
+      return {
+        error: `Cannot access file: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+    try {
+      await unlink(platformPath);
+      logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
+      return { data: { path: platformPath } };
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent during unlink");
+        return { data: { path: platformPath } };
+      }
+      if (errorCode === "EACCES" || errorCode === "EPERM") {
+        logger?.warn({ filePath: platformPath }, "doDeleteFile: permission denied");
+        return {
+          error: `Permission denied: Cannot delete file ${filePath}`
+        };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: unlink failed");
+      return {
+        error: `Failed to delete file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+  } catch (error) {
+    logger?.error({ error }, "doDeleteFile: unexpected error");
+    return {
+      error: `Unexpected Error: ${error instanceof Error ? error.message : "Unknown error"}`
+    };
+  }
+}
 // src/http.ts
 function createRequestUrl(req, fallbackPort) {
   const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
@@ -4874,6 +5395,27 @@ async function handleWriteFilePost(req, res, ctx) {
   }
 }
 
+// src/routes/deleteFileRoute.ts
+async function handleDeleteFilePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/deleteFile") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DeleteFile] POST /api/deleteFile");
+    const result = await doDeleteFile(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error) {
+    ctx.config.logger?.error({ error }, "DeleteFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -4881,7 +5423,8 @@ var coreRouteHandlers = [
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
-  handleReadFilePost
+  handleReadFilePost,
+  handleDeleteFilePost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;
@@ -4905,24 +5448,38 @@ function registerCoreRoutes(server, config) {
   server.on("request", createCoreRoutesRequestHandler(config, { fallbackPort }));
 }
 export {
+  validateUpstreamBaseURL,
   validatePathIsInAllowlist,
   registerCoreRoutes,
   isError,
   handleWriteFilePost,
   handleReadFilePost,
+  handleProxyRequest,
   handleListFilesPost,
   handleListFilesGet,
   handleIsFolderAvailablePost,
   handleHelloPost,
+  handleDeleteFilePost,
   handleCoreRoutesRequest,
+  findAvailableReverseProxyPort,
+  filterResponseHeaders,
+  filterRequestHeaders,
   doWriteFile,
   doReadFile,
   doListFiles,
   doIsFolderAvailable,
   doHello,
+  doDeleteFile,
+  createReverseProxyRequestHandler,
+  createReverseProxyManager,
+  createNodeHttpFetch,
   createCoreRoutesRequestHandler,
   coreRouteHandlers,
   checkFolderPathAvailable,
   checkFileIsReadable,
-  ExistedFileError
+  buildUpstreamUrl,
+  PORT_RANGE_START,
+  PORT_RANGE_END,
+  ExistedFileError,
+  DEFAULT_ALLOWED_UPSTREAM_HOSTS
 };

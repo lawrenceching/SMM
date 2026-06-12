@@ -53,6 +53,7 @@ __export(exports_src, {
   handleListFilesGet: () => handleListFilesGet,
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
+  handleDeleteFilePost: () => handleDeleteFilePost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   findAvailableReverseProxyPort: () => findAvailableReverseProxyPort,
   filterResponseHeaders: () => filterResponseHeaders,
@@ -62,6 +63,7 @@ __export(exports_src, {
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
+  doDeleteFile: () => doDeleteFile,
   createReverseProxyRequestHandler: () => createReverseProxyRequestHandler,
   createReverseProxyManager: () => createReverseProxyManager,
   createNodeHttpFetch: () => createNodeHttpFetch,
@@ -5193,6 +5195,80 @@ async function doReadFile(body, config) {
     };
   }
 }
+// src/deleteFile.ts
+var import_node_path4 = __toESM(require("node:path"));
+var import_promises5 = require("node:fs/promises");
+var deleteFileRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "Path is required")
+});
+async function doDeleteFile(body, config) {
+  const { logger, allowlist } = config;
+  try {
+    const validationResult = deleteFileRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doDeleteFile: validation failed");
+      return {
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: filePath } = validationResult.data;
+    logger?.debug({ filePath }, "doDeleteFile: processing request");
+    const resolvedPath = import_node_path4.default.resolve(filePath);
+    const posixPath = Path.posix(resolvedPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
+      return {
+        error: `Path "${filePath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    try {
+      const fileStats = await import_promises5.stat(platformPath);
+      if (!fileStats.isFile()) {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
+        return {
+          error: `Path Is Directory: ${filePath} is a directory, not a file`
+        };
+      }
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent");
+        return { data: { path: platformPath } };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: cannot access file");
+      return {
+        error: `Cannot access file: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+    try {
+      await import_promises5.unlink(platformPath);
+      logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
+      return { data: { path: platformPath } };
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ filePath: platformPath }, "doDeleteFile: file already absent during unlink");
+        return { data: { path: platformPath } };
+      }
+      if (errorCode === "EACCES" || errorCode === "EPERM") {
+        logger?.warn({ filePath: platformPath }, "doDeleteFile: permission denied");
+        return {
+          error: `Permission denied: Cannot delete file ${filePath}`
+        };
+      }
+      logger?.error({ filePath: platformPath, error }, "doDeleteFile: unlink failed");
+      return {
+        error: `Failed to delete file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+      };
+    }
+  } catch (error) {
+    logger?.error({ error }, "doDeleteFile: unexpected error");
+    return {
+      error: `Unexpected Error: ${error instanceof Error ? error.message : "Unknown error"}`
+    };
+  }
+}
 // src/http.ts
 function createRequestUrl(req, fallbackPort) {
   const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
@@ -5389,6 +5465,27 @@ async function handleWriteFilePost(req, res, ctx) {
   }
 }
 
+// src/routes/deleteFileRoute.ts
+async function handleDeleteFilePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/deleteFile") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DeleteFile] POST /api/deleteFile");
+    const result = await doDeleteFile(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error) {
+    ctx.config.logger?.error({ error }, "DeleteFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -5396,7 +5493,8 @@ var coreRouteHandlers = [
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
-  handleReadFilePost
+  handleReadFilePost,
+  handleDeleteFilePost
 ];
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;

@@ -1,32 +1,27 @@
-import type { DeleteMediaMetadataRequestBody, DeleteMediaMetadataResponseBody } from '@core/types';
+import { hello } from "./hello";
+import { deleteFile } from "./deleteFile";
+import { metadataCacheFilePath } from "./readMediaMetadataV2";
 
 /**
- * Delete media metadata by folder path
- * @param path POSIX format path (mediaFolderPath from MediaMetadata)
+ * Delete the media metadata cache file for a media folder.
+ *
+ * Computes the cache file path from the bootstrap `appDataDir`
+ * (fetched via `hello()`) and the folder's POSIX path, then calls
+ * the unified `deleteFile()` API. Replaces the deprecated
+ * `/api/deleteMediaMetadata` route.
+ *
+ * The unified `deleteFile` API treats ENOENT (file already absent)
+ * as idempotent success, so this helper does not need to issue a
+ * warning for "metadata not found" cases.
  */
 export async function deleteMediaMetadata(path: string): Promise<void> {
-  const req: DeleteMediaMetadataRequestBody = {
-    path: path,
-  };
-
-  const resp = await fetch('/api/deleteMediaMetadata', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to delete media metadata: ${resp.statusText}`);
-  }
-
-  const data: DeleteMediaMetadataResponseBody = await resp.json();
-  if (data.error) {
-    if(data.error.startsWith('Metadata Not Found')) {
-      console.warn(`[deleteMediaMetadata] ${data.error}`)
-      return;
-    }
-    throw new Error(`Failed to delete media metadata: ${data.error}`);
+  const systemConfig = await hello();
+  const metadataFilePath = metadataCacheFilePath(
+    systemConfig.appDataDir,
+    path,
+  );
+  const result = await deleteFile(metadataFilePath);
+  if (result.error) {
+    throw new Error(`Failed to delete media metadata: ${result.error}`);
   }
 }

@@ -13,8 +13,13 @@ Source Code: apps/cli/src/route/MoveFileToTrash.ts
 HTTP: `POST /api/moveFileToTrash` — moves a file to the system trash/recycle bin on desktop environments (permanent delete on headless/server). Request body: `{ path: string }` (platform absolute path).
 
 ## DeleteFile
-Source Code: apps/cli/src/route/DeleteFile.ts
-HTTP: `POST /api/deleteFile` — permanently deletes a managed yt-dlp cookies temp file (`{userDataDir}/temp/ytdlp-cookies-*.txt`). Request body: `{ path: string }` (platform absolute path). Not for general user file deletion.
+Source Code: packages/core-routes/src/deleteFile.ts
+HTTP: `POST /api/deleteFile` — permanently deletes a managed file. Request body: `{ path: string }` (platform absolute path). The path must be inside the server-side allowlist (built by `apps/cli/src/utils/buildAllowlist.ts` — covers `userDataDir`, `appDataDir`, `tmpDir`, and configured media folders). ENOENT (file already absent) is treated as idempotent success. The UI uses this API to remove managed yt-dlp cookies temp files (`{userDataDir}/temp/ytdlp-cookies-*.txt`) and media metadata cache files (`{appDataDir}/metadata/{sanitized-folder}.json`).
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/DeleteFile.ts` delegates to `doDeleteFile` from `@smm/core-routes`.
+
+## DeleteMediaMetadata (REMOVED)
+The `POST /api/deleteMediaMetadata` route was removed in favor of the unified `/api/deleteFile` API. The UI now computes the metadata cache file path (`metadataCacheFilePath(appDataDir, folderPath)`) and calls `/api/deleteFile` directly. The MCP `deleteMediaMetadata` tool continues to work in-process and is not affected.
 
 ## Shutdown
 Source Code: apps/cli/src/route/shutdown.ts

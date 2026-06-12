@@ -36,6 +36,11 @@ export {
   type ReadFileResponseBody,
 } from "./readFile.ts";
 export {
+  doDeleteFile,
+  type DeleteFileRequestBody,
+  type DeleteFileResponseBody,
+} from "./deleteFile.ts";
+export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
@@ -46,4 +51,5 @@ export {
   handleHelloPost,
   handleIsFolderAvailablePost,
   handleReadFilePost,
+  handleDeleteFilePost,
 } from "./register.ts";
