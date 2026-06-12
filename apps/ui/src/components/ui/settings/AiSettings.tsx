@@ -18,7 +18,7 @@ interface CheckState {
 }
 
 export function AiSettings() {
-  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { userConfig, setAndSaveUserConfig, appConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
 
   const initialProviders: OpenAICompatibleConfig[] = useMemo(() => {
@@ -152,13 +152,15 @@ export function AiSettings() {
 
     setCheckStates(prev => ({ ...prev, [index]: { status: 'checking', message: '' } }))
     try {
-      const result = await checkAiConnection(model!, apiKey || '', baseURL)
+      await checkAiConnection({
+        model: model!,
+        apiKey: apiKey || '',
+        baseURL,
+        reverseProxyUrl: appConfig.reverseProxyUrl,
+      })
       setCheckStates(prev => ({
         ...prev,
-        [index]: {
-          status: result.status === 'ok' ? 'ok' : 'error',
-          message: result.status !== 'ok' ? t('ai.checkError') : '',
-        }
+        [index]: { status: 'ok', message: '' },
       }))
     } catch (err) {
       setCheckStates(prev => ({
