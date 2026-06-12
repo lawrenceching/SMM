@@ -19,7 +19,8 @@ type HarmonyOSSystemPreferences = typeof systemPreferences & {
 const REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders"
 
 function isHarmonyOSElectron(): boolean {
-  return process.platform === "ohos" || process.platform === "openharmony"
+  const platform = process.platform as string
+  return platform === "ohos" || platform === "openharmony"
 }
 
 function validatePaths(paths: unknown): string[] {

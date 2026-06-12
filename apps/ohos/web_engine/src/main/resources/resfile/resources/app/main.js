@@ -1,385 +1,551 @@
-const { app, BrowserWindow, Tray, nativeImage, Menu, session, ipcMain, dialog } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const http = require('http');
-const {
+var __create = Object.create;
+var __getProtoOf = Object.getPrototypeOf;
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __toESM = (mod, isNodeMode, target) => {
+  target = mod != null ? __create(__getProtoOf(mod)) : {};
+  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  for (let key of __getOwnPropNames(mod))
+    if (!__hasOwnProp.call(to, key))
+      __defProp(to, key, {
+        get: () => mod[key],
+        enumerable: true
+      });
+  return to;
+};
+
+// src/main.ts
+var import_electron7 = require("electron");
+
+// ../../packages/electron-common/src/channels.ts
+var DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
+var DIALOG_SHOW_SAVE_CHANNEL = "dialog:showSaveDialog";
+var FILE_ACCESS_PERSIST_CHANNEL = "fileAccess:persist";
+var FILE_ACCESS_ACTIVATE_CHANNEL = "fileAccess:activate";
+// ../../packages/electron-common/src/dialogIpc.ts
+var import_electron = require("electron");
+function defaultGetWindow(event) {
+  return import_electron.BrowserWindow.fromWebContents(event.sender);
+}
+function registerDialogIpcHandlers(ipcMain, options) {
+  const getWindow = options?.getWindow ?? defaultGetWindow;
+  ipcMain.handle(DIALOG_SHOW_OPEN_CHANNEL, async (event, openOptions) => {
+    const win = getWindow(event);
+    try {
+      return win ? await import_electron.dialog.showOpenDialog(win, openOptions) : await import_electron.dialog.showOpenDialog(openOptions);
+    } catch (err) {
+      console.error("[electron-common] dialog:showOpenDialog failed:", err);
+      throw err;
+    }
+  });
+  ipcMain.handle(DIALOG_SHOW_SAVE_CHANNEL, async (event, saveOptions) => {
+    const win = getWindow(event);
+    try {
+      return win ? await import_electron.dialog.showSaveDialog(win, saveOptions) : await import_electron.dialog.showSaveDialog(saveOptions);
+    } catch (err) {
+      console.error("[electron-common] dialog:showSaveDialog failed:", err);
+      throw err;
+    }
+  });
+}
+// ../../packages/electron-common/src/fileAccessPersistIpc.ts
+var import_electron2 = require("electron");
+// src/http/server.ts
+var import_node_os2 = __toESM(require("node:os"));
+var import_node_http = __toESM(require("node:http"));
+var import_electron4 = require("electron");
+
+// src/core-routes-loader.ts
+var import_node_module = require("node:module");
+var import_node_path2 = __toESM(require("node:path"));
+
+// src/paths.ts
+var import_node_path = __toESM(require("node:path"));
+var appRoot;
+function isUsableAppRoot(dir) {
+  if (dir.length === 0)
+    return false;
+  if (dir === "/" || dir === "\\")
+    return false;
+  if (/^[A-Za-z]:\\?$/.test(dir))
+    return false;
+  return true;
+}
+function resolveAppRootFromScript(scriptPath) {
+  const base = import_node_path.default.basename(scriptPath);
+  if (base === "main.js" && !scriptPath.includes(import_node_path.default.sep) && !scriptPath.includes("/")) {
+    return null;
+  }
+  const resolved = import_node_path.default.resolve(scriptPath);
+  const dir = import_node_path.default.dirname(resolved);
+  return isUsableAppRoot(dir) ? dir : null;
+}
+function initAppRoot(root) {
+  const resolved = import_node_path.default.resolve(root);
+  if (!isUsableAppRoot(resolved)) {
+    throw new Error(`Invalid app root: ${root}`);
+  }
+  appRoot = resolved;
+}
+function getAppRoot() {
+  if (appRoot) {
+    return appRoot;
+  }
+  const mainFilename = require.main?.filename;
+  if (mainFilename) {
+    const fromMain = resolveAppRootFromScript(mainFilename);
+    if (fromMain) {
+      appRoot = fromMain;
+      return appRoot;
+    }
+  }
+  const argvScript = process.argv[1];
+  if (argvScript) {
+    const fromArgv = resolveAppRootFromScript(argvScript);
+    if (fromArgv) {
+      appRoot = fromArgv;
+      return appRoot;
+    }
+  }
+  throw new Error("Unable to resolve app root. Call initAppRoot(app.getAppPath()) during Electron startup.");
+}
+var MAIN_HTTP_PORT = 18081;
+var MAIN_HTTP_ORIGIN = `http://127.0.0.1:${MAIN_HTTP_PORT}`;
+var MAIN_HTTP_HELLO_BODY = "Hello from Electron Main process";
+var MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".map": "application/json; charset=utf-8"
+};
+function getDistDir() {
+  return import_node_path.default.join(getAppRoot(), "dist");
+}
+function getTestIndexPath() {
+  return import_node_path.default.join(getAppRoot(), "testPage", "index.html");
+}
+var USE_DEV_PAGE = false;
+
+// src/core-routes-loader.ts
+function loadCoreRoutes() {
+  const require2 = import_node_module.createRequire(import_node_path2.default.join(getAppRoot(), "package.json"));
+  return require2(import_node_path2.default.join(getAppRoot(), "core-routes.js"));
+}
+
+// src/http/cors.ts
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (typeof origin === "string" && origin.length > 0) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS");
+  const requestedHeaders = req.headers["access-control-request-headers"];
+  res.setHeader("Access-Control-Allow-Headers", typeof requestedHeaders === "string" && requestedHeaders.length > 0 ? requestedHeaders : "Content-Type, Authorization, x-trace-id");
+  res.setHeader("Access-Control-Max-Age", "86400");
+}
+
+// src/http/hello-config.ts
+var import_node_module2 = require("node:module");
+var import_node_os = __toESM(require("node:os"));
+var import_node_path3 = __toESM(require("node:path"));
+var import_electron3 = require("electron");
+function buildHelloConfig(reverseProxyUrl) {
+  let userDataDir;
+  let tmpDir;
+  try {
+    userDataDir = import_electron3.app.getPath("userData");
+    tmpDir = import_electron3.app.getPath("temp");
+  } catch (err) {
+    console.warn("[main] app.getPath failed for hello config, falling back to os.tmpdir():", err);
+    userDataDir = import_node_os.default.tmpdir();
+    tmpDir = import_node_os.default.tmpdir();
+  }
+  const logDir = import_node_path3.default.join(userDataDir, "logs");
+  let version = "0.0.0";
+  try {
+    const require2 = import_node_module2.createRequire(import_node_path3.default.join(getAppRoot(), "package.json"));
+    version = require2(import_node_path3.default.join(getAppRoot(), "package.json")).version;
+  } catch {}
+  return {
+    version,
+    userDataDir,
+    appDataDir: userDataDir,
+    logDir,
+    tmpDir,
+    reverseProxyUrl,
+    osLocale: import_electron3.app.getLocale(),
+    coreRoutesPort: MAIN_HTTP_PORT
+  };
+}
+
+// src/http/static-files.ts
+var import_node_fs = __toESM(require("node:fs"));
+var import_node_path4 = __toESM(require("node:path"));
+function isPathWithinRoot(rootDir, absPath) {
+  return absPath === rootDir || absPath.startsWith(rootDir + import_node_path4.default.sep);
+}
+function getMimeType(filePath) {
+  return MIME_TYPES[import_node_path4.default.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+}
+function resolveStaticPath(rootDir, urlPath) {
+  let pathname = urlPath;
+  try {
+    pathname = decodeURIComponent(urlPath);
+  } catch {}
+  const rel = pathname === "/" ? "index.html" : pathname.replace(/^\//, "");
+  const abs = import_node_path4.default.resolve(rootDir, rel);
+  if (!isPathWithinRoot(rootDir, abs)) {
+    return null;
+  }
+  return abs;
+}
+function serveStaticFile(req, res, rootDir) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Method Not Allowed");
+    return;
+  }
+  const url = req.url?.split("?")[0] ?? "/";
+  const absPath = resolveStaticPath(rootDir, url);
+  if (!absPath) {
+    res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Forbidden");
+    return;
+  }
+  import_node_fs.default.stat(absPath, (err, stat) => {
+    if (err || !stat.isFile()) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not Found");
+      return;
+    }
+    res.writeHead(200, { "Content-Type": getMimeType(absPath) });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    import_node_fs.default.createReadStream(absPath).pipe(res);
+  });
+}
+
+// src/http/server.ts
+var mainHttpServer = null;
+var reverseProxyUrl = null;
+function toPosixAllowlistEntry(dir) {
+  return dir.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+}
+function buildCoreRoutesAllowlist() {
+  const entries = new Set;
+  const add = (dir) => {
+    if (dir)
+      entries.add(toPosixAllowlistEntry(dir));
+  };
+  try {
+    add(import_electron4.app.getPath("userData"));
+    add(import_electron4.app.getPath("temp"));
+  } catch (err) {
+    console.warn("[main] app.getPath failed, falling back to os.tmpdir():", err);
+    add(import_node_os2.default.tmpdir());
+  }
+  add(import_node_os2.default.homedir());
+  add(getAppRoot());
+  return [...entries];
+}
+function createCoreRoutesLogger() {
+  return {
+    debug: (obj, msg) => console.debug(`[core-routes] ${msg ?? "debug"}`, obj),
+    info: (obj, msg) => console.info(`[core-routes] ${msg ?? "info"}`, obj),
+    warn: (obj, msg) => console.warn(`[core-routes] ${msg ?? "warn"}`, obj),
+    error: (obj, msg) => console.error(`[core-routes] ${msg ?? "error"}`, obj)
+  };
+}
+async function startMainHttpServer() {
+  if (mainHttpServer)
+    return;
+  const {
     createCoreRoutesRequestHandler,
     createNodeHttpFetch,
     createReverseProxyManager,
     createReverseProxyRequestHandler,
-    DEFAULT_ALLOWED_UPSTREAM_HOSTS,
-} = require('./core-routes.js');
-const { registerOhosFileAccessPermission } = require('./activate-ohos-file-access-permission.js');
-
-let mainWindow, tray;
-let mainHttpServer = null;
-let reverseProxyManager = null;
-let reverseProxyUrl = null;
-
-const useDevPage = false;
-
-const MAIN_HTTP_PORT = 18081;
-const MAIN_HTTP_ORIGIN = `http://127.0.0.1:${MAIN_HTTP_PORT}`;
-const MAIN_HTTP_HELLO_BODY = 'Hello from Electron Main process';
-const APP_ROOT = __dirname;
-
-const MIME_TYPES = {
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'application/javascript; charset=utf-8',
-    '.mjs': 'application/javascript; charset=utf-8',
-    '.css': 'text/css; charset=utf-8',
-    '.json': 'application/json; charset=utf-8',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.webp': 'image/webp',
-    '.ico': 'image/x-icon',
-    '.woff': 'font/woff',
-    '.woff2': 'font/woff2',
-    '.ttf': 'font/ttf',
-    '.map': 'application/json; charset=utf-8',
-};
-const DIST_DIR = path.join(APP_ROOT, 'dist');
-const DIST_INDEX = path.join(DIST_DIR, 'index.html');
-
-const TEST_INDEX = path.join(APP_ROOT, 'testPage', 'index.html')
-
-// Vite 输出的资源引用是 /assets/xxx.js 这种 root-absolute 形式。
-// 当 index.html 以 file:///.../dist/index.html 加载时，浏览器把 /assets/xxx.js
-// 解析成 file:///assets/xxx.js（根目录变成 /），导致 404。
-// 这里用 webRequest.onBeforeRequest + redirectURL 把这类请求重定向到
-// file:///.../dist/assets/xxx.js。为了安全，只对 DIST_DIR 下的根级项放行。
-
-const allowedRootItems = new Set();
-try {
-    const entries = fs.readdirSync(DIST_DIR, { withFileTypes: true });
-    for (const e of entries) {
-        if (e.name === 'index.html') continue;
-        allowedRootItems.add(e.name + (e.isDirectory() ? '/' : ''));
+    DEFAULT_ALLOWED_UPSTREAM_HOSTS
+  } = loadCoreRoutes();
+  const proxyLogger = {
+    debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? "debug"}`, obj),
+    info: (obj, msg) => console.info(`[reverse-proxy] ${msg ?? "info"}`, obj),
+    warn: (obj, msg) => console.warn(`[reverse-proxy] ${msg ?? "warn"}`, obj),
+    error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? "error"}`, obj)
+  };
+  const reverseProxyConfig = {
+    allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    logger: proxyLogger,
+    fetchImpl: createNodeHttpFetch()
+  };
+  const reverseProxyManager = createReverseProxyManager(reverseProxyConfig);
+  try {
+    await reverseProxyManager.start();
+    reverseProxyUrl = reverseProxyManager.url;
+    console.log(`[main] reverse proxy listening on ${reverseProxyUrl}`);
+  } catch (err) {
+    console.error("[main] failed to start reverse proxy:", err);
+  }
+  const allowlist = buildCoreRoutesAllowlist();
+  console.log("[main] core-routes allowlist:", allowlist);
+  const coreRoutesHandler = createCoreRoutesRequestHandler({
+    allowlist,
+    logger: createCoreRoutesLogger(),
+    hello: buildHelloConfig(reverseProxyUrl)
+  }, { fallbackPort: MAIN_HTTP_PORT });
+  const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
+  mainHttpServer = import_node_http.default.createServer((req, res) => {
+    applyCorsHeaders(req, res);
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
     }
-} catch (e) {
-    console.error('[electron-port] read DIST_DIR failed:', e);
+    const url = req.url?.split("?")[0] ?? "";
+    if (req.method === "GET" && url === "/hello") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(MAIN_HTTP_HELLO_BODY);
+      return;
+    }
+    if (url.startsWith("/api/")) {
+      coreRoutesHandler(req, res);
+      return;
+    }
+    if (url.startsWith("/tmdb/") || url.startsWith("/tvdb/")) {
+      reverseProxyHandler(req, res);
+      return;
+    }
+    serveStaticFile(req, res, getDistDir());
+  });
+  mainHttpServer.on("error", (err) => {
+    console.error("[main] HTTP server error:", err);
+  });
+  mainHttpServer.listen(MAIN_HTTP_PORT, "127.0.0.1", () => {
+    console.log(`[main] HTTP server listening on ${MAIN_HTTP_ORIGIN}/`);
+  });
 }
 
+// src/ipc/file-access-permission.ts
+var import_electron5 = require("electron");
+var LOG_PREFIX = "[ohos-file-access]";
+var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
+function isHarmonyOSPlatform() {
+  const platform = process.platform;
+  return platform === "ohos" || platform === "openharmony";
+}
+function logError(message, err) {
+  if (err instanceof Error) {
+    console.error(`${LOG_PREFIX} ${message}:`, err.message, err.stack);
+    return;
+  }
+  console.error(`${LOG_PREFIX} ${message}:`, err);
+}
+function validatePaths(paths, context) {
+  if (!Array.isArray(paths)) {
+    const message = `paths must be an array (${context})`;
+    console.error(`${LOG_PREFIX} ${message}`, { paths });
+    throw new Error(message);
+  }
+  if (paths.length === 0) {
+    const message = `paths must be non-empty (${context})`;
+    console.error(`${LOG_PREFIX} ${message}`);
+    throw new Error(message);
+  }
+  if (!paths.every((entry) => typeof entry === "string" && entry.length > 0)) {
+    const message = `paths must be non-empty strings (${context})`;
+    console.error(`${LOG_PREFIX} ${message}`, { paths });
+    throw new Error(message);
+  }
+  return paths;
+}
+function callReactivateFolders(paths, context) {
+  const sp = import_electron5.systemPreferences;
+  if (typeof sp.callArkTSFunction !== "function") {
+    console.error(`${LOG_PREFIX} callArkTSFunction unavailable (${context})`);
+    return false;
+  }
+  try {
+    sp.callArkTSFunction(REACTIVATE_FOLDERS_BINDING, "void", [paths]);
+    return true;
+  } catch (err) {
+    logError(`callReactivateFolders failed (${context})`, err);
+    return false;
+  }
+}
+function registerOhosFileAccessPermission(ipcMain) {
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    console.error(`${LOG_PREFIX} registerOhosFileAccessPermission: invalid ipcMain`);
+    return;
+  }
+  ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
+    let paths;
+    try {
+      paths = validatePaths(payload?.paths, "IPC-persist");
+    } catch (err) {
+      logError("IPC persist validation failed", err);
+      throw err;
+    }
+    if (!isHarmonyOSPlatform()) {
+      return { ok: true, skipped: true };
+    }
+    const sp = import_electron5.systemPreferences;
+    if (typeof sp.fileAccessPersist !== "function") {
+      const message = "systemPreferences.fileAccessPersist is not available";
+      console.error(`${LOG_PREFIX} IPC persist: ${message}`);
+      throw new Error(message);
+    }
+    try {
+      sp.fileAccessPersist(paths);
+    } catch (err) {
+      logError("IPC persist: fileAccessPersist failed", err);
+      throw err;
+    }
+    if (!callReactivateFolders(paths, "IPC-persist")) {
+      const message = "ReactivateFolders failed after persist";
+      console.error(`${LOG_PREFIX} IPC persist: ${message}`, { paths });
+      throw new Error(message);
+    }
+    return { ok: true };
+  });
+  ipcMain.handle(FILE_ACCESS_ACTIVATE_CHANNEL, async (_event, payload) => {
+    let paths;
+    try {
+      paths = validatePaths(payload?.paths, "IPC-activate");
+    } catch (err) {
+      logError("IPC activate validation failed", err);
+      throw err;
+    }
+    if (!isHarmonyOSPlatform()) {
+      return { ok: true, skipped: true };
+    }
+    if (!callReactivateFolders(paths, "IPC-activate")) {
+      const message = "ReactivateFolders dispatch failed";
+      console.error(`${LOG_PREFIX} IPC activate: ${message}`, { paths });
+      throw new Error(message);
+    }
+    return { ok: true };
+  });
+}
+
+// src/redirect/file-protocol-redirect.ts
+var import_node_fs2 = __toESM(require("node:fs"));
+var import_node_path5 = __toESM(require("node:path"));
+var allowedRootItemsByDistDir = new Map;
+function getAllowedRootItems(distDir = getDistDir()) {
+  const cached = allowedRootItemsByDistDir.get(distDir);
+  if (cached) {
+    return cached;
+  }
+  const allowedRootItems = new Set;
+  try {
+    const entries = import_node_fs2.default.readdirSync(distDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === "index.html")
+        continue;
+      allowedRootItems.add(entry.name + (entry.isDirectory() ? "/" : ""));
+    }
+  } catch (err) {
+    console.error("[electron-port] read DIST_DIR failed:", err);
+  }
+  allowedRootItemsByDistDir.set(distDir, allowedRootItems);
+  return allowedRootItems;
+}
 function toFileUrl(absPath) {
-    let p = absPath.replace(/\\/g, '/');
-    if (/^[A-Za-z]:\//.test(p)) p = '/' + p; // Windows: C:/x -> /C:/x
-    return 'file://' + p;                    // Linux/HarmonyOS: /data/x -> file:///data/x
+  let p = absPath.replace(/\\/g, "/");
+  if (/^[A-Za-z]:\//.test(p))
+    p = "/" + p;
+  return "file://" + p;
+}
+function resolveRedirect(urlString, distDir = getDistDir()) {
+  if (!urlString.startsWith("file://"))
+    return null;
+  let pathname;
+  try {
+    pathname = new URL(urlString).pathname;
+  } catch {
+    return null;
+  }
+  if (!pathname.startsWith("/"))
+    return null;
+  if (/^\/[A-Za-z]:/.test(pathname))
+    return null;
+  let rel;
+  try {
+    rel = decodeURIComponent(pathname.slice(1));
+  } catch {
+    rel = pathname.slice(1);
+  }
+  if (!rel)
+    return null;
+  if (rel.split("/").some((seg) => seg === ".." || seg === ".")) {
+    const abs = import_node_path5.default.resolve(distDir, rel);
+    if (abs !== distDir && !abs.startsWith(distDir + import_node_path5.default.sep))
+      return null;
+    return toFileUrl(abs);
+  }
+  const firstSeg = rel.split("/")[0] ?? "";
+  const first = firstSeg + (rel.includes("/") ? "/" : "");
+  if (!getAllowedRootItems(distDir).has(first))
+    return null;
+  return toFileUrl(import_node_path5.default.join(distDir, rel));
 }
 
-function resolveRedirect(urlString) {
-    if (!urlString.startsWith('file://')) return null;
-
-    let pathname;
-    try {
-        pathname = new URL(urlString).pathname;
-    } catch {
-        return null;
+// src/window/create-main-window.ts
+var import_node_path6 = __toESM(require("node:path"));
+var import_electron6 = require("electron");
+function createMainWindow() {
+  const tray = new import_electron6.Tray(import_electron6.nativeImage.createFromPath(import_node_path6.default.join(getAppRoot(), "electron_white.png")));
+  const mainWindow = new import_electron6.BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: import_node_path6.default.join(getAppRoot(), "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false
     }
-
-    // 只处理 Linux/HarmonyOS 形式（/xxx），跳过 Windows（/C:/xxx）
-    if (!pathname.startsWith('/')) return null;
-    if (/^\/[A-Za-z]:/.test(pathname)) return null;
-
-    let rel;
-    try {
-        rel = decodeURIComponent(pathname.slice(1));
-    } catch {
-        rel = pathname.slice(1);
-    }
-    if (!rel) return null;
-
-    // 含 .. 或 . 的请求解析后看是否还在 DIST_DIR 下
-    if (rel.split('/').some(seg => seg === '..' || seg === '.')) {
-        const abs = path.resolve(DIST_DIR, rel);
-        if (abs !== DIST_DIR && !abs.startsWith(DIST_DIR + path.sep)) return null;
-        return toFileUrl(abs);
-    }
-
-    // 根级白名单：只有 DIST_DIR 一级目录/文件中的项才允许映射
-    const firstSeg = rel.split('/')[0];
-    const first = firstSeg + (rel.includes('/') ? '/' : '');
-    if (!allowedRootItems.has(first)) return null;
-
-    return toFileUrl(path.join(DIST_DIR, rel));
+  });
+  mainWindow.setWindowButtonVisibility(true);
+  if (USE_DEV_PAGE) {
+    mainWindow.loadFile(getTestIndexPath());
+  } else {
+    mainWindow.loadURL(`${MAIN_HTTP_ORIGIN}/`);
+  }
+  return { mainWindow, tray };
 }
 
-function isPathWithinRoot(rootDir, absPath) {
-    return absPath === rootDir || absPath.startsWith(rootDir + path.sep);
-}
-
-function getMimeType(filePath) {
-    return MIME_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
-}
-
-function resolveStaticPath(rootDir, urlPath) {
-    let pathname = urlPath;
-    try {
-        pathname = decodeURIComponent(urlPath);
-    } catch {
-        // keep raw pathname
-    }
-
-    const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
-    const abs = path.resolve(rootDir, rel);
-    if (!isPathWithinRoot(rootDir, abs)) {
-        return null;
-    }
-    return abs;
-}
-
-function serveStaticFile(req, res, rootDir) {
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-        res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Method Not Allowed');
-        return;
-    }
-
-    const url = req.url?.split('?')[0] ?? '/';
-    const absPath = resolveStaticPath(rootDir, url);
-    if (!absPath) {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Forbidden');
-        return;
-    }
-
-    fs.stat(absPath, (err, stat) => {
-        if (err || !stat.isFile()) {
-            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-            res.end('Not Found');
-            return;
-        }
-
-        res.writeHead(200, { 'Content-Type': getMimeType(absPath) });
-        if (req.method === 'HEAD') {
-            res.end();
-            return;
-        }
-
-        fs.createReadStream(absPath).pipe(res);
-    });
-}
-
-function toPosixAllowlistEntry(dir) {
-    return dir.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '/$1');
-}
-
-function buildCoreRoutesAllowlist() {
-    const entries = new Set();
-    const add = (dir) => {
-        if (dir) entries.add(toPosixAllowlistEntry(dir));
-    };
-
-    try {
-        add(app.getPath('userData'));
-        add(app.getPath('temp'));
-    } catch (err) {
-        console.warn('[main] app.getPath failed, falling back to os.tmpdir():', err);
-        add(os.tmpdir());
-    }
-
-    add(os.homedir());
-    add(APP_ROOT);
-
-    return [...entries];
-}
-
-function createCoreRoutesLogger() {
-    return {
-        debug: (obj, msg) => console.debug(`[core-routes] ${msg ?? 'debug'}`, obj),
-        info: (obj, msg) => console.info(`[core-routes] ${msg ?? 'info'}`, obj),
-        warn: (obj, msg) => console.warn(`[core-routes] ${msg ?? 'warn'}`, obj),
-        error: (obj, msg) => console.error(`[core-routes] ${msg ?? 'error'}`, obj),
-    };
-}
-
-/** Apply CORS headers on every response (Electron renderer may be cross-origin vs 127.0.0.1). */
-function applyCorsHeaders(req, res) {
-    const origin = req.headers.origin;
-    if (typeof origin === 'string' && origin.length > 0) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Vary', 'Origin');
+// src/main.ts
+registerDialogIpcHandlers(import_electron7.ipcMain);
+registerOhosFileAccessPermission(import_electron7.ipcMain);
+import_electron7.app.whenReady().then(() => {
+  initAppRoot(import_electron7.app.getAppPath());
+  getAllowedRootItems();
+  startMainHttpServer().catch((err) => {
+    console.error("[main] failed to start HTTP server:", err);
+  });
+  import_electron7.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
+    const redirect = resolveRedirect(details.url);
+    if (redirect && redirect !== details.url) {
+      cb({ redirectURL: redirect });
     } else {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+      cb({ cancel: false });
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS');
-    const requestedHeaders = req.headers['access-control-request-headers'];
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        typeof requestedHeaders === 'string' && requestedHeaders.length > 0
-            ? requestedHeaders
-            : 'Content-Type, Authorization, x-trace-id',
-    );
-    res.setHeader('Access-Control-Max-Age', '86400');
-}
-
-function buildHelloConfig() {
-    let userDataDir;
-    let tmpDir;
-    try {
-        userDataDir = app.getPath('userData');
-        tmpDir = app.getPath('temp');
-    } catch (err) {
-        console.warn('[main] app.getPath failed for hello config, falling back to os.tmpdir():', err);
-        userDataDir = os.tmpdir();
-        tmpDir = os.tmpdir();
-    }
-
-    const logDir = path.join(userDataDir, 'logs');
-    let version = '0.0.0';
-    try {
-        version = require('./package.json').version;
-    } catch {
-        // keep default
-    }
-
-    return {
-        version,
-        userDataDir,
-        appDataDir: userDataDir,
-        logDir,
-        tmpDir,
-        reverseProxyUrl,
-        osLocale: app.getLocale(),
-        coreRoutesPort: MAIN_HTTP_PORT,
-    };
-}
-
-async function startMainHttpServer() {
-    if (mainHttpServer) return;
-
-    // Start the reverse proxy first so its URL can be reported in /api/hello
-    // and so it shares the main HTTP server's lifecycle.
-    const proxyLogger = {
-        debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? 'debug'}`, obj),
-        info: (obj, msg) => console.info(`[reverse-proxy] ${msg ?? 'info'}`, obj),
-        warn: (obj, msg) => console.warn(`[reverse-proxy] ${msg ?? 'warn'}`, obj),
-        error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? 'error'}`, obj),
-    };
-    // OHOS Electron: global fetch (undici) requires WebAssembly. Use node:http instead.
-    const reverseProxyConfig = {
-        allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
-        logger: proxyLogger,
-        fetchImpl: createNodeHttpFetch(),
-    };
-
-    reverseProxyManager = createReverseProxyManager(reverseProxyConfig);
-    try {
-        await reverseProxyManager.start();
-        reverseProxyUrl = reverseProxyManager.url;
-        console.log(`[main] reverse proxy listening on ${reverseProxyUrl}`);
-    } catch (err) {
-        console.error('[main] failed to start reverse proxy:', err);
-    }
-
-    const allowlist = buildCoreRoutesAllowlist();
-    console.log('[main] core-routes allowlist:', allowlist);
-
-    const coreRoutesHandler = createCoreRoutesRequestHandler(
-        { allowlist, logger: createCoreRoutesLogger(), hello: buildHelloConfig() },
-        { fallbackPort: MAIN_HTTP_PORT },
-    );
-
-    const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
-
-    mainHttpServer = http.createServer((req, res) => {
-        applyCorsHeaders(req, res);
-
-        if (req.method === 'OPTIONS') {
-            res.writeHead(204);
-            res.end();
-            return;
-        }
-
-        const url = req.url?.split('?')[0] ?? '';
-
-        if (req.method === 'GET' && url === '/hello') {
-            res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-            res.end(MAIN_HTTP_HELLO_BODY);
-            return;
-        }
-
-        if (url.startsWith('/api/')) {
-            coreRoutesHandler(req, res);
-            return;
-        }
-
-        if (url.startsWith('/tmdb/') || url.startsWith('/tvdb/')) {
-            reverseProxyHandler(req, res);
-            return;
-        }
-
-        serveStaticFile(req, res, DIST_DIR);
-    });
-
-    mainHttpServer.on('error', (err) => {
-        console.error('[main] HTTP server error:', err);
-    });
-
-    mainHttpServer.listen(MAIN_HTTP_PORT, '127.0.0.1', () => {
-        console.log(`[main] HTTP server listening on ${MAIN_HTTP_ORIGIN}/`);
-    });
-}
-
-ipcMain.handle('dialog:showOpenDialog', async (event, options) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    try {
-        return win
-            ? await dialog.showOpenDialog(win, options)
-            : await dialog.showOpenDialog(options);
-    } catch (err) {
-        console.error('[main] dialog:showOpenDialog failed:', err);
-        throw err;
-    }
-});
-
-ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    try {
-        return win
-            ? await dialog.showSaveDialog(win, options)
-            : await dialog.showSaveDialog(options);
-    } catch (err) {
-        console.error('[main] dialog:showSaveDialog failed:', err);
-        throw err;
-    }
-});
-
-registerOhosFileAccessPermission(ipcMain);
-
-app.whenReady().then(() => {
-    startMainHttpServer().catch((err) => {
-        console.error('[main] failed to start HTTP server:', err);
-    });
-
-    session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
-        const redirect = resolveRedirect(details.url);
-        if (redirect && redirect !== details.url) {
-            cb({ redirectURL: redirect });
-        } else {
-            cb({ cancel: false });
-        }
-    });
-
-    tray = new Tray(nativeImage.createFromPath(path.join(APP_ROOT, 'electron_white.png')));
-    mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        webPreferences: {
-            preload: path.join(APP_ROOT, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
-    });
-    mainWindow.setWindowButtonVisibility(true);
-
-    if(useDevPage) {
-        mainWindow.loadFile(TEST_INDEX);
-    } else {
-        mainWindow.loadURL(`${MAIN_HTTP_ORIGIN}/`);
-    }
-
+  });
+  createMainWindow();
 });

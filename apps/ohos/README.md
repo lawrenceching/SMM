@@ -3,38 +3,60 @@
 `apps/ohos` holds the codebase for HarmonyOS/OpenHarmony app.
 The core is an electron version that ported to HarmonyOS.
 
-Electron main process entry file: `./web_engine/src/main/resources/resfile/resources/app/main.js`
+## Electron runtime files
 
-Electron preload file: `./web_engine/src/main/resources/resfile/resources/app/preload.js`
+| File | Role |
+|------|------|
+| `web_engine/src/main/resources/resfile/resources/app/main.js` | **Build output** — bundled from `apps/ohos/src/` |
+| `web_engine/src/main/resources/resfile/resources/app/preload.js` | Preload script (copied from `packages/electron-common/ohos/preload.js`) |
+| `web_engine/src/main/resources/resfile/resources/app/core-routes.js` | Shared HTTP API handlers (copied from `@smm/core-routes` build) |
+| `web_engine/src/main/resources/resfile/resources/app/dist/` | UI static assets (copied from `apps/ui/dist`) |
 
-Electron UI bundle: `./web_engine/src/main/resources/resfile/resources/app/dist/` (served over HTTP, not `file://`)
+At runtime the main process starts an HTTP server on `http://127.0.0.1:18081` that serves the UI static assets from `dist/` and core-routes API handlers at `/api/*`. The browser window loads `http://127.0.0.1:18081/` via `loadURL`.
 
-At runtime the main process starts an HTTP server on `http://127.0.0.1:18081` that serves the UI static assets from `dist/` and core-routes API handlers at `/api/*`. The browser window loads `http://127.0.0.1:18081/` via `loadURL`, matching the desktop Electron + CLI pattern.
+HarmonyOS file access IPC (`fileAccess:persist`, `fileAccess:activate`) is registered in the bundled main process. The preload exposes `window.electron.fileAccess.persist(paths)` and `window.electron.fileAccess.activate(paths)`.
+
+## Source layout
+
+```
+apps/ohos/src/
+  main.ts                         # entry
+  paths.ts                        # constants
+  core-routes-loader.ts           # runtime require('./core-routes.js')
+  http/                           # HTTP server, static files, CORS
+  redirect/                       # file:// redirect for Vite assets
+  ipc/file-access-permission.ts   # OHOS fileShare.activatePermission IPC
+  window/create-main-window.ts    # BrowserWindow + Tray
+```
 
 ## Build
 
 From repo root:
 
 ```bash
-# Build UI
-pnpm --filter ui build
-
-# Build shared Electron artifacts and copy UI into ohos resfile
-pnpm --filter ohos build
+# Full HarmonyOS resource build (UI + core-routes + main.js + copy)
+pnpm run build:ohos
 ```
 
-`pnpm --filter ohos build` runs:
-
-1. `build:electron-common` — bundles `@smm/electron-common` into `electron-common.cjs` and `preload.js`
-2. `copy-ui` — copies `apps/ui/dist` into the HarmonyOS app resources
-
-To rebuild only the shared Electron IPC/preload after changing `packages/electron-common`:
+Rebuild only the Electron main process after changing `apps/ohos/src/`:
 
 ```bash
-pnpm --filter ohos build:electron-common
+pnpm --filter @smm/ohos-electron-main build
 ```
 
-HarmonyOS file access persist IPC (`fileAccess:persist`) is registered in `main.js` via `registerFileAccessPersistIpcHandlers`. The preload exposes `window.electron.fileAccess.persist(paths)` which calls `systemPreferences.fileAccessPersist()` in the main process.
+Typecheck and test:
+
+```bash
+pnpm --filter @smm/ohos-electron-main typecheck
+pnpm --filter @smm/ohos-electron-main test
+```
+
+`pnpm run build:ohos` runs:
+
+1. `core-routes build:cjs` — builds shared API handlers
+2. `ui build` — builds the React UI
+3. `@smm/ohos-electron-main build` — bundles TypeScript main to `main.js`
+4. Copies `core-routes.js`, `preload.js`, and `dist/` into the HarmonyOS resfile
 
 ## References
 

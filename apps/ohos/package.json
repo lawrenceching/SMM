@@ -1,8 +1,21 @@
 {
-    "name": "ohos",
-    "version": "0.0.1",
-    "description": "SMM for HarmonyOS",
-    "scripts": {
-        "build": "cd ../.. && pnpm run build:ohos"
-    }
+  "name": "@smm/ohos-electron-main",
+  "version": "0.0.1",
+  "description": "HarmonyOS Electron main process (TypeScript source)",
+  "private": true,
+  "scripts": {
+    "build": "bun build src/main.ts --outfile web_engine/src/main/resources/resfile/resources/app/main.js --target node --format cjs --external electron --external ./core-routes.js",
+    "build:ohos": "cd ../.. && pnpm run build:ohos",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@smm/electron-common": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^39.2.6",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
+  }
 }

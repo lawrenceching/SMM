@@ -243,7 +243,24 @@ importers:
         specifier: ^7.2.6
         version: 7.3.1(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)
 
-  apps/ohos: {}
+  apps/ohos:
+    dependencies:
+      '@smm/electron-common':
+        specifier: workspace:*
+        version: link:../../packages/electron-common
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.11
+      electron:
+        specifier: ^39.2.6
+        version: 39.6.1
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
 
   apps/ui:
     dependencies:
