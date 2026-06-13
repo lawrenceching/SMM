@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDialogs } from "@/providers/dialog-provider";
 import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { useConfig } from "@/hooks/userConfig/useConfig";
+import { useFeatures } from "@/hooks/useFeatures";
 import { isHarmonyOS } from "@/lib/isHarmonyOS";
 import { prompts } from "./prompts";
 import { ReverseProxyChatTransport } from "./transport/reverseProxyChatTransport";
@@ -144,26 +145,72 @@ export function Assistant() {
     )
 }
 
+/**
+ * Bridge component that lives inside `<AssistantRuntimeProvider>`
+ * (where `useAssistantApi()` returns a real runtime, not the
+ * throw-on-use default proxy) and forwards the tools registered in
+ * the assistant-ui model context to the `ReverseProxyChatTransport`
+ * via `transport.setTools(...)`. The next `sendMessages` call reads
+ * the updated tools and passes them to `streamText`.
+ *
+ * Without this bridge, `useAssistantTools()` would have to be called
+ * outside the provider (since the transport is constructed in
+ * `AssistantImpl`, before `<AssistantRuntimeProvider>` mounts), which
+ * silently returns an empty tools map — the symptom is that the LLM
+ * never sees the client-side tools.
+ */
+function ToolsBridge({ transport }: { transport: ReverseProxyChatTransport | null }) {
+  const assistantTools = useAssistantTools()
+  useEffect(() => {
+    console.log(
+      "[ToolsBridge] forwarding tools to ReverseProxyChatTransport",
+      { toolNames: Object.keys(assistantTools) },
+    )
+    transport?.setTools(assistantTools)
+  }, [transport, assistantTools])
+  return null
+}
+
 function AssistantImpl() {
 
     const { userConfig, appConfig } = useConfig()
+    const { isUIAiChatTransportEnabled } = useFeatures()
     const isHarmony = useMemo(() => isHarmonyOS(), [])
-    const assistantTools = useAssistantTools()
 
     const transport = useMemo(() => {
-        if (isHarmony) {
-            // HarmonyOS: no /api/chat on the ohos main process. Run the
-            // AI SDK `streamText` call directly in the renderer and route
-            // the request through the universal AI reverse proxy that
-            // `apps/ohos/src/http/server.ts` already starts. The proxy
-            // URL is exposed via `HelloResponseBody.reverseProxyUrl`
+        // Use the in-process `ReverseProxyChatTransport` when either:
+        //   1. We're running on HarmonyOS (the ohos Electron main
+        //      process doesn't expose `POST /api/chat`, so the Hono
+        //      `AssistantChatTransport` would never reach a handler).
+        //   2. The user has explicitly enabled
+        //      `features.isUIAiChatTransportEnabled` via localStorage
+        //      (useful for testing the in-process transport on
+        //      desktop without rebuilding for HarmonyOS).
+        // Otherwise (desktop / Electron default), keep using the Hono
+        // `AssistantChatTransport` and let the CLI's server-side
+        // `agentTools.getApplicationContext(clientId)` handle tool
+        // execution (the existing pre-migration behavior).
+        const useFrontendTransport = isHarmony || isUIAiChatTransportEnabled
+
+        if (useFrontendTransport) {
+            // Renderer-side AI Assistant. Run the AI SDK `streamText`
+            // call directly in the renderer and route the request
+            // through the universal AI reverse proxy that
+            // `apps/ohos/src/http/server.ts` (HarmonyOS) or
+            // `packages/core-routes/src/reverseProxyNode.ts` (desktop
+            // dev / forced via flag) starts. The proxy URL is exposed
+            // via `HelloResponseBody.reverseProxyUrl`
             // (`appConfig.reverseProxyUrl`).
             //
-            // Phase 2: pass the tools collected from the assistant-ui
-            // runtime (`useAssistantTools`) to the transport so the LLM
-            // can call them in-process in the renderer (no server
-            // round-trip). Includes `getApplicationContext` (selected
-            // folder + user language) and any future client-side tools.
+            // Tools are forwarded dynamically by `<ToolsBridge />`
+            // (rendered inside the provider below) via
+            // `transport.setTools(...)` — they are NOT passed here in
+            // the constructor because `useAssistantApi()` requires the
+            // `<AuiProvider>` context, which is only available to
+            // descendants of `<AssistantRuntimeProvider>`. The
+            // constructor keeps the `tools` field for backwards
+            // compat but the live value is read from
+            // `transport.mutableTools` at `sendMessages` time.
             //
             // SMM allows the user to run with no AI provider selected.
             // The transport itself handles the unconfigured state by
@@ -181,7 +228,6 @@ function AssistantImpl() {
                 apiKey: provider?.apiKey,
                 baseURL: provider?.baseURL,
                 reverseProxyUrl: appConfig.reverseProxyUrl,
-                tools: assistantTools,
             })
         }
         // Desktop / Electron: keep the existing flow. The Hono shell at
@@ -223,10 +269,10 @@ function AssistantImpl() {
         })
     }, [
         isHarmony,
+        isUIAiChatTransportEnabled,
         userConfig.selectedAIProvider,
         userConfig.aiProviders,
         appConfig.reverseProxyUrl,
-        assistantTools,
     ])
 
     // https://www.assistant-ui.com/docs/runtimes/ai-sdk/use-chat#usechatruntime
@@ -255,6 +301,11 @@ function AssistantImpl() {
         <GetApplicationContextTool />
         {/* <GetMediaMetadataTool />
         <MatchEpisodeTool /> */}
+        <ToolsBridge
+            transport={
+                transport instanceof ReverseProxyChatTransport ? transport : null
+            }
+        />
         <AssistantModal />
 
     </AssistantRuntimeProvider>

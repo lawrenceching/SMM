@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useAssistantApi, type Tool } from "@assistant-ui/react"
 
 /**
@@ -7,26 +7,69 @@ import { useAssistantApi, type Tool } from "@assistant-ui/react"
  * `ReverseProxyChatTransport` on HarmonyOS to pass tools to
  * `streamText` so the LLM can call them in-process in the renderer.
  *
- * The assistant-ui runtime manages its own re-rendering: when a
- * `makeAssistantTool` component mounts or a registered tool changes,
- * the runtime fires `thread.modelContextUpdate`, which causes
- * `useAssistantApi` to re-render its consumers. The `useMemo` deps
- * list only `api` because `useAssistantApi` returns a stable
- * reference across renders; the runtime triggers the re-render.
+ * **Must be called inside `<AssistantRuntimeProvider>`** (i.e., inside
+ * `<AuiProvider>`). Calling it outside the provider causes
+ * `useAssistantApi()` to return a throw-on-use proxy (which logs the
+ * classic "You are using a component or hook that requires an
+ * AuiProvider" error), and the hook returns an empty tools map —
+ * the symptom is that tools never reach `streamText`.
  *
- * Returns an empty object (never `undefined`) when the runtime is
- * not available or no tools are registered, so callers can iterate
- * without a null check.
+ * The hook re-evaluates whenever the assistant-ui runtime fires a
+ * `thread.modelContextUpdate` event (which happens on tool
+ * registration/unregistration).
  */
 export function useAssistantTools(): Record<string, Tool> {
   const api = useAssistantApi()
-  return useMemo<Record<string, Tool>>(() => {
-    try {
-      const ctx = api.threads().thread("main").getModelContext()
-      const tools = (ctx.tools ?? {}) as Record<string, Tool>
-      return tools
-    } catch {
-      return {}
+  const [tools, setTools] = useState<Record<string, Tool>>({})
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        const ctx = api.threads().thread("main").getModelContext()
+        const next = (ctx.tools ?? {}) as Record<string, Tool>
+        setTools((prev) => {
+          if (sameTools(prev, next)) return prev
+          console.log(
+            "[useAssistantTools] tools updated",
+            { names: Object.keys(next) },
+          )
+          return next
+        })
+      } catch (err) {
+        // This almost certainly means `useAssistantApi()` was called
+        // outside <AssistantRuntimeProvider>. Surface loudly so the
+        // bug is visible in DevTools instead of silently returning
+        // an empty tools map.
+        console.error(
+          "[useAssistantTools] failed to read model context — is this hook called inside <AssistantRuntimeProvider>?",
+          err,
+        )
+      }
     }
+
+    read()
+
+    // Re-read whenever the assistant-ui runtime fires a
+    // `thread.modelContextUpdate` event (which happens when tools
+    // are registered/unregistered via `makeAssistantTool`).
+    const unsubscribe = api.on("thread.modelContextUpdate", () => {
+      read()
+    })
+    return unsubscribe
   }, [api])
+
+  return tools
+}
+
+function sameTools(
+  a: Record<string, Tool>,
+  b: Record<string, Tool>,
+): boolean {
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  for (const k of aKeys) {
+    if (a[k] !== b[k]) return false
+  }
+  return true
 }

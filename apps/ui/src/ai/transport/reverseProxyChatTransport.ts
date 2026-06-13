@@ -100,9 +100,31 @@ export interface ReverseProxyChatTransportConfig {
  */
 export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
   private readonly config: ReverseProxyChatTransportConfig
+  /**
+   * Mutable tools field. Can be updated via {@link setTools} from a
+   * component that lives inside the assistant-ui `AuiProvider`
+   * (and therefore has access to `useAssistantApi()`), so the tools
+   * reflect the current assistant-ui model context without requiring
+   * the transport itself to live inside the provider. Read in
+   * {@link sendMessages} (preferring this over `config.tools` when
+   * set), so an updated tool registration is picked up on the next
+   * request without reconstructing the transport.
+   */
+  private mutableTools: Record<string, AssistantStreamTool> | undefined
 
   constructor(config: ReverseProxyChatTransportConfig) {
     this.config = config
+  }
+
+  /**
+   * Updates the tools map used by {@link sendMessages}. Called by
+   * `<ToolsBridge />` (which lives inside `AssistantRuntimeProvider`)
+   * every time the assistant-ui runtime's model context changes.
+   * Safe to call from any React effect; the next `sendMessages` call
+   * reads the new value.
+   */
+  setTools(tools: Record<string, AssistantStreamTool> | undefined): void {
+    this.mutableTools = tools
   }
 
   async sendMessages(
@@ -139,7 +161,9 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
       },
     })
 
-    const aiTools = this.toStreamTextTools(this.config.tools)
+    const aiTools = this.toStreamTextTools(
+      this.mutableTools ?? this.config.tools,
+    )
 
     const result = streamText({
       model: provider.chatModel(this.config.model as string),

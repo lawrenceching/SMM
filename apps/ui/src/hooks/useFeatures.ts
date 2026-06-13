@@ -8,6 +8,7 @@ const PRINT_ARG_FOR_YTDLP_STORAGE_KEY = "features.enablePrintArgInYtdlpCommand"
 const DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY = "features.isDisplayFeatureCardsInWelcomeEnabled"
 const AI_AREA_STORAGE_KEY = "features.isAiAreaEnabled"
 const AI_FEATURE_STORAGE_KEY = "features.isAiFeatureEnabled"
+const UI_AI_CHAT_TRANSPORT_STORAGE_KEY = "features.isUIAiChatTransportEnabled"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -159,6 +160,35 @@ function writeAiFeatureEnabled(enabled: boolean): void {
   }
 }
 
+/** Default: disabled — desktop / Electron build uses the Hono
+ * `AssistantChatTransport` by default. Set this to `true` to force
+ * the renderer-side `ReverseProxyChatTransport` (the path used by
+ * HarmonyOS) on any platform. Useful for testing the in-process
+ * transport on desktop without rebuilding for ohos. */
+function readUiAiChatTransportEnabled(): boolean {
+  return true;
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(UI_AI_CHAT_TRANSPORT_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeUiAiChatTransportEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(
+      UI_AI_CHAT_TRANSPORT_STORAGE_KEY,
+      enabled ? "true" : "false",
+    )
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 /** Default: enabled when the user has never set a preference (`null`). */
 function readDisplayFeatureCardsInWelcomeEnabled(): boolean {
   if (typeof window === "undefined") return true
@@ -266,6 +296,25 @@ export interface UseFeaturesResult {
    */
   isDisplayFeatureCardsInWelcomeEnabled: boolean
   setIsDisplayFeatureCardsInWelcomeEnabled: (enabled: boolean) => void
+  /**
+   * When true, the AI Assistant uses the in-process
+   * `ReverseProxyChatTransport` (renderer-side `streamText` through
+   * the backend reverse proxy) instead of the Hono
+   * `AssistantChatTransport` (which talks to `POST /api/chat` on the
+   * CLI). This is the same transport path that HarmonyOS uses
+   * unconditionally.
+   *
+   * - Defaults to `false` (desktop / Electron build uses the Hono
+   *   transport as today).
+   * - `Assistant.tsx` combines this flag with `isHarmonyOS()`: when
+   *   either is true, the in-process transport is used.
+   * - Useful for testing the in-process transport on desktop without
+   *   rebuilding for HarmonyOS.
+   *
+   * Persisted under `features.isUIAiChatTransportEnabled`.
+   */
+  isUIAiChatTransportEnabled: boolean
+  setIsUIAiChatTransportEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -306,6 +355,10 @@ export function useFeatures(): UseFeaturesResult {
     readDisplayFeatureCardsInWelcomeEnabled,
   )
 
+  const [isUIAiChatTransportEnabled, setIsUIAiChatTransportEnabledState] = useState(
+    readUiAiChatTransportEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -331,6 +384,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY) {
         setIsDisplayFeatureCardsInWelcomeEnabled(readDisplayFeatureCardsInWelcomeEnabled())
+      }
+      if (event.key === UI_AI_CHAT_TRANSPORT_STORAGE_KEY) {
+        setIsUIAiChatTransportEnabledState(readUiAiChatTransportEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -377,6 +433,11 @@ export function useFeatures(): UseFeaturesResult {
     setIsDisplayFeatureCardsInWelcomeEnabled(enabled)
   }, [])
 
+  const setIsUIAiChatTransportEnabled = useCallback((enabled: boolean) => {
+    writeUiAiChatTransportEnabled(enabled)
+    setIsUIAiChatTransportEnabledState(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isAiFeatureEnabled,
@@ -396,6 +457,8 @@ export function useFeatures(): UseFeaturesResult {
       setIsAiAreaEnabled: setAiAreaEnabled,
       isDisplayFeatureCardsInWelcomeEnabled,
       setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
+      isUIAiChatTransportEnabled,
+      setIsUIAiChatTransportEnabled,
     }),
     [
       isAiFeatureEnabled,
@@ -415,6 +478,8 @@ export function useFeatures(): UseFeaturesResult {
       setAiAreaEnabled,
       isDisplayFeatureCardsInWelcomeEnabled,
       setIsDisplayFeatureCardsInWelcomeEnabledCallback,
+      isUIAiChatTransportEnabled,
+      setIsUIAiChatTransportEnabled,
     ],
   )
 }
