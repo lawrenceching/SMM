@@ -10,7 +10,11 @@ import { useConfig } from "@/hooks/userConfig/useConfig";
 import { isHarmonyOS } from "@/lib/isHarmonyOS";
 import { prompts } from "./prompts";
 import { ReverseProxyChatTransport } from "./transport/reverseProxyChatTransport";
-import { GetFilesInMediaFolderTool } from "./tools";
+import { useAssistantTools } from "./hooks/useAssistantTools";
+import {
+    GetApplicationContextTool,
+    GetFilesInMediaFolderTool,
+} from "./tools";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import {
@@ -144,6 +148,7 @@ function AssistantImpl() {
 
     const { userConfig, appConfig } = useConfig()
     const isHarmony = useMemo(() => isHarmonyOS(), [])
+    const assistantTools = useAssistantTools()
 
     const transport = useMemo(() => {
         if (isHarmony) {
@@ -153,6 +158,12 @@ function AssistantImpl() {
             // `apps/ohos/src/http/server.ts` already starts. The proxy
             // URL is exposed via `HelloResponseBody.reverseProxyUrl`
             // (`appConfig.reverseProxyUrl`).
+            //
+            // Phase 2: pass the tools collected from the assistant-ui
+            // runtime (`useAssistantTools`) to the transport so the LLM
+            // can call them in-process in the renderer (no server
+            // round-trip). Includes `getApplicationContext` (selected
+            // folder + user language) and any future client-side tools.
             //
             // SMM allows the user to run with no AI provider selected.
             // The transport itself handles the unconfigured state by
@@ -170,11 +181,18 @@ function AssistantImpl() {
                 apiKey: provider?.apiKey,
                 baseURL: provider?.baseURL,
                 reverseProxyUrl: appConfig.reverseProxyUrl,
+                tools: assistantTools,
             })
         }
         // Desktop / Electron: keep the existing flow. The Hono shell at
         // `apps/cli/src/route/ChatTask.ts` handles the agent loop with
-        // its 14 server-side tools.
+        // its 14 server-side tools. The client-side `<GetApplicationContextTool />`
+        // also registers in the renderer (its schema is sent via
+        // `body.tools`), but `ChatTask.ts`'s `tools` object literal puts
+        // `agentTools.getApplicationContext(clientId)` AFTER
+        // `...frontendTools(tools)`, so the server-side tool wins by
+        // key precedence — desktop LLM still calls the server-side tool
+        // (Socket.IO + Bun.file), behavior unchanged.
         return new AssistantChatTransport({
             api: "/api/chat",
             body: {
@@ -208,6 +226,7 @@ function AssistantImpl() {
         userConfig.selectedAIProvider,
         userConfig.aiProviders,
         appConfig.reverseProxyUrl,
+        assistantTools,
     ])
 
     // https://www.assistant-ui.com/docs/runtimes/ai-sdk/use-chat#usechatruntime
@@ -233,6 +252,7 @@ function AssistantImpl() {
         <ModelContext/>
         {/* <GetMediaFoldersTool /> */}
         <GetFilesInMediaFolderTool />
+        <GetApplicationContextTool />
         {/* <GetMediaMetadataTool />
         <MatchEpisodeTool /> */}
         <AssistantModal />

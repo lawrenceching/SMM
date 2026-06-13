@@ -1,5 +1,15 @@
 # Migrate AI Assistant to reverse proxy on HarmonyOS (Phase 1: chat-only)
 
+> **Follow-up (Phase 2 — renderer-side tools)**: `getApplicationContext`
+> has been migrated to a client-side `makeAssistantTool`, and
+> `ReverseProxyChatTransport` now accepts a `tools` map passed in
+> from `Assistant.tsx` so the LLM can call client-side tools in-process
+> in the renderer. The server-side `agentTools.getApplicationContext`
+> (Socket.IO + Bun.file) is kept intact for the desktop chat pipeline,
+> the MCP `get-application-context` tool, the debug API, and the
+> existing e2e test. See
+> `.agents/docs/design/migrate-get-application-context-to-client-side.md`.
+
 [brief the change here.]
 
 Add a HarmonyOS-only code path in `apps/ui/src/ai/Assistant.tsx`

@@ -1,5 +1,7 @@
 import {
   type ChatTransport,
+  type Tool as AiTool,
+  type ToolExecutionOptions,
   type UIMessage,
   type UIMessageChunk,
   convertToModelMessages,
@@ -7,6 +9,7 @@ import {
   streamText,
 } from 'ai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import type { Tool as AssistantStreamTool } from '@assistant-ui/react'
 import { injectPendingFolderNoticeIntoMessages } from '../pendingFolderSwitch'
 import { prompts } from '../prompts'
 
@@ -45,6 +48,23 @@ export interface ReverseProxyChatTransportConfig {
    * `HelloResponseBody.reverseProxyUrl`).
    */
   reverseProxyUrl?: string | null
+  /**
+   * AI tools to expose to the LLM. Each tool is an
+   * assistant-stream `Tool` (the same shape that `makeAssistantTool`
+   * produces — `{ description, parameters, execute }`), keyed by
+   * `toolName`. Collected from the assistant-ui runtime in
+   * `Assistant.tsx` via `useAssistantTools()`.
+   *
+   * When provided, the tools are converted to AI SDK's `streamText`
+   * format (`parameters` → `inputSchema`) and passed to `streamText`'s
+   * `tools` field. The LLM can then call them in-process in the
+   * renderer (no server round-trip). `stopWhen: stepCountIs(100)`
+   * becomes load-bearing in this mode (allows multi-step agent loop).
+   *
+   * When omitted (Phase 1 default), the transport runs chat-only —
+   * the LLM is invoked once with `messages` + `system` and exits.
+   */
+  tools?: Record<string, AssistantStreamTool>
 }
 
 /**
@@ -53,17 +73,19 @@ export interface ReverseProxyChatTransportConfig {
  * reverse proxy. Used by the AI Assistant on HarmonyOS where
  * `POST /api/chat` is not available.
  *
- * **Phase 1: chat-only.** No tools are passed to `streamText`; the LLM
- * is invoked once with `messages` and a system prompt, and the streamed
- * `UIMessageChunk` events are returned to `useChatRuntime`.
+ * **Phase 2: tools supported.** When `config.tools` is provided (the
+ * normal case once `Assistant.tsx` is wired up), the tools are converted
+ * to AI SDK's `streamText` format (`parameters` → `inputSchema`) and
+ * passed to `streamText`'s `tools` field. The LLM can call them
+ * in-process in the renderer (no server round-trip). `stopWhen:
+ * stepCountIs(100)` enables the multi-step agent loop.
  *
- * `stopWhen: stepCountIs(100)` is passed today as a forward-compat shim:
- * it is a no-op without tools (the AI SDK default is `stepCountIs(1)`
- * and the LLM exits after one step because it cannot call any tools),
- * but it ensures that a future Phase 2 migration that adds tools will
- * automatically enable the multi-step agent loop without a second
- * touching this file. See `migrate-ai-assistant-to-reverse-proxy-on-ohos.md`
- * §5.1 Task 1 for the rationale.
+ * When `config.tools` is omitted (Phase 1 fallback), the transport
+ * still runs chat-only — the LLM is invoked once with `messages` +
+ * `system` and exits after one step. This is the same forward-compat
+ * shim that Phase 1 used, now generalized. See
+ * `migrate-ai-assistant-to-reverse-proxy-on-ohos.md` §5.1 Task 1 for
+ * the original rationale.
  *
  * @example
  * ```tsx
@@ -117,10 +139,13 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
       },
     })
 
+    const aiTools = this.toStreamTextTools(this.config.tools)
+
     const result = streamText({
       model: provider.chatModel(this.config.model as string),
       messages: await convertToModelMessages(finalMessages),
       system: prompts.system,
+      ...(aiTools ? { tools: aiTools } : {}),
       stopWhen: stepCountIs(100),
       abortSignal,
     })
@@ -141,6 +166,59 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
    */
   async reconnectToStream(): Promise<ReadableStream<UIMessageChunk> | null> {
     return null
+  }
+
+  /**
+   * Converts an assistant-stream `Tool` map (the shape produced by
+   * `makeAssistantTool` — `{ description, parameters, execute }`) to
+   * AI SDK's `streamText` `tools` format (`{ description, inputSchema,
+   * execute }`).
+   *
+   * The field-name adaptation (`parameters` → `inputSchema`) is the
+   * only difference between the two shapes; both accept
+   * `StandardSchemaV1 | JSONSchema7` (assistant-stream's `parameters`
+   * is a structural subset of AI SDK's `FlexibleSchema<INPUT>`).
+   *
+   * Returns `undefined` (not an empty object) when no tools are
+   * configured, so `streamText`'s default tool behavior is preserved.
+   */
+  private toStreamTextTools(
+    tools: Record<string, AssistantStreamTool> | undefined,
+  ): Record<string, AiTool> | undefined {
+    if (!tools) return undefined
+    const entries = Object.entries(tools).filter(
+      ([, t]) => t && typeof t === 'object',
+    )
+    if (entries.length === 0) return undefined
+    return Object.fromEntries(
+      entries.map(([name, t]) => {
+        const aiTool: AiTool = {
+          description: t.description,
+          // `parameters` (StandardSchemaV1 | JSONSchema7) is
+          // structurally a subset of `inputSchema`
+          // (FlexibleSchema<INPUT>), so this assignment is safe at
+          // runtime. The cast widens to AI SDK's broader schema type.
+          inputSchema: t.parameters as AiTool['inputSchema'],
+        }
+        if (typeof t.execute === 'function') {
+          // Wrap the assistant-stream `execute` in an adapter that
+          // drops the `human` field from the call signature
+          // (assistant-stream uses `ToolExecutionContext`, AI SDK
+          // uses `ToolExecutionOptions` which lacks `human`). At
+          // runtime the only field AI SDK passes that our tools read
+          // is `abortSignal`; the rest is identical.
+          const assistantExecute = t.execute as (
+            args: unknown,
+            context: { abortSignal?: AbortSignal },
+          ) => unknown
+          aiTool.execute = ((args: unknown, options: ToolExecutionOptions) =>
+            assistantExecute(args, {
+              abortSignal: options?.abortSignal,
+            })) as AiTool['execute']
+        }
+        return [name, aiTool]
+      }),
+    )
   }
 
   /**
