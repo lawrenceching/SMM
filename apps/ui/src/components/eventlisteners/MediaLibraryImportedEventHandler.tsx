@@ -13,7 +13,9 @@ import { useInitializeImportedMediaFolder } from "@/hooks/initialization/useInit
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useConfig, useSaveUserConfigMutation } from "@/hooks/userConfig"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
+import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
 import { logger } from "@/lib/log"
+import { toast } from "sonner"
 const debug = Debug("MediaLibraryImportedEventHandler")
 
 /**
@@ -35,6 +37,11 @@ export async function _listFolders(path: string): Promise<string[]> {
     includeHiddenFiles: false,
   })
   return listFilesResponse.data?.items.map((item) => item.path) ?? []
+}
+
+export async function listLibraryFoldersWithAccess(libraryPath: string): Promise<string[]> {
+  await persistHarmonyOSFileAccess([libraryPath])
+  return _listFolders(libraryPath)
 }
 
 export function MediaLibraryImportedEventHandler() {
@@ -64,7 +71,7 @@ export function MediaLibraryImportedEventHandler() {
 
     try {
 
-      const foldersInLibrary = await _listFolders(libraryPathInPlatformFormat)
+      const foldersInLibrary = await listLibraryFoldersWithAccess(libraryPathInPlatformFormat)
       debug(`listed ${foldersInLibrary.length} folders in library`)
       const foldersToImport = _dedupFolders(
         foldersInLibrary,
@@ -120,6 +127,9 @@ export function MediaLibraryImportedEventHandler() {
       console.error(`[${traceIdBase}] Import media library failed:`, error)
       updateJob(jobId, { status: "failed" })
       debug(`failed to import media library`, error)
+      toast.error(
+        error instanceof Error ? error.message : "导入媒体库失败",
+      )
     }
   }
 

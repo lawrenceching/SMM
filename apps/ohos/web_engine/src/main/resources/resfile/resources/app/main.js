@@ -308,8 +308,7 @@ async function startMainHttpServer() {
   const coreRoutesHandler = createCoreRoutesRequestHandler({
     allowlist,
     logger: createCoreRoutesLogger(),
-    hello: buildHelloConfig(reverseProxyUrl),
-    appDataDir: userDataDir
+    hello: buildHelloConfig(reverseProxyUrl)
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {

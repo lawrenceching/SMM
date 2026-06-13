@@ -6,15 +6,28 @@ const { listFilesMock } = vi.hoisted(() => ({
   listFilesMock: vi.fn(),
 }))
 
+const { persistHarmonyOSFileAccessMock } = vi.hoisted(() => ({
+  persistHarmonyOSFileAccessMock: vi.fn(),
+}))
+
 vi.mock("@/api/listFiles", () => ({
   listFiles: listFilesMock,
 }))
 
-import { _dedupFolders, _listFolders } from "./MediaLibraryImportedEventHandler"
+vi.mock("@/lib/persistHarmonyOSFileAccess", () => ({
+  persistHarmonyOSFileAccess: persistHarmonyOSFileAccessMock,
+}))
+
+import {
+  _dedupFolders,
+  _listFolders,
+  listLibraryFoldersWithAccess,
+} from "./MediaLibraryImportedEventHandler"
 
 describe("_listFolders", () => {
   beforeEach(() => {
     listFilesMock.mockReset()
+    persistHarmonyOSFileAccessMock.mockReset()
   })
 
   it("calls listFiles with only folders, no hidden files, and the given path", async () => {
@@ -60,6 +73,58 @@ describe("_listFolders", () => {
     } satisfies ListFilesResponseBody)
 
     await expect(_listFolders("/media/library")).resolves.toEqual([])
+  })
+})
+
+describe("listLibraryFoldersWithAccess", () => {
+  beforeEach(() => {
+    listFilesMock.mockReset()
+    persistHarmonyOSFileAccessMock.mockReset()
+    persistHarmonyOSFileAccessMock.mockResolvedValue(undefined)
+  })
+
+  it("persists library access before listing folders", async () => {
+    const libraryPath = "file://docs/storage/media-library"
+    listFilesMock.mockResolvedValue({
+      data: {
+        path: libraryPath,
+        size: 1,
+        items: [{ path: `${libraryPath}/show-a`, size: 0, mtime: 0, isDirectory: true }],
+      },
+    } satisfies ListFilesResponseBody)
+
+    const callOrder: string[] = []
+    persistHarmonyOSFileAccessMock.mockImplementation(async () => {
+      callOrder.push("persist")
+    })
+    listFilesMock.mockImplementation(async () => {
+      callOrder.push("listFiles")
+      return {
+        data: {
+          path: libraryPath,
+          size: 1,
+          items: [{ path: `${libraryPath}/show-a`, size: 0, mtime: 0, isDirectory: true }],
+        },
+      } satisfies ListFilesResponseBody
+    })
+
+    await listLibraryFoldersWithAccess(libraryPath)
+
+    expect(persistHarmonyOSFileAccessMock).toHaveBeenCalledWith([libraryPath])
+    expect(listFilesMock).toHaveBeenCalledTimes(1)
+    expect(callOrder).toEqual(["persist", "listFiles"])
+  })
+
+  it("does not list folders when persist fails", async () => {
+    persistHarmonyOSFileAccessMock.mockRejectedValue(
+      new Error("无法持久化文件夹访问权限"),
+    )
+
+    await expect(
+      listLibraryFoldersWithAccess("file://docs/storage/media-library"),
+    ).rejects.toThrow("无法持久化文件夹访问权限")
+
+    expect(listFilesMock).not.toHaveBeenCalled()
   })
 })
 
