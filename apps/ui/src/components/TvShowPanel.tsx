@@ -7,6 +7,9 @@ import type { TMDBTVShow } from "@core/types"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
+import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
+import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
@@ -44,7 +47,6 @@ import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
 import { fetchPlans, savePlan } from "@/actions/planActions"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
 import { renameFiles } from "@/api/renameFiles"
@@ -218,6 +220,7 @@ function TvShowPanel() {
   const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
   const openAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
   const openRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
+  const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
   const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
   const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
@@ -355,6 +358,10 @@ function TvShowPanel() {
   const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
     if (!isAiFeatureEnabled || !mediaMetadata) return
     await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, setPlanById)
+    const uiPlan = plan as UIRecognizeMediaFilePlan
+    if (uiPlan.tmp === true) {
+      await cleanupRecognizePlan(plan.id)
+    }
   }, [isAiFeatureEnabled, mediaMetadata, persistUiMediaMetadata, setPlanById])
 
   const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
@@ -432,6 +439,7 @@ function TvShowPanel() {
         })
       } else {
         setPlanById(planId, { status: 'completed' })
+        await cleanupRenamePlan(planId)
       }
     } else {
       console.error("[TvShowPanel] No temporary rename plan found")
@@ -453,7 +461,6 @@ function TvShowPanel() {
       (p): p is UIRenameFilesPlan => 
         p.task === "rename-files" &&
         p.status === "pending" &&
-        p.tmp === false &&
         mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath)
     )
     if (plan) {
@@ -465,6 +472,9 @@ function TvShowPanel() {
         onCancel: async () => {
           try {
             setPlanById(plan.id, { status: "rejected" })
+            if (plan.tmp) {
+              await cleanupRenamePlan(plan.id)
+            }
           } catch (error) {
             console.error("[TvShowPanel] Error rejecting rename plan:", error)
           }
@@ -657,7 +667,7 @@ function TvShowPanel() {
     if(plans.length > 0) {
       
       const plansForThisFolder = plans
-          .filter(p => p.mediaFolderPath === mediaMetadata?.mediaFolderPath)
+          .filter(p => mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata?.mediaFolderPath))
           .filter(p => p.status === 'pending' || p.status === 'loading')
 
       if(plansForThisFolder.length === 0) {
@@ -792,9 +802,12 @@ function TvShowPanel() {
       }
 
       if(plan.task === 'recognize-media-file' && plan.tmp === true) {
-        // This plan will be handled by handleRuleBasedRecognizeButtonClick
-        // don't need to handle by handlePendingPlans
-        return;
+        const isHandledByRuleBasedPrompt =
+          ruleBasedRecognizePrompt.isOpen &&
+          ruleBasedRecognizePrompt.planId === plan.id
+        if (isHandledByRuleBasedPrompt) {
+          return
+        }
       }
 
       console.log(`[TvShowPanel] useEffect handlePendingPlans CALLED: `, structuredClone(plan))
@@ -814,7 +827,7 @@ function TvShowPanel() {
         isAiFeatureEnabled,
       })
     }
-  }, [plan])
+  }, [plan, ruleBasedRecognizePrompt.isOpen, ruleBasedRecognizePrompt.planId])
 
   const handleHeaderTranslateClick = useCallback(() => {
     if (!hasTranslateTargets) {

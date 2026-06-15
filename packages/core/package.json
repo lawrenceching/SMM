@@ -21,6 +21,7 @@
   "dependencies": {
     "es-toolkit": "^1.42.0",
     "filenamify": "^7.0.1",
-    "slash": "^5.1.0"
+    "slash": "^5.1.0",
+    "zod": "^4.1.8"
   }
 }

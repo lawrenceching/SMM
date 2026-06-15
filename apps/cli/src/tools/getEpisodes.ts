@@ -1,208 +1,150 @@
-import { z } from "zod";
-import type { ToolDefinition } from "./types";
-import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
-import { findMediaMetadata } from "@/utils/mediaMetadata";
-import { Path } from "@core/path";
-import logger from "../../lib/logger";
-import { getLocalizedToolDescription } from '@/i18n/helpers';
+import { Path } from '@core/path'
+import {
+  buildGetEpisodesResponse,
+  createEmptyGetEpisodesData,
+} from '@core/ai-tool/buildGetEpisodesResponse'
+import { requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+import {
+  GET_EPISODES,
+  GET_EPISODES_DESCRIPTION,
+  GET_EPISODES_INVALID_PATH,
+  GET_EPISODES_NO_CACHE,
+  GET_EPISODES_NOT_MANAGED,
+  GET_EPISODES_NOT_TV_SHOW,
+  getEpisodesInputSchema,
+  getEpisodesToolOutputSchema,
+  type GetEpisodesToolOutput,
+} from '@core/types/ai-tools/getEpisodes'
+import type { ToolDefinition } from './types'
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/mcp/tools/mcpToolBase'
+import { getLocalizedToolDescription } from '@/i18n/helpers'
+import { findMediaMetadata } from '@/utils/mediaMetadata'
+import { getUserConfig } from '@/utils/config'
+import logger from '../../lib/logger'
 
+export type { GetEpisodesToolOutput }
+export {
+  buildGetEpisodesResponse,
+  createEmptyGetEpisodesData,
+} from '@core/ai-tool/buildGetEpisodesResponse'
+export type {
+  GetEpisodesResponseData,
+  GetEpisodesEpisode,
+} from '@core/types/ai-tools/getEpisodes'
+
+/** @deprecated Use GetEpisodesInput from @core/types/ai-tools/getEpisodes */
 export interface GetEpisodesParams {
-  mediaFolderPath: string;
+  mediaFolderPath: string
+}
+
+async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
+  const userConfig = await getUserConfig()
+  const targetPlatform = Path.toPlatformPath(mediaFolderPath)
+  const targetPosix = Path.posix(mediaFolderPath)
+  return userConfig.folders.some((folder) => {
+    return (
+      Path.toPlatformPath(folder) === targetPlatform ||
+      Path.posix(folder) === targetPosix
+    )
+  })
+}
+
+export async function executeGetEpisodes(
+  params: { mediaFolderPath: string },
+  abortSignal?: AbortSignal,
+): Promise<GetEpisodesToolOutput> {
+  if (abortSignal?.aborted) {
+    throw new Error('Request was aborted')
+  }
+
+  const pathCheck = requireNonEmptyString(
+    params.mediaFolderPath,
+    'mediaFolderPath',
+  )
+  if (typeof pathCheck !== 'string') {
+    return { ...createEmptyGetEpisodesData(), error: GET_EPISODES_INVALID_PATH }
+  }
+
+  const empty = createEmptyGetEpisodesData()
+
+  if (!(await isMediaFolderManaged(pathCheck))) {
+    return { ...empty, error: GET_EPISODES_NOT_MANAGED }
+  }
+
+  const posixPath = Path.posix(pathCheck)
+  const metadata = await findMediaMetadata(posixPath)
+
+  if (!metadata) {
+    return { ...empty, error: GET_EPISODES_NO_CACHE }
+  }
+
+  if (!metadata.tvShow) {
+    return { ...empty, error: GET_EPISODES_NOT_TV_SHOW }
+  }
+
+  logger.info(
+    {
+      mediaFolderPath: posixPath,
+      seasonCount: metadata.tvShow.seasons?.length ?? 0,
+      mediaFileCount: metadata.mediaFiles?.length ?? 0,
+    },
+    '[get-episodes] building episode list',
+  )
+
+  return toolOk(buildGetEpisodesResponse(metadata))
 }
 
 export async function handleGetEpisodes(
   params: GetEpisodesParams,
-  abortSignal?: AbortSignal
-): Promise<ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>> {
-  logger.info({
-    params,
-    file: "tools/getEpisodes.ts"
-  }, "[MCP] get-episodes tool started")
-
-  const { mediaFolderPath } = params;
-  const traceId = `get-episodes-${Date.now()}`;
-
-  // Validation
-  if (abortSignal?.aborted) {
-    logger.info({
-      traceId,
-      file: "tools/getEpisodes.ts"
-    }, "[MCP] get-episodes tool aborted: abort signal detected")
-    return createErrorResponse("Request was aborted");
-  }
-
-  if (!mediaFolderPath || typeof mediaFolderPath !== "string" || mediaFolderPath.trim() === "") {
-    logger.warn({
-      traceId,
-      mediaFolderPath,
-      reason: "media folder path is empty or invalid",
-      file: "tools/getEpisodes.ts"
-    }, "[MCP] get-episodes tool validation failed: invalid media folder path")
-    return createErrorResponse("Invalid path: 'mediaFolderPath' must be a non-empty string");
-  }
-
-  // Convert path format
-  const posixPath = Path.posix(mediaFolderPath);
-
-  // Find metadata
-  const metadata = await findMediaMetadata(posixPath);
-
-  if (!metadata) {
-    logger.warn({
-      traceId,
-      mediaFolderPath: posixPath,
-      reason: "media metadata not found",
-      file: "tools/getEpisodes.ts"
-    }, "[MCP] get-episodes tool failed: media metadata not found")
-    return createErrorResponse("TV show not found. Please ensure the media folder is opened in SMM.");
-  }
-
-  const tvShow = metadata.tvShow;
-
-  if (!tvShow) {
-    logger.warn({
-      traceId,
-      mediaFolderPath: posixPath,
-      reason: "not a TV show - no tvShow data",
-      file: "tools/getEpisodes.ts"
-    }, "[MCP] get-episodes tool failed: not a TV show folder")
+  abortSignal?: AbortSignal,
+): Promise<
+  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
+> {
+  try {
+    const result = await executeGetEpisodes(params, abortSignal)
+    if (result.error) {
+      return createErrorResponse(result.error)
+    }
+    const { error: _error, ...data } = result
+    return createSuccessResponse(data)
+  } catch (error) {
     return createErrorResponse(
-      "Not a TV show folder. This tool only works with TV show media folders that have TMDB or TVDB metadata cached."
-    );
+      error instanceof Error ? error.message : 'Request was aborted',
+    )
   }
-
-  logger.info({
-    traceId,
-    mediaFolderPath: posixPath,
-    seasonCount: tvShow.seasons?.length ?? 0,
-    mediaFileCount: metadata.mediaFiles?.length || 0,
-    file: "tools/getEpisodes.ts"
-  }, "[MCP] get-episodes tool: found media metadata, building episode list")
-
-  // Build episode-to-video map from mediaFiles
-  // Key format: "season:episode" (e.g., "1:5" for S01E05)
-  const episodeToVideoMap = new Map<string, string>();
-  if (metadata.mediaFiles && Array.isArray(metadata.mediaFiles)) {
-    for (const mediaFile of metadata.mediaFiles) {
-      if (mediaFile.seasonNumber !== undefined && mediaFile.episodeNumber !== undefined) {
-        const key = `${mediaFile.seasonNumber}:${mediaFile.episodeNumber}`;
-        episodeToVideoMap.set(key, mediaFile.absolutePath);
-      }
-    }
-  }
-
-  logger.info({
-    traceId,
-    mappedEpisodes: episodeToVideoMap.size,
-    file: "tools/getEpisodes.ts"
-  }, `[MCP] get-episodes tool: built episode-to-video map with ${episodeToVideoMap.size} entries`)
-
-  const episodes: Array<{
-    season: number;
-    episode: number;
-    videoFilePath?: string;
-  }> = [];
-
-  for (const season of tvShow.seasons || []) {
-    if (season.episodes && Array.isArray(season.episodes)) {
-      for (const ep of season.episodes) {
-        const key = `${season.season}:${ep.episode}`;
-        const videoFilePath = episodeToVideoMap.get(key);
-        const platformPath = videoFilePath ? Path.toPlatformPath(videoFilePath) : undefined;
-
-        episodes.push({
-          season: season.season,
-          episode: ep.episode,
-          videoFilePath: platformPath,
-        });
-      }
-    }
-  }
-
-  logger.info({
-    traceId,
-    episodeCount: episodes.length,
-    episodesWithVideos: episodes.filter(e => e.videoFilePath).length,
-    file: "tools/getEpisodes.ts"
-  }, `[MCP] get-episodes tool: found ${episodes.length} episodes (${episodes.filter(e => e.videoFilePath).length} with video files)`)
-
-  const showName = tvShow.name ?? "";
-  const numberOfSeasons = tvShow.seasons?.length ?? 0;
-
-  return createSuccessResponse({
-    episodes,
-    totalCount: episodes.length,
-    showName,
-    numberOfSeasons,
-  });
 }
 
+export function getEpisodesAgentTool(_clientId: string, abortSignal?: AbortSignal) {
+  return {
+    description: GET_EPISODES_DESCRIPTION,
+    inputSchema: getEpisodesInputSchema,
+    outputSchema: getEpisodesToolOutputSchema,
+    execute: async (args: { mediaFolderPath: string }) => {
+      return executeGetEpisodes(args, abortSignal)
+    },
+  }
+}
+
+/** @deprecated Use getEpisodesAgentTool */
+export const createGetEpisodesTool = getEpisodesAgentTool
+
 export async function getTool(): Promise<ToolDefinition> {
-  const description = await getLocalizedToolDescription('get-episodes');
+  const description = await getLocalizedToolDescription(GET_EPISODES)
 
   return {
-    toolName: "get-episodes",
-    description: description,
-    inputSchema: z.object({
-      mediaFolderPath: z.string().describe("The absolute path of the TV show media folder, in POSIX or Windows format"),
-    }),
-    outputSchema: z.object({
-      episodes: z.array(z.object({
-        season: z.number().describe("The season number"),
-        episode: z.number().describe("The episode number"),
-        videoFilePath: z.string().optional().describe("The absolute path of the video file, undefined if not recognized yet"),
-      })).describe("Array of all episodes with their video file paths"),
-      totalCount: z.number().describe("Total number of episodes"),
-      showName: z.string().describe("The name of the TV show"),
-      numberOfSeasons: z.number().describe("Number of seasons in the show"),
-    }).strict(),
+    toolName: GET_EPISODES,
+    description,
+    inputSchema: getEpisodesInputSchema,
+    outputSchema: getEpisodesToolOutputSchema,
     execute: async (args: { mediaFolderPath: string }) => {
-      return handleGetEpisodes(args);
+      return handleGetEpisodes(args)
     },
-  };
+  }
 }
 
 export async function getEpisodesMcpTool() {
-  return getTool();
+  return getTool()
 }
-
-export const createGetEpisodesTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Get all episodes for a TV show with their video file paths.
-Combines TMDB or TVDB episode data (from cached metadata) with local media file paths.
-For each episode, returns season, episode number, and video file path.
-The video file path may be undefined if the episode hasn't been recognized yet.`,
-  inputSchema: z.object({
-    mediaFolderPath: z.string().describe("The absolute path of the TV show media folder, in POSIX or Windows format"),
-  }),
-  execute: async ({ mediaFolderPath }: { mediaFolderPath: string }) => {
-    if (abortSignal?.aborted) {
-      throw new Error('Request was aborted');
-    }
-
-    const result = await handleGetEpisodes({ mediaFolderPath }, abortSignal);
-
-    if (result.isError) {
-      return {
-        episodes: [],
-        totalCount: 0,
-        showName: "",
-        numberOfSeasons: 0,
-        message: result.content[0]?.text || "Unknown error"
-      };
-    }
-
-    const content = result.structuredContent as {
-      episodes: Array<{ season: number; episode: number; videoFilePath?: string }>;
-      totalCount: number;
-      showName: string;
-      numberOfSeasons: number;
-    };
-
-    return {
-      episodes: content.episodes || [],
-      totalCount: content.totalCount || 0,
-      showName: content.showName || "",
-      numberOfSeasons: content.numberOfSeasons || 0,
-    };
-  },
-});

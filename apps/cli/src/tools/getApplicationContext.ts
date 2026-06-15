@@ -1,140 +1,100 @@
-import { acknowledge, findSocketByClientId, getFirstAvailableSocket } from '@/utils/socketIO';
-import { z } from 'zod';
-import type { ToolDefinition } from './types';
-import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase';
-import { resolveAppLanguage, detectOsLocale } from '@core/locale';
-import { getUserConfig } from '@/utils/config';
-import { getLocalizedToolDescription } from '@/i18n/helpers';
+import { acknowledge, getFirstAvailableSocket } from '@/utils/socketIO'
+import { z } from 'zod'
+import type { ToolDefinition } from './types'
+import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase'
+import { resolveAppLanguage, detectOsLocale } from '@core/locale'
+import { getUserConfig } from '@/utils/config'
+import { getLocalizedToolDescription } from '@/i18n/helpers'
+import { toolOk } from '@core/ai-tool/toolResult'
+import {
+  GET_APPLICATION_CONTEXT,
+  GET_APPLICATION_CONTEXT_DESCRIPTION,
+  getApplicationContextInputSchema,
+  getApplicationContextOutputSchema,
+  type GetApplicationContextOutput,
+} from '@core/types/ai-tools/getApplicationContext'
 
+// ─── Private helpers ────────────────────────────────────────────
 
-async function getLanguage() {
-  const userConfig = await getUserConfig();
+async function resolveLanguage(): Promise<string> {
+  const userConfig = await getUserConfig()
   return resolveAppLanguage({
     configured: userConfig.applicationLanguage,
     osLocale: detectOsLocale(),
-  });
+  })
 }
 
-export async function getSelectedMediaFolder(_clientId?: string) {
-
-  let clientId: string | undefined = _clientId;
-  if(clientId === undefined) {
-    const socket = getFirstAvailableSocket();
-    if(socket === null) {
-      return ''
-    }
-    clientId = socket.clientId;
+async function resolveSelectedMediaFolder(clientId?: string): Promise<string> {
+  let id = clientId
+  if (id === undefined) {
+    const socket = getFirstAvailableSocket()
+    if (socket === null) return ''
+    id = socket.clientId
   }
 
-  const responseData = await acknowledge(
-    {
-      event: 'getSelectedMediaMetadata',
-      clientId: clientId,
-    },
-  );
+  const responseData = await acknowledge({
+    event: 'getSelectedMediaMetadata',
+    clientId: id,
+  })
 
-  return responseData?.selectedMediaMetadata?.mediaFolderPath ?? '';
-
+  return responseData?.selectedMediaMetadata?.mediaFolderPath ?? ''
 }
 
-export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
-  // Use i18n to get localized tool description based on user's language preference
-  const description = await getLocalizedToolDescription('get-app-context');
-
-  return {
-    toolName: 'get-app-context',
-    description: description,
-    inputSchema: z.object({}),
-    outputSchema: z.object({
-      selectedMediaFolder: z.string().describe("The path of the media folder that user selected in UI."),
-      language: z.string().describe("The language in user preferences."),
-    }),
-    execute: async (path: { path: string }) => {
-
-      if(clientId === undefined) {
-        const socket = getFirstAvailableSocket();
-        if(socket === null) {
-          return createErrorResponse('User didn\'t open the SMM UI');
-        }
-        clientId = socket.clientId;
-      }
-
-      try {
-        return createSuccessResponse({
-          selectedMediaFolder: await getSelectedMediaFolder(clientId),
-          language: await getLanguage()
-        });
-      } catch (error) {
-        console.error('[GetSelectedMediaMetadataTask] Error:', error);
-        return createErrorResponse(
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
-    },
-
-  }
+async function executeGetApplicationContext(
+  clientId?: string,
+): Promise<GetApplicationContextOutput> {
+  const [selectedMediaFolder, language] = await Promise.all([
+    resolveSelectedMediaFolder(clientId),
+    resolveLanguage(),
+  ])
+  return { selectedMediaFolder, language }
 }
 
-/**
- * Returns a tool definition with localized description for AI agent usage.
- * The description is localized based on the global user's language preference.
- *
- * Pattern for adding i18n to other tools:
- * 1. Import getLocalizedToolDescription from '@/i18n/helpers'
- * 2. Make getTool function async
- * 3. Call getLocalizedToolDescription('tool-name')
- * 4. Make these export functions async as well
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @returns Promise resolving to localized tool definition
- */
-/**
- * Returns a tool definition for AI agent usage.
- * Uses fixed English description for synchronous return.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @returns Tool definition (synchronous)
- */
+// ─── Agent tool (ChatTask / streamText) ─────────────────────────
+
 export function getApplicationContextAgentTool(clientId: string) {
   return {
-    description: "Get SMM context including selected media folder path and user language preference.",
-    inputSchema: z.object({}),
-    outputSchema: z.object({
-      selectedMediaFolder: z.string().describe("The path of the media folder that user selected in UI."),
-      language: z.string().describe("The language in user preferences."),
-    }),
-    execute: async (args: any) => {
-      let _clientId = clientId;
-
-      if(_clientId === undefined) {
-        const socket = getFirstAvailableSocket();
-        if(socket === null) {
-          return createErrorResponse('No active Socket.IO connections available');
-        }
-        _clientId = socket.clientId;
-      }
-
+    description: GET_APPLICATION_CONTEXT_DESCRIPTION,
+    inputSchema: getApplicationContextInputSchema,
+    outputSchema: getApplicationContextOutputSchema,
+    execute: async () => {
       try {
-        return createSuccessResponse({
-          selectedMediaFolder: await getSelectedMediaFolder(_clientId),
-          language: await getLanguage()
-        });
+        const result = await executeGetApplicationContext(clientId)
+        return toolOk(result)
       } catch (error) {
-        console.error('[GetSelectedMediaMetadataTask] Error:', error);
-        return createErrorResponse(
-          error instanceof Error ? error.message : 'Unknown error'
-        );
+        console.error('[getApplicationContext] Agent tool error:', error)
+        return {
+          selectedMediaFolder: '',
+          language: 'en',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       }
     },
-  };
+  }
 }
 
-/**
- * Returns a tool definition with English description for MCP server usage.
- * MCP tools use English as the default language (no clientId context).
- *
- * @returns Promise resolving to tool definition with English description
- */
-export async function getApplicationContextMcpTool() {
-  return getTool();
+// ─── MCP tool (localised description) ───────────────────────────
+
+export async function getApplicationContextMcpTool(): Promise<ToolDefinition> {
+  const description = await getLocalizedToolDescription(GET_APPLICATION_CONTEXT)
+
+  return {
+    toolName: GET_APPLICATION_CONTEXT,
+    description,
+    inputSchema: getApplicationContextInputSchema,
+    outputSchema: getApplicationContextOutputSchema,
+    execute: async () => {
+      try {
+        const result = await executeGetApplicationContext()
+        return createSuccessResponse(
+          result as unknown as { [x: string]: unknown },
+        )
+      } catch (error) {
+        console.error('[getApplicationContext] MCP tool error:', error)
+        return createErrorResponse(
+          error instanceof Error ? error.message : 'Unknown error',
+        )
+      }
+    },
+  }
 }

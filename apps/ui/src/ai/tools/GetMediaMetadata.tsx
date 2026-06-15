@@ -1,52 +1,68 @@
-import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from 'zod';
-import { useEffect } from "react";
-import type { MediaMetadata } from "@core/types";
-import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
-import { useQueryClient } from "@tanstack/react-query";
-import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/hooks/mediaMetadata";
+import { makeAssistantTool, tool } from '@assistant-ui/react'
+import {
+  GET_MEDIA_METADATA,
+  GET_MEDIA_METADATA_DESCRIPTION,
+  GET_MEDIA_METADATA_NOT_MANAGED,
+  GET_MEDIA_METADATA_NO_CACHE,
+  getMediaMetadataInputSchema,
+  type GetMediaMetadataToolOutput,
+} from '@core/types/ai-tools/getMediaMetadata'
+import {
+  createBaseGetMediaMetadataData,
+  fillMediaMetadataResponseData,
+} from '@core/ai-tool/getMediaMetadataResponse'
+import { toolOk } from '@core/ai-tool/toolResult'
+import { Path } from '@core/path'
+import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  resolveMediaMetadataForFolderPath,
+  isMediaFolderManagedInUi,
+  useMediaMetadataToolBridge,
+} from '@/ai/mediaMetadataToolBridge'
 
-let mediaMetadatas: MediaMetadata[] = [];
+export { resolveMediaMetadataForFolderPath } from '@/ai/mediaMetadataToolBridge'
 
 const getMediaMetadata = tool({
-    description: "Get media metadata for a media folder. Returns a MediaMetadata object containing: TMDB information (id, title, overview, release date, ratings, genres, cast, crew), file information (video files, subtitles, audio tracks), and matched media files with their metadata like duration, resolution, and codec.",
-    parameters: z.object({
-        path: z.string().describe("The absolute path of the media folder in POSIX or Windows format"),
-    }),
-    execute: async ({ path }) => {
-        const mediaMetadata = mediaMetadatas.find(metadata => metadata.mediaFolderPath === path)
+  description: GET_MEDIA_METADATA_DESCRIPTION,
+  parameters: getMediaMetadataInputSchema,
+  execute: async ({
+    mediaFolderPath,
+  }): Promise<GetMediaMetadataToolOutput> => {
+    const baseData = createBaseGetMediaMetadataData(mediaFolderPath)
+    if (!isMediaFolderManagedInUi(mediaFolderPath)) {
+      return {
+        ...baseData,
+        error: GET_MEDIA_METADATA_NOT_MANAGED,
+      }
+    }
 
-        if (!mediaMetadata) {
-            return {
-                error: `Media folder not found. The folder path may not be correct or the folder is not managed by SMM`
-            };
-        }
+    const mediaMetadata =
+      await resolveMediaMetadataForFolderPath(mediaFolderPath)
+    if (!mediaMetadata) {
+      return {
+        ...baseData,
+        error: GET_MEDIA_METADATA_NO_CACHE,
+      }
+    }
 
-        return mediaMetadata;
-    },
-});
+    const data = fillMediaMetadataResponseData(
+      mediaMetadata,
+      Path.posix(mediaFolderPath),
+    )
+    return toolOk(data)
+  },
+})
 
 const _GetMediaMetadataTool = makeAssistantTool({
-    ...getMediaMetadata,
-    toolName: "get-media-metadata",
-});
+  ...getMediaMetadata,
+  toolName: GET_MEDIA_METADATA,
+})
 
 export function GetMediaMetadataTool() {
-    const { folders } = useUIMediaFolderStoreState();
-    const queryClient = useQueryClient();
+  const { folders } = useUIMediaFolderStoreState()
+  const queryClient = useQueryClient()
+  useMediaMetadataToolBridge(folders, queryClient)
 
-    useEffect(() => {
-        mediaMetadatas = folders
-            .map((folder) => {
-                const pathPosix = normalizeMediaFolderPathForQuery(folder.path);
-                if (!pathPosix) return undefined;
-                return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(pathPosix));
-            })
-            .filter((metadata): metadata is MediaMetadata => metadata !== undefined);
-    }, [folders, queryClient]);
-
-    return <>
-        <_GetMediaMetadataTool />
-    </>
+  return <_GetMediaMetadataTool />
 }
-

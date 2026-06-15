@@ -12,6 +12,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import type { Tool as AssistantStreamTool } from '@assistant-ui/react'
 import { injectPendingFolderNoticeIntoMessages } from '../pendingFolderSwitch'
 import { prompts } from '../prompts'
+import { logger } from '../logger'
 
 /**
  * Configuration for {@link ReverseProxyChatTransport}.
@@ -125,6 +126,10 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
    */
   setTools(tools: Record<string, AssistantStreamTool> | undefined): void {
     this.mutableTools = tools
+    logger.debug(
+      { toolCount: tools ? Object.keys(tools).length : 0 },
+      'setTools: tools map updated',
+    )
   }
 
   async sendMessages(
@@ -139,6 +144,10 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
     // user at Settings → AI.
     const missingReason = this.describeMissingConfig()
     if (missingReason !== null) {
+      logger.warn(
+        { missingReason, trigger },
+        'transport not fully configured; returning guidance message',
+      )
       return this.createAssistantTextStream(missingReason)
     }
 
@@ -164,15 +173,35 @@ export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
     const aiTools = this.toStreamTextTools(
       this.mutableTools ?? this.config.tools,
     )
+    const toolNames = aiTools ? Object.keys(aiTools) : []
 
-    const result = streamText({
-      model: provider.chatModel(this.config.model as string),
-      messages: await convertToModelMessages(finalMessages),
-      system: prompts.system,
-      ...(aiTools ? { tools: aiTools } : {}),
-      stopWhen: stepCountIs(100),
-      abortSignal,
-    })
+    logger.info(
+      {
+        model: this.config.model,
+        trigger,
+        toolCount: toolNames.length,
+        toolNames,
+      },
+      'streamText: starting LLM call',
+    )
+
+    let result: ReturnType<typeof streamText>
+    try {
+      result = streamText({
+        model: provider.chatModel(this.config.model as string),
+        messages: await convertToModelMessages(finalMessages),
+        system: prompts.system,
+        ...(aiTools ? { tools: aiTools } : {}),
+        stopWhen: stepCountIs(100),
+        abortSignal,
+      })
+    } catch (error) {
+      logger.error(
+        { error: error instanceof Error ? error.message : String(error) },
+        'streamText: failed to start LLM call',
+      )
+      throw error
+    }
 
     // `toUIMessageStream()` returns an `AsyncIterableStream` which
     // extends `ReadableStream`, so it is a valid

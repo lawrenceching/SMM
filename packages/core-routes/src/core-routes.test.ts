@@ -188,8 +188,9 @@ describe("POST /api/isFolderAvailable", () => {
   });
 
   it("returns 200 with available false for a missing path", async () => {
+    const missingPath = path.join(os.tmpdir(), `smm-missing-${Date.now()}`);
     const { status, body } = await requestIsFolderAvailable(
-      JSON.stringify({ path: "/definitely/does/not/exist/anywhere" }),
+      JSON.stringify({ path: missingPath }),
     );
     expect(status).toBe(200);
     expect(body.available).toBe(false);

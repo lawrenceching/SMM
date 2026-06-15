@@ -58,7 +58,6 @@ async function readPlanFile(taskId: string): Promise<RecognizeMediaFilePlan | nu
  * @return The task ID
  */
 export async function beginRecognizeTask(mediaFolderPath: string): Promise<string> {
-  const taskId = crypto.randomUUID();
   const planId = crypto.randomUUID();
   const folderPathInPosix = Path.posix(mediaFolderPath);
   
@@ -71,10 +70,10 @@ export async function beginRecognizeTask(mediaFolderPath: string): Promise<strin
   };
   
   await ensurePlansDirExists();
-  const planFilePath = getPlanFilePath(taskId);
+  const planFilePath = getPlanFilePath(planId);
   await Bun.write(planFilePath, JSON.stringify(plan, null, 2));
   
-  return taskId;
+  return planId;
 }
 
 /**

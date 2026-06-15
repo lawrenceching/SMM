@@ -1,60 +1,38 @@
-import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from 'zod';
-import { useEffect } from "react";
-import type { MediaMetadata } from "@core/types";
-import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
-import { useQueryClient } from "@tanstack/react-query";
-import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/hooks/mediaMetadata";
+import { makeAssistantTool, tool } from '@assistant-ui/react'
+import { listFilesInMediaFolder } from '@/api/listFilesInMediaFolder'
+import {
+  createEmptyListFilesInMediaFolderData,
+} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
+import { formatToolError } from '@core/ai-tool/toolResult'
+import {
+  LIST_FILES_IN_MEDIA_FOLDER,
+  LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,
+  listFilesInMediaFolderInputSchema,
+  type ListFilesInMediaFolderToolOutput,
+} from '@core/types/ai-tools/listFilesInMediaFolder'
 
-interface ToolResponse {
-    message: string;
-    files: string[];
-}
+const listFilesInMediaFolderTool = tool({
+  description: LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,
+  parameters: listFilesInMediaFolderInputSchema,
+  execute: async (
+    params,
+    { abortSignal },
+  ): Promise<ListFilesInMediaFolderToolOutput> => {
+    try {
+      return await listFilesInMediaFolder(params, abortSignal)
+    } catch (error) {
+      return {
+        ...createEmptyListFilesInMediaFolderData(),
+        ...formatToolError(error),
+      }
+    }
+  },
+})
 
-let mediaMetadatas: MediaMetadata[] = [];
+export const GetFilesInMediaFolderTool = makeAssistantTool({
+  ...listFilesInMediaFolderTool,
+  toolName: LIST_FILES_IN_MEDIA_FOLDER,
+})
 
-const getFilesInMediaFolder = tool({
-    description: "List files in a media folder",
-    parameters: z.object({
-        path: z.string(),
-    }),
-    execute: async ({ path }) => {
-        const mediaMetadata = mediaMetadatas.find(metadata => metadata.mediaFolderPath === path)
-
-        if(!mediaMetadata) {
-            return {
-                message: `Media folder not found. The folder path may not correct or the folder is not managed by SMM`,
-                files: [],
-            } as ToolResponse;
-        }
-
-        return {
-            message: `${mediaMetadata.files?.length ?? 0} files in media folder: ${path}`,
-            files: mediaMetadata.files ?? [],
-        } as ToolResponse;
-    },
-});
-
-const _GetFilesInMediaFolderTool = makeAssistantTool({
-    ...getFilesInMediaFolder,
-    toolName: "get-files-in-media-folder",
-});
-
-export function GetFilesInMediaFolderTool() {
-    const { folders } = useUIMediaFolderStoreState();
-    const queryClient = useQueryClient();
-
-    useEffect(() => {
-        mediaMetadatas = folders
-            .map((folder) => {
-                const pathPosix = normalizeMediaFolderPathForQuery(folder.path);
-                if (!pathPosix) return undefined;
-                return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(pathPosix));
-            })
-            .filter((metadata): metadata is MediaMetadata => metadata !== undefined);
-    }, [folders, queryClient]);
-    
-    return <>
-    <_GetFilesInMediaFolderTool />
-    </>
-}
+/** @deprecated Use GetFilesInMediaFolderTool (tool name is list-files-in-media-folder) */
+export const ListFilesInMediaFolderTool = GetFilesInMediaFolderTool

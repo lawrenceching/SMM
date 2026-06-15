@@ -574,6 +574,9 @@ importers:
       slash:
         specifier: ^5.1.0
         version: 5.1.0
+      zod:
+        specifier: ^4.1.8
+        version: 4.3.6
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^4.0.18

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react"
+import { createContext, useContext, useState, useCallback, useRef } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n"
 import {
@@ -137,6 +137,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
   // Confirmation dialog state
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [confirmationConfig, setConfirmationConfig] = useState<DialogConfig | null>(null)
+  const confirmationConfigRef = useRef<DialogConfig | null>(null)
+  confirmationConfigRef.current = confirmationConfig
 
   // Spinner dialog state
   const [isSpinnerOpen, setIsSpinnerOpen] = useState(false)
@@ -220,14 +222,16 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   const closeConfirmation = useCallback(() => {
     setIsConfirmationOpen(false)
-    if (confirmationConfig?.onClose) {
-      confirmationConfig.onClose()
+    const config = confirmationConfigRef.current
+    if (config?.onClose) {
+      config.onClose()
     }
     // Clear config after a brief delay to allow animations to complete
     setTimeout(() => {
       setConfirmationConfig(null)
+      confirmationConfigRef.current = null
     }, 200)
-  }, [confirmationConfig])
+  }, [])
 
   const openSpinner = useCallback((message?: string) => {
     setSpinnerMessage(message)

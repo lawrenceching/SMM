@@ -1,25 +1,32 @@
 export type IsFolderAvailableResponseBody = {
- available: boolean
+  available: boolean
+  reason?: string
 }
 
 /**
  * Asks the CLI whether the given path is an existing, accessible directory.
- * Pass the same platform path string used elsewhere (e.g. list files,
- * metadata).
  */
+export async function postIsFolderAvailable(
+  path: string,
+  signal?: AbortSignal,
+): Promise<IsFolderAvailableResponseBody> {
+  const resp = await fetch('/api/isFolderAvailable', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+    signal,
+  })
+  if (!resp.ok) {
+    throw new Error(`isFolderAvailable: HTTP ${resp.status} ${resp.statusText}`)
+  }
+  return (await resp.json()) as IsFolderAvailableResponseBody
+}
+
+/** Convenience wrapper — returns only the boolean (UI initializer, hooks). */
 export async function isFolderAvailable(
- path: string,
- signal?: AbortSignal,
+  path: string,
+  signal?: AbortSignal,
 ): Promise<boolean> {
- const resp = await fetch('/api/isFolderAvailable', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ path }),
- signal,
- })
- if (!resp.ok) {
- throw new Error(`isFolderAvailable: HTTP ${resp.status} ${resp.statusText}`)
- }
- const data = (await resp.json()) as IsFolderAvailableResponseBody
- return data.available
+  const data = await postIsFolderAvailable(path, signal)
+  return data.available
 }

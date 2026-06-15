@@ -1,16 +1,11 @@
 import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { MediaMetadata, RenameValidationResult } from '@core/types';
+import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
-import { validateChainingConflicts } from '../validations/validateChainingConflicts';
-import { validateNoAbnormalPaths } from '../validations/validateNoAbnormalPaths';
-import { validateNoDuplicatedSourceFile } from '../validations/validateNoDuplicatedSourceFile';
-import { validateNoDuplicatedDestFile } from '../validations/validateNoDuplicatedDestFile';
-import { validateNoIdenticalSourceAndDestFile } from '../validations/validateNoIdenticalSourceAndDestFile';
 import { validateSourceFileExist } from '../validations/validateSourceFileExist';
 import { validateDestFileNotExist } from '../validations/validateDestFileNotExist';
-import { validatePathWithinMediaFolder } from '../validations/validatePathWithinMediaFolder';
 import pino from 'pino';
 import { askForRenameFilesConfirmation } from '@/events/askForRenameFilesConfirmation';
 
@@ -40,36 +35,18 @@ export async function validateRenameOperations(
   files: RenameFile[],
   folderPathInPosix: string,
 ): Promise<RenameValidationResult> {
-  const errors: string[] = [];
-  
-  // Filter out null/undefined tasks and normalize paths
   const normalizedTasks: RenameFile[] = [];
-  const taskIndexMap = new Map<number, number>(); // Maps original index to normalized index
-  
+
   for (let i = 0; i < files.length; i++) {
     const renameOp = files[i];
     if (!renameOp) {
-      logger.warn({
-        index: i
-      }, '[tool][renameFilesInBatch] Undefined rename operation at index, skipping');
+      logger.warn({ index: i }, '[tool][renameFilesInBatch] Undefined rename operation at index, skipping');
       continue;
     }
-    
-    const fromPathInPosix = Path.posix(renameOp.from);
-    const toPathInPosix = Path.posix(renameOp.to);
-    
-    logger.debug({
-      from: renameOp.from,
-      fromNormalized: fromPathInPosix,
-      to: renameOp.to,
-      toNormalized: toPathInPosix,
-      index: i
-    }, '[tool][renameFilesInBatch] Normalizing rename operation');
-    
-    taskIndexMap.set(normalizedTasks.length, i);
+
     normalizedTasks.push({
-      from: fromPathInPosix,
-      to: toPathInPosix
+      from: Path.posix(renameOp.from),
+      to: Path.posix(renameOp.to),
     });
   }
 
@@ -77,152 +54,38 @@ export async function validateRenameOperations(
     return {
       isValid: true,
       errors: [],
-      validatedRenames: []
+      validatedRenames: [],
     };
   }
 
-  // 1. Validate no abnormal paths (should be first)
-  const abnormalPathErrors = validateNoAbnormalPaths(normalizedTasks);
-  if (abnormalPathErrors.length > 0) {
-    errors.push(...abnormalPathErrors);
-    // Continue with other validations even if abnormal paths found
-  }
+  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
+  const errors = [...syncResult.errors];
 
-  // 2. Validate no duplicate source files
-  const duplicateSourceResult = validateNoDuplicatedSourceFile(normalizedTasks);
-  if (!duplicateSourceResult.isValid) {
-    for (const duplicatePath of duplicateSourceResult.duplicates) {
-      const indices: number[] = [];
-      normalizedTasks.forEach((task, idx) => {
-        if (task.from === duplicatePath) {
-          indices.push(taskIndexMap.get(idx) ?? idx);
-        }
-      });
-      errors.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
-    }
-  }
-
-  // 3. Validate no duplicate destination files
-  const duplicateDestResult = validateNoDuplicatedDestFile(normalizedTasks);
-  if (!duplicateDestResult.isValid) {
-    for (const duplicatePath of duplicateDestResult.duplicates) {
-      const indices: number[] = [];
-      normalizedTasks.forEach((task, idx) => {
-        if (task.to === duplicatePath) {
-          indices.push(taskIndexMap.get(idx) ?? idx);
-        }
-      });
-      errors.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(', ')})`);
-    }
-  }
-
-  // 4. Validate no identical source and destination
-  const identicalResult = validateNoIdenticalSourceAndDestFile(normalizedTasks);
-  if (!identicalResult.isValid) {
-    for (const identicalPath of identicalResult.identicals) {
-      logger.debug({
-        path: identicalPath
-      }, '[tool][renameFilesInBatch] From and to paths are the same, skipping');
-      // Note: We don't add this as an error, just skip these tasks (matching original behavior)
-    }
-  }
-
-  // 5. Validate no chaining conflicts
-  const sourcePaths = new Set<string>();
-  normalizedTasks.forEach(task => sourcePaths.add(task.from));
-  const hasChainingConflicts = !validateChainingConflicts(normalizedTasks);
-  const chainingConflictTasks = new Set<number>();
-  
-  if (hasChainingConflicts) {
-    // Find the conflicting paths
-    normalizedTasks.forEach((task, idx) => {
-      if (sourcePaths.has(task.to)) {
-        chainingConflictTasks.add(idx);
-        errors.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
-      }
-    });
-  }
-
-  // 6. Validate source files exist (async)
   const sourceExistResult = await validateSourceFileExist(normalizedTasks);
   if (!sourceExistResult.isValid) {
     for (const missingFile of sourceExistResult.missingFiles) {
-      logger.warn({
-        from: missingFile
-      }, '[tool][renameFilesInBatch] Source file not found');
+      logger.warn({ from: missingFile }, '[tool][renameFilesInBatch] Source file not found');
       errors.push(`Source file "${missingFile}" does not exist in the media folder`);
     }
   }
 
-  // 7. Validate destination files do not exist (async)
   const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
   if (!destNotExistResult.isValid) {
     for (const existingFile of destNotExistResult.existingFiles) {
-      logger.warn({
-        to: existingFile
-      }, '[tool][renameFilesInBatch] Target file already exists in filesystem');
+      logger.warn({ to: existingFile }, '[tool][renameFilesInBatch] Target file already exists in filesystem');
       errors.push(`Target file "${existingFile}" already exists in the filesystem`);
     }
   }
 
-  // 8. Validate paths are within media folder
-  const pathWithinFolderResult = validatePathWithinMediaFolder(folderPathInPosix, normalizedTasks);
-  if (!pathWithinFolderResult.isValid) {
-    for (const invalidPath of pathWithinFolderResult.invalidPaths) {
-      logger.warn({
-        path: invalidPath.path,
-        type: invalidPath.type,
-        folderPath: folderPathInPosix
-      }, `[tool][renameFilesInBatch] ${invalidPath.type === 'source' ? 'Source' : 'Target'} path outside media folder`);
-      errors.push(
-        `${invalidPath.type === 'source' ? 'Source' : 'Target'} path "${invalidPath.path}" is outside the media folder "${folderPathInPosix}"`
-      );
-    }
+  if (errors.length > 0) {
+    return {
+      isValid: false,
+      errors,
+      validatedRenames: [],
+    };
   }
 
-  // Build set of invalid tasks based on errors
-  const invalidTasks = new Set<number>();
-  
-  // Mark tasks with errors as invalid
-  normalizedTasks.forEach((task, idx) => {
-    // Check if this task has any errors
-    const hasError = 
-      abnormalPathErrors.some(e => e.includes(`"${task.from}"`) || e.includes(`"${task.to}"`)) ||
-      duplicateSourceResult.duplicates.includes(task.from) ||
-      duplicateDestResult.duplicates.includes(task.to) ||
-      identicalResult.identicals.includes(task.from) ||
-      sourceExistResult.missingFiles.includes(task.from) ||
-      destNotExistResult.existingFiles.includes(task.to) ||
-      pathWithinFolderResult.invalidPaths.some(p => p.path === task.from || p.path === task.to) ||
-      chainingConflictTasks.has(idx);
-    
-    if (hasError) {
-      invalidTasks.add(idx);
-    }
-  });
-
-  // Build validated renames list (exclude invalid tasks and identical source/dest)
-  const validatedRenames: RenameFile[] = [];
-  normalizedTasks.forEach((task, idx) => {
-    if (!invalidTasks.has(idx) && task.from !== task.to) {
-      validatedRenames.push({
-        from: task.from,
-        to: task.to
-      });
-      
-      logger.debug({
-        from: task.from,
-        to: task.to,
-        originalIndex: taskIndexMap.get(idx)
-      }, '[tool][renameFilesInBatch] Rename operation validation passed');
-    }
-  });
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    validatedRenames
-  };
+  return syncResult;
 }
 
 /**

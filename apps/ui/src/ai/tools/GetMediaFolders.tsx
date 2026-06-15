@@ -1,22 +1,34 @@
-import { readFileApi } from "@/api/readFile";
-import { makeAssistantTool, tool } from "@assistant-ui/react";
-import { z } from 'zod';
-import { hello } from "@/api/hello";
-import { join } from "@/lib/path";
-import type { UserConfig } from "@core/types";
+import { makeAssistantTool, tool } from '@assistant-ui/react'
+import { readUserConfig } from '@/api/readUserConfig'
+import {
+  buildGetMediaFoldersResponse,
+  createEmptyGetMediaFoldersData,
+} from '@core/ai-tool/buildGetMediaFoldersResponse'
+import { formatToolError, toolOk } from '@core/ai-tool/toolResult'
+import {
+  GET_MEDIA_FOLDERS,
+  GET_MEDIA_FOLDERS_DESCRIPTION,
+  getMediaFoldersInputSchema,
+  type GetMediaFoldersToolOutput,
+} from '@core/types/ai-tools/getMediaFolders'
 
 const getMediaFolders = tool({
-    description: "Get media folders that managed by SMM",
-    parameters: z.object({}),
-    execute: async ({ }) => {
-        const { userDataDir } = await hello();
-        const userConfig: UserConfig = await readFileApi(join(userDataDir, 'smm.json'));
-        const folders = userConfig.folders;
-        return folders;
-    },
-});
-// Create the component
+  description: GET_MEDIA_FOLDERS_DESCRIPTION,
+  parameters: getMediaFoldersInputSchema,
+  execute: async (): Promise<GetMediaFoldersToolOutput> => {
+    try {
+      const userConfig = await readUserConfig()
+      return toolOk(buildGetMediaFoldersResponse(userConfig))
+    } catch (error) {
+      return {
+        ...createEmptyGetMediaFoldersData(),
+        ...formatToolError(error),
+      }
+    }
+  },
+})
+
 export const GetMediaFoldersTool = makeAssistantTool({
-    ...getMediaFolders,
-    toolName: "get-media-folders",
-});
+  ...getMediaFolders,
+  toolName: GET_MEDIA_FOLDERS,
+})

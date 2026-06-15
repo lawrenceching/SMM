@@ -46,7 +46,10 @@ export async function handleAiRecognizeConfirm(
     await applyRecognizeMediaFilePlan(plan, mediaMetadata, persist, { traceId })
     console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
     toast.success(`Applied recognition for ${plan.files.length} file(s)`)
-    await updatePlan(plan.id, "completed")
+    const isTmp = 'tmp' in plan && (plan as { tmp?: boolean }).tmp === true
+    if (!isTmp) {
+      await updatePlan(plan.id, "completed")
+    }
   } catch (error) {
     console.error(`[${traceId}] Error applying recognition:`, error)
     toast.error("Failed to apply recognition")

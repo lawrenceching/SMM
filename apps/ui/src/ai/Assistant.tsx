@@ -9,37 +9,48 @@ import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { useConfig } from "@/hooks/userConfig/useConfig";
 import { useFeatures } from "@/hooks/useFeatures";
 import { isHarmonyOS } from "@/lib/isHarmonyOS";
-import { prompts } from "./prompts";
+import { cleanupStalePlans } from "./planStore";
 import { ReverseProxyChatTransport } from "./transport/reverseProxyChatTransport";
 import { useAssistantTools } from "./hooks/useAssistantTools";
 import {
     GetApplicationContextTool,
+    GetMediaFoldersTool,
     GetFilesInMediaFolderTool,
+    IsFolderExistTool,
+    GetEpisodesTool,
+    GetMediaMetadataTool,
+    RenameFolderTool,
+    BeginRecognizeTaskTool,
+    AddRecognizedMediaFileTool,
+    EndRecognizeTaskTool,
+    BeginRenameFilesTaskTool,
+    AddRenameFileToTaskTool,
+    EndRenameFilesTaskTool,
 } from "./tools";
+import { AIBasedConfirmationBridge } from "./AIBasedConfirmationBridge";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import {
     injectPendingFolderNoticeIntoMessages,
     onSelectedFolderPathChanged,
 } from "./pendingFolderSwitch";
+import { prompts } from "./prompts";
 
 function ModelContext() {
     const api = useAssistantApi();
-    const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder);
-    const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
 
     useEffect(() => {
-        console.log(`re-register model context for media folder: ${selectedMediaMetadata?.mediaFolderPath}`);
-
-        // Register context provider
+        // The system prompt is a compile-time constant from
+        // `@core/ai-tool/systemPrompt` and never depends on
+        // runtime state, so we register the context provider once
+        // and let it remain stable for the lifetime of the
+        // assistant-ui runtime.
         return api.modelContext().register({
           getModelContext: () => ({
             system: prompts.system,
           }),
         });
-
-        
-      }, [api, selectedMediaMetadata]);
+      }, [api]);
 
       return <></>
 }
@@ -177,6 +188,10 @@ function AssistantImpl() {
     const { isUIAiChatTransportEnabled } = useFeatures()
     const isHarmony = useMemo(() => isHarmonyOS(), [])
 
+    useEffect(() => {
+        void cleanupStalePlans()
+    }, [])
+
     const transport = useMemo(() => {
         // Use the in-process `ReverseProxyChatTransport` when either:
         //   1. We're running on HarmonyOS (the ohos Electron main
@@ -296,11 +311,20 @@ function AssistantImpl() {
     return <AssistantRuntimeProvider runtime={runtime}>
         <SelectedFolderSwitchNotifier />
         <ModelContext/>
-        {/* <GetMediaFoldersTool /> */}
         <GetFilesInMediaFolderTool />
         <GetApplicationContextTool />
-        {/* <GetMediaMetadataTool />
-        <MatchEpisodeTool /> */}
+        <IsFolderExistTool />
+        <GetEpisodesTool />
+        <RenameFolderTool />
+        <BeginRecognizeTaskTool />
+        <AddRecognizedMediaFileTool />
+        <EndRecognizeTaskTool />
+        <BeginRenameFilesTaskTool />
+        <AddRenameFileToTaskTool />
+        <EndRenameFilesTaskTool />
+        <GetMediaMetadataTool />
+        <GetMediaFoldersTool />
+        <AIBasedConfirmationBridge />
         <ToolsBridge
             transport={
                 transport instanceof ReverseProxyChatTransport ? transport : null

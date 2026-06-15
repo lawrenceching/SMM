@@ -42,7 +42,7 @@ describe('AI Assistant - ListFiles Tool', async () => {
     await Sidebar.waitForFolderName(importedFolder.folderName!, 60000)
 
     const response = await listFilesTool({
-      folderPath: importedFolder.path!,
+      mediaFolderPath: importedFolder.path!,
     })
 
     expect(response.success).toBe(true)

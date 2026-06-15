@@ -1,167 +1,128 @@
-import { Path } from "@core/path";
-import { videoFileExtensions } from "@core/utils";
-import { listFiles } from "@/utils/files";
-import { z } from "zod";
-import type { ToolDefinition } from "./types";
-import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
-import { getLocalizedToolDescription } from '@/i18n/helpers';
+import { z } from 'zod'
+import type { ToolDefinition } from './types'
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/mcp/tools/mcpToolBase'
+import { getLocalizedToolDescription } from '@/i18n/helpers'
+import { doListFiles } from '@/route/ListFiles'
+import {
+  buildListFilesInMediaFolderResponse,
+  createEmptyListFilesInMediaFolderData,
+} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
+import { formatToolError } from '@core/ai-tool/toolResult'
 
-interface ListFilesParams {
-  /** Path to the directory to list files from */
-  folderPath: string;
-  /** Whether to list files recursively (default: false) */
-  recursive?: boolean;
-  /** Filter pattern for files/folders (supports wildcards) */
-  filter?: string;
-  /** Whether to return only video files (default: false) */
-  videoFileOnly?: boolean;
+export interface ListFilesMcpParams {
+  folderPath: string
+  recursive?: boolean
+  filter?: string
+  videoFileOnly?: boolean
 }
 
 /**
- * Check if a file path has a video file extension.
+ * Generic filesystem listing for MCP `list-files` (no managed-folder check).
+ * Prefer `list-files-in-media-folder` for AI Assistant media workflows.
  */
-function isVideoFile(filePath: string): boolean {
-  const path = new Path(filePath);
-  const ext = path.name().substring(path.name().lastIndexOf('.')).toLowerCase();
-  return videoFileExtensions.includes(ext);
-}
+export async function executeListFilesMcp(
+  params: ListFilesMcpParams,
+  abortSignal?: AbortSignal,
+): Promise<
+  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
+> {
+  if (abortSignal?.aborted) {
+    return createErrorResponse('Request was aborted')
+  }
 
-/**
- * List files and folders in a directory with optional filtering.
- * Accepts paths in both POSIX and Windows format.
- */
-export async function handleListFiles(params: ListFilesParams): Promise<ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>> {
-  const { folderPath, videoFileOnly } = params;
+  const { folderPath, recursive, videoFileOnly } = params
+  const empty = createEmptyListFilesInMediaFolderData()
 
-  if (!folderPath || typeof folderPath !== "string" || folderPath.trim() === "") {
-    return createErrorResponse("Invalid path: path must be a non-empty string");
+  if (!folderPath || typeof folderPath !== 'string' || folderPath.trim() === '') {
+    return createErrorResponse(
+      'Invalid path: path must be a non-empty string',
+    )
   }
 
   try {
-    const normalizedPath = Path.toPlatformPath(folderPath);
-    let files = await listFiles(new Path(normalizedPath), true);
+    const listResult = await doListFiles({
+      path: folderPath,
+      recursively: recursive ?? false,
+      onlyFiles: true,
+    })
 
-    // Filter for video files only if requested
-    if (videoFileOnly) {
-      files = files.filter(isVideoFile);
+    if (listResult.error) {
+      return createErrorResponse(listResult.error)
     }
 
-    // Return paths in OS-native format for tool consumers (e.g. shell, file dialogs)
-    const platformFiles = files.map((p) => Path.toPlatformPath(p));
+    const filePaths =
+      listResult.data?.items
+        .filter((item) => !item.isDirectory)
+        .map((item) => item.path) ?? []
 
-    return createSuccessResponse({
-      files: platformFiles,
-      count: platformFiles.length,
-    });
+    const data = buildListFilesInMediaFolderResponse(
+      filePaths,
+      videoFileOnly ?? false,
+    )
+    return createSuccessResponse(data)
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createErrorResponse(`Error listing files: ${message}`);
+    const message = formatToolError(error).error
+    return createErrorResponse(message)
   }
 }
 
-export const getTool = async function (clientId?: string): Promise<ToolDefinition> {
-  // Use i18n to get localized tool description based on global user's language preference
-  const description = await getLocalizedToolDescription('list-files');
+const listFilesMcpInputSchema = z.object({
+  folderPath: z
+    .string()
+    .describe('The absolute path of the folder to list files from'),
+  recursive: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to list files recursively (default: false)'),
+  filter: z
+    .string()
+    .optional()
+    .describe('Filter pattern for files/folders (supports wildcards)'),
+  videoFileOnly: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to return only video files (default: false)'),
+})
+
+export async function listFilesMcpTool(): Promise<ToolDefinition> {
+  const description = await getLocalizedToolDescription('list-files')
 
   return {
-    toolName: "list-files",
-    description: description,
-    inputSchema: z.object({
-      folderPath: z.string().describe("The absolute path of the folder to list files from"),
-      recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
-      filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
-      videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
-    }),
+    toolName: 'list-files',
+    description,
+    inputSchema: listFilesMcpInputSchema,
     outputSchema: z.object({
-      files: z.array(z.string()).describe("Array of file paths"),
-      count: z.number().describe("Number of files listed"),
+      files: z.array(z.string()).describe('Array of file paths'),
+      count: z.number().describe('Number of files listed'),
     }),
-    execute: async (args: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }) => {
-      return handleListFiles(args);
-    },
-  };
+    execute: async (args: ListFilesMcpParams) => executeListFilesMcp(args),
+  }
 }
 
-/**
- * Returns a tool definition with localized description for AI agent usage.
- * The description is localized based on the global user's language preference.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @returns Promise resolving to localized tool definition
- */
-/**
- * Returns a tool definition for AI agent usage.
- * Uses fixed English description for synchronous return.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @returns Tool definition (synchronous)
- */
-export function listFilesAgentTool(clientId: string) {
-  return {
-    description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in the OS native format.",
-    inputSchema: z.object({
-      folderPath: z.string().describe("The absolute path of the folder to list files from"),
-      recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
-      filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
-      videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
-    }),
-    outputSchema: z.object({
-      files: z.array(z.string()).describe("Array of file paths"),
-      count: z.number().describe("Number of files listed"),
-    }),
-    execute: async (args: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }) => {
-      return handleListFiles(args);
-    },
-  };
-}
-
-/**
- * Returns a tool definition with localized description for MCP server usage.
- * MCP tools use the global user's language preference.
- *
- * @returns Promise resolving to tool definition
- */
-export async function listFilesMcpTool() {
-  return getTool();
-}
-
-// Keep the original export for backward compatibility
+/** @deprecated Use executeListFilesInMediaFolder from listFilesInMediaFolder.ts */
 export const listFilesTool = {
-  description: "List all files in a folder recursively. Accepts paths in POSIX or Windows format. Returns file paths in the OS native format.",
-  inputSchema: z.object({
-    folderPath: z.string().describe("The absolute path of the folder to list files from"),
-    recursive: z.boolean().optional().default(false).describe("Whether to list files recursively (default: false)"),
-    filter: z.string().optional().describe("Filter pattern for files/folders (supports wildcards)"),
-    videoFileOnly: z.boolean().optional().default(false).describe("Whether to return only video files (default: false)"),
-  }),
-  execute: async ({ folderPath, recursive, filter, videoFileOnly }: { folderPath: string; recursive?: boolean; filter?: string; videoFileOnly?: boolean }, abortSignal?: AbortSignal) => {
-    if (abortSignal?.aborted) {
-      throw new Error("Request was aborted");
+  description:
+    'List all files in a folder recursively. Accepts paths in POSIX or Windows format.',
+  inputSchema: listFilesMcpInputSchema,
+  execute: async (
+    { folderPath, recursive, videoFileOnly }: ListFilesMcpParams,
+    abortSignal?: AbortSignal,
+  ) => {
+    const result = await executeListFilesMcp(
+      { folderPath, recursive, videoFileOnly },
+      abortSignal,
+    )
+    if (result.isError) {
+      throw new Error(result.content[0]?.text ?? 'Unknown error')
     }
-
-    if (!folderPath || typeof folderPath !== "string" || folderPath.trim() === "") {
-      return { files: [], count: 0, error: "Invalid path: path must be a non-empty string" };
-    }
-
-    try {
-      const normalizedPath = Path.toPlatformPath(folderPath);
-      let files = await listFiles(new Path(normalizedPath), true);
-
-      // Filter for video files only if requested
-      if (videoFileOnly) {
-        files = files.filter(isVideoFile);
-      }
-
-      // Return paths in OS-native format for tool consumers
-      const platformFiles = files.map((p) => Path.toPlatformPath(p));
-
-      return {
-        files: platformFiles,
-        count: platformFiles.length,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Error listing files: ${message}`);
+    return result.structuredContent as {
+      files: string[]
+      count: number
     }
   },
-};
+}

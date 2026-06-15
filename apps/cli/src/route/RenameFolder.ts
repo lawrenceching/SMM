@@ -5,6 +5,7 @@ import { rename } from 'fs/promises';
 import { getUserConfig, renameFolderInUserConfig, writeUserConfig } from '@/utils/config';
 import { renameMediaFolderInMediaMetadata } from '@/utils/mediaMetadataUtils';
 import { deleteMediaMetadataFile, findMediaMetadata, writeMediaMetadata } from '@/utils/mediaMetadata';
+import { broadcastUserConfigFolderRenamedEvent } from '@/events/userConfigUpdatedEvent';
 import { broadcast } from '@/utils/socketIO';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
@@ -77,6 +78,14 @@ export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: s
     await writeUserConfig(newUserConfig);
     
     await rename(from, to);
+
+    const fromPlatformPath = Path.toPlatformPath(fromAsPosix);
+    const toPlatformPath = Path.toPlatformPath(toAsPosix);
+
+    broadcastUserConfigFolderRenamedEvent({
+      from: fromPlatformPath,
+      to: toPlatformPath,
+    });
 
     broadcast({
       clientId: clientId,

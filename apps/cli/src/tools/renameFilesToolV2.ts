@@ -4,6 +4,10 @@ import {
   type RenameFilesPlanReadyRequestData,
 } from '@core/event-types'
 import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
+import {
+  createEmptyRenamePlan,
+  prepareAppendRenameEntry,
+} from '@core/plan/renamePlan'
 import { getUserDataDir } from '@/utils/config'
 import path from 'path'
 import { mkdir, readdir, stat } from 'fs/promises'
@@ -19,9 +23,9 @@ function getPlansDir(): string {
   return path.join(userDataDir, 'plans')
 }
 
-export function getPlanFilePath(taskId: string): string {
+export function getPlanFilePath(planId: string): string {
   const plansDir = getPlansDir()
-  return path.join(plansDir, `${taskId}.plan.json`)
+  return path.join(plansDir, `${planId}.plan.json`)
 }
 
 async function ensurePlansDirExists(): Promise<void> {
@@ -29,10 +33,10 @@ async function ensurePlansDirExists(): Promise<void> {
   await mkdir(plansDir, { recursive: true })
 }
 
-export async function readRenamePlanFile(taskId: string): Promise<RenameFilesPlan | null> {
-  const planFilePath = getPlanFilePath(taskId)
-  const file = Bun.file(planFilePath)
+export async function readRenamePlanFile(planId: string): Promise<RenameFilesPlan | null> {
+  const planFilePath = getPlanFilePath(planId)
 
+  const file = Bun.file(planFilePath)
   if (!(await file.exists())) {
     return null
   }
@@ -42,41 +46,33 @@ export async function readRenamePlanFile(taskId: string): Promise<RenameFilesPla
     return content as RenameFilesPlan
   } catch (error) {
     throw new Error(
-      `Failed to read plan file: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to read plan file: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
 }
 
-/**
- * Begin a rename-files task V2. Creates a plan file in plans/ and returns the task ID.
- */
-export async function beginRenameFilesTaskV2(mediaFolderPath: string): Promise<string> {
-  const taskId = crypto.randomUUID()
-  const planId = crypto.randomUUID()
-  const folderPathInPosix = Path.posix(mediaFolderPath)
-
-  const plan: RenameFilesPlan = {
-    id: planId,
-    task: 'rename-files',
-    status: 'pending',
-    mediaFolderPath: folderPathInPosix,
-    files: [],
-  }
-
+async function writeRenamePlanFile(plan: RenameFilesPlan): Promise<void> {
   await ensurePlansDirExists()
-  const planFilePath = await getPlanFilePath(taskId)
+  const planFilePath = getPlanFilePath(plan.id)
   await Bun.write(planFilePath, JSON.stringify(plan, null, 2))
-
-  return taskId
 }
 
 /**
- * Add a rename entry (from, to) to an existing rename task V2.
+ * Begin a rename-files task. Creates a plan file and returns plan.id (taskId).
+ */
+export async function beginRenameFilesTaskV2(mediaFolderPath: string): Promise<string> {
+  const plan = createEmptyRenamePlan(mediaFolderPath)
+  await writeRenamePlanFile(plan)
+  return plan.id
+}
+
+/**
+ * Add a rename entry to an existing rename task.
  */
 export async function addRenameFileToTaskV2(
   taskId: string,
   from: string,
-  to: string
+  to: string,
 ): Promise<void> {
   const plan = await readRenamePlanFile(taskId)
 
@@ -84,41 +80,27 @@ export async function addRenameFileToTaskV2(
     throw new Error(`Task with id ${taskId} not found`)
   }
 
-  const fromPosix = Path.posix(from)
-  const toPosix = Path.posix(to)
+  const result = await prepareAppendRenameEntry(plan, { from, to }, {
+    validateOperations: validateRenameOperations,
+    getMediaMetadata: async (folderPathInPosix) => {
+      return (await findMediaMetadata(folderPathInPosix)) ?? null
+    },
+  })
 
-  const candidateFiles = [...plan.files, { from: fromPosix, to: toPosix }]
-  const validationResult = await validateRenameOperations(candidateFiles, plan.mediaFolderPath)
-  if (!validationResult.isValid) {
-    throw new Error(validationResult.errors.join('\n'))
+  if ('error' in result) {
+    throw new Error(result.error.replace(/^Error Reason: /, ''))
   }
 
-  const mm = await findMediaMetadata(plan.mediaFolderPath)
-  if (!mm) {
-    throw new Error(`Media metadata not found for media folder: ${plan.mediaFolderPath}`)
-  }
-
-  const mediaFile = (mm.mediaFiles ?? []).find( mf => mf.absolutePath === fromPosix )
-  if(!mediaFile) {
-    throw new Error(`Not Episode Video File`)
-  }
-
-  plan.files.push({ from: fromPosix, to: toPosix })
-
-  const planFilePath = getPlanFilePath(taskId)
-  await Bun.write(planFilePath, JSON.stringify(plan, null, 2))
+  await writeRenamePlanFile(result)
 }
 
-/**
- * Get a rename task by ID.
- */
 export async function getRenameTask(taskId: string): Promise<RenameFilesPlan | undefined> {
   const plan = await readRenamePlanFile(taskId)
   return plan ?? undefined
 }
 
 /**
- * End a rename task V2: persist plan and broadcast RenameFilesPlanReady.
+ * End a rename task: persist plan and broadcast RenameFilesPlanReady.
  */
 export async function endRenameFilesTaskV2(taskId: string): Promise<void> {
   const plan = await readRenamePlanFile(taskId)
@@ -127,11 +109,11 @@ export async function endRenameFilesTaskV2(taskId: string): Promise<void> {
     throw new Error(`Task with id ${taskId} not found`)
   }
 
-  const planFilePath = getPlanFilePath(taskId)
+  const planFilePath = getPlanFilePath(plan.id)
   const planFilePathInPosix = Path.posix(planFilePath)
 
   const data: RenameFilesPlanReadyRequestData = {
-    taskId,
+    taskId: plan.id,
     planFilePath: planFilePathInPosix,
   }
 
@@ -143,12 +125,9 @@ export async function endRenameFilesTaskV2(taskId: string): Promise<void> {
 
 export type UpdateRenamePlanStatus = 'rejected' | 'completed'
 
-/**
- * Update a rename plan's status. Only plans in "pending" can be updated.
- */
 export async function updateRenamePlanStatus(
   planId: string,
-  status: UpdateRenamePlanStatus
+  status: UpdateRenamePlanStatus,
 ): Promise<void> {
   const plansDir = getPlansDir()
 
@@ -157,7 +136,7 @@ export async function updateRenamePlanStatus(
     if (!stats.isDirectory()) {
       throw new Error('Plans path exists but is not a directory')
     }
-  } catch (error) {
+  } catch {
     throw new Error('Plans directory does not exist')
   }
 
@@ -193,7 +172,7 @@ export async function updateRenamePlanStatus(
     } catch (error) {
       logger.warn(
         { planFilePath, error: error instanceof Error ? error.message : String(error) },
-        'Failed to parse plan file, skipping'
+        'Failed to parse plan file, skipping',
       )
     }
   }
@@ -201,10 +180,6 @@ export async function updateRenamePlanStatus(
   throw new Error(`Plan with id "${planId}" not found`)
 }
 
-/**
- * Find a rename plan by its plan ID (the plan's .id field).
- * Scans the plans directory for a plan file with task === 'rename-files' and id === planId.
- */
 export async function getRenamePlanByPlanId(planId: string): Promise<RenameFilesPlan | null> {
   const plansDir = getPlansDir()
   try {
@@ -232,9 +207,6 @@ export async function getRenamePlanByPlanId(planId: string): Promise<RenameFiles
   return null
 }
 
-/**
- * Return all pending rename plans from the plans directory.
- */
 export async function getAllPendingRenamePlans(): Promise<RenameFilesPlan[]> {
   const plansDir = getPlansDir()
   const pending: RenameFilesPlan[] = []
@@ -279,7 +251,7 @@ export async function getAllPendingRenamePlans(): Promise<RenameFilesPlan[]> {
       } catch (error) {
         logger.warn(
           { planFilePath, error: error instanceof Error ? error.message : String(error) },
-          'Failed to parse plan file, skipping'
+          'Failed to parse plan file, skipping',
         )
       }
     }
@@ -288,7 +260,7 @@ export async function getAllPendingRenamePlans(): Promise<RenameFilesPlan[]> {
   } catch (error) {
     logger.error(
       { plansDir, error: error instanceof Error ? error.message : String(error) },
-      'Failed to read plans directory'
+      'Failed to read plans directory',
     )
     return []
   }

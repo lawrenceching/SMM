@@ -1,282 +1,223 @@
-import { Path } from "@core/path";
-import { z } from "zod";
-import type { ToolDefinition } from "./types";
-import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
-import { acknowledge } from "@/utils/socketIO";
-import logger from "../../lib/logger";
-import { broadcastUserConfigFolderRenamedEvent } from "@/events/userConfigUpdatedEvent";
-import { getLocalizedToolDescription } from '@/i18n/helpers';
-import { doRenameFolder } from "@/route/RenameFolder";
+import { Path } from '@core/path'
+import {
+  buildRenameFolderConfirmationMessage,
+} from '@core/ai-tool/renameFolderConfirm'
+import {
+  renameFolderCancelled,
+  renameFolderFailed,
+  renameFolderSucceeded,
+} from '@core/ai-tool/renameFolderResult'
+import { requireNonEmptyString } from '@core/ai-tool/toolResult'
+import {
+  RENAME_FOLDER,
+  RENAME_FOLDER_DESCRIPTION,
+  renameFolderInputSchema,
+  renameFolderOutputSchema,
+  type RenameFolderOutput,
+} from '@core/types/ai-tools/renameFolder'
+import type { ToolDefinition } from './types'
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/mcp/tools/mcpToolBase'
+import { acknowledge } from '@/utils/socketIO'
+import logger from '../../lib/logger'
+import { getLocalizedToolDescription } from '@/i18n/helpers'
+import { doRenameFolder } from '@/route/RenameFolder'
 
 export interface RenameFolderParams {
-  from: string;
-  to: string;
+  from: string
+  to: string
+}
+
+function toMcpResponse(result: RenameFolderOutput) {
+  if (result.error && !result.renamed) {
+    return createSuccessResponse(result)
+  }
+  if (result.renamed) {
+    return createSuccessResponse(result)
+  }
+  return createSuccessResponse(result)
 }
 
 /**
- * Rename a media folder.
- * This is a destructive operation - the folder will be renamed on disk.
- * Metadata cache files will also be updated.
+ * Core rename-folder execution (no confirmation). Used by MCP and agent after confirm.
  */
-export async function handleRenameFolder(
+export async function executeRenameFolder(
   params: RenameFolderParams,
-  abortSignal?: AbortSignal
-): Promise<ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>> {
+  abortSignal?: AbortSignal,
+): Promise<RenameFolderOutput> {
+  logger.info(
+    { params, file: 'tools/renameFolder.ts' },
+    `[tool][${RENAME_FOLDER}] started`,
+  )
 
-  logger.info({
-    params,
-    file: "tools/renameFolder.ts"
-  }, "[MCP] rename-folder tool started")
-
-  const { from, to } = params;
-
-  // Check for abort signal
   if (abortSignal?.aborted) {
-    logger.info({
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool aborted: abort signal detected")
-    return createErrorResponse("Request was aborted");
+    logger.info(
+      { file: 'tools/renameFolder.ts' },
+      `[tool][${RENAME_FOLDER}] aborted`,
+    )
+    throw new Error('Request was aborted')
   }
 
-  // Validate 'from' path
-  if (!from || typeof from !== "string" || from.trim() === "") {
-    logger.warn({
-      from,
-      reason: "from path is empty or invalid",
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool validation failed: invalid 'from' path")
-    return createSuccessResponse({ renamed: false, from: "", to: "", error: "Invalid path: 'from' must be a non-empty string" });
+  const fromCheck = requireNonEmptyString(params.from, 'from')
+  if (typeof fromCheck !== 'string') {
+    return renameFolderFailed('', '', fromCheck.error)
   }
-
-  // Validate 'to' path
-  if (!to || typeof to !== "string" || to.trim() === "") {
-    logger.warn({
-      to,
-      reason: "to path is empty or invalid",
-      file: "tools/renameFolder.ts"
-    }, "[MCP] rename-folder tool validation failed: invalid 'to' path")
-    return createSuccessResponse({ renamed: false, from: from || "", to: "", error: "Invalid path: 'to' must be a non-empty string" });
+  const toCheck = requireNonEmptyString(params.to, 'to')
+  if (typeof toCheck !== 'string') {
+    return renameFolderFailed(fromCheck, '', toCheck.error)
   }
 
   try {
-    const result = await doRenameFolder({ from, to });
-
-    const fromPlatformPath = Path.toPlatformPath(from);
-    const toPlatformPath = Path.toPlatformPath(to);
+    const result = await doRenameFolder({ from: fromCheck, to: toCheck })
 
     if (result.error) {
-      logger.info({
-        from, to, error: result.error,
-        file: "tools/renameFolder.ts",
-      }, "[MCP] rename-folder tool ended with error from doRenameFolder")
-      return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: result.error });
+      logger.info(
+        { from: fromCheck, to: toCheck, error: result.error },
+        `[tool][${RENAME_FOLDER}] doRenameFolder error`,
+      )
+      return renameFolderFailed(fromCheck, toCheck, result.error)
     }
 
-    broadcastUserConfigFolderRenamedEvent({
-      from: fromPlatformPath,
-      to: toPlatformPath,
-    });
-
-    const resp = createSuccessResponse({ renamed: true, from: fromPlatformPath, to: toPlatformPath });
-    logger.info({
-      params,
-      file: "tools/renameFolder.ts",
-      response: resp,
-    }, "[MCP] rename-folder tool ended")
-
-    return resp;
+    const success = renameFolderSucceeded(fromCheck, toCheck)
+    logger.info(
+      { params, response: success },
+      `[tool][${RENAME_FOLDER}] succeeded`,
+    )
+    return success
   } catch (error) {
-    logger.error({
-      params,
-      file: "tools/renameFolder.ts",
-      error: error instanceof Error ? error.message : String(error),
-    }, "[MCP] rename-folder tool ended with error")
-    const message = error instanceof Error ? error.message : String(error);
-    const fromPlatformPath = Path.toPlatformPath(from);
-    const toPlatformPath = Path.toPlatformPath(to);
-    return createSuccessResponse({ renamed: false, from: fromPlatformPath, to: toPlatformPath, error: `Error renaming folder: ${message}` });
+    const message = error instanceof Error ? error.message : String(error)
+    logger.error(
+      { params, error: message },
+      `[tool][${RENAME_FOLDER}] unexpected error`,
+    )
+    return renameFolderFailed(
+      fromCheck,
+      toCheck,
+      `Error renaming folder: ${message}`,
+    )
   }
 }
 
-export const getTool = async function (abortSignal?: AbortSignal): Promise<ToolDefinition> {
-  // Use i18n to get localized tool description based on global user's language preference
-  const description = await getLocalizedToolDescription('rename-folder');
-
-  return {
-    toolName: "rename-folder",
-    description: description,
-    inputSchema: z.object({
-      from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
-      to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
-    }),
-    outputSchema: z.object({
-      renamed: z.boolean().describe("Whether the folder was successfully renamed"),
-      from: z.string().describe("The source path after normalization"),
-      to: z.string().describe("The destination path after normalization"),
-      error: z.string().optional().describe("Error message if rename failed"),
-    }),
-    execute: async (args: { from: string; to: string }) => {
-      return handleRenameFolder(args, abortSignal);
-    },
-  };
+/** @deprecated Use executeRenameFolder — kept for MCP registration */
+export async function handleRenameFolder(
+  params: RenameFolderParams,
+  abortSignal?: AbortSignal,
+): Promise<
+  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
+> {
+  try {
+    const result = await executeRenameFolder(params, abortSignal)
+    return toMcpResponse(result)
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Request was aborted',
+    )
+  }
 }
 
-/**
- * Returns a tool definition with localized description for AI agent usage.
- * The description is localized based on the global user's language preference.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @param abortSignal - Optional abort signal for request cancellation
- * @returns Promise resolving to localized tool definition
- */
-/**
- * Returns a tool definition for AI agent usage.
- * Uses fixed English description for synchronous return.
- *
- * @param clientId - Socket.IO client ID (for tool execution, not language)
- * @param abortSignal - Optional abort signal for request cancellation
- * @returns Tool definition (synchronous)
- */
-export function renameFolderAgentTool(clientId: string, abortSignal?: AbortSignal) {
-  return {
-    description: `Rename a media folder in SMM.
-This tool accepts the source folder path and destination folder path.
-This tool should ONLY be used to rename FOLDER, NOT FILE
-This tool will update media metadata accordingly.
+async function confirmRenameFolderViaSocket(
+  clientId: string,
+  from: string,
+  to: string,
+): Promise<RenameFolderOutput | null> {
+  const confirmationMessage = buildRenameFolderConfirmationMessage(from, to)
 
-Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".`,
-    inputSchema: z.object({
-      from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
-      to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
-    }),
-    outputSchema: z.object({
-      renamed: z.boolean().describe("Whether the folder was successfully renamed"),
-      from: z.string().describe("The source path after normalization"),
-      to: z.string().describe("The destination path after normalization"),
-      error: z.string().optional().describe("Error message if rename failed"),
-    }),
-    execute: async (args: { from: string; to: string }) => {
+  try {
+    const responseData = await acknowledge({
+      event: 'askForConfirmation',
+      data: { message: confirmationMessage },
+      clientId,
+    })
+
+    const confirmed =
+      responseData?.confirmed ?? responseData?.response === 'yes'
+
+    if (!confirmed) {
+      return renameFolderCancelled(from, to)
+    }
+    return null
+  } catch (error) {
+    return renameFolderFailed(
+      from,
+      to,
+      `Failed to get user confirmation: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
+  }
+}
+
+function createAgentRenameFolderTool(
+  clientId: string,
+  abortSignal?: AbortSignal,
+) {
+  return {
+    description: RENAME_FOLDER_DESCRIPTION,
+    inputSchema: renameFolderInputSchema,
+    outputSchema: renameFolderOutputSchema,
+    execute: async (args: RenameFolderParams): Promise<RenameFolderOutput> => {
       if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
+        throw new Error('Request was aborted')
       }
 
-      // Ask for user confirmation
-      const getFolderName = (path: string) => {
-        const pathInPosix = Path.posix(path);
-        const parts = pathInPosix.split("/").filter((p) => p);
-        return parts[parts.length - 1] || pathInPosix;
-      };
+      const fromCheck = requireNonEmptyString(args.from, 'from')
+      if (typeof fromCheck !== 'string') {
+        return renameFolderFailed('', '', fromCheck.error)
+      }
+      const toCheck = requireNonEmptyString(args.to, 'to')
+      if (typeof toCheck !== 'string') {
+        return renameFolderFailed(fromCheck, '', toCheck.error)
+      }
 
-      const confirmationMessage = `Rename folder "${getFolderName(args.from)}" to "${getFolderName(args.to)}"?\n\nThis will:\n  • Rename the folder on disk\n  • Update media metadata`;
-
-      try {
-        const responseData = await acknowledge(
-          {
-            event: "askForConfirmation",
-            data: {
-              message: confirmationMessage,
-            },
-            clientId: clientId,
-          }
-        );
-
-        const confirmed = responseData?.confirmed ?? responseData?.response === "yes";
-
-        if (!confirmed) {
-          return { renamed: false, error: "User cancelled the operation" };
-        }
-      } catch (error) {
-        return {
-          renamed: false,
-          error: `Failed to get user confirmation: ${error instanceof Error ? error.message : "Unknown error"}`,
-        };
+      const cancelOrError = await confirmRenameFolderViaSocket(
+        clientId,
+        fromCheck,
+        toCheck,
+      )
+      if (cancelOrError) {
+        return cancelOrError
       }
 
       if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
+        throw new Error('Request was aborted')
       }
 
-      return handleRenameFolder(args, abortSignal);
+      return executeRenameFolder(
+        { from: fromCheck, to: toCheck },
+        abortSignal,
+      )
     },
-  };
+  }
 }
 
-/**
- * Returns a tool definition with localized description for MCP server usage.
- * MCP tools use the global user's language preference.
- *
- * @returns Promise resolving to tool definition
- */
+export function renameFolderAgentTool(
+  clientId: string,
+  abortSignal?: AbortSignal,
+) {
+  return createAgentRenameFolderTool(clientId, abortSignal)
+}
+
+/** @deprecated Alias of renameFolderAgentTool */
+export const createRenameFolderTool = renameFolderAgentTool
+
+export const getTool = async function (
+  abortSignal?: AbortSignal,
+): Promise<ToolDefinition> {
+  const description = await getLocalizedToolDescription(RENAME_FOLDER)
+
+  return {
+    toolName: RENAME_FOLDER,
+    description,
+    inputSchema: renameFolderInputSchema,
+    outputSchema: renameFolderOutputSchema,
+    execute: async (args: RenameFolderParams) => {
+      return handleRenameFolder(args, abortSignal)
+    },
+  }
+}
+
 export async function renameFolderMcpTool() {
-  return getTool();
+  return getTool()
 }
-
-// Keep the original export for backward compatibility
-export const createRenameFolderTool = (clientId: string, abortSignal?: AbortSignal) => ({
-  description: `Rename a media folder in SMM.
-This tool accepts the source folder path and destination folder path.
-This tool should ONLY be used to rename FOLDER, NOT FILE
-This tool will update media metadata accordingly.
-
-Example: Rename folder "/path/to/old-folder" to "/path/to/new-folder".`,
-  inputSchema: z.object({
-    from: z.string().describe("The current absolute path of the folder to rename, in POSIX or Windows format"),
-    to: z.string().describe("The new absolute path for the folder, in POSIX or Windows format"),
-  }),
-  execute: async ({ from, to }: { from: string; to: string }) => {
-    if (abortSignal?.aborted) {
-      throw new Error("Request was aborted");
-    }
-
-    // Ask for user confirmation
-    const getFolderName = (path: string) => {
-      const pathInPosix = Path.posix(path);
-      const parts = pathInPosix.split("/").filter((p) => p);
-      return parts[parts.length - 1] || pathInPosix;
-    };
-
-    const confirmationMessage = `Rename folder "${getFolderName(from)}" to "${getFolderName(to)}"?\n\nThis will:\n  • Rename the folder on disk\n  • Update media metadata`;
-
-    try {
-      const responseData = await acknowledge(
-        {
-          event: "askForConfirmation",
-          data: {
-            message: confirmationMessage,
-          },
-          clientId: clientId,
-        }
-      );
-
-      const confirmed = responseData?.confirmed ?? responseData?.response === "yes";
-
-      if (!confirmed) {
-        return { renamed: false, error: "User cancelled the operation" };
-      }
-    } catch (error) {
-      return {
-        renamed: false,
-        error: `Failed to get user confirmation: ${error instanceof Error ? error.message : "Unknown error"}`,
-      };
-    }
-
-    if (abortSignal?.aborted) {
-      throw new Error("Request was aborted");
-    }
-
-    const result = await handleRenameFolder({ from, to }, abortSignal);
-
-    // Convert McpToolResponse to the expected format
-    if (result.isError) {
-      return { renamed: false, error: result.content[0]?.text || "Unknown error" };
-    }
-
-    const structuredContent = result.structuredContent as { renamed: boolean; from?: string; to?: string; error?: string };
-    return {
-      renamed: structuredContent.renamed || false,
-      from: structuredContent.from || from,
-      to: structuredContent.to || to,
-      error: structuredContent.error,
-    };
-  },
-});

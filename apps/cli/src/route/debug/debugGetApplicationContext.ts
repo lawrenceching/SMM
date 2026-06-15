@@ -2,15 +2,11 @@ import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
 import type { Hono } from 'hono';
-
-interface ApplicationContextData {
-  selectedMediaFolder: string;
-  language: string;
-}
+import type { GetApplicationContextOutput } from '@core/types/ai-tools/getApplicationContext';
 
 interface DebugGetApplicationContextResponseBody {
   success: boolean;
-  data?: ApplicationContextData;
+  data?: GetApplicationContextOutput;
   error?: string;
 }
 
@@ -18,7 +14,9 @@ const getApplicationContextSchema = z.object({
   clientId: z.string().optional(),
 });
 
-export async function processGetApplicationContext(body: unknown): Promise<DebugGetApplicationContextResponseBody> {
+export async function processGetApplicationContext(
+  body: unknown,
+): Promise<DebugGetApplicationContextResponseBody> {
   try {
     console.log('[DebugAPI] Received getApplicationContext request:', body);
 
@@ -26,29 +24,34 @@ export async function processGetApplicationContext(body: unknown): Promise<Debug
     if (!validationResult.success) {
       return {
         success: false,
-        error: `Validation failed: ${validationResult.error.issues.map(i => i.message).join(', ')}`,
+        error: `Validation failed: ${validationResult.error.issues.map((i) => i.message).join(', ')}`,
       };
     }
 
     const { clientId = '' } = validationResult.data;
     const tool = agentTools.getApplicationContext(clientId);
-    const result = await tool.execute({});
+    const result = await tool.execute();
 
-    if (result.isError) {
-      const errorMessage = result.content?.[0]?.text ?? 'Unknown error';
+    // Agent tool returns { selectedMediaFolder, language, error?: string | undefined }.
+    if (result.error) {
       return {
         success: false,
-        error: errorMessage,
+        error: result.error,
       };
     }
 
-    const data = result.structuredContent as ApplicationContextData | undefined;
     return {
       success: true,
-      data,
+      data: {
+        selectedMediaFolder: result.selectedMediaFolder,
+        language: result.language,
+      },
     };
   } catch (error) {
-    console.error('[DebugAPI] Error executing getApplicationContext:', error);
+    console.error(
+      '[DebugAPI] Error executing getApplicationContext:',
+      error,
+    );
     return {
       success: false,
       error: `Failed to execute getApplicationContext: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -69,11 +72,17 @@ export function handleDebugGetApplicationContextRoute(app: Hono) {
       const result = await processGetApplicationContext(rawBody);
       return c.json(result, 200);
     } catch (error) {
-      logger.error({ error }, 'Debug API getApplicationContext route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process getApplicationContext request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      logger.error(
+        { error },
+        'Debug API getApplicationContext route error:',
+      );
+      return c.json(
+        {
+          success: false,
+          error: `Failed to process getApplicationContext request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
   });
 }

@@ -24,6 +24,7 @@ export { createNodeHttpFetch } from "./nodeHttpFetch.ts";
 export {
   checkFolderPathAvailable,
   doIsFolderAvailable,
+  resolveFolderExistence,
   type IsFolderAvailableRequestBody,
   type IsFolderAvailableResponseBody,
 } from "./isFolderAvailable.ts";

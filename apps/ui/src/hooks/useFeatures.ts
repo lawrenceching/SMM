@@ -166,7 +166,6 @@ function writeAiFeatureEnabled(enabled: boolean): void {
  * HarmonyOS) on any platform. Useful for testing the in-process
  * transport on desktop without rebuilding for ohos. */
 function readUiAiChatTransportEnabled(): boolean {
-  return true;
   if (typeof window === "undefined") return false
   try {
     const v = window.localStorage.getItem(UI_AI_CHAT_TRANSPORT_STORAGE_KEY)

@@ -1,6 +1,7 @@
 import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
+import type { GetMediaMetadataToolOutput } from '../../tools/getMediaMetadata';
 import type { Hono } from 'hono';
 
 type MediaFolderType = 'tvshow-folder' | 'movie-folder' | 'music-folder';
@@ -11,11 +12,6 @@ interface GetMediaMetadataData {
   tvShow?: unknown;
   tmdbMovie?: unknown;
   tvdbMovie?: unknown;
-}
-
-interface GetMediaMetadataStructuredContent {
-  data?: GetMediaMetadataData;
-  error?: string;
 }
 
 interface DebugGetMediaMetadataResponseBody {
@@ -43,20 +39,20 @@ export async function processGetMediaMetadata(body: unknown): Promise<DebugGetMe
 
     const { mediaFolderPath, clientId = '' } = validationResult.data;
     const tool = agentTools.getMediaMetadata(clientId, undefined);
-    const result = await tool.execute({ mediaFolderPath });
+    const result = (await tool.execute({ mediaFolderPath })) as GetMediaMetadataToolOutput;
 
-    if (result.isError) {
+    if (result.error) {
+      const { error, ...data } = result;
       return {
         success: false,
-        error: result.content?.[0]?.text ?? 'Unknown error',
+        data,
+        error,
       };
     }
 
-    const structuredContent = result.structuredContent as GetMediaMetadataStructuredContent | undefined;
     return {
       success: true,
-      data: structuredContent?.data,
-      error: structuredContent?.error,
+      data: result,
     };
   } catch (error) {
     console.error('[DebugAPI] Error executing getMediaMetadata:', error);

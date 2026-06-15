@@ -1,9 +1,8 @@
 const API_BASE_URL = 'http://localhost:30000'
 
 export interface ListFilesToolOptions {
-  folderPath: string
-  recursive?: boolean
-  filter?: string
+  mediaFolderPath: string
+  recursively?: boolean
   videoFileOnly?: boolean
   clientId?: string
 }

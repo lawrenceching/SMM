@@ -1,6 +1,7 @@
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
+import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
 import { getFullExtensionForAssociatedFile } from "@core/utils";
@@ -993,31 +994,13 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
     p =>
       p.task === "recognize-media-file" &&
       (p.status === 'pending' || p.status === 'loading') &&
-      p.tmp === false &&
-      p.mediaFolderPath === mediaMetadata.mediaFolderPath
+      mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath)
   )
 
   console.log(`[handlePendingPlans] plan: `, structuredClone(plan))
   
   if (plan) {
-    if (plan.tmp) {
-      if (mediaMetadata.tvShow !== undefined) {
-        console.error(`code should NOT reach this line, it's deprecated`)
-        // openRuleBasedRecognizePrompt({
-        //   tvShowTitle: mediaMetadata.tmdbTvShow.name,
-        //   tvShowTmdbId: mediaMetadata.tmdbTvShow.id,
-        //   planId: plan.id,
-        //   onConfirm: () => handleRuleBasedRecognizeConfirmCallback?.(plan as UIRecognizeMediaFilePlan),
-        //   onCancel: () => {
-        //     setPlayById(plan.id, 'rejected').catch(error => {
-        //       console.error('[TvShowPanel] Error removing temporary plan:', error)
-        //     })
-        //   }
-        // })
-      }
-      closeAiBasedRecognizePrompt()
-    } else {
-      openAiBasedRecognizePrompt({
+    openAiBasedRecognizePrompt({
         status: "wait-for-ack",
         confirmButtonLabel: 'Confirm',
         confirmButtonDisabled: false,
@@ -1026,12 +1009,14 @@ export function handlePendingPlans(params: HandlePendingPlansParams): void {
         onCancel: async () => {
           try {
             await setPlayById(plan.id, 'rejected')
+            if (plan.tmp === true) {
+              await cleanupRecognizePlan(plan.id)
+            }
           } catch (error) {
             console.error('[TvShowPanel] Error rejecting plan:', error)
           }
         }
       })
-    }
   } else {
     closeAiBasedRecognizePrompt()
   }
