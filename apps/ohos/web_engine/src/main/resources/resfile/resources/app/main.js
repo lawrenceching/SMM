@@ -282,6 +282,7 @@ async function startMainHttpServer() {
     createNodeHttpFetch,
     createReverseProxyManager,
     createReverseProxyRequestHandler,
+    createSocketIOManager,
     DEFAULT_ALLOWED_UPSTREAM_HOSTS
   } = loadCoreRoutes();
   const proxyLogger = {
@@ -321,6 +322,9 @@ async function startMainHttpServer() {
       return;
     }
     const url = req.url?.split("?")[0] ?? "";
+    if (url.startsWith("/socket.io/")) {
+      return;
+    }
     if (req.method === "GET" && url === "/hello") {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       res.end(MAIN_HTTP_HELLO_BODY);
@@ -336,11 +340,16 @@ async function startMainHttpServer() {
     }
     serveStaticFile(req, res, getDistDir());
   });
+  createSocketIOManager(mainHttpServer, {
+    logger: createCoreRoutesLogger(),
+    cors: { origin: "*", methods: ["GET", "POST"] }
+  });
   mainHttpServer.on("error", (err) => {
     console.error("[main] HTTP server error:", err);
   });
   mainHttpServer.listen(MAIN_HTTP_PORT, "127.0.0.1", () => {
     console.log(`[main] HTTP server listening on ${MAIN_HTTP_ORIGIN}/`);
+    console.log(`[main] Socket.IO available at ${MAIN_HTTP_ORIGIN}/socket.io/`);
   });
 }
 

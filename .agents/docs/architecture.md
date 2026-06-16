@@ -27,8 +27,9 @@ flowchart TB
     M2["Electron Main · main.js"]
     W2["BrowserWindow"]
     M2 --> W2
-    W2 -->|"file://"| UI
+    W2 -->|"http://127.0.0.1:18081"| UI
     M2 -->|"HTTP /api/*"| CR
+    M2 -->|"Socket.IO"| UI
     M2 -->|"IPC"| W2
   end
 
@@ -64,7 +65,7 @@ This section describe the software architecture among `apps/*` apps.
    │  ┌──────────┼────────────────┼────────────────────────┐   │
    │  │          ▼                ▼                        │   │
    │  │     apps/cli (child process)                       │   │
-   │  │     Bun + Hono + Socket.IO                         │   │
+   │  │     node:http + Hono + @smm/core-routes Socket.IO  │   │
    │  │     Serves: /api/*, /socket.io, static files        │   │
    │  └────────────────────────────────────────────────────┘   │
    │                                                          │

@@ -66,3 +66,10 @@ export {
   handleReadFilePost,
   handleDeleteFilePost,
 } from "./register.ts";
+export type {
+  SocketIOCorsConfig,
+  SocketIOConfig,
+  SocketIOManager,
+  WebSocketMessage,
+} from "./socketIO/types.ts";
+export { createSocketIOManager } from "./socketIO/manager.ts";

@@ -19,7 +19,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@smm/core-routes": "workspace:*",
     "@smm/tvdb4": "workspace:*",
-    "@socket.io/bun-engine": "^0.1.0",
+    "@hono/node-server": "^1.19.0",
     "@types/shelljs": "^0.10.0",
     "ai": "^6.0.36",
     "dotenv": "^17.2.3",

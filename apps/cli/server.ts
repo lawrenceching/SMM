@@ -1,8 +1,11 @@
+import http from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
+import { getRequestListener } from '@hono/node-server';
 import path from 'path';
-import { initializeSocketIO } from './src/utils/socketIO.ts';
+import { setSocketIOManager } from './src/utils/socketIO.ts';
 import { handleChatRequest } from './tasks/ChatTask';
 import { handleReadFile } from './src/route/ReadFile';
 import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
@@ -53,12 +56,14 @@ import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
   createReverseProxyManager,
+  createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  type CoreRoutesLogger,
   type ReverseProxyConfig,
   type ReverseProxyManager,
+  type SocketIOManager,
 } from '@smm/core-routes';
-import { Server as SocketIOServer } from 'socket.io';
-import { Server as Engine } from '@socket.io/bun-engine';
+import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { initializeFolderWatcher, getFolderWatcher } from './src/services/folderWatcher';
 import { getUserConfig } from './src/utils/config';
@@ -69,13 +74,26 @@ export interface ServerConfig {
   beforeStop?: () => Promise<void>;
 }
 
+function isExecuteCmdRequest(req: IncomingMessage): boolean {
+  const url = req.url?.split('?')[0] ?? '';
+  return url === '/api/executeCmd' && req.method === 'POST';
+}
+
+function createSocketIOLogger(): CoreRoutesLogger {
+  return {
+    debug: (obj, msg) => logger.debug(obj, msg),
+    info: (obj, msg) => logger.info(obj, msg),
+    warn: (obj, msg) => logger.warn(obj, msg),
+    error: (obj, msg) => logger.error(obj, msg),
+  };
+}
+
 export class Server {
   private app: Hono;
-  private server: ReturnType<typeof Bun.serve> | null = null;
+  private httpServer: http.Server | null = null;
   private port: number;
   private root: string;
-  private io: SocketIOServer;
-  private engine: Engine;
+  private socketManager: SocketIOManager | null = null;
   private proxyManager: ReverseProxyManager | null = null;
   private beforeStop?: () => Promise<void>;
   private stopping = false;
@@ -85,24 +103,6 @@ export class Server {
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
     this.beforeStop = config.beforeStop;
-
-    // Initialize Socket.IO and Bun Engine with CORS configuration
-    this.engine = new Engine({
-      cors: {
-        origin: "*", // Allow all origins (adjust in production)
-        methods: ["GET", "POST"],
-        credentials: true
-      }
-    });
-
-    this.io = new SocketIOServer({
-      cors: {
-        origin: "*", // Allow all origins (adjust in production)
-        methods: ["GET", "POST"]
-      }
-    });
-
-    this.io.bind(this.engine);
 
     this.app = new Hono();
     this.app.use(requestId())
@@ -140,9 +140,6 @@ export class Server {
 
     this.setupMiddleware();
     this.setupRoutes();
-
-    // Initialize Socket.IO connection handlers
-    initializeSocketIO(this.io);
 
     // Initialize i18n (synchronous in constructor to avoid async constructor issues)
     // The initI18n function is configured with initImmediate: false
@@ -237,8 +234,6 @@ export class Server {
     // /api/hello and /api/execute are registered in start() once the
     // reverse proxy manager is available.
 
-    // Socket.IO is handled via engine in Bun.serve, not as a Hono route
-
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)
     this.app.use('/*', serveStatic({ 
@@ -271,43 +266,50 @@ export class Server {
   }
 
   async start(): Promise<void> {
-    if (this.server) {
+    if (this.httpServer) {
       logger.warn('Server is already running.');
       return;
     }
 
     // Build the reverse proxy config from userConfig (mcpPort reservation +
-    // AI provider host allowlist). This must run before Bun.serve so that the
+    // AI provider host allowlist). This must run before listen so that the
     // /api/hello route can read the proxyManager's url.
     const proxyConfig = await buildReverseProxyConfig();
     this.proxyManager = createReverseProxyManager(proxyConfig);
     registerExecuteRoutes(this.app, this.proxyManager);
 
-    const { websocket } = this.engine.handler();
+    const honoListener = getRequestListener(this.app.fetch);
 
-    this.server = Bun.serve({
-      port: this.port,
-      idleTimeout: 30, // must be greater than the "pingInterval" option of the engine, which defaults to 25 seconds
-      fetch: (req, server) => {
-        setShutdownRequestIPResolver((request) => server.requestIP(request));
-        const url = new URL(req.url);
+    this.httpServer = http.createServer((req: IncomingMessage, res: ServerResponse) => {
+      const url = req.url?.split('?')[0] ?? '';
 
-        // Bun applies idleTimeout to streaming bodies: if no bytes are written for idleTimeout
-        // seconds, the connection is reset mid-response. executeCmd can be quiet for minutes
-        // (e.g. ffmpeg). Disable per-request idle timeout for this route only.
-        if (url.pathname === '/api/executeCmd' && req.method === 'POST') {
-          server.timeout(req, 0);
-        }
+      if (url.startsWith('/socket.io/')) {
+        return;
+      }
 
-        // Handle Socket.IO requests
-        if (url.pathname.startsWith('/socket.io/')) {
-          return this.engine.handleRequest(req, server);
-        } else {
-          // Handle regular HTTP requests with Hono
-          return this.app.fetch(req, server);
-        }
+      if (isExecuteCmdRequest(req)) {
+        req.setTimeout(0);
+      }
+
+      setShutdownRequestIPResolver((_req) => ({
+        address: req.socket.remoteAddress ?? '127.0.0.1',
+      }));
+
+      return honoListener(req, res);
+    });
+
+    this.socketManager = createSocketIOManager(this.httpServer, {
+      logger: createSocketIOLogger(),
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
       },
-      websocket,
+    });
+    setSocketIOManager(this.socketManager);
+
+    await new Promise<void>((resolve, reject) => {
+      this.httpServer!.once('error', reject);
+      this.httpServer!.listen(this.port, () => resolve());
     });
 
     logger.info(`📁 Static file root: ${this.root}`);
@@ -360,15 +362,28 @@ export class Server {
       }
     }
 
-    if (!this.server) {
+    if (!this.httpServer) {
       logger.warn('Server is not running.');
       return;
     }
 
     await this.proxyManager?.stop();
     getFolderWatcher().stopAllWatching();
-    this.server.stop();
-    this.server = null;
+
+    await new Promise<void>((resolve, reject) => {
+      this.socketManager?.io.close(() => {
+        this.httpServer!.close((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+
+    this.httpServer = null;
+    this.socketManager = null;
     setShutdownRequestIPResolver(null);
     logger.info('Server stopped.');
   }
@@ -378,7 +393,10 @@ export class Server {
   }
 
   getIO(): SocketIOServer {
-    return this.io;
+    if (!this.socketManager) {
+      throw new Error('Socket.IO is not initialized');
+    }
+    return this.socketManager.getSocketIOInstance();
   }
 
   getPort(): number {
@@ -386,7 +404,7 @@ export class Server {
   }
 
   isRunning(): boolean {
-    return this.server !== null;
+    return this.httpServer !== null;
   }
 }
 

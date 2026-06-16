@@ -13,7 +13,8 @@
 | **运行时中立** | `src/listFiles.ts` 用 `node:fs/promises`，**不**用 `Bun.file` / `Bun.write` / `Bun.$` | `apps/ohos` 走 Electron + Node，CJS 打包后 Bun 全局不可用 |
 | **零 apps/cli 业务依赖** | `isFolderAvailable` / `listFiles` / `writeFile` 仅依赖 `@smm/core` 和 `zod` | 不允许 `import '@/utils/...'`, `'../../lib/logger'`, `'../tools/...'`, `'../utils/...'` 等 |
 | **配置驱动** | `CoreRoutesConfig = { allowlist, logger?, hello? }` | 平台特定路径（userDataDir / logDir / tmpDir）通过 `config` 注入；logger 走 `ctx.config.logger` |
-| **无副作用 / 单进程可重入** | `createCommandExecutionLogWriter` 等有副作用的状态全部留在 `apps/cli` | core-routes 不持有 socket/MCP server 生命周期、pty 实例、shelljs 进程等 |
+| **共享基础设施 vs CLI 业务状态** | `createReverseProxyManager` / `createSocketIOManager` 可持有跨平台基础设施生命周期 | core-routes **可**持有 Socket.IO 传输层、reverse proxy 等共享基础设施；**MCP server、pty、shelljs、CLI 业务状态机**（folderWatcher、rename/recognize 任务、AI agent 工具链）仍留在 `apps/cli` |
+| **HTTP route 单请求可重入** | `doListFiles` / `doWriteFile` 等无跨请求全局状态 | `createCommandExecutionLogWriter` 等有副作用的 CLI 专用状态不进入 core-routes |
 | **可独立单元测试** | `*.test.ts` 全部 vitest 跑在 Node 环境下 | 不得依赖 bun-only 的 `bun:test` / `bun --watch` |
 
 构建链路参考：
@@ -25,7 +26,18 @@ packages/core-routes
   └── tsconfig  lib: ESNext, target: ESNext, noEmit
 ```
 
-`apps/ohos` 的 `main.js`（Electron 主进程）目前只调用 `createCoreRoutesRequestHandler`，并自行提供 `allowlist`（`userData` / `temp` / `homedir`）和 `hello` 配置。也就是说，能放进 core-routes 的 API 一定能被 `ohos/electron` 与 `cli` 同时复用。
+`apps/ohos` 的 `main.js`（Electron 主进程）调用 `createCoreRoutesRequestHandler` 与 `createSocketIOManager`，并自行提供 `allowlist`（`userData` / `temp` / `homedir`）和 `hello` 配置。也就是说，能放进 core-routes 的 API / 传输原语一定能被 `ohos/electron` 与 `cli` 同时复用。
+
+### Socket.IO 下沉边界
+
+| 可下沉到 core-routes | 不可下沉（留在 apps/cli） |
+|---------------------|--------------------------|
+| `createSocketIOManager(httpServer, config)` | `folderWatcher` 及 fs.watch 逻辑 |
+| 连接握手：`hello` / `userAgent` / `clientId` room | rename/recognize 工具内的 `broadcast` 调用时机 |
+| `broadcast` / `acknowledge` / `findSocketByClientId` 传输原语 | AI agent、`ChatTask` 的 ack 业务流 |
+| | 任何 `import '@/utils/...'` / `'../tools/...'` 的 CLI 业务 |
+
+**宿主职责**（`apps/cli` / `apps/ohos`）：创建 `node:http.Server`、在 HTTP handler 中对 `/socket.io/` 早退、注入 `logger` / `cors`。
 
 ---
 

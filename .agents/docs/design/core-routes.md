@@ -51,7 +51,7 @@
 
 | 包名 | 描述 |
 |------|------|
-| **packages/core-routes** | 框架无关的 HTTP 路由 handler 与业务逻辑 |
+| **packages/core-routes** | 框架无关的 HTTP 路由 handler、Socket.IO 传输层、reverse proxy |
 
 ## 3. App Level Architecture
 
@@ -71,13 +71,24 @@ packages/core-routes/
     ├── routes/
     │   ├── listFilesRoute.ts   # handleListFilesGet, handleListFilesPost
     │   └── writeFileRoute.ts   # handleWriteFilePost
+    ├── socketIO/
+    │   ├── types.ts            # SocketIOConfig, WebSocketMessage, SocketIOManager
+    │   ├── connection.ts       # hello / userAgent / clientId room
+    │   ├── messaging.ts        # broadcast, acknowledge, findSocketByClientId
+    │   └── manager.ts          # createSocketIOManager(httpServer, config)
     └── register.ts       # createCoreRoutesRequestHandler, registerCoreRoutes
 ```
 
 **依赖**：
 - `@smm/core` — 类型（`ListFilesRequestBody` 等）、`Path`、`existedFileError`
 - `zod` — 请求校验（与 cli 保持一致）
-- 仅使用 Node.js 内置模块（`node:http`, `node:fs/promises`, `node:path`, `node:os`）
+- `socket.io` — Socket.IO 传输层（附着到宿主 `node:http.Server`）
+- Node.js 内置模块（`node:http`, `node:fs/promises`, `node:path`, `node:os`）
+
+**Socket.IO 边界**（与 `api-migration.md` 一致）：
+- **可下沉**：`createSocketIOManager`、连接握手、`broadcast` / `acknowledge` 传输原语
+- **不可下沉**：`folderWatcher`、AI agent 工具链、rename/recognize 任务状态
+- **宿主职责**：创建 `http.Server`、HTTP handler 对 `/socket.io/` 早退、注入 `logger` / `cors`
 
 **Handler 签名**：
 
