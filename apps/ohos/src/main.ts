@@ -1,5 +1,5 @@
 import { app, ipcMain, session } from "electron"
-import { registerDialogIpcHandlers } from "@smm/electron-common"
+import { registerDialogIpcHandlers, registerExecuteChannelIpcHandlers } from "@smm/electron-common"
 import { startMainHttpServer } from "./http/server"
 import { registerOhosFileAccessPermission } from "./ipc/file-access-permission"
 import { initAppRoot } from "./paths"
@@ -7,6 +7,7 @@ import { getAllowedRootItems, resolveRedirect } from "./redirect/file-protocol-r
 import { createMainWindow } from "./window/create-main-window"
 
 registerDialogIpcHandlers(ipcMain)
+registerExecuteChannelIpcHandlers(ipcMain)
 registerOhosFileAccessPermission(ipcMain)
 
 app.whenReady().then(() => {

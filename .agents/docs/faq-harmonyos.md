@@ -54,3 +54,23 @@ CLI / 桌面端继续用默认全局 `fetch`，无需改动。
 | ohos 注入 | `apps/ohos/src/http/server.ts` |
 
 修改 `core-routes` 或 `apps/ohos/src` 后需重新构建鸿蒙资源（`core-routes.js`、`main.js`），见 `apps/ohos/README.md`。
+
+## 「在资源管理器中打开」失败
+
+### 表现
+
+Sidebar 右键媒体目录，或菜单打开应用数据/日志目录时，操作无反应或 toast 报错。
+
+### 原因
+
+1. **路径无访问权限** — 鸿蒙只能打开应用沙箱路径，或用户通过 DocumentViewPicker 授权并 persist 过的目录 URI（`file://docs/storage/...`）。
+2. **`shell.showItemInFolder` 未映射** — 主进程会 fallback 到 `EtsBridge.OpenItemInFolder` → `FileManagerAdapter.OpenItemInFolder`（`filemanager://openDirectory`）。
+3. **preload / main 未更新** — 需 `pnpm run build:ohos` 重新生成 `main.js` 与 `preload.js`。
+
+### 排查
+
+- 确认 `window.api.executeChannel` 在 DevTools 中可用。
+- 查看主进程日志前缀 `[OpenInFileManager]`，区分 shell 失败与 native fallback。
+- 媒体目录路径应与 `smm.json` `folders[]` 中存储的 URI 一致。
+
+设计文档：`.agents/docs/design/open-in-file-manager.md`

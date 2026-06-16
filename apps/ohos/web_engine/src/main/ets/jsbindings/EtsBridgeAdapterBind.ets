@@ -163,6 +163,10 @@ function testEchoString(param: string): string {
     return implEtsBridgeAdapter().testEchoString(param);
 }
 
+function openItemInFolder(filePath: string): boolean {
+    return implEtsBridgeAdapter().openItemInFolder(filePath);
+}
+
 // ============================================================
 // Section 7: Large arrays
 // ============================================================
@@ -220,6 +224,7 @@ export class EtsBridgeAdapterBind {
     JsBindingUtils.bindFunction("EtsBridge.TestReturnChineseString", testReturnChineseString);
     JsBindingUtils.bindFunction("EtsBridge.TestReturnSpecialChars", testReturnSpecialChars);
     JsBindingUtils.bindFunction("EtsBridge.TestEchoString", testEchoString);
+    JsBindingUtils.bindFunction("EtsBridge.OpenItemInFolder", openItemInFolder);
 
     // Section 7: Large arrays
     JsBindingUtils.bindFunction("EtsBridge.TestReturnLargeNumberArray", testReturnLargeNumberArray);

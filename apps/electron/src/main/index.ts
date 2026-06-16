@@ -1,12 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers } from '@smm/electron-common'
+import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers } from '@smm/electron-common'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { channelRoute } from './ChannelRoute'
+import { getConfigTask } from './tasks/GetConfigTask'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
@@ -646,12 +646,8 @@ app.whenReady().then(() => {
   // Dialog IPC handlers (shared with HarmonyOS shell)
   registerDialogIpcHandlers(ipcMain)
   registerFileAccessPersistIpcHandlers(ipcMain)
-
-  // ExecuteChannel IPC handler
-  ipcMain.handle('ExecuteChannel', async (_event, request: ExecuteChannelRequest): Promise<ExecuteChannelResponse> => {
-    // Handle the request and return a response
-    // You can customize this handler based on your needs
-    return channelRoute(request);
+  registerExecuteChannelIpcHandlers(ipcMain, {
+    getConfig: getConfigTask,
   })
 
   // Start services and then create window

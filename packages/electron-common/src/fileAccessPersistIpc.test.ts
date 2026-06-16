@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { FILE_ACCESS_ACTIVATE_CHANNEL, FILE_ACCESS_PERSIST_CHANNEL } from "./channels"
+import { FILE_ACCESS_ACTIVATE_CHANNEL, FILE_ACCESS_PERSIST_CHANNEL, EXECUTE_CHANNEL } from "./channels"
 import { registerFileAccessPersistIpcHandlers } from "./fileAccessPersistIpc"
 import { createFileAccessPersistPreloadApi } from "./preload/fileAccessPersistApi"
 
@@ -101,5 +101,7 @@ describe("ohos preload template", () => {
     const source = readFileSync(ohosPreloadPath, "utf8")
     expect(source).toContain(FILE_ACCESS_PERSIST_CHANNEL)
     expect(source).toContain("fileAccess")
+    expect(source).toContain(EXECUTE_CHANNEL)
+    expect(source).toContain("executeChannel")
   })
 })

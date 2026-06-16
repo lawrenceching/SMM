@@ -7,6 +7,7 @@ const DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
 const DIALOG_SHOW_SAVE_CHANNEL = "dialog:showSaveDialog";
 const FILE_ACCESS_PERSIST_CHANNEL = "fileAccess:persist";
 const FILE_ACCESS_ACTIVATE_CHANNEL = "fileAccess:activate";
+const EXECUTE_CHANNEL = "ExecuteChannel";
 
 contextBridge.exposeInMainWorld("electron", {
   dialog: {
@@ -21,4 +22,8 @@ contextBridge.exposeInMainWorld("electron", {
     activate: (paths) =>
       ipcRenderer.invoke(FILE_ACCESS_ACTIVATE_CHANNEL, { paths }),
   },
+});
+
+contextBridge.exposeInMainWorld("api", {
+  executeChannel: (request) => ipcRenderer.invoke(EXECUTE_CHANNEL, request),
 });

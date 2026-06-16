@@ -1,22 +1,14 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { createDialogPreloadApi, createFileAccessPersistPreloadApi } from '@smm/electron-common/preload'
-
-interface ExecuteChannelRequest {
-  name: string
-  data: any
-}
-
-interface ExecuteChannelResponse {
-  name: string
-  data: any
-}
+import {
+  createDialogPreloadApi,
+  createExecuteChannelPreloadApi,
+  createFileAccessPersistPreloadApi,
+} from '@smm/electron-common/preload'
 
 // Custom APIs for renderer
 const api = {
-  executeChannel: (request: ExecuteChannelRequest): Promise<ExecuteChannelResponse> => {
-    return ipcRenderer.invoke('ExecuteChannel', request)
-  },
+  ...createExecuteChannelPreloadApi(ipcRenderer),
   getPathForFile: (file: File): string | null => {
     try {
       console.log('[Preload] getPathForFile called with file:', { name: file.name, type: file.type, size: file.size })

@@ -24,6 +24,8 @@ import { injectable, inject } from 'inversify';
 import { BaseAdapter } from '../common/BaseAdapter';
 import LogUtil from '../utils/LogUtil';
 import LogMethod from '../common/LogDecorator';
+import lazy { FileManagerAdapter } from './FileManagerAdapter';
+import Inject from '../common/InjectModule';
 
 const TAG: string = 'EtsBridgeAdapter';
 
@@ -257,6 +259,25 @@ export class EtsBridgeAdapter extends BaseAdapter {
     @LogMethod
     testEchoString(param: string): string {
         return param;
+    }
+
+    /**
+     * Open a folder in the system file manager via FileManagerAdapter.
+     * JS call: callArkTSFunction("EtsBridge.OpenItemInFolder", "boolean", [path])
+     */
+    @LogMethod
+    openItemInFolder(filePath: string): boolean {
+        try {
+            Inject.getOrCreate(FileManagerAdapter).openItemInFolder(filePath, (ret: boolean) => {
+                if (!ret) {
+                    LogUtil.error(TAG, `openItemInFolder async failed for ${filePath}`);
+                }
+            });
+            return true;
+        } catch (error) {
+            LogUtil.error(TAG, `openItemInFolder sync failed: ${JSON.stringify(error)}`);
+            return false;
+        }
     }
 
     // ============================================================

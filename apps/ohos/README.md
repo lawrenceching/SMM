@@ -14,7 +14,11 @@ The core is an electron version that ported to HarmonyOS.
 
 At runtime the main process starts an HTTP server on `http://127.0.0.1:18081` that serves the UI static assets from `dist/` and core-routes API handlers at `/api/*`. The browser window loads `http://127.0.0.1:18081/` via `loadURL`.
 
-HarmonyOS file access IPC (`fileAccess:persist`, `fileAccess:activate`) is registered in the bundled main process. The preload exposes `window.electron.fileAccess.persist(paths)` and `window.electron.fileAccess.activate(paths)`.
+HarmonyOS IPC is registered in the bundled main process. The preload exposes:
+
+- `window.electron.dialog.showOpenDialog` / `showSaveDialog`
+- `window.electron.fileAccess.persist(paths)` / `activate(paths)`
+- `window.api.executeChannel(request)` — e.g. `open-in-file-manager` to open a folder in the system file manager
 
 ## Source layout
 

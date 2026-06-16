@@ -3,6 +3,8 @@ export {
   DIALOG_SHOW_SAVE_CHANNEL,
   FILE_ACCESS_PERSIST_CHANNEL,
   FILE_ACCESS_ACTIVATE_CHANNEL,
+  EXECUTE_CHANNEL,
+  OPEN_IN_FILE_MANAGER_CHANNEL,
 } from "./channels"
 export {
   registerDialogIpcHandlers,
@@ -14,3 +16,14 @@ export {
   type FileAccessPersistRequest,
   type FileAccessPersistResponse,
 } from "./fileAccessPersistIpc"
+export {
+  registerExecuteChannelIpcHandlers,
+  routeExecuteChannel,
+  type ExecuteChannelRequest,
+  type ExecuteChannelResponse,
+  type RegisterExecuteChannelOptions,
+} from "./executeChannelIpc"
+export {
+  openInFileManager,
+  type OpenInFileManagerResult,
+} from "./openInFileManagerTask"
