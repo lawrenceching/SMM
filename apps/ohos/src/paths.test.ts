@@ -19,7 +19,7 @@ describe("resolveAppRootFromScript", () => {
     expect(resolveAppRootFromScriptForTests(script)).toBe(path.dirname(path.resolve(script)))
   })
 
-  it("resolves Windows-style main script paths", () => {
+  it.skipIf(os.platform() !== "win32")("resolves Windows-style main script paths", () => {
     const script = path.join("C:", "app", "resources", "app", "main.js")
     expect(resolveAppRootFromScriptForTests(script)).toBe(path.dirname(script))
   })
