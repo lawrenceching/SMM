@@ -1,5 +1,6 @@
 import type { IpcMain } from "electron"
-import { EXECUTE_CHANNEL, OPEN_IN_FILE_MANAGER_CHANNEL } from "./channels"
+import { EXECUTE_CHANNEL, OPEN_FILE_CHANNEL, OPEN_IN_FILE_MANAGER_CHANNEL } from "./channels"
+import { openFileWithShell } from "./openFileTask"
 import { openInFileManager } from "./openInFileManagerTask"
 
 export interface ExecuteChannelRequest {
@@ -25,6 +26,11 @@ export async function routeExecuteChannel(
       return {
         name: OPEN_IN_FILE_MANAGER_CHANNEL,
         data: await openInFileManager(String(request.data ?? "")),
+      }
+    case OPEN_FILE_CHANNEL:
+      return {
+        name: OPEN_FILE_CHANNEL,
+        data: await openFileWithShell(String(request.data ?? "")),
       }
     case "get-config":
       if (!options.getConfig) {

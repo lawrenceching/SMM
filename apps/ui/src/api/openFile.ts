@@ -1,6 +1,56 @@
 import type { OpenFileRequestBody, OpenFileResponseBody } from '@core/types';
 
+const OPEN_FILE_CHANNEL = 'open-file';
+
+function getElectronApi():
+  | { executeChannel: (request: { name: string; data: string }) => Promise<{ name: string; data: unknown }> }
+  | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  return (window as Window & { api?: { executeChannel: typeof Function } }).api as
+    | { executeChannel: (request: { name: string; data: string }) => Promise<{ name: string; data: unknown }> }
+    | undefined;
+}
+
+function formatOpenFileError(error: unknown): string | undefined {
+  if (error == null) {
+    return undefined;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return String(error);
+}
+
+function mapExecuteChannelResponse(
+  response: { name: string; data: unknown },
+  path: string,
+): OpenFileResponseBody {
+  const data = response.data as { success?: boolean; error?: unknown } | undefined;
+  if (data?.success) {
+    return { data: { path } };
+  }
+
+  const error = formatOpenFileError(data?.error);
+  return error ? { data: { path }, error } : { data: { path } };
+}
+
 export async function openFile(path: string): Promise<OpenFileResponseBody> {
+  const api = getElectronApi();
+
+  if (api?.executeChannel) {
+    const response = await api.executeChannel({
+      name: OPEN_FILE_CHANNEL,
+      data: path,
+    });
+    return mapExecuteChannelResponse(response, path);
+  }
+
   const req: OpenFileRequestBody = {
     path: path,
   };

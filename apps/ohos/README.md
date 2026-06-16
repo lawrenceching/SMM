@@ -18,7 +18,7 @@ HarmonyOS IPC is registered in the bundled main process. The preload exposes:
 
 - `window.electron.dialog.showOpenDialog` / `showSaveDialog`
 - `window.electron.fileAccess.persist(paths)` / `activate(paths)`
-- `window.api.executeChannel(request)` — e.g. `open-in-file-manager` to open a folder in the system file manager
+- `window.api.executeChannel(request)` — e.g. `open-in-file-manager` to open a folder, `open-file` to open a file with the default app
 
 ## Source layout
 

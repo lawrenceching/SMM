@@ -5,6 +5,7 @@ export {
   FILE_ACCESS_ACTIVATE_CHANNEL,
   EXECUTE_CHANNEL,
   OPEN_IN_FILE_MANAGER_CHANNEL,
+  OPEN_FILE_CHANNEL,
 } from "./channels"
 export {
   registerDialogIpcHandlers,
@@ -27,3 +28,7 @@ export {
   openInFileManager,
   type OpenInFileManagerResult,
 } from "./openInFileManagerTask"
+export {
+  openFileWithShell,
+  type OpenFileResult,
+} from "./openFileTask"

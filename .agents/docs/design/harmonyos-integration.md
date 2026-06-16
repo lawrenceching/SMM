@@ -1,8 +1,14 @@
 # HarmonyOS Integration
 
-SMM supports HarmonyOS as an Electron shell platform. This document covers folder import, file access persistence, and "Open in File Manager" functionality.
+SMM supports HarmonyOS as an Electron shell platform. This document covers folder import, file access persistence, [Open in File Manager](#3-open-in-file-manager), and [Open File](#4-open-file) functionality.
 
 **Design principle**: The UI must **not** add HarmonyOS-specific branches. HarmonyOS is treated as Electron because it exposes the same preload contract.
+
+**Related design documents:**
+
+| Topic | Document |
+|-------|----------|
+| Open file (`shell.openPath`, fanart / track context menu) | [open-file.md](./open-file.md) |
 
 ## 1. Folder Import
 
@@ -106,7 +112,37 @@ apps/ui → openInFileManagerApi(path)
 
 Pass paths **as stored** — do not rewrite. Only paths the app can access will succeed.
 
-## 4. Shared Package: `packages/electron-common`
+## 4. Open File
+
+Enables "Open" context-menu actions (fanart, episode video, music tracks, etc.) on HarmonyOS and all Electron runtimes via `shell.openPath`.
+
+Full design: [open-file.md](./open-file.md)
+
+### 4.1 Entry Points
+
+| Entry | Example |
+|-------|---------|
+| TvShowEpisodeTable | Right-click fanart / poster / episode video → Open |
+| MusicFileTable / MusicPanel | Open track or associated file |
+| AssociatedFileRow / FileExplorer | Double-click or context menu → Open |
+
+### 4.2 Architecture
+
+```
+apps/ui → openFile(path)
+  → window.api.executeChannel({ name: 'open-file', data: path })
+  → IPC ExecuteChannel → main.js
+  → shell.openPath(path)
+  → (Browser/Docker fallback) POST /api/openFile → apps/cli
+```
+
+**No native fallback** on HarmonyOS — relies solely on `shell.openPath`. Empty return means success; non-empty string is the error message.
+
+### 4.3 Path Formats on HarmonyOS
+
+Same as §3.3 — media folder files use persisted `file://docs/storage/...` URIs.
+
+## 5. Shared Package: `packages/electron-common`
 
 ```
 packages/electron-common/
@@ -116,6 +152,7 @@ packages/electron-common/
 │   ├── fileAccessPersistIpc.ts   # registerFileAccessPersistIpcHandlers
 │   ├── executeChannelIpc.ts     # registerExecuteChannelIpcHandlers
 │   ├── openInFileManagerTask.ts # openInFileManager (shell + OHOS fallback)
+│   ├── openFileTask.ts          # openFileWithShell (shell.openPath)
 │   └── preload/index.ts         # window.electron.* + window.api.*
 ├── ohos/
 │   ├── preload.js               # Plain CJS preload for OHOS
@@ -130,9 +167,9 @@ packages/electron-common/
 | `dialog:showOpenDialog` | Native folder picker |
 | `dialog:showSaveDialog` | Native save dialog (reserved) |
 | `fileAccess:persist` | Persist folder access (OHOS only) |
-| `ExecuteChannel` | `open-in-file-manager` task |
+| `ExecuteChannel` | `open-in-file-manager`, `open-file` tasks |
 
-## 5. User Stories
+## 6. User Stories
 
 ### Import media folder on HarmonyOS
 1. User taps "Open Folder" → native picker opens
@@ -146,13 +183,18 @@ packages/electron-common/
 2. `executeChannel` IPC → `shell.showItemInFolder(path)`
 3. System file manager opens at folder location
 
+### Open file on HarmonyOS
+1. User right-clicks fanart (or other media file) → "Open"
+2. `executeChannel` IPC → `shell.openPath(path)`
+3. System default app opens the file
+
 ### Desktop regression
 - All existing Electron behavior (Windows/macOS/Linux) is unchanged
-- Non-Electron runtime still uses HTTP fallback (`POST /api/openInFileManager`)
+- Non-Electron runtime still uses HTTP fallback (`POST /api/openInFileManager`, `POST /api/openFile`)
 
-## 6. Backward Compatibility
+## 7. Backward Compatibility
 
 - IPC channel names unchanged
 - Preload surface unchanged on desktop
-- HTTP `/api/listFiles` + `/api/openInFileManager` fallback intact for non-Electron runtimes
+- HTTP `/api/listFiles` + `/api/openInFileManager` + `/api/openFile` (CLI) fallback intact for non-Electron runtimes
 - All OHOS-specific logic in main process + `packages/electron-common`; UI has zero OHOS branches

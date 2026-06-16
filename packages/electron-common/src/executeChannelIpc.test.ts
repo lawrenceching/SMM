@@ -1,17 +1,54 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { EXECUTE_CHANNEL, OPEN_IN_FILE_MANAGER_CHANNEL } from "./channels"
+import { EXECUTE_CHANNEL, OPEN_FILE_CHANNEL, OPEN_IN_FILE_MANAGER_CHANNEL } from "./channels"
 import { registerExecuteChannelIpcHandlers, routeExecuteChannel } from "./executeChannelIpc"
+import { openFileWithShell } from "./openFileTask"
 import { openInFileManager } from "./openInFileManagerTask"
 import { createExecuteChannelPreloadApi } from "./preload/executeChannelApi"
 
 vi.mock("electron", () => ({
   shell: {
     showItemInFolder: vi.fn(async () => ""),
+    openPath: vi.fn(async () => ""),
   },
   systemPreferences: {
     callArkTSFunction: vi.fn(),
   },
 }))
+
+describe("openFileWithShell", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("returns success when shell.openPath returns empty string", async () => {
+    const { shell } = await import("electron")
+    vi.mocked(shell.openPath).mockResolvedValue("")
+
+    await expect(openFileWithShell("/tmp/fanart.jpg")).resolves.toEqual({ success: true })
+    expect(shell.openPath).toHaveBeenCalledWith("/tmp/fanart.jpg")
+  })
+
+  it("returns error when path is empty", async () => {
+    const { shell } = await import("electron")
+
+    const result = await openFileWithShell("")
+
+    expect(result).toEqual({
+      success: false,
+      error: "Path is required and must be a string",
+    })
+    expect(shell.openPath).not.toHaveBeenCalled()
+  })
+
+  it("returns error message when shell.openPath fails", async () => {
+    const { shell } = await import("electron")
+    vi.mocked(shell.openPath).mockResolvedValue("Failed to open path")
+
+    const result = await openFileWithShell("/tmp/missing.jpg")
+
+    expect(result).toEqual({ success: false, error: "Failed to open path" })
+  })
+})
 
 describe("openInFileManager", () => {
   afterEach(() => {
@@ -73,6 +110,22 @@ describe("routeExecuteChannel", () => {
       name: OPEN_IN_FILE_MANAGER_CHANNEL,
       data: { success: true },
     })
+  })
+
+  it("routes open-file to openFileWithShell task", async () => {
+    const { shell } = await import("electron")
+    vi.mocked(shell.openPath).mockResolvedValue("")
+
+    const response = await routeExecuteChannel({
+      name: OPEN_FILE_CHANNEL,
+      data: "/tmp/fanart.jpg",
+    })
+
+    expect(response).toEqual({
+      name: OPEN_FILE_CHANNEL,
+      data: { success: true },
+    })
+    expect(shell.openPath).toHaveBeenCalledWith("/tmp/fanart.jpg")
   })
 
   it("routes get-config when handler is provided", async () => {

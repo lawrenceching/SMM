@@ -16,7 +16,7 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 
 // src/main.ts
-var import_electron8 = require("electron");
+var import_electron9 = require("electron");
 
 // ../../packages/electron-common/src/channels.ts
 var DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
@@ -25,6 +25,7 @@ var FILE_ACCESS_PERSIST_CHANNEL = "fileAccess:persist";
 var FILE_ACCESS_ACTIVATE_CHANNEL = "fileAccess:activate";
 var EXECUTE_CHANNEL = "ExecuteChannel";
 var OPEN_IN_FILE_MANAGER_CHANNEL = "open-in-file-manager";
+var OPEN_FILE_CHANNEL = "open-file";
 // ../../packages/electron-common/src/dialogIpc.ts
 var import_electron = require("electron");
 function defaultGetWindow(event) {
@@ -53,15 +54,35 @@ function registerDialogIpcHandlers(ipcMain, options) {
 }
 // ../../packages/electron-common/src/fileAccessPersistIpc.ts
 var import_electron2 = require("electron");
-// ../../packages/electron-common/src/openInFileManagerTask.ts
+// ../../packages/electron-common/src/openFileTask.ts
 var import_electron3 = require("electron");
+async function openFileWithShell(path) {
+  if (!path || typeof path !== "string") {
+    return { success: false, error: "Path is required and must be a string" };
+  }
+  try {
+    const result = await import_electron3.shell.openPath(path);
+    if (result === "") {
+      console.log(`[OpenFile] Opened file: ${path}`);
+      return { success: true };
+    }
+    console.error(`[OpenFile] shell.openPath failed for ${path}: ${result}`);
+    return { success: false, error: result };
+  } catch (err) {
+    console.error(`[OpenFile] Error opening file: ${path}`, err);
+    return { success: false, error: err };
+  }
+}
+
+// ../../packages/electron-common/src/openInFileManagerTask.ts
+var import_electron4 = require("electron");
 var OPEN_ITEM_IN_FOLDER_BINDING = "EtsBridge.OpenItemInFolder";
 function isHarmonyOSElectron() {
   const platform = process.platform;
   return platform === "ohos" || platform === "openharmony";
 }
 function openItemInFolderViaNativeBinding(path) {
-  const sp = import_electron3.systemPreferences;
+  const sp = import_electron4.systemPreferences;
   if (typeof sp.callArkTSFunction !== "function") {
     console.warn("[OpenInFileManager] callArkTSFunction unavailable; skipped native fallback");
     return false;
@@ -85,7 +106,7 @@ async function openInFileManager(path) {
     return { success: false, error: "Path is required and must be a string" };
   }
   try {
-    const result = await import_electron3.shell.showItemInFolder(path);
+    const result = await import_electron4.shell.showItemInFolder(path);
     const shellError = shellShowItemError(result);
     if (shellError) {
       throw new Error(shellError);
@@ -115,6 +136,11 @@ async function routeExecuteChannel(request, options = {}) {
         name: OPEN_IN_FILE_MANAGER_CHANNEL,
         data: await openInFileManager(String(request.data ?? ""))
       };
+    case OPEN_FILE_CHANNEL:
+      return {
+        name: OPEN_FILE_CHANNEL,
+        data: await openFileWithShell(String(request.data ?? ""))
+      };
     case "get-config":
       if (!options.getConfig) {
         throw new Error(`Unknown channel: ${request.name}`);
@@ -135,7 +161,7 @@ function registerExecuteChannelIpcHandlers(ipcMain, options = {}) {
 // src/http/server.ts
 var import_node_os2 = __toESM(require("node:os"));
 var import_node_http = __toESM(require("node:http"));
-var import_electron5 = require("electron");
+var import_electron6 = require("electron");
 
 // src/core-routes-loader.ts
 var import_node_module = require("node:module");
@@ -245,13 +271,13 @@ function applyCorsHeaders(req, res) {
 var import_node_module2 = require("node:module");
 var import_node_os = __toESM(require("node:os"));
 var import_node_path3 = __toESM(require("node:path"));
-var import_electron4 = require("electron");
+var import_electron5 = require("electron");
 function buildHelloConfig(reverseProxyUrl) {
   let userDataDir;
   let tmpDir;
   try {
-    userDataDir = import_electron4.app.getPath("userData");
-    tmpDir = import_electron4.app.getPath("temp");
+    userDataDir = import_electron5.app.getPath("userData");
+    tmpDir = import_electron5.app.getPath("temp");
   } catch (err) {
     console.warn("[main] app.getPath failed for hello config, falling back to os.tmpdir():", err);
     userDataDir = import_node_os.default.tmpdir();
@@ -270,7 +296,7 @@ function buildHelloConfig(reverseProxyUrl) {
     logDir,
     tmpDir,
     reverseProxyUrl,
-    osLocale: import_electron4.app.getLocale(),
+    osLocale: import_electron5.app.getLocale(),
     coreRoutesPort: MAIN_HTTP_PORT
   };
 }
@@ -337,8 +363,8 @@ function buildCoreRoutesAllowlist() {
       entries.add(toPosixAllowlistEntry(dir));
   };
   try {
-    add(import_electron5.app.getPath("userData"));
-    add(import_electron5.app.getPath("temp"));
+    add(import_electron6.app.getPath("userData"));
+    add(import_electron6.app.getPath("temp"));
   } catch (err) {
     console.warn("[main] app.getPath failed, falling back to os.tmpdir():", err);
     add(import_node_os2.default.tmpdir());
@@ -439,7 +465,7 @@ async function startMainHttpServer() {
 }
 
 // src/ipc/file-access-permission.ts
-var import_electron6 = require("electron");
+var import_electron7 = require("electron");
 var LOG_PREFIX = "[ohos-file-access]";
 var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
 function isHarmonyOSPlatform() {
@@ -472,7 +498,7 @@ function validatePaths(paths, context) {
   return paths;
 }
 function callReactivateFolders(paths, context) {
-  const sp = import_electron6.systemPreferences;
+  const sp = import_electron7.systemPreferences;
   if (typeof sp.callArkTSFunction !== "function") {
     console.error(`${LOG_PREFIX} callArkTSFunction unavailable (${context})`);
     return false;
@@ -501,7 +527,7 @@ function registerOhosFileAccessPermission(ipcMain) {
     if (!isHarmonyOSPlatform()) {
       return { ok: true, skipped: true };
     }
-    const sp = import_electron6.systemPreferences;
+    const sp = import_electron7.systemPreferences;
     if (typeof sp.fileAccessPersist !== "function") {
       const message = "systemPreferences.fileAccessPersist is not available";
       console.error(`${LOG_PREFIX} IPC persist: ${message}`);
@@ -605,10 +631,10 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
 
 // src/window/create-main-window.ts
 var import_node_path6 = __toESM(require("node:path"));
-var import_electron7 = require("electron");
+var import_electron8 = require("electron");
 function createMainWindow() {
-  const tray = new import_electron7.Tray(import_electron7.nativeImage.createFromPath(import_node_path6.default.join(getAppRoot(), "electron_white.png")));
-  const mainWindow = new import_electron7.BrowserWindow({
+  const tray = new import_electron8.Tray(import_electron8.nativeImage.createFromPath(import_node_path6.default.join(getAppRoot(), "electron_white.png")));
+  const mainWindow = new import_electron8.BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -627,16 +653,16 @@ function createMainWindow() {
 }
 
 // src/main.ts
-registerDialogIpcHandlers(import_electron8.ipcMain);
-registerExecuteChannelIpcHandlers(import_electron8.ipcMain);
-registerOhosFileAccessPermission(import_electron8.ipcMain);
-import_electron8.app.whenReady().then(() => {
-  initAppRoot(import_electron8.app.getAppPath());
+registerDialogIpcHandlers(import_electron9.ipcMain);
+registerExecuteChannelIpcHandlers(import_electron9.ipcMain);
+registerOhosFileAccessPermission(import_electron9.ipcMain);
+import_electron9.app.whenReady().then(() => {
+  initAppRoot(import_electron9.app.getAppPath());
   getAllowedRootItems();
   startMainHttpServer().catch((err) => {
     console.error("[main] failed to start HTTP server:", err);
   });
-  import_electron8.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
+  import_electron9.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
     const redirect = resolveRedirect(details.url);
     if (redirect && redirect !== details.url) {
       cb({ redirectURL: redirect });
