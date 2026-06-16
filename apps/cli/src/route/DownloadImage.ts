@@ -1,136 +1,71 @@
-import type { Hono } from 'hono';
-import { logger } from '../../lib/logger';
-import { allowRead } from '../utils/permission';
-import { readFile } from 'fs/promises';
-import { extname } from 'path';
-import { fileURLToPath } from 'url';
-import { Path } from '@core/path';
+import type { Hono } from "hono";
+import {
+  doDownloadImage as doDownloadImageCore,
+  type DownloadImageResult,
+} from "@smm/core-routes";
+import { buildAllowlist } from "@/utils/buildAllowlist";
+import { logger } from "../../lib/logger";
 
-function normalizeUrl(url: string): string {
-  if (url.startsWith("//")) {
-    return `https:${url}`;
-  }
-  return url;
-}
-
-function createImageResponse(buffer: Buffer, contentType: string): Response {
-  return new Response(buffer, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": buffer.length.toString(),
-      "Cache-Control": "public, max-age=31536000",
-    },
-  });
-}
-
-async function downloadImageFromFile(filePath: string): Promise<Response> {
-  console.log(`[DownloadImage] Reading file from ${filePath}`);
-  const isAllowed = await allowRead(Path.posix(filePath));
-  if (!isAllowed) {
-    throw new Error(`Permission denied: file ${filePath} is not allowed to be read`);
-  }
-
-  const buffer = await readFile(filePath);
-  const ext = extname(filePath).toLowerCase();
-  const contentType = getContentType(ext);
-
-  console.log(`[DownloadImage] Successfully read file (${buffer.length} bytes, content-type: ${contentType})`);
-
-  return createImageResponse(buffer, contentType);
-}
-
-async function downloadImageFromWeb(url: string): Promise<Response> {
-  console.log(`[DownloadImage] Downloading image from ${url}`);
-
-  const response = await fetch(url, {
-    headers: {
-      "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-      "accept-language": "en-US,en;q=0.9",
-      "cache-control": "no-cache",
-      "sec-fetch-dest": "image",
-      "sec-fetch-mode": "no-cors",
-      "sec-fetch-site": "cross-site",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const contentType = response.headers.get("content-type") || "image/jpeg";
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  console.log(`[DownloadImage] Successfully downloaded image (${buffer.length} bytes, content-type: ${contentType})`);
-
-  return createImageResponse(buffer, contentType);
-}
-
-function getContentType(ext: string): string {
-  const contentTypes: Record<string, string> = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.bmp': 'image/bmp',
-    '.avif': 'image/avif',
-    '.apng': 'image/apng',
-  };
-  return contentTypes[ext] || 'image/jpeg';
-}
+const coreRoutesLogger = {
+  debug: (obj: Record<string, unknown>, msg?: string) => logger.debug(obj, msg),
+  info: (obj: Record<string, unknown>, msg?: string) => logger.info(obj, msg),
+  warn: (obj: Record<string, unknown>, msg?: string) => logger.warn(obj, msg),
+  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
+};
 
 /**
- * Downloads an image from an HTTP/HTTPS URL or file path and returns it as an HTTP response
- * @param url The image URL (can be http://, https://, protocol-relative //, or file://)
- * @returns Promise<Response> The image as an HTTP response with proper content-type
+ * Hono shell for `GET /api/image`.
+ *
+ * Delegates to `doDownloadImage` from `@smm/core-routes`. The
+ * shared core function handles URL routing (`http(s)://`,
+ * `file://`, protocol-relative `//`), the `file://` allowlist
+ * check, and Content-Type inference. This shell is responsible
+ * only for:
+ *   - reading `?url=` from the query string,
+ *   - writing the binary response with the right headers,
+ *   - mapping thrown errors to `500 { error }` JSON.
  */
-export async function doDownloadImage(url: string): Promise<Response> {
-  const normalizedUrl = normalizeUrl(url);
-
-  try {
-    if (normalizedUrl.startsWith("file://")) {
-      const path = fileURLToPath(normalizedUrl)
-      return await downloadImageFromFile(path);
-    }
-
-    if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
-      return await downloadImageFromWeb(normalizedUrl);
-    }
-
-    throw new Error(`Invalid image URL: ${url}. Must be http://, https://, protocol-relative (//), or file://`);
-  } catch (error) {
-    console.error(`[DownloadImage] Error downloading image from ${normalizedUrl}:`, error);
-    throw error;
-  }
+export async function processDownloadImage(url: string): Promise<DownloadImageResult> {
+  const allowlist = await buildAllowlist();
+  return doDownloadImageCore(url, { allowlist, logger: coreRoutesLogger });
 }
 
 export function handleDownloadImage(app: Hono) {
   // GET /api/image?url=xxxx - Download and return image from URL
-  app.get('/api/image', async (c) => {
+  app.get("/api/image", async (c) => {
     try {
-      const url = c.req.query('url');
-      
+      const url = c.req.query("url");
+
       if (!url) {
-        return c.json({ 
-          error: 'Missing required query parameter: url'
-        }, 400);
+        return c.json(
+          {
+            error: "Missing required query parameter: url",
+          },
+          400,
+        );
       }
 
-      const imageResponse = await doDownloadImage(url);
-      return imageResponse;
+      const { buffer, contentType } = await processDownloadImage(url);
+      return new Response(buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": buffer.length.toString(),
+          "Cache-Control": "public, max-age=31536000",
+        },
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error({ error: { message: errorMessage, stack: errorStack } }, 'DownloadImage route error:');
-      return c.json({ 
-        error: `Failed to download image: ${errorMessage}`
-      }, 500);
+      logger.error(
+        { error: { message: errorMessage } },
+        "DownloadImage route error:",
+      );
+      return c.json(
+        {
+          error: `Failed to download image: ${errorMessage}`,
+        },
+        500,
+      );
     }
   });
 }

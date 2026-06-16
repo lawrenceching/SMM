@@ -152,6 +152,12 @@
       "failed": "失败",
       "pending": "未下载"
     },
+    "errors": {
+      "imageUrlTimeout": "图片链接访问超时",
+      "imageUrlNotFound": "图片链接域名无法解析",
+      "imageUrlConnectionRefused": "图片链接连接被拒绝",
+      "imageUrlNetworkFailed": "图片链接网络连接失败"
+    },
     "noTasks": "没有任务",
     "start": "开始",
     "done": "完成"

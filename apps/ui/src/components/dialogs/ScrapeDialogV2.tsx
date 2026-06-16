@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table"
 import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
+import { localizeScrapeError } from "@/lib/scrapeError"
 import { useScrapeNfoMutation } from "@/hooks/useScrapeNfoMutation"
 import { useScrapePosterMutation } from "@/hooks/useScrapePosterMutation"
 import { useScrapeFanartMutation } from "@/hooks/useScrapeFanartMutation"
@@ -42,6 +43,12 @@ interface TaskView {
   id: TaskId
   name: string
   status: TaskStatus
+  /**
+   * Raw error message captured from the failed task. Surfaced in
+   * the status column so the user can tell whether the failure
+   * was a timeout, DNS, connection refused, etc.
+   */
+  failedReason?: string
 }
 
 interface TaskState {
@@ -54,7 +61,7 @@ type TaskAction =
   | { type: "SET_COMPLETION"; completion: Record<TaskId, boolean> }
   | { type: "MARK_RUNNING"; id: TaskId }
   | { type: "MARK_COMPLETED"; id: TaskId }
-  | { type: "MARK_FAILED"; id: TaskId }
+  | { type: "MARK_FAILED"; id: TaskId; reason?: string }
   | { type: "START_RUN" }
   | { type: "FINISH_RUN" }
 
@@ -90,7 +97,9 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return {
         ...state,
         tasks: state.tasks.map((task) =>
-          task.id === action.id ? { ...task, status: "failed" } : task,
+          task.id === action.id
+            ? { ...task, status: "failed", failedReason: action.reason }
+            : task,
         ),
       }
     case "START_RUN":
@@ -218,7 +227,9 @@ function TaskItem({ task }: { task: TaskView }) {
       : task.status === "completed"
         ? t("scrape.status.completed")
         : task.status === "failed"
-          ? t("scrape.status.failed")
+          ? task.failedReason
+            ? localizeScrapeError(task.failedReason, t)
+            : t("scrape.status.failed")
           : t("scrape.status.pending")
 
   return (
@@ -229,7 +240,14 @@ function TaskItem({ task }: { task: TaskView }) {
       <TableCell className="py-2 px-2">
         <div className="flex items-center gap-2" data-testid={`scrape-dialog-task-status-${task.id}`}>
           {icon}
-          <span className="text-xs text-muted-foreground">{text}</span>
+          <span
+            className="text-xs text-muted-foreground"
+            title={task.status === "failed" && task.failedReason
+              ? task.failedReason
+              : undefined}
+          >
+            {text}
+          </span>
         </div>
       </TableCell>
     </TableRow>
@@ -328,7 +346,12 @@ export function ScrapeDialogV2({ isOpen, onClose, mediaMetadata }: ScrapeDialogP
           await executeTask(id, mediaMetadata)
           dispatch({ type: "MARK_COMPLETED", id })
         } catch (error) {
-          dispatch({ type: "MARK_FAILED", id })
+          // Capture the raw error message so the status column
+          // can render a localized description (timeout, DNS,
+          // connection refused, etc.).
+          const reason =
+            error instanceof Error ? error.message : String(error)
+          dispatch({ type: "MARK_FAILED", id, reason })
           console.error(`[ScrapeDialogV2] task ${id} failed:`, error)
         }
       }

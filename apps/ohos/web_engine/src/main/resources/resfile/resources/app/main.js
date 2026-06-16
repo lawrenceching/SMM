@@ -291,10 +291,11 @@ async function startMainHttpServer() {
     warn: (obj, msg) => console.warn(`[reverse-proxy] ${msg ?? "warn"}`, obj),
     error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? "error"}`, obj)
   };
+  const nodeHttpFetch = createNodeHttpFetch();
   const reverseProxyConfig = {
     allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
     logger: proxyLogger,
-    fetchImpl: createNodeHttpFetch()
+    fetchImpl: nodeHttpFetch
   };
   const reverseProxyManager = createReverseProxyManager(reverseProxyConfig);
   try {
@@ -313,7 +314,8 @@ async function startMainHttpServer() {
     logger: createCoreRoutesLogger(),
     hello,
     appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
-    broadcast: (message) => socketManager?.broadcast(message)
+    broadcast: (message) => socketManager?.broadcast(message),
+    fetchImpl: nodeHttpFetch
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {

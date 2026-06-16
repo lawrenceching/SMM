@@ -73,3 +73,23 @@ HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as 
 ## Discover
 Source Code: apps/cli/src/route/discover.ts
 HTTP: `GET /api/discover` — fetches the remote media-database discovery config from `https://gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json` and returns the normalized `mediaDatabases` array. Each entry has the shape `{ type: 'tmdb' | 'tvdb', url: string, authorizationMethod: 'date-token' | 'none' }`. The CLI never returns an error response — fetch failures (timeout, non-2xx, malformed body) result in an empty list. The UI uses this endpoint at startup to populate the list of candidate TMDB/TVDB endpoints for reachability testing.
+
+## DownloadImage
+Source Code: packages/core-routes/src/downloadImage.ts
+HTTP: `GET /api/image?url=<encoded url>` — downloads an image (HTTP / `file://` / protocol-relative `//`) and streams it back as binary with the upstream `Content-Type` (defaulting to `image/jpeg` when missing). The `file://` branch validates the resolved platform path against the server-side allowlist. Used by the UI's `useImage` hook (`apps/ui/src/hooks/useImage.ts`) and the "Edit Tags" dialog screenshot preview (`apps/ui/src/components/dialogs/media-file-property-dialog.tsx`).
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/DownloadImage.ts` delegates to `doDownloadImage` from `@smm/core-routes`.
+
+## DownloadImageAsFile
+Source Code: packages/core-routes/src/downloadImageAsFile.ts
+HTTP: `POST /api/downloadImage` — downloads an image to a managed file path. Request body: `{ url: string, path: string }` (path in platform-specific format). If the destination file already exists, the response `error` is set to `existedFileError(path)` and the file is left untouched. The path must be inside the server-side allowlist (built by `apps/cli/src/utils/buildAllowlist.ts`). Used by the UI to save poster / fanart / still images scraped from TMDB and TVDB (`useDownloadThumbnailFromTMDB`, `useDownloadThumbnailFromTVDB`, `useScrapePosterMutation`, `useScrapeFanartMutation`, `lib/utils.ts`).
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/DownloadImageAsFile.ts` delegates to `doDownloadImageAsFile` from `@smm/core-routes`.
+
+## ReadImage
+Source Code: packages/core-routes/src/readImage.ts
+Document: docs/api/ReadImageAPI.md
+
+HTTP: `POST /api/readImage` — reads a local image file and returns it as a `data:image/<mime>;base64,…` URL. Request body: `{ path: string }` (platform absolute path). The path must be inside the server-side allowlist and have a supported extension (`.jpg .jpeg .png .gif .webp .svg .bmp .ico .tiff .tif`). Missing files return `File Not Found`; out-of-allowlist paths return `Path "<path>" is not in the allowlist`.
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/ReadImage.ts` delegates to `doReadImage` from `@smm/core-routes`.

@@ -71,10 +71,12 @@ export async function startMainHttpServer(): Promise<void> {
     error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? "error"}`, obj),
   }
 
+  const nodeHttpFetch = createNodeHttpFetch()
+
   const reverseProxyConfig = {
     allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
     logger: proxyLogger,
-    fetchImpl: createNodeHttpFetch(),
+    fetchImpl: nodeHttpFetch,
   }
 
   const reverseProxyManager = createReverseProxyManager(reverseProxyConfig)
@@ -100,6 +102,7 @@ export async function startMainHttpServer(): Promise<void> {
       hello,
       appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
       broadcast: (message) => socketManager?.broadcast(message),
+      fetchImpl: nodeHttpFetch,
     },
     { fallbackPort: MAIN_HTTP_PORT },
   )

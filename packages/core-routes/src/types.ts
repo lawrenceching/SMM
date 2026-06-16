@@ -30,6 +30,12 @@ export interface CoreRoutesConfig {
   appDataDir?: string;
   /** Optional Socket.IO broadcast; used by renameFiles after metadata update */
   broadcast?: (message: WebSocketMessage) => void;
+  /**
+   * Optional fetch implementation for routes that perform outbound HTTP
+   * (e.g. downloadImage). Use {@link createNodeHttpFetch} on runtimes where
+   * global `fetch` is unavailable (OHOS Electron / WebAssembly missing).
+   */
+  fetchImpl?: typeof fetch;
 }
 
 export interface RouteContext {

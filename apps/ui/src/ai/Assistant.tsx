@@ -205,7 +205,8 @@ function AssistantImpl() {
         // `AssistantChatTransport` and let the CLI's server-side
         // `agentTools.getApplicationContext(clientId)` handle tool
         // execution (the existing pre-migration behavior).
-        const useFrontendTransport = isHarmony || isUIAiChatTransportEnabled
+        // const useFrontendTransport = isHarmony || isUIAiChatTransportEnabled
+        const useFrontendTransport = isUIAiChatTransportEnabled
 
         if (useFrontendTransport) {
             // Renderer-side AI Assistant. Run the AI SDK `streamText`

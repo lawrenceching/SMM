@@ -156,8 +156,8 @@ function requestViaNodeHttp(request: Request): Promise<Response> {
 
 /**
  * Returns a `fetch`-compatible function backed by `node:http` / `node:https`.
- * Use as `fetchImpl` in {@link ReverseProxyConfig} on runtimes without
- * working global `fetch`.
+ * Use as `fetchImpl` in {@link ReverseProxyConfig} or {@link CoreRoutesConfig}
+ * on runtimes without working global `fetch`.
  */
 export function createNodeHttpFetch(): typeof fetch {
   return (input: RequestInfo | URL, init?: RequestInit) => {

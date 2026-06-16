@@ -152,6 +152,12 @@
       "failed": "Failed",
       "pending": "Pending"
     },
+    "errors": {
+      "imageUrlTimeout": "Image URL access timed out",
+      "imageUrlNotFound": "Image URL host not found",
+      "imageUrlConnectionRefused": "Image URL connection refused",
+      "imageUrlNetworkFailed": "Image URL network connection failed"
+    },
     "noTasks": "No tasks",
     "start": "Start",
     "done": "Done"

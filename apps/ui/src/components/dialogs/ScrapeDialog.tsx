@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table"
 import type { ScrapeDialogProps } from "./types"
 import { useTranslation } from "@/lib/i18n"
+import { localizeScrapeError } from "@/lib/scrapeError"
 import { useScrapeNfoMutation } from "@/hooks/useScrapeNfoMutation"
 import { useScrapePosterMutation } from "@/hooks/useScrapePosterMutation"
 import { useScrapeFanartMutation } from "@/hooks/useScrapeFanartMutation"
@@ -42,6 +43,12 @@ interface Task {
    */
   name: string;
   status: "pending" | "running" | "completed" | "failed";
+  /**
+   * Raw error message captured from the failed `execute()` call.
+   * Surfaced in the status column so the user can tell whether
+   * the failure was a timeout, DNS, connection refused, etc.
+   */
+  failedReason?: string;
   execute: () => Promise<void>;
 }
 
@@ -69,7 +76,9 @@ function TaskItem({ task }: { task: Task }) {
       case "completed":
         return t('scrape.status.completed')
       case "failed":
-        return t('scrape.status.failed')
+        return task.failedReason
+          ? localizeScrapeError(task.failedReason, t)
+          : t('scrape.status.failed')
       case "pending":
       default:
         return t('scrape.status.pending')
@@ -87,7 +96,12 @@ function TaskItem({ task }: { task: Task }) {
           data-testid={`scrape-dialog-task-status-${task.id}`}
         >
           {getStatusIcon()}
-          <span className="text-xs text-muted-foreground">
+          <span
+            className="text-xs text-muted-foreground"
+            title={task.status === "failed" && task.failedReason
+              ? task.failedReason
+              : undefined}
+          >
             {getStatusText()}
           </span>
         </div>
@@ -531,10 +545,13 @@ export function ScrapeDialog({
             return updated
           })
         } catch (error) {
-          // Update task status to failed
+          // Update task status to failed, capturing the raw error
+          // message so the status column can show a localized
+          // description of what went wrong (timeout, DNS, etc.).
+          const reason = error instanceof Error ? error.message : String(error)
           setTasks(prevTasks => {
             const updated = [...prevTasks]
-            updated[i] = { ...updated[i], status: "failed" }
+            updated[i] = { ...updated[i], status: "failed", failedReason: reason }
             return updated
           })
           console.error(`Task "${currentTasks[i].name}" failed:`, error)

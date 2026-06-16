@@ -49,6 +49,17 @@ describe("ScrapeDialogV2 state reducer", () => {
 
     const failed = taskReducer(running, { type: "MARK_FAILED", id: "poster" })
     expect(failed.tasks[0]?.status).toBe("failed")
+    expect(failed.tasks[0]?.failedReason).toBeUndefined()
+
+    const failedWithReason = taskReducer(running, {
+      type: "MARK_FAILED",
+      id: "poster",
+      reason: "fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
+    })
+    expect(failedWithReason.tasks[0]?.status).toBe("failed")
+    expect(failedWithReason.tasks[0]?.failedReason).toBe(
+      "fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
+    )
 
     const finished = taskReducer(failed, { type: "FINISH_RUN" })
     expect(finished.isRunning).toBe(false)

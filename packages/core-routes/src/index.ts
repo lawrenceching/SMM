@@ -52,6 +52,21 @@ export {
 export { doRenameFolder } from "./renameFolder.ts";
 export { doRenameFiles } from "./renameFiles.ts";
 export {
+  doDownloadImage,
+  type DownloadImageContentType,
+  type DownloadImageResult,
+} from "./downloadImage.ts";
+export {
+  doDownloadImageAsFile,
+  type DownloadImageRequestBody,
+  type DownloadImageResponseBody,
+} from "./downloadImageAsFile.ts";
+export {
+  doReadImage,
+  type ReadImageRequestBody,
+  type ReadImageResponseBody,
+} from "./readImage.ts";
+export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
@@ -67,6 +82,9 @@ export {
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDownloadImageGet,
+  handleDownloadImageAsFilePost,
+  handleReadImagePost,
 } from "./register.ts";
 export type {
   SocketIOCorsConfig,

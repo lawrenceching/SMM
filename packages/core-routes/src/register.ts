@@ -11,6 +11,9 @@ import { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 import { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 import { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
 import { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
+import { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
+import { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
+import { handleReadImagePost } from "./routes/readImageRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -25,6 +28,9 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDownloadImageGet,
+  handleDownloadImageAsFilePost,
+  handleReadImagePost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -76,6 +82,12 @@ export { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 export { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 export { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
 export { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
+export { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
+export { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
+export { handleReadImagePost } from "./routes/readImageRoute.ts";
+export { doDownloadImage } from "./downloadImage.ts";
+export { doDownloadImageAsFile } from "./downloadImageAsFile.ts";
+export { doReadImage } from "./readImage.ts";
 export { doRenameFiles } from "./renameFiles.ts";
 export {
   doGetEpisodes,

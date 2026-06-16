@@ -9079,7 +9079,7 @@ var require_mime_types = __commonJS((exports2) => {
    * MIT Licensed
    */
   var db = require_mime_db();
-  var extname = require("path").extname;
+  var extname2 = require("path").extname;
   var EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
   var TEXT_TYPE_REGEXP = /^text\//i;
   exports2.charset = charset;
@@ -9130,11 +9130,11 @@ var require_mime_types = __commonJS((exports2) => {
     }
     return exts[0];
   }
-  function lookup(path8) {
-    if (!path8 || typeof path8 !== "string") {
+  function lookup(path10) {
+    if (!path10 || typeof path10 !== "string") {
       return false;
     }
-    var extension2 = extname("x." + path8).toLowerCase().substr(1);
+    var extension2 = extname2("x." + path10).toLowerCase().substr(1);
     if (!extension2) {
       return false;
     }
@@ -15050,11 +15050,11 @@ var require_server = __commonJS((exports2) => {
       this.init();
     }
     _computePath(options) {
-      let path8 = (options.path || "/engine.io").replace(/\/$/, "");
+      let path10 = (options.path || "/engine.io").replace(/\/$/, "");
       if (options.addTrailingSlash !== false) {
-        path8 += "/";
+        path10 += "/";
       }
-      return path8;
+      return path10;
     }
     upgrades(transport) {
       if (!this.opts.allowUpgrades)
@@ -15472,10 +15472,10 @@ var require_server = __commonJS((exports2) => {
       }
     }
     attach(server, options = {}) {
-      const path8 = this._computePath(options);
+      const path10 = this._computePath(options);
       const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1000;
       function check2(req) {
-        return path8 === req.url.slice(0, path8.length);
+        return path10 === req.url.slice(0, path10.length);
       }
       const listeners = server.listeners("request").slice(0);
       server.removeAllListeners("request");
@@ -15483,7 +15483,7 @@ var require_server = __commonJS((exports2) => {
       server.on("listening", this.init.bind(this));
       server.on("request", (req, res) => {
         if (check2(req)) {
-          debug('intercepting request for path "%s"', path8);
+          debug('intercepting request for path "%s"', path10);
           this.handleRequest(req, res);
         } else {
           let i = 0;
@@ -16198,8 +16198,8 @@ var require_userver = __commonJS((exports2) => {
       return new transports_uws_1.default[transportName](req);
     }
     attach(app, options = {}) {
-      const path8 = this._computePath(options);
-      app.any(path8, this.handleRequest.bind(this)).ws(path8, {
+      const path10 = this._computePath(options);
+      app.any(path10, this.handleRequest.bind(this)).ws(path10, {
         compression: options.compression,
         idleTimeout: options.idleTimeout,
         maxBackpressure: options.maxBackpressure,
@@ -19222,7 +19222,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
   var zlib_1 = require("zlib");
   var accepts = require_accepts();
   var stream_1 = require("stream");
-  var path8 = require("path");
+  var path10 = require("path");
   var engine_io_1 = require_engine_io();
   var client_1 = require_client();
   var events_1 = require("events");
@@ -19390,7 +19390,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
           res.writeHeader("cache-control", "public, max-age=0");
           res.writeHeader("content-type", "application/" + (isMap ? "json" : "javascript") + "; charset=utf-8");
           res.writeHeader("etag", expectedEtag);
-          const filepath = path8.join(__dirname, "../client-dist/", filename);
+          const filepath = path10.join(__dirname, "../client-dist/", filename);
           (0, uws_1.serveFile)(res, filepath);
         });
       }
@@ -19446,7 +19446,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
       Server.sendFile(filename, req, res);
     }
     static sendFile(filename, req, res) {
-      const readStream = (0, fs_1.createReadStream)(path8.join(__dirname, "../client-dist/", filename));
+      const readStream = (0, fs_1.createReadStream)(path10.join(__dirname, "../client-dist/", filename));
       const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
       const onError = (err) => {
         if (err) {
@@ -19624,6 +19624,7 @@ __export(exports_src, {
   handleWriteFilePost: () => handleWriteFilePost,
   handleRenameFolderPost: () => handleRenameFolderPost,
   handleRenameFilesPost: () => handleRenameFilesPost,
+  handleReadImagePost: () => handleReadImagePost,
   handleReadFilePost: () => handleReadFilePost,
   handleProxyRequest: () => handleProxyRequest,
   handleListFilesPost: () => handleListFilesPost,
@@ -19632,6 +19633,8 @@ __export(exports_src, {
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
   handleGetEpisodesPost: () => handleGetEpisodesPost,
+  handleDownloadImageGet: () => handleDownloadImageGet,
+  handleDownloadImageAsFilePost: () => handleDownloadImageAsFilePost,
   handleDeleteFilePost: () => handleDeleteFilePost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   findAvailableReverseProxyPort: () => findAvailableReverseProxyPort,
@@ -19640,12 +19643,15 @@ __export(exports_src, {
   doWriteFile: () => doWriteFile,
   doRenameFolder: () => doRenameFolder,
   doRenameFiles: () => doRenameFiles,
+  doReadImage: () => doReadImage,
   doReadFile: () => doReadFile,
   doListFilesInMediaFolder: () => doListFilesInMediaFolder,
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
   doGetEpisodes: () => doGetEpisodes,
+  doDownloadImageAsFile: () => doDownloadImageAsFile,
+  doDownloadImage: () => doDownloadImage,
   doDeleteFile: () => doDeleteFile,
   createSocketIOManager: () => createSocketIOManager,
   createReverseProxyRequestHandler: () => createReverseProxyRequestHandler,
@@ -39462,6 +39468,312 @@ async function doRenameFiles(body, config2 = {}, headerClientId) {
     }
   };
 }
+// src/downloadImage.ts
+var import_node_buffer = require("node:buffer");
+var import_promises11 = require("node:fs/promises");
+var import_node_url = require("node:url");
+var import_node_path8 = require("node:path");
+var DEFAULT_CONTENT_TYPE = "image/jpeg";
+var EXTENSION_TO_CONTENT_TYPE = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".bmp": "image/bmp",
+  ".avif": "image/avif",
+  ".apng": "image/apng"
+};
+function getContentTypeFromExtension(ext) {
+  return EXTENSION_TO_CONTENT_TYPE[ext.toLowerCase()] ?? DEFAULT_CONTENT_TYPE;
+}
+function normalizeUrl(url2) {
+  if (url2.startsWith("//")) {
+    return `https:${url2}`;
+  }
+  return url2;
+}
+var REMOTE_IMAGE_REQUEST_HEADERS = {
+  accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "sec-fetch-dest": "image",
+  "sec-fetch-mode": "no-cors",
+  "sec-fetch-site": "cross-site",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+};
+function describeFetchError(error48) {
+  if (!(error48 instanceof Error)) {
+    return String(error48);
+  }
+  const cause = error48.cause;
+  const causeCode = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined;
+  const causeMessage = cause instanceof Error ? cause.message : undefined;
+  const directCode = !causeCode && typeof error48 === "object" && "code" in error48 ? String(error48.code) : undefined;
+  const directErrno = !causeCode && typeof error48 === "object" && "errno" in error48 ? String(error48.errno) : undefined;
+  const code = causeCode ?? directCode ?? directErrno;
+  const message = causeMessage;
+  const segments = [];
+  if (code)
+    segments.push(code);
+  if (message && message !== code) {
+    segments.push(message);
+  }
+  if (segments.length > 0) {
+    return `${error48.message} (${segments.join(": ")})`;
+  }
+  return error48.message;
+}
+function resolveUrl(url2) {
+  const normalizedUrl = normalizeUrl(url2);
+  if (normalizedUrl.startsWith("file://")) {
+    const platformPath = import_node_url.fileURLToPath(normalizedUrl);
+    return { kind: "file", normalizedUrl, platformPath };
+  }
+  if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
+    return { kind: "http", normalizedUrl };
+  }
+  throw new Error(`Invalid image URL: ${url2}. ` + `Must be http://, https://, protocol-relative (//), or file://`);
+}
+async function doDownloadImage(url2, config2) {
+  const { allowlist, logger, fetchImpl = fetch } = config2;
+  const resolved = resolveUrl(url2);
+  logger?.info({ url: resolved.normalizedUrl, kind: resolved.kind }, "[DownloadImage] processing request");
+  if (resolved.kind === "file") {
+    const platformPath = resolved.platformPath;
+    const posixPath = Path.posix(platformPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
+    }
+    const buffer2 = await import_promises11.readFile(platformPath);
+    const ext = import_node_path8.extname(platformPath);
+    const contentType2 = getContentTypeFromExtension(ext);
+    logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
+    return { buffer: buffer2, contentType: contentType2 };
+  }
+  let response;
+  try {
+    response = await fetchImpl(resolved.normalizedUrl, {
+      method: "GET",
+      headers: REMOTE_IMAGE_REQUEST_HEADERS
+    });
+  } catch (error48) {
+    throw new Error(`Failed to download image: ${describeFetchError(error48)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = import_node_buffer.Buffer.from(arrayBuffer);
+  logger?.info({ url: resolved.normalizedUrl, bytes: buffer.length, contentType }, "[DownloadImage] fetched remote image");
+  return { buffer, contentType };
+}
+// src/downloadImageAsFile.ts
+var import_node_buffer2 = require("node:buffer");
+var import_promises12 = require("node:fs/promises");
+var import_node_fs3 = require("node:fs");
+var import_node_path9 = __toESM(require("node:path"));
+var downloadImageAsFileRequestSchema = exports_external.object({
+  url: exports_external.string().min(1, "url is required"),
+  path: exports_external.string().min(1, "path is required")
+});
+async function fileExists3(filePath) {
+  try {
+    await import_promises12.access(filePath, import_node_fs3.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function normalizeUrl2(url2) {
+  if (url2.startsWith("//")) {
+    return `https:${url2}`;
+  }
+  return url2;
+}
+async function doDownloadImageAsFile(body, config2) {
+  const { allowlist, logger, fetchImpl = fetch } = config2;
+  try {
+    const validationResult = downloadImageAsFileRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "[DownloadImageAsFile] validation failed");
+      return {
+        data: {
+          url: typeof body?.url === "string" ? body.url : "",
+          path: typeof body?.path === "string" ? body.path : ""
+        },
+        error: `Validation failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { url: url2, path: destPath } = validationResult.data;
+    logger?.debug({ url: url2, destPath }, "[DownloadImageAsFile] processing request");
+    const posixDestPath = import_node_path9.default.posix.resolve(Path.posix(destPath));
+    if (!validatePathIsInAllowlist(posixDestPath, allowlist)) {
+      logger?.warn({ destPath, posixDestPath }, "[DownloadImageAsFile] destination not in allowlist");
+      return {
+        data: { url: url2, path: destPath },
+        error: `Path "${destPath}" is not in the allowlist`
+      };
+    }
+    const platformDestPath = Path.toPlatformPath(posixDestPath);
+    if (await fileExists3(platformDestPath)) {
+      logger?.info({ platformDestPath }, "[DownloadImageAsFile] destination already exists");
+      return {
+        data: { url: url2, path: destPath },
+        error: existedFileError(platformDestPath)
+      };
+    }
+    const normalizedUrl = normalizeUrl2(url2);
+    if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+      return {
+        data: { url: url2, path: destPath },
+        error: `Invalid image URL: ${url2}. Must be http://, https://, or protocol-relative (//)`
+      };
+    }
+    logger?.debug({ url: normalizedUrl, destPath: platformDestPath }, "[DownloadImageAsFile] fetching image");
+    let response;
+    try {
+      response = await fetchImpl(normalizedUrl, {
+        method: "GET",
+        headers: {
+          accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "cache-control": "no-cache",
+          "sec-fetch-dest": "image",
+          "sec-fetch-mode": "no-cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
+    } catch (error48) {
+      return {
+        data: { url: url2, path: destPath },
+        error: `Image URL fetch failed: ${describeFetchError(error48)}`
+      };
+    }
+    if (!response.ok) {
+      logger?.warn({ url: normalizedUrl, status: response.status }, "[DownloadImageAsFile] non-2xx response");
+      return {
+        data: { url: url2, path: destPath },
+        error: `HTTP error! status: ${response.status}`
+      };
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = import_node_buffer2.Buffer.from(arrayBuffer);
+    await import_promises12.writeFile(platformDestPath, buffer);
+    logger?.info({ url: normalizedUrl, destPath: platformDestPath, bytes: buffer.length }, "[DownloadImageAsFile] wrote file");
+    return { data: { url: url2, path: destPath } };
+  } catch (error48) {
+    logger?.error({ error: error48 }, "[DownloadImageAsFile] unexpected error");
+    return {
+      data: {
+        url: typeof body?.url === "string" ? body.url : "",
+        path: typeof body?.path === "string" ? body.path : ""
+      },
+      error: `Unexpected Error: ${describeFetchError(error48)}`
+    };
+  }
+}
+// src/readImage.ts
+var import_node_buffer3 = require("node:buffer");
+var import_promises13 = require("node:fs/promises");
+var import_node_fs4 = require("node:fs");
+var import_node_path10 = __toESM(require("node:path"));
+var readImageRequestSchema = exports_external.object({
+  path: exports_external.string().min(1, "path is required")
+});
+var VALID_IMAGE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".bmp",
+  ".ico",
+  ".tiff",
+  ".tif"
+];
+var EXTENSION_TO_MIME = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
+  ".ico": "image/x-icon",
+  ".tiff": "image/tiff",
+  ".tif": "image/tiff"
+};
+function isValidImageFile(filePath) {
+  const ext = import_node_path10.default.extname(filePath).toLowerCase();
+  return VALID_IMAGE_EXTENSIONS.includes(ext);
+}
+function getImageMimeType(filePath) {
+  const ext = import_node_path10.default.extname(filePath).toLowerCase();
+  return EXTENSION_TO_MIME[ext] ?? "image/jpeg";
+}
+async function fileExists4(filePath) {
+  try {
+    await import_promises13.access(filePath, import_node_fs4.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function doReadImage(body, config2) {
+  const { allowlist, logger } = config2;
+  try {
+    const validationResult = readImageRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "[ReadImage] validation failed");
+      return {
+        error: `Validation failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: filePath } = validationResult.data;
+    const posixPath = import_node_path10.default.posix.resolve(Path.posix(filePath));
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ filePath, posixPath }, "[ReadImage] path not in allowlist");
+      return {
+        error: `Path "${filePath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    if (!isValidImageFile(platformPath)) {
+      return {
+        error: `File is not a valid image file. Supported formats: ${VALID_IMAGE_EXTENSIONS.join(", ")}`
+      };
+    }
+    if (!await fileExists4(platformPath)) {
+      return {
+        error: fileNotFoundError(filePath)
+      };
+    }
+    try {
+      const arrayBuffer = await import_promises13.readFile(platformPath);
+      const base643 = import_node_buffer3.Buffer.from(arrayBuffer).toString("base64");
+      const mimeType = getImageMimeType(platformPath);
+      return {
+        data: `data:${mimeType};base64,${base643}`
+      };
+    } catch (error48) {
+      logger?.error({ filePath, platformPath, error: error48 }, "[ReadImage] failed to read file");
+      return {
+        error: `Failed to read image file: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+      };
+    }
+  } catch (error48) {
+    logger?.error({ error: error48 }, "[ReadImage] unexpected error");
+    return {
+      error: `Unexpected error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    };
+  }
+}
 // src/http.ts
 function createRequestUrl(req, fallbackPort) {
   const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
@@ -39764,6 +40076,79 @@ async function handleRenameFilesPost(req, res, ctx) {
   }
 }
 
+// src/routes/downloadImageRoute.ts
+async function handleDownloadImageGet(req, res, ctx) {
+  if (req.method !== "GET" || ctx.url.pathname !== "/api/image") {
+    return false;
+  }
+  const url2 = ctx.url.searchParams.get("url");
+  if (!url2) {
+    sendJson(res, 400, {
+      error: "Missing required query parameter: url"
+    });
+    return true;
+  }
+  try {
+    const result = await doDownloadImage(url2, ctx.config);
+    res.writeHead(200, {
+      "Content-Type": result.contentType,
+      "Content-Length": result.buffer.length.toString(),
+      "Cache-Control": "public, max-age=31536000"
+    });
+    res.end(result.buffer);
+    return true;
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    ctx.config.logger?.error({ url: url2, error: message }, "DownloadImage GET route error");
+    sendJson(res, 500, {
+      error: `Failed to download image: ${message}`
+    });
+    return true;
+  }
+}
+
+// src/routes/downloadImageAsFileRoute.ts
+async function handleDownloadImageAsFilePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/downloadImage") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DownloadImageAsFile] POST /api/downloadImage");
+    const result = await doDownloadImageAsFile(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "DownloadImageAsFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error48 instanceof Error ? error48.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
+// src/routes/readImageRoute.ts
+async function handleReadImagePost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/readImage") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[ReadImage] POST /api/readImage");
+    const result = await doReadImage(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "ReadImage POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error48 instanceof Error ? error48.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -39776,7 +40161,10 @@ var coreRouteHandlers = [
   handleRenameFolderPost,
   handleRenameFilesPost,
   handleReadFilePost,
-  handleDeleteFilePost
+  handleDeleteFilePost,
+  handleDownloadImageGet,
+  handleDownloadImageAsFilePost,
+  handleReadImagePost
 ];
 function createCoreRoutesRequestHandler(config2, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;

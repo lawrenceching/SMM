@@ -1,8 +1,8 @@
-import { mkdtemp, mkdir, writeFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, stat, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Buffer } from "node:buffer";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { validatePathIsInAllowlist } from "../src/allowlist.ts";
 
 describe("validatePathIsInAllowlist", () => {
@@ -574,5 +574,465 @@ describe("POST /api/renameFolder", () => {
     );
     expect(status).toBe(200);
     expect(body.error).toBeTruthy();
+  });
+});
+
+describe("GET /api/image", () => {
+  function makeFetchResponse(opts: {
+    status?: number;
+    contentType?: string | null;
+    body?: Buffer;
+  }): Response {
+    const headers = new Map<string, string>();
+    if (opts.contentType !== null && opts.contentType !== undefined) {
+      headers.set("content-type", opts.contentType);
+    }
+    return {
+      ok: opts.status === undefined ? true : opts.status >= 200 && opts.status < 300,
+      status: opts.status ?? 200,
+      headers: {
+        get(name: string): string | null {
+          return headers.get(name.toLowerCase()) ?? null;
+        },
+      },
+      arrayBuffer: () => Promise.resolve((opts.body ?? Buffer.alloc(0)).buffer.slice(
+        opts.body ? opts.body.byteOffset : 0,
+        opts.body ? opts.body.byteOffset + opts.body.byteLength : 0,
+      )),
+    } as unknown as Response;
+  }
+
+  async function requestImage(
+    url: string,
+    allowlist: string[],
+  ): Promise<{ status: number; headers: Record<string, string>; body: Buffer }> {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "GET";
+    req.url = url;
+    req.headers = { host: "localhost:3001" };
+
+    let status = 0;
+    let headers: Record<string, string> = {};
+    const chunks: Buffer[] = [];
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number, hdrs?: Record<string, string>) => {
+      status = code;
+      headers = hdrs ?? {};
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      if (chunk) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+      }
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+
+    socket.destroy();
+    return {
+      status,
+      headers,
+      body: Buffer.concat(chunks),
+    };
+  }
+
+  it("returns the image bytes with the correct Content-Type on success", async () => {
+    const payload = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({ contentType: "image/jpeg", body: payload }));
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const { status, headers, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent("https://example.com/x.jpg"),
+        [],
+      );
+      expect(status).toBe(200);
+      expect(headers["Content-Type"]).toBe("image/jpeg");
+      expect(headers["Cache-Control"]).toBe("public, max-age=31536000");
+      expect(Number(headers["Content-Length"])).toBe(payload.length);
+      expect(Array.from(body)).toEqual(Array.from(payload));
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://example.com/x.jpg",
+        expect.objectContaining({ method: "GET" }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns 400 when url is missing", async () => {
+    const { status, body } = await requestImage("/api/image", []);
+    expect(status).toBe(400);
+    expect(body.toString("utf-8")).toContain("Missing required query parameter: url");
+  });
+
+  it("returns 500 for invalid URL protocol", async () => {
+    const { status, body } = await requestImage(
+      "/api/image?url=" + encodeURIComponent("ftp://example.com/x.jpg"),
+      [],
+    );
+    expect(status).toBe(500);
+    expect(body.toString("utf-8")).toContain("Invalid image URL");
+  });
+
+  it("defaults to image/jpeg when upstream response has no content-type", async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({ contentType: null, body: Buffer.from([1, 2, 3]) }));
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const { status, headers } = await requestImage(
+        "/api/image?url=" + encodeURIComponent("https://example.com/x"),
+        [],
+      );
+      expect(status).toBe(200);
+      expect(headers["Content-Type"]).toBe("image/jpeg");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns 500 when upstream returns 404", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(makeFetchResponse({ status: 404 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const { status, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent("https://example.com/nope.jpg"),
+        [],
+      );
+      expect(status).toBe(500);
+      expect(body.toString("utf-8")).toContain("HTTP error! status: 404");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("surfaces fetch-failed cause code in the 500 response body", async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND x"), {
+      code: "ENOTFOUND",
+    });
+    const fetchSpy = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new TypeError("fetch failed"), { cause }),
+      );
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const { status, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent("https://example.com/x.jpg"),
+        [],
+      );
+      expect(status).toBe(500);
+      const text = body.toString("utf-8");
+      expect(text).toContain("Failed to download image");
+      expect(text).toContain("ENOTFOUND");
+      expect(text).toContain("getaddrinfo");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("serves a file:// URL when the path is in the allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-image-"));
+    try {
+      const filePath = path.join(dir, "local.png");
+      await writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      const posixDir =
+        path.sep === "/"
+          ? dir
+          : dir.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+      const { status, headers, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent(`file://${filePath}`),
+        [posixDir],
+      );
+      expect(status).toBe(200);
+      expect(headers["Content-Type"]).toBe("image/png");
+      expect(Array.from(body)).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("POST /api/downloadImage", () => {
+  function toPosix(p: string): string {
+    if (path.sep === "/") return p;
+    return p.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+  }
+
+  function makeFetchResponse(opts: {
+    status?: number;
+    body?: Buffer;
+  }): Response {
+    return {
+      ok: opts.status === undefined ? true : opts.status >= 200 && opts.status < 300,
+      status: opts.status ?? 200,
+      headers: { get: () => null },
+      arrayBuffer: () => Promise.resolve((opts.body ?? Buffer.alloc(0)).buffer.slice(
+        opts.body ? opts.body.byteOffset : 0,
+        opts.body ? opts.body.byteOffset + opts.body.byteLength : 0,
+      )),
+    } as unknown as Response;
+  }
+
+  async function requestDownloadImage(
+    rawBody: string | undefined,
+    allowlist: string[],
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/downloadImage";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("downloads and writes the file when the destination does not exist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-as-file-"));
+    try {
+      const dest = path.join(dir, "new.jpg");
+      const payload = Buffer.from("hello-payload", "utf-8");
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(makeFetchResponse({ body: payload }));
+      vi.stubGlobal("fetch", fetchSpy);
+      try {
+        const { status, body } = await requestDownloadImage(
+          JSON.stringify({
+            url: "https://example.com/x.jpg",
+            path: dest,
+          }),
+          [toPosix(dir)],
+        );
+        expect(status).toBe(200);
+        expect(body.error).toBeUndefined();
+        expect((body.data as { url?: string; path?: string } | undefined)?.url).toBe(
+          "https://example.com/x.jpg",
+        );
+        expect((body.data as { url?: string; path?: string } | undefined)?.path).toBe(dest);
+        const written = await readFile(dest);
+        expect(Array.from(written)).toEqual(Array.from(payload));
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns an existedFileError when the destination already exists", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-existing-"));
+    try {
+      const dest = path.join(dir, "exists.jpg");
+      await writeFile(dest, "already", "utf-8");
+      const { status, body } = await requestDownloadImage(
+        JSON.stringify({
+          url: "https://example.com/x.jpg",
+          path: dest,
+        }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toMatch(/File Already Existed/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects out-of-allowlist paths", async () => {
+    const { status, body } = await requestDownloadImage(
+      JSON.stringify({
+        url: "https://example.com/x.jpg",
+        path: "/etc/passwd.jpg",
+      }),
+      ["/allowed-only"],
+    );
+    expect(status).toBe(200);
+    expect(body.error).toContain("not in the allowlist");
+  });
+
+  it("returns 400 for invalid JSON", async () => {
+    const { status, body } = await requestDownloadImage("not-json", []);
+    expect(status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
+  it("returns Validation failed for missing url", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-no-url-"));
+    try {
+      const { status, body } = await requestDownloadImage(
+        JSON.stringify({ path: path.join(dir, "x.jpg") }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toMatch(/Validation failed/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns HTTP error! status: <n> for non-2xx upstream", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-404-"));
+    try {
+      const dest = path.join(dir, "missing.jpg");
+      const fetchSpy = vi.fn().mockResolvedValue(makeFetchResponse({ status: 404 }));
+      vi.stubGlobal("fetch", fetchSpy);
+      try {
+        const { status, body } = await requestDownloadImage(
+          JSON.stringify({
+            url: "https://example.com/nope.jpg",
+            path: dest,
+          }),
+          [toPosix(dir)],
+        );
+        expect(status).toBe(200);
+        expect(body.error).toContain("HTTP error! status: 404");
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("POST /api/readImage", () => {
+  function toPosix(p: string): string {
+    if (path.sep === "/") return p;
+    return p.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+  }
+
+  async function requestReadImage(
+    rawBody: string | undefined,
+    allowlist: string[],
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/readImage";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns a base64 data URL for an allowlisted PNG", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-image-"));
+    try {
+      const filePath = path.join(dir, "img.png");
+      const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      await writeFile(filePath, bytes);
+      const { status, body } = await requestReadImage(
+        JSON.stringify({ path: filePath }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect(typeof body.data).toBe("string");
+      expect((body.data as string).startsWith("data:image/png;base64,")).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns File Not Found for a missing path", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-missing-"));
+    try {
+      const { status, body } = await requestReadImage(
+        JSON.stringify({ path: path.join(dir, "missing.png") }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(body.data).toBeUndefined();
+      expect((body.error as string | undefined)).toMatch(/File Not Found/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects out-of-allowlist paths", async () => {
+    const { status, body } = await requestReadImage(
+      JSON.stringify({ path: "/etc/passwd.png" }),
+      ["/allowed-only"],
+    );
+    expect(status).toBe(200);
+    expect((body.error as string | undefined)).toContain("not in the allowlist");
+  });
+
+  it("rejects non-image extensions", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-read-text-"));
+    try {
+      const filePath = path.join(dir, "notes.txt");
+      await writeFile(filePath, "hello", "utf-8");
+      const { status, body } = await requestReadImage(
+        JSON.stringify({ path: filePath }),
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect((body.error as string | undefined)).toContain("not a valid image file");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 400 for invalid JSON", async () => {
+    const { status, body } = await requestReadImage("not-json", []);
+    expect(status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
   });
 });

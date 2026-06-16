@@ -628,6 +628,12 @@ interface DialogsResources {
       failed: string
       pending: string
     }
+    errors: {
+      imageUrlTimeout: string
+      imageUrlNotFound: string
+      imageUrlConnectionRefused: string
+      imageUrlNetworkFailed: string
+    }
     noTasks: string
     start: string
     done: string

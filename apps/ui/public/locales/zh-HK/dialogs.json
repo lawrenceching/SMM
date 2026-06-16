@@ -152,6 +152,12 @@
       "failed": "失敗",
       "pending": "未下載"
     },
+    "errors": {
+      "imageUrlTimeout": "圖片連結訪問逾時",
+      "imageUrlNotFound": "圖片連結域名無法解析",
+      "imageUrlConnectionRefused": "圖片連結連線被拒絕",
+      "imageUrlNetworkFailed": "圖片連結網路連線失敗"
+    },
     "noTasks": "沒有任務",
     "start": "開始",
     "done": "完成"
