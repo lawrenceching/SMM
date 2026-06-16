@@ -7,6 +7,7 @@ import { buildAllowlist } from "@/utils/buildAllowlist";
 import { getAppDataDir } from "@/utils/config";
 import { buildHelloOptions } from "../tasks/HelloTask";
 import { logger } from "../lib/logger";
+import { broadcast } from "@/utils/socketIO";
 
 const DEFAULT_PORT = 3001;
 
@@ -30,6 +31,7 @@ export async function startCoreRoutesServer(): Promise<http.Server> {
       logger: createCoreRoutesLogger(),
       hello: helloOptions,
       appDataDir,
+      broadcast: (message) => broadcast(message),
     },
     { fallbackPort: port },
   );

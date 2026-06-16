@@ -9130,11 +9130,11 @@ var require_mime_types = __commonJS((exports2) => {
     }
     return exts[0];
   }
-  function lookup(path7) {
-    if (!path7 || typeof path7 !== "string") {
+  function lookup(path8) {
+    if (!path8 || typeof path8 !== "string") {
       return false;
     }
-    var extension2 = extname("x." + path7).toLowerCase().substr(1);
+    var extension2 = extname("x." + path8).toLowerCase().substr(1);
     if (!extension2) {
       return false;
     }
@@ -15050,11 +15050,11 @@ var require_server = __commonJS((exports2) => {
       this.init();
     }
     _computePath(options) {
-      let path7 = (options.path || "/engine.io").replace(/\/$/, "");
+      let path8 = (options.path || "/engine.io").replace(/\/$/, "");
       if (options.addTrailingSlash !== false) {
-        path7 += "/";
+        path8 += "/";
       }
-      return path7;
+      return path8;
     }
     upgrades(transport) {
       if (!this.opts.allowUpgrades)
@@ -15472,10 +15472,10 @@ var require_server = __commonJS((exports2) => {
       }
     }
     attach(server, options = {}) {
-      const path7 = this._computePath(options);
+      const path8 = this._computePath(options);
       const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1000;
       function check2(req) {
-        return path7 === req.url.slice(0, path7.length);
+        return path8 === req.url.slice(0, path8.length);
       }
       const listeners = server.listeners("request").slice(0);
       server.removeAllListeners("request");
@@ -15483,7 +15483,7 @@ var require_server = __commonJS((exports2) => {
       server.on("listening", this.init.bind(this));
       server.on("request", (req, res) => {
         if (check2(req)) {
-          debug('intercepting request for path "%s"', path7);
+          debug('intercepting request for path "%s"', path8);
           this.handleRequest(req, res);
         } else {
           let i = 0;
@@ -16198,8 +16198,8 @@ var require_userver = __commonJS((exports2) => {
       return new transports_uws_1.default[transportName](req);
     }
     attach(app, options = {}) {
-      const path7 = this._computePath(options);
-      app.any(path7, this.handleRequest.bind(this)).ws(path7, {
+      const path8 = this._computePath(options);
+      app.any(path8, this.handleRequest.bind(this)).ws(path8, {
         compression: options.compression,
         idleTimeout: options.idleTimeout,
         maxBackpressure: options.maxBackpressure,
@@ -19222,7 +19222,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
   var zlib_1 = require("zlib");
   var accepts = require_accepts();
   var stream_1 = require("stream");
-  var path7 = require("path");
+  var path8 = require("path");
   var engine_io_1 = require_engine_io();
   var client_1 = require_client();
   var events_1 = require("events");
@@ -19390,7 +19390,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
           res.writeHeader("cache-control", "public, max-age=0");
           res.writeHeader("content-type", "application/" + (isMap ? "json" : "javascript") + "; charset=utf-8");
           res.writeHeader("etag", expectedEtag);
-          const filepath = path7.join(__dirname, "../client-dist/", filename);
+          const filepath = path8.join(__dirname, "../client-dist/", filename);
           (0, uws_1.serveFile)(res, filepath);
         });
       }
@@ -19446,7 +19446,7 @@ var require_dist2 = __commonJS((exports2, module2) => {
       Server.sendFile(filename, req, res);
     }
     static sendFile(filename, req, res) {
-      const readStream = (0, fs_1.createReadStream)(path7.join(__dirname, "../client-dist/", filename));
+      const readStream = (0, fs_1.createReadStream)(path8.join(__dirname, "../client-dist/", filename));
       const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
       const onError = (err) => {
         if (err) {
@@ -19623,6 +19623,7 @@ __export(exports_src, {
   isError: () => isError,
   handleWriteFilePost: () => handleWriteFilePost,
   handleRenameFolderPost: () => handleRenameFolderPost,
+  handleRenameFilesPost: () => handleRenameFilesPost,
   handleReadFilePost: () => handleReadFilePost,
   handleProxyRequest: () => handleProxyRequest,
   handleListFilesPost: () => handleListFilesPost,
@@ -19638,6 +19639,7 @@ __export(exports_src, {
   filterRequestHeaders: () => filterRequestHeaders,
   doWriteFile: () => doWriteFile,
   doRenameFolder: () => doRenameFolder,
+  doRenameFiles: () => doRenameFiles,
   doReadFile: () => doReadFile,
   doListFilesInMediaFolder: () => doListFilesInMediaFolder,
   doListFiles: () => doListFiles,
@@ -38883,6 +38885,50 @@ function renameFolderInMediaMetadata(mediaMetadata, from, to) {
   }
   return result;
 }
+function updateMediaMetadataAfterRename(mediaMetadata, renameMappings) {
+  const renameMap = new Map;
+  for (const { from, to } of renameMappings) {
+    renameMap.set(Path.posix(from), Path.posix(to));
+  }
+  const updatedFiles = mediaMetadata.files?.map((file2) => {
+    const normalizedFile = Path.posix(file2);
+    return renameMap.get(normalizedFile) ?? file2;
+  });
+  const updatedMediaFiles = mediaMetadata.mediaFiles?.map((mediaFile) => {
+    const normalizedPath = Path.posix(mediaFile.absolutePath);
+    const newPath = renameMap.get(normalizedPath);
+    if (newPath) {
+      return {
+        ...mediaFile,
+        absolutePath: newPath
+      };
+    }
+    return mediaFile;
+  });
+  const fullyUpdatedMediaFiles = updatedMediaFiles?.map((mediaFile) => {
+    if (mediaFile.subtitleFilePaths || mediaFile.audioFilePaths) {
+      const updatedSubtitlePaths = mediaFile.subtitleFilePaths?.map((subtitlePath) => {
+        const normalizedPath = Path.posix(subtitlePath);
+        return renameMap.get(normalizedPath) ?? subtitlePath;
+      });
+      const updatedAudioPaths = mediaFile.audioFilePaths?.map((audioPath) => {
+        const normalizedPath = Path.posix(audioPath);
+        return renameMap.get(normalizedPath) ?? audioPath;
+      });
+      return {
+        ...mediaFile,
+        subtitleFilePaths: updatedSubtitlePaths,
+        audioFilePaths: updatedAudioPaths
+      };
+    }
+    return mediaFile;
+  });
+  return {
+    ...mediaMetadata,
+    files: updatedFiles,
+    mediaFiles: fullyUpdatedMediaFiles
+  };
+}
 
 // ../core/userConfig.ts
 function renameFolderInUserConfig(userConfig, from, to) {
@@ -38945,6 +38991,476 @@ async function doRenameFolder(body, config2 = {}) {
       error: `Unexpected Error: ${message}`
     };
   }
+}
+// ../core/getMediaFolder.ts
+function getMediaFolder(filePath, folderPaths) {
+  const filePathNorm = new Path(filePath).abs("posix").replace(/^\/[A-Za-z](?::|\/)/, "");
+  for (const folder of folderPaths) {
+    const folderNorm = new Path(folder).abs("posix").replace(/^\/[A-Za-z](?::|\/)/, "");
+    const prefix = folderNorm.endsWith("/") ? folderNorm : `${folderNorm}/`;
+    if (filePathNorm === folderNorm || filePathNorm.startsWith(prefix)) {
+      return folder;
+    }
+  }
+  return null;
+}
+
+// src/renameFileExecution.ts
+var import_promises9 = require("node:fs/promises");
+var import_node_path7 = __toESM(require("node:path"));
+async function directoryExists(dirPath) {
+  try {
+    const stats = await import_promises9.stat(dirPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+async function executeRenameOperation(from, to) {
+  const fromPathPlatform = new Path(from).platformAbsPath();
+  const toPathPlatform = new Path(to).platformAbsPath();
+  try {
+    const destDir = import_node_path7.default.dirname(toPathPlatform);
+    await import_promises9.mkdir(destDir, { recursive: true });
+    if (!await directoryExists(destDir)) {
+      return {
+        success: false,
+        error: `Destination directory does not exist and could not be created: ${destDir}`
+      };
+    }
+    await import_promises9.rename(fromPathPlatform, toPathPlatform);
+    return { success: true };
+  } catch (error48) {
+    const errorMessage = error48 instanceof Error ? error48.message : "Unknown error";
+    return {
+      success: false,
+      error: errorMessage.includes("ENOENT") ? `Source file does not exist: ${fromPathPlatform}` : errorMessage
+    };
+  }
+}
+async function executeBatchRenameOperations(renameMappings, _options = {}) {
+  if (renameMappings.length === 0) {
+    return {
+      success: false,
+      errors: ["No rename operations provided"]
+    };
+  }
+  const errors4 = [];
+  const successfulRenames = [];
+  for (const renameMapping of renameMappings) {
+    const result = await executeRenameOperation(renameMapping.from, renameMapping.to);
+    if (result.success) {
+      successfulRenames.push(renameMapping);
+    } else {
+      errors4.push(`Failed to rename "${renameMapping.from}" to "${renameMapping.to}": ${result.error ?? "Unknown error"}`);
+    }
+  }
+  if (errors4.length > 0) {
+    return {
+      success: false,
+      errors: errors4,
+      successfulRenames: successfulRenames.length > 0 ? successfulRenames : undefined
+    };
+  }
+  return {
+    success: true,
+    successfulRenames
+  };
+}
+
+// src/validateRenameOperations.ts
+var import_promises10 = require("node:fs/promises");
+
+// ../core/validations/rename/validateChainingConflicts.ts
+function validateChainingConflicts(tasks) {
+  const sourcePaths = new Set;
+  for (const task of tasks) {
+    sourcePaths.add(task.from);
+  }
+  for (const task of tasks) {
+    if (sourcePaths.has(task.to)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ../core/validations/rename/validateNoAbnormalPaths.ts
+function isPathNormal(p) {
+  if (p.startsWith("../")) {
+    return true;
+  }
+  if (p.includes("/..") || p.includes("/./") || p.endsWith("/.")) {
+    return false;
+  }
+  const platform = Path.toPlatformPath(p);
+  const posix = Path.posix(platform);
+  const parts = posix.split("/").filter((part) => part.length > 0);
+  const resolved = [];
+  for (const part of parts) {
+    if (part === "..") {
+      if (resolved.length === 0) {
+        return false;
+      }
+      resolved.pop();
+    } else if (part !== ".") {
+      resolved.push(part);
+    }
+  }
+  const normalized = posix.startsWith("/") || /^\/[A-Za-z]:/.test(posix) ? (posix.startsWith("/") ? "/" : "") + resolved.join("/") : resolved.join("/");
+  return normalized === posix || normalized === platform;
+}
+function validateNoAbnormalPaths(tasks) {
+  const errors4 = [];
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    if (!isPathNormal(task.from)) {
+      errors4.push(`Source path "${task.from}" is abnormal`);
+    }
+    if (!isPathNormal(task.to)) {
+      errors4.push(`Destination path "${task.to}" is abnormal`);
+    }
+  }
+  return errors4;
+}
+
+// ../core/validations/rename/validateNoDuplicatedDestFile.ts
+function validateNoDuplicatedDestFile(tasks) {
+  const destPaths = new Map;
+  for (let i = 0;i < tasks.length; i++) {
+    const task = tasks[i];
+    if (!task)
+      continue;
+    const existing = destPaths.get(task.to) ?? [];
+    existing.push(i);
+    destPaths.set(task.to, existing);
+  }
+  const duplicates = [];
+  for (const [path8, indices] of destPaths) {
+    if (indices.length > 1) {
+      duplicates.push(path8);
+    }
+  }
+  return {
+    isValid: duplicates.length === 0,
+    duplicates
+  };
+}
+
+// ../core/validations/rename/validateNoDuplicatedSourceFile.ts
+function validateNoDuplicatedSourceFile(tasks) {
+  const sourcePaths = new Map;
+  for (let i = 0;i < tasks.length; i++) {
+    const task = tasks[i];
+    if (!task)
+      continue;
+    const existing = sourcePaths.get(task.from) ?? [];
+    existing.push(i);
+    sourcePaths.set(task.from, existing);
+  }
+  const duplicates = [];
+  for (const [path8, indices] of sourcePaths) {
+    if (indices.length > 1) {
+      duplicates.push(path8);
+    }
+  }
+  return {
+    isValid: duplicates.length === 0,
+    duplicates
+  };
+}
+
+// ../core/validations/rename/validateNoIdenticalSourceAndDestFile.ts
+function validateNoIdenticalSourceAndDestFile(tasks) {
+  const identicals = [];
+  for (const task of tasks) {
+    if (task && task.from === task.to) {
+      identicals.push(task.from);
+    }
+  }
+  return {
+    isValid: identicals.length === 0,
+    identicals
+  };
+}
+
+// ../core/validations/rename/validatePathWithinMediaFolder.ts
+function validatePathWithinMediaFolder(mediaFolderPath, tasks) {
+  const invalidPaths = [];
+  const mediaFolderObj = new Path(mediaFolderPath);
+  const mediaFolderNormalized = mediaFolderObj.abs("posix");
+  const mediaFolderWithoutDrive = mediaFolderNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    const fromPathObj = new Path(task.from);
+    const fromNormalized = fromPathObj.abs("posix");
+    const fromWithoutDrive = fromNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+    if (!fromWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
+      invalidPaths.push({ path: task.from, type: "source" });
+    }
+    const toPathObj = new Path(task.to);
+    const toNormalized = toPathObj.abs("posix");
+    const toWithoutDrive = toNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+    if (!toWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
+      invalidPaths.push({ path: task.to, type: "destination" });
+    }
+  }
+  return {
+    isValid: invalidPaths.length === 0,
+    invalidPaths
+  };
+}
+
+// ../core/validations/rename/validateRenameOperationsSync.ts
+function validateRenameOperationsSync(files, folderPathInPosix) {
+  const errors4 = [];
+  const normalizedTasks = [];
+  const taskIndexMap = new Map;
+  for (let i = 0;i < files.length; i++) {
+    const renameOp = files[i];
+    if (!renameOp) {
+      continue;
+    }
+    taskIndexMap.set(normalizedTasks.length, i);
+    normalizedTasks.push({
+      from: Path.posix(renameOp.from),
+      to: Path.posix(renameOp.to)
+    });
+  }
+  if (normalizedTasks.length === 0) {
+    return {
+      isValid: true,
+      errors: [],
+      validatedRenames: []
+    };
+  }
+  const abnormalPathErrors = validateNoAbnormalPaths(normalizedTasks);
+  if (abnormalPathErrors.length > 0) {
+    errors4.push(...abnormalPathErrors);
+  }
+  const duplicateSourceResult = validateNoDuplicatedSourceFile(normalizedTasks);
+  if (!duplicateSourceResult.isValid) {
+    for (const duplicatePath of duplicateSourceResult.duplicates) {
+      const indices = [];
+      normalizedTasks.forEach((task, idx) => {
+        if (task.from === duplicatePath) {
+          indices.push(taskIndexMap.get(idx) ?? idx);
+        }
+      });
+      errors4.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
+    }
+  }
+  const duplicateDestResult = validateNoDuplicatedDestFile(normalizedTasks);
+  if (!duplicateDestResult.isValid) {
+    for (const duplicatePath of duplicateDestResult.duplicates) {
+      const indices = [];
+      normalizedTasks.forEach((task, idx) => {
+        if (task.to === duplicatePath) {
+          indices.push(taskIndexMap.get(idx) ?? idx);
+        }
+      });
+      errors4.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
+    }
+  }
+  const identicalResult = validateNoIdenticalSourceAndDestFile(normalizedTasks);
+  const sourcePaths = new Set;
+  normalizedTasks.forEach((task) => sourcePaths.add(task.from));
+  const hasChainingConflicts = !validateChainingConflicts(normalizedTasks);
+  const chainingConflictTasks = new Set;
+  if (hasChainingConflicts) {
+    normalizedTasks.forEach((task, idx) => {
+      if (sourcePaths.has(task.to)) {
+        chainingConflictTasks.add(idx);
+        errors4.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
+      }
+    });
+  }
+  const pathWithinFolderResult = validatePathWithinMediaFolder(folderPathInPosix, normalizedTasks);
+  if (!pathWithinFolderResult.isValid) {
+    for (const invalidPath of pathWithinFolderResult.invalidPaths) {
+      errors4.push(`${invalidPath.type === "source" ? "Source" : "Target"} path "${invalidPath.path}" is outside the media folder "${folderPathInPosix}"`);
+    }
+  }
+  const invalidTasks = new Set;
+  normalizedTasks.forEach((task, idx) => {
+    const hasError = abnormalPathErrors.some((e) => e.includes(`"${task.from}"`) || e.includes(`"${task.to}"`)) || duplicateSourceResult.duplicates.includes(task.from) || duplicateDestResult.duplicates.includes(task.to) || identicalResult.identicals.includes(task.from) || pathWithinFolderResult.invalidPaths.some((p) => p.path === task.from || p.path === task.to) || chainingConflictTasks.has(idx);
+    if (hasError) {
+      invalidTasks.add(idx);
+    }
+  });
+  const validatedRenames = [];
+  normalizedTasks.forEach((task, idx) => {
+    if (!invalidTasks.has(idx) && task.from !== task.to) {
+      validatedRenames.push({
+        from: task.from,
+        to: task.to
+      });
+    }
+  });
+  return {
+    isValid: errors4.length === 0,
+    errors: errors4,
+    validatedRenames
+  };
+}
+
+// src/validateRenameOperations.ts
+async function validateSourceFileExist(tasks) {
+  const missingFiles = [];
+  for (const task of tasks) {
+    try {
+      const platformPath = Path.toPlatformPath(task.from);
+      const stats = await import_promises10.stat(platformPath);
+      if (!stats.isFile()) {
+        missingFiles.push(task.from);
+      }
+    } catch {
+      missingFiles.push(task.from);
+    }
+  }
+  return {
+    isValid: missingFiles.length === 0,
+    missingFiles
+  };
+}
+async function validateDestFileNotExist(tasks) {
+  const existingFiles = [];
+  for (const task of tasks) {
+    try {
+      const platformPath = Path.toPlatformPath(task.to);
+      const stats = await import_promises10.stat(platformPath);
+      if (stats.isFile()) {
+        existingFiles.push(task.to);
+      }
+    } catch {
+      continue;
+    }
+  }
+  return {
+    isValid: existingFiles.length === 0,
+    existingFiles
+  };
+}
+async function validateRenameOperations(files, folderPathInPosix) {
+  const normalizedTasks = [];
+  for (const renameOp of files) {
+    if (!renameOp) {
+      continue;
+    }
+    normalizedTasks.push({
+      from: Path.posix(renameOp.from),
+      to: Path.posix(renameOp.to)
+    });
+  }
+  if (normalizedTasks.length === 0) {
+    return {
+      isValid: true,
+      errors: [],
+      validatedRenames: []
+    };
+  }
+  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
+  const errors4 = [...syncResult.errors];
+  const sourceExistResult = await validateSourceFileExist(normalizedTasks);
+  if (!sourceExistResult.isValid) {
+    for (const missingFile of sourceExistResult.missingFiles) {
+      errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
+    }
+  }
+  const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
+  if (!destNotExistResult.isValid) {
+    for (const existingFile of destNotExistResult.existingFiles) {
+      errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
+    }
+  }
+  if (errors4.length > 0) {
+    return {
+      isValid: false,
+      errors: errors4,
+      validatedRenames: []
+    };
+  }
+  return syncResult;
+}
+
+// src/renameFiles.ts
+var requestSchema = exports_external.object({
+  files: exports_external.array(exports_external.object({
+    from: exports_external.string().min(1, "The source file path, absolute path in platform-specific format"),
+    to: exports_external.string().min(1, "The target file path, absolute path in platform-specific format")
+  })).min(1, "At least one file rename is required"),
+  traceId: exports_external.string().optional(),
+  mediaFolder: exports_external.string().optional(),
+  clientId: exports_external.string().optional()
+});
+async function updateMediaMetadataAndBroadcast(mediaFolder, renameMappings, config2, clientId) {
+  const appDataDir = resolveAppDataDir(config2);
+  if (!appDataDir) {
+    config2.logger?.warn({ mediaFolder }, "[renameFiles] appDataDir not configured, skip metadata update");
+    return;
+  }
+  const mediaMetadata = await readMediaMetadataCache(appDataDir, mediaFolder);
+  if (!mediaMetadata) {
+    config2.logger?.debug({ mediaFolder }, "[renameFiles] media metadata not found, skip update");
+    return;
+  }
+  const mediaFolderPosix = Path.posix(mediaFolder);
+  if (mediaMetadata.mediaFolderPath !== mediaFolderPosix) {
+    config2.logger?.warn({ providedPath: mediaFolderPosix, metadataPath: mediaMetadata.mediaFolderPath }, "[renameFiles] folder path mismatch, skip metadata update");
+    return;
+  }
+  const updatedMediaMetadata = updateMediaMetadataAfterRename(mediaMetadata, renameMappings);
+  await writeMediaMetadataCache(appDataDir, updatedMediaMetadata);
+  config2.broadcast?.({
+    clientId,
+    event: "mediaMetadataUpdated",
+    data: {
+      folderPath: mediaFolderPosix
+    }
+  });
+}
+async function doRenameFiles(body, config2 = {}, headerClientId) {
+  const parsed = requestSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues.map((i) => i.message).join(", ");
+    return { error: `Validation Failed: ${msg}` };
+  }
+  const { files, traceId, mediaFolder: mediaFolderFromBody, clientId: clientIdFromBody } = parsed.data;
+  const effectiveClientId = headerClientId ?? clientIdFromBody;
+  const logCtx = traceId ? { traceId } : {};
+  const userConfig = await readUserConfig(config2);
+  const mediaFolderPath = mediaFolderFromBody ?? getMediaFolder(files[0].from, userConfig.folders ?? []);
+  if (mediaFolderPath === null) {
+    return { error: `Media folder not found for ${files[0].from}` };
+  }
+  const mediaFolderInPosix = Path.posix(mediaFolderPath);
+  const validationResult = await validateRenameOperations(files, mediaFolderInPosix);
+  if (!validationResult.isValid) {
+    return { error: validationResult.errors.join(", ") };
+  }
+  const renameResult = await executeBatchRenameOperations(validationResult.validatedRenames, {
+    logPrefix: "[POST /api/renameFiles]"
+  });
+  const succeeded = (renameResult.successfulRenames ?? []).map((r) => r.from);
+  const failed = [];
+  if (!renameResult.success && renameResult.errors) {
+    for (const errMsg of renameResult.errors) {
+      const match = errMsg.match(/^Failed to rename "([^"]+)"/);
+      failed.push({ path: match?.[1] ?? "unknown", error: errMsg });
+    }
+  }
+  config2.logger?.info({ ...logCtx, succeededCount: succeeded.length, failedCount: failed.length }, "[POST /api/renameFiles] completed");
+  if (renameResult.successfulRenames && renameResult.successfulRenames.length > 0) {
+    await updateMediaMetadataAndBroadcast(mediaFolderInPosix, renameResult.successfulRenames, config2, effectiveClientId);
+  }
+  return {
+    data: {
+      succeeded,
+      failed
+    }
+  };
 }
 // src/http.ts
 function createRequestUrl(req, fallbackPort) {
@@ -39226,6 +39742,28 @@ async function handleRenameFolderPost(req, res, ctx) {
   }
 }
 
+// src/routes/renameFilesRoute.ts
+async function handleRenameFilesPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/renameFiles") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    const clientId = req.headers.clientid ?? req.headers.clientId;
+    const headerClientId = typeof clientId === "string" ? clientId : undefined;
+    ctx.config.logger?.info({ fileCount: rawBody.files?.length, traceId: rawBody.traceId }, "[RenameFiles] POST /api/renameFiles");
+    const result = await doRenameFiles(rawBody, ctx.config, headerClientId);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "[RenameFiles] route error");
+    sendJson(res, 200, {
+      error: `Unexpected Error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    });
+    return true;
+  }
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -39236,6 +39774,7 @@ var coreRouteHandlers = [
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,
   handleRenameFolderPost,
+  handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost
 ];

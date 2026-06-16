@@ -1,6 +1,7 @@
 import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { MediaMetadata, RenameValidationResult } from '@core/types';
+import { updateMediaMetadataAfterRename } from '@core/mediaMetadata';
 import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
@@ -88,68 +89,7 @@ export async function validateRenameOperations(
   return syncResult;
 }
 
-/**
- * Update media metadata files array and mediaFiles array after renaming
- */
-export function updateMediaMetadataAfterRename(
-  mediaMetadata: MediaMetadata,
-  renameMappings: Array<{ from: string; to: string }>
-): MediaMetadata {
-  // Create a map for quick lookup
-  const renameMap = new Map<string, string>();
-  renameMappings.forEach(({ from, to }) => {
-    const fromPosix = Path.posix(from);
-    const toPosix = Path.posix(to);
-    renameMap.set(fromPosix, toPosix);
-  });
-
-  // Update files array
-  const updatedFiles = mediaMetadata.files?.map(file => {
-    const normalizedFile = Path.posix(file);
-    return renameMap.get(normalizedFile) ?? file;
-  });
-
-  // Update mediaFiles array
-  const updatedMediaFiles = mediaMetadata.mediaFiles?.map(mediaFile => {
-    const normalizedPath = Path.posix(mediaFile.absolutePath);
-    const newPath = renameMap.get(normalizedPath);
-    if (newPath) {
-      return {
-        ...mediaFile,
-        absolutePath: newPath
-      };
-    }
-    return mediaFile;
-  });
-
-  // Update subtitle and audio file paths in mediaFiles
-  const fullyUpdatedMediaFiles = updatedMediaFiles?.map(mediaFile => {
-    if (mediaFile.subtitleFilePaths || mediaFile.audioFilePaths) {
-      const updatedSubtitlePaths = mediaFile.subtitleFilePaths?.map(path => {
-        const normalizedPath = Path.posix(path);
-        return renameMap.get(normalizedPath) ?? path;
-      });
-      
-      const updatedAudioPaths = mediaFile.audioFilePaths?.map(path => {
-        const normalizedPath = Path.posix(path);
-        return renameMap.get(normalizedPath) ?? path;
-      });
-
-      return {
-        ...mediaFile,
-        subtitleFilePaths: updatedSubtitlePaths,
-        audioFilePaths: updatedAudioPaths
-      };
-    }
-    return mediaFile;
-  });
-
-  return {
-    ...mediaMetadata,
-    files: updatedFiles,
-    mediaFiles: fullyUpdatedMediaFiles
-  };
-}
+export { updateMediaMetadataAfterRename };
 
 export const createRenameFilesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Rename multiple files in a media folder in batch.

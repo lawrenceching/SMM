@@ -62,6 +62,63 @@ export function renameFolderInMediaMetadata(mediaMetadata: MediaMetadata, from: 
     return result;
 }
 
+/**
+ * Update media metadata files array and mediaFiles array after renaming files.
+ */
+export function updateMediaMetadataAfterRename(
+  mediaMetadata: MediaMetadata,
+  renameMappings: Array<{ from: string; to: string }>,
+): MediaMetadata {
+  const renameMap = new Map<string, string>();
+  for (const { from, to } of renameMappings) {
+    renameMap.set(Path.posix(from), Path.posix(to));
+  }
+
+  const updatedFiles = mediaMetadata.files?.map((file) => {
+    const normalizedFile = Path.posix(file);
+    return renameMap.get(normalizedFile) ?? file;
+  });
+
+  const updatedMediaFiles = mediaMetadata.mediaFiles?.map((mediaFile) => {
+    const normalizedPath = Path.posix(mediaFile.absolutePath);
+    const newPath = renameMap.get(normalizedPath);
+    if (newPath) {
+      return {
+        ...mediaFile,
+        absolutePath: newPath,
+      };
+    }
+    return mediaFile;
+  });
+
+  const fullyUpdatedMediaFiles = updatedMediaFiles?.map((mediaFile) => {
+    if (mediaFile.subtitleFilePaths || mediaFile.audioFilePaths) {
+      const updatedSubtitlePaths = mediaFile.subtitleFilePaths?.map((subtitlePath) => {
+        const normalizedPath = Path.posix(subtitlePath);
+        return renameMap.get(normalizedPath) ?? subtitlePath;
+      });
+
+      const updatedAudioPaths = mediaFile.audioFilePaths?.map((audioPath) => {
+        const normalizedPath = Path.posix(audioPath);
+        return renameMap.get(normalizedPath) ?? audioPath;
+      });
+
+      return {
+        ...mediaFile,
+        subtitleFilePaths: updatedSubtitlePaths,
+        audioFilePaths: updatedAudioPaths,
+      };
+    }
+    return mediaFile;
+  });
+
+  return {
+    ...mediaMetadata,
+    files: updatedFiles,
+    mediaFiles: fullyUpdatedMediaFiles,
+  };
+}
+
 export function createMediaMetadata(
     folderPathInPlatformFormat: string, 
     type: "music-folder" | "tvshow-folder" | "movie-folder",

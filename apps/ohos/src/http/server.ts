@@ -91,12 +91,15 @@ export async function startMainHttpServer(): Promise<void> {
 
   const hello = buildHelloConfig(reverseProxyUrl)
 
+  let socketManager: ReturnType<typeof createSocketIOManager> | null = null
+
   const coreRoutesHandler = createCoreRoutesRequestHandler(
     {
       allowlist,
       logger: createCoreRoutesLogger(),
       hello,
       appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
+      broadcast: (message) => socketManager?.broadcast(message),
     },
     { fallbackPort: MAIN_HTTP_PORT },
   )
@@ -137,7 +140,7 @@ export async function startMainHttpServer(): Promise<void> {
     serveStaticFile(req, res, getDistDir())
   })
 
-  createSocketIOManager(mainHttpServer, {
+  socketManager = createSocketIOManager(mainHttpServer, {
     logger: createCoreRoutesLogger(),
     cors: { origin: "*", methods: ["GET", "POST"] },
   })

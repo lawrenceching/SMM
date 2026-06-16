@@ -8,6 +8,8 @@ export interface CoreRoutesLogger {
   error(obj: Record<string, unknown>, msg?: string): void;
 }
 
+import type { WebSocketMessage } from "./socketIO/types.ts";
+
 export interface CoreRoutesConfig {
   /** POSIX-format paths allowed for writeFile operations */
   allowlist: string[];
@@ -26,6 +28,8 @@ export interface CoreRoutesConfig {
    * or inspects media metadata files).
    */
   appDataDir?: string;
+  /** Optional Socket.IO broadcast; used by renameFiles after metadata update */
+  broadcast?: (message: WebSocketMessage) => void;
 }
 
 export interface RouteContext {

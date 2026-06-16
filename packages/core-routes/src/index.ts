@@ -50,6 +50,7 @@ export {
   type ListFilesInMediaFolderRequestBody,
 } from "./listFilesInMediaFolder.ts";
 export { doRenameFolder } from "./renameFolder.ts";
+export { doRenameFiles } from "./renameFiles.ts";
 export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
@@ -63,6 +64,7 @@ export {
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,
   handleRenameFolderPost,
+  handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
 } from "./register.ts";

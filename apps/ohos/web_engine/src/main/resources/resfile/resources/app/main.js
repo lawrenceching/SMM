@@ -307,11 +307,13 @@ async function startMainHttpServer() {
   const allowlist = buildCoreRoutesAllowlist();
   console.log("[main] core-routes allowlist:", allowlist);
   const hello = buildHelloConfig(reverseProxyUrl);
+  let socketManager = null;
   const coreRoutesHandler = createCoreRoutesRequestHandler({
     allowlist,
     logger: createCoreRoutesLogger(),
     hello,
-    appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined
+    appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
+    broadcast: (message) => socketManager?.broadcast(message)
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {
@@ -340,7 +342,7 @@ async function startMainHttpServer() {
     }
     serveStaticFile(req, res, getDistDir());
   });
-  createSocketIOManager(mainHttpServer, {
+  socketManager = createSocketIOManager(mainHttpServer, {
     logger: createCoreRoutesLogger(),
     cors: { origin: "*", methods: ["GET", "POST"] }
   });

@@ -4,7 +4,7 @@ import type { MediaMetadata } from '@core/types';
 import { broadcast } from './socketIO';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
-import { updateMediaMetadataAfterRename } from '../tools/renameFilesInBatch';
+import { updateMediaMetadataAfterRename } from '@core/mediaMetadata';
 import pino from 'pino';
 import { dirname } from 'path';
 

@@ -59,6 +59,7 @@ export interface CoreRoutesConfig {
   logger: CoreRoutesLogger
   hello: Record<string, unknown>
   appDataDir?: string
+  broadcast?: (message: WebSocketMessage) => void
 }
 
 export interface ReverseProxyConfig {

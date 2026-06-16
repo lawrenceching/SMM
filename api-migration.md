@@ -52,7 +52,10 @@ packages/core-routes
 | `ListFiles.ts` | 薄壳，调用 `doListFiles` from `@smm/core-routes` | ✅ 已在 `routes/listFilesRoute.ts` |
 | `WriteFile.ts` | 薄壳，调用 `doWriteFile` from `@smm/core-routes` | ✅ 已在 `routes/writeFileRoute.ts` |
 | `IsFolderAvailable.ts` | 文件已删除，仅在 test 文件残留 `*.test.ts` | ✅ 已在 `routes/isFolderAvailableRoute.ts` |
-| `execute.ts → POST /api/hello` | 调用 `doHello` from `@smm/core-routes` | ✅ 已在 `routes/helloRoute.ts`（但 `execute.ts` 这个壳仍依赖 `buildHelloOptions` / `proxyManager`，详见 2.6） |
+| `execute.ts → POST /api/hello` | 调用 `doHello` from `@smm/core-routes` | ✅ 已在 `routes/helloRoute.ts`（但 `execute.ts` 这个壳仍依赖 `buildHelloOptions` / `proxyManager`，详见 2.3.3） |
+| `RenameFolder.ts` | 薄壳，调用 `doRenameFolder` from `@smm/core-routes` | ✅ 已在 `routes/renameFolderRoute.ts` |
+| `getEpisodes` / `listFilesInMediaFolder` | 已抽到 core-routes | ✅ 已在 `routes/getEpisodesRoute.ts` / `routes/listFilesInMediaFolderRoute.ts` |
+| `ReadFile.ts` / `DeleteFile.ts` | 薄壳或已删除 | ✅ 已在 `routes/readFileRoute.ts` / `routes/deleteFileRoute.ts` |
 
 ### 2.2 可直接迁移的候选（pure-ish, 无 Bun/Hono/shelljs 依赖）
 
@@ -187,7 +190,12 @@ packages/core-routes
 - **风险**：`MediaMetadata` 涉及对 NFO / 媒体库的关键读写，要保证 ohos 在没有 `Bun` 的情况下也能工作。
 - **建议**：先迁 `deleteMediaMetadata` 与 `writeMediaMetadata`（逻辑简单），`readMediaMetadata` 因为还需要 `listFiles` 与 `findMediaMetadata` 联动，建议作为第二批迁移。
 
-#### ⚠️ 2.3.3 `execute.ts` (`POST /api/hello` + `POST /api/execute`)
+#### ✅ 2.3.3 `RenameFiles.ts` — `POST /api/renameFiles`（**已迁移至 core-routes**）
+
+- **状态**：已完成。`doRenameFiles` 位于 `packages/core-routes/src/renameFiles.ts`；`POST /api/renameFiles` 已注册；`apps/cli` 为薄壳；ohos 通过 `pnpm --filter @smm/core-routes build:ohos` 更新 `core-routes.js`。
+- **职责**：批量重命名媒体文件（视频及关联字幕/封面等）；可选地在同一请求内更新 `MediaMetadata` 并通过 Socket.IO 广播变更。
+
+#### ⚠️ 2.3.4 `execute.ts` (`POST /api/hello` + `POST /api/execute`)
 
 - `POST /api/hello`：已经迁到 `doHello` from core-routes，但是 apps/cli 这边通过 `buildHelloOptions(proxyManager.url)` 注入数据。`buildHelloOptions` 内部读 `version` / `getUserDataDir` / `getAppDataDir` / `getLogDir` / `getTmpDir` / `osLocale` —— 全部是 apps/cli 资源。ohos 端在 `main.js` 里自己实现了 `buildHelloConfig()`，所以 **协议已统一，但配置入口未统一**。
   - **建议**：保留在 apps/cli，但增加 `OHOS_HELLO_EXAMPLE` 文档（main.js 中已有实现可参考）。
@@ -198,8 +206,6 @@ packages/core-routes
 
 | Route | 关键阻碍 |
 |------|---------|
-| `RenameFiles.ts` | 调用 `executeBatchRenameOperations` / `updateMediaMetadataAndBroadcast` / `getMediaFolder` / `getUserConfig` / `validateRenameOperations` —— 全部在 `apps/cli/src/utils` 与 `tools`。改名逻辑依赖媒体库元数据，没有跨平台需求。 |
-| `RenameFolder.ts` | 修改 `userConfig` + 写 `mediaMetadata` + 广播 socket —— 是 apps/cli 业务核心。 |
 | `OpenFile.ts` | `openFile` / `isDesktopEnv` 来自 `apps/cli/src/utils/os`，**ohos（移动设备）没有「桌面打开」语义**。 |
 | `OpenInFileManager.ts` | 平台特定 `cmd.exe /c start` / `xdg-open` / `open -R` —— 同上，移动端无对应。 |
 | `shutdown.ts` | 强依赖 `isLocalhostShutdownRequest` / `runGracefulShutdown` / `scheduleProcessExit` —— apps/cli 进程生命周期。 |
@@ -228,6 +234,7 @@ packages/core-routes
 | P1 | `ReadFile` | 2h | `Bun.file → fs.readFile`，加 allowlist 校验。 |
 | P1 | `ReadImage` | 2h | 同上 + 调整 MIME 表。 |
 | P1 | `DeleteFile` | 2h | 用 `config.allowlist` 替代 `getUserDataDir`。 |
+| **P1** | **`renameFiles`** | **Done** | Migrated to `packages/core-routes`; ohos bundle rebuilt. |
 | P2 | `MoveFileToTrash` | 3h | 需要把 `moveFileToTrashOrDelete` 拆出 pure 函数后下沉，或通过 `config.trash` 注入。 |
 | P2 | `DownloadImage` | 3h | 路径分支改用 allowlist 校验。 |
 | P2 | `DownloadImageAsFile` | 2h | 与 writeFile 共用 allowlist。 |
@@ -243,12 +250,16 @@ GET  /api/listFiles          ✅
 POST /api/listFiles          ✅
 POST /api/writeFile          ✅
 POST /api/isFolderAvailable  ✅
+POST /api/renameFolder       ✅
+POST /api/getEpisodes        ✅
+POST /api/listFilesInMediaFolder ✅
+POST /api/readFile           ✅
+POST /api/deleteFile         ✅
+POST /api/renameFiles        ✅
 GET  /api/discover           🆕
 POST /api/speedtest          🆕
 POST /api/log                🆕
-POST /api/readFile           🆕
 POST /api/readImage          🆕
-POST /api/deleteFile         🆕
 POST /api/moveFileToTrash    🆕
 GET  /api/image              🆕
 POST /api/downloadImage      🆕
@@ -273,7 +284,8 @@ POST /api/deleteMediaMetadata🆕 (P3)
 
 ## 5. 总结
 
-- 当前 `apps/cli` 一共 ~45 个 route 文件（含 `debug/*`）。其中 **3 个**（`ListFiles` / `WriteFile` / `IsFolderAvailable`）+ `POST /api/hello` 已经在 core-routes。
-- 另有 **9 个**（`discover` / `speedtest` / `Log` / `ReadFile` / `ReadImage` / `DeleteFile` / `MoveFileToTrash` / `DownloadImage` / `DownloadImageAsFile`）**无重大阻碍**，按上述 P0~P2 计划落地。
-- **3 个**（`mediaMetadata/*`）属于「可以拆但有依赖链」，建议第二批处理；其中 `renameFilesInMediaMetadata` 已 `@deprecated`，**应当直接删除**。
-- 其余 **30+ 个 route**（`RenameFiles` / `RenameFolder` / `Open*` / `shutdown` / `Mcp` / `ai*` / `Debug*` / `commandLog*` / `executeCmd` / `tencentAsr` / `discoverExecutables` / `GetPendingPlans` / `UpdatePlan` 等）**与 apps/cli 业务/平台生命周期深度耦合**，不应该下放到 core-routes，ohos 端继续保持纯静态/桥接式的存在即可。
+- 当前 `apps/cli` 一共 ~45 个 route 文件（含 `debug/*`）。其中 **ListFiles / WriteFile / IsFolderAvailable / hello / renameFolder / getEpisodes / listFilesInMediaFolder / readFile / deleteFile / renameFiles** 等已在 core-routes。
+- **`POST /api/renameFiles` 已迁移至 core-routes**（§2.3.3）；ohos 复用 `core-routes.js` 即可提供 TvShow / Movie 重命名。
+- 另有 **9 个**（`discover` / `speedtest` / `Log` / `ReadImage` / `MoveFileToTrash` / `DownloadImage` / `DownloadImageAsFile` 等）**无重大阻碍**，按上述 P0~P2 计划落地。
+- **3 个**（`mediaMetadata/{read,write,delete}`）属于「可以拆但有依赖链」，建议与 `renameFiles` 一并处理；其中 `renameFilesInMediaMetadata` 已 `@deprecated`，**应当直接删除**。
+- 其余 **25+ 个 route**（`Open*` / `shutdown` / `Mcp` / `ai*` / `Debug*` / `commandLog*` / `executeCmd` / `tencentAsr` / `discoverExecutables` / `GetPendingPlans` / `UpdatePlan` 等）**与 apps/cli 业务/平台生命周期深度耦合**，不应下放到 core-routes；ohos 通过 core-routes 提供文件与 metadata 能力，**不**运行完整 cli 后端。

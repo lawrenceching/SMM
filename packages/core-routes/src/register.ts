@@ -10,6 +10,7 @@ import { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
 import { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 import { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 import { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
+import { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -21,6 +22,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,
   handleRenameFolderPost,
+  handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
 ];
@@ -73,6 +75,8 @@ export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
 export { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 export { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 export { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
+export { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
+export { doRenameFiles } from "./renameFiles.ts";
 export {
   doGetEpisodes,
   type GetEpisodesRequestBody,
