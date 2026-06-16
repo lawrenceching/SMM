@@ -164,7 +164,7 @@ const Welcome: FC<WelcomeProps> = ({ onImportFolderClick }) => {
   const { downloadVideoDialog, formatConverterDialog } = useDialogs()
   const [openDownloadVideo] = downloadVideoDialog
   const [openFormatConverter] = formatConverterDialog
-  const { isDisplayFeatureCardsInWelcomeEnabled } = useFeatures()
+  const { isDisplayFeatureCardsInWelcomeEnabled, isDownloadVideoEnabled, isFormatConverterEnabled } = useFeatures()
   const { t } = useTranslation("components")
 
   if (!isDisplayFeatureCardsInWelcomeEnabled) {
@@ -228,6 +228,7 @@ const Welcome: FC<WelcomeProps> = ({ onImportFolderClick }) => {
               )
             }
             if (spec.id === "download-video") {
+              if (!isDownloadVideoEnabled) return null
               return (
                 <FeatureCard
                   key={spec.id}
@@ -239,6 +240,7 @@ const Welcome: FC<WelcomeProps> = ({ onImportFolderClick }) => {
               )
             }
             if (spec.id === "format-conversion") {
+              if (!isFormatConverterEnabled) return null
               return (
                 <FeatureCard
                   key={spec.id}

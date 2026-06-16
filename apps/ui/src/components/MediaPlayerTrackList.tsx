@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { useTranslation } from '@/lib/i18n';
+import { useFeatures } from '@/hooks/useFeatures';
 import { emitTrackOpenEvent, emitTrackDeleteEvent, emitTrackPropertiesEvent, emitTrackFormatConvertEvent } from '@/lib/musicEvents';
 
 export interface MediaPlayerTrackListProps {
@@ -51,6 +52,7 @@ function TrackListItem({
   onTrackDelete
 }: TrackListItemProps) {
   const { t } = useTranslation('components');
+  const { isFormatConverterEnabled } = useFeatures();
   const isActive = currentTrack?.id === track.id;
   const showPlayButton = isActive && isPlaying && mode === 'player';
   const showPauseIcon = isActive && mode === 'player';
@@ -161,10 +163,12 @@ function TrackListItem({
                   <FileText className="w-4 h-4 mr-2" />
                   {t('mediaPlayer.trackContextMenu.properties')}
                 </DropdownMenuItem>
+                {isFormatConverterEnabled && (
                 <DropdownMenuItem onClick={handleFormatConvert}>
                   <Film className="w-4 h-4 mr-2" />
                   {t('mediaPlayer.trackContextMenu.formatConvert')}
                 </DropdownMenuItem>
+                )}
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   {t('mediaPlayer.trackContextMenu.delete')}
@@ -182,10 +186,12 @@ function TrackListItem({
             <FileText className="w-4 h-4 mr-2" />
             {t('mediaPlayer.trackContextMenu.properties')}
           </ContextMenuItem>
+          {isFormatConverterEnabled && (
           <ContextMenuItem onClick={handleFormatConvert}>
             <Film className="w-4 h-4 mr-2" />
             {t('mediaPlayer.trackContextMenu.formatConvert')}
           </ContextMenuItem>
+          )}
           <ContextMenuItem variant="destructive" onClick={handleDelete}>
             <Trash2 className="w-4 h-4 mr-2" />
             {t('mediaPlayer.trackContextMenu.delete')}

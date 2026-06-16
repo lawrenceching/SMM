@@ -942,12 +942,14 @@ export function TvShowEpisodeTable({
                   >
                     {t('tvShowEpisodeTable.contextMenu.unlink')}
                   </ContextMenuItem>
+                  {onVideoCompressContextMenuClick && (
                   <ContextMenuItem
                     disabled={!row.videoFile}
-                    onClick={() => onVideoCompressContextMenuClick?.(row)}
+                    onClick={() => onVideoCompressContextMenuClick(row)}
                   >
                     {t('tvShowEpisodeTable.contextMenu.videoCompress')}
                   </ContextMenuItem>
+                  )}
                 </ContextMenuContent>
               </ContextMenu>
             )

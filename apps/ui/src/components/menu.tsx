@@ -15,6 +15,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/providers/dialog-provider"
+import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation } from "@/lib/i18n"
 // import { cleanUp } from "@/api/cleanUp"
 import { toast } from "sonner"
@@ -170,6 +171,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
     addTestBackgroundJobDialog,
   } = useDialogs()
   const { t } = useTranslation('components')
+  const {
+    isDownloadVideoEnabled,
+    isFormatConverterEnabled,
+    isVideoCompressionEnabled,
+  } = useFeatures()
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
@@ -247,30 +253,36 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           onClick: handleOpenMediaLibrary
         },
         
-        {
+        ...(isDownloadVideoEnabled
+          ? [{
           name: t('menu.downloadVideo'),
           id: 'download-video',
           onClick: () => {
             logMenuAction("download-video.click")
             openDownloadVideo()
           }
-        },
-        {
+        } as const]
+          : []),
+        ...(isFormatConverterEnabled
+          ? [{
           name: t('menu.formatConversion'),
           id: 'format-conversion',
           onClick: () => {
             logMenuAction("format-conversion.click")
             openFormatConverter()
           }
-        },
-        {
+        } as const]
+          : []),
+        ...(isVideoCompressionEnabled
+          ? [{
           name: t('menu.videoCompression'),
           id: 'video-compression',
           onClick: () => {
             logMenuAction("video-compression.click")
             openVideoCompression()
           }
-        },
+        } as const]
+          : []),
         {
           name: t('menu.config'),
           id: 'config',

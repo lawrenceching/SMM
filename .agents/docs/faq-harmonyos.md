@@ -30,7 +30,11 @@ navigator.appVersion
 // 鸿蒙 Electron 通常包含 "OHOS" 或 "OpenHarmony"
 ```
 
-**本应用中的用途示例**：`persistHarmonyOSFileAccess()`（导入目录前 persist 权限）、`Assistant.tsx`（部分 AI 能力在鸿蒙上的展示逻辑）。
+**本应用中的用途示例**：`persistHarmonyOSFileAccess()`（导入目录前 persist 权限）、`Assistant.tsx`（部分 AI 能力在鸿蒙上的展示逻辑）、`useFeatures()`（隐藏字幕 / 下载视频 / 转码 / 压缩等未支持功能，见 [harmonyos-integration.md §6](./design/harmonyos-integration.md#6-disabled-features-harmonyos)）。
+
+## 鸿蒙上不可用的功能
+
+字幕、下载视频、视频转码、视频压缩在鸿蒙版 UI 中**不显示入口**（非仅禁用）。由 `useFeatures()` 根据 `isHarmonyOS()` 统一控制，完整列表见 [harmonyos-integration.md §6 Disabled Features](./design/harmonyos-integration.md#6-disabled-features-harmonyos)。
 
 ### Electron 主进程
 

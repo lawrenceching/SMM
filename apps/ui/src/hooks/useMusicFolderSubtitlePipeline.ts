@@ -193,14 +193,17 @@ export function useMusicFolderSubtitlePipeline({
   onClearSelection,
 }: MusicFolderSubtitlePipelineInput) {
   const { stopJob } = useJobManager()
-  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
+  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled, isSubtitleFeaturesEnabled } = useFeatures()
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
 
   const isTranscribeAvailable =
-    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
-  const isTranslateAvailable = isVideoCaptionerReady
-  const isSynthesizeAvailable = isVideoCaptionerReady
-  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
+    isSubtitleFeaturesEnabled &&
+    isTranscribeEnabled &&
+    (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
+  const isTranslateAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
+  const isSynthesizeAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
+  const isProcessAvailable =
+    isSubtitleFeaturesEnabled && isTranscribeEnabled && isVideoCaptionerReady
 
   const {
     runningPaths: transcribingPaths,

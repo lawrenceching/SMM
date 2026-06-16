@@ -52,7 +52,7 @@ interface PendingDelete {
 
 export function MusicPanel() {
   const { t } = useTranslation(["dialogs"]);
-  const { isAiFeatureEnabled } = useFeatures();
+  const { isAiFeatureEnabled, isDownloadVideoEnabled, isFormatConverterEnabled, isVideoCompressionEnabled, isSubtitleFeaturesEnabled } = useFeatures();
   const { folders, selectedFolder } = useUIMediaFolderStoreState();
   const {
     data: queriedMediaMetadata,
@@ -557,21 +557,29 @@ export function MusicPanel() {
         MUSIC_EVENT_NAMES['track:properties'],
         handleTrackProperties,
       ),
-      addMusicEventListener<TrackFormatConvertEventDetail>(
-        MUSIC_EVENT_NAMES['track:formatConvert'],
-        handleTrackFormatConvert,
-      ),
-      addMusicEventListener<TrackVideoCompressEventDetail>(
-        MUSIC_EVENT_NAMES['track:videoCompress'],
-        handleTrackVideoCompress,
-      ),
+      ...(isFormatConverterEnabled
+        ? [
+            addMusicEventListener<TrackFormatConvertEventDetail>(
+              MUSIC_EVENT_NAMES['track:formatConvert'],
+              handleTrackFormatConvert,
+            ),
+          ]
+        : []),
+      ...(isVideoCompressionEnabled
+        ? [
+            addMusicEventListener<TrackVideoCompressEventDetail>(
+              MUSIC_EVENT_NAMES['track:videoCompress'],
+              handleTrackVideoCompress,
+            ),
+          ]
+        : []),
 
     ];
 
     return () => {
       for (const unsub of subscriptions) unsub();
     };
-  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackVideoCompress]);
+  }, [handleTrackOpen, handleTrackDelete, handleTrackProperties, handleTrackFormatConvert, handleTrackVideoCompress, isFormatConverterEnabled, isVideoCompressionEnabled]);
 
   const clearSelection = useCallback(() => setSelectedTrackIds([]), []);
 
@@ -589,7 +597,9 @@ export function MusicPanel() {
         <div className="shrink-0 px-4 pt-4">
           <MusicPanelSubtitleHeader
             mediaMetadata={mediaMetadata}
-            onDownloadClick={handleDownloadClick}
+            onDownloadClick={isDownloadVideoEnabled ? handleDownloadClick : undefined}
+            showSubtitleMenu={isSubtitleFeaturesEnabled}
+            showDownloadButton={isDownloadVideoEnabled}
             isMultiSelectMode={isMultiSelectMode}
             onToggleMultiSelectMode={handleToggleMultiSelectMode}
           />
@@ -623,6 +633,8 @@ export function MusicPanel() {
 interface MusicPanelSubtitleHeaderProps {
   mediaMetadata?: MediaMetadata
   onDownloadClick?: () => void
+  showSubtitleMenu?: boolean
+  showDownloadButton?: boolean
   isMultiSelectMode: boolean
   onToggleMultiSelectMode: () => void
 }
@@ -630,6 +642,8 @@ interface MusicPanelSubtitleHeaderProps {
 function MusicPanelSubtitleHeader({
   mediaMetadata,
   onDownloadClick,
+  showSubtitleMenu = true,
+  showDownloadButton = true,
   isMultiSelectMode,
   onToggleMultiSelectMode,
 }: MusicPanelSubtitleHeaderProps) {
@@ -640,6 +654,8 @@ function MusicPanelSubtitleHeader({
     <MusicHeaderV2
       selectedMediaMetadata={mediaMetadata}
       onDownloadClick={onDownloadClick}
+      showSubtitleMenu={showSubtitleMenu}
+      showDownloadButton={showDownloadButton}
       onTranscribeClick={headerActions.onTranscribeClick}
       onTranslateClick={headerActions.onTranslateClick}
       isTranscribeAvailable={availability.isTranscribeAvailable}

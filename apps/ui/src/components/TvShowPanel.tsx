@@ -146,10 +146,12 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isAiFeatureEnabled, isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
+  const { isAiFeatureEnabled, isTranscribeEnabled, isTencentAsrTranscribeEnabled, isSubtitleFeaturesEnabled, isVideoCompressionEnabled } = useFeatures()
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
   const isTranscribeAvailable =
-    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
+    isSubtitleFeaturesEnabled &&
+    isTranscribeEnabled &&
+    (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
   const transcribeDialogRows = useMemo(
     () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
@@ -165,7 +167,7 @@ function TvShowPanel() {
     [mediaMetadata],
   )
   const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
-  const isTranslateAvailable = isVideoCaptionerReady
+  const isTranslateAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
 
   const synthesizeSubtitleDialogRows = useMemo(
     () =>
@@ -175,7 +177,7 @@ function TvShowPanel() {
     [mediaMetadata],
   )
   const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
-  const isSynthesizeAvailable = isVideoCaptionerReady
+  const isSynthesizeAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
 
   const processPipelineRows = useMemo(
     () =>
@@ -185,7 +187,8 @@ function TvShowPanel() {
     [mediaMetadata],
   )
   const hasProcessTargets = processPipelineRows.length > 0
-  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
+  const isProcessAvailable =
+    isSubtitleFeaturesEnabled && isTranscribeEnabled && isVideoCaptionerReady
 
   const allJobRecords = useJobs()
   const runningJobIdsRef = useRef(new Set<string>())
@@ -953,6 +956,7 @@ function TvShowPanel() {
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
+          showSubtitleMenu={isSubtitleFeaturesEnabled}
           onTranscribeClick={() => setIsTranscribeOpen(true)}
           onTranslateClick={handleHeaderTranslateClick}
           onSynthesizeClick={handleHeaderSynthesizeClick}
@@ -980,7 +984,9 @@ function TvShowPanel() {
             onSelectFileContextMenuClick={handleSelectFileContextMenuClick}
             onUnlinkContextMenuClick={handleUnlinkEpisode}
             onPropertiesContextMenuClick={handlePropertiesForRow}
-            onVideoCompressContextMenuClick={handleVideoCompressForRow}
+            onVideoCompressContextMenuClick={
+              isVideoCompressionEnabled ? handleVideoCompressForRow : undefined
+            }
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}

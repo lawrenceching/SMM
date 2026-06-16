@@ -25,6 +25,10 @@ export interface MusicHeaderV2Props {
   onProcessClick?: () => void
   isProcessAvailable?: boolean
   hasProcessTargets?: boolean
+  /** When false, subtitle dropdown is hidden (e.g. HarmonyOS). */
+  showSubtitleMenu?: boolean
+  /** When false, download button is hidden (e.g. HarmonyOS). */
+  showDownloadButton?: boolean
   isMultiSelectMode?: boolean
   onToggleMultiSelectMode?: () => void
 }
@@ -44,6 +48,8 @@ export function MusicHeaderV2({
   onProcessClick,
   isProcessAvailable = false,
   hasProcessTargets = false,
+  showSubtitleMenu = true,
+  showDownloadButton = true,
   isMultiSelectMode = false,
   onToggleMultiSelectMode,
 }: MusicHeaderV2Props) {
@@ -84,6 +90,7 @@ export function MusicHeaderV2({
           >
             {isMultiSelectMode ? t("cancel", { ns: "common" }) : t("mediaPlayer.select")}
           </Button>
+          {showSubtitleMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -132,6 +139,8 @@ export function MusicHeaderV2({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
+          {showDownloadButton && (
           <Button
             variant="outline"
             size="sm"
@@ -142,6 +151,7 @@ export function MusicHeaderV2({
             <Download className="mr-2 size-4" />
             {t("mediaPlayer.download")}
           </Button>
+          )}
         </div>
       </div>
     </div>

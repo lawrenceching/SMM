@@ -5,6 +5,7 @@ import {
   buildRowSubtitleUi,
   type RowSubtitleUi,
 } from "@/hooks/useMusicFolderSubtitlePipeline"
+import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import {
   TranscribeDialog,
@@ -150,6 +151,8 @@ export function LocalFileSubtitleScope({
 }: LocalFileSubtitleScopeProps) {
   const { t: tComponents } = useTranslation(["components"])
   const t = castTranslationFn(tComponents)
+  const { isSubtitleFeaturesEnabled } = useFeatures()
+  const subtitleFeaturesEnabled = isSubtitleFeaturesEnabled && isAiFeatureEnabled
   const pipeline = useMusicFolderSubtitlePipeline({
     platformFolder,
     mediaFolderPath,
@@ -162,8 +165,8 @@ export function LocalFileSubtitleScope({
   const value = useMemo((): LocalFileSubtitleContextValue => {
     const { availability } = pipeline
 
-    // When AI features are disabled, override all availability to false
-    const effectiveAvailability = isAiFeatureEnabled
+    // When subtitle/AI features are disabled, override all availability to false
+    const effectiveAvailability = subtitleFeaturesEnabled
       ? availability
       : {
           isTranscribeAvailable: false,
@@ -195,13 +198,13 @@ export function LocalFileSubtitleScope({
       },
       bindRowActions: pipeline.bindRowActions,
     }
-  }, [pipeline, t])
+  }, [pipeline, t, subtitleFeaturesEnabled])
 
   const { dialogProps } = pipeline
 
   return (
     <LocalFileSubtitleContext.Provider value={value}>
-      {isAiFeatureEnabled && (
+      {subtitleFeaturesEnabled && (
         <>
           <TranscribeDialog
             isOpen={dialogProps.transcribe.isOpen}

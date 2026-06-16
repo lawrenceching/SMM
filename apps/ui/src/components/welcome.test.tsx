@@ -27,17 +27,22 @@ vi.mock("@/lib/i18n", () => ({
 
 import Welcome from "./welcome"
 
+const defaultFeatureFlags = {
+  isDisplayFeatureCardsInWelcomeEnabled: true,
+  isDownloadVideoEnabled: true,
+  isFormatConverterEnabled: true,
+}
+
 describe("Welcome", () => {
   beforeEach(() => {
     h.mockOpenDownloadVideo.mockReset()
     h.mockOpenFormatConverter.mockReset()
     h.mockUseFeatures.mockReset()
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
   })
 
   it("renders 4 feature cards by default (feature flag on)", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -48,9 +53,7 @@ describe("Welcome", () => {
   })
 
   it("uses i18n keys for card labels", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -69,9 +72,7 @@ describe("Welcome", () => {
   })
 
   it("invokes the onImportFolderClick prop when Import Folder card is clicked", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
     const onImportFolderClick = vi.fn()
 
     render(<Welcome onImportFolderClick={onImportFolderClick} />)
@@ -82,9 +83,7 @@ describe("Welcome", () => {
   })
 
   it("invokes openDownloadVideo dialog when Download Video card is clicked", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -94,9 +93,7 @@ describe("Welcome", () => {
   })
 
   it("invokes openFormatConverter dialog when Format Conversion card is clicked", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -105,8 +102,24 @@ describe("Welcome", () => {
     expect(h.mockOpenFormatConverter).toHaveBeenCalledTimes(1)
   })
 
+  it("hides download and format conversion cards when HarmonyOS feature flags are off", () => {
+    h.mockUseFeatures.mockReturnValue({
+      ...defaultFeatureFlags,
+      isDownloadVideoEnabled: false,
+      isFormatConverterEnabled: false,
+    })
+
+    render(<Welcome />)
+
+    expect(screen.getByTestId("welcome-card-import-folder")).toBeTruthy()
+    expect(screen.queryByTestId("welcome-card-download-video")).toBeNull()
+    expect(screen.queryByTestId("welcome-card-format-conversion")).toBeNull()
+    expect(screen.getByTestId("welcome-card-github")).toBeTruthy()
+  })
+
   it("renders the minimal Simple Media Manager view when the feature flag is off", () => {
     h.mockUseFeatures.mockReturnValue({
+      ...defaultFeatureFlags,
       isDisplayFeatureCardsInWelcomeEnabled: false,
     })
 
@@ -124,9 +137,7 @@ describe("Welcome", () => {
   })
 
   it("renders the Github card as an external link", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -140,9 +151,7 @@ describe("Welcome", () => {
   })
 
   it("renders the header (Simple Media Manager) in feature cards view", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -152,9 +161,7 @@ describe("Welcome", () => {
   })
 
   it("does NOT render the GitCode footer link in feature cards view", () => {
-    h.mockUseFeatures.mockReturnValue({
-      isDisplayFeatureCardsInWelcomeEnabled: true,
-    })
+    h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
 
     render(<Welcome />)
 
@@ -163,6 +170,7 @@ describe("Welcome", () => {
 
   it("renders the GitCode link in the minimal fallback view", () => {
     h.mockUseFeatures.mockReturnValue({
+      ...defaultFeatureFlags,
       isDisplayFeatureCardsInWelcomeEnabled: false,
     })
 

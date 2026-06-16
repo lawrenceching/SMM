@@ -136,10 +136,12 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [rawMediaMetadata])
 
-  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
+  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled, isSubtitleFeaturesEnabled, isVideoCompressionEnabled } = useFeatures()
   const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
   const isTranscribeAvailable =
-    isTranscribeEnabled && (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
+    isSubtitleFeaturesEnabled &&
+    isTranscribeEnabled &&
+    (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
   const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
   const transcribeDialogRows = useMemo(
     () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
@@ -152,21 +154,22 @@ function MoviePanel() {
     [mediaMetadata],
   )
   const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
-  const isTranslateAvailable = isVideoCaptionerReady
+  const isTranslateAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
 
   const synthesizeSubtitleDialogRows = useMemo(
     () => synthesizeSubtitleDialogRowsFromMediaFiles(mediaMetadata),
     [mediaMetadata],
   )
   const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
-  const isSynthesizeAvailable = isVideoCaptionerReady
+  const isSynthesizeAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
 
   const processPipelineRows = useMemo(
     () => processPipelineDialogRowsFromMediaFiles(mediaMetadata),
     [mediaMetadata],
   )
   const hasProcessTargets = processPipelineRows.length > 0
-  const isProcessAvailable = isTranscribeEnabled && isVideoCaptionerReady
+  const isProcessAvailable =
+    isSubtitleFeaturesEnabled && isTranscribeEnabled && isVideoCaptionerReady
 
   const allJobRecords = useJobs()
   const runningJobIdsRef = useRef(new Set<string>())
@@ -461,6 +464,7 @@ function MoviePanel() {
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
+          showSubtitleMenu={isSubtitleFeaturesEnabled}
           onTranscribeClick={() => setIsTranscribeOpen(true)}
           onTranslateClick={handleHeaderTranslateClick}
           onSynthesizeClick={handleHeaderSynthesizeClick}
@@ -491,7 +495,7 @@ function MoviePanel() {
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             preview={isPreviewingForRename}
-            onVideoCompressClick={handleVideoCompressClick}
+            onVideoCompressClick={isVideoCompressionEnabled ? handleVideoCompressClick : undefined}
           />
         )}
       </div>

@@ -169,7 +169,24 @@ packages/electron-common/
 | `fileAccess:persist` | Persist folder access (OHOS only) |
 | `ExecuteChannel` | `open-in-file-manager`, `open-file` tasks |
 
-## 6. User Stories
+## 6. Disabled Features (HarmonyOS)
+
+HarmonyOS builds hide features that depend on bundled CLI tools (yt-dlp, FFmpeg, VideoCaptioner) or are not yet validated on the platform. Gating is centralized in `useFeatures()` via `isHarmonyOS()` — UI components read feature flags rather than branching on platform directly.
+
+**Source of truth:** `apps/ui/src/lib/harmonyOSDisabledFeatures.ts` (IDs) and `apps/ui/src/hooks/useFeatures.ts` (runtime flags).
+
+| Feature | ID | `useFeatures` flag | Entry points hidden |
+|---------|-----|-------------------|---------------------|
+| 字幕 (transcribe / translate / synthesize / process) | `subtitle` | `isSubtitleFeaturesEnabled` | TvShow/Movie/Music header subtitle menus; music row subtitle context submenu; subtitle pipeline dialogs |
+| 下载视频 (yt-dlp) | `downloadVideo` | `isDownloadVideoEnabled` | Menu → Download Video; Welcome card; Music panel download button |
+| 视频转码 (format converter) | `formatConverter` | `isFormatConverterEnabled` | Menu → Format Conversion; Welcome card; track context menu → Format Convert |
+| 视频压缩 (video compression) | `videoCompression` | `isVideoCompressionEnabled` | Menu → Video Compression; TvShow/Movie episode context menu → Compress; music row context menu |
+
+On HarmonyOS all four flags are `false`. Desktop and browser dev builds are unchanged.
+
+**Detection:** renderer uses `isHarmonyOS()` (`navigator.appVersion` contains `OHOS` or `OpenHarmony`). See [faq-harmonyos.md](../faq-harmonyos.md).
+
+## 7. User Stories
 
 ### Import media folder on HarmonyOS
 1. User taps "Open Folder" → native picker opens
@@ -192,7 +209,7 @@ packages/electron-common/
 - All existing Electron behavior (Windows/macOS/Linux) is unchanged
 - Non-Electron runtime still uses HTTP fallback (`POST /api/openInFileManager`, `POST /api/openFile`)
 
-## 7. Backward Compatibility
+## 8. Backward Compatibility
 
 - IPC channel names unchanged
 - Preload surface unchanged on desktop

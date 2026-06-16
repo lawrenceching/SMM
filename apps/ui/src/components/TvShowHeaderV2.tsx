@@ -34,6 +34,8 @@ export interface TvShowHeaderV2Props {
     hasSynthesizeTargets?: boolean
     isProcessAvailable?: boolean
     hasProcessTargets?: boolean
+    /** When false, subtitle dropdown and overflow items are hidden (e.g. HarmonyOS). */
+    showSubtitleMenu?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -57,6 +59,7 @@ export function TvShowHeaderV2({
     hasSynthesizeTargets = false,
     isProcessAvailable = false,
     hasProcessTargets = false,
+    showSubtitleMenu = true,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -241,6 +244,7 @@ export function TvShowHeaderV2({
                                 <Download className="size-4 mr-2" />
                                 {t('tvShow.scrape', { ns: 'components' })}
                             </Button>
+                            {showSubtitleMenu && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -289,6 +293,7 @@ export function TvShowHeaderV2({
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -358,6 +363,8 @@ export function TvShowHeaderV2({
                                         <Download className="size-4" />
                                         {t('tvShow.scrape', { ns: 'components' })}
                                     </DropdownMenuItem>
+                                    {showSubtitleMenu && (
+                                    <>
                                     <DropdownMenuSeparator className="@[200px]:hidden" />
                                     <DropdownMenuItem
                                         className="@[200px]:hidden"
@@ -394,6 +401,8 @@ export function TvShowHeaderV2({
                                         <Sparkles className="size-4 mr-2" />
                                         {t('mediaPlayer.trackContextMenu.process', { ns: 'components' })}
                                     </DropdownMenuItem>
+                                    </>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         disabled={!externalUrl}

@@ -27,6 +27,8 @@ export interface MovieHeaderV2Props {
     hasSynthesizeTargets?: boolean
     isProcessAvailable?: boolean
     hasProcessTargets?: boolean
+    /** When false, subtitle dropdown is hidden (e.g. HarmonyOS). */
+    showSubtitleMenu?: boolean
     selectedMediaMetadata?: UIMediaMetadata
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
@@ -47,6 +49,7 @@ export function MovieHeaderV2({
     hasSynthesizeTargets = false,
     isProcessAvailable = false,
     hasProcessTargets = false,
+    showSubtitleMenu = true,
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
@@ -156,6 +159,7 @@ export function MovieHeaderV2({
                                 <Download className="size-4 mr-2" />
                                 {t('movie.scrape', { ns: 'components' })}
                             </Button>
+                            {showSubtitleMenu && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -203,6 +207,7 @@ export function MovieHeaderV2({
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button

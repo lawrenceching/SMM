@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { isHarmonyOS } from "@/lib/isHarmonyOS"
 
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
 const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
@@ -252,6 +253,14 @@ export interface UseFeaturesResult {
   setIsAiAreaEnabled: (enabled: boolean) => void
   /** Subtitle / transcribe via VideoCaptioner is supported on this OS build. */
   isTranscribeEnabled: boolean
+  /** Subtitle menu and pipeline (transcribe / translate / synthesize / process). Disabled on HarmonyOS. */
+  isSubtitleFeaturesEnabled: boolean
+  /** Download video dialog and music-panel download. Disabled on HarmonyOS. */
+  isDownloadVideoEnabled: boolean
+  /** Format converter dialog (视频转码). Disabled on HarmonyOS. */
+  isFormatConverterEnabled: boolean
+  /** Video compression dialog (视频压缩). Disabled on HarmonyOS. */
+  isVideoCompressionEnabled: boolean
   /**
    * When true, UI may expose VideoCaptioner ASR engine selection (e.g. Transcribe dialog).
    * Persisted in localStorage under key `features.isVideoCaptionerAsrOptionsEnabled`.
@@ -317,10 +326,20 @@ export interface UseFeaturesResult {
 }
 
 export function useFeatures(): UseFeaturesResult {
+  const isHarmonyOSRuntime = useMemo(() => isHarmonyOS(), [])
+
+  const isSubtitleFeaturesEnabled = !isHarmonyOSRuntime
+  const isDownloadVideoEnabled = !isHarmonyOSRuntime
+  const isFormatConverterEnabled = !isHarmonyOSRuntime
+  const isVideoCompressionEnabled = !isHarmonyOSRuntime
+
   const isTranscribeEnabled = useMemo(() => {
+    if (isHarmonyOSRuntime) {
+      return false
+    }
     const platform = getRuntimePlatform()
     return platform !== "darwin"
-  }, [])
+  }, [isHarmonyOSRuntime])
 
   const [isVideoCaptionerAsrOptionsEnabled, setIsVideoCaptionerAsrOptionsEnabled] = useState(
     readVideoCaptionerAsrOptionsEnabled,
@@ -442,6 +461,10 @@ export function useFeatures(): UseFeaturesResult {
       isAiFeatureEnabled,
       setIsAiFeatureEnabled,
       isTranscribeEnabled,
+      isSubtitleFeaturesEnabled,
+      isDownloadVideoEnabled,
+      isFormatConverterEnabled,
+      isVideoCompressionEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,
@@ -463,6 +486,10 @@ export function useFeatures(): UseFeaturesResult {
       isAiFeatureEnabled,
       setIsAiFeatureEnabled,
       isTranscribeEnabled,
+      isSubtitleFeaturesEnabled,
+      isDownloadVideoEnabled,
+      isFormatConverterEnabled,
+      isVideoCompressionEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,

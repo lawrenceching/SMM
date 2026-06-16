@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
+import { useFeatures } from "@/hooks/useFeatures"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
 import { isVideoFile } from "@/lib/recognizeEpisodes"
@@ -68,6 +69,11 @@ export function LocalFileRow({
 }: LocalFileRowProps) {
   const { t: tStrict } = useTranslation(["components"])
   const t = castTranslationFn(tStrict)
+  const {
+    isSubtitleFeaturesEnabled,
+    isFormatConverterEnabled,
+    isVideoCompressionEnabled,
+  } = useFeatures()
   const { isMultiSelectMode, selectedTrackIds, onSelectedTrackIdsChange } = selection
 
   const toggleTrackSelection = (trackId: number) => {
@@ -173,14 +179,18 @@ export function LocalFileRow({
           <FileText className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.properties")}
         </ContextMenuItem>
+        {isFormatConverterEnabled && (
         <ContextMenuItem onClick={fileMenu.onFormatConvert}>
           <FileText className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.formatConvert")}
         </ContextMenuItem>
+        )}
+        {isVideoCompressionEnabled && (
         <ContextMenuItem onClick={fileMenu.onVideoCompress} disabled={!isVideoFile(row.path)}>
           <Film className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.videoCompress")}
         </ContextMenuItem>
+        )}
         <ContextMenuItem
           disabled={!canSummarize || !onSummarize}
           onClick={onSummarize}
@@ -188,6 +198,7 @@ export function LocalFileRow({
           <Sparkles className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.summarize")}
         </ContextMenuItem>
+        {isSubtitleFeaturesEnabled && (
         <ContextMenuSub>
           <ContextMenuSubTrigger
             disabled={subtitleUi.submenuDisabled}
@@ -203,6 +214,7 @@ export function LocalFileRow({
             />
           </ContextMenuSubContent>
         </ContextMenuSub>
+        )}
         <ContextMenuItem variant="destructive" onClick={fileMenu.onDelete}>
           <Trash2 className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.delete")}

@@ -129,7 +129,12 @@ vi.mock('@/hooks/useVideoCaptionerStatus', () => ({
 }));
 vi.mock('@/hooks/useFeatures', () => ({
   useFeatures: vi.fn(() => ({
+    isAiFeatureEnabled: true,
     isTranscribeEnabled: true,
+    isSubtitleFeaturesEnabled: true,
+    isDownloadVideoEnabled: true,
+    isFormatConverterEnabled: true,
+    isVideoCompressionEnabled: true,
     isVideoCaptionerAsrOptionsEnabled: false,
     setVideoCaptionerAsrOptionsEnabled: vi.fn(),
     isTencentAsrTranscribeEnabled: false,
@@ -273,12 +278,17 @@ describe('MusicPanel', () => {
       isChecking: false,
     });
     vi.mocked(useFeatures).mockReturnValue({
+      isAiFeatureEnabled: true,
       isTranscribeEnabled: true,
+      isSubtitleFeaturesEnabled: true,
+      isDownloadVideoEnabled: true,
+      isFormatConverterEnabled: true,
+      isVideoCompressionEnabled: true,
       isVideoCaptionerAsrOptionsEnabled: false,
       setVideoCaptionerAsrOptionsEnabled: vi.fn(),
       isTencentAsrTranscribeEnabled: false,
       setTencentAsrTranscribeEnabled: vi.fn(),
-    });
+    } as ReturnType<typeof useFeatures>);
 
     vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
   });

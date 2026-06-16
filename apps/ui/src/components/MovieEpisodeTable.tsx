@@ -307,12 +307,14 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
                 >
                   {t('episodeFile.rename', { ns: 'components' })}
                 </ContextMenuItem>
+                {onVideoCompressClick && (
                 <ContextMenuItem
-                  disabled={!videoRow.file || !onVideoCompressClick}
-                  onClick={() => videoRow.file && onVideoCompressClick?.(videoRow.file)}
+                  disabled={!videoRow.file}
+                  onClick={() => videoRow.file && onVideoCompressClick(videoRow.file)}
                 >
                   {t('movieEpisodeTable.contextMenu.videoCompress')}
                 </ContextMenuItem>
+                )}
               </ContextMenuContent>
             </ContextMenu>
           )}
