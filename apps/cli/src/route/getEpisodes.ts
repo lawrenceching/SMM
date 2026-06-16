@@ -1,37 +1,22 @@
-import { z } from 'zod/v3'
 import type { Hono } from 'hono'
 import { logger } from '../../lib/logger'
-import { executeGetEpisodes } from '../tools/getEpisodes'
+import {
+  doGetEpisodes,
+  type CoreRoutesLogger,
+} from '@smm/core-routes'
 import { createEmptyGetEpisodesData } from '@core/ai-tool/buildGetEpisodesResponse'
+import { buildCoreRoutesConfig } from './coreRoutesConfig'
 
-const requestSchema = z.object({
-  mediaFolderPath: z
-    .string()
-    .min(1, 'The absolute path of the media folder is required'),
-})
+const coreRoutesLogger: CoreRoutesLogger = {
+  debug: (obj, msg) => logger.debug(obj, msg),
+  info: (obj, msg) => logger.info(obj, msg),
+  warn: (obj, msg) => logger.warn(obj, msg),
+  error: (obj, msg) => logger.error(obj, msg),
+}
 
-export async function processGetEpisodes(body: unknown, abortSignal?: AbortSignal) {
-  const parsed = requestSchema.safeParse(body)
-  if (!parsed.success) {
-    const msg = parsed.error.issues.map((i) => i.message).join(', ')
-    return {
-      ...createEmptyGetEpisodesData(),
-      error: `Validation Failed: ${msg}`,
-    }
-  }
-
-  try {
-    const result = await executeGetEpisodes(
-      { mediaFolderPath: parsed.data.mediaFolderPath },
-      abortSignal,
-    )
-    return result
-  } catch (error) {
-    return {
-      ...createEmptyGetEpisodesData(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }
-  }
+export async function processGetEpisodes(body: unknown, _abortSignal?: AbortSignal) {
+  const config = await buildCoreRoutesConfig(coreRoutesLogger)
+  return doGetEpisodes(body, config)
 }
 
 export function handleGetEpisodesRoute(app: Hono): void {

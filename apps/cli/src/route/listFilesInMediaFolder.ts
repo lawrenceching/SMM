@@ -1,38 +1,25 @@
-import { z } from 'zod/v3'
 import type { Hono } from 'hono'
 import { logger } from '../../lib/logger'
-import { executeListFilesInMediaFolder } from '../tools/listFilesInMediaFolder'
+import {
+  doListFilesInMediaFolder,
+  type CoreRoutesLogger,
+} from '@smm/core-routes'
 import { createEmptyListFilesInMediaFolderData } from '@core/ai-tool/buildListFilesInMediaFolderResponse'
+import { buildCoreRoutesConfig } from './coreRoutesConfig'
 
-const requestSchema = z.object({
-  mediaFolderPath: z
-    .string()
-    .min(1, 'The absolute path of the media folder is required'),
-  recursively: z.boolean().optional(),
-  videoFileOnly: z.boolean().optional(),
-})
+const coreRoutesLogger: CoreRoutesLogger = {
+  debug: (obj, msg) => logger.debug(obj, msg),
+  info: (obj, msg) => logger.info(obj, msg),
+  warn: (obj, msg) => logger.warn(obj, msg),
+  error: (obj, msg) => logger.error(obj, msg),
+}
 
 export async function processListFilesInMediaFolder(
   body: unknown,
-  abortSignal?: AbortSignal,
+  _abortSignal?: AbortSignal,
 ) {
-  const parsed = requestSchema.safeParse(body)
-  if (!parsed.success) {
-    const msg = parsed.error.issues.map((i) => i.message).join(', ')
-    return {
-      ...createEmptyListFilesInMediaFolderData(),
-      error: `Validation Failed: ${msg}`,
-    }
-  }
-
-  try {
-    return await executeListFilesInMediaFolder(parsed.data, abortSignal)
-  } catch (error) {
-    return {
-      ...createEmptyListFilesInMediaFolderData(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }
-  }
+  const config = await buildCoreRoutesConfig(coreRoutesLogger)
+  return doListFilesInMediaFolder(body, config)
 }
 
 export function handleListFilesInMediaFolderRoute(app: Hono): void {

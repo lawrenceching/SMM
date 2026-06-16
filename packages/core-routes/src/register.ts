@@ -7,6 +7,9 @@ import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts"
 import { handleReadFilePost } from "./routes/readFileRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 import { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
+import { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
+import { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
+import { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -15,6 +18,9 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
+  handleGetEpisodesPost,
+  handleListFilesInMediaFolderPost,
+  handleRenameFolderPost,
   handleReadFilePost,
   handleDeleteFilePost,
 ];
@@ -64,3 +70,15 @@ export { handleHelloPost } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 export { handleReadFilePost } from "./routes/readFileRoute.ts";
 export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
+export { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
+export { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
+export { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
+export {
+  doGetEpisodes,
+  type GetEpisodesRequestBody,
+} from "./getEpisodes.ts";
+export {
+  doListFilesInMediaFolder,
+  type ListFilesInMediaFolderRequestBody,
+} from "./listFilesInMediaFolder.ts";
+export { doRenameFolder } from "./renameFolder.ts";

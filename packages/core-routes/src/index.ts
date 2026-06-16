@@ -42,6 +42,15 @@ export {
   type DeleteFileResponseBody,
 } from "./deleteFile.ts";
 export {
+  doGetEpisodes,
+  type GetEpisodesRequestBody,
+} from "./getEpisodes.ts";
+export {
+  doListFilesInMediaFolder,
+  type ListFilesInMediaFolderRequestBody,
+} from "./listFilesInMediaFolder.ts";
+export { doRenameFolder } from "./renameFolder.ts";
+export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
@@ -51,6 +60,9 @@ export {
   handleWriteFilePost,
   handleHelloPost,
   handleIsFolderAvailablePost,
+  handleGetEpisodesPost,
+  handleListFilesInMediaFolderPost,
+  handleRenameFolderPost,
   handleReadFilePost,
   handleDeleteFilePost,
 } from "./register.ts";

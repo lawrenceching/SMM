@@ -88,11 +88,14 @@ export async function startMainHttpServer(): Promise<void> {
   const allowlist = buildCoreRoutesAllowlist()
   console.log("[main] core-routes allowlist:", allowlist)
 
+  const hello = buildHelloConfig(reverseProxyUrl)
+
   const coreRoutesHandler = createCoreRoutesRequestHandler(
     {
       allowlist,
       logger: createCoreRoutesLogger(),
-      hello: buildHelloConfig(reverseProxyUrl),
+      hello,
+      appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
     },
     { fallbackPort: MAIN_HTTP_PORT },
   )

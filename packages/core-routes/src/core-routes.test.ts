@@ -441,3 +441,138 @@ describe("POST /api/deleteFile", () => {
     expect(body.error).toContain("Validation Failed");
   });
 });
+
+describe("POST /api/getEpisodes", () => {
+  async function requestGetEpisodes(rawBody: string | undefined) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/getEpisodes";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist: [] }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns 200 instead of 404 for a valid request body", async () => {
+    const { status, body } = await requestGetEpisodes(
+      JSON.stringify({ mediaFolderPath: "/tmp/show" }),
+    );
+    expect(status).toBe(200);
+    expect(body.error).toBeTruthy();
+  });
+});
+
+describe("POST /api/listFilesInMediaFolder", () => {
+  async function requestListFilesInMediaFolder(rawBody: string | undefined) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/listFilesInMediaFolder";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist: [] }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns 200 instead of 404 for a valid request body", async () => {
+    const { status, body } = await requestListFilesInMediaFolder(
+      JSON.stringify({ mediaFolderPath: "/tmp/show" }),
+    );
+    expect(status).toBe(200);
+    expect(body.error).toBeTruthy();
+  });
+});
+
+describe("POST /api/renameFolder", () => {
+  async function requestRenameFolder(rawBody: string | undefined) {
+    const { handleCoreRoutesRequest } = await import("../src/register.ts");
+    const { IncomingMessage, ServerResponse } = await import("node:http");
+    const { Socket } = await import("node:net");
+
+    const socket = new Socket();
+    const req = new IncomingMessage(socket);
+    req.method = "POST";
+    req.url = "/api/renameFolder";
+    req.headers = { "content-type": "application/json" };
+
+    if (rawBody !== undefined) {
+      req.push(Buffer.from(rawBody));
+      req.push(null);
+    }
+
+    let status = 0;
+    let body = "";
+    const res = new ServerResponse(req);
+    res.writeHead = ((code: number) => {
+      status = code;
+      return res;
+    }) as typeof res.writeHead;
+    res.end = ((chunk?: unknown) => {
+      body = typeof chunk === "string" ? chunk : "";
+      return res;
+    }) as typeof res.end;
+
+    await handleCoreRoutesRequest(req, res, { allowlist: [] }, 3001);
+
+    socket.destroy();
+    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+  }
+
+  it("returns 200 instead of 404 for a valid request body", async () => {
+    const { status, body } = await requestRenameFolder(
+      JSON.stringify({
+        from: "/tmp/show",
+        to: "/tmp/show-renamed",
+      }),
+    );
+    expect(status).toBe(200);
+    expect(body.error).toBeTruthy();
+  });
+});

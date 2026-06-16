@@ -1,104 +1,46 @@
-import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types';
-import { rename } from 'fs/promises';
-import { getUserConfig, renameFolderInUserConfig, writeUserConfig } from '@/utils/config';
-import { renameMediaFolderInMediaMetadata } from '@/utils/mediaMetadataUtils';
-import { deleteMediaMetadataFile, findMediaMetadata, writeMediaMetadata } from '@/utils/mediaMetadata';
+import {
+  doRenameFolder as doRenameFolderCore,
+  type CoreRoutesLogger,
+} from '@smm/core-routes';
 import { broadcastUserConfigFolderRenamedEvent } from '@/events/userConfigUpdatedEvent';
 import { broadcast } from '@/utils/socketIO';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
+import { buildCoreRoutesConfig } from './coreRoutesConfig';
 
-const renameFolderRequestSchema = z.object({
-  from: z.string().min(1, 'Source folder path is required, in POSIX format'),
-  to: z.string().min(1, 'Destination folder path is required, in POSIX format'),
-});
+const coreRoutesLogger: CoreRoutesLogger = {
+  debug: (obj, msg) => logger.debug(obj, msg),
+  info: (obj, msg) => logger.info(obj, msg),
+  warn: (obj, msg) => logger.warn(obj, msg),
+  error: (obj, msg) => logger.error(obj, msg),
+};
 
-export async function doRenameFolder(body: FolderRenameRequestBody, clientId?: string): Promise<FolderRenameResponseBody> {
-  try {
-    const userConfig = await getUserConfig();
-    
-    // Check if the source path is in the user's configured folders
-    const fromPath = Path.toPlatformPath(body.from);
-    const folderEntry = userConfig.folders.find((folder: string) => folder === fromPath);
-    
-    if (!folderEntry) {
-      logger.error({
-        from: body.from,
-        to: body.to,
-      }, '[handleRenameFolder] Source folder is not managed by SMM');
-      return {
-        error: `${body.from} is not managed by SMM`,
-      };
-    }
+export async function doRenameFolder(
+  body: FolderRenameRequestBody,
+  clientId?: string,
+): Promise<FolderRenameResponseBody> {
+  const config = await buildCoreRoutesConfig(coreRoutesLogger);
+  const result = await doRenameFolderCore(body, config);
 
-    // Validate request body
-    const validationResult = renameFolderRequestSchema.safeParse(body);
-    
-    if (!validationResult.success) {
-      logger.warn({
-        errors: validationResult.error.issues.map(i => i.message),
-        body
-      }, '[handleRenameFolder] Validation failed');
-      return {
-        error: `Validation Failed: ${validationResult.error.issues.map(i => i.message).join(', ')}`,
-      };
-    }
-
-    const { from, to } = validationResult.data;
-    const fromAsPosix = Path.posix(from);
-    const toAsPosix = Path.posix(to);
-
-    const mediaMetadata = await findMediaMetadata(fromAsPosix);
-    if(!mediaMetadata) {
-      logger.error({
-        from,
-        to,
-      }, '[handleRenameFolder] Media metadata not found');
-      return {
-        error: `Media metadata not found: ${from}`,
-      };
-    }
-
-    const mm = await renameMediaFolderInMediaMetadata(mediaMetadata, fromAsPosix, toAsPosix);
-    logger.info({
-      mm,
-    }, '[handleRenameFolder] Renamed media folder in media metadata');
-    await writeMediaMetadata(mm);
-    await deleteMediaMetadataFile(Path.posix(from));
-    logger.info({
-      file: from,
-    }, '[handleRenameFolder] Deleted source file');
-
-    const newUserConfig = renameFolderInUserConfig(userConfig, fromAsPosix, toAsPosix);
-    logger.info({
-      userConfig: newUserConfig,
-    }, '[handleRenameFolder] Renamed folder in user config');
-    await writeUserConfig(newUserConfig);
-    
-    await rename(from, to);
-
-    const fromPlatformPath = Path.toPlatformPath(fromAsPosix);
-    const toPlatformPath = Path.toPlatformPath(toAsPosix);
+  if (!result.error) {
+    const fromAsPosix = Path.posix(body.from);
+    const toAsPosix = Path.posix(body.to);
 
     broadcastUserConfigFolderRenamedEvent({
-      from: fromPlatformPath,
-      to: toPlatformPath,
+      from: Path.toPlatformPath(fromAsPosix),
+      to: Path.toPlatformPath(toAsPosix),
     });
 
     broadcast({
-      clientId: clientId,
+      clientId,
       event: 'userConfigUpdated',
-      data: {}
+      data: {},
     });
-
-    return {}; // Success - no error
-  } catch (error) {
-    return {
-      error: `Unexpected Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
   }
+
+  return result;
 }
 
 export function handleRenameFolder(app: Hono) {
@@ -106,19 +48,20 @@ export function handleRenameFolder(app: Hono) {
     try {
       const rawBody = await c.req.json();
       const clientId = c.req.header('clientId');
-      logger.info(`[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`)
+      logger.info(
+        `[HTTP_IN] ${c.req.method} ${c.req.url} ${rawBody.from} -> ${rawBody.to} (clientId: ${clientId || 'not provided'})`,
+      );
       const result = await doRenameFolder(rawBody, clientId);
-      
-      // Always return 200 status code per API design guideline
-      // Business errors are returned in the "error" field
       return c.json(result, 200);
     } catch (error) {
       logger.error({ error }, 'RenameFolder route error:');
-      return c.json({ 
-        error: 'Unexpected Error: Failed to process rename folder request',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, 200);
+      return c.json(
+        {
+          error: 'Unexpected Error: Failed to process rename folder request',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+        200,
+      );
     }
   });
 }
-
