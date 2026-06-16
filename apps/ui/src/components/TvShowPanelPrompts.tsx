@@ -171,12 +171,12 @@ export function TvShowPanelPrompts() {
             ruleBasedRenameFilePrompt.onNamingRulesSelected(value as "plex" | "emby")
           }
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           const callback = ruleBasedRenameFilePrompt.onConfirm
           const planId = ruleBasedRenameFilePrompt.planId
           closeRuleBasedRenameFilePrompt()
           if (callback && planId) {
-            callback(planId)
+            await callback(planId)
           }
         }}
         onCancel={() => {
@@ -192,11 +192,11 @@ export function TvShowPanelPrompts() {
         <AiBasedRenameFilePrompt
           isOpen={aiBasedRenameFilePrompt.isOpen}
           status={aiBasedRenameFilePrompt.status || "generating"}
-          onConfirm={() => {
+          onConfirm={async () => {
             const callback = aiBasedRenameFilePrompt.onConfirm
             closeAiBasedRenameFilePrompt()
             if (callback) {
-              callback()
+              await callback()
             }
           }}
           onCancel={() => {

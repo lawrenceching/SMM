@@ -5,7 +5,7 @@ import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { TMDBTVShow } from "@core/types"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
-import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes, rebuildRenamePlanWithSelectedEpisodes } from "./TvShowPanelUtils"
+import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes } from "./TvShowPanelUtils"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
 import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
@@ -26,7 +26,6 @@ import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import { usePlansStore, type UIPlan } from "@/stores/plansStore"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
@@ -46,9 +45,8 @@ import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMed
 import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
-import { fetchPlans, savePlan } from "@/actions/planActions"
-import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
-import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
+import { fetchPlans } from "@/actions/planActions"
+import { handleRenamePromptConfirmForTvShow } from "@/actions/handleRenamePromptConfirmForTvShow"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
@@ -405,47 +403,34 @@ function TvShowPanel() {
   }, [mediaMetadata?.mediaFolderPath, setPlans])
 
   const handleRenamePromptConfirm = useCallback(async (planId: string) => {
-    
     const plan = getPlanById(planId)
-    
-    if (plan) {
 
-      const selectedEpisodePaths = latestTableData.current
-        .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
-        .map(row => row.videoFile)
-        .filter(path => path !== undefined)
-
-      const actualPlan = rebuildRenamePlanWithSelectedEpisodes(plan as RenameFilesPlan, selectedEpisodePaths)
-      await setPlanById(planId, { status: 'loading' })
-      const renameTraceId = `RuleBasedRenameConfirm-${planId}`
-      const { renameList } = await applyRenameFilesPlanForTvShow({
-        mediaFolderPath: mediaMetadata!.mediaFolderPath!,
-        localFiles: mediaMetadata!.files!,
-        plan: actualPlan as UIRenameFilesPlan,
-        traceId: renameTraceId,
-      }, { renameFilesApi: renameFiles })
-      const updatedMetadata = applyRenamePairsToUIMediaMetadata(mediaMetadata!, renameList)
-      await persistUiMediaMetadata(mediaMetadata!.mediaFolderPath!, updatedMetadata, {
-        traceId: renameTraceId,
-      })
-      if (!plan.tmp) {
-        savePlan(plan as UIPlan, {
-          onSuccess: (savedPlan) => {
-            setPlanById(savedPlan.id, { status: 'completed' })
-          },
-          onError: (error) => {
-            console.error(`[savePlan] Failed to save plan ${planId}:`, error)
-          },
-        })
-      } else {
-        setPlanById(planId, { status: 'completed' })
-        await cleanupRenamePlan(planId)
-      }
-    } else {
+    if (!plan) {
       console.error("[TvShowPanel] No temporary rename plan found")
       toast.error("Failed to find rename plan")
+      return
     }
-  }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata])
+
+    await handleRenamePromptConfirmForTvShow(
+      {
+        planId,
+        plan: plan as UIRenameFilesPlan,
+        mediaMetadata: mediaMetadata!,
+        selectedEpisodePaths: latestTableData.current
+          .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
+          .map(row => row.videoFile)
+          .filter(path => path !== undefined),
+        renameFailedLabel: t('episodeFile.renameFailed'),
+        noMediaPathErrorLabel: t('movie.noMediaPathError'),
+      },
+      {
+        setPlanById,
+        persistUiMediaMetadata,
+        renameFilesApi: renameFiles,
+        cleanupRenamePlan,
+      },
+    )
+  }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata, t])
 
   /**
    * Open AI based rename file prompt (only when AI features are enabled)
