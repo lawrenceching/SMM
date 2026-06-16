@@ -23,6 +23,10 @@ The user configuration feature allows users to manage application settings throu
 | `mcpPort` | `number` | MCP server port (default: `30001`) |
 | `ytdlpExecutablePath` | `string` | Path to yt-dlp executable |
 | `ffmpegExecutablePath` | `string` | Path to ffmpeg executable |
+| `ytdlpProxy` | `string` | Proxy URL for yt-dlp (HTTP/HTTPS/SOCKS) |
+| `ytdlpCookiesPath` | `string` | Path to cookies file for yt-dlp |
+| `preferMediaLanguage` | `PreferMediaLanguage` | Preferred language for media folder recognition (`zh-CN`, `en-US`, `ja-JP`) |
+| `isAiFeatureEnabled` | `boolean` | Master AI feature toggle (UI-only, localStorage) |
 
 ## Architecture
 
@@ -206,20 +210,12 @@ The backend implements path allowlisting to prevent unauthorized file access:
 
 ## MCP Server Integration
 
-When the user config file (`smm.json`) is written, the backend automatically applies MCP configuration changes:
+MCP server lifecycle is managed via dedicated HTTP API endpoints:
+- `PUT /api/mcp/start` — Start MCP server
+- `PUT /api/mcp/stop` — Stop MCP server
+- `GET /api/mcp/status` — Query real-time state
 
-```typescript
-// In WriteFile.ts
-const writtenPath = path.resolve(rawBody.path);
-const configPath = path.resolve(getUserConfigPath());
-if (writtenPath === configPath) {
-  applyMcpConfig().catch((err) => 
-    logger.error({ err }, 'applyMcpConfig failed')
-  );
-}
-```
-
-This ensures that changes to MCP settings (enabled/disabled, host, port) take effect immediately without requiring a full application restart.
+The UI (`McpIndicator`) optimistically updates and calls these APIs directly, rather than relying on fire-and-forget writes to `smm.json`.
 
 ## Error Handling
 

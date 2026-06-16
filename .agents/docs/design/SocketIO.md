@@ -1,8 +1,8 @@
-# Socket.io in SMM
+# Socket.IO
 
 Socket.IO is used for frontend-backend real-time communication.
 
-## Backend (shared)
+## Backend (shared via `packages/core-routes`)
 
 Server-side Socket.IO lives in **`packages/core-routes`**:
 

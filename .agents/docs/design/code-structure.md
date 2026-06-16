@@ -5,9 +5,17 @@
 1. 导入多媒体目录时的初始化
 2. 用户手动搜索并选择媒体结果
 
-并覆盖：
-- 媒体类型：电视剧目录、电影目录
-- 数据源：TMDB、TVDB
+## App 启动与导入概览
+
+`ui/src/AppInitializer.tsx`:
+1. 加载 `userConfig`
+2. 将 `userConfig.folders` 转换为 `UIMediaMetadata`
+
+**Backend 侧 UserConfig 变更**: `userConfig.folders` 可能被以下来源修改：
+- AI Assistant
+- MCP Tool（外部 AI Assistant）
+
+变更时 backend broadcast `userConfigUpdate` 事件（`cli/src/events/userConfigUpdatedEvent.ts`），UI 接收后刷新文件夹列表。
 
 ---
 
