@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { HelloOptions } from "./hello.ts";
+import type { ChatConfig } from "./chatTypes.ts";
 
 export interface CoreRoutesLogger {
   debug(obj: Record<string, unknown>, msg?: string): void;
@@ -36,6 +37,15 @@ export interface CoreRoutesConfig {
    * global `fetch` is unavailable (OHOS Electron / WebAssembly missing).
    */
   fetchImpl?: typeof fetch;
+  /**
+   * When set, `POST /api/chat` is mounted onto the core-routes
+   * `node:http` server. The host (cli Bun, OHOS Electron Main, etc.)
+   * supplies the AI provider factory, user-config reader, and
+   * Socket.IO helpers; `core-routes` provides the chat pipeline
+   * (request validation, agent tool set, streaming response) shared
+   * across runtimes.
+   */
+  chat?: ChatConfig;
 }
 
 export interface RouteContext {

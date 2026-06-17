@@ -1,6 +1,12 @@
 export type { CoreRoutesConfig, CoreRoutesLogger, RouteContext, RouteHandler } from "./types.ts";
 export { validatePathIsInAllowlist } from "./allowlist.ts";
 export { doHello, type HelloOptions } from "./hello.ts";
+export { doChat, handleChatPost } from "./chat.ts";
+export { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+export { migrateAIConfig } from "@smm/core/configMigration";
+export type { AIProviderFactory, ChatConfig, ChatFs, ChatRequestBody } from "./chatTypes.ts";
+export { defaultChatFs } from "./chatFs.ts";
+export { createChatTools, type ChatTools, type ChatToolsExtraDeps } from "./tools/index.ts";
 export {
   buildUpstreamUrl,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
@@ -20,7 +26,10 @@ export {
   type ReverseProxyManager,
   type ReverseProxyManagerConfig,
 } from "./reverseProxyNode.ts";
-export { createNodeHttpFetch } from "./nodeHttpFetch.ts";
+export {
+  createNodeHttpFetch,
+  createStreamingNodeHttpFetch,
+} from "./nodeHttpFetch.ts";
 export {
   checkFolderPathAvailable,
   doIsFolderAvailable,

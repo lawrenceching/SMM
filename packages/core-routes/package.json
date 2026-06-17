@@ -16,7 +16,10 @@
     "build:ohos": "bun build src/index.ts --outfile ../../apps/ohos/web_engine/src/main/resources/resfile/resources/app/core-routes.js --target node --format cjs --minify"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.11",
+    "@assistant-ui/react-ai-sdk": "^1.3.7",
     "@smm/core": "workspace:*",
+    "ai": "^6.0.36",
     "socket.io": "^4.8.3",
     "zod": "^4.1.8"
   },

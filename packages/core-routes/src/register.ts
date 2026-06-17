@@ -14,6 +14,7 @@ import { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
 import { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
 import { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
 import { handleReadImagePost } from "./routes/readImageRoute.ts";
+import { handleChatPost } from "./chat.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -31,6 +32,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleChatPost,
 ];
 
 export function createCoreRoutesRequestHandler(

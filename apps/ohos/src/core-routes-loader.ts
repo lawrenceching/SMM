@@ -28,6 +28,8 @@ export interface CoreRoutesModule {
     options?: { fallbackPort?: number },
   ) => (req: IncomingMessage, res: ServerResponse) => void
   createNodeHttpFetch: () => typeof fetch
+  /** @since 1.3.8 — streaming variant; falls back to createNodeHttpFetch on old bundles */
+  createStreamingNodeHttpFetch?: () => typeof fetch
   createReverseProxyManager: (
     config: ReverseProxyConfig,
   ) => ReverseProxyManager
@@ -39,6 +41,10 @@ export interface CoreRoutesModule {
     config?: SocketIOConfig,
   ) => SocketIOManager
   DEFAULT_ALLOWED_UPSTREAM_HOSTS: readonly string[]
+  createOpenAICompatible?: (
+    opts: { name: string; baseURL: string; apiKey: string },
+  ) => unknown
+  migrateAIConfig?: (raw: Record<string, unknown>) => boolean
 }
 
 export interface SocketIOConfig {
@@ -60,6 +66,19 @@ export interface CoreRoutesConfig {
   hello: Record<string, unknown>
   appDataDir?: string
   broadcast?: (message: WebSocketMessage) => void
+  fetchImpl?: typeof fetch
+  /**
+   * Optional chat config. When set, `POST /api/chat` is mounted onto
+   * the core-routes `node:http` server. The shape is a superset of
+   * the fields the OHOS main process injects at startup.
+   */
+  chat?: {
+    appDataDir: string
+    logger: CoreRoutesLogger
+    createAIProvider: (userConfig: unknown) => unknown
+    getUserConfig: () => Promise<unknown>
+    acknowledge?: (message: unknown, timeoutMs?: number) => Promise<unknown>
+  }
 }
 
 export interface ReverseProxyConfig {

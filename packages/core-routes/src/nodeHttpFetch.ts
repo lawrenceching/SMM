@@ -3,11 +3,20 @@
  * global `fetch` (undici) is unavailable or broken — e.g. OHOS Electron where
  * WebAssembly is not defined.
  *
- * Unlike browser fetch, Node's HTTP client does not decompress response
- * bodies automatically, so gzip/deflate/br responses are decoded here before
- * returning a Web `Response`.
+ * Two variants:
+ *
+ * 1. {@link createNodeHttpFetch} — buffers the entire response body before
+ *    resolving, suitable for short-lived or non-streaming requests. The
+ *    returned `Response.body` is a `ReadableStream` that delivers all bytes
+ *    at once (Node wraps the Buffer internally).
+ *
+ * 2. {@link createStreamingNodeHttpFetch} — forwards the response chunk by
+ *    chunk through a Web `ReadableStream`, so callers such as the AI SDK's
+ *    `streamText` can process SSE events incrementally. This variant
+ *    requires Node 18+ (`Readable.toWeb`, global `ReadableStream`).
  */
 
+import { Readable } from "node:stream";
 import http from "node:http";
 import https from "node:https";
 import zlib from "node:zlib";
@@ -69,7 +78,7 @@ function buildOutgoingHeaders(request: Request): http.OutgoingHttpHeaders {
 
 function buildResponseHeaders(
   source: http.IncomingHttpHeaders,
-  bodyLength: number,
+  bodyLength?: number,
 ): Headers {
   const headers = new Headers();
   for (const [key, val] of Object.entries(source)) {
@@ -82,9 +91,24 @@ function buildResponseHeaders(
       headers.append(key, val);
     }
   }
-  headers.set("Content-Length", String(bodyLength));
+  if (bodyLength !== undefined && bodyLength >= 0) {
+    headers.set("Content-Length", String(bodyLength));
+  }
   return headers;
 }
+
+function decompressorFor(
+  contentEncoding: string | string[] | undefined,
+): NodeJS.ReadWriteStream | null {
+  if (!contentEncoding || typeof contentEncoding !== "string") return null;
+  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
+  if (encoding === "gzip" || encoding === "x-gzip") return zlib.createGunzip();
+  if (encoding === "deflate") return zlib.createInflate();
+  if (encoding === "br") return zlib.createBrotliDecompress();
+  return null;
+}
+
+// ─── Buffered variant (original) ─────────────────────────────────
 
 function requestViaNodeHttp(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -154,9 +178,95 @@ function requestViaNodeHttp(request: Request): Promise<Response> {
   });
 }
 
+// ─── Streaming variant ───────────────────────────────────────────
+
+/**
+ * Same signature as {@link requestViaNodeHttp} but resolves with a
+ * `Response` whose `body` is a live Web `ReadableStream` backed by
+ * the Node HTTP response. Callers (e.g. AI SDK `streamText`) can
+ * read SSE chunks as they arrive rather than waiting for the entire
+ * response body.
+ */
+function requestViaNodeHttpStreaming(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const isHttps = url.protocol === "https:";
+  if (!isHttps && url.protocol !== "http:") {
+    return Promise.reject(new Error(`Unsupported URL protocol: ${url.protocol}`));
+  }
+
+  const method = request.method.toUpperCase();
+  const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
+  const pathWithQuery = `${url.pathname}${url.search}`;
+  const headers = buildOutgoingHeaders(request);
+
+  return new Promise((resolve, reject) => {
+    const onResponse = (res: http.IncomingMessage) => {
+      const respHeaders = buildResponseHeaders(res.headers);
+      const contentEncoding = res.headers["content-encoding"];
+      const decompressor = decompressorFor(contentEncoding);
+
+      if (decompressor) {
+        // Pipe through decompressor, then convert to Web stream
+        const decompressed = res.pipe(decompressor);
+        decompressor.on("error", reject);
+        const webStream = Readable.toWeb(decompressed) as ReadableStream<Uint8Array>;
+        resolve(
+          new Response(webStream, {
+            status: res.statusCode ?? 502,
+            statusText: res.statusMessage ?? "",
+            headers: respHeaders,
+          }),
+        );
+      } else {
+        // No compression — convert the raw IncomingMessage
+        const webStream = Readable.toWeb(res) as ReadableStream<Uint8Array>;
+        resolve(
+          new Response(webStream, {
+            status: res.statusCode ?? 502,
+            statusText: res.statusMessage ?? "",
+            headers: respHeaders,
+          }),
+        );
+      }
+    };
+
+    void (async () => {
+      try {
+        let requestBody: Buffer | undefined;
+        if (method !== "GET" && method !== "HEAD") {
+          requestBody = Buffer.from(await request.arrayBuffer());
+        }
+
+        const requestOptions: http.RequestOptions = {
+          hostname: url.hostname,
+          port,
+          path: pathWithQuery,
+          method: request.method,
+          headers,
+        };
+
+        const req = isHttps
+          ? https.request(requestOptions, onResponse)
+          : http.request(requestOptions, onResponse);
+
+        req.on("error", reject);
+        if (requestBody !== undefined && requestBody.length > 0) {
+          req.write(requestBody);
+        }
+        req.end();
+      } catch (error) {
+        reject(error);
+      }
+    })();
+  });
+}
+
+// ─── Public API ──────────────────────────────────────────────────
+
 /**
  * Returns a `fetch`-compatible function backed by `node:http` / `node:https`.
- * Use as `fetchImpl` in {@link ReverseProxyConfig} or {@link CoreRoutesConfig}
+ * Buffers the entire response body before resolving. Use with
+ * {@link ReverseProxyConfig.fetchImpl} or {@link CoreRoutesConfig.fetchImpl}
  * on runtimes without working global `fetch`.
  */
 export function createNodeHttpFetch(): typeof fetch {
@@ -164,5 +274,28 @@ export function createNodeHttpFetch(): typeof fetch {
     const request =
       input instanceof Request ? input : new Request(input, init);
     return requestViaNodeHttp(request);
+  };
+}
+
+/**
+ * Returns a **streaming** `fetch`-compatible function backed by
+ * `node:http` / `node:https`. The response body is a true Web
+ * `ReadableStream` (converted via `Readable.toWeb`), so callers such
+ * as the AI SDK's `streamText` can process SSE events incrementally.
+ *
+ * Content-encoding decompression (gzip, deflate, brotli) is handled
+ * transparently by piping through Node.js `zlib` transform streams
+ * before converting to the Web stream.
+ *
+ * Requires Node 18+ (`Readable.toWeb`, global `ReadableStream`,
+ * `Response` with `ReadableStream` body). Use as a **global `fetch`
+ * replacement** on platforms like OHOS Electron where the built-in
+ * `fetch` (undici) is broken because `WebAssembly` is unavailable.
+ */
+export function createStreamingNodeHttpFetch(): typeof fetch {
+  return (input: RequestInfo | URL, init?: RequestInit) => {
+    const request =
+      input instanceof Request ? input : new Request(input, init);
+    return requestViaNodeHttpStreaming(request);
   };
 }

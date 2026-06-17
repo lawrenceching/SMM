@@ -159,8 +159,10 @@ function registerExecuteChannelIpcHandlers(ipcMain, options = {}) {
   });
 }
 // src/http/server.ts
-var import_node_os2 = __toESM(require("node:os"));
+var import_promises = __toESM(require("node:fs/promises"));
 var import_node_http = __toESM(require("node:http"));
+var import_node_os2 = __toESM(require("node:os"));
+var import_node_path5 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
 
 // src/core-routes-loader.ts
@@ -381,17 +383,38 @@ function createCoreRoutesLogger() {
     error: (obj, msg) => console.error(`[core-routes] ${msg ?? "error"}`, obj)
   };
 }
+if (typeof globalThis.WebAssembly === "undefined") {
+  const dummyWasm = {
+    Module: class {
+    },
+    Instance: class {
+    },
+    compile: () => Promise.reject(new Error("WebAssembly not available on this platform")),
+    compileStreaming: () => Promise.reject(new Error("WebAssembly not available on this platform")),
+    instantiate: () => Promise.reject(new Error("WebAssembly not available on this platform")),
+    instantiateStreaming: () => Promise.reject(new Error("WebAssembly not available on this platform")),
+    validate: () => false
+  };
+  globalThis.WebAssembly = dummyWasm;
+}
 async function startMainHttpServer() {
   if (mainHttpServer)
     return;
+  const coreRoutesModule = loadCoreRoutes();
+  const {
+    createStreamingNodeHttpFetch,
+    createNodeHttpFetch
+  } = coreRoutesModule;
+  const fetchImpl = createStreamingNodeHttpFetch ? createStreamingNodeHttpFetch() : createNodeHttpFetch();
+  globalThis.fetch = fetchImpl;
+  console.log("[SERVER] globalThis.fetch replaced with streaming node:http fetch");
   const {
     createCoreRoutesRequestHandler,
-    createNodeHttpFetch,
     createReverseProxyManager,
     createReverseProxyRequestHandler,
     createSocketIOManager,
     DEFAULT_ALLOWED_UPSTREAM_HOSTS
-  } = loadCoreRoutes();
+  } = coreRoutesModule;
   const proxyLogger = {
     debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? "debug"}`, obj),
     info: (obj, msg) => console.info(`[reverse-proxy] ${msg ?? "info"}`, obj),
@@ -416,13 +439,73 @@ async function startMainHttpServer() {
   console.log("[main] core-routes allowlist:", allowlist);
   const hello = buildHelloConfig(reverseProxyUrl);
   let socketManager = null;
+  const userDataDir = typeof hello.userDataDir === "string" ? hello.userDataDir : import_node_os2.default.homedir();
+  const smmConfigPath = import_node_path5.default.join(userDataDir, "smm.json");
+  const chatConfig = {
+    appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : "",
+    logger: createCoreRoutesLogger(),
+    createAIProvider: (userConfig) => {
+      const providerName = userConfig.selectedAIProvider;
+      const providers = userConfig.aiProviders;
+      if (!providerName) {
+        throw new Error("No AI provider selected");
+      }
+      const providerConfig = providers?.find((p) => p.name === providerName);
+      if (!providerConfig) {
+        throw new Error(`AI provider "${providerName}" not found in configured providers`);
+      }
+      if (!providerConfig.baseURL) {
+        throw new Error(`baseURL is required for provider "${providerName}"`);
+      }
+      if (!providerConfig.apiKey) {
+        throw new Error(`apiKey is required for provider "${providerName}"`);
+      }
+      if (!providerConfig.model) {
+        throw new Error(`model is required for provider "${providerName}"`);
+      }
+      const coreRoutesModule2 = loadCoreRoutes();
+      const createOpenAICompatible = coreRoutesModule2.createOpenAICompatible;
+      if (!createOpenAICompatible) {
+        throw new Error("createOpenAICompatible not available in core-routes bundle. Rebuild core-routes.");
+      }
+      const provider = createOpenAICompatible({
+        name: providerName,
+        baseURL: providerConfig.baseURL,
+        apiKey: providerConfig.apiKey
+      });
+      return {
+        provider,
+        model: providerConfig.model
+      };
+    },
+    getUserConfig: async () => {
+      try {
+        const content = await import_promises.default.readFile(smmConfigPath, "utf-8");
+        const raw = JSON.parse(content);
+        const coreRoutesModule2 = loadCoreRoutes();
+        const migrate = coreRoutesModule2.migrateAIConfig;
+        if (migrate)
+          migrate(raw);
+        return raw;
+      } catch {
+        return { folders: [] };
+      }
+    },
+    acknowledge: async (message, timeoutMs) => {
+      if (!socketManager) {
+        return;
+      }
+      return socketManager.acknowledge(message, timeoutMs);
+    }
+  };
   const coreRoutesHandler = createCoreRoutesRequestHandler({
     allowlist,
     logger: createCoreRoutesLogger(),
     hello,
     appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
     broadcast: (message) => socketManager?.broadcast(message),
-    fetchImpl: nodeHttpFetch
+    fetchImpl: nodeHttpFetch,
+    chat: chatConfig
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {
@@ -568,7 +651,7 @@ function registerOhosFileAccessPermission(ipcMain) {
 
 // src/redirect/file-protocol-redirect.ts
 var import_node_fs2 = __toESM(require("node:fs"));
-var import_node_path5 = __toESM(require("node:path"));
+var import_node_path6 = __toESM(require("node:path"));
 var allowedRootItemsByDistDir = new Map;
 function getAllowedRootItems(distDir = getDistDir()) {
   const cached = allowedRootItemsByDistDir.get(distDir);
@@ -617,8 +700,8 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
   if (!rel)
     return null;
   if (rel.split("/").some((seg) => seg === ".." || seg === ".")) {
-    const abs = import_node_path5.default.resolve(distDir, rel);
-    if (abs !== distDir && !abs.startsWith(distDir + import_node_path5.default.sep))
+    const abs = import_node_path6.default.resolve(distDir, rel);
+    if (abs !== distDir && !abs.startsWith(distDir + import_node_path6.default.sep))
       return null;
     return toFileUrl(abs);
   }
@@ -626,19 +709,19 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
   const first = firstSeg + (rel.includes("/") ? "/" : "");
   if (!getAllowedRootItems(distDir).has(first))
     return null;
-  return toFileUrl(import_node_path5.default.join(distDir, rel));
+  return toFileUrl(import_node_path6.default.join(distDir, rel));
 }
 
 // src/window/create-main-window.ts
-var import_node_path6 = __toESM(require("node:path"));
+var import_node_path7 = __toESM(require("node:path"));
 var import_electron8 = require("electron");
 function createMainWindow() {
-  const tray = new import_electron8.Tray(import_electron8.nativeImage.createFromPath(import_node_path6.default.join(getAppRoot(), "electron_white.png")));
+  const tray = new import_electron8.Tray(import_electron8.nativeImage.createFromPath(import_node_path7.default.join(getAppRoot(), "electron_white.png")));
   const mainWindow = new import_electron8.BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: import_node_path6.default.join(getAppRoot(), "preload.js"),
+      preload: import_node_path7.default.join(getAppRoot(), "preload.js"),
       contextIsolation: true,
       nodeIntegration: false
     }

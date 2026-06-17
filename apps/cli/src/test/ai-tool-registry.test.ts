@@ -1,15 +1,20 @@
 /**
  * Compile-time + runtime alignment test between the AI tool registry
  * (`@core/ai-tool/registry`) and the actual tool registrations in
- * `ChatTask.ts`.
+ * `packages/core-routes/src/chat.ts`.
+ *
+ * The chat pipeline (including the `tools: { ... }` map exposed to
+ * `streamText`) now lives in `@smm/core-routes` so the same code can
+ * run on cli (Bun) and ohos (Electron Main / Node). This test parses
+ * the new source of truth and asserts the set matches the registry.
  *
  * The test does NOT spawn an LLM — it parses the source file and
  * extracts the tool keys that `streamText` would expose to the
  * model, then asserts the set matches the registry. This catches:
  *
- *   - A new tool added to `ChatTask.ts` but not to the registry.
- *   - A tool removed from `ChatTask.ts` but still in the registry.
- *   - A typo in a tool name (a key in `ChatTask.ts` that is not a
+ *   - A new tool added to `chat.ts` but not to the registry.
+ *   - A tool removed from `chat.ts` but still in the registry.
+ *   - A typo in a tool name (a key in `chat.ts` that is not a
  *     known constant value).
  *
  * The frontend path has an analogous test in
@@ -21,7 +26,17 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { AI_TOOL_REGISTRY } from '@core/ai-tool/registry'
 
-const CHAT_TASK_PATH = join(__dirname, '..', '..', 'tasks', 'ChatTask.ts')
+const CHAT_TASK_PATH = join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  'packages',
+  'core-routes',
+  'src',
+  'chat.ts',
+)
 
 /**
  * Tool name constants imported from `@core/types/ai-tools/*` are
@@ -81,7 +96,7 @@ function extractBackendToolNames(source: string): Set<string> {
   return registered
 }
 
-describe('AI tool registry alignment — ChatTask.ts', () => {
+describe('AI tool registry alignment — chat.ts (core-routes)', () => {
   const source = readFileSync(CHAT_TASK_PATH, 'utf8')
   const registeredKeys = extractBackendToolNames(source)
 

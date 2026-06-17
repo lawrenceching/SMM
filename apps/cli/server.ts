@@ -5,9 +5,11 @@ import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { getRequestListener } from '@hono/node-server';
 import path from 'path';
-import { setSocketIOManager } from './src/utils/socketIO.ts';
-import { handleChatRequest } from './tasks/ChatTask';
+import { setSocketIOManager, acknowledge } from './src/utils/socketIO.ts';
+import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
 import { handleReadFile } from './src/route/ReadFile';
+import { createAIProvider } from './lib/ai-provider.ts';
+import { getAppDataDir, getUserConfig } from './src/utils/config.ts';
 import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
@@ -66,7 +68,6 @@ import {
 import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { initializeFolderWatcher, getFolderWatcher } from './src/services/folderWatcher';
-import { getUserConfig } from './src/utils/config';
 
 export interface ServerConfig {
   port?: number;
@@ -187,7 +188,16 @@ export class Server {
     );
 
     // Register route handlers
-    handleChatRequest(this.app);
+    // /api/chat is implemented in @smm/core-routes (post-migration);
+    // the Hono shell here is a thin adapter that wires the cli-specific
+    // AI provider factory, user-config reader, and Socket.IO helpers.
+    handleChatRequestCoreRoutes(this.app, {
+      appDataDir: getAppDataDir(),
+      logger: createSocketIOLogger(),
+      createAIProvider: (userConfig) => createAIProvider(userConfig),
+      getUserConfig: () => getUserConfig(),
+      acknowledge: (message, timeoutMs) => acknowledge(message as never, timeoutMs),
+    });
     handleReadFile(this.app);
     handleIsFolderAvailable(this.app);
     handleWriteFile(this.app);
