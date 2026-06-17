@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFfmpegCompressJob, compressContainerToFormat } from "./ffmpegCompressJobFactory";
 import type { FfmpegCompressOptions } from "@core/whitelistedCmd/constants";
+import { Path } from "@core/path";
 
 const baseOptions: FfmpegCompressOptions = {
   presetKey: "balanced",
@@ -46,9 +47,10 @@ describe("buildFfmpegCompressJob", () => {
     // POSIX path with forward slashes
     expect(job.data.inputPath).toContain("/");
     expect(job.data.outputPath).toContain("/");
-    // Platform path preserves the OS separator
-    expect(job.data.inputPathPlatform).toContain("\\");
-    expect(job.data.outputPathPlatform).toContain("\\");
+    // Platform path preserves the OS separator (e.g., "\" on Windows, "/" on Unix)
+    const sep = Path.pathSeparator();
+    expect(job.data.inputPathPlatform).toContain(sep);
+    expect(job.data.outputPathPlatform).toContain(sep);
   });
 
   it("uses the input path as title when no title provided", () => {
