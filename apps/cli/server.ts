@@ -288,7 +288,12 @@ export class Server {
     this.proxyManager = createReverseProxyManager(proxyConfig);
     registerExecuteRoutes(this.app, this.proxyManager);
 
-    const honoListener = getRequestListener(this.app.fetch);
+    // Bun.serve() (MCP on mcpPort) requires Bun's native Response.
+    // @hono/node-server replaces globalThis.Response with a wrapper
+    // by default; disable that so MCP Streamable HTTP works.
+    const honoListener = getRequestListener(this.app.fetch, {
+      overrideGlobalObjects: false,
+    });
 
     this.httpServer = http.createServer((req: IncomingMessage, res: ServerResponse) => {
       const url = req.url?.split('?')[0] ?? '';

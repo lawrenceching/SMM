@@ -59,16 +59,16 @@ Source Code: apps/cli/src/route/tencentAsr/Transcribe.ts
 HTTP: `POST /api/tencent-asr/transcribe`
 
 ## McpStart
-Source Code: apps/cli/src/route/Mcp.ts
-HTTP: `PUT /api/mcp/start` — starts the MCP server on the configured host:port. Optional request body: `{ host?: string, port?: number }`. Returns `McpServerState` JSON (`{ status: 'running' | 'stopped' | 'error', host?, port?, error? }`).
+Source Code: packages/core-routes/src/routes/mcpLifecycleRoute.ts (apps/cli: apps/cli/src/route/Mcp.ts thin wrapper)
+HTTP: `PUT /api/mcp/start` — starts the MCP server. Optional request body: `{ host?: string, port?: number }`. Returns `McpServerState` JSON (`{ status: 'running' | 'stopped' | 'error', host?, port?, url?, error? }`). On desktop CLI, MCP listens on `mcpPort` (default 30001). On OHOS, MCP is gated at `url` on the main HTTP port (e.g. `http://127.0.0.1:18081/mcp`); `mcpPort` is not used for listening.
 
 ## McpStop
-Source Code: apps/cli/src/route/Mcp.ts
+Source Code: packages/core-routes/src/routes/mcpLifecycleRoute.ts
 HTTP: `PUT /api/mcp/stop` — stops the MCP server gracefully. No request body. Returns `McpServerState` JSON.
 
 ## McpStatus
-Source Code: apps/cli/src/route/Mcp.ts
-HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as `McpServerState` JSON.
+Source Code: packages/core-routes/src/routes/mcpLifecycleRoute.ts
+HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as `McpServerState` JSON. Prefer `url` for the client connection address when present.
 
 ## Discover
 Source Code: apps/cli/src/route/discover.ts

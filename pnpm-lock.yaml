@@ -596,6 +596,9 @@ importers:
       '@assistant-ui/react-ai-sdk':
         specifier: ^1.3.7
         version: 1.3.8(@assistant-ui/react@0.12.11(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)))(@types/react@19.2.14)(assistant-cloud@0.1.18)(react@19.2.4)
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.25.3
+        version: 1.27.0(zod@4.3.6)
       '@smm/core':
         specifier: workspace:*
         version: link:../core

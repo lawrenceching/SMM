@@ -303,6 +303,174 @@ function buildHelloConfig(reverseProxyUrl) {
   };
 }
 
+// src/http/webRequestAdapter.ts
+var MAX_BODY_BYTES = 16 * 1024 * 1024;
+async function nodeRequestToWebRequest(req, baseUrl) {
+  const url = req.url ?? "/";
+  const method = req.method ?? "GET";
+  const headers = new Headers;
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (value === undefined)
+      continue;
+    if (Array.isArray(value)) {
+      for (const v of value)
+        headers.append(name, v);
+    } else {
+      headers.set(name, value);
+    }
+  }
+  let body;
+  if (method !== "GET" && method !== "HEAD") {
+    body = await readRequestBodyWithLimit(req, MAX_BODY_BYTES);
+  }
+  return new Request(`${baseUrl}${url}`, {
+    method,
+    headers,
+    body,
+    duplex: "half"
+  });
+}
+async function writeWebResponse(res, response) {
+  const headers = {};
+  response.headers.forEach((value, key) => {
+    if (key.toLowerCase() === "set-cookie") {
+      const existing = headers[key];
+      headers[key] = existing ? `${existing}, ${value}` : value;
+    } else {
+      headers[key] = value;
+    }
+  });
+  res.writeHead(response.status, headers);
+  if (response.body === null) {
+    res.end();
+    return;
+  }
+  const reader = response.body.getReader();
+  try {
+    for (;; ) {
+      const { done, value } = await reader.read();
+      if (done)
+        break;
+      if (value) {
+        res.write(Buffer.from(value));
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  res.end();
+}
+async function readRequestBodyWithLimit(req, maxBytes) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = chunk;
+    total += buf.length;
+    if (total > maxBytes) {
+      req.resume();
+      throw new Error(`Request body exceeds maximum size of ${maxBytes} bytes`);
+    }
+    chunks.push(buf);
+  }
+  return Buffer.concat(chunks, total);
+}
+
+// src/http/ohosMcpLifecycleManager.ts
+var instance = null;
+function createOhosMcpLifecycleManager(options) {
+  let enabled = false;
+  const mcpUrl = `${options.mainOrigin.replace(/\/$/, "")}/mcp`;
+  const manager = {
+    async start() {
+      enabled = true;
+    },
+    async stop() {
+      enabled = false;
+      options.onStop?.();
+    },
+    getState() {
+      if (enabled) {
+        const url = new URL(mcpUrl);
+        return {
+          status: "running",
+          host: url.hostname,
+          port: url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80,
+          url: mcpUrl
+        };
+      }
+      return { status: "stopped", url: mcpUrl };
+    },
+    isEnabled() {
+      return enabled;
+    }
+  };
+  instance = manager;
+  return manager;
+}
+function isOhosMcpEnabled() {
+  return instance?.isEnabled() ?? false;
+}
+
+// src/http/mcp.ts
+var mcpHandlerPromise = null;
+function getMcpHandler(options) {
+  if (mcpHandlerPromise)
+    return mcpHandlerPromise;
+  mcpHandlerPromise = (async () => {
+    const coreRoutesModule = loadCoreRoutes();
+    const createMcpStreamableHttpHandler = coreRoutesModule.createMcpStreamableHttpHandler;
+    if (!createMcpStreamableHttpHandler) {
+      throw new Error("createMcpStreamableHttpHandler is not available in the core-routes bundle. Rebuild core-routes: pnpm --filter @smm/core-routes build:cjs");
+    }
+    return createMcpStreamableHttpHandler({
+      getUserConfig: options.getUserConfig,
+      appDataDir: options.appDataDir,
+      acknowledge: async (message, timeoutMs) => {
+        const manager = options.getSocketManager();
+        if (!manager)
+          return;
+        return manager.acknowledge(message, timeoutMs);
+      },
+      logger: options.logger
+    });
+  })();
+  return mcpHandlerPromise;
+}
+function resetMcpHandler() {
+  mcpHandlerPromise = null;
+}
+async function handleMcpRequest(req, res, options) {
+  const url = req.url?.split("?")[0] ?? "";
+  if (!url.startsWith("/mcp/") && url !== "/mcp")
+    return false;
+  if (!isOhosMcpEnabled()) {
+    if (!res.headersSent) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "MCP server is stopped" }));
+    }
+    return true;
+  }
+  try {
+    const handler = await getMcpHandler(options);
+    const webRequest = await nodeRequestToWebRequest(req, MAIN_HTTP_ORIGIN);
+    const webResponse = await handler(webRequest);
+    await writeWebResponse(res, webResponse);
+    return true;
+  } catch (err) {
+    console.error("[mcp] request handling failed:", err);
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        error: "MCP request failed",
+        message: err instanceof Error ? err.message : String(err)
+      }));
+    } else {
+      res.end();
+    }
+    return true;
+  }
+}
+
 // src/http/static-files.ts
 var import_node_fs = __toESM(require("node:fs"));
 var import_node_path4 = __toESM(require("node:path"));
@@ -413,7 +581,8 @@ async function startMainHttpServer() {
     createReverseProxyManager,
     createReverseProxyRequestHandler,
     createSocketIOManager,
-    DEFAULT_ALLOWED_UPSTREAM_HOSTS
+    DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    applyMcpLifecycleFromConfig
   } = coreRoutesModule;
   const proxyLogger = {
     debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? "debug"}`, obj),
@@ -441,8 +610,22 @@ async function startMainHttpServer() {
   let socketManager = null;
   const userDataDir = typeof hello.userDataDir === "string" ? hello.userDataDir : import_node_os2.default.homedir();
   const smmConfigPath = import_node_path5.default.join(userDataDir, "smm.json");
+  const ohosAppDataDir = typeof hello.appDataDir === "string" ? hello.appDataDir : "";
+  const ohosGetUserConfig = async () => {
+    try {
+      const content = await import_promises.default.readFile(smmConfigPath, "utf-8");
+      const raw = JSON.parse(content);
+      const coreRoutesModule2 = loadCoreRoutes();
+      const migrate = coreRoutesModule2.migrateAIConfig;
+      if (migrate)
+        migrate(raw);
+      return raw;
+    } catch {
+      return { folders: [] };
+    }
+  };
   const chatConfig = {
-    appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : "",
+    appDataDir: ohosAppDataDir,
     logger: createCoreRoutesLogger(),
     createAIProvider: (userConfig) => {
       const providerName = userConfig.selectedAIProvider;
@@ -478,19 +661,7 @@ async function startMainHttpServer() {
         model: providerConfig.model
       };
     },
-    getUserConfig: async () => {
-      try {
-        const content = await import_promises.default.readFile(smmConfigPath, "utf-8");
-        const raw = JSON.parse(content);
-        const coreRoutesModule2 = loadCoreRoutes();
-        const migrate = coreRoutesModule2.migrateAIConfig;
-        if (migrate)
-          migrate(raw);
-        return raw;
-      } catch {
-        return { folders: [] };
-      }
-    },
+    getUserConfig: ohosGetUserConfig,
     acknowledge: async (message, timeoutMs) => {
       if (!socketManager) {
         return;
@@ -498,6 +669,10 @@ async function startMainHttpServer() {
       return socketManager.acknowledge(message, timeoutMs);
     }
   };
+  const ohosMcpManager = createOhosMcpLifecycleManager({
+    mainOrigin: MAIN_HTTP_ORIGIN,
+    onStop: resetMcpHandler
+  });
   const coreRoutesHandler = createCoreRoutesRequestHandler({
     allowlist,
     logger: createCoreRoutesLogger(),
@@ -505,7 +680,8 @@ async function startMainHttpServer() {
     appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : undefined,
     broadcast: (message) => socketManager?.broadcast(message),
     fetchImpl: nodeHttpFetch,
-    chat: chatConfig
+    chat: chatConfig,
+    mcp: { manager: ohosMcpManager }
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {
@@ -528,6 +704,15 @@ async function startMainHttpServer() {
       coreRoutesHandler(req, res);
       return;
     }
+    if (url.startsWith("/mcp/") || url === "/mcp") {
+      handleMcpRequest(req, res, {
+        appDataDir: ohosAppDataDir,
+        getUserConfig: ohosGetUserConfig,
+        getSocketManager: () => socketManager,
+        logger: createCoreRoutesLogger()
+      });
+      return;
+    }
     if (url.startsWith("/tmdb/") || url.startsWith("/tvdb/")) {
       reverseProxyHandler(req, res);
       return;
@@ -544,6 +729,13 @@ async function startMainHttpServer() {
   mainHttpServer.listen(MAIN_HTTP_PORT, "127.0.0.1", () => {
     console.log(`[main] HTTP server listening on ${MAIN_HTTP_ORIGIN}/`);
     console.log(`[main] Socket.IO available at ${MAIN_HTTP_ORIGIN}/socket.io/`);
+    if (applyMcpLifecycleFromConfig) {
+      applyMcpLifecycleFromConfig(ohosMcpManager, ohosGetUserConfig, createCoreRoutesLogger()).catch((err) => {
+        console.error("[main] Failed to apply MCP config on startup:", err);
+      });
+    } else {
+      console.warn("[main] applyMcpLifecycleFromConfig not in core-routes bundle; rebuild with pnpm --filter @smm/core-routes build:ohos");
+    }
   });
 }
 

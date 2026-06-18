@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { HelloOptions } from "./hello.ts";
 import type { ChatConfig } from "./chatTypes.ts";
+import type { McpLifecycleManager } from "./mcp/lifecycleTypes.ts";
 
 export interface CoreRoutesLogger {
   debug(obj: Record<string, unknown>, msg?: string): void;
@@ -46,6 +47,14 @@ export interface CoreRoutesConfig {
    * across runtimes.
    */
   chat?: ChatConfig;
+  /**
+   * When set, mounts `PUT /api/mcp/start`, `PUT /api/mcp/stop`, and
+   * `GET /api/mcp/status`. The host injects a runtime-specific
+   * {@link McpLifecycleManager} (Bun separate port or OHOS gate).
+   */
+  mcp?: {
+    manager: McpLifecycleManager;
+  };
 }
 
 export interface RouteContext {

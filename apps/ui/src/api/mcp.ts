@@ -5,6 +5,8 @@ export interface McpServerState {
   status: "running" | "stopped" | "error";
   host?: string;
   port?: number;
+  /** Full MCP client URL (OHOS uses main HTTP port + /mcp path). */
+  url?: string;
   error?: string;
 }
 

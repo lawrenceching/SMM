@@ -25,7 +25,8 @@ export function McpIndicator({ className }: McpIndicatorProps) {
     const mcpEnabled = userConfig.enableMcpServer === true
     const mcpHost = userConfig.mcpHost ?? "127.0.0.1"
     const mcpPort = userConfig.mcpPort ?? 30001
-    const mcpAddress = `http://${mcpHost}:${mcpPort}`
+    const mcpAddress =
+        serverState?.url ?? `http://${mcpHost}:${mcpPort}/mcp`
     const isRunning = serverState?.status === "running"
 
     // On initial mount only: if config says enabled but server is not running,

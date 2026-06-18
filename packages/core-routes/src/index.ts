@@ -102,3 +102,31 @@ export type {
   WebSocketMessage,
 } from "./socketIO/types.ts";
 export { createSocketIOManager } from "./socketIO/manager.ts";
+
+// MCP (Model Context Protocol) server factory. Runtime-neutral —
+// works on both Bun (`apps/cli`) and Node.js (`apps/ohos` Electron
+// main process). Hosts supply runtime-specific concerns via
+// `McpConfig` (`getUserConfig`, `appDataDir`, `acknowledge`, etc.).
+export {
+  createMcpStreamableHttpHandler,
+  type McpRequestHandler,
+  createErrorResponse,
+  createSuccessResponse,
+  type McpConfig,
+  type McpToolResponse,
+  type McpLifecycleManager,
+  type McpServerState,
+  type McpServerStatus,
+  type StartMcpOptions,
+  applyMcpLifecycleFromConfig,
+  doMcpGetStatus,
+  doMcpStart,
+  doMcpStop,
+  type McpLifecycleResult,
+  type McpStartRequestBody,
+} from "./mcp/index.ts";
+export {
+  handleMcpStartPut,
+  handleMcpStopPut,
+  handleMcpStatusGet,
+} from "./routes/mcpLifecycleRoute.ts";

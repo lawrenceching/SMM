@@ -16,6 +16,8 @@ import {
 } from "../paths"
 import { applyCorsHeaders } from "./cors"
 import { buildHelloConfig } from "./hello-config"
+import { handleMcpRequest, resetMcpHandler } from "./mcp"
+import { createOhosMcpLifecycleManager } from "./ohosMcpLifecycleManager"
 import { serveStaticFile } from "./static-files"
 
 let mainHttpServer: http.Server | null = null
@@ -117,7 +119,14 @@ export async function startMainHttpServer(): Promise<void> {
     createReverseProxyRequestHandler,
     createSocketIOManager,
     DEFAULT_ALLOWED_UPSTREAM_HOSTS,
-  } = coreRoutesModule
+    applyMcpLifecycleFromConfig,
+  } = coreRoutesModule as typeof coreRoutesModule & {
+    applyMcpLifecycleFromConfig?: (
+      manager: unknown,
+      getUserConfig: () => Promise<import("@smm/core/types").UserConfig>,
+      logger?: CoreRoutesLogger,
+    ) => Promise<void>
+  }
 
   const proxyLogger: CoreRoutesLogger = {
     debug: (obj, msg) => console.debug(`[reverse-proxy] ${msg ?? "debug"}`, obj),
@@ -164,9 +173,34 @@ export async function startMainHttpServer(): Promise<void> {
       ? (hello.userDataDir as string)
       : os.homedir()
   const smmConfigPath = path.join(userDataDir, "smm.json")
+  const ohosAppDataDir =
+    typeof hello.appDataDir === "string" ? hello.appDataDir : ""
+
+  // Shared `getUserConfig` reader — used by both the chat pipeline
+  // and the MCP server. Reads the same `smm.json` the renderer
+  // writes through `POST /api/writeFile`.
+  const ohosGetUserConfig = async () => {
+    try {
+      const content = await fs.readFile(smmConfigPath, "utf-8")
+      const raw = JSON.parse(content) as Record<string, unknown>
+      // `migrateAIConfig` is bundled inside `core-routes.js`.
+      // Call it via the loaded module to avoid a direct
+      // dependency on `@smm/core/configMigration` (which is not
+      // available when OHOS builds with `--external ./core-routes.js`).
+      const coreRoutesModule = loadCoreRoutes() as Record<string, unknown>
+      const migrate = coreRoutesModule.migrateAIConfig as
+        | ((raw_: Record<string, unknown>) => boolean)
+        | undefined
+      if (migrate) migrate(raw)
+      return raw as import("@smm/core/types").UserConfig
+    } catch {
+      // File doesn't exist or is malformed — return empty config.
+      return { folders: [] } as unknown as import("@smm/core/types").UserConfig
+    }
+  }
 
   const chatConfig = {
-    appDataDir: typeof hello.appDataDir === "string" ? hello.appDataDir : "",
+    appDataDir: ohosAppDataDir,
     logger: createCoreRoutesLogger(),
     createAIProvider: (userConfig: Record<string, unknown>) => {
       const providerName = userConfig.selectedAIProvider as string | undefined
@@ -219,25 +253,7 @@ export async function startMainHttpServer(): Promise<void> {
         model: providerConfig.model,
       }
     },
-    getUserConfig: async () => {
-      try {
-        const content = await fs.readFile(smmConfigPath, "utf-8")
-        const raw = JSON.parse(content) as Record<string, unknown>
-        // `migrateAIConfig` is bundled inside `core-routes.js`.
-        // Call it via the loaded module to avoid a direct
-        // dependency on `@smm/core/configMigration` (which is not
-        // available when OHOS builds with `--external ./core-routes.js`).
-        const coreRoutesModule = loadCoreRoutes() as Record<string, unknown>
-        const migrate = coreRoutesModule.migrateAIConfig as
-          | ((raw_: Record<string, unknown>) => boolean)
-          | undefined
-        if (migrate) migrate(raw)
-        return raw as import("@smm/core/types").UserConfig
-      } catch {
-        // File doesn't exist or is malformed — return empty config.
-        return { folders: [] } as unknown as import("@smm/core/types").UserConfig
-      }
-    },
+    getUserConfig: ohosGetUserConfig,
     acknowledge: async (message: unknown, timeoutMs?: number) => {
       if (!socketManager) {
         return undefined
@@ -245,6 +261,11 @@ export async function startMainHttpServer(): Promise<void> {
       return socketManager.acknowledge(message as never, timeoutMs)
     },
   }
+
+  const ohosMcpManager = createOhosMcpLifecycleManager({
+    mainOrigin: MAIN_HTTP_ORIGIN,
+    onStop: resetMcpHandler,
+  })
 
   const coreRoutesHandler = createCoreRoutesRequestHandler(
     {
@@ -255,6 +276,7 @@ export async function startMainHttpServer(): Promise<void> {
       broadcast: (message) => socketManager?.broadcast(message),
       fetchImpl: nodeHttpFetch,
       chat: chatConfig,
+      mcp: { manager: ohosMcpManager },
     },
     { fallbackPort: MAIN_HTTP_PORT },
   )
@@ -287,6 +309,21 @@ export async function startMainHttpServer(): Promise<void> {
       return
     }
 
+    if (url.startsWith("/mcp/") || url === "/mcp") {
+      // MCP uses Web Standards `Request` / `Response`. Convert the
+      // `node:http` request, dispatch through the shared handler,
+      // and write the result back. The handler is async; fire and
+      // forget — it writes to `res` itself and resolves the
+      // response on its own.
+      void handleMcpRequest(req, res, {
+        appDataDir: ohosAppDataDir,
+        getUserConfig: ohosGetUserConfig,
+        getSocketManager: () => socketManager,
+        logger: createCoreRoutesLogger(),
+      })
+      return
+    }
+
     if (url.startsWith("/tmdb/") || url.startsWith("/tvdb/")) {
       reverseProxyHandler(req, res)
       return
@@ -307,5 +344,19 @@ export async function startMainHttpServer(): Promise<void> {
   mainHttpServer.listen(MAIN_HTTP_PORT, "127.0.0.1", () => {
     console.log(`[main] HTTP server listening on ${MAIN_HTTP_ORIGIN}/`)
     console.log(`[main] Socket.IO available at ${MAIN_HTTP_ORIGIN}/socket.io/`)
+
+    if (applyMcpLifecycleFromConfig) {
+      void applyMcpLifecycleFromConfig(
+        ohosMcpManager,
+        ohosGetUserConfig,
+        createCoreRoutesLogger(),
+      ).catch((err) => {
+        console.error("[main] Failed to apply MCP config on startup:", err)
+      })
+    } else {
+      console.warn(
+        "[main] applyMcpLifecycleFromConfig not in core-routes bundle; rebuild with pnpm --filter @smm/core-routes build:ohos",
+      )
+    }
   })
 }
