@@ -32,3 +32,4 @@ export {
   openFileWithShell,
   type OpenFileResult,
 } from "./openFileTask"
+export { setExternalUrlOpenHandler } from "./setExternalUrlOpenHandler"

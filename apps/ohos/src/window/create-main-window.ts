@@ -1,5 +1,6 @@
 import path from "node:path"
 import { BrowserWindow, Tray, nativeImage } from "electron"
+import { setExternalUrlOpenHandler } from "@smm/electron-common"
 import {
   getAppRoot,
   getTestIndexPath,
@@ -24,6 +25,7 @@ export function createMainWindow(): MainWindowResult {
     },
   })
   mainWindow.setWindowButtonVisibility(true)
+  setExternalUrlOpenHandler(mainWindow)
 
   if (USE_DEV_PAGE) {
     void mainWindow.loadFile(getTestIndexPath())

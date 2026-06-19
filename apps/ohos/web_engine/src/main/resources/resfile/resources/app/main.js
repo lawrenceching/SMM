@@ -3,20 +3,34 @@ var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node;
+var __toESMCache_esm;
 var __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: true
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 
 // src/main.ts
-var import_electron9 = require("electron");
+var import_electron10 = require("electron");
 
 // ../../packages/electron-common/src/channels.ts
 var DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
@@ -158,12 +172,20 @@ function registerExecuteChannelIpcHandlers(ipcMain, options = {}) {
     return routeExecuteChannel(request, options);
   });
 }
+// ../../packages/electron-common/src/setExternalUrlOpenHandler.ts
+var import_electron5 = require("electron");
+function setExternalUrlOpenHandler(window) {
+  window.webContents.setWindowOpenHandler((details) => {
+    import_electron5.shell.openExternal(details.url);
+    return { action: "deny" };
+  });
+}
 // src/http/server.ts
 var import_promises = __toESM(require("node:fs/promises"));
 var import_node_http = __toESM(require("node:http"));
 var import_node_os2 = __toESM(require("node:os"));
 var import_node_path5 = __toESM(require("node:path"));
-var import_electron6 = require("electron");
+var import_electron7 = require("electron");
 
 // src/core-routes-loader.ts
 var import_node_module = require("node:module");
@@ -273,13 +295,13 @@ function applyCorsHeaders(req, res) {
 var import_node_module2 = require("node:module");
 var import_node_os = __toESM(require("node:os"));
 var import_node_path3 = __toESM(require("node:path"));
-var import_electron5 = require("electron");
+var import_electron6 = require("electron");
 function buildHelloConfig(reverseProxyUrl) {
   let userDataDir;
   let tmpDir;
   try {
-    userDataDir = import_electron5.app.getPath("userData");
-    tmpDir = import_electron5.app.getPath("temp");
+    userDataDir = import_electron6.app.getPath("userData");
+    tmpDir = import_electron6.app.getPath("temp");
   } catch (err) {
     console.warn("[main] app.getPath failed for hello config, falling back to os.tmpdir():", err);
     userDataDir = import_node_os.default.tmpdir();
@@ -298,7 +320,7 @@ function buildHelloConfig(reverseProxyUrl) {
     logDir,
     tmpDir,
     reverseProxyUrl,
-    osLocale: import_electron5.app.getLocale(),
+    osLocale: import_electron6.app.getLocale(),
     coreRoutesPort: MAIN_HTTP_PORT
   };
 }
@@ -533,8 +555,8 @@ function buildCoreRoutesAllowlist() {
       entries.add(toPosixAllowlistEntry(dir));
   };
   try {
-    add(import_electron6.app.getPath("userData"));
-    add(import_electron6.app.getPath("temp"));
+    add(import_electron7.app.getPath("userData"));
+    add(import_electron7.app.getPath("temp"));
   } catch (err) {
     console.warn("[main] app.getPath failed, falling back to os.tmpdir():", err);
     add(import_node_os2.default.tmpdir());
@@ -740,7 +762,7 @@ async function startMainHttpServer() {
 }
 
 // src/ipc/file-access-permission.ts
-var import_electron7 = require("electron");
+var import_electron8 = require("electron");
 var LOG_PREFIX = "[ohos-file-access]";
 var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
 function isHarmonyOSPlatform() {
@@ -773,7 +795,7 @@ function validatePaths(paths, context) {
   return paths;
 }
 function callReactivateFolders(paths, context) {
-  const sp = import_electron7.systemPreferences;
+  const sp = import_electron8.systemPreferences;
   if (typeof sp.callArkTSFunction !== "function") {
     console.error(`${LOG_PREFIX} callArkTSFunction unavailable (${context})`);
     return false;
@@ -802,7 +824,7 @@ function registerOhosFileAccessPermission(ipcMain) {
     if (!isHarmonyOSPlatform()) {
       return { ok: true, skipped: true };
     }
-    const sp = import_electron7.systemPreferences;
+    const sp = import_electron8.systemPreferences;
     if (typeof sp.fileAccessPersist !== "function") {
       const message = "systemPreferences.fileAccessPersist is not available";
       console.error(`${LOG_PREFIX} IPC persist: ${message}`);
@@ -906,10 +928,10 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
 
 // src/window/create-main-window.ts
 var import_node_path7 = __toESM(require("node:path"));
-var import_electron8 = require("electron");
+var import_electron9 = require("electron");
 function createMainWindow() {
-  const tray = new import_electron8.Tray(import_electron8.nativeImage.createFromPath(import_node_path7.default.join(getAppRoot(), "electron_white.png")));
-  const mainWindow = new import_electron8.BrowserWindow({
+  const tray = new import_electron9.Tray(import_electron9.nativeImage.createFromPath(import_node_path7.default.join(getAppRoot(), "electron_white.png")));
+  const mainWindow = new import_electron9.BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -919,6 +941,7 @@ function createMainWindow() {
     }
   });
   mainWindow.setWindowButtonVisibility(true);
+  setExternalUrlOpenHandler(mainWindow);
   if (USE_DEV_PAGE) {
     mainWindow.loadFile(getTestIndexPath());
   } else {
@@ -928,16 +951,16 @@ function createMainWindow() {
 }
 
 // src/main.ts
-registerDialogIpcHandlers(import_electron9.ipcMain);
-registerExecuteChannelIpcHandlers(import_electron9.ipcMain);
-registerOhosFileAccessPermission(import_electron9.ipcMain);
-import_electron9.app.whenReady().then(() => {
-  initAppRoot(import_electron9.app.getAppPath());
+registerDialogIpcHandlers(import_electron10.ipcMain);
+registerExecuteChannelIpcHandlers(import_electron10.ipcMain);
+registerOhosFileAccessPermission(import_electron10.ipcMain);
+import_electron10.app.whenReady().then(() => {
+  initAppRoot(import_electron10.app.getAppPath());
   getAllowedRootItems();
   startMainHttpServer().catch((err) => {
     console.error("[main] failed to start HTTP server:", err);
   });
-  import_electron9.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
+  import_electron10.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
     const redirect = resolveRedirect(details.url);
     if (redirect && redirect !== details.url) {
       cb({ redirectURL: redirect });

@@ -1,5 +1,5 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers } from '@smm/electron-common'
+import { app, BrowserWindow, ipcMain } from 'electron'
+import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler } from '@smm/electron-common'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
@@ -604,11 +604,7 @@ function createWindow(options: CreateWindowOptions = {}): void {
   win.on('closed', () => {
     mainWindow = null
   })
-
-  win.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+  setExternalUrlOpenHandler(win)
 
   if (is.dev) {
     win.loadURL('http://localhost:5173')
