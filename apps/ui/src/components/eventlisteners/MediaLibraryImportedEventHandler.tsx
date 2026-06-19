@@ -8,7 +8,7 @@ import { basename } from "@/lib/path"
 import { sortPathsBySidebarDisplayOrder } from "@/stores/sidebarStore"
 import { UI_MediaFolderImportedEvent, UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } from "@/types/eventTypes"
 import { isEqual, isNotNil } from "es-toolkit"
-import Debug from "debug"
+import debug from "debug"
 import { useInitializeImportedMediaFolder } from "@/hooks/initialization/useInitializeImportedMediaFolder"
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useConfig, useSaveUserConfigMutation } from "@/hooks/userConfig"
@@ -16,7 +16,7 @@ import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
 import { logger } from "@/lib/log"
 import { toast } from "sonner"
-const debug = Debug("MediaLibraryImportedEventHandler")
+import { useTranslation } from "@/lib/i18n"
 
 /**
  * folders - the absolute folder paths in platform format
@@ -46,6 +46,10 @@ export async function listLibraryFoldersWithAccess(libraryPath: string): Promise
 
 export function MediaLibraryImportedEventHandler() {
 
+  const { t: tComponents } = useTranslation("components")
+  const tRef = useRef(tComponents)
+  tRef.current = tComponents
+
   const eventListener = useRef<((event: Event) => void) | null>(null)
   const { folders } = useUIMediaFolderStoreState()
   const setFolders = useUIMediaFolderStore((s) => s.setFolders)
@@ -61,13 +65,10 @@ export function MediaLibraryImportedEventHandler() {
     const data = (event as CustomEvent<OnMediaLibraryImportedEventData>).detail
     const { libraryPathInPlatformFormat, type } = data
     console.log(`start to initialize media library: ${JSON.stringify(data)}`)
-    debug(`start to process ${UI_MediaLibraryImportedEvent} event`, data)
+    debug(`start to process ${UI_MediaLibraryImportedEvent} event: ${JSON.stringify(data)}`)
     const traceIdBase = data.traceId || `MediaLibraryImportedEventHandler:${nextTraceId()}`
 
-    const jobId = addJob("Importing Media Library")
-    let progress = 0;
-    updateJob(jobId, { status: "running", progress: 0 })
-    debug(`add background job in running status`)
+    const jobId = addJob(tRef.current("statusBar.backgroundJobs.jobNames.importMediaLibrary"))
 
     try {
 
@@ -79,6 +80,7 @@ export function MediaLibraryImportedEventHandler() {
       )
       debug(`deduped ${foldersToImport.length} folders, ${foldersToImport.length} folders need to import`)
 
+      let progress = 0
       const updateProgress = () => {
         const delta = ~~(100 / foldersToImport.length)
         progress += delta
@@ -126,7 +128,7 @@ export function MediaLibraryImportedEventHandler() {
     } catch (error) {
       console.error(`[${traceIdBase}] Import media library failed:`, error)
       updateJob(jobId, { status: "failed" })
-      debug(`failed to import media library`, error)
+      debug(`failed to import media library: ${error instanceof Error ? error.message : String(error)}`)
       toast.error(
         error instanceof Error ? error.message : "导入媒体库失败",
       )

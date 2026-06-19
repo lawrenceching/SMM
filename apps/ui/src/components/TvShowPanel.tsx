@@ -503,7 +503,7 @@ function TvShowPanel() {
   const handleEpisodeFileSelect = useCallback((seasonNumber: number, episodeNumber: number, file: { path: string; isDirectory?: boolean }) => {
     // Don't allow selecting directories
     if (file.isDirectory) {
-      toast.error("Directory selection is not allowed. Please select a file.")
+      toast.error(t('tvShowEpisodeTable.linkFileDirectoryError'))
       return
     }
 
@@ -530,12 +530,9 @@ function TvShowPanel() {
     }
 
     updateMediaMetadata(currentMediaMetadata.mediaFolderPath!, updated, { traceId })
-    toast.success("File added successfully")
-  }, [mediaMetadata, updateMediaMetadata, requireMediaMetadata])
+  }, [mediaMetadata, updateMediaMetadata, requireMediaMetadata, t])
 
-  // Handle opening file picker for episode
   const handleOpenFilePickerForEpisode = useCallback((seasonNumber: number, episodeNumber: number) => {
-
     // Validate mediaMetadata is available
     if (!mediaMetadata?.mediaFolderPath) {
       toast.error("No media metadata available")
@@ -562,7 +559,6 @@ function TvShowPanel() {
 
     // Convert media folder path from POSIX to platform-specific format for the file picker
     const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-
     if (isElectron()) {
       void openNativeOpenDialog({
         properties: ['openFile'],

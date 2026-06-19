@@ -75,6 +75,7 @@ vi.mock('@/lib/i18n', () => ({
       if (key === 'statusBar.backgroundJobs.jobNames.translate') return 'Translate'
       if (key === 'statusBar.backgroundJobs.jobNames.synthesize') return 'Synthesize'
       if (key === 'statusBar.backgroundJobs.jobNames.process') return 'Process'
+      if (key === 'statusBar.backgroundJobs.jobNames.importMediaLibrary') return 'Importing Media Library'
       if (key === 'statusBar.backgroundJobs.jobNames.typedJob') {
         return `${opts?.type}: ${opts?.detail}`
       }
@@ -206,6 +207,43 @@ describe('BackgroundJobItem — context menu (Stop All)', () => {
     expect(screen.getByTestId('background-job-job-1-abort-button')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('background-job-job-1-abort-button'))
     expect(stopJob).toHaveBeenCalledWith('job-1')
+  })
+})
+
+describe('BackgroundJobItem — import-media-library name rendering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockProgress = null
+    mockFfmpegProgress = null
+  })
+
+  it('renders the translated "Importing Media Library" name for the import-media-library flow', () => {
+    // The import-media-library flow in MediaLibraryImportedEventHandler calls
+    // addJob(t('statusBar.backgroundJobs.jobNames.importMediaLibrary')). The
+    // resulting generic BackgroundJob carries that translated string in its
+    // `name` field, which the default branch of getJobDisplayName renders
+    // verbatim. The test ensures the i18n key resolves to a human-readable
+    // string instead of the raw key leaking into the popover.
+    const job: BackgroundJob = {
+      id: 'lib-1',
+      name: 'Importing Media Library',
+      status: 'running',
+      progress: 25,
+      type: 'generic',
+      data: {},
+    }
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.getByText('Importing Media Library')).toBeInTheDocument()
   })
 })
 

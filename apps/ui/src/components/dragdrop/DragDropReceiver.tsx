@@ -4,6 +4,7 @@ import { useDialogs } from "@/providers/dialog-provider"
 import type { FolderType } from "@/providers/dialog-provider"
 import { toast } from "sonner"
 import { FolderOpen, Upload } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   UI_MediaFolderImportedEvent,
@@ -56,6 +57,7 @@ function getDroppedFolderPath(file: File): string | null {
  *   existing import pipeline (`MediaFolderImportedEventHandler`).
  */
 export function DragDropReceiver({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("components")
   const [isDragOver, setIsDragOver] = useState(false)
   const dragDepthRef = useRef(0)
 
@@ -173,16 +175,15 @@ export function DragDropReceiver({ children }: { children: ReactNode }) {
             </div>
             <div className="space-y-3 text-center">
               <h3 className="text-3xl font-bold text-foreground">
-                Drop Folder Here
+                {t('dragDrop.dropFolderHere')}
               </h3>
               <p className="max-w-md text-base text-muted-foreground">
-                Release the folder to add it to your media library and select
-                its type
+                {t('dragDrop.releaseToAdd')}
               </p>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              <span>Ready to receive folder</span>
+              <span>{t('dragDrop.readyToReceive')}</span>
             </div>
           </div>
         </div>

@@ -97,6 +97,9 @@
     "genres": "類型",
     "genreLabel": "類型 {{genreId}}",
     "rename": "重新命名",
+    "renameNoFiles": "沒有可重新命名的檔案",
+    "renameSuccess": "已成功重新命名 {{count}} 個檔案",
+    "renameFailed": "重新命名檔案失敗：{{error}}",
     "scrape": "刮削",
     "notAvailable": "不可用",
     "more": "更多",
@@ -263,6 +266,7 @@
         "process": "字幕流程",
         "ffmpeg-convert": "格式轉換",
         "ffmpeg-write-tags": "寫入標籤",
+        "importMediaLibrary": "匯入媒體庫",
         "typedJob": "{{type}}：{{detail}}"
       },
       "logDialog": {
@@ -477,6 +481,8 @@
     },
     "unlinkSuccess": "已取消劇集關聯",
     "unlinkFailed": "取消劇集關聯失敗",
+    "linkFileSuccess": "檔案已成功新增",
+    "linkFileDirectoryError": "不能選擇目錄，請選擇一個檔案。",
     "expand": "展開",
     "collapse": "收起",
     "noFile": "-",
@@ -520,6 +526,11 @@
       "videoCompression": "影片壓縮",
       "github": "Github"
     }
+  },
+  "dragDrop": {
+    "dropFolderHere": "拖放資料夾到此",
+    "releaseToAdd": "放開資料夾以將其新增到媒體庫並選擇類型",
+    "readyToReceive": "準備接收資料夾"
   },
   "toast": {
     "noRecognizedFiles": "無法辨識任何集數。建議改用 AI 辨識。"

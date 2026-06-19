@@ -99,6 +99,10 @@
     "genres": "Genres",
     "genreLabel": "Genre {{genreId}}",
     "rename": "Rename",
+    "renameNoFiles": "No files to rename",
+    "renameSuccess_one": "Successfully renamed {{count}} file",
+    "renameSuccess_other": "Successfully renamed {{count}} files",
+    "renameFailed": "Failed to rename files: {{error}}",
     "scrape": "Scrape",
     "notAvailable": "N/A",
     "more": "More",
@@ -266,6 +270,7 @@
         "process": "Process",
         "ffmpeg-convert": "Format conversion",
         "ffmpeg-write-tags": "Write tags",
+        "importMediaLibrary": "Import Media Library",
         "typedJob": "{{type}}: {{detail}}"
       },
       "logDialog": {
@@ -481,6 +486,8 @@
     },
     "unlinkSuccess": "Episode unlinked successfully",
     "unlinkFailed": "Failed to unlink episode",
+    "linkFileSuccess": "File added successfully",
+    "linkFileDirectoryError": "Directory selection is not allowed. Please select a file.",
     "expand": "Expand",
     "collapse": "Collapse",
     "noFile": "-",
@@ -523,6 +530,11 @@
       "formatConversion": "Format Conversion",
       "github": "Github"
     }
+  },
+  "dragDrop": {
+    "dropFolderHere": "Drop Folder Here",
+    "releaseToAdd": "Release the folder to add it to your media library and select its type",
+    "readyToReceive": "Ready to receive folder"
   },
   "toast": {
     "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead."

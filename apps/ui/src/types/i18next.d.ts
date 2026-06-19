@@ -120,6 +120,11 @@ interface ComponentsResources {
     genres: string
     genreLabel: string
     rename: string
+    renameNoFiles: string
+    renameSuccess: string
+    renameSuccess_one: string
+    renameSuccess_other: string
+    renameFailed: string
     scrape: string
     notAvailable: string
     searchNoResults: string
@@ -294,6 +299,7 @@ interface ComponentsResources {
         process: string
         'ffmpeg-convert': string
         'ffmpeg-write-tags': string
+        importMediaLibrary: string
         typedJob: string
       }
       toasts: {
@@ -465,6 +471,8 @@ interface ComponentsResources {
     }
     unlinkSuccess: string
     unlinkFailed: string
+    linkFileSuccess: string
+    linkFileDirectoryError: string
     expand: string
     collapse: string
     noFile: string
@@ -532,6 +540,11 @@ interface ComponentsResources {
       formatConversion: string
       github: string
     }
+  }
+  dragDrop: {
+    dropFolderHere: string
+    releaseToAdd: string
+    readyToReceive: string
   }
 }
 

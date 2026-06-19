@@ -28,9 +28,9 @@ import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDi
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useJobs } from "@/hooks/useJobOrchestrator"
+import { useTranslation } from "react-i18next"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
-
 export interface MovieFileModel {
     files: FileProps[]
 }
@@ -41,6 +41,7 @@ interface ToolbarOption {
 }
 
 function MoviePanel() {
+  const { t } = useTranslation('components')
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
   const {
     data: queriedMediaMetadata,
@@ -331,7 +332,7 @@ function MoviePanel() {
   // Handle confirm button click - rename all files
   const handleRuleBasedRenameConfirm = useCallback(async () => {
     if (!mediaMetadata?.mediaFolderPath) {
-      toast.error("No media folder path available")
+      toast.error(t('movie.noMediaPathError', { ns: 'components' }))
       return
     }
 
@@ -348,7 +349,7 @@ function MoviePanel() {
     }
 
     if (filesToRename.length === 0) {
-      toast.info("No files to rename")
+      toast.info(t('movie.renameNoFiles', { ns: 'components' }))
       setIsRuleBasedRenameFilePromptOpen(false)
       return
     }
@@ -358,18 +359,19 @@ function MoviePanel() {
     try {
       await renameFiles({ files: filesToRename })
       await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
-      toast.success(`Successfully renamed ${filesToRename.length} file${filesToRename.length !== 1 ? 's' : ''}`)
+      toast.success(t('movie.renameSuccess', { ns: 'components', count: filesToRename.length }))
     } catch (error) {
       console.error("Rename failed:", error)
       const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      toast.error(`Failed to rename files: ${errorMessage}`)
+      toast.error(t('movie.renameFailed', { ns: 'components', error: errorMessage }))
     } finally {
       setIsRenaming(false)
       setIsRuleBasedRenameFilePromptOpen(false)
     }
-  }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata])
+  }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata, t])
 
   // Build table data from movieFiles
+
   const tableData = useMemo<MovieFileRow[]>(() => {
     const rows: MovieFileRow[] = []
 

@@ -99,6 +99,9 @@
     "genres": "类型",
     "genreLabel": "类型 {{genreId}}",
     "rename": "重命名",
+    "renameNoFiles": "没有可重命名的文件",
+    "renameSuccess": "已成功重命名 {{count}} 个文件",
+    "renameFailed": "重命名文件失败：{{error}}",
     "scrape": "刮削",
     "notAvailable": "不可用",
     "more": "更多",
@@ -265,6 +268,7 @@
         "process": "字幕流水线",
         "ffmpeg-convert": "格式转换",
         "ffmpeg-write-tags": "写入标签",
+        "importMediaLibrary": "导入媒体库",
         "typedJob": "{{type}}：{{detail}}"
       },
       "logDialog": {
@@ -480,6 +484,8 @@
     },
     "unlinkSuccess": "已取消剧集关联",
     "unlinkFailed": "取消剧集关联失败",
+    "linkFileSuccess": "文件已成功添加",
+    "linkFileDirectoryError": "不能选择目录，请选择一个文件。",
     "expand": "展开",
     "collapse": "收起",
     "noFile": "-",
@@ -522,6 +528,11 @@
       "formatConversion": "格式转换",
       "github": "Github"
     }
+  },
+  "dragDrop": {
+    "dropFolderHere": "拖放文件夹到此",
+    "releaseToAdd": "释放文件夹以将其添加到媒体库并选择类型",
+    "readyToReceive": "准备接收文件夹"
   },
   "toast": {
     "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。"
