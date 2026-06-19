@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,6 +22,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import { useFeatures } from "@/hooks/useFeatures"
+import { isHarmonyOS } from "@/lib/isHarmonyOS"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
 import { isVideoFile } from "@/lib/recognizeEpisodes"
@@ -74,7 +76,8 @@ export function LocalFileRow({
     isSubtitleFeaturesEnabled,
     isFormatConverterEnabled,
     isVideoCompressionEnabled,
-  } = useFeatures()
+} = useFeatures()
+  const isHarmonyOSRuntime = useMemo(() => isHarmonyOS(), [])
   const { isMultiSelectMode, selectedTrackIds, onSelectedTrackIdsChange } = selection
 
   const toggleTrackSelection = (trackId: number) => {
@@ -214,10 +217,12 @@ export function LocalFileRow({
           </ContextMenuSubContent>
         </ContextMenuSub>
         )}
+        {!isHarmonyOSRuntime && (
         <ContextMenuItem variant="destructive" onClick={fileMenu.onDelete}>
           <Trash2 className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.delete")}
         </ContextMenuItem>
+        )}
       </ContextMenuContent>
     </ContextMenu>
   )
