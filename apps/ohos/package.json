@@ -4,7 +4,7 @@
   "description": "HarmonyOS Electron main process (TypeScript source)",
   "private": true,
   "scripts": {
-    "build": "bun build src/main.ts --outfile web_engine/src/main/resources/resfile/resources/app/main.js --target node --format cjs --external electron --external ./core-routes.js",
+    "build": "bun scripts/generate-version.ts && bun build src/main.ts --outfile web_engine/src/main/resources/resfile/resources/app/main.js --target node --format cjs --external electron --external ./core-routes.js",
     "build:ohos": "cd ../.. && pnpm run build:ohos",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

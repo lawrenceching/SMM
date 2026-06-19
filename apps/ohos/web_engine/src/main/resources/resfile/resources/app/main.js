@@ -328,10 +328,14 @@ function applyCorsHeaders(req, res) {
 }
 
 // src/http/hello-config.ts
-var import_node_module2 = require("node:module");
 var import_node_os = __toESM(require("node:os"));
 var import_node_path3 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
+
+// src/version.ts
+var APP_VERSION = "1.3.8";
+
+// src/http/hello-config.ts
 function buildHelloConfig(reverseProxyUrl) {
   let userDataDir;
   let tmpDir;
@@ -344,13 +348,8 @@ function buildHelloConfig(reverseProxyUrl) {
     tmpDir = import_node_os.default.tmpdir();
   }
   const logDir = import_node_path3.default.join(userDataDir, "logs");
-  let version = "0.0.0";
-  try {
-    const require2 = import_node_module2.createRequire(import_node_path3.default.join(getAppRoot(), "package.json"));
-    version = require2(import_node_path3.default.join(getAppRoot(), "package.json")).version;
-  } catch {}
   return {
-    version,
+    version: APP_VERSION,
     userDataDir,
     appDataDir: userDataDir,
     logDir,

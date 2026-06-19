@@ -1,8 +1,8 @@
-import { createRequire } from "node:module"
 import os from "node:os"
 import path from "node:path"
 import { app } from "electron"
-import { getAppRoot, MAIN_HTTP_PORT } from "../paths"
+import { MAIN_HTTP_PORT } from "../paths"
+import { APP_VERSION } from "../version"
 
 export function buildHelloConfig(reverseProxyUrl: string | null): Record<string, unknown> {
   let userDataDir: string
@@ -17,16 +17,9 @@ export function buildHelloConfig(reverseProxyUrl: string | null): Record<string,
   }
 
   const logDir = path.join(userDataDir, "logs")
-  let version = "0.0.0"
-  try {
-    const require = createRequire(path.join(getAppRoot(), "package.json"))
-    version = (require(path.join(getAppRoot(), "package.json")) as { version: string }).version
-  } catch {
-    // keep default
-  }
 
   return {
-    version,
+    version: APP_VERSION,
     userDataDir,
     appDataDir: userDataDir,
     logDir,
