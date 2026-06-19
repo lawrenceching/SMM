@@ -131,10 +131,9 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { filePickerDialog, scrapeDialog, mediaFilePropertyDialog, videoCompressionDialog } = useDialogs()
+  const { filePickerDialog, scrapeDialog, videoCompressionDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
   const [openScrape] = scrapeDialog
-  const [openMediaFileProperty] = mediaFilePropertyDialog
   const { userConfig } = useConfig()
   const { mediaLanguage } = useResolvedLanguages()
   const { getTvShowById } = useTmdbQueries()
@@ -724,27 +723,6 @@ function TvShowPanel() {
     [mediaMetadata, updateMediaMetadata, t]
   )
 
-  const handlePropertiesForRow = useCallback(
-    (row: TvShowEpisodeDataRow) => {
-      const seasonNo = row.season;
-      const episodeNo = row.episode;
-
-      const videoPath = mediaMetadata?.mediaFiles?.find(f => f.seasonNumber === seasonNo && f.episodeNumber === episodeNo)?.absolutePath
-      if (videoPath) {
-        openMediaFileProperty({
-          filePath: videoPath,
-          track: {
-            id: 0,
-            title: row.episodeTitle ?? `S${seasonNo}E${episodeNo}`,
-          },
-        })
-      } else {
-        console.warn(`[TvShowPanel] handlePropertiesForRow: no video path found for season ${seasonNo} episode ${episodeNo}`)
-      }
-    },
-    [mediaMetadata, openMediaFileProperty]
-  )
-
   const handleVideoCompressForRow = useCallback(
     (row: TvShowEpisodeDataRow) => {
       const seasonNo = row.season;
@@ -979,7 +957,6 @@ function TvShowPanel() {
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             onSelectFileContextMenuClick={handleSelectFileContextMenuClick}
             onUnlinkContextMenuClick={handleUnlinkEpisode}
-            onPropertiesContextMenuClick={handlePropertiesForRow}
             onVideoCompressContextMenuClick={
               isVideoCompressionEnabled ? handleVideoCompressForRow : undefined
             }

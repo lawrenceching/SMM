@@ -176,10 +176,6 @@ export function LocalFileRow({
           <FolderOpen className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.open")}
         </ContextMenuItem>
-        <ContextMenuItem onClick={fileMenu.onProperties}>
-          <FileText className="mr-2 size-4" />
-          {t("mediaPlayer.trackContextMenu.properties")}
-        </ContextMenuItem>
         {isFormatConverterEnabled && (
         <ContextMenuItem onClick={fileMenu.onFormatConvert}>
           <FileText className="mr-2 size-4" />

@@ -88,8 +88,6 @@ interface TvShowEpisodeTableProps {
   onVideoCompressContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Unlink" from context menu; row is the row data. */
   onUnlinkContextMenuClick?: (row: TvShowEpisodeDataRow) => void
-  /** Called when user chooses "Properties" from context menu; row is the row data. */
-  onPropertiesContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /**
    * NOTE: preview mode is different concept from preview layout.
    * ** Preivew Mode ** Preview the recognition or rename plan
@@ -376,7 +374,6 @@ export function TvShowEpisodeTable({
   onSelectFileContextMenuClick: onSelectFileContextMenuClick,
   onVideoCompressContextMenuClick,
   onUnlinkContextMenuClick,
-  onPropertiesContextMenuClick,
   preview,
   previewStatus,
   layout = "simple",
@@ -919,12 +916,6 @@ export function TvShowEpisodeTable({
                     }}
                   >
                     {t('episodeFile.rename', { ns: 'components' })}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    disabled={!row.videoFile || !onPropertiesContextMenuClick}
-                    onClick={() => onPropertiesContextMenuClick?.(row)}
-                  >
-                    {t('tvShowEpisodeTable.contextMenu.properties')}
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={!onSelectFileContextMenuClick}
