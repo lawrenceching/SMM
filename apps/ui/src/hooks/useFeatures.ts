@@ -140,15 +140,16 @@ function writeAiAreaEnabled(enabled: boolean): void {
   }
 }
 
-/** Default: enabled when the user has never set a preference (`null`). */
+/** Default: enabled on desktop, disabled on HarmonyOS (no bundled AI tools
+ *  on OHOS, see `.agents/docs/design/harmonyos-integration.md` §6). */
 function readAiFeatureEnabled(): boolean {
-  if (typeof window === "undefined") return true
+  if (typeof window === "undefined") return !isHarmonyOS()
   try {
     const v = window.localStorage.getItem(AI_FEATURE_STORAGE_KEY)
-    if (v === null) return true
+    if (v === null) return !isHarmonyOS()
     return v === "true"
   } catch {
-    return true
+    return !isHarmonyOS()
   }
 }
 
@@ -243,8 +244,10 @@ function getRuntimePlatform(): string | undefined {
 
 export interface UseFeaturesResult {
   /** Master toggle for all AI features. When false, all AI-related components
-   *  (Assistant chat, AI-based recognize/rename prompts, etc.) are hidden.
-   *  Defaults to true. Persisted in localStorage under `features.isAiFeatureEnabled`. */
+   *  (Assistant chat, AI-based recognize/rename prompts, MusicPanel Summarize
+   *  context menu item, etc.) are hidden.
+   *  Defaults to `true` on desktop and `false` on HarmonyOS. Persisted in
+   *  localStorage under `features.isAiFeatureEnabled`. */
   isAiFeatureEnabled: boolean
   setIsAiFeatureEnabled: (enabled: boolean) => void
   /** When true, the AI Area panel on the right side of the layout is visible.

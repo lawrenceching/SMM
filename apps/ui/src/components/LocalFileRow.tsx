@@ -70,6 +70,7 @@ export function LocalFileRow({
   const { t: tStrict } = useTranslation(["components"])
   const t = castTranslationFn(tStrict)
   const {
+    isAiFeatureEnabled,
     isSubtitleFeaturesEnabled,
     isFormatConverterEnabled,
     isVideoCompressionEnabled,
@@ -191,6 +192,7 @@ export function LocalFileRow({
           {t("mediaPlayer.trackContextMenu.videoCompress")}
         </ContextMenuItem>
         )}
+        {isAiFeatureEnabled && (
         <ContextMenuItem
           disabled={!canSummarize || !onSummarize}
           onClick={onSummarize}
@@ -198,6 +200,7 @@ export function LocalFileRow({
           <Sparkles className="mr-2 size-4" />
           {t("mediaPlayer.trackContextMenu.summarize")}
         </ContextMenuItem>
+        )}
         {isSubtitleFeaturesEnabled && (
         <ContextMenuSub>
           <ContextMenuSubTrigger

@@ -181,8 +181,11 @@ HarmonyOS builds hide features that depend on bundled CLI tools (yt-dlp, FFmpeg,
 | 下载视频 (yt-dlp) | `downloadVideo` | `isDownloadVideoEnabled` | Menu → Download Video; Welcome card; Music panel download button |
 | 视频转码 (format converter) | `formatConverter` | `isFormatConverterEnabled` | Menu → Format Conversion; Welcome card; track context menu → Format Convert |
 | 视频压缩 (video compression) | `videoCompression` | `isVideoCompressionEnabled` | Menu → Video Compression; TvShow/Movie episode context menu → Compress; music row context menu |
+| AI 总结 (MusicPanel Summarize) + AI Assistant + AI-based recognize/rename | (master switch) | `isAiFeatureEnabled` | MusicPanel row context menu → Summarize; AI Assistant chat panel; TvShow/Movie AI prompts |
 
-On HarmonyOS all four flags are `false`. Desktop and browser dev builds are unchanged.
+On HarmonyOS all five flags are `false`. Desktop and browser dev builds are unchanged.
+
+**AI Summary note:** the MusicPanel row right-click "Summarize" item (`apps/ui/src/components/LocalFileRow.tsx`) is gated on `isAiFeatureEnabled`, the same master switch that hides the AI Assistant and AI-based recognize/rename prompts. There is no separate `aiSummary` feature id — flipping the master switch toggles all AI surfaces together.
 
 **Detection:** renderer uses `isHarmonyOS()` (`navigator.appVersion` contains `OHOS` or `OpenHarmony`). See [faq-harmonyos.md](../faq-harmonyos.md).
 
