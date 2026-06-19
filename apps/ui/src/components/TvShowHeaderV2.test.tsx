@@ -44,6 +44,14 @@ vi.mock('@/hooks/userConfig', () => ({
   })),
 }))
 
+const { isHarmonyOSMock } = vi.hoisted(() => ({
+  isHarmonyOSMock: vi.fn(() => false),
+}))
+
+vi.mock('@/lib/isHarmonyOS', () => ({
+  isHarmonyOS: isHarmonyOSMock,
+}))
+
 describe('TvShowHeaderV2', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
@@ -56,6 +64,8 @@ describe('TvShowHeaderV2', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    isHarmonyOSMock.mockReset()
+    isHarmonyOSMock.mockReturnValue(false)
   })
 
   describe('"更多" dropdown / "在TMDB中打开"', () => {
@@ -333,6 +343,74 @@ describe('TvShowHeaderV2', () => {
       )
       fireEvent.click(screen.getByTestId('tvshow-header-process'))
       expect(onProcessClick).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('HarmonyOS: preview layout gating', () => {
+    const okTv = {
+      status: 'ok' as const,
+      mediaFolderPath: '/media/show',
+      mediaFiles: [],
+      tvShow: { id: '123', name: 'Test Show', database: 'TMDB' as const, seasons: [] },
+    } as UIMediaMetadata
+
+    function renderHeaderWithLayoutControls() {
+      const onEpisodeTableLayoutChange = vi.fn()
+      return {
+        onEpisodeTableLayoutChange,
+        renderResult: render(
+          <TvShowHeaderV2
+            {...defaultProps}
+            selectedMediaMetadata={okTv}
+            selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
+            onEpisodeTableLayoutChange={onEpisodeTableLayoutChange}
+          />,
+        ),
+      }
+    }
+
+    it('shows the preview layout button in the icon group on non-HarmonyOS', () => {
+      isHarmonyOSMock.mockReturnValue(false)
+      renderHeaderWithLayoutControls()
+      expect(
+        screen.getByRole('button', { name: 'tvShow.layoutPreview' }),
+      ).toBeInTheDocument()
+    })
+
+    it('hides the preview layout button in the icon group on HarmonyOS', () => {
+      isHarmonyOSMock.mockReturnValue(true)
+      renderHeaderWithLayoutControls()
+      expect(
+        screen.queryByRole('button', { name: 'tvShow.layoutPreview' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('keeps the simple and detail layout buttons on HarmonyOS', () => {
+      isHarmonyOSMock.mockReturnValue(true)
+      renderHeaderWithLayoutControls()
+      expect(
+        screen.getByRole('button', { name: 'tvShow.layoutSimple' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'tvShow.layoutDetail' }),
+      ).toBeInTheDocument()
+    })
+
+    it('hides the preview menu item in the dropdown on HarmonyOS', () => {
+      isHarmonyOSMock.mockReturnValue(true)
+      renderHeaderWithLayoutControls()
+      // DropdownMenuItem renders as role="menuitem" with the label as text.
+      expect(
+        screen.queryByRole('menuitem', { name: /tvShow\.layoutPreview/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows the preview menu item in the dropdown on non-HarmonyOS', () => {
+      isHarmonyOSMock.mockReturnValue(false)
+      renderHeaderWithLayoutControls()
+      expect(
+        screen.getByRole('menuitem', { name: /tvShow\.layoutPreview/ }),
+      ).toBeInTheDocument()
     })
   })
 })

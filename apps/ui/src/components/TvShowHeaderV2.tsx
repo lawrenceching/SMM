@@ -12,7 +12,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
+import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { isHarmonyOS } from "@/lib/isHarmonyOS"
 
 export type EpisodeTableLayout = "simple" | "detail" | "preview"
 
@@ -68,6 +70,9 @@ export function TvShowHeaderV2({
 }: TvShowHeaderV2Props) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
+    // HarmonyOS doesn't ship the bundled ffmpeg/thumbnail stack the
+    // "preview" layout depends on, so hide that layout selector there.
+    const isHarmonyOSRuntime = useMemo(() => isHarmonyOS(), [])
     const tvShow = selectedMediaMetadata?.tvShow;
     const tvdbTvShowName = tvShow?.name ?? ''
     const movie = selectedMediaMetadata?.movie
@@ -165,7 +170,8 @@ export function TvShowHeaderV2({
                                     "h-9 w-9 rounded-none transition-all",
                                     episodeTableLayout === "detail"
                                         ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
-                                        : "hover:bg-accent hover:text-accent-foreground"
+                                        : "hover:bg-accent hover:text-accent-foreground",
+                                    isHarmonyOSRuntime && "rounded-r-md"
                                 )}
                                 title={t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
                                 aria-label={t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
@@ -173,24 +179,28 @@ export function TvShowHeaderV2({
                             >
                                 <LayoutGrid className="size-4" />
                             </Button>
-                            <div className="h-4 w-px bg-border" />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => onEpisodeTableLayoutChange("preview")}
-                                disabled={isUpdatingTvShow}
-                                className={cn(
-                                    "h-9 w-9 rounded-none rounded-r-md transition-all",
-                                    episodeTableLayout === "preview"
-                                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
-                                        : "hover:bg-accent hover:text-accent-foreground"
-                                )}
-                                title={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
-                                aria-label={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
-                                aria-pressed={episodeTableLayout === "preview"}
-                            >
-                                <PanelTop className="size-4" />
-                            </Button>
+                            {!isHarmonyOSRuntime && (
+                                <>
+                                    <div className="h-4 w-px bg-border" />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => onEpisodeTableLayoutChange("preview")}
+                                        disabled={isUpdatingTvShow}
+                                        className={cn(
+                                            "h-9 w-9 rounded-none rounded-r-md transition-all",
+                                            episodeTableLayout === "preview"
+                                                ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                                : "hover:bg-accent hover:text-accent-foreground"
+                                        )}
+                                        title={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                        aria-label={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                        aria-pressed={episodeTableLayout === "preview"}
+                                    >
+                                        <PanelTop className="size-4" />
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     )}
                     {isUpdatingTvShow ? (
@@ -324,14 +334,16 @@ export function TvShowHeaderV2({
                                                 <LayoutGrid className="size-4" />
                                                 {t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="@[520px]:hidden"
-                                                disabled={isUpdatingTvShow}
-                                                onClick={() => onEpisodeTableLayoutChange("preview")}
-                                            >
-                                                <PanelTop className="size-4" />
-                                                {t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
-                                            </DropdownMenuItem>
+                                            {!isHarmonyOSRuntime && (
+                                                <DropdownMenuItem
+                                                    className="@[520px]:hidden"
+                                                    disabled={isUpdatingTvShow}
+                                                    onClick={() => onEpisodeTableLayoutChange("preview")}
+                                                >
+                                                    <PanelTop className="size-4" />
+                                                    {t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                                </DropdownMenuItem>
+                                            )}
                                         </>
                                     )}
                                     <DropdownMenuItem
