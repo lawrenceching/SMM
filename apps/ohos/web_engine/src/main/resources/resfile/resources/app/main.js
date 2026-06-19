@@ -174,9 +174,45 @@ function registerExecuteChannelIpcHandlers(ipcMain, options = {}) {
 }
 // ../../packages/electron-common/src/setExternalUrlOpenHandler.ts
 var import_electron5 = require("electron");
+var LOG_PREFIX = "[OpenExternalUrl]";
+var OPEN_URL_IN_DEFAULT_BROWSER_BINDING = "FileManagerAdapter.OpenUrlInDefaultBrowser";
+function isHarmonyOSElectron2() {
+  const platform = process.platform;
+  return platform === "ohos" || platform === "openharmony";
+}
+function openUrlViaNativeBinding(url) {
+  const sp = import_electron5.systemPreferences;
+  if (typeof sp.callArkTSFunction !== "function") {
+    console.warn(`${LOG_PREFIX} callArkTSFunction unavailable; skipped native fallback`);
+    return false;
+  }
+  try {
+    sp.callArkTSFunction(OPEN_URL_IN_DEFAULT_BROWSER_BINDING, "void", [url]);
+    return true;
+  } catch (err) {
+    console.error(`${LOG_PREFIX} ${OPEN_URL_IN_DEFAULT_BROWSER_BINDING} fallback failed:`, err);
+    return false;
+  }
+}
 function setExternalUrlOpenHandler(window) {
   window.webContents.setWindowOpenHandler((details) => {
-    import_electron5.shell.openExternal(details.url);
+    (async () => {
+      try {
+        await import_electron5.shell.openExternal(details.url);
+        console.log(`${LOG_PREFIX} Opened via shell.openExternal: ${details.url}`);
+      } catch (shellErr) {
+        if (!isHarmonyOSElectron2()) {
+          console.error(`${LOG_PREFIX} shell.openExternal failed:`, shellErr);
+          return;
+        }
+        console.warn(`${LOG_PREFIX} shell.openExternal failed, trying ${OPEN_URL_IN_DEFAULT_BROWSER_BINDING}:`, shellErr);
+        if (openUrlViaNativeBinding(details.url)) {
+          console.log(`${LOG_PREFIX} Opened via native fallback: ${details.url}`);
+        } else {
+          console.error(`${LOG_PREFIX} Native fallback failed for: ${details.url}`);
+        }
+      }
+    })();
     return { action: "deny" };
   });
 }
@@ -763,7 +799,7 @@ async function startMainHttpServer() {
 
 // src/ipc/file-access-permission.ts
 var import_electron8 = require("electron");
-var LOG_PREFIX = "[ohos-file-access]";
+var LOG_PREFIX2 = "[ohos-file-access]";
 var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
 function isHarmonyOSPlatform() {
   const platform = process.platform;
@@ -771,25 +807,25 @@ function isHarmonyOSPlatform() {
 }
 function logError(message, err) {
   if (err instanceof Error) {
-    console.error(`${LOG_PREFIX} ${message}:`, err.message, err.stack);
+    console.error(`${LOG_PREFIX2} ${message}:`, err.message, err.stack);
     return;
   }
-  console.error(`${LOG_PREFIX} ${message}:`, err);
+  console.error(`${LOG_PREFIX2} ${message}:`, err);
 }
 function validatePaths(paths, context) {
   if (!Array.isArray(paths)) {
     const message = `paths must be an array (${context})`;
-    console.error(`${LOG_PREFIX} ${message}`, { paths });
+    console.error(`${LOG_PREFIX2} ${message}`, { paths });
     throw new Error(message);
   }
   if (paths.length === 0) {
     const message = `paths must be non-empty (${context})`;
-    console.error(`${LOG_PREFIX} ${message}`);
+    console.error(`${LOG_PREFIX2} ${message}`);
     throw new Error(message);
   }
   if (!paths.every((entry) => typeof entry === "string" && entry.length > 0)) {
     const message = `paths must be non-empty strings (${context})`;
-    console.error(`${LOG_PREFIX} ${message}`, { paths });
+    console.error(`${LOG_PREFIX2} ${message}`, { paths });
     throw new Error(message);
   }
   return paths;
@@ -797,7 +833,7 @@ function validatePaths(paths, context) {
 function callReactivateFolders(paths, context) {
   const sp = import_electron8.systemPreferences;
   if (typeof sp.callArkTSFunction !== "function") {
-    console.error(`${LOG_PREFIX} callArkTSFunction unavailable (${context})`);
+    console.error(`${LOG_PREFIX2} callArkTSFunction unavailable (${context})`);
     return false;
   }
   try {
@@ -810,7 +846,7 @@ function callReactivateFolders(paths, context) {
 }
 function registerOhosFileAccessPermission(ipcMain) {
   if (!ipcMain || typeof ipcMain.handle !== "function") {
-    console.error(`${LOG_PREFIX} registerOhosFileAccessPermission: invalid ipcMain`);
+    console.error(`${LOG_PREFIX2} registerOhosFileAccessPermission: invalid ipcMain`);
     return;
   }
   ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
@@ -827,7 +863,7 @@ function registerOhosFileAccessPermission(ipcMain) {
     const sp = import_electron8.systemPreferences;
     if (typeof sp.fileAccessPersist !== "function") {
       const message = "systemPreferences.fileAccessPersist is not available";
-      console.error(`${LOG_PREFIX} IPC persist: ${message}`);
+      console.error(`${LOG_PREFIX2} IPC persist: ${message}`);
       throw new Error(message);
     }
     try {
@@ -838,7 +874,7 @@ function registerOhosFileAccessPermission(ipcMain) {
     }
     if (!callReactivateFolders(paths, "IPC-persist")) {
       const message = "ReactivateFolders failed after persist";
-      console.error(`${LOG_PREFIX} IPC persist: ${message}`, { paths });
+      console.error(`${LOG_PREFIX2} IPC persist: ${message}`, { paths });
       throw new Error(message);
     }
     return { ok: true };
@@ -856,7 +892,7 @@ function registerOhosFileAccessPermission(ipcMain) {
     }
     if (!callReactivateFolders(paths, "IPC-activate")) {
       const message = "ReactivateFolders dispatch failed";
-      console.error(`${LOG_PREFIX} IPC activate: ${message}`, { paths });
+      console.error(`${LOG_PREFIX2} IPC activate: ${message}`, { paths });
       throw new Error(message);
     }
     return { ok: true };
