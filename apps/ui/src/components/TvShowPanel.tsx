@@ -25,16 +25,18 @@ import { useFeatures } from "@/hooks/useFeatures"
 import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
+import {
+  rebuildPlanWithSelectedEpisodes,
+  rebuildRenamePlanWithSelectedEpisodes,
+} from "@/components/TvShowPanelUtils"
 import { useLatest } from "react-use"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
+import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import {
   TvShowAppPlanPromptProvider,
   type TvShowAppPlanPromptContextValue,
 } from "@/components/plans/TvShowAppPlanPromptContext"
-interface ToolbarOption {
-  value: "plex" | "emby",
-  label: string,
-}
 
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
@@ -99,7 +101,7 @@ function TvShowPanel() {
   const setSelectedByMediaFolderPath = useCallback((path: string) => {
     useUIMediaFolderStore.getState().applyFolderClick(path, false)
   }, [])
-  const { selectTvShowForFolderMutation, updateMediaMetadata, persistUiMediaMetadata } =
+  const { selectTvShowForFolderMutation, updateMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
 
@@ -123,6 +125,18 @@ function TvShowPanel() {
     [],
   )
 
+  const recognizeBeforeConfirm = useCallback(
+    (plan: UIRecognizeMediaFilePlan) =>
+      rebuildPlanWithSelectedEpisodes(plan, getSelectedEpisodes()),
+    [getSelectedEpisodes],
+  )
+
+  const renameBeforeConfirm = useCallback(
+    (plan: UIRenameFilesPlan) =>
+      rebuildRenamePlanWithSelectedEpisodes(plan, getSelectedEpisodePaths()),
+    [getSelectedEpisodePaths],
+  )
+
   const handleSelectResult = useCallback(
     (args: SearchResultSelectedArgs) => {
       const path = mediaMetadata?.mediaFolderPath
@@ -137,11 +151,6 @@ function TvShowPanel() {
   const { scrapeDialog, videoCompressionDialog } = useDialogs()
   const [openScrape] = scrapeDialog
   const { mediaLanguage } = useResolvedLanguages()
-
-  const toolbarOptions: ToolbarOption[] = [
-    { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
-    { value: "emby", label: t('toolbar.emby') } as ToolbarOption,
-  ]
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
@@ -200,19 +209,14 @@ function TvShowPanel() {
   const renameFlow = useRuleBasedRenameFilesFlow({
     plans,
     mediaMetadata,
-    getSelectedEpisodePaths,
-    persistUiMediaMetadata,
-    namingRuleOptions: toolbarOptions,
-    t: t as (key: string, options?: Record<string, unknown>) => string,
+    beforeConfirm: renameBeforeConfirm,
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
   const recognizeFlow = useRuleBasedRecognizeFlow({
     plans,
     mediaMetadata,
-    getSelectedEpisodes,
-    persistUiMediaMetadata,
-    t: t as (key: string, options?: Record<string, unknown>) => string,
+    beforeConfirm: recognizeBeforeConfirm,
   })
 
   const plan = renameFlow.plan ?? recognizeFlow.plan
@@ -229,13 +233,11 @@ function TvShowPanel() {
   useAiBasedRecognizeFlow({
     activePlan: plan,
     mediaMetadata,
-    persistUiMediaMetadata,
   })
 
   const selectFileFlow = useSelectAndUnselectFileFlow({
     mediaMetadata,
     updateMediaMetadata,
-    t: t as (key: string, options?: Record<string, unknown>) => string,
   })
 
   const previewMode: "rename" | "recognize" | undefined = useMemo(() => {

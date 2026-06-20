@@ -190,7 +190,7 @@ export function updateMediaFileMetadatas(
  */
 export async function applyRecognizeMediaFilePlan(
     plan: RecognizeMediaFilePlan,
-    mediaMetadata: UIMediaMetadata,
+    mediaMetadata: MediaMetadata,
     persist: PersistUIMediaMetadataFn,
     options: { traceId: string }
 ): Promise<void> {
@@ -203,7 +203,7 @@ export async function applyRecognizeMediaFilePlan(
             recognizedFile.episode
         );
     }
-    const updatedMetadata: UIMediaMetadata = {
+    const updatedMetadata: MediaMetadata = {
         ...mediaMetadata,
         mediaFiles: updatedMediaFiles,
     };

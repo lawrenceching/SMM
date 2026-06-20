@@ -3,46 +3,39 @@ import { toast } from "sonner"
 import {
   applyRecognizeMediaFilePlan,
   buildTemporaryRecognitionPlanAsync,
-  rebuildPlanWithSelectedEpisodes,
 } from "@/components/TvShowPanelUtils"
 import { selectActiveAppPlan } from "@/components/plans/selectActiveAppPlan"
 import { useCreatePlanMutation, toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { useOnFirstOpen } from "@/hooks/useOnFirstOpen"
 import {
   isRuleBasedRecognizePlanComplete,
   isRuleBasedRecognizePlanFullyUnchanged,
 } from "@/lib/isRuleBasedRecognizePlanComplete"
 import { nextTraceId } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 import type { MediaMetadata } from "@core/types"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
-
-export interface SelectedEpisode {
-  season: number
-  episode: number
-}
 
 export interface UseRuleBasedRecognizeFlowOptions {
   plans: UIPlan[]
   mediaMetadata: UIMediaMetadata | undefined
-  getSelectedEpisodes: () => SelectedEpisode[]
-  persistUiMediaMetadata: PersistUIMediaMetadataFn
-  t: (key: string, options?: Record<string, unknown>) => string
+  beforeConfirm: (plan: UIRecognizeMediaFilePlan) => UIRecognizeMediaFilePlan
 }
 
 export function useRuleBasedRecognizeFlow({
   plans,
   mediaMetadata,
-  getSelectedEpisodes,
-  persistUiMediaMetadata,
-  t,
+  beforeConfirm,
 }: UseRuleBasedRecognizeFlowOptions) {
+  const { t } = useTranslation(["components"])
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
   const createPlanMutation = useCreatePlanMutation()
   const updatePlanMutation = useUpdatePlanMutation()
+  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
   const computationRef = useRef(new Set<string>())
 
   const plan = useMemo(
@@ -144,7 +137,7 @@ export function useRuleBasedRecognizeFlow({
 
   const onConfirm = useCallback(
     async (recognizePlan: UIRecognizeMediaFilePlan) => {
-      if (!mediaMetadata) {
+      if (!okMediaMetadata) {
         toast.error("No media metadata available")
         return
       }
@@ -155,12 +148,9 @@ export function useRuleBasedRecognizeFlow({
       }
 
       try {
-        const actualPlan = rebuildPlanWithSelectedEpisodes(
-          recognizePlan as RecognizeMediaFilePlan,
-          getSelectedEpisodes(),
-        )
+        const actualPlan = beforeConfirm(recognizePlan) as RecognizeMediaFilePlan
         const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
-        await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, persistUiMediaMetadata, {
+        await applyRecognizeMediaFilePlan(actualPlan, okMediaMetadata, persistMediaMetadata, {
           traceId,
         })
         if (mediaFolderPath) {
@@ -176,7 +166,7 @@ export function useRuleBasedRecognizeFlow({
         toast.error("Failed to apply recognition")
       }
     },
-    [mediaMetadata, mediaFolderPath, getSelectedEpisodes, persistUiMediaMetadata, updatePlanMutation, t],
+    [okMediaMetadata, mediaFolderPath, beforeConfirm, persistMediaMetadata, updatePlanMutation, t],
   )
 
   const onCancel = useCallback(

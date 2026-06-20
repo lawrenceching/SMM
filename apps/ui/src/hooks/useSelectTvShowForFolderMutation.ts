@@ -67,19 +67,6 @@ export function useSelectTvShowForFolderMutation() {
     [fetchMediaMetadata, updateMediaMetadataMutation],
   )
 
-  /** Write media metadata via TanStack Query + Zustand (recognize + rename plans). */
-  const persistUiMediaMetadata = useCallback(
-    async (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => {
-      const pathPosix = normalizeMediaFolderPathForQuery(path)
-      await updateMediaMetadataMutation.mutateAsync({
-        pathPosix,
-        metadata,
-        traceId: options?.traceId,
-      })
-    },
-    [updateMediaMetadataMutation],
-  )
-
   const setFolderStatus = useUIMediaFolderStore.getState().updateFolderStatus
 
   const onMutate = useCallback(
@@ -182,6 +169,5 @@ export function useSelectTvShowForFolderMutation() {
     selectTvShowForFolderMutation,
     isSelectTvShowForFolderPending,
     updateMediaMetadata,
-    persistUiMediaMetadata,
   }
 }

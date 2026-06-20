@@ -1,3 +1,4 @@
+import { useCallback } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
 import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
@@ -62,8 +63,24 @@ export function useUpdateMediaMetadataMutation() {
     return next
   }
 
+  const persistMediaMetadata = useCallback(
+    async (path: string, metadata: MediaMetadata, options?: { traceId?: string }) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(path)
+      if (!pathPosix) {
+        throw new Error("useUpdateMediaMetadataMutation: missing folder path")
+      }
+      await mutation.mutateAsync({
+        pathPosix,
+        metadata,
+        traceId: options?.traceId,
+      })
+    },
+    [mutation.mutateAsync],
+  )
+
   return {
     ...mutation,
     saveMediaMetadata,
+    persistMediaMetadata,
   }
 }

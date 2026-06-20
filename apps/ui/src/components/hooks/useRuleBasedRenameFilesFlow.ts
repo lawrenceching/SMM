@@ -5,20 +5,18 @@ import { renameFiles } from "@/api/renameFiles"
 import { selectActiveAppPlan } from "@/components/plans/selectActiveAppPlan"
 import { useTvShowFileNameGeneration } from "@/components/hooks/useTvShowFileNameGeneration"
 import { useCreatePlanMutation, toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { useOnFirstOpen } from "@/hooks/useOnFirstOpen"
+import { useTranslation } from "@/lib/i18n"
 import type { RenameToolbarOption } from "@/components/plans/TvShowAppPlanPromptContext"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
-import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 
 export interface UseRuleBasedRenameFilesFlowOptions {
   plans: UIPlan[]
   mediaMetadata: UIMediaMetadata | undefined
-  getSelectedEpisodePaths: () => string[]
-  persistUiMediaMetadata: PersistUIMediaMetadataFn
-  namingRuleOptions: RenameToolbarOption[]
-  t: (key: string, options?: Record<string, unknown>) => string
+  beforeConfirm: (plan: UIRenameFilesPlan) => UIRenameFilesPlan
   /** Called when the rename flow starts (e.g. switch episode table to simple layout). */
   onFlowStart?: () => void
 }
@@ -26,15 +24,22 @@ export interface UseRuleBasedRenameFilesFlowOptions {
 export function useRuleBasedRenameFilesFlow({
   plans,
   mediaMetadata,
-  getSelectedEpisodePaths,
-  persistUiMediaMetadata,
-  namingRuleOptions,
-  t,
+  beforeConfirm,
   onFlowStart,
 }: UseRuleBasedRenameFilesFlowOptions) {
+  const { t } = useTranslation(["components"])
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
   const createPlanMutation = useCreatePlanMutation()
   const updatePlanMutation = useUpdatePlanMutation()
+  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
+
+  const namingRuleOptions = useMemo(
+    (): RenameToolbarOption[] => [
+      { value: "plex", label: t("toolbar.plex") },
+      { value: "emby", label: t("toolbar.emby") },
+    ],
+    [t],
+  )
 
   const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(
     namingRuleOptions[0]?.value ?? "plex",
@@ -104,12 +109,14 @@ export function useRuleBasedRenameFilesFlow({
         return
       }
 
+      const preparedPlan = beforeConfirm(targetPlan)
+
       await handleRenamePromptConfirmForTvShow(
         {
           planId,
-          plan: targetPlan,
+          plan: preparedPlan,
           mediaMetadata,
-          selectedEpisodePaths: getSelectedEpisodePaths(),
+          selectedEpisodePaths: preparedPlan.files.map((f) => f.from),
           renameFailedLabel: t("episodeFile.renameFailed"),
           noMediaPathErrorLabel: t("movie.noMediaPathError"),
         },
@@ -122,12 +129,12 @@ export function useRuleBasedRenameFilesFlow({
               patch: toUpdatePlanPatch(patch),
             })
           },
-          persistUiMediaMetadata,
+          persistUiMediaMetadata: persistMediaMetadata,
           renameFilesApi: renameFiles,
         },
       )
     },
-    [plans, mediaMetadata, mediaFolderPath, getSelectedEpisodePaths, updatePlanMutation, persistUiMediaMetadata, t],
+    [plans, mediaMetadata, mediaFolderPath, beforeConfirm, updatePlanMutation, persistMediaMetadata, t],
   )
 
   const onCancel = useCallback(

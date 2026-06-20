@@ -5,17 +5,16 @@ import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
 import { handlePendingPlans } from "@/components/TvShowPanelUtils"
 import { useFeatures } from "@/hooks/useFeatures"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 
 export interface UseAiBasedRecognizeFlowOptions {
   /** Active plan for the folder (renameFlow.plan ?? recognizeFlow.plan). */
   activePlan: UIPlan | undefined
   mediaMetadata: UIMediaMetadata | undefined
-  persistUiMediaMetadata: PersistUIMediaMetadataFn
 }
 
 /**
@@ -26,10 +25,10 @@ export interface UseAiBasedRecognizeFlowOptions {
 export function useAiBasedRecognizeFlow({
   activePlan,
   mediaMetadata,
-  persistUiMediaMetadata,
 }: UseAiBasedRecognizeFlowOptions) {
   const { isAiFeatureEnabled } = useFeatures()
   const updatePlanMutation = useUpdatePlanMutation()
+  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
 
   const openAiBasedRecognizePrompt = useTvShowPromptsStore(
     (state) => state.openAiBasedRecognizePrompt,
@@ -41,7 +40,7 @@ export function useAiBasedRecognizeFlow({
   const handleAiRecognizeConfirmCallback = useCallback(
     async (plan: RecognizeMediaFilePlan) => {
       if (!isAiFeatureEnabled || !mediaMetadata?.mediaFolderPath) return
-      await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, async (id, patch) => {
+      await handleAiRecognizeConfirm(plan, mediaMetadata, persistMediaMetadata, async (id, patch) => {
         await updatePlanMutation.mutateAsync({
           id,
           mediaFolderPath: mediaMetadata.mediaFolderPath!,
@@ -50,7 +49,7 @@ export function useAiBasedRecognizeFlow({
       })
       await cleanupRecognizePlan(plan.id)
     },
-    [isAiFeatureEnabled, mediaMetadata, persistUiMediaMetadata, updatePlanMutation],
+    [isAiFeatureEnabled, mediaMetadata, persistMediaMetadata, updatePlanMutation],
   )
 
   useEffect(() => {

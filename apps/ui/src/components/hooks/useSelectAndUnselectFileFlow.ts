@@ -6,6 +6,7 @@ import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/help
 import { isElectron } from "@/lib/isElectron"
 import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
 import { nextTraceId } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
@@ -18,14 +19,13 @@ export interface UseSelectAndUnselectFileFlowOptions {
     updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
     options?: { traceId?: string },
   ) => Promise<void>
-  t: (key: string, options?: Record<string, unknown>) => string
 }
 
 export function useSelectAndUnselectFileFlow({
   mediaMetadata,
   updateMediaMetadata,
-  t,
 }: UseSelectAndUnselectFileFlowOptions) {
+  const { t } = useTranslation(["components"])
   const { filePickerDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
 

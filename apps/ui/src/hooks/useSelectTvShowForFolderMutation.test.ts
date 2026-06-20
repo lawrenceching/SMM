@@ -252,24 +252,6 @@ describe("useSelectTvShowForFolderMutation", () => {
     )
   })
 
-  it("persistUiMediaMetadata: writes metadata without fetch", async () => {
-    const meta = { mediaFolderPath: "/m", type: "tvshow-folder" as const }
-    const { result } = renderHook(() => useSelectTvShowForFolderMutation(), {
-      wrapper: createWrapper(),
-    })
-
-    await act(async () => {
-      await result.current.persistUiMediaMetadata("/m", meta, { traceId: "t1" })
-    })
-
-    expect(hoisted.fetchMediaMetadataAsync).not.toHaveBeenCalled()
-    expect(hoisted.updateMediaMetadataAsync).toHaveBeenCalledWith({
-      pathPosix: "/m",
-      metadata: meta,
-      traceId: "t1",
-    })
-  })
-
   it("onError: toast.error and folder status ok", () => {
     vi.mocked(useGetTmdbTvShowMutation).mockImplementationOnce(
       ((options?: { onMutate?: (v: unknown) => void; onError?: (e: Error, v: unknown) => void }) => ({
