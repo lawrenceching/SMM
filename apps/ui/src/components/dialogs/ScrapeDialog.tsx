@@ -1,638 +1,143 @@
-import { useMemo, useState, useEffect } from "react"
-import { Loader2, CheckCircle2, XCircle, Circle } from "lucide-react"
-import {
-  Dialog,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  ScrollableDialogBody,
-  ScrollableDialogContent,
-  ScrollableDialogFooter,
-  ScrollableDialogHeader,
-} from "@/components/ui/scrollable-dialog"
-import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { useCallback, useEffect, useMemo, useReducer } from "react"
 import type { ScrapeDialogProps } from "./types"
-import { useTranslation } from "@/lib/i18n"
-import { localizeScrapeError } from "@/lib/scrapeError"
+import { UIScrapeDialog } from "./UIScrapeDialog"
 import { useScrapeNfoMutation } from "@/hooks/useScrapeNfoMutation"
 import { useScrapePosterMutation } from "@/hooks/useScrapePosterMutation"
 import { useScrapeFanartMutation } from "@/hooks/useScrapeFanartMutation"
 import { useScrapeThumbnailMutation } from "@/hooks/useScrapeThumbnailMutation"
-import { listFiles } from "@/api/listFiles"
-import { Path } from "@core/path"
-import { basename, extname, dirname } from "@/lib/path"
-import type { MediaMetadata, TvShowSeasonMetadata } from "@core/types"
-import { imageFileExtensions } from "@/lib/utils"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
+import { nextTraceId } from "@/lib/utils"
+import type { MediaMetadata } from "@core/types"
+import {
+  areAllTasksDone,
+  checkTaskCompletion,
+  createInitialScrapeTasksForMedia,
+  INITIAL_SCRAPE_TASK_STATE,
+  taskReducer,
+  type ScrapeTaskId,
+} from "@/lib/scrapeDialog"
 
-interface Task {
-  id: string;
-  /**
-   * The i18n name
-   */
-  name: string;
-  status: "pending" | "running" | "completed" | "failed";
-  /**
-   * Raw error message captured from the failed `execute()` call.
-   * Surfaced in the status column so the user can tell whether
-   * the failure was a timeout, DNS, connection refused, etc.
-   */
-  failedReason?: string;
-  execute: () => Promise<void>;
-}
-
-function TaskItem({ task }: { task: Task }) {
-  const { t } = useTranslation('dialogs')
-  
-  const getStatusIcon = () => {
-    switch (task.status) {
-      case "running":
-        return <Loader2 className="h-4 w-4 animate-spin text-primary" />
-      case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
-      case "failed":
-        return <XCircle className="h-4 w-4 text-destructive" />
-      case "pending":
-      default:
-        return <Circle className="h-4 w-4 text-muted-foreground" />
-    }
-  }
-
-  const getStatusText = () => {
-    switch (task.status) {
-      case "running":
-        return t('scrape.status.running')
-      case "completed":
-        return t('scrape.status.completed')
-      case "failed":
-        return task.failedReason
-          ? localizeScrapeError(task.failedReason, t)
-          : t('scrape.status.failed')
-      case "pending":
-      default:
-        return t('scrape.status.pending')
-    }
-  }
-
-  return (
-    <TableRow data-testid={`scrape-dialog-task-row-${task.id}`}>
-      <TableCell className="py-2 px-2">
-        <span className="text-sm">{task.name}</span>
-      </TableCell>
-      <TableCell className="py-2 px-2">
-        <div
-          className="flex items-center gap-2"
-          data-testid={`scrape-dialog-task-status-${task.id}`}
-        >
-          {getStatusIcon()}
-          <span
-            className="text-xs text-muted-foreground"
-            title={task.status === "failed" && task.failedReason
-              ? task.failedReason
-              : undefined}
-          >
-            {getStatusText()}
-          </span>
-        </div>
-      </TableCell>
-    </TableRow>
-  )
-}
-
-function areAllTasksDone(tasks: Task[]): boolean {
-  return tasks.every((task) => {
-    return task.status === "completed" || task.status === "failed"
-  })
-}
-
-async function checkTaskCompletion(mediaMetadata: MediaMetadata): Promise<{
-  poster: boolean
-  fanart: boolean
-  thumbnails: boolean
-  nfo: boolean
-}> {
-  const defaultCompletion = {
-    poster: false,
-    fanart: false,
-    thumbnails: false,
-    nfo: false,
-  }
-
-  // Validate media folder path exists
-  if (!mediaMetadata?.mediaFolderPath) {
-    console.error('[checkTaskCompletion] mediaFolderPath is undefined')
-    return defaultCompletion
-  }
-
-  try {
-    // Get all files in the media folder
-    const response = await listFiles({
-      path: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
-      onlyFiles: true,
-      recursively: true,
-    })
-
-    if (!response.data?.items) {
-      console.error('[checkTaskCompletion] Failed to get files from listFiles')
-      return defaultCompletion
-    }
-
-    const files = response.data.items.map(p => Path.posix(p.path))
-
-    // Check for poster file
-    // Poster files are named "poster.{extension}" where extension is an image extension
-    const posterCompleted = files.some((file) => {
-      const fileName = basename(file)
-      if (!fileName) return false
-      return (
-        fileName.startsWith('poster.') &&
-        imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-      )
-    })
-
-    // Check for fanart file
-    // Fanart files are named "fanart.{extension}" where extension is an image extension
-    const fanartCompleted = files.some((file) => {
-      const fileName = basename(file)
-      if (!fileName) return false
-      return (
-        fileName.startsWith('fanart.') &&
-        imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-      )
-    })
-
-    // Check for NFO files: tvshow.nfo and episode NFO next to each video
-    const tvshowNfoOk = files.some((file) => basename(file) === 'tvshow.nfo')
-    let episodeNfosOk = true
-    if (mediaMetadata.mediaFiles?.length) {
-      for (const mediaFile of mediaMetadata.mediaFiles) {
-        if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) continue
-        const videoBasename = basename(mediaFile.absolutePath)
-        if (videoBasename === undefined) continue
-        const videoExt = extname(videoBasename)
-        const nameWithoutExt = videoExt ? videoBasename.slice(0, -videoExt.length) : videoBasename
-        const expectedNfoBasename = nameWithoutExt + '.nfo'
-        const videoDir = dirname(mediaFile.absolutePath)
-        const hasEpisodeNfo = files.some(
-          (file) => dirname(file) === videoDir && basename(file) === expectedNfoBasename
-        )
-        if (!hasEpisodeNfo) {
-          episodeNfosOk = false
-          break
-        }
-      }
-    }
-    const nfoCompleted = tvshowNfoOk && episodeNfosOk
-
-    // Check for thumbnails
-    // Thumbnails are named based on the video file name: "{videoFileNameWithoutExt}.{imageExtension}"
-    console.log('[checkTaskCompletion] Starting thumbnail check')
-    let thumbnailsCompleted = true
-
-    // If there are no media files, thumbnails are considered complete (nothing to download)
-    if (!mediaMetadata.mediaFiles || mediaMetadata.mediaFiles.length === 0) {
-      console.log('[checkTaskCompletion] No media files found, thumbnails considered complete')
-      thumbnailsCompleted = true
-    } else {
-      console.log(`[checkTaskCompletion] Checking ${mediaMetadata.mediaFiles.length} media files for thumbnails`)
-      console.log(`[checkTaskCompletion] All files in media folder:`, files.map(f => basename(f)))
-      
-      // Check each media file that has season and episode numbers
-      for (const mediaFile of mediaMetadata.mediaFiles) {
-        console.log(`[checkTaskCompletion] Checking media file: ${mediaFile.absolutePath}`)
-        console.log(`[checkTaskCompletion]   - seasonNumber: ${mediaFile.seasonNumber}, episodeNumber: ${mediaFile.episodeNumber}`)
-        
-        // Skip files without season/episode numbers
-        if (mediaFile.seasonNumber === undefined || mediaFile.episodeNumber === undefined) {
-          console.log(`[checkTaskCompletion]   - Skipping (no season/episode numbers)`)
-          continue
-        }
-
-        // Get the video file's base name (without extension)
-        const videoFileName = basename(mediaFile.absolutePath)
-        if (!videoFileName) {
-          console.log(`[checkTaskCompletion]   - ERROR: Could not get basename from ${mediaFile.absolutePath}`)
-          thumbnailsCompleted = false
-          break
-        }
-
-        console.log(`[checkTaskCompletion]   - videoFileName: ${videoFileName}`)
-        const videoFileExt = extname(videoFileName)
-        const videoFileNameWithoutExt = videoFileName.replace(videoFileExt, '')
-        console.log(`[checkTaskCompletion]   - videoFileNameWithoutExt: ${videoFileNameWithoutExt}`)
-        
-        // Get the directory where the video file is located
-        const videoFileDir = dirname(mediaFile.absolutePath)
-        console.log(`[checkTaskCompletion]   - videoFileDir: ${videoFileDir}`)
-        console.log(`[checkTaskCompletion]   - Looking for thumbnail files starting with: ${videoFileNameWithoutExt}. in directory: ${videoFileDir}`)
-
-        // Filter files to only those in the same directory as the video file
-        const filesInSameDir = files.filter((file) => {
-          const fileDir = dirname(file)
-          return fileDir === videoFileDir
-        })
-        console.log(`[checkTaskCompletion]   - Files in same directory (${filesInSameDir.length}):`, filesInSameDir.map(f => basename(f)))
-
-        // Check if a thumbnail file exists with the same base name but with an image extension
-        const matchingFiles = filesInSameDir.filter((file) => {
-          const fileName = basename(file)
-          if (!fileName) return false
-          return fileName.startsWith(videoFileNameWithoutExt + '.')
-        })
-        console.log(`[checkTaskCompletion]   - Files starting with "${videoFileNameWithoutExt}.":`, matchingFiles.map(f => basename(f)))
-
-        const hasThumbnail = filesInSameDir.some((file) => {
-          const fileName = basename(file)
-          if (!fileName) return false
-
-          // Check if file starts with video base name and ends with an image extension
-          const startsWith = fileName.startsWith(videoFileNameWithoutExt + '.')
-          const endsWithImageExt = imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-          const matches = startsWith && endsWithImageExt
-          
-          if (matches) {
-            console.log(`[checkTaskCompletion]   - ✓ Found matching thumbnail: ${fileName} in ${videoFileDir}`)
-          }
-          
-          return matches
-        })
-
-        if (!hasThumbnail) {
-          console.log(`[checkTaskCompletion]   - ✗ Thumbnail NOT found for ${videoFileName}`)
-          console.log(`[checkTaskCompletion]   - Expected: ${videoFileNameWithoutExt}.{${imageFileExtensions.join('|')}}`)
-          console.log(`[checkTaskCompletion]   - Expected location: ${videoFileDir}`)
-          console.log(`[checkTaskCompletion]   - Available files in same directory:`, filesInSameDir.map(f => basename(f)))
-          thumbnailsCompleted = false
-          break
-        } else {
-          console.log(`[checkTaskCompletion]   - ✓ Thumbnail found for ${videoFileName} in ${videoFileDir}`)
-        }
-      }
-      
-      console.log(`[checkTaskCompletion] Thumbnail check completed. thumbnailsCompleted: ${thumbnailsCompleted}`)
-    }
-
-    // Check for season posters
-    // Season posters are named "season{number}-poster.{extension}" in season folders
-    if (thumbnailsCompleted && mediaMetadata.tvShow?.seasons) {
-      console.log('[checkTaskCompletion] Starting season poster check')
-      try {
-        // Get all folders in the media folder
-        const foldersResponse = await listFiles({
-          path: Path.toPlatformPath(mediaMetadata.mediaFolderPath),
-          onlyFolders: true,
-        })
-
-        if (!foldersResponse.data?.items) {
-          console.log('[checkTaskCompletion] No folders found in media folder, skipping season poster check')
-        } else {
-          const folders = foldersResponse.data.items.map(p => Path.posix(p.path))
-          console.log(`[checkTaskCompletion] Found ${folders.length} folders in media folder:`, folders.map((f: string) => basename(f)))
-
-          // Check each season that has poster_path
-          // TODO: add poster_path field to TvShowSeasonMetadata
-          // const seasonsToCheck = mediaMetadata.tvShow.seasons.filter(s => s.poster_path)
-          const seasonsToCheck: TvShowSeasonMetadata[] =  []
-          console.log(`[checkTaskCompletion] Checking ${seasonsToCheck.length} seasons with poster_path (out of ${mediaMetadata.tvShow.seasons.length} total seasons)`)
-
-          // for (const season of seasonsToCheck) {
-          //   console.log(`[checkTaskCompletion] Checking season ${season.season} (has poster_path: ${season.poster_path})`)
-
-          //   // Find the season folder
-          //   const possibleFolderNames: string[] = []
-          //   if (season.season === 0) {
-          //     possibleFolderNames.push('Specials')
-          //   } else {
-          //     possibleFolderNames.push(`Season ${season.season}`)
-          //     possibleFolderNames.push(`Season ${season.season.toString().padStart(2, '0')}`)
-          //   }
-
-          //   console.log(`[checkTaskCompletion] Looking for season folder with names:`, possibleFolderNames)
-
-          //   const seasonFolder = folders.find((folder: string) => {
-          //     const folderBasename = basename(folder)
-          //     return folderBasename !== undefined && possibleFolderNames.includes(folderBasename)
-          //   })
-
-          //   if (!seasonFolder) {
-          //     // If season folder doesn't exist, we can't check for season poster
-          //     // This is acceptable - the season poster won't be downloaded if folder doesn't exist
-          //     console.log(`[checkTaskCompletion] Season folder not found for season ${season.season}, skipping (poster won't be downloaded if folder doesn't exist)`)
-          //     continue
-          //   }
-
-          //   console.log(`[checkTaskCompletion] Found season folder for season ${season.season}: ${seasonFolder}`)
-
-          //   // Get files in the season folder
-          //   const seasonFolderFilesResponse = await listFiles({
-          //     path: Path.toPlatformPath(seasonFolder),
-          //     onlyFiles: true,
-          //   })
-
-          //   if (!seasonFolderFilesResponse.data?.items) {
-          //     // If we can't get files, skip this season
-          //     console.log(`[checkTaskCompletion] Could not get files from season folder ${seasonFolder}, skipping`)
-          //     continue
-          //   }
-
-          //   const seasonFolderFiles = seasonFolderFilesResponse.data.items.map(p => Path.posix(p.path))
-          //   console.log(`[checkTaskCompletion] Found ${seasonFolderFiles.length} files in season folder ${seasonFolder}:`, seasonFolderFiles.map((f: string) => basename(f)))
-
-          //   // Check if season{number}-poster.{extension} exists in the season folder
-          //   const seasonNumberPadded = season.season.toString().padStart(2, '0')
-          //   const seasonPosterFileNamePrefix = `season${seasonNumberPadded}-poster.`
-          //   console.log(`[checkTaskCompletion] Looking for season poster with prefix: ${seasonPosterFileNamePrefix}`)
-
-          //   const hasSeasonPoster = seasonFolderFiles.some((file: string) => {
-          //     const fileName = basename(file)
-          //     if (!fileName) return false
-          //     const matches = fileName.startsWith(seasonPosterFileNamePrefix) &&
-          //       imageFileExtensions.some((ext: string) => fileName.toLowerCase().endsWith(ext.toLowerCase()))
-          //     if (matches) {
-          //       console.log(`[checkTaskCompletion] Found season poster: ${fileName}`)
-          //     }
-          //     return matches
-          //   })
-
-          //   if (!hasSeasonPoster) {
-          //     console.log(`[checkTaskCompletion] Season poster NOT found for season ${season.season} (expected: ${seasonPosterFileNamePrefix}*), marking thumbnails as incomplete`)
-          //     thumbnailsCompleted = false
-          //     break
-          //   } else {
-          //     console.log(`[checkTaskCompletion] Season poster found for season ${season.season}`)
-          //   }
-          // }
-        }
-      } catch (error) {
-        // If there's an error checking season posters, log it but don't fail the check
-        // This allows episode thumbnails to still be marked as complete if they exist
-        console.error('[checkTaskCompletion] Error checking season posters:', error)
-      }
-      console.log(`[checkTaskCompletion] Season poster check completed. thumbnailsCompleted: ${thumbnailsCompleted}`)
-    } else {
-      if (!thumbnailsCompleted) {
-        console.log('[checkTaskCompletion] Skipping season poster check because episode thumbnails are not complete')
-      } else if (!mediaMetadata.tvShow?.seasons) {
-        console.log('[checkTaskCompletion] Skipping season poster check because no seasons found in tvShow')
-      }
-    }
-
-    const completion = {
-      poster: posterCompleted,
-      fanart: fanartCompleted,
-      thumbnails: thumbnailsCompleted,
-      nfo: nfoCompleted,
-    }
-    
-    console.log('[checkTaskCompletion] Final completion status:', completion)
-    return completion
-  } catch (error) {
-    console.error('[checkTaskCompletion] Error checking task completion:', error)
-    // If there's an error, assume tasks are not completed
-    return defaultCompletion
-  }
-}
-
-export function ScrapeDialog({
-  isOpen,
-  onClose,
-  mediaMetadata,
-}: ScrapeDialogProps) {
-  const { t } = useTranslation(['dialogs', 'common'])
-  const defaultTitle = t('scrape.defaultTitle')
-  const defaultDescription = t('scrape.defaultDescription')
-  const { mutateAsync: scrapeNfo } = useScrapeNfoMutation()
+export function ScrapeDialog({ isOpen, onClose, mediaMetadata }: ScrapeDialogProps) {
   const { mutateAsync: scrapePoster } = useScrapePosterMutation()
   const { mutateAsync: scrapeFanart } = useScrapeFanartMutation()
   const { mutateAsync: scrapeThumbnail } = useScrapeThumbnailMutation()
-  const { mutateAsync: refreshMediaMetadata } = useFetchMediaMetadataMutation()
+  const { mutateAsync: scrapeNfo } = useScrapeNfoMutation()
   const { userConfig } = useConfig()
-  const [tasks, setTasks] = useState<Task[]>([])
+  const { mutateAsync: refreshMediaMetadata } = useFetchMediaMetadataMutation()
+  const [state, dispatch] = useReducer(taskReducer, INITIAL_SCRAPE_TASK_STATE)
 
-  // Initialize tasks when dialog opens or mediaMetadata changes
-  useEffect(() => {
-    if (isOpen && mediaMetadata) {
-
-      let tasks: Task[] = [
-        {
-          id: 'poster',
-          name: t('scrape.tasks.poster', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
-            }
-            await scrapePoster({
-              mediaMetadata,
-              language: userConfig.preferMediaLanguage,
-            })
-          }
-        },
-        {
-          id: 'fanart',
-          name: t('scrape.tasks.fanart' as any, { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
-            }
-            await scrapeFanart({
-              mediaMetadata,
-              language: userConfig.preferMediaLanguage,
-            })
-          }
-        },
-        {
-          id: 'thumbnails',
-          name: t('scrape.tasks.thumbnails', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
-            }
-            await scrapeThumbnail({ mediaMetadata })
-          }
-        },
-        {
-          id: 'nfo',
-          name: t('scrape.tasks.nfo', { ns: 'dialogs' }),
-          status: "pending",
-          execute: async () => {
-            if (!mediaMetadata) {
-              console.error('[ScrapeDialog] mediaMetadata is undefined')
-              throw new Error('mediaMetadata is undefined')
-            }
-            await scrapeNfo({ mediaMetadata })
-          }
-        },
-      ]
-
-      setTasks(tasks)
-
-      const initializeTasks = async () => {
-        // Check if tasks are already completed by checking for existing files
-        const completion = await checkTaskCompletion(mediaMetadata)
-        console.log('[ScrapeDialog] completion:', completion)
-
-        tasks = tasks.map(task => {
-          return {
-            ...task,
-            status: completion[task.id as keyof typeof completion] ? "completed" : "pending",
-          }
+  const executeTask = useCallback(
+    async (id: ScrapeTaskId, currentMediaMetadata: MediaMetadata) => {
+      if (id === "poster") {
+        await scrapePoster({
+          mediaMetadata: currentMediaMetadata,
+          language: userConfig.preferMediaLanguage,
         })
-
-        setTasks(tasks)
+        return
       }
+      if (id === "fanart") {
+        await scrapeFanart({
+          mediaMetadata: currentMediaMetadata,
+          language: userConfig.preferMediaLanguage,
+        })
+        return
+      }
+      if (id === "thumbnails") {
+        await scrapeThumbnail({ mediaMetadata: currentMediaMetadata })
+        return
+      }
+      await scrapeNfo({ mediaMetadata: currentMediaMetadata })
+    },
+    [scrapePoster, scrapeFanart, userConfig.preferMediaLanguage, scrapeThumbnail, scrapeNfo],
+  )
 
-      initializeTasks().catch((error) => {
-        console.error('[ScrapeDialog] Error initializing tasks:', error)
+  useEffect(() => {
+    if (!isOpen || !mediaMetadata) return
+
+    dispatch({ type: "INIT", tasks: createInitialScrapeTasksForMedia(mediaMetadata) })
+
+    let cancelled = false
+    checkTaskCompletion(mediaMetadata)
+      .then((completion) => {
+        if (cancelled) return
+        dispatch({ type: "SET_COMPLETION", completion })
       })
-    }
-  }, [isOpen, mediaMetadata, t, scrapeNfo, scrapePoster, scrapeFanart, scrapeThumbnail, userConfig.preferMediaLanguage])
+      .catch((error) => {
+        console.error("[ScrapeDialog] initialize completion failed:", error)
+      })
 
-  const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
-  const canClose = allTasksDone
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, mediaMetadata])
+
+  const allTasksDone = useMemo(() => areAllTasksDone(state.tasks), [state.tasks])
+  const canDismissIncidentally = allTasksDone && !state.isRunning
+  const cancelDisabled = state.isRunning
   const showButtons = mediaMetadata !== undefined
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
+    if (cancelDisabled) return
     onClose()
-  }
+  }, [cancelDisabled, onClose])
 
-  const handleStart = async () => {
+  const handleStart = useCallback(async () => {
+    if (!mediaMetadata) return
     if (allTasksDone) {
-      // If all tasks are done, just close the dialog
       onClose()
-    } else if (mediaMetadata) {
-      // Execute tasks sequentially
-      const currentTasks = [...tasks]
-      const traceId = `ScrapeDialog-handleStart-${nextTraceId()}`
-
-      for (let i = 0; i < currentTasks.length; i++) {
-        // Skip tasks that are already completed or failed
-        if (currentTasks[i].status === "completed" || currentTasks[i].status === "failed") {
-          continue
-        }
-
-        // Update task status to running
-        setTasks(prevTasks => {
-          const updated = [...prevTasks]
-          updated[i] = { ...updated[i], status: "running" }
-          return updated
-        })
-
-        try {
-          // Execute the task using the original execute function
-          await currentTasks[i].execute()
-          
-          // Update task status to completed
-          setTasks(prevTasks => {
-            const updated = [...prevTasks]
-            updated[i] = { ...updated[i], status: "completed" }
-            return updated
-          })
-        } catch (error) {
-          // Update task status to failed, capturing the raw error
-          // message so the status column can show a localized
-          // description of what went wrong (timeout, DNS, etc.).
-          const reason = error instanceof Error ? error.message : String(error)
-          setTasks(prevTasks => {
-            const updated = [...prevTasks]
-            updated[i] = { ...updated[i], status: "failed", failedReason: reason }
-            return updated
-          })
-          console.error(`Task "${currentTasks[i].name}" failed:`, error)
-          // Error toast is shown by the hook/API layer with more specific error messages
-        }
-      }
-
-      // After all tasks have been processed, refresh media metadata so that
-      // newly scraped files are reflected in mediaMetadata.files
-      if (mediaMetadata.mediaFolderPath) {
-        try {
-          await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
-        } catch (error) {
-          console.error('[ScrapeDialog] Failed to refresh media metadata after scraping:', error)
-        }
-      }
+      return
     }
-  }
+    if (state.isRunning) return
+
+    dispatch({ type: "START_RUN" })
+    const traceId = `ScrapeDialog-handleStart-${nextTraceId()}`
+    try {
+      const taskStatusMap = new Map(state.tasks.map((task) => [task.id, task.status]))
+      for (const task of state.tasks) {
+        const id = task.id
+        const status = taskStatusMap.get(id)
+        if (status === "completed" || status === "failed") continue
+        dispatch({ type: "MARK_RUNNING", id })
+        try {
+          await executeTask(id, mediaMetadata)
+          dispatch({ type: "MARK_COMPLETED", id })
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error)
+          dispatch({ type: "MARK_FAILED", id, reason })
+          console.error(`[ScrapeDialog] task ${id} failed:`, error)
+        }
+      }
+      if (mediaMetadata.mediaFolderPath) {
+        await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
+      }
+    } catch (error) {
+      console.error("[ScrapeDialog] run failed:", error)
+    } finally {
+      dispatch({ type: "FINISH_RUN" })
+    }
+  }, [
+    mediaMetadata,
+    allTasksDone,
+    state.isRunning,
+    state.tasks,
+    executeTask,
+    refreshMediaMetadata,
+    onClose,
+  ])
 
   return (
-      <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open && canClose) {
-          handleClose()
-        }
-      }}
-    >
-      <ScrollableDialogContent
-        showCloseButton={canClose}
-        className="max-w-2xl"
-        data-testid="scrape-dialog"
-      >
-        <ScrollableDialogHeader>
-          <DialogTitle>{defaultTitle}</DialogTitle>
-          <DialogDescription>{defaultDescription}</DialogDescription>
-        </ScrollableDialogHeader>
-        <ScrollableDialogBody>
-          {tasks.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-              {t('scrape.noTasks')}
-            </div>
-          ) : (
-            <Table data-testid="scrape-dialog-table">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="py-2 px-2">
-                    {t('scrape.columns.file')}
-                  </TableHead>
-                  <TableHead className="py-2 px-2">
-                    {t('scrape.columns.status')}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasks.map((task, index) => (
-                  <TaskItem key={index} task={task} />
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </ScrollableDialogBody>
-        {showButtons && (
-          <ScrollableDialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              data-testid="scrape-dialog-cancel"
-            >
-              {t('cancel', { ns: 'common' })}
-            </Button>
-            <Button
-              onClick={handleStart}
-              disabled={allTasksDone}
-              data-testid="scrape-dialog-start"
-            >
-              {allTasksDone ? (t as any)('scrape.done') : t('scrape.start')}
-            </Button>
-          </ScrollableDialogFooter>
-        )}
-      </ScrollableDialogContent>
-    </Dialog>
+    <UIScrapeDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      tasks={state.tasks}
+      isRunning={state.isRunning}
+      allTasksDone={allTasksDone}
+      showButtons={showButtons}
+      cancelDisabled={cancelDisabled}
+      canDismissIncidentally={canDismissIncidentally}
+      onCancel={handleClose}
+      onStart={handleStart}
+    />
   )
 }

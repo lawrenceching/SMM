@@ -3,18 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { ScrapeDialog } from "./ScrapeDialog"
 
-// Mock the mutations. We simulate a server error by making
-// `mutateAsync` reject with the raw error message that
-// `apps/cli/src/route/DownloadImageAsFile.ts` (now backed by
-// `packages/core-routes/src/downloadImageAsFile.ts:describeFetchError`)
-// returns.
 const scrapePosterMock = vi.fn()
 const scrapeFanartMock = vi.fn()
 const scrapeThumbnailMock = vi.fn()
 const scrapeNfoMock = vi.fn()
 const refreshMediaMetadataMock = vi.fn().mockResolvedValue(undefined)
 const listFilesMock = vi.fn().mockResolvedValue({ data: { items: [] } })
-const configMock = { folders: [] }
 const userConfigMock = { preferMediaLanguage: "zh-CN" }
 
 vi.mock("@/hooks/useScrapeNfoMutation", () => ({
@@ -44,11 +38,6 @@ vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => ({ userConfig: userConfigMock }),
 }))
 
-// Mock i18n with a deterministic t() that uses the keys we expect.
-// IMPORTANT: useTranslation must return a stable t reference across
-// renders, otherwise the ScrapeDialog useEffect that depends on `t`
-// will re-fire on every render and cause "Maximum update depth
-// exceeded".
 const I18N_KEYS: Record<string, string> = {
   "scrape.tasks.poster": "海报",
   "scrape.tasks.fanart": "背景图",
@@ -69,7 +58,7 @@ const I18N_KEYS: Record<string, string> = {
   "scrape.columns.file": "文件",
   "scrape.columns.status": "状态",
   "scrape.noTasks": "没有任务",
-  "cancel": "取消",
+  cancel: "取消",
 }
 
 const stableT = (key: string) => I18N_KEYS[key] ?? key
@@ -79,7 +68,32 @@ vi.mock("@/lib/i18n", () => ({
   useTranslation: () => stableI18n,
 }))
 
-describe("ScrapeDialog V1 — error propagation", () => {
+describe("ScrapeDialog — movie folder tasks", () => {
+  const mediaMetadata = {
+    type: "movie-folder",
+    mediaFolderPath: "/media/Movie",
+    mediaFiles: [{ absolutePath: "/media/Movie/movie.mkv" }],
+    movie: { id: "1", name: "Movie", database: "TMDB" },
+  } as any
+
+  beforeEach(() => {
+    listFilesMock.mockReset()
+    listFilesMock.mockResolvedValue({ data: { items: [] } })
+  })
+
+  it("does not show the thumbnails row for movie folders", async () => {
+    render(<ScrapeDialog isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-row-poster")).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId("scrape-dialog-task-row-thumbnails")).not.toBeInTheDocument()
+    expect(screen.queryByText("每集封面")).not.toBeInTheDocument()
+  })
+})
+
+describe("ScrapeDialog — error propagation", () => {
   const mediaMetadata = {
     type: "movie-folder",
     mediaFolderPath: "/media/Movie",
@@ -98,8 +112,6 @@ describe("ScrapeDialog V1 — error propagation", () => {
   })
 
   it("captures the server's raw error message and shows the localized error in the status column", async () => {
-    // Simulate the server returning the new cause-bearing error
-    // (the one we now produce from `doDownloadImageAsFile`).
     scrapePosterMock.mockRejectedValue(
       new Error(
         "Image URL fetch failed: Unable to connect. Is the computer able to access the url? (ConnectionRefused)",
@@ -114,17 +126,13 @@ describe("ScrapeDialog V1 — error propagation", () => {
       <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
-    // Click "Start"
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
 
-    // Wait for the poster row to show "Failed" status with the
-    // localized error message.
     await waitFor(() => {
       const posterStatus = screen.getByTestId("scrape-dialog-task-status-poster")
       expect(posterStatus.textContent).toContain("图片链接连接被拒绝")
     })
 
-    // Other tasks should be completed.
     const fanartStatus = screen.getByTestId("scrape-dialog-task-status-fanart")
     expect(fanartStatus.textContent).toContain("已完成")
   })
@@ -168,6 +176,108 @@ describe("ScrapeDialog V1 — error propagation", () => {
     await waitFor(() => {
       const posterStatus = screen.getByTestId("scrape-dialog-task-status-poster")
       expect(posterStatus.textContent).toContain("图片链接访问超时")
+    })
+  })
+})
+
+describe("ScrapeDialog — cancel button", () => {
+  const mediaMetadata = {
+    type: "movie-folder",
+    mediaFolderPath: "/media/Movie",
+    mediaFiles: [{ absolutePath: "/media/Movie/movie.mkv" }],
+    movie: { id: "1", name: "Movie", database: "TMDB" },
+  } as any
+
+  beforeEach(() => {
+    scrapePosterMock.mockReset()
+    scrapeFanartMock.mockReset()
+    scrapeThumbnailMock.mockReset()
+    scrapeNfoMock.mockReset()
+    refreshMediaMetadataMock.mockClear()
+    listFilesMock.mockClear()
+    listFilesMock.mockResolvedValue({ data: { items: [] } })
+    scrapePosterMock.mockResolvedValue(undefined)
+    scrapeFanartMock.mockResolvedValue(undefined)
+    scrapeThumbnailMock.mockResolvedValue(undefined)
+    scrapeNfoMock.mockResolvedValue(undefined)
+  })
+
+  it("keeps cancel enabled with pending tasks and closes on cancel click", async () => {
+    const onClose = vi.fn()
+    render(
+      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "未下载",
+      )
+    })
+
+    const cancel = screen.getByTestId("scrape-dialog-cancel")
+    expect(cancel).not.toBeDisabled()
+    fireEvent.click(cancel)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps cancel enabled when some tasks are completed but scrape has not started", async () => {
+    listFilesMock.mockResolvedValue({
+      data: { items: [{ path: "/media/Movie/poster.jpg" }] },
+    })
+
+    const onClose = vi.fn()
+    render(
+      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "已完成",
+      )
+      expect(screen.getByTestId("scrape-dialog-task-status-fanart").textContent).toContain(
+        "未下载",
+      )
+    })
+
+    expect(screen.getByTestId("scrape-dialog-cancel")).not.toBeDisabled()
+    fireEvent.click(screen.getByTestId("scrape-dialog-cancel"))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("disables cancel while scrape is running", async () => {
+    let resolvePoster!: () => void
+    scrapePosterMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolvePoster = resolve
+        }),
+    )
+
+    render(
+      <ScrapeDialog isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "未下载",
+      )
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "开始" }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-cancel")).toBeDisabled()
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "运行中",
+      )
+    })
+
+    resolvePoster()
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "已完成",
+      )
     })
   })
 })

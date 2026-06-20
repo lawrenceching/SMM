@@ -1,5 +1,6 @@
 import type { SettingsTab } from "@/components/ui/config-panel"
 import type { MediaMetadata } from "@core/types"
+import type { ScrapeTaskView } from "@/lib/scrapeDialog"
 import type { DialogConfig, FileItem, FolderType } from "./common"
 
 // Re-export types that were split out
@@ -88,9 +89,22 @@ export interface Task {
   subTasks?: Task[]
 }
 
-export interface ScrapeDialogProps {
+export type { ScrapeTaskId, ScrapeTaskStatus, ScrapeTaskView } from "@/lib/scrapeDialog"
+
+export interface UIScrapeDialogProps {
   isOpen: boolean
   onClose: () => void
+  tasks: ScrapeTaskView[]
+  isRunning: boolean
+  allTasksDone: boolean
+  showButtons: boolean
+  cancelDisabled: boolean
+  canDismissIncidentally: boolean
+  onCancel: () => void
+  onStart: () => void | Promise<void>
+}
+
+export type ScrapeDialogProps = Pick<UIScrapeDialogProps, "isOpen" | "onClose"> & {
   mediaMetadata?: MediaMetadata
 }
 

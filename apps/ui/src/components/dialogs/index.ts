@@ -10,7 +10,8 @@ export { TextDialog } from "./text-dialog"
 export { RenameFolderDialog } from "./rename-folder-dialog"
 export { OpenFolderDialog } from "./open-folder-dialog"
 export { ScrapeDialog } from "./ScrapeDialog"
-export { ScrapeDialogV2 } from "./ScrapeDialogV2"
+export { UIScrapeDialog } from "./UIScrapeDialog"
+export { UIScrapeDialogTable } from "./UIScrapeDialogTable"
 export { FormatConverterDialog } from "./format-converter-dialog"
 export { VideoCompressionDialog } from "./video-compression-dialog"
 export { DeleteTrackDialog } from "./delete-track-dialog"
@@ -43,6 +44,10 @@ export type {
   RenameFolderDialogProps,
   OpenFolderDialogProps,
   ScrapeDialogProps,
+  UIScrapeDialogProps,
+  ScrapeTaskView,
+  ScrapeTaskId,
+  ScrapeTaskStatus,
   TrackProperties,
   MediaFilePropertyDialogProps,
   FormatConverterDialogProps,

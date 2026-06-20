@@ -35,6 +35,8 @@ export interface TmdbRequestOptions {
   /** TMDB API key configured by the user. Attached as `Authorization: Bearer <apiKey>`. */
   apiKey?: string
   signal?: AbortSignal
+  /** Override fetch for tests or custom HTTP clients. Defaults to global `fetch`. */
+  fetchFn?: typeof fetch
 }
 
 function buildHeaders(upstream: TmdbUpstream): Record<string, string> {
@@ -54,8 +56,13 @@ function buildProxyUrl(upstream: TmdbUpstream, path: string, queryString: string
   return `${upstream.reverseProxyUrl}${normalizedPath}${suffix}`
 }
 
-async function fetchJson<T>(url: string, init: RequestInit, errorPrefix: string): Promise<T> {
-  const resp = await fetch(url, init)
+async function fetchJson<T>(
+  url: string,
+  init: RequestInit,
+  errorPrefix: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<T> {
+  const resp = await fetchFn(url, init)
   if (!resp.ok) {
     throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`)
   }
@@ -97,6 +104,7 @@ export async function searchTmdb(
       signal: options?.signal,
     },
     'Failed to search TMDB',
+    options?.fetchFn,
   )
 }
 
@@ -122,6 +130,7 @@ export async function getTvShowById(
       signal: options?.signal,
     },
     'Failed to get TV show',
+    options?.fetchFn,
   )
 }
 
@@ -147,6 +156,7 @@ export async function getMovieById(
       signal: options?.signal,
     },
     'Failed to get movie',
+    options?.fetchFn,
   )
 }
 
@@ -178,6 +188,7 @@ export async function getTmdbPrimaryTranslations(
       signal: options?.signal,
     },
     'Failed to fetch TMDB primary translations',
+    options?.fetchFn,
   )
 }
 
@@ -199,6 +210,7 @@ export async function getTmdbLanguages(
       signal: options?.signal,
     },
     'Failed to fetch TMDB languages',
+    options?.fetchFn,
   )
 }
 
@@ -233,20 +245,11 @@ export async function getSeason(
   seriesId: number,
   seasonNumber: number,
   language?: string,
-  options?: {
-    upstreamBaseURL?: string
-    apiKey?: string
-    reverseProxyUrl?: string | null
+  options?: TmdbRequestOptions & {
     appendToResponse?: string
-    signal?: AbortSignal
   },
 ): Promise<TmdbSeasonDetails> {
-  const upstream = resolveUpstream({
-    upstreamBaseURL: options?.upstreamBaseURL,
-    apiKey: options?.apiKey,
-    reverseProxyUrl: options?.reverseProxyUrl,
-    signal: options?.signal,
-  })
+  const upstream = resolveUpstream(options)
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
   if (options?.appendToResponse) queryParams.append('append_to_response', options.appendToResponse)
@@ -263,5 +266,6 @@ export async function getSeason(
       signal: options?.signal,
     },
     'Failed to get TV season',
+    options?.fetchFn,
   )
 }

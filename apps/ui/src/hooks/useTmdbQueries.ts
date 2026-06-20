@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { useCallback } from "react"
+import { createContext, createElement, useCallback, useContext, type ReactNode } from "react"
 import {
   getMovieById as fetchMovieByIdHttp,
   getTvShowById as fetchTvShowByIdHttp,
@@ -26,8 +26,30 @@ const TMDB_MOVIE_BY_ID_STALE_MS = 5 * 60 * 1000
 
 const delayInMs = parseInt(localStorage.getItem('debug_http_delay_ms') ?? "0");
 
+export interface TmdbQueriesRuntimeOptions {
+  fetchFn?: typeof fetch
+}
+
+const TmdbQueriesRuntimeContext = createContext<TmdbQueriesRuntimeOptions>({})
+
+/** Test-only hook: inject a custom fetch implementation for TMDB HTTP calls. */
+export function TmdbQueriesRuntimeProvider({
+  fetchFn,
+  children,
+}: {
+  fetchFn?: typeof fetch
+  children: ReactNode
+}) {
+  return createElement(
+    TmdbQueriesRuntimeContext.Provider,
+    { value: { fetchFn } },
+    children,
+  )
+}
+
 export function useTmdbQueries() {
   const queryClient = useQueryClient()
+  const runtime = useContext(TmdbQueriesRuntimeContext)
   const { appConfig, userConfig } = useConfig()
   const reverseProxyFromConfig = appConfig?.reverseProxyUrl ?? null
 
@@ -50,6 +72,7 @@ export function useTmdbQueries() {
     ...getDefaultTmdbRequestOptions(),
     ...options,
     reverseProxyUrl: options?.reverseProxyUrl ?? getDefaultTmdbRequestOptions().reverseProxyUrl,
+    fetchFn: options?.fetchFn ?? runtime.fetchFn,
   })
 
   const getTvShowById = useCallback(
@@ -68,7 +91,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_TV_SHOW_BY_ID_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey, runtime.fetchFn]
   )
 
   const getTvShowSeasonDetails = useCallback(
@@ -96,7 +119,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_TV_SHOW_SEASON_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey, runtime.fetchFn]
   )
 
   const getMovieById = useCallback(
@@ -115,7 +138,7 @@ export function useTmdbQueries() {
         staleTime: TMDB_MOVIE_BY_ID_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey, runtime.fetchFn]
   )
 
   const search = useCallback(
@@ -134,7 +157,7 @@ export function useTmdbQueries() {
         queryFn: () => searchTmdb(query, type, language, resolvedOptions),
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey]
+    [queryClient, reverseProxyFromConfig, userConfig.tmdb?.host, userConfig.tmdb?.apiKey, runtime.fetchFn]
   )
 
   return { getTvShowById, getTvShowSeasonDetails, getMovieById, search}

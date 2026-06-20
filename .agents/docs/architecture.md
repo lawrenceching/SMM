@@ -440,7 +440,7 @@ All dialogs are managed via `DialogProvider` (React Context) and opened imperati
 | MediaSearchDialog | Search TMDB/TVDB for media identification |
 | RenameFileDialog | Preview and confirm file renames |
 | RenameFolderDialog | Preview and confirm folder renames |
-| ScrapeDialog / ScrapeDialogV2 | Scrape metadata from TMDB/TVDB |
+| ScrapeDialog / UIScrapeDialog | Scrape metadata from TMDB/TVDB (logic + pure UI). Design: [scrape-dialog.md](./design/scrape-dialog.md) |
 | DownloadVideoDialog | yt-dlp video download UI |
 | FormatConverterDialog | FFmpeg conversion UI |
 | ExecuteCmdDialog | Execute whitelisted system commands |

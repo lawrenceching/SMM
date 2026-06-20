@@ -13,7 +13,6 @@ import {
   RenameFolderDialog,
   OpenFolderDialog,
   ScrapeDialog,
-  ScrapeDialogV2,
   FormatConverterDialog,
   VideoCompressionDialog,
   MediaFilePropertyDialog,
@@ -28,28 +27,6 @@ import {
   type ExecuteCmdType,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
-import { useConfig } from "@/hooks/userConfig"
-
-const SCRAPE_DIALOG_V2_FALLBACK = true
-
-function resolveScrapeDialogV2Flag(userConfig: unknown): boolean {
-  if (!userConfig || typeof userConfig !== "object") return SCRAPE_DIALOG_V2_FALLBACK
-  const cfg = userConfig as Record<string, unknown>
-
-  if (typeof cfg.scrapeDialogV2 === "boolean") {
-    return cfg.scrapeDialogV2
-  }
-
-  const experimental = cfg.experimental
-  if (experimental && typeof experimental === "object") {
-    const exp = experimental as Record<string, unknown>
-    if (typeof exp.scrapeDialogV2 === "boolean") {
-      return exp.scrapeDialogV2
-    }
-  }
-
-  return SCRAPE_DIALOG_V2_FALLBACK
-}
 
 // Re-export types for backward compatibility
 export type { FolderType, FileItem, Task }
@@ -132,8 +109,6 @@ interface DialogProviderProps {
 }
 
 export function DialogProvider({ children }: DialogProviderProps) {
-  const { userConfig } = useConfig()
-  const useScrapeDialogV2 = resolveScrapeDialogV2Flag(userConfig)
   // Confirmation dialog state
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [confirmationConfig, setConfirmationConfig] = useState<DialogConfig | null>(null)
@@ -591,19 +566,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
           description={renameFolderOptions.description}
         />
       )}
-      {useScrapeDialogV2 ? (
-        <ScrapeDialogV2
-          isOpen={isScrapeOpen}
-          onClose={closeScrape}
-          mediaMetadata={scrapeOptions.mediaMetadata}
-        />
-      ) : (
-        <ScrapeDialog
-          isOpen={isScrapeOpen}
-          onClose={closeScrape}
-          mediaMetadata={scrapeOptions.mediaMetadata}
-        />
-      )}
+      <ScrapeDialog
+        isOpen={isScrapeOpen}
+        onClose={closeScrape}
+        mediaMetadata={scrapeOptions.mediaMetadata}
+      />
       <MediaFilePropertyDialog
         isOpen={isMediaFilePropertyOpen}
         onClose={closeMediaFileProperty}

@@ -9,7 +9,6 @@ import {
   type TvShowNFO,
 } from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
-import { getMovieById } from "@/api/tmdb"
 import { join, newFilePathWithExt } from "@/lib/path"
 import { Path } from "@core/path"
 import { useTmdbQueries } from "./useTmdbQueries"
@@ -49,7 +48,7 @@ export function useScrapeNfoMutation<TContext = unknown>(
     "mutationFn"
   >,
 ) {
-  const { getTvShowById, getTvShowSeasonDetails } = useTmdbQueries()
+  const { getTvShowById, getTvShowSeasonDetails, getMovieById } = useTmdbQueries()
   const {
     getSeriesExtended,
     getSeasonExtended,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import type { MediaMetadata } from "@core/types"
-import { areAllTasksDone, checkTaskCompletion, taskReducer } from "./ScrapeDialogV2"
+import { areAllTasksDone, checkTaskCompletion, getScrapeTaskIdsForMedia, taskReducer } from "@/lib/scrapeDialog"
 
 const listFilesMock = vi.fn()
 
@@ -8,17 +8,31 @@ vi.mock("@/api/listFiles", () => ({
   listFiles: (...args: unknown[]) => listFilesMock(...args),
 }))
 
-describe("ScrapeDialogV2 state reducer", () => {
+describe("ScrapeDialog task list by media type", () => {
+  it("excludes thumbnails for movie folders", () => {
+    expect(
+      getScrapeTaskIdsForMedia({ type: "movie-folder" } as MediaMetadata),
+    ).toEqual(["poster", "fanart", "nfo"])
+  })
+
+  it("includes thumbnails for tv show folders", () => {
+    expect(
+      getScrapeTaskIdsForMedia({ type: "tvshow-folder" } as MediaMetadata),
+    ).toEqual(["poster", "fanart", "thumbnails", "nfo"])
+  })
+})
+
+describe("ScrapeDialog state reducer", () => {
   it("initializes tasks and applies completion map", () => {
     const initState = taskReducer(
       { tasks: [], isRunning: false },
       {
         type: "INIT",
         tasks: [
-          { id: "poster", name: "Poster", status: "pending" },
-          { id: "fanart", name: "Fanart", status: "pending" },
-          { id: "thumbnails", name: "Thumbnails", status: "pending" },
-          { id: "nfo", name: "NFO", status: "pending" },
+          { id: "poster", status: "pending" },
+          { id: "fanart", status: "pending" },
+          { id: "thumbnails", status: "pending" },
+          { id: "nfo", status: "pending" },
         ],
       },
     )
@@ -40,7 +54,7 @@ describe("ScrapeDialogV2 state reducer", () => {
 
     const running = taskReducer(
       {
-        tasks: [{ id: "poster", name: "Poster", status: "pending" }],
+        tasks: [{ id: "poster", status: "pending" }],
         isRunning: true,
       },
       { type: "MARK_RUNNING", id: "poster" },
@@ -66,25 +80,25 @@ describe("ScrapeDialogV2 state reducer", () => {
   })
 })
 
-describe("ScrapeDialogV2 selectors", () => {
+describe("ScrapeDialog selectors", () => {
   it("areAllTasksDone returns true when all are completed/failed", () => {
     expect(
       areAllTasksDone([
-        { id: "poster", name: "Poster", status: "completed" },
-        { id: "fanart", name: "Fanart", status: "failed" },
-      ] as any),
+        { id: "poster", status: "completed" },
+        { id: "fanart", status: "failed" },
+      ]),
     ).toBe(true)
 
     expect(
       areAllTasksDone([
-        { id: "poster", name: "Poster", status: "completed" },
-        { id: "fanart", name: "Fanart", status: "running" },
-      ] as any),
+        { id: "poster", status: "completed" },
+        { id: "fanart", status: "running" },
+      ]),
     ).toBe(false)
   })
 })
 
-describe("ScrapeDialogV2 completion checks", () => {
+describe("ScrapeDialog completion checks", () => {
   beforeEach(() => {
     listFilesMock.mockReset()
   })
@@ -113,5 +127,22 @@ describe("ScrapeDialogV2 completion checks", () => {
     expect(completion.fanart).toBe(true)
     expect(completion.nfo).toBe(true)
   })
-})
 
+  it("does not mark thumbnails complete when no episodes have season/episode", async () => {
+    listFilesMock.mockResolvedValue({
+      data: {
+        items: [{ path: "/media/Movie/the-jester-f.mp4" }],
+      },
+    })
+
+    const mediaMetadata = {
+      type: "movie-folder",
+      mediaFolderPath: "/media/Movie",
+      mediaFiles: [{ absolutePath: "/media/Movie/the-jester-f.mp4" }],
+      movie: { id: "1", name: "Movie", database: "TMDB" },
+    } as MediaMetadata
+
+    const completion = await checkTaskCompletion(mediaMetadata)
+    expect(completion.thumbnails).toBe(false)
+  })
+})
