@@ -2,54 +2,35 @@ import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMe
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { TMDBTVShow } from "@core/types"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
-import { buildTemporaryRecognitionPlanAsync, handlePendingPlans, unlinkEpisode, mediaFolderPathEqual, applyRecognizeMediaFilePlan, rebuildPlanWithSelectedEpisodes } from "./TvShowPanelUtils"
-import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
-import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
-import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-
-import { nextTraceId } from "@/lib/utils"
-import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
-import { useTvShowFileNameGeneration } from "./hooks/useTvShowFileNameGeneration"
-import { useTvShowWebSocketEvents } from "./hooks/useTvShowWebSocketEvents"
-import { useTmdbQueries } from "@/hooks/useTmdbQueries"
-import { useConfig } from "@/hooks/userConfig"
+import { useRuleBasedRenameFilesFlow } from "./hooks/useRuleBasedRenameFilesFlow"
+import { useRuleBasedRecognizeFlow } from "./hooks/useRuleBasedRecognizeFlow"
+import { useAiBasedRenameFilesFlow } from "./hooks/useAiBasedRenameFilesFlow"
+import { useAiBasedRecognizeFlow } from "./hooks/useAiBasedRecognizeFlow"
+import { useSelectAndUnselectFileFlow } from "./hooks/useSelectAndUnselectFileFlow"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
-import { Path } from "@core/path"
-import { usePlansQuery, useCreatePlanMutation, useUpdatePlanMutation } from "@/hooks/plans"
-import type { UIPlan } from "@/types/UIPlan"
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
-import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
-import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
+import { usePlansQuery } from "@/hooks/plans"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowHeaderV2 } from "./TvShowHeaderV2"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
-import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
-import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
-import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
-import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
-import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
-import { isElectron } from "@/lib/isElectron"
-import { useJobs } from "@/hooks/useJobOrchestrator"
+import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
-import { handleRenamePromptConfirmForTvShow } from "@/actions/handleRenamePromptConfirmForTvShow"
-import { renameFiles } from "@/api/renameFiles"
-import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import {
+  TvShowAppPlanPromptProvider,
+  type TvShowAppPlanPromptContextValue,
+} from "@/components/plans/TvShowAppPlanPromptContext"
 interface ToolbarOption {
   value: "plex" | "emby",
   label: string,
@@ -112,35 +93,8 @@ function TvShowPanel() {
     uiFolderRow?.status,
   ])
 
-  // Plans for the current folder, backed by TanStack Query. Replaces the
-  // legacy Zustand `usePlansStore`. The imperative helpers below
-  // (`setPlanById`/`getPlanById`) are thin adapters over the query cache
-  // and the create/update mutations so the rest of this component reads
-  // largely as before.
+  // Plans for the current folder, backed by TanStack Query.
   const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
-  const createPlanMutation = useCreatePlanMutation()
-  const updatePlanMutation = useUpdatePlanMutation()
-  const plansFolderPath = mediaMetadata?.mediaFolderPath
-
-  const getPlanById = useCallback(
-    (id: string): UIPlan | undefined => plans.find((p) => p.id === id),
-    [plans],
-  )
-
-  const setPlanById = useCallback(
-    async (id: string, patch: Partial<UIPlan>): Promise<void> => {
-      if (!plansFolderPath) return
-      await updatePlanMutation.mutateAsync({
-        id,
-        mediaFolderPath: plansFolderPath,
-        patch: {
-          ...(patch.status !== undefined ? { status: patch.status } : {}),
-          ...(patch.files !== undefined ? { files: patch.files } : {}),
-        },
-      })
-    },
-    [plansFolderPath, updatePlanMutation],
-  )
 
   const setSelectedByMediaFolderPath = useCallback((path: string) => {
     useUIMediaFolderStore.getState().applyFolderClick(path, false)
@@ -148,6 +102,26 @@ function TvShowPanel() {
   const { selectTvShowForFolderMutation, updateMediaMetadata, persistUiMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+
+  const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([])
+  const latestTableData = useLatest(tableData)
+
+  const getSelectedEpisodePaths = useCallback(
+    () =>
+      latestTableData.current
+        .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
+        .map((row) => row.videoFile)
+        .filter((path): path is string => path !== undefined),
+    [],
+  )
+
+  const getSelectedEpisodes = useCallback(
+    () =>
+      latestTableData.current
+        .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
+        .map((row) => ({ season: row.season, episode: row.episode })),
+    [],
+  )
 
   const handleSelectResult = useCallback(
     (args: SearchResultSelectedArgs) => {
@@ -160,12 +134,9 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { filePickerDialog, scrapeDialog, videoCompressionDialog } = useDialogs()
-  const [openFilePicker] = filePickerDialog
+  const { scrapeDialog, videoCompressionDialog } = useDialogs()
   const [openScrape] = scrapeDialog
-  const { userConfig } = useConfig()
   const { mediaLanguage } = useResolvedLanguages()
-  const { getTvShowById } = useTmdbQueries()
 
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: t('toolbar.plex') } as ToolbarOption,
@@ -174,84 +145,14 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isAiFeatureEnabled, isTranscribeEnabled, isTencentAsrTranscribeEnabled, isSubtitleFeaturesEnabled, isVideoCompressionEnabled } = useFeatures()
-  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
-  const isTranscribeAvailable =
-    isSubtitleFeaturesEnabled &&
-    isTranscribeEnabled &&
-    (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
-  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
-  const transcribeDialogRows = useMemo(
-    () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
-    [mediaMetadata],
-  )
-  const hasTranscribeTargets = transcribeDialogRows.length > 0
+  const { isVideoCompressionEnabled } = useFeatures()
 
-  const subtitleTranslationDialogRows = useMemo(
-    () =>
-      subtitleTranslationDialogRowsFromMediaFiles(
-        mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
-      ),
-    [mediaMetadata],
-  )
-  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
-  const isTranslateAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
+  const subtitleFlow = useSubtitleFlow({
+    mediaMetadata,
+    onRefreshMediaMetadata: (path) => void fetchMediaMetadata({ path }),
+  })
 
-  const synthesizeSubtitleDialogRows = useMemo(
-    () =>
-      synthesizeSubtitleDialogRowsFromMediaFiles(
-        mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
-      ),
-    [mediaMetadata],
-  )
-  const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
-  const isSynthesizeAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
-
-  const processPipelineRows = useMemo(
-    () =>
-      processPipelineDialogRowsFromMediaFiles(
-        mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
-      ),
-    [mediaMetadata],
-  )
-  const hasProcessTargets = processPipelineRows.length > 0
-  const isProcessAvailable =
-    isSubtitleFeaturesEnabled && isTranscribeEnabled && isVideoCaptionerReady
-
-  const allJobRecords = useJobs()
-  const runningJobIdsRef = useRef(new Set<string>())
-  const fetchMediaMetadataRef = useRef(fetchMediaMetadata)
-  fetchMediaMetadataRef.current = fetchMediaMetadata
-  const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath)
-  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath
-
-  useEffect(() => {
-    const mfp = mediaFolderPathRef.current
-    if (!mfp) { runningJobIdsRef.current = new Set(); return }
-    const platformFolder = Path.toPlatformPath(mfp)
-    const hadCompletion = allJobRecords.some(
-      (r) =>
-        r.folder === platformFolder &&
-        (r.status === "succeeded" || r.status === "failed") &&
-        runningJobIdsRef.current.has(r.id),
-    )
-    if (hadCompletion) void fetchMediaMetadataRef.current({ path: mfp })
-    runningJobIdsRef.current = new Set(
-      allJobRecords.filter((r) => r.folder === platformFolder && r.status === "running").map((r) => r.id),
-    )
-  }, [allJobRecords])
-
-  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
-  const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)
-  const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false)
   const openUseNfoPrompt = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
-  const openRuleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
-  const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
-  const openAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
-  const openRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
-  const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
-  const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
-  const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
 
   // Callback handlers for prompts
   const handleUseNfoConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
@@ -266,21 +167,6 @@ function TvShowPanel() {
       return
     }
     console.log(`[TvShowPanel] loaded TMDB id from tvshow.nfo: ${tmdbTvShow.id}`);
-    handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: mediaLanguage })
-  }, [handleSelectResult, mediaLanguage])
-
-  const handleUseTmdbidFromFolderNameConfirm = useCallback((tmdbTvShow: TMDBTVShow) => {
-    console.log('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm CALLED', {
-      timestamp: new Date().toISOString(),
-      tmdbTvShow,
-      tmdbTvShowId: tmdbTvShow?.id,
-      stackTrace: new Error().stack
-    })
-    if (!tmdbTvShow || !tmdbTvShow.id) {
-      console.error('[TvShowPanel] handleUseTmdbidFromFolderNameConfirm called with invalid tmdbTvShow:', tmdbTvShow)
-      return
-    }
-    console.log(`[TvShowPanel] loaded TMDB id from folder name: ${tmdbTvShow.id}`);
     handleSelectResult({ database: 'TMDB', result: tmdbTvShow, searchLanguage: mediaLanguage })
   }, [handleSelectResult, mediaLanguage])
 
@@ -303,385 +189,54 @@ function TvShowPanel() {
     })
   }, [openUseNfoPrompt, handleUseNfoConfirm])
 
-  // Use state hook
-  const {
-    selectedNamingRule,
-    setSelectedNamingRule,
-  } = useTvShowPanelState({ 
-    mediaMetadata, 
-    toolbarOptions, 
-    usePrompts: { 
-      openUseNfoPrompt: openUseNfoPromptWithCallbacks
-    } 
+  // Use state hook (folder-change side effects)
+  useTvShowPanelState({
+    mediaMetadata,
+    usePrompts: {
+      openUseNfoPrompt: openUseNfoPromptWithCallbacks,
+    },
   })
 
-  // Use file name generation hook
-  const { generateNewFileNames } = useTvShowFileNameGeneration({
+  const renameFlow = useRuleBasedRenameFilesFlow({
+    plans,
     mediaMetadata,
-    selectedNamingRule,
+    getSelectedEpisodePaths,
+    persistUiMediaMetadata,
+    namingRuleOptions: toolbarOptions,
+    t: t as (key: string, options?: Record<string, unknown>) => string,
+    onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
-
-  const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
-
-  const handleTmdbIdDetected = useCallback(async (tmdbId: number) => {
-    tmdbPromptStore.openPrompt({
-      tmdbId,
-      mediaName: undefined,
-      status: "loading",
-      onConfirm: handleUseTmdbidFromFolderNameConfirm,
-      onCancel: () => {},
-    })
-
-    try {
-      // const details = await getTvShowById(tmdbId, language)
-      
-      // if (details) {
-      //   tmdbPromptStore.openPrompt({
-      //     tmdbId,
-      //     mediaName: details.name,
-      //     status: "ready",
-      //     onConfirm: handleUseTmdbidFromFolderNameConfirm,
-      //     onCancel: () => {},
-      //   })
-      // } else {
-      //   tmdbPromptStore.openPrompt({
-      //     tmdbId,
-      //     mediaName: undefined,
-      //     status: "error",
-      //     onConfirm: handleUseTmdbidFromFolderNameConfirm,
-      //     onCancel: () => {},
-      //   })
-      //   toast.error(t('toolbar.queryTmdbFailed'))
-      // }
-    } catch (error) {
-      console.error('Failed to get TV show by ID:', error)
-      tmdbPromptStore.openPrompt({
-        tmdbId,
-        mediaName: undefined,
-        status: "error",
-        onConfirm: handleUseTmdbidFromFolderNameConfirm,
-        onCancel: () => {},
-      })
-      toast.error(t('toolbar.queryTmdbFailed'))
-    }
-  }, [getTvShowById, handleUseTmdbidFromFolderNameConfirm, t])
-
-  useEffect(() => {
-
-    if(mediaMetadata?.status !== 'ok') {
-      return
-    }
-
-    if(mediaMetadata?.tvShow !== undefined) {
-      return
-    }
-
-    // const detection = startToRecognizeByTmdbIdInFolderName(mediaMetadata, userConfig)
-    // if (detection) {
-    //   handleTmdbIdDetected(detection.tmdbId, detection.language)
-    // }
-  }, [mediaMetadata, userConfig, handleTmdbIdDetected])
-
-  const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
-    if (!isAiFeatureEnabled || !mediaMetadata) return
-    await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, setPlanById)
-    // Drop any in-memory AI draft (no-op for app/backend-persisted plans).
-    await cleanupRecognizePlan(plan.id)
-  }, [isAiFeatureEnabled, mediaMetadata, persistUiMediaMetadata, setPlanById])
-
-  const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
-    console.log('[TvShowPanel] User clicked the confirm button in RuleBasedRecognizePrompt', structuredClone(plan))
-    if (!mediaMetadata) {
-      toast.error("No media metadata available")
-      return
-    }
-
-    if (!plan || !plan.mediaFolderPath) {
-      toast.error("Plan not found or invalid")
-      return
-    }
-
-    try {
-      const selectedEpisodes = latestTableData.current
-        .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
-        .map(row => ({ season: row.season, episode: row.episode }))
-
-      const actualPlan = rebuildPlanWithSelectedEpisodes(plan as RecognizeMediaFilePlan, selectedEpisodes)
-      const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
-      await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, persistUiMediaMetadata, { traceId })
-      await setPlanById(plan.id, { status: 'completed' })
-      
-      toast.success(t('toolbar.recognizeEpisodesSuccess'))
-    } catch (error) {
-      console.error('[TvShowPanel] Error applying rule-based recognition:', error)
-      toast.error("Failed to apply recognition")
-    }
-  }, [mediaMetadata, persistUiMediaMetadata, setPlanById, t])
-
-  // Plans are fetched reactively by `usePlansQuery(mediaFolderPath)`; the
-  // Socket.IO PlanReady listeners invalidate the query to refresh them.
-
-  const handleRenamePromptConfirm = useCallback(async (planId: string) => {
-    const plan = getPlanById(planId)
-
-    if (!plan) {
-      console.error("[TvShowPanel] No temporary rename plan found")
-      toast.error("Failed to find rename plan")
-      return
-    }
-
-    await handleRenamePromptConfirmForTvShow(
-      {
-        planId,
-        plan: plan as UIRenameFilesPlan,
-        mediaMetadata: mediaMetadata!,
-        selectedEpisodePaths: latestTableData.current
-          .filter((row): row is TvShowEpisodeDataRow => row.type === 'episode' && row.checked)
-          .map(row => row.videoFile)
-          .filter(path => path !== undefined),
-        renameFailedLabel: t('episodeFile.renameFailed'),
-        noMediaPathErrorLabel: t('movie.noMediaPathError'),
-      },
-      {
-        setPlanById,
-        persistUiMediaMetadata,
-        renameFilesApi: renameFiles,
-      },
-    )
-  }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata, t])
-
-  /**
-   * Open AI based rename file prompt (only when AI features are enabled)
-   */
-  useEffect(() => {
-    if (!isAiFeatureEnabled || !mediaMetadata?.mediaFolderPath) {
-      if (!isAiFeatureEnabled) {
-        closeAiBasedRenameFilePrompt()
-      }
-      return
-    }
-    const plan = plans.find(
-      (p): p is UIRenameFilesPlan => 
-        p.task === "rename-files" &&
-        p.status === "pending" &&
-        mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath)
-    )
-    if (plan) {
-      console.log(`[TvShowPanel] Detected pending RenameFilesPlan, open AiBasedRenameFilePrompt:`, plan)
-      setEpisodeTableLayout('simple')
-      openAiBasedRenameFilePrompt({
-        status: "wait-for-ack",
-        onConfirm: () => handleRenamePromptConfirm(plan.id),
-        onCancel: async () => {
-          try {
-            // Persist rejection (removes the plan file + drops it from cache).
-            await setPlanById(plan.id, { status: "rejected" })
-            // Drop any in-memory AI draft (no-op for app/backend plans).
-            await cleanupRenamePlan(plan.id)
-          } catch (error) {
-            console.error("[TvShowPanel] Error rejecting rename plan:", error)
-            toast.error(
-              `Failed to reject rename plan: ${error instanceof Error ? error.message : "Unknown error"}`,
-            )
-          }
-        },
-      })
-    } else {
-      closeAiBasedRenameFilePrompt()
-      // Do not close recognize prompt here; handlePendingPlans manages AiBasedRecognizePrompt.
-    }
-  }, [isAiFeatureEnabled, plans, mediaMetadata, openAiBasedRenameFilePrompt, closeAiBasedRenameFilePrompt, handleRenamePromptConfirm])
-
-  // Use WebSocket events hook
-  useTvShowWebSocketEvents({
+  const recognizeFlow = useRuleBasedRecognizeFlow({
+    plans,
     mediaMetadata,
+    getSelectedEpisodes,
+    persistUiMediaMetadata,
+    t: t as (key: string, options?: Record<string, unknown>) => string,
+  })
+
+  const plan = renameFlow.plan ?? recognizeFlow.plan
+
+  useAiBasedRenameFilesFlow({
+    plans,
+    mediaMetadata,
+    onAppRenameConfirm: renameFlow.onConfirm,
     setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
-    openAiBasedRenameFilePrompt,
-    setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,
     updateMediaMetadata,
+    onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
-  const requireMediaMetadata = useCallback(() => {
-    if (!mediaMetadata) {
-      toast.error("No media metadata available")
-      console.error("No media metadata available")
-      return
-    }
+  useAiBasedRecognizeFlow({
+    activePlan: plan,
+    mediaMetadata,
+    persistUiMediaMetadata,
+  })
 
-    if (!mediaMetadata.mediaFolderPath) {
-      toast.error("No media folder path available")
-      console.error("No media folder path available")
-      return
-    }
-
-    return mediaMetadata
-  }, [mediaMetadata])
-
-  // Handle file selection for episode
-  const handleEpisodeFileSelect = useCallback((seasonNumber: number, episodeNumber: number, file: { path: string; isDirectory?: boolean }) => {
-    // Don't allow selecting directories
-    if (file.isDirectory) {
-      toast.error(t('tvShowEpisodeTable.linkFileDirectoryError'))
-      return
-    }
-
-    const currentMediaMetadata = requireMediaMetadata();
-    if (!currentMediaMetadata) {
-      return
-    }
-
-    const traceId = `UserLinkFileToEpisode-${nextTraceId()}`
-
-    const updated = handleEpisodeFileSelectHelper(
-      currentMediaMetadata,
-      seasonNumber,
-      episodeNumber,
-      file.path,
-      (errorMessage) => {
-        toast.error(errorMessage)
-      }
-    )
-
-    // If helper returns the same object, treat it as no-op (likely due to error)
-    if (updated === currentMediaMetadata) {
-      return
-    }
-
-    updateMediaMetadata(currentMediaMetadata.mediaFolderPath!, updated, { traceId })
-  }, [mediaMetadata, updateMediaMetadata, requireMediaMetadata, t])
-
-  const handleOpenFilePickerForEpisode = useCallback((seasonNumber: number, episodeNumber: number) => {
-    // Validate mediaMetadata is available
-    if (!mediaMetadata?.mediaFolderPath) {
-      toast.error("No media metadata available")
-      return
-    }
-
-    // In test environment, allow mocking file picker result via localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        const mockFilePick = window.localStorage.getItem('test.mockFilePick')
-        console.log(`[Mock] mock file pick: ${mockFilePick}`)
-        if (mockFilePick && mockFilePick.trim().length > 0) {
-          const selectedFile = {
-            path: mockFilePick,
-            isDirectory: false,
-          }
-          handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
-          return
-        }
-      } catch (error) {
-        console.error('[handleOpenFilePickerForEpisode] Failed to read localStorage.test.mockFilePick:', error)
-      }
-    }
-
-    // Convert media folder path from POSIX to platform-specific format for the file picker
-    const mediaFolderPlatformPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-    if (isElectron()) {
-      void openNativeOpenDialog({
-        properties: ['openFile'],
-        title: "Select Video File",
-        defaultPath: mediaFolderPlatformPath,
-        filters: [
-          { name: 'Video Files', extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'ts'] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      }).then((selectedFile) => {
-        if (selectedFile) {
-          handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
-        }
-      }).catch((error: Error) => {
-        console.error('[handleOpenFilePickerForEpisode] Error opening native dialog:', error)
-        toast.error(`Failed to open file dialog: ${error.message}`)
-      })
-    } else {
-      // Use custom file picker dialog in web environment
-      const fileSelectHandler = (selectedFile: { path: string; isDirectory?: boolean }) => {
-        handleEpisodeFileSelect(seasonNumber, episodeNumber, selectedFile)
-      }
-
-      openFilePicker(fileSelectHandler, {
-        title: "Select Video File",
-        description: "Choose a video file for this episode",
-        selectFolder: false,
-        initialPath: mediaFolderPlatformPath
-      })
-    }
-  }, [mediaMetadata, openFilePicker, handleEpisodeFileSelect])
-
-  // Handler for rule-based recognition button click
-  const handleRuleBasedRecognizeButtonClick = useCallback(() => {
-    if (!mediaMetadata?.mediaFolderPath) {
-      toast.error("No media folder path available")
-      return
-    }
-
-    const traceId = `RecognizeEpisodes-${nextTraceId()}`
-    const folderPath = mediaMetadata.mediaFolderPath
-
-    // 1. Create a `preparing` plan (creator: 'app') so RuleBasedRecognizePrompt
-    //    shows immediately (optimistic cache insert) while files are computed.
-    const planId = crypto.randomUUID()
-
-    console.log(`[TvShowPanel] openRuleBasedRecognizePrompt() CALLED`)
-    openRuleBasedRecognizePrompt({
-      tvShowTitle: mediaMetadata.tvShow?.name ?? '',
-      tvShowTmdbId: parseInt(mediaMetadata.tvShow?.id ?? '0'),
-      planId,
-      onConfirm: () => {
-        console.log(`[TvShowPanel] RuleBasedRecognizePrompt.onConfirm() CALLED`)
-        handleRuleBasedRecognizePromptConfirmButtonClick?.(getPlanById(planId) as UIRecognizeMediaFilePlan)
-      },
-      onCancel: () => {
-        void setPlanById(planId, { status: 'rejected' })
-      }
-    })
-
-    // 2. Persist the preparing plan, then compute files and update to pending.
-    void createPlanMutation
-      .createPlanOptimistic({
-        id: planId,
-        task: 'recognize-media-file',
-        mediaFolderPath: folderPath,
-        creator: 'app',
-      })
-      .then(() => buildTemporaryRecognitionPlanAsync(mediaMetadata))
-      .then(planData => {
-        console.log(`[${traceId}] recognize episodes: `, structuredClone(planData))
-
-        if (planData && planData.files.length > 0) {
-          return setPlanById(planId, { status: 'pending', files: planData.files })
-        }
-        toast.error(t('toast.noRecognizedFiles', { defaultValue: 'Unable to recognize any episodes. Consider using AI to recognize instead.' }))
-        return setPlanById(planId, { status: 'rejected' })
-      })
-      .catch(err => {
-        void setPlanById(planId, { status: 'rejected' })
-        toast.error(err instanceof Error ? err.message : 'Recognition failed')
-      })
-  }, [mediaMetadata, createPlanMutation, getPlanById, setPlanById, openRuleBasedRecognizePrompt, handleRuleBasedRecognizePromptConfirmButtonClick, t])
-
-  const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([]);
-  const latestTableData = useLatest(tableData)
-
-  const plan = useMemo(() => {
-    if(plans.length > 0) {
-      
-      const plansForThisFolder = plans
-          .filter(p => mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata?.mediaFolderPath))
-          .filter(p => p.status === 'pending' || p.status === 'preparing')
-
-      if(plansForThisFolder.length === 0) {
-        return undefined;
-      }
-
-      console.log(`Found active plan: `, plansForThisFolder[0])
-      return plansForThisFolder[0]
-
-    }
-    return undefined;
-  }, [plans, mediaMetadata?.mediaFolderPath])
+  const selectFileFlow = useSelectAndUnselectFileFlow({
+    mediaMetadata,
+    updateMediaMetadata,
+    t: t as (key: string, options?: Record<string, unknown>) => string,
+  })
 
   const previewMode: "rename" | "recognize" | undefined = useMemo(() => {
 
@@ -729,19 +284,6 @@ function TvShowPanel() {
     
   }, [mediaMetadata, plan, t])
 
-  const handleUnlinkEpisode = useCallback(
-    (row: TvShowEpisodeDataRow) => {
-      unlinkEpisode({
-        season: row.season,
-        episode: row.episode,
-        mediaMetadata,
-        updateMediaMetadata,
-        t: t as (key: string, options?: Record<string, unknown>) => string,
-      })
-    },
-    [mediaMetadata, updateMediaMetadata, t]
-  )
-
   const handleVideoCompressForRow = useCallback(
     (row: TvShowEpisodeDataRow) => {
       const seasonNo = row.season;
@@ -763,213 +305,47 @@ function TvShowPanel() {
     },
     [mediaMetadata, videoCompressionDialog],
   )
-  
-  /**
-   * Hanlde the event of user click "Select File" context menu in TvShowEpisodeTable
-   * App pop up the file-picker-dialog or native file-picker dialog to let user select the video file
-   * And then update the mediaMetadata.mediaFiles with the selected video file path for given season and episode
-   */
-  const handleSelectFileContextMenuClick = useCallback((row: TvShowEpisodeDataRow) => {
-      const seasonNo = row.season;
-      const episodeNo = row.episode;
-      handleOpenFilePickerForEpisode(seasonNo, episodeNo)
-  }, [mediaMetadata])
 
-  useEffect(() => {
-    // No active plan for this folder → make sure no stale AI recognize prompt
-    // is left open (e.g. after a plan was rejected/removed from the cache).
-    if (plan === undefined) {
-      closeAiBasedRecognizePrompt()
-      return
+  const appPlanPromptValue = useMemo((): TvShowAppPlanPromptContextValue => {
+    return {
+      appRenamePlan: renameFlow.plan,
+      appRecognizePlan: recognizeFlow.plan,
+      renameToolbarOptions: renameFlow.namingRuleOptions,
+      selectedNamingRule: renameFlow.selectedNamingRule,
+      setSelectedNamingRule: renameFlow.setSelectedNamingRule,
+      onAppRenameNamingRuleSelected: renameFlow.onNamingRuleSelected,
+      onAppRenameConfirm: renameFlow.onConfirm,
+      onAppRenameCancel: renameFlow.onCancel,
+      onAppRecognizeConfirm: recognizeFlow.onConfirm,
+      onAppRecognizeCancel: recognizeFlow.onCancel,
+      tvShowTitle: recognizeFlow.tvShowTitle,
+      tvShowTmdbId: recognizeFlow.tvShowTmdbId,
+      isRuleBasedRecognizeLoading: recognizeFlow.loading,
+      notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
+      allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
     }
-
-    if (plan.status !== 'pending') {
-      return
-    }
-
-    // Rule-based (creator: 'app') recognize plans are handled exclusively by
-    // RuleBasedRecognizePrompt opened from the recognize button. Never surface
-    // them through the AI prompt — doing so caused the prompt to "reappear"
-    // when the rule-based prompt closed before the cache removal landed.
-    if (plan.task === 'recognize-media-file' && plan.creator === 'app') {
-      return
-    }
-
-    console.log(`[TvShowPanel] useEffect handlePendingPlans CALLED: `, structuredClone(plan))
-    handlePendingPlans({
-      pendingPlans: [plan],
-      mediaMetadata,
-      openRuleBasedRecognizePrompt,
-      openAiBasedRecognizePrompt,
-      closeAiBasedRecognizePrompt,
-      handleAiRecognizeConfirmCallback,
-      handleRuleBasedRecognizeConfirmCallback: handleRuleBasedRecognizePromptConfirmButtonClick,
-      updatePlan: async (planId, status) => {
-        await setPlanById(planId, { status })
-      },
-      toast,
-      isAiFeatureEnabled,
-    })
-  }, [
-    plan,
-    mediaMetadata,
-    isAiFeatureEnabled,
-    openRuleBasedRecognizePrompt,
-    openAiBasedRecognizePrompt,
-    closeAiBasedRecognizePrompt,
-    handleAiRecognizeConfirmCallback,
-    handleRuleBasedRecognizePromptConfirmButtonClick,
-    setPlanById,
-  ])
-
-  const handleHeaderTranslateClick = useCallback(() => {
-    if (!hasTranslateTargets) {
-      toast.error("No subtitle files available to translate.")
-      return
-    }
-    setIsSubtitleTranslationOpen(true)
-  }, [hasTranslateTargets])
-
-  const handleHeaderSynthesizeClick = useCallback(() => {
-    if (!hasSynthesizeTargets) {
-      toast.error("No video and subtitle pairs available to synthesize.")
-      return
-    }
-    setIsSynthesizeSubtitleOpen(true)
-  }, [hasSynthesizeTargets])
-
-  const handleHeaderProcessClick = useCallback(() => {
-    if (!hasProcessTargets) {
-      toast.error("No media files available for the pipeline.")
-      return
-    }
-    setIsProcessPipelineOpen(true)
-  }, [hasProcessTargets])
+  }, [renameFlow, recognizeFlow])
 
   return (
+    <TvShowAppPlanPromptProvider value={appPlanPromptValue}>
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       <TvShowPanelPrompts />
 
-      <TranscribeDialog
-        isOpen={isTranscribeOpen}
-        onClose={() => setIsTranscribeOpen(false)}
-        rows={transcribeDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SubtitleTranslationDialog
-        isOpen={isSubtitleTranslationOpen}
-        onClose={() => setIsSubtitleTranslationOpen(false)}
-        rows={subtitleTranslationDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SynthesizeSubtitleDialog
-        isOpen={isSynthesizeSubtitleOpen}
-        onClose={() => setIsSynthesizeSubtitleOpen(false)}
-        rows={synthesizeSubtitleDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <ProcessPipelineDialog
-        isOpen={isProcessPipelineOpen}
-        onClose={() => setIsProcessPipelineOpen(false)}
-        rows={processPipelineRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
+      <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
+      <SubtitleTranslationDialog {...subtitleFlow.dialogs.translate} />
+      <SynthesizeSubtitleDialog {...subtitleFlow.dialogs.synthesize} />
+      <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
         <TvShowHeaderV2
           onSearchResultSelected={handleSelectResult}
-          onRecognizeButtonClick={handleRuleBasedRecognizeButtonClick}
-          onRenameClick={() => {
-
-            if (!mediaMetadata?.mediaFolderPath) {
-              toast.error("No media folder path available")
-              return
-            }
-
-            setEpisodeTableLayout('simple')
-
-            const folderPath = mediaMetadata.mediaFolderPath
-
-            // 1. Create a `preparing` rename plan (creator: 'app') so the
-            //    RuleBasedRenameFilePrompt shows immediately.
-            const planId = crypto.randomUUID()
-            void createPlanMutation.createPlanOptimistic({
-              id: planId,
-              task: 'rename-files',
-              mediaFolderPath: folderPath,
-              creator: 'app',
-            })
-
-            console.log(`[TvShowPanel] created new rename plan: ${planId}`);
-
-            openRuleBasedRenameFilePrompt({
-              toolbarOptions,
-              selectedNamingRule,
-              setSelectedNamingRule,
-              planId,
-              onConfirm: () => {
-                handleRenamePromptConfirm(planId)
-              },
-              onCancel: async () => {
-                try {
-                  await setPlanById(planId, { status: 'rejected' })
-                } catch (error) {
-                  console.error("[TvShowPanel] Error rejecting rename plan:", error)
-                }
-              },
-              onNamingRulesSelected: async (rule) => {
-                console.log(`[TvShowPanel] onNamingRulesSelected: ${rule}`)
-                try {
-                  const renamePlan = generateNewFileNames(rule)
-                  console.log(`[TvShowPanel] generated rename plan by naming rule ${rule}: `, structuredClone(renamePlan))
-
-                  if (renamePlan) {
-                    await setPlanById(planId, {
-                      status: 'pending',
-                      files: renamePlan.files
-                    })
-                  } else {
-                    await setPlanById(planId, { status: 'rejected' })
-                  }
-                } catch (error) {
-                  console.error("[TvShowPanel] Error generating file names:", error)
-                  await setPlanById(planId, { status: 'rejected' })
-                }
-              },
-            })
-          }}
+          onRecognizeButtonClick={recognizeFlow.startRecognizeFlow}
+          onRenameClick={renameFlow.startRenameFlow}
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
-          showSubtitleMenu={isSubtitleFeaturesEnabled}
-          onTranscribeClick={() => setIsTranscribeOpen(true)}
-          onTranslateClick={handleHeaderTranslateClick}
-          onSynthesizeClick={handleHeaderSynthesizeClick}
-          onProcessClick={handleHeaderProcessClick}
-          isTranscribeAvailable={isTranscribeAvailable}
-          hasTranscribeTargets={hasTranscribeTargets}
-          isTranslateAvailable={isTranslateAvailable}
-          hasTranslateTargets={hasTranslateTargets}
-          isSynthesizeAvailable={isSynthesizeAvailable}
-          hasSynthesizeTargets={hasSynthesizeTargets}
-          isProcessAvailable={isProcessAvailable}
-          hasProcessTargets={hasProcessTargets}
+          showSubtitleMenu={subtitleFlow.showSubtitleMenu}
+          {...subtitleFlow.header}
           episodeTableLayout={episodeTableLayout}
           onEpisodeTableLayoutChange={setEpisodeTableLayout}
         />
@@ -982,8 +358,8 @@ function TvShowPanel() {
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            onSelectFileContextMenuClick={handleSelectFileContextMenuClick}
-            onUnlinkContextMenuClick={handleUnlinkEpisode}
+            onSelectFileContextMenuClick={selectFileFlow.onSelectFileContextMenuClick}
+            onUnlinkContextMenuClick={selectFileFlow.onUnlinkContextMenuClick}
             onVideoCompressContextMenuClick={
               isVideoCompressionEnabled ? handleVideoCompressForRow : undefined
             }
@@ -1007,6 +383,7 @@ function TvShowPanel() {
         )}
       </div>
     </div>
+    </TvShowAppPlanPromptProvider>
   )
 }
 

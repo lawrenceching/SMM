@@ -3,7 +3,15 @@ import { isTerminalPlanStatus } from "@core/types/planCommon"
 import { updatePlan, type UpdatePlanPatch } from "@/api/updatePlan"
 import type { Plan } from "@/api/getPlans"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import type { UIPlan } from "@/types/UIPlan"
 import { plansQueryKey } from "./plansQueryKeys"
+
+export function toUpdatePlanPatch(patch: Partial<UIPlan>): UpdatePlanPatch {
+  return {
+    ...(patch.status !== undefined ? { status: patch.status } : {}),
+    ...(patch.files !== undefined ? { files: patch.files } : {}),
+  }
+}
 
 export interface UpdatePlanVariables {
   id: string

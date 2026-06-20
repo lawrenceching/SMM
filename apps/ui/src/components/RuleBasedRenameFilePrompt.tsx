@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { FloatingPrompt, type FloatingPromptProps, type FloatingPromptOption } from "./FloatingPrompt"
 import {
   Select,
@@ -47,13 +46,6 @@ export function RuleBasedRenameFilePrompt({
   const { t } = useTranslation('components')
   const defaultPlaceholder = t('toolbar.selectPlaceholder')
 
-  // Call onNamingRulesSelected when component is open and has a selected rule
-  useEffect(() => {
-    if (isOpen && selectedNamingRule && onNamingRulesSelected) {
-      onNamingRulesSelected(selectedNamingRule)
-    }
-  }, [isOpen, selectedNamingRule, onNamingRulesSelected])
-
   return (
     <FloatingPrompt
       {...promptProps}
@@ -63,7 +55,13 @@ export function RuleBasedRenameFilePrompt({
       mode="manual"
       className={cn(className)}
     >
-      <Select value={selectedNamingRule} onValueChange={onNamingRuleChange}>
+      <Select
+        value={selectedNamingRule}
+        onValueChange={(value) => {
+          onNamingRuleChange(value)
+          onNamingRulesSelected?.(value)
+        }}
+      >
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder={defaultPlaceholder} />
         </SelectTrigger>

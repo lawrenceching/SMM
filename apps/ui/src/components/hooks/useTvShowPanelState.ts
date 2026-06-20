@@ -4,7 +4,6 @@ import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
   mediaMetadata: UIMediaMetadata | undefined
-  toolbarOptions: Array<{ value: "plex" | "emby"; label: string }>
   usePrompts: {
     openUseNfoPrompt: (params: {
       nfoData: import("@core/types").TMDBTVShowDetails
@@ -14,8 +13,7 @@ interface UseTvShowPanelStateParams {
   }
 }
 
-export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts }: UseTvShowPanelStateParams) {
-  const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
+export function useTvShowPanelState({ mediaMetadata, usePrompts }: UseTvShowPanelStateParams) {
   const [isRenaming, setIsRenaming] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
   const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
@@ -59,8 +57,6 @@ export function useTvShowPanelState({ mediaMetadata, toolbarOptions, usePrompts 
   }, [scrollToEpisodeId])
 
   return {
-    selectedNamingRule,
-    setSelectedNamingRule,
     aiBasedRenameFileStatus,
     setAiBasedRenameFileStatus,
     isRenaming,

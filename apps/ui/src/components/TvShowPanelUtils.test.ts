@@ -1349,7 +1349,6 @@ describe('handlePendingPlans', () => {
     const params = {
       pendingPlans: [overrides?.plan ?? basePlan],
       mediaMetadata: baseMediaMetadata as never,
-      openRuleBasedRecognizePrompt: vi.fn(),
       openAiBasedRecognizePrompt: openAi,
       closeAiBasedRecognizePrompt: vi.fn(),
       handleAiRecognizeConfirmCallback: vi.fn(),

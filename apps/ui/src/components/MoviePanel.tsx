@@ -1,8 +1,7 @@
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { Path } from "@core/path"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { FileProps } from "@/lib/types"
 import { generateNewFileName } from "@/lib/renameRules"
 import { join } from "@/lib/path"
@@ -21,13 +20,8 @@ import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
-import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
-import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
-import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
-import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDialogRows"
-import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useJobs } from "@/hooks/useJobOrchestrator"
+import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useTranslation } from "react-i18next"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
@@ -137,81 +131,27 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [rawMediaMetadata])
 
-  const { isTranscribeEnabled, isTencentAsrTranscribeEnabled, isSubtitleFeaturesEnabled, isVideoCompressionEnabled } = useFeatures()
-  const { isAvailable: isVideoCaptionerReady } = useVideoCaptionerStatus()
-  const isTranscribeAvailable =
-    isSubtitleFeaturesEnabled &&
-    isTranscribeEnabled &&
-    (isVideoCaptionerReady || isTencentAsrTranscribeEnabled)
-  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false)
-  const transcribeDialogRows = useMemo(
-    () => transcribeDialogRowsFromMediaFiles(mediaMetadata),
-    [mediaMetadata],
-  )
-  const hasTranscribeTargets = transcribeDialogRows.length > 0
+  const { isVideoCompressionEnabled } = useFeatures()
 
-  const subtitleTranslationDialogRows = useMemo(
-    () => subtitleTranslationDialogRowsFromMediaFiles(mediaMetadata),
-    [mediaMetadata],
-  )
-  const hasTranslateTargets = subtitleTranslationDialogRows.some((r) => r.eligible)
-  const isTranslateAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
+  const subtitleFlow = useSubtitleFlow({
+    mediaMetadata,
+    onRefreshMediaMetadata: refreshMediaMetadata,
+  })
 
-  const synthesizeSubtitleDialogRows = useMemo(
-    () => synthesizeSubtitleDialogRowsFromMediaFiles(mediaMetadata),
-    [mediaMetadata],
-  )
-  const hasSynthesizeTargets = synthesizeSubtitleDialogRows.some((r) => r.eligible)
-  const isSynthesizeAvailable = isSubtitleFeaturesEnabled && isVideoCaptionerReady
-
-  const processPipelineRows = useMemo(
-    () => processPipelineDialogRowsFromMediaFiles(mediaMetadata),
-    [mediaMetadata],
-  )
-  const hasProcessTargets = processPipelineRows.length > 0
-  const isProcessAvailable =
-    isSubtitleFeaturesEnabled && isTranscribeEnabled && isVideoCaptionerReady
-
-  const allJobRecords = useJobs()
-  const runningJobIdsRef = useRef(new Set<string>())
-  const refreshMediaMetadataRef = useRef(refreshMediaMetadata)
-  refreshMediaMetadataRef.current = refreshMediaMetadata
-  const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath)
-  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath
-
-  useEffect(() => {
-    const mfp = mediaFolderPathRef.current
-    if (!mfp) { runningJobIdsRef.current = new Set(); return }
-    const platformFolder = Path.toPlatformPath(mfp)
-    const hadCompletion = allJobRecords.some(
-      (r) =>
-        r.folder === platformFolder &&
-        (r.status === "succeeded" || r.status === "failed") &&
-        runningJobIdsRef.current.has(r.id),
-    )
-    if (hadCompletion) void refreshMediaMetadataRef.current(mfp)
-    runningJobIdsRef.current = new Set(
-      allJobRecords.filter((r) => r.folder === platformFolder && r.status === "running").map((r) => r.id),
-    )
-  }, [allJobRecords])
-
-  const [isSubtitleTranslationOpen, setIsSubtitleTranslationOpen] = useState(false)
-  const [isSynthesizeSubtitleOpen, setIsSynthesizeSubtitleOpen] = useState(false)
-  const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false)
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 
   // Merge base files with preview modifications
   useEffect(() => {
-    if(!mediaMetadata) {
-      return;
+    if (!mediaMetadata) {
+      return
     }
 
     const model: MovieFileModel = {
-      files: []
+      files: [],
     }
 
-    for(const file of mediaMetadata.mediaFiles || []) {
+    for (const file of mediaMetadata.mediaFiles || []) {
       model.files.push({
         type: "video",
         path: file.absolutePath,
@@ -222,7 +162,6 @@ function MoviePanel() {
     setMovieFiles(model)
   }, [mediaMetadata])
 
-
   // Compute preview mode from prompt states
   const isPreviewingForRename = useMemo(() => {
     return isRuleBasedRenameFilePromptOpen
@@ -230,34 +169,37 @@ function MoviePanel() {
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
-
     console.log(`[MoviePanel] generateNewFileNames() started`, {
       isRuleBasedRenameFilePromptOpen,
       selectedNamingRule,
       movieFiles,
     })
 
-    if(!isRuleBasedRenameFilePromptOpen) {
+    if (!isRuleBasedRenameFilePromptOpen) {
       return
     }
 
-    if(!selectedNamingRule) {
-      console.log(`[MoviePanel] generateNewFileNames() selectedNamingRule is undefined, skip generation`)
-      return;
+    if (!selectedNamingRule) {
+      console.log(
+        `[MoviePanel] generateNewFileNames() selectedNamingRule is undefined, skip generation`,
+      )
+      return
     }
 
-    if(mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
-      console.error(`[MoviePanel] generateNewFileNames() mediaMetadata is undefined or mediaFolderPath is undefined, skip generation`)
+    if (mediaMetadata === undefined || mediaMetadata.mediaFolderPath === undefined) {
+      console.error(
+        `[MoviePanel] generateNewFileNames() mediaMetadata is undefined or mediaFolderPath is undefined, skip generation`,
+      )
       return
     }
 
     const movie = mediaMetadata.movie
-    if(!movie) {
+    if (!movie) {
       console.error(`[MoviePanel] generateNewFileNames() movie is undefined, skip generation`)
       return
     }
 
-    const videoFile = latestMovieFiles.current.files.find(file => file.type === "video")
+    const videoFile = latestMovieFiles.current.files.find((file) => file.type === "video")
 
     if (videoFile === undefined) {
       console.error(`Video file is undefined for movie`)
@@ -265,9 +207,7 @@ function MoviePanel() {
     }
 
     const releaseYear =
-      movie.airDate && movie.airDate.length >= 4
-        ? movie.airDate.slice(0, 4)
-        : ""
+      movie.airDate && movie.airDate.length >= 4 ? movie.airDate.slice(0, 4) : ""
 
     const generatedFileRelativePath = generateNewFileName(selectedNamingRule, {
       type: "movie",
@@ -284,23 +224,25 @@ function MoviePanel() {
     const generatedFilePath = join(mediaMetadata.mediaFolderPath!, generatedFileRelativePath)
 
     if (videoFile.path === generatedFilePath) {
-      console.log(`[MoviePanel] the current file has been named follow the ${selectedNamingRule} rule, don't need to regenerate`)
+      console.log(
+        `[MoviePanel] the current file has been named follow the ${selectedNamingRule} rule, don't need to regenerate`,
+      )
       return
     }
 
-    setMovieFiles(prev => ({
+    setMovieFiles((prev) => ({
       ...prev,
-      files: prev.files.map(file => {
+      files: prev.files.map((file) => {
         if (file.type === "video") {
           return { ...file, newPath: generatedFilePath }
         }
         return file
       }),
     }))
-  }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule])
+  }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule, movieFiles])
 
   useEffect(() => {
-    if(isRuleBasedRenameFilePromptOpen) {
+    if (isRuleBasedRenameFilePromptOpen) {
       generateNewFileNames()
     }
   }, [isRuleBasedRenameFilePromptOpen, generateNewFileNames])
@@ -387,30 +329,6 @@ function MoviePanel() {
     return rows
   }, [movieFiles.files])
 
-  const handleHeaderTranslateClick = useCallback(() => {
-    if (!hasTranslateTargets) {
-      toast.error("No subtitle files available to translate.")
-      return
-    }
-    setIsSubtitleTranslationOpen(true)
-  }, [hasTranslateTargets])
-
-  const handleHeaderSynthesizeClick = useCallback(() => {
-    if (!hasSynthesizeTargets) {
-      toast.error("No video and subtitle pairs available to synthesize.")
-      return
-    }
-    setIsSynthesizeSubtitleOpen(true)
-  }, [hasSynthesizeTargets])
-
-  const handleHeaderProcessClick = useCallback(() => {
-    if (!hasProcessTargets) {
-      toast.error("No media files available for the pipeline.")
-      return
-    }
-    setIsProcessPipelineOpen(true)
-  }, [hasProcessTargets])
-
   const handleVideoCompressClick = useCallback(
     (filePath: string) => {
       const [openVideoCompression] = videoCompressionDialog
@@ -421,64 +339,17 @@ function MoviePanel() {
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
-      <TranscribeDialog
-        isOpen={isTranscribeOpen}
-        onClose={() => setIsTranscribeOpen(false)}
-        rows={transcribeDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SubtitleTranslationDialog
-        isOpen={isSubtitleTranslationOpen}
-        onClose={() => setIsSubtitleTranslationOpen(false)}
-        rows={subtitleTranslationDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <SynthesizeSubtitleDialog
-        isOpen={isSynthesizeSubtitleOpen}
-        onClose={() => setIsSynthesizeSubtitleOpen(false)}
-        rows={synthesizeSubtitleDialogRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
-      <ProcessPipelineDialog
-        isOpen={isProcessPipelineOpen}
-        onClose={() => setIsProcessPipelineOpen(false)}
-        rows={processPipelineRows}
-        folder={
-          mediaMetadata?.mediaFolderPath
-            ? Path.toPlatformPath(mediaMetadata.mediaFolderPath)
-            : undefined
-        }
-      />
+      <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
+      <SubtitleTranslationDialog {...subtitleFlow.dialogs.translate} />
+      <SynthesizeSubtitleDialog {...subtitleFlow.dialogs.synthesize} />
+      <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
         <MovieHeaderV2
           onSearchResultSelected={handleSelectResult}
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
-          showSubtitleMenu={isSubtitleFeaturesEnabled}
-          onTranscribeClick={() => setIsTranscribeOpen(true)}
-          onTranslateClick={handleHeaderTranslateClick}
-          onSynthesizeClick={handleHeaderSynthesizeClick}
-          onProcessClick={handleHeaderProcessClick}
-          isTranscribeAvailable={isTranscribeAvailable}
-          hasTranscribeTargets={hasTranscribeTargets}
-          isTranslateAvailable={isTranslateAvailable}
-          hasTranslateTargets={hasTranslateTargets}
-          isSynthesizeAvailable={isSynthesizeAvailable}
-          hasSynthesizeTargets={hasSynthesizeTargets}
-          isProcessAvailable={isProcessAvailable}
-          hasProcessTargets={hasProcessTargets}
+          showSubtitleMenu={subtitleFlow.showSubtitleMenu}
+          {...subtitleFlow.header}
           selectedMediaMetadata={
             mediaMetadata && rawMediaMetadata
               ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)

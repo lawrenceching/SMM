@@ -940,13 +940,6 @@ export async function buildTemporaryRecognitionPlanAsync(
 export interface HandlePendingPlansParams {
   pendingPlans: (UIRecognizeMediaFilePlan | UIRenameFilesPlan)[]
   mediaMetadata: UIMediaMetadata | undefined
-  openRuleBasedRecognizePrompt: (options: {
-    tvShowTitle: string
-    tvShowTmdbId: number
-    planId?: string
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
   openAiBasedRecognizePrompt: (options: {
     status: "generating" | "wait-for-ack"
     confirmButtonLabel?: string

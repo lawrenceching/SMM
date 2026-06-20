@@ -17,15 +17,6 @@ interface UseNfoPromptData {
   onCancel: (() => void) | undefined
 }
 
-interface UseTmdbidFromFolderNamePromptData {
-  isOpen: boolean
-  tmdbId: number | undefined
-  mediaName: string | undefined
-  status: 'ready' | 'loading' | 'error' | undefined
-  onConfirm: ((tmdbTvShow: TMDBTVShow) => void) | undefined
-  onCancel: (() => void) | undefined
-}
-
 interface RuleBasedRenameFilePromptData {
   isOpen: boolean
   toolbarOptions: ToolbarOption[] | undefined
@@ -65,7 +56,6 @@ interface RuleBasedRecognizePromptData {
 
 interface TvShowPromptsState {
   useNfoPrompt: UseNfoPromptData
-  useTmdbidFromFolderNamePrompt: UseTmdbidFromFolderNamePromptData
   ruleBasedRenameFilePrompt: RuleBasedRenameFilePromptData
   aiBasedRenameFilePrompt: AiBasedRenameFilePromptData
   aiBasedRecognizePrompt: AiBasedRecognizePromptData
@@ -78,17 +68,6 @@ interface TvShowPromptsState {
   }) => void
 
   closeUseNfoPrompt: () => void
-
-  openUseTmdbidFromFolderNamePrompt: (config: {
-    tmdbId: number
-    mediaName?: string
-    status: 'ready' | 'loading' | 'error'
-    onConfirm?: (tmdbTvShow: TMDBTVShow) => void
-    onCancel?: () => void
-  }) => void
-
-  updateTmdbidFromFolderNamePromptStatus: (status: 'ready' | 'loading' | 'error', mediaName?: string) => void
-  closeUseTmdbidFromFolderNamePrompt: () => void
 
   openRuleBasedRenameFilePrompt: (config: {
     toolbarOptions: ToolbarOption[]
@@ -153,15 +132,6 @@ const initialState = {
     onCancel: undefined,
   } as UseNfoPromptData,
 
-  useTmdbidFromFolderNamePrompt: {
-    isOpen: false,
-    tmdbId: undefined,
-    mediaName: undefined,
-    status: undefined,
-    onConfirm: undefined,
-    onCancel: undefined,
-  } as UseTmdbidFromFolderNamePromptData,
-
   ruleBasedRenameFilePrompt: {
     isOpen: false,
     toolbarOptions: undefined,
@@ -221,36 +191,6 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
       closeUseNfoPrompt: () => {
         set({
           useNfoPrompt: initialState.useNfoPrompt,
-        })
-      },
-
-      openUseTmdbidFromFolderNamePrompt: ({ tmdbId, mediaName, status, onConfirm, onCancel }) => {
-        get().closeAllPrompts()
-        set({
-          useTmdbidFromFolderNamePrompt: {
-            isOpen: true,
-            tmdbId,
-            mediaName,
-            status,
-            onConfirm,
-            onCancel,
-          },
-        })
-      },
-
-      updateTmdbidFromFolderNamePromptStatus: (status, mediaName) => {
-        set((state) => ({
-          useTmdbidFromFolderNamePrompt: {
-            ...state.useTmdbidFromFolderNamePrompt,
-            status,
-            mediaName: mediaName !== undefined ? mediaName : state.useTmdbidFromFolderNamePrompt.mediaName,
-          },
-        }))
-      },
-
-      closeUseTmdbidFromFolderNamePrompt: () => {
-        set({
-          useTmdbidFromFolderNamePrompt: initialState.useTmdbidFromFolderNamePrompt,
         })
       },
 
@@ -371,7 +311,6 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
 )
 
 export const useUseNfoPrompt = () => useTvShowPromptsStore((state) => state.useNfoPrompt)
-export const useUseTmdbidFromFolderNamePrompt = () => useTvShowPromptsStore((state) => state.useTmdbidFromFolderNamePrompt)
 export const useRuleBasedRenameFilePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
 export const useAiBasedRenameFilePrompt = () => useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
 export const useAiBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
@@ -499,34 +438,6 @@ export const useUseNfoPromptControl = () => {
           onConfirm: config.onConfirm,
           onCancel: config.onCancel,
         })
-      }
-    }
-  }
-}
-
-export const useUseTmdbidFromFolderNamePromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.useTmdbidFromFolderNamePrompt)
-  const updateStatus = useTvShowPromptsStore((state) => state.updateTmdbidFromFolderNamePromptStatus)
-  const open = useTvShowPromptsStore((state) => state.openUseTmdbidFromFolderNamePrompt)
-  const close = useTvShowPromptsStore((state) => state.closeUseTmdbidFromFolderNamePrompt)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; tmdbId?: number; mediaName?: string; status?: 'ready' | 'loading' | 'error'; onConfirm?: (tmdbTvShow: TMDBTVShow) => void; onCancel?: () => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          tmdbId: config.tmdbId!,
-          mediaName: config.mediaName,
-          status: config.status || 'ready',
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-        })
-      } else if (config.status !== undefined || config.mediaName !== undefined) {
-        if (config.status !== undefined) {
-          updateStatus(config.status, config.mediaName)
-        }
       }
     }
   }
