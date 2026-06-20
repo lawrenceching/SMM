@@ -16,19 +16,21 @@ import { nextTraceId } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import type { MediaMetadata } from "@core/types"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIPlan } from "@/types/UIPlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 
 export interface UseRuleBasedRecognizeFlowOptions {
   plans: UIPlan[]
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
+  uiStatus: UIMediaFolderStatus | undefined
   beforeConfirm: (plan: UIRecognizeMediaFilePlan) => UIRecognizeMediaFilePlan
 }
 
 export function useRuleBasedRecognizeFlow({
   plans,
   mediaMetadata,
+  uiStatus,
   beforeConfirm,
 }: UseRuleBasedRecognizeFlowOptions) {
   const { t } = useTranslation(["components"])
@@ -53,9 +55,8 @@ export function useRuleBasedRecognizeFlow({
 
   const tvShowTitle = mediaMetadata?.tvShow?.name ?? ""
   const tvShowTmdbId = parseInt(mediaMetadata?.tvShow?.id ?? "0", 10)
-
   const okMediaMetadata =
-    mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined
+    uiStatus === "ok" ? mediaMetadata : undefined
 
   const notAllEpisodesRecognized = useMemo(() => {
     if (

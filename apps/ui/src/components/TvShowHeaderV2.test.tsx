@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TvShowHeaderV2 } from './TvShowHeaderV2'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@core/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 const mockMediaDatabaseSearchbox = vi.fn((props: any) => (
@@ -57,7 +57,7 @@ describe('TvShowHeaderV2', () => {
     onSearchResultSelected: vi.fn(),
     onRecognizeButtonClick: vi.fn(),
     onRenameClick: vi.fn(),
-    selectedMediaMetadata: undefined as UIMediaMetadata | undefined,
+    selectedMediaMetadata: undefined as MediaMetadata | undefined,
     selectedMediaFolder: undefined as UIMediaFolder | undefined,
     openScrape: vi.fn(),
   }
@@ -74,10 +74,9 @@ describe('TvShowHeaderV2', () => {
         <TvShowHeaderV2
           {...defaultProps}
           selectedMediaMetadata={{
-            status: 'ok',
             mediaFolderPath: '/media/show',
             mediaFiles: [],
-          } as UIMediaMetadata}
+          } as MediaMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
       )
@@ -91,11 +90,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: '123', name: 'Test Show', database: 'TMDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -110,11 +108,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               tvShow: { id: '456', name: 'Test Show', database: 'TMDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
         />
@@ -131,11 +128,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -160,11 +156,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: '123', name: 'Test Show', database: 'TMDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -180,11 +175,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -200,11 +194,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: '123', name: 'Test Show', database: 'TMDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -224,11 +217,10 @@ describe('TvShowHeaderV2', () => {
           {...defaultProps}
           selectedMediaMetadata={
             {
-              status: 'ok',
               mediaFolderPath: '/media/show',
               mediaFiles: [],
               tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
@@ -247,10 +239,9 @@ describe('TvShowHeaderV2', () => {
         <TvShowHeaderV2
           {...defaultProps}
           selectedMediaMetadata={{
-            status: 'ok',
             mediaFolderPath: '/media/show',
             mediaFiles: [],
-          } as UIMediaMetadata}
+          } as MediaMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
         />
       )
@@ -262,11 +253,10 @@ describe('TvShowHeaderV2', () => {
 
   describe('folder status driven loading state', () => {
     const okMetadata = {
-      status: 'ok',
       mediaFolderPath: '/media/show',
       mediaFiles: [],
       tvShow: { id: 'tvdb-1', name: 'TVDB Show Name', database: 'TVDB', seasons: [] },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
     it('shows loading skeleton and hides searchbox when selected folder is loading', () => {
       render(
@@ -296,11 +286,10 @@ describe('TvShowHeaderV2', () => {
 
   describe('Subtitle menu / synthesize', () => {
     const okTv = {
-      status: 'ok' as const,
       mediaFolderPath: '/media/show',
       mediaFiles: [],
       tvShow: { id: '123', name: 'Test Show', database: 'TMDB' as const, seasons: [] },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
     it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       render(
@@ -348,11 +337,10 @@ describe('TvShowHeaderV2', () => {
 
   describe('HarmonyOS: preview layout gating', () => {
     const okTv = {
-      status: 'ok' as const,
       mediaFolderPath: '/media/show',
       mediaFiles: [],
       tvShow: { id: '123', name: 'Test Show', database: 'TMDB' as const, seasons: [] },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
     function renderHeaderWithLayoutControls() {
       const onEpisodeTableLayoutChange = vi.fn()

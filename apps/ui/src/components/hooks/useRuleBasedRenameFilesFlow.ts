@@ -10,12 +10,12 @@ import { useOnFirstOpen } from "@/hooks/useOnFirstOpen"
 import { useTranslation } from "@/lib/i18n"
 import type { RenameToolbarOption } from "@/components/plans/TvShowAppPlanPromptContext"
 import type { UIPlan } from "@/types/UIPlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 
 export interface UseRuleBasedRenameFilesFlowOptions {
   plans: UIPlan[]
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
   beforeConfirm: (plan: UIRenameFilesPlan) => UIRenameFilesPlan
   /** Called when the rename flow starts (e.g. switch episode table to simple layout). */
   onFlowStart?: () => void

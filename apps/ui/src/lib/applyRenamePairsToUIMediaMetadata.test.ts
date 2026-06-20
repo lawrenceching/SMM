@@ -1,13 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { applyRenamePairsToUIMediaMetadata } from "./applyRenamePairsToUIMediaMetadata";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 
 describe("applyRenamePairsToUIMediaMetadata", () => {
   it("remaps mediaFiles and files paths", () => {
     const meta = {
       mediaFolderPath: "/show",
       type: "tvshow-folder" as const,
-      status: "ok" as const,
       files: ["/show/old.mkv", "/show/old.srt"],
       mediaFiles: [
         {
@@ -17,7 +16,7 @@ describe("applyRenamePairsToUIMediaMetadata", () => {
           subtitleFilePaths: ["/show/old.srt"],
         },
       ],
-    } satisfies UIMediaMetadata;
+    } satisfies MediaMetadata;
 
     const next = applyRenamePairsToUIMediaMetadata(meta, [
       { from: "/show/old.mkv", to: "/show/new.mkv" },

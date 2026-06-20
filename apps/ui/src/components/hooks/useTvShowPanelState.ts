@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
   usePrompts: {
     openUseNfoPrompt: (params: {
       nfoData: import("@core/types").TMDBTVShowDetails

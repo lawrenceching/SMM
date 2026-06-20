@@ -1,13 +1,12 @@
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { toast } from "sonner"
+import type { MediaMetadata } from "@core/types"
 import type { UIPlan } from "@/types/UIPlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
 import { rebuildRenamePlanWithSelectedEpisodes } from "@/components/TvShowPanelUtils"
-
 export type SetPlanByIdFn = (id: string, payload: Partial<UIPlan>) => void | Promise<void>
 
 export type RenameFilesApi = Parameters<typeof applyRenameFilesPlanForTvShow>[1]["renameFilesApi"]
@@ -16,7 +15,7 @@ export async function handleRenamePromptConfirmForTvShow(
   options: {
     planId: string
     plan: UIRenameFilesPlan
-    mediaMetadata: UIMediaMetadata
+    mediaMetadata: MediaMetadata
     selectedEpisodePaths: string[]
     renameFailedLabel: string
     noMediaPathErrorLabel: string

@@ -3,7 +3,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { TMDBTVShow } from "@core/types"
+import type { MediaMetadata, TMDBTVShow, TMDBTVShowDetails } from "@core/types"
 import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
 import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
@@ -30,7 +30,7 @@ import {
   rebuildRenamePlanWithSelectedEpisodes,
 } from "@/components/TvShowPanelUtils"
 import { useLatest } from "react-use"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import {
@@ -60,36 +60,16 @@ function TvShowPanel() {
     [folders, selectedFolder],
   )
 
-  const mediaMetadata = useMemo((): UIMediaMetadata | undefined => {
-    if (!selectedFolder?.trim()) return undefined
+  const mediaMetadata: MediaMetadata | undefined = queriedMediaMetadata
 
-    const domain = queriedMediaMetadata
-
-    const status: UIMediaMetadata["status"] = (() => {
-      if (isMediaMetadataError) return "error_loading_metadata"
-      if (domain) return "ok"
-      if (uiFolderRow?.status) return uiFolderRow.status
-      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
-      return "loading"
-    })()
-
-    if (!domain) {
-      const normalizedPath = normalizeMediaFolderPathForQuery(selectedFolder)
-      return {
-        mediaFolderPath: normalizedPath,
-        type: "tvshow-folder",
-        status,
-      } as UIMediaMetadata
-    }
-
-    return {
-      ...domain,
-      status,
-    }
+  const uiStatus: UIMediaFolderStatus = useMemo(() => {
+    if (isMediaMetadataError) return "error_loading_metadata"
+    if (mediaMetadata) return "ok"
+    if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
+    return uiFolderRow?.status ?? "loading"
   }, [
-    selectedFolder,
-    queriedMediaMetadata,
     isMediaMetadataError,
+    mediaMetadata,
     isMediaMetadataPending,
     mediaMetadataFetchStatus,
     uiFolderRow?.status,
@@ -158,6 +138,7 @@ function TvShowPanel() {
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
+    uiStatus,
     onRefreshMediaMetadata: (path) => void fetchMediaMetadata({ path }),
   })
 
@@ -181,8 +162,8 @@ function TvShowPanel() {
 
   // Memoize the wrapped openUseNfoPrompt to avoid recreating it on every render
   const openUseNfoPromptWithCallbacks = useCallback((params: {
-    nfoData: import("@core/types").TMDBTVShowDetails
-    onConfirm?: (tmdbTvShow: import("@core/types").TMDBTVShow) => void
+    nfoData: TMDBTVShowDetails
+    onConfirm?: (tmdbTvShow: TMDBTVShow) => void
     onCancel?: () => void
   }) => {
     console.log('[TvShowPanel] openUseNfoPromptWithCallbacks CALLED', {
@@ -216,6 +197,7 @@ function TvShowPanel() {
   const recognizeFlow = useRuleBasedRecognizeFlow({
     plans,
     mediaMetadata,
+    uiStatus,
     beforeConfirm: recognizeBeforeConfirm,
   })
 
@@ -273,18 +255,18 @@ function TvShowPanel() {
 
     let ret: TvShowEpisodeTableRow[] = [];
     if(plan === undefined) {
-      ret = buildTvShowEpisodeTableRows(mediaMetadata, (key: string) => {
+      ret = buildTvShowEpisodeTableRows(mediaMetadata, uiStatus, (key: string) => {
        return t(key as any)
       })
     } else {
-      ret = buildTvShowEpisodeTableRowsForPlan(mediaMetadata, plan, (key: string) => {
+      ret = buildTvShowEpisodeTableRowsForPlan(mediaMetadata, uiStatus, plan, (key: string) => {
        return t(key as any)
       })
     };
 
     setTableData(ret);
-    
-  }, [mediaMetadata, plan, t])
+
+  }, [mediaMetadata, plan, uiStatus, t])
 
   const handleVideoCompressForRow = useCallback(
     (row: TvShowEpisodeDataRow) => {
@@ -353,7 +335,7 @@ function TvShowPanel() {
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        {mediaMetadata?.status === "initializing" ? (
+        {uiStatus === "initializing" ? (
           <MediaPanelInitializingHint />
         ) : (
           <TvShowEpisodeTable

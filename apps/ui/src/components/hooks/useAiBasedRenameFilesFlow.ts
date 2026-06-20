@@ -8,12 +8,11 @@ import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import type { MediaMetadata } from "@core/types"
 import type { UIPlan } from "@/types/UIPlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 
 export interface UseAiBasedRenameFilesFlowOptions {
   plans: UIPlan[]
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
   onAppRenameConfirm: (planId: string) => Promise<void>
   setSelectedMediaMetadataByMediaFolderPath: (path: string) => void
   updateMediaMetadata: (
@@ -107,7 +106,7 @@ export function useAiBasedRenameFilesFlow({
   ])
 
   useTvShowWebSocketEvents({
-    mediaMetadata: mediaMetadata?.status === "ok" ? (mediaMetadata as MediaMetadata) : undefined,
+    mediaMetadata,
     setSelectedMediaMetadataByMediaFolderPath,
     openAiBasedRenameFilePrompt,
     setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,

@@ -8,7 +8,8 @@ import {
 import type { TvShowEpisodeTableRow, TvShowEpisodeDataRow } from '@/components/TvShowEpisodeTable'
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 import type { UIRenameFilesPlan } from '@/types/UIRenameFilesPlan'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@core/types'
+import type { UIMediaFolderStatus } from '@/types/UIMediaFolder'
 
 function episodeRow(season: number, episode: number, videoFile?: string, checked = false): TvShowEpisodeDataRow {
   return {
@@ -363,12 +364,10 @@ describe('fillTvShowEpisodeTableRowByRenameFilesPlan', () => {
 })
 
 describe('buildTvShowEpisodeTableRows', () => {
-  it('returns initializing divider row when status is initializing', () => {
-    const mm = {
-      status: 'initializing',
-    } as UIMediaMetadata
+  it('returns initializing divider row when uiStatus is initializing', () => {
+    const mm = {} as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'initializing', (key) => key)
 
     expect(rows).toEqual([
       {
@@ -379,12 +378,10 @@ describe('buildTvShowEpisodeTableRows', () => {
     ])
   })
 
-  it('returns folder_not_found divider row when status is folder_not_found', () => {
-    const mm = {
-      status: 'folder_not_found',
-    } as UIMediaMetadata
+  it('returns folder_not_found divider row when uiStatus is folder_not_found', () => {
+    const mm = {} as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'folder_not_found', (key) => key)
 
     expect(rows).toEqual([
       {
@@ -395,12 +392,10 @@ describe('buildTvShowEpisodeTableRows', () => {
     ])
   })
 
-  it('returns error_loading_metadata divider row when status is error_loading_metadata', () => {
-    const mm = {
-      status: 'error_loading_metadata',
-    } as UIMediaMetadata
+  it('returns error_loading_metadata divider row when uiStatus is error_loading_metadata', () => {
+    const mm = {} as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'error_loading_metadata', (key) => key)
 
     expect(rows).toEqual([
       {
@@ -413,7 +408,6 @@ describe('buildTvShowEpisodeTableRows', () => {
 
   it('bulid rows for fanart, poster, theme, nfo files', () => {
     const mm = {
-      status: 'ok',
       mediaFolderPath: '/media/show',
       files: [
         '/media/show/fanart.jpg',
@@ -421,9 +415,9 @@ describe('buildTvShowEpisodeTableRows', () => {
         '/media/show/theme.mp3',
         '/media/show/tvshow.nfo',
       ],
-    } as UIMediaMetadata
+    } as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'ok', (key) => key)
     const folderRows = rows.filter((row) => row.type === 'folderFile')
 
     expect(folderRows).toEqual([
@@ -438,7 +432,6 @@ describe('buildTvShowEpisodeTableRows', () => {
 describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
   it('includes fanart row when tmdbTvShow branch is used', () => {
     const mm = {
-      status: 'ok',
       mediaFolderPath: '/media/show',
       files: ['/media/show/fanart.jpg'],
       tmdbTvShow: {
@@ -464,9 +457,9 @@ describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
         networks: [],
         production_companies: [],
       },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'ok', (key) => key)
 
     expect(rows).toContainEqual({
       id: 'fanart',
@@ -477,7 +470,6 @@ describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
 
   it('includes fanart row when tvdbTvShow branch is used', () => {
     const mm = {
-      status: 'ok',
       mediaFolderPath: '/media/show',
       files: ['/media/show/fanart.jpg'],
       tvdbTvShow: {
@@ -486,9 +478,9 @@ describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
         database: 'TVDB',
         seasons: [],
       },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
-    const rows = buildTvShowEpisodeTableRows(mm, (key) => key)
+    const rows = buildTvShowEpisodeTableRows(mm, 'ok', (key) => key)
 
     expect(rows).toContainEqual({
       id: 'fanart',
@@ -499,11 +491,11 @@ describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
 })
 
 describe('buildTvShowEpisodeTableRowsForPlan', () => {
-  it('returns initializing divider when media metadata is initializing', () => {
-    const mm = { status: 'initializing' } as UIMediaMetadata
+  it('returns initializing divider when uiStatus is initializing', () => {
+    const mm = {} as MediaMetadata
     const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'initializing', plan, (key) => key)
 
     expect(rows).toEqual([
       {
@@ -514,11 +506,11 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
     ])
   })
 
-  it('returns folder_not_found divider when media metadata is folder_not_found', () => {
-    const mm = { status: 'folder_not_found' } as UIMediaMetadata
+  it('returns folder_not_found divider when uiStatus is folder_not_found', () => {
+    const mm = {} as MediaMetadata
     const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'folder_not_found', plan, (key) => key)
 
     expect(rows).toEqual([
       {
@@ -529,11 +521,11 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
     ])
   })
 
-  it('returns error_loading_metadata divider when media metadata is error_loading_metadata', () => {
-    const mm = { status: 'error_loading_metadata' } as UIMediaMetadata
+  it('returns error_loading_metadata divider when uiStatus is error_loading_metadata', () => {
+    const mm = {} as MediaMetadata
     const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'error_loading_metadata', plan, (key) => key)
 
     expect(rows).toEqual([
       {
@@ -546,15 +538,14 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
 
   it('returns base rows unchanged when recognize plan is preparing', () => {
     const mm = {
-      status: 'ok',
       tvShow: tvShowForPlanTests(),
-    } as UIMediaMetadata
+    } as MediaMetadata
     const plan = {
       ...recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }]),
       status: 'preparing',
     } as UIRecognizeMediaFilePlan
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'ok', plan, (key) => key)
     const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
 
     expect(ep.videoFile).toBeUndefined()
@@ -563,12 +554,11 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
 
   it('fills episode row from recognize plan when recognize plan is completed', () => {
     const mm = {
-      status: 'ok',
       tvShow: tvShowForPlanTests(),
-    } as UIMediaMetadata
+    } as MediaMetadata
     const plan = recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }])
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'ok', plan, (key) => key)
     const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
 
     expect(ep.videoFile).toBe('/media/show/S01E01.mkv')
@@ -578,7 +568,6 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
 
   it('fills newVideoFile from rename plan when rename plan is completed', () => {
     const mm = {
-      status: 'ok',
       mediaFolderPath: '/media/show',
       files: ['/media/show/S01E01.mkv'],
       mediaFiles: [
@@ -589,12 +578,12 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
         },
       ],
       tvShow: tvShowForPlanTests(),
-    } as UIMediaMetadata
+    } as MediaMetadata
     const plan = renamePlan([
       { from: '/media/show/S01E01.mkv', to: '/media/show/new/S01E01.mkv' },
     ])
 
-    const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)
+    const rows = buildTvShowEpisodeTableRowsForPlan(mm, 'ok', plan, (key) => key)
     const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
 
     expect(ep.videoFile).toBe('/media/show/S01E01.mkv')

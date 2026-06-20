@@ -6,14 +6,13 @@ import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/help
 import { isElectron } from "@/lib/isElectron"
 import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
 import { nextTraceId } from "@/lib/utils"
-import { useTranslation } from "@/lib/i18n"
+import { castTranslationFn, useTranslation } from "@/lib/i18n"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 export interface UseSelectAndUnselectFileFlowOptions {
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
   updateMediaMetadata: (
     path: string,
     updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
@@ -25,11 +24,12 @@ export function useSelectAndUnselectFileFlow({
   mediaMetadata,
   updateMediaMetadata,
 }: UseSelectAndUnselectFileFlowOptions) {
-  const { t } = useTranslation(["components"])
+  const { t: i18nT } = useTranslation(["components"])
+  const t = castTranslationFn(i18nT) as (key: string, options?: Record<string, unknown>) => string
   const { filePickerDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
 
-  const requireMediaMetadata = useCallback((): UIMediaMetadata | undefined => {
+  const requireMediaMetadata = useCallback((): MediaMetadata | undefined => {
     if (!mediaMetadata) {
       toast.error("No media metadata available")
       console.error("No media metadata available")

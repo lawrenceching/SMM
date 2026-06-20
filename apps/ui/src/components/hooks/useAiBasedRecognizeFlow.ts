@@ -7,14 +7,14 @@ import { useFeatures } from "@/hooks/useFeatures"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
+import type { MediaMetadata } from "@core/types"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIPlan } from "@/types/UIPlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 export interface UseAiBasedRecognizeFlowOptions {
   /** Active plan for the folder (renameFlow.plan ?? recognizeFlow.plan). */
   activePlan: UIPlan | undefined
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
 }
 
 /**

@@ -1,9 +1,10 @@
 import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/TvShowEpisodeTable";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 import { basename, join } from "@/lib/path";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { findAssociatedFiles } from "@/lib/utils";
 import { mapTagToFileType } from "@/components/TvShowPanelUtils";
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import { mediaFilePathEqual } from "@/lib/mediaFilePathEqual";
 import Debug from 'debug'
@@ -40,10 +41,14 @@ function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
   return rows
 }
 
-export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string) => string): TvShowEpisodeTableRow[] {
+export function buildTvShowEpisodeTableRows(
+  mm: MediaMetadata,
+  uiStatus: UIMediaFolderStatus,
+  t: (key: string) => string,
+): TvShowEpisodeTableRow[] {
   const rows: TvShowEpisodeTableRow[] = []
 
-  if (mm.status === "initializing") {
+  if (uiStatus === "initializing") {
     return [{
       id: "initializing",
       type: "divider",
@@ -51,7 +56,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     }]
   }
 
-  if (mm.status === "folder_not_found") {
+  if (uiStatus === "folder_not_found") {
     return [{
       id: "folder_not_found",
       type: "divider",
@@ -59,7 +64,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
     }]
   }
 
-  if (mm.status === "error_loading_metadata") {
+  if (uiStatus === "error_loading_metadata") {
     return [{
       id: "error_loading_metadata",
       type: "divider",
@@ -82,7 +87,7 @@ export function buildTvShowEpisodeTableRows(mm: UIMediaMetadata, t: (key: string
   return rows
 }
 
-export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
+export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadata) {
 
   const rows: TvShowEpisodeTableRow[] = []
 
@@ -162,7 +167,8 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: UIMediaMetadata) {
   return rows;
 }
 
-export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: UIMediaMetadata) {
+export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadata) {
+
   const rows: TvShowEpisodeTableRow[] = []
 
   if(!_in_mm.tvShow || !_in_mm.tvShow.seasons) {
@@ -242,12 +248,13 @@ export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: UIMediaMetadata) {
 }
 
 export function buildTvShowEpisodeTableRowsForPlan(
-    mm: UIMediaMetadata, 
+    mm: MediaMetadata,
+    uiStatus: UIMediaFolderStatus,
     plan: UIRenameFilesPlan | UIRecognizeMediaFilePlan,
     t: (key: string) => string
 ): TvShowEpisodeTableRow[] {
 
-    if (mm.status === "initializing") {
+    if (uiStatus === "initializing") {
       return [{
         id: "initializing",
         type: "divider",
@@ -255,7 +262,7 @@ export function buildTvShowEpisodeTableRowsForPlan(
       }]
     }
 
-    if (mm.status === "folder_not_found") {
+    if (uiStatus === "folder_not_found") {
       return [{
         id: "folder_not_found",
         type: "divider",
@@ -263,7 +270,7 @@ export function buildTvShowEpisodeTableRowsForPlan(
       }]
     }
 
-    if (mm.status === "error_loading_metadata") {
+    if (uiStatus === "error_loading_metadata") {
       return [{
         id: "error_loading_metadata",
         type: "divider",
@@ -271,13 +278,13 @@ export function buildTvShowEpisodeTableRowsForPlan(
       }]
     }
 
-    let rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, t)
+    let rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t)
 
     if(plan.task === "recognize-media-file") {
       if(plan.status === 'preparing') {
         return rows;
       }
-      
+
       return fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
 
     } else if(plan.task === "rename-files") {

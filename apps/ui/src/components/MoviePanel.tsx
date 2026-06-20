@@ -135,9 +135,9 @@ function MoviePanel() {
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
+    uiStatus: rawMediaMetadata?.status,
     onRefreshMediaMetadata: refreshMediaMetadata,
   })
-
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 

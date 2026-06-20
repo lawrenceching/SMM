@@ -916,7 +916,7 @@ export async function executeRenamePlan(
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
 export async function buildTemporaryRecognitionPlanAsync(
-  mediaMetadata: UIMediaMetadata,
+  mediaMetadata: MediaMetadata,
 ): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tvShow) {
     return null
@@ -939,7 +939,7 @@ export async function buildTemporaryRecognitionPlanAsync(
 
 export interface HandlePendingPlansParams {
   pendingPlans: (UIRecognizeMediaFilePlan | UIRenameFilesPlan)[]
-  mediaMetadata: UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
   openAiBasedRecognizePrompt: (options: {
     status: "generating" | "wait-for-ack"
     confirmButtonLabel?: string

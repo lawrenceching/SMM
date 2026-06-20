@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@core/types";
 import { Path } from "@core/path";
 import { updateMediaFileMetadatas } from "@/components/TvShowPanelUtils";
 
@@ -7,22 +7,22 @@ import { updateMediaFileMetadatas } from "@/components/TvShowPanelUtils";
  * This method handles that user select a video file for a given season and episode.
  * For example, user select file `S01E01.mp4` for season 1 episode 1.
  * And then this method will update the Media Metadata accordingly
- * 
+ *
  * This method is designed to handle the computational logic.
  * Use callback to notify TvShowPanel for any UI iteraction.
- * 
- * @param mm 
- * @param seasonNumber 
- * @param episodeNumber 
- * @param filePath 
+ *
+ * @param mm
+ * @param seasonNumber
+ * @param episodeNumber
+ * @param filePath
  */
 export function handleEpisodeFileSelect(
-  mm: UIMediaMetadata,
-  seasonNumber: number, 
+  mm: MediaMetadata,
+  seasonNumber: number,
   episodeNumber: number,
   filePath: string,
   onError: (error: string) => void
-): UIMediaMetadata {
+): MediaMetadata {
 
   if (!mm.files) {
     onError("Files list is not available");

@@ -1058,8 +1058,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
   }
 
   it('returns null when mediaFolderPath is missing', async () => {
-    const mm: UIMediaMetadata = {
-      status: 'ok',
+    const mm: MediaMetadata = {
       mediaFolderPath: undefined,
       files: ['/media/S01E01.mkv'],
       tvShow: tvShowWithS1E1,
@@ -1069,8 +1068,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
   })
 
   it('returns null when files is missing', async () => {
-    const mm: UIMediaMetadata = {
-      status: 'ok',
+    const mm: MediaMetadata = {
       mediaFolderPath: '/media',
       files: undefined,
       tvShow: tvShowWithS1E1,
@@ -1080,8 +1078,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
   })
 
   it('returns null when tvShow is missing', async () => {
-    const mm: UIMediaMetadata = {
-      status: 'ok',
+    const mm: MediaMetadata = {
       mediaFolderPath: '/media',
       files: ['/media/S01E01.mkv'],
       tvShow: undefined,
@@ -1091,8 +1088,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
   })
 
   it('returns plan with empty files when no files are recognized', async () => {
-    const mm: UIMediaMetadata = {
-      status: 'ok',
+    const mm: MediaMetadata = {
       mediaFolderPath: '/media',
       files: ['/media/other.mkv'],
       tvShow: {
@@ -1110,8 +1106,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
 
   it('returns plan with files and mediaFolderPath when recognizeEpisodes returns matches', async () => {
     const mediaFolderPath = '/media/show'
-    const mm: UIMediaMetadata = {
-      status: 'ok',
+    const mm: MediaMetadata = {
       mediaFolderPath,
       files: ['/media/show/S01E01.mkv', '/media/show/S01E02.mkv'],
       tvShow: {

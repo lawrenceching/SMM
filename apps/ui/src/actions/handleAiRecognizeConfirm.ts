@@ -1,5 +1,5 @@
+import type { MediaMetadata } from "@core/types"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIPlan } from "@/types/UIPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
@@ -22,7 +22,7 @@ export type SetPlanByIdFn = (
  */
 export async function handleAiRecognizeConfirm(
   plan: RecognizeMediaFilePlan,
-  mediaMetadata: UIMediaMetadata,
+  mediaMetadata: MediaMetadata,
   persist: PersistUIMediaMetadataFn,
   setPlanById: SetPlanByIdFn
 ): Promise<void> {

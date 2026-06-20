@@ -13,12 +13,13 @@ import { processPipelineDialogRowsFromMediaFiles } from "@/lib/processPipelineDi
 import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTranslationDialogRows"
 import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { MediaMetadata } from "@core/types"
 import { Path } from "@core/path"
 
 export interface UseSubtitleFlowOptions {
-  mediaMetadata: MediaMetadata | UIMediaMetadata | undefined
+  mediaMetadata: MediaMetadata | undefined
+  uiStatus: UIMediaFolderStatus | undefined
   onRefreshMediaMetadata: (mediaFolderPath: string) => void | Promise<void>
 }
 
@@ -30,24 +31,24 @@ interface SubtitleDialogSlice<TRow> {
 }
 
 function resolveOkMediaMetadata(
-  mediaMetadata: MediaMetadata | UIMediaMetadata | undefined,
+  mediaMetadata: MediaMetadata | undefined,
+  uiStatus: UIMediaFolderStatus | undefined,
 ): MediaMetadata | undefined {
-  if (!mediaMetadata) return undefined
-  if ("status" in mediaMetadata && mediaMetadata.status !== "ok") {
+  if (!mediaMetadata || uiStatus !== "ok") {
     return undefined
   }
-  return mediaMetadata as MediaMetadata
+  return mediaMetadata
 }
 
 function mediaMetadataForTranscribeRows(
-  mediaMetadata: MediaMetadata | UIMediaMetadata | undefined,
+  mediaMetadata: MediaMetadata | undefined,
 ): MediaMetadata | undefined {
-  if (!mediaMetadata) return undefined
-  return mediaMetadata as MediaMetadata
+  return mediaMetadata
 }
 
 export function useSubtitleFlow({
   mediaMetadata,
+  uiStatus,
   onRefreshMediaMetadata,
 }: UseSubtitleFlowOptions) {
   const {
@@ -63,8 +64,8 @@ export function useSubtitleFlow({
   const [isProcessPipelineOpen, setIsProcessPipelineOpen] = useState(false)
 
   const okMediaMetadata = useMemo(
-    () => resolveOkMediaMetadata(mediaMetadata),
-    [mediaMetadata],
+    () => resolveOkMediaMetadata(mediaMetadata, uiStatus),
+    [mediaMetadata, uiStatus],
   )
 
   const transcribeDialogRows = useMemo(

@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
 import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
@@ -38,9 +38,9 @@ export interface TvShowHeaderV2Props {
     hasProcessTargets?: boolean
     /** When false, subtitle dropdown and overflow items are hidden (e.g. HarmonyOS). */
     showSubtitleMenu?: boolean
-    selectedMediaMetadata?: UIMediaMetadata
+    selectedMediaMetadata?: MediaMetadata
     selectedMediaFolder?: UIMediaFolder
-    openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
+    openScrape?: (params: { mediaMetadata: MediaMetadata }) => void
     episodeTableLayout?: EpisodeTableLayout
     onEpisodeTableLayoutChange?: (layout: EpisodeTableLayout) => void
 }
