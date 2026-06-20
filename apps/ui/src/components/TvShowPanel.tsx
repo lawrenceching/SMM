@@ -24,7 +24,8 @@ import { useConfig } from "@/hooks/userConfig"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
 import { Path } from "@core/path"
-import { usePlansStore, type UIPlan } from "@/stores/plansStore"
+import { usePlansQuery, useCreatePlanMutation, useUpdatePlanMutation } from "@/hooks/plans"
+import type { UIPlan } from "@/types/UIPlan"
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
@@ -45,7 +46,6 @@ import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMed
 import type { MediaMetadata } from "@core/types"
 import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
 import { useLatest } from "react-use"
-import { fetchPlans } from "@/actions/planActions"
 import { handleRenamePromptConfirmForTvShow } from "@/actions/handleRenamePromptConfirmForTvShow"
 import { renameFiles } from "@/api/renameFiles"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/TvShowPanel/handleEpisodeFileSelect"
@@ -57,7 +57,6 @@ interface ToolbarOption {
 
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
-  const { plans, setPlans, setPlanById, getPlanById } = usePlansStore()
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
   const {
     data: queriedMediaMetadata,
@@ -112,6 +111,36 @@ function TvShowPanel() {
     mediaMetadataFetchStatus,
     uiFolderRow?.status,
   ])
+
+  // Plans for the current folder, backed by TanStack Query. Replaces the
+  // legacy Zustand `usePlansStore`. The imperative helpers below
+  // (`setPlanById`/`getPlanById`) are thin adapters over the query cache
+  // and the create/update mutations so the rest of this component reads
+  // largely as before.
+  const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
+  const createPlanMutation = useCreatePlanMutation()
+  const updatePlanMutation = useUpdatePlanMutation()
+  const plansFolderPath = mediaMetadata?.mediaFolderPath
+
+  const getPlanById = useCallback(
+    (id: string): UIPlan | undefined => plans.find((p) => p.id === id),
+    [plans],
+  )
+
+  const setPlanById = useCallback(
+    async (id: string, patch: Partial<UIPlan>): Promise<void> => {
+      if (!plansFolderPath) return
+      await updatePlanMutation.mutateAsync({
+        id,
+        mediaFolderPath: plansFolderPath,
+        patch: {
+          ...(patch.status !== undefined ? { status: patch.status } : {}),
+          ...(patch.files !== undefined ? { files: patch.files } : {}),
+        },
+      })
+    },
+    [plansFolderPath, updatePlanMutation],
+  )
 
   const setSelectedByMediaFolderPath = useCallback((path: string) => {
     useUIMediaFolderStore.getState().applyFolderClick(path, false)
@@ -220,7 +249,6 @@ function TvShowPanel() {
   const openAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
   const openAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
   const openRuleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
-  const ruleBasedRecognizePrompt = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
   const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
   const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
   const updateAiBasedRenameFileStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
@@ -358,10 +386,8 @@ function TvShowPanel() {
   const handleAiRecognizeConfirmCallback = useCallback(async (plan: RecognizeMediaFilePlan) => {
     if (!isAiFeatureEnabled || !mediaMetadata) return
     await handleAiRecognizeConfirm(plan, mediaMetadata, persistUiMediaMetadata, setPlanById)
-    const uiPlan = plan as UIRecognizeMediaFilePlan
-    if (uiPlan.tmp === true) {
-      await cleanupRecognizePlan(plan.id)
-    }
+    // Drop any in-memory AI draft (no-op for app/backend-persisted plans).
+    await cleanupRecognizePlan(plan.id)
   }, [isAiFeatureEnabled, mediaMetadata, persistUiMediaMetadata, setPlanById])
 
   const handleRuleBasedRecognizePromptConfirmButtonClick = useCallback(async (plan: UIRecognizeMediaFilePlan) => {
@@ -384,25 +410,17 @@ function TvShowPanel() {
       const actualPlan = rebuildPlanWithSelectedEpisodes(plan as RecognizeMediaFilePlan, selectedEpisodes)
       const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
       await applyRecognizeMediaFilePlan(actualPlan, mediaMetadata, persistUiMediaMetadata, { traceId })
-      setPlanById(plan.id, { status: 'completed' })
+      await setPlanById(plan.id, { status: 'completed' })
       
       toast.success(t('toolbar.recognizeEpisodesSuccess'))
     } catch (error) {
       console.error('[TvShowPanel] Error applying rule-based recognition:', error)
       toast.error("Failed to apply recognition")
     }
-  }, [mediaMetadata, persistUiMediaMetadata, t])
+  }, [mediaMetadata, persistUiMediaMetadata, setPlanById, t])
 
-  // When panel shows a media folder, fetch pending plans so we can open the right prompt (rename or recognize)
-  useEffect(() => {
-
-    if (mediaMetadata?.mediaFolderPath) {
-      fetchPlans().then((plans) => {
-        setPlans(plans)
-      })
-    }
-    
-  }, [mediaMetadata?.mediaFolderPath, setPlans])
+  // Plans are fetched reactively by `usePlansQuery(mediaFolderPath)`; the
+  // Socket.IO PlanReady listeners invalidate the query to refresh them.
 
   const handleRenamePromptConfirm = useCallback(async (planId: string) => {
     const plan = getPlanById(planId)
@@ -429,7 +447,6 @@ function TvShowPanel() {
         setPlanById,
         persistUiMediaMetadata,
         renameFilesApi: renameFiles,
-        cleanupRenamePlan,
       },
     )
   }, [mediaMetadata, getPlanById, setPlanById, persistUiMediaMetadata, t])
@@ -458,12 +475,15 @@ function TvShowPanel() {
         onConfirm: () => handleRenamePromptConfirm(plan.id),
         onCancel: async () => {
           try {
-            setPlanById(plan.id, { status: "rejected" })
-            if (plan.tmp) {
-              await cleanupRenamePlan(plan.id)
-            }
+            // Persist rejection (removes the plan file + drops it from cache).
+            await setPlanById(plan.id, { status: "rejected" })
+            // Drop any in-memory AI draft (no-op for app/backend plans).
+            await cleanupRenamePlan(plan.id)
           } catch (error) {
             console.error("[TvShowPanel] Error rejecting rename plan:", error)
+            toast.error(
+              `Failed to reject rename plan: ${error instanceof Error ? error.message : "Unknown error"}`,
+            )
           }
         },
       })
@@ -598,50 +618,49 @@ function TvShowPanel() {
     }
 
     const traceId = `RecognizeEpisodes-${nextTraceId()}`
+    const folderPath = mediaMetadata.mediaFolderPath
 
-    // 1. Add tmp plan with loading state so RuleBasedRecognizePrompt shows immediately
-    const newPlan: UIRecognizeMediaFilePlan = {
-      id: crypto.randomUUID(),
-      task: 'recognize-media-file',
-      status: 'loading',
-      tmp: true,
-      mediaFolderPath: mediaMetadata.mediaFolderPath,
-      files: [],
-    }
+    // 1. Create a `preparing` plan (creator: 'app') so RuleBasedRecognizePrompt
+    //    shows immediately (optimistic cache insert) while files are computed.
+    const planId = crypto.randomUUID()
 
     console.log(`[TvShowPanel] openRuleBasedRecognizePrompt() CALLED`)
     openRuleBasedRecognizePrompt({
       tvShowTitle: mediaMetadata.tvShow?.name ?? '',
       tvShowTmdbId: parseInt(mediaMetadata.tvShow?.id ?? '0'),
-      planId: newPlan.id,
+      planId,
       onConfirm: () => {
         console.log(`[TvShowPanel] RuleBasedRecognizePrompt.onConfirm() CALLED`)
-        handleRuleBasedRecognizePromptConfirmButtonClick?.(getPlanById(newPlan.id) as UIRecognizeMediaFilePlan)
+        handleRuleBasedRecognizePromptConfirmButtonClick?.(getPlanById(planId) as UIRecognizeMediaFilePlan)
       },
       onCancel: () => {
-        setPlanById(newPlan.id, { status: 'rejected' })
+        void setPlanById(planId, { status: 'rejected' })
       }
     })
-    setPlans(prev => [...prev, newPlan])
-    console.log(`[TvShowPanel] setPlans: `, structuredClone(plans))
-   
-    // 2. Run recognition in background, then update plan with result
-    void buildTemporaryRecognitionPlanAsync(mediaMetadata)
+
+    // 2. Persist the preparing plan, then compute files and update to pending.
+    void createPlanMutation
+      .createPlanOptimistic({
+        id: planId,
+        task: 'recognize-media-file',
+        mediaFolderPath: folderPath,
+        creator: 'app',
+      })
+      .then(() => buildTemporaryRecognitionPlanAsync(mediaMetadata))
       .then(planData => {
         console.log(`[${traceId}] recognize episodes: `, structuredClone(planData))
 
         if (planData && planData.files.length > 0) {
-          setPlanById(newPlan.id, { status: 'pending', files: planData.files })
-        } else {
-          setPlanById(newPlan.id, { status: 'rejected' })
-          toast.error(t('toast.noRecognizedFiles', { defaultValue: 'Unable to recognize any episodes. Consider using AI to recognize instead.' }))
+          return setPlanById(planId, { status: 'pending', files: planData.files })
         }
+        toast.error(t('toast.noRecognizedFiles', { defaultValue: 'Unable to recognize any episodes. Consider using AI to recognize instead.' }))
+        return setPlanById(planId, { status: 'rejected' })
       })
       .catch(err => {
-        setPlanById(newPlan.id, { status: 'rejected' })
+        void setPlanById(planId, { status: 'rejected' })
         toast.error(err instanceof Error ? err.message : 'Recognition failed')
       })
-  }, [mediaMetadata, t])
+  }, [mediaMetadata, createPlanMutation, getPlanById, setPlanById, openRuleBasedRecognizePrompt, handleRuleBasedRecognizePromptConfirmButtonClick, t])
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([]);
   const latestTableData = useLatest(tableData)
@@ -651,7 +670,7 @@ function TvShowPanel() {
       
       const plansForThisFolder = plans
           .filter(p => mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata?.mediaFolderPath))
-          .filter(p => p.status === 'pending' || p.status === 'loading')
+          .filter(p => p.status === 'pending' || p.status === 'preparing')
 
       if(plansForThisFolder.length === 0) {
         return undefined;
@@ -685,7 +704,7 @@ function TvShowPanel() {
     if(plan === undefined) {
       return undefined;
     }
-    if(plan.status === 'loading') {
+    if(plan.status === 'preparing') {
       return 'loading';
     } else {
       return 'ok';
@@ -757,39 +776,51 @@ function TvShowPanel() {
   }, [mediaMetadata])
 
   useEffect(() => {
-    if(plan !== undefined) {
-
-      if(plan.status !== 'pending') {
-        return;
-      }
-
-      if(plan.task === 'recognize-media-file' && plan.tmp === true) {
-        const isHandledByRuleBasedPrompt =
-          ruleBasedRecognizePrompt.isOpen &&
-          ruleBasedRecognizePrompt.planId === plan.id
-        if (isHandledByRuleBasedPrompt) {
-          return
-        }
-      }
-
-      console.log(`[TvShowPanel] useEffect handlePendingPlans CALLED: `, structuredClone(plan))
-      handlePendingPlans({
-        pendingPlans: [plan],
-        mediaMetadata,
-        openRuleBasedRecognizePrompt,
-        openAiBasedRecognizePrompt,
-        closeAiBasedRecognizePrompt,
-        handleAiRecognizeConfirmCallback,
-        handleRuleBasedRecognizeConfirmCallback: handleRuleBasedRecognizePromptConfirmButtonClick,
-        updatePlan: (planId, status) => {
-          setPlanById(planId, { status })
-          return Promise.resolve()
-        },
-        toast,
-        isAiFeatureEnabled,
-      })
+    // No active plan for this folder → make sure no stale AI recognize prompt
+    // is left open (e.g. after a plan was rejected/removed from the cache).
+    if (plan === undefined) {
+      closeAiBasedRecognizePrompt()
+      return
     }
-  }, [plan, ruleBasedRecognizePrompt.isOpen, ruleBasedRecognizePrompt.planId])
+
+    if (plan.status !== 'pending') {
+      return
+    }
+
+    // Rule-based (creator: 'app') recognize plans are handled exclusively by
+    // RuleBasedRecognizePrompt opened from the recognize button. Never surface
+    // them through the AI prompt — doing so caused the prompt to "reappear"
+    // when the rule-based prompt closed before the cache removal landed.
+    if (plan.task === 'recognize-media-file' && plan.creator === 'app') {
+      return
+    }
+
+    console.log(`[TvShowPanel] useEffect handlePendingPlans CALLED: `, structuredClone(plan))
+    handlePendingPlans({
+      pendingPlans: [plan],
+      mediaMetadata,
+      openRuleBasedRecognizePrompt,
+      openAiBasedRecognizePrompt,
+      closeAiBasedRecognizePrompt,
+      handleAiRecognizeConfirmCallback,
+      handleRuleBasedRecognizeConfirmCallback: handleRuleBasedRecognizePromptConfirmButtonClick,
+      updatePlan: async (planId, status) => {
+        await setPlanById(planId, { status })
+      },
+      toast,
+      isAiFeatureEnabled,
+    })
+  }, [
+    plan,
+    mediaMetadata,
+    isAiFeatureEnabled,
+    openRuleBasedRecognizePrompt,
+    openAiBasedRecognizePrompt,
+    closeAiBasedRecognizePrompt,
+    handleAiRecognizeConfirmCallback,
+    handleRuleBasedRecognizePromptConfirmButtonClick,
+    setPlanById,
+  ])
 
   const handleHeaderTranslateClick = useCallback(() => {
     if (!hasTranslateTargets) {
@@ -872,31 +903,32 @@ function TvShowPanel() {
             }
 
             setEpisodeTableLayout('simple')
-            
-            // 1. Add tmp plan with loading state so RuleBasedRenameFilePrompt shows immediately
-            const newPlan: UIPlan = {
-              id: crypto.randomUUID(),
-              task: 'rename-files',
-              status: 'loading',
-              tmp: true,
-              mediaFolderPath: mediaMetadata.mediaFolderPath,
-              files: [],
-            };
-            setPlans(prev => [...prev, newPlan]);
 
-            console.log(`[TvShowPanel] created new tmp rename plan: ${newPlan.id}`);
+            const folderPath = mediaMetadata.mediaFolderPath
+
+            // 1. Create a `preparing` rename plan (creator: 'app') so the
+            //    RuleBasedRenameFilePrompt shows immediately.
+            const planId = crypto.randomUUID()
+            void createPlanMutation.createPlanOptimistic({
+              id: planId,
+              task: 'rename-files',
+              mediaFolderPath: folderPath,
+              creator: 'app',
+            })
+
+            console.log(`[TvShowPanel] created new rename plan: ${planId}`);
 
             openRuleBasedRenameFilePrompt({
               toolbarOptions,
               selectedNamingRule,
               setSelectedNamingRule,
-              planId: newPlan.id,
+              planId,
               onConfirm: () => {
-                handleRenamePromptConfirm(newPlan.id)
+                handleRenamePromptConfirm(planId)
               },
               onCancel: async () => {
                 try {
-                  await setPlanById(newPlan.id,{ status: 'rejected' })
+                  await setPlanById(planId, { status: 'rejected' })
                 } catch (error) {
                   console.error("[TvShowPanel] Error rejecting rename plan:", error)
                 }
@@ -904,25 +936,20 @@ function TvShowPanel() {
               onNamingRulesSelected: async (rule) => {
                 console.log(`[TvShowPanel] onNamingRulesSelected: ${rule}`)
                 try {
-                  // Generate new file names based on selected rule
-
-                  // TODO: update plan to loading status
                   const renamePlan = generateNewFileNames(rule)
                   console.log(`[TvShowPanel] generated rename plan by naming rule ${rule}: `, structuredClone(renamePlan))
 
-                  
                   if (renamePlan) {
-                    // Update the temporary plan with the rename data
-                    await setPlanById(newPlan.id, {
+                    await setPlanById(planId, {
                       status: 'pending',
                       files: renamePlan.files
                     })
                   } else {
-                    await setPlanById(newPlan.id, { status: 'rejected' })
+                    await setPlanById(planId, { status: 'rejected' })
                   }
                 } catch (error) {
                   console.error("[TvShowPanel] Error generating file names:", error)
-                  await setPlanById(newPlan.id, { status: 'rejected' })
+                  await setPlanById(planId, { status: 'rejected' })
                 }
               },
             })

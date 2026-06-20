@@ -8,15 +8,28 @@
 
 **设计原则**: 用户操作应立即得到 UI 响应 (Immediate UI Response)。
 
-### Plan 生命周期
+### Plan 持久化与状态管理
+
+Plan 是 **server state**，统一由 `packages/core-routes` 持久化为 `appDataDir/plans/*.plan.json`，
+前端通过 TanStack Query (`usePlansQuery` / `useCreatePlanMutation` / `useUpdatePlanMutation`) 读写，
+不再使用 Zustand `plansStore` 或浏览器 IndexedDB。`PlanReady` Socket.IO 事件触发 `['plans']` query 失效以同步缓存。
+
+每个 plan 带有 `creator` 字段区分来源：
+
+- `creator: "app"` — 规则驱动 (UI 按钮触发) 的 plan
+- `creator: "ai"` — AI Assistant / MCP 生成的 plan
+
+### Plan 生命周期 (`status`)
 
 ```
-idle → preparing → ready → executing → succeeded/failed
-                    ↓
-                 rejected
+preparing → pending → completed
+    │          │
+    └──────────┴────→ rejected
 ```
 
-执行完成后从 store 移除。
+- `preparing`: plan 已创建，文件内容 (files) 仍在计算/累积中
+- `pending`: 内容就绪，等待用户确认
+- `completed` / `rejected`: 终态。AI 端的内存草稿 (`aiPlanDrafts`) 在终态时清理
 
 ### Action Types
 
@@ -35,7 +48,7 @@ idle → preparing → ready → executing → succeeded/failed
 | Aspect | UI RuleBased | AI Assistant | MCP Tool |
 |---------|-------------|-------------|----------|
 | User Interface | Buttons + dialogs | Chat conversation | External MCP client |
-| Task Storage | N/A (immediate) | In-memory cache | File-based (`plans/*.plan.json`) |
+| Task Storage | File-based (`plans/*.plan.json`, `creator:"app"`) | In-memory draft (`aiPlanDrafts`) → file on `end` (`creator:"ai"`) | File-based (`plans/*.plan.json`, `creator:"ai"`) |
 | Validation | `validateRenameOperations` | `validateRenameOperations` | `validateRenameOperations` |
 | Confirmation | UI dialog | Socket.IO → UI dialog | Socket.IO → UI dialog |
 | Execution | `POST /api/renameFiles` with `mediaFolder` | `executeBatchRenameOperations` | `POST /api/renameFiles` with `mediaFolder` |

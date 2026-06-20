@@ -1,19 +1,17 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { RecognizeMediaFilePlanReady } from "@core/event-types";
-import { usePlansStore, type UIPlan } from "@/stores/plansStore";
-import { fetchPlans } from "@/actions/planActions";
+import { queryClient } from "@/lib/queryClient";
+import { PLANS_QUERY_ROOT } from "@/hooks/plans";
 
 export function RecognizeMediaFilePlanReadyEventListener() {
-    
-    const eventListener = useRef<((event: any) => void) | null>(null);
-    const setPlans = usePlansStore((state) => state.setPlans);
+
+    const eventListener = useRef<((event: Event) => void) | null>(null);
 
     useMount(() => {
-        eventListener.current = async (_event) => {
-            console.log(RecognizeMediaFilePlanReady.event + ' Received RecognizeMediaFilePlanReady, refetching pending plans');
-            const plans: UIPlan[] = await fetchPlans();
-            setPlans(plans);
+        eventListener.current = () => {
+            console.log(RecognizeMediaFilePlanReady.event + ' Received RecognizeMediaFilePlanReady, invalidating plans query');
+            void queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] });
         };
 
         document.addEventListener('socket.io_' + RecognizeMediaFilePlanReady.event, eventListener.current);

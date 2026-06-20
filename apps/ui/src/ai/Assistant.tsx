@@ -9,7 +9,6 @@ import { getOrCreateClientId } from "@/hooks/useWebSocket";
 import { useConfig } from "@/hooks/userConfig/useConfig";
 import { useFeatures } from "@/hooks/useFeatures";
 import { isHarmonyOS } from "@/lib/isHarmonyOS";
-import { cleanupStalePlans } from "./planStore";
 import { ReverseProxyChatTransport } from "./transport/reverseProxyChatTransport";
 import { useAssistantTools } from "./hooks/useAssistantTools";
 import {
@@ -187,10 +186,6 @@ function AssistantImpl() {
     const { userConfig, appConfig } = useConfig()
     const { isUIAiChatTransportEnabled } = useFeatures()
     const isHarmony = useMemo(() => isHarmonyOS(), [])
-
-    useEffect(() => {
-        void cleanupStalePlans()
-    }, [])
 
     const transport = useMemo(() => {
         // Use the in-process `ReverseProxyChatTransport` when either:

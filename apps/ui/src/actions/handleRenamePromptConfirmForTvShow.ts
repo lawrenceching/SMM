@@ -1,13 +1,12 @@
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { toast } from "sonner"
-import type { UIPlan } from "@/stores/plansStore"
+import type { UIPlan } from "@/types/UIPlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
 import { rebuildRenamePlanWithSelectedEpisodes } from "@/components/TvShowPanelUtils"
-import { savePlan } from "@/actions/planActions"
 
 export type SetPlanByIdFn = (id: string, payload: Partial<UIPlan>) => void | Promise<void>
 
@@ -26,7 +25,6 @@ export async function handleRenamePromptConfirmForTvShow(
     setPlanById: SetPlanByIdFn
     persistUiMediaMetadata: PersistUIMediaMetadataFn
     renameFilesApi: RenameFilesApi
-    cleanupRenamePlan: (planId: string) => Promise<void>
   },
 ): Promise<void> {
   const {
@@ -37,18 +35,18 @@ export async function handleRenamePromptConfirmForTvShow(
     renameFailedLabel,
     noMediaPathErrorLabel,
   } = options
-  const { setPlanById, persistUiMediaMetadata, renameFilesApi, cleanupRenamePlan } = deps
+  const { setPlanById, persistUiMediaMetadata, renameFilesApi } = deps
 
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
     toast.error(noMediaPathErrorLabel)
     return
   }
 
-  const actualPlan: UIRenameFilesPlan = {
-    ...rebuildRenamePlanWithSelectedEpisodes(plan as RenameFilesPlan, selectedEpisodePaths),
-    tmp: plan.tmp,
-  }
-  await setPlanById(planId, { status: "loading" })
+  const actualPlan: UIRenameFilesPlan = rebuildRenamePlanWithSelectedEpisodes(
+    plan as RenameFilesPlan,
+    selectedEpisodePaths,
+  )
+  await setPlanById(planId, { status: "preparing" })
   const renameTraceId = `RuleBasedRenameConfirm-${planId}`
 
   try {
@@ -65,19 +63,8 @@ export async function handleRenamePromptConfirmForTvShow(
     await persistUiMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, {
       traceId: renameTraceId,
     })
-    if (!plan.tmp) {
-      savePlan(plan as UIPlan, {
-        onSuccess: (savedPlan) => {
-          setPlanById(savedPlan.id, { status: "completed" })
-        },
-        onError: (error) => {
-          console.error(`[savePlan] Failed to save plan ${planId}:`, error)
-        },
-      })
-    } else {
-      setPlanById(planId, { status: "completed" })
-      await cleanupRenamePlan(planId)
-    }
+    // Persist terminal status: removes the plan file and drops it from cache.
+    await setPlanById(planId, { status: "completed" })
   } catch (error) {
     console.error("[handleRenamePromptConfirmForTvShow] Error applying rename plan:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"

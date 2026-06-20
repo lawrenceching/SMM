@@ -1,21 +1,33 @@
-export type UpdatePlanStatus = 'rejected' | 'completed';
+import type { PlanStatus } from '@core/types/planCommon';
+import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan';
+import type { RenameFileEntry } from '@core/types/RenameFilesPlan';
+import type { Plan } from './getPlans';
+
+export interface UpdatePlanPatch {
+  status?: PlanStatus;
+  files?: RecognizedFile[] | RenameFileEntry[];
+}
 
 export interface UpdatePlanResponseBody {
-  data?: { success: boolean };
+  data?: { plan: Plan };
   error?: string;
 }
 
+/**
+ * Patch a plan's `status` and/or `files`. Terminal statuses
+ * (`completed`/`rejected`) cause the backend to delete the plan file.
+ */
 export async function updatePlan(
-  planId: string,
-  status: UpdatePlanStatus,
-  signal?: AbortSignal
+  id: string,
+  patch: UpdatePlanPatch,
+  signal?: AbortSignal,
 ): Promise<UpdatePlanResponseBody> {
   const resp = await fetch('/api/updatePlan', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ planId, status }),
+    body: JSON.stringify({ id, ...patch }),
     signal,
   });
 
@@ -24,7 +36,6 @@ export async function updatePlan(
       url: resp.url,
       status: resp.status,
       statusText: resp.statusText,
-      response: resp.text(),
     });
     throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`);
   }
@@ -33,15 +44,6 @@ export async function updatePlan(
   if (data.error) {
     console.error(`[updatePlan] unexpected response body`, {
       url: resp.url,
-      status: resp.status,
-      statusText: resp.statusText,
-      response: data,
-    });
-  } else if (!data.data) {
-    console.error(`[updatePlan] unexpected response body: no data`, {
-      url: resp.url,
-      status: resp.status,
-      statusText: resp.statusText,
       response: data,
     });
   }

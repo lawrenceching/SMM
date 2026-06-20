@@ -1,17 +1,17 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react"
 import { z } from 'zod'
-import { addRecognizedFileToPlan } from "../planStore"
+import { Path } from '@core/path'
+import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import { updatePlan } from "@/api/updatePlan"
+import { getPlanDraft, setPlanDraft } from "../plan/aiPlanDrafts"
 
 /**
  * Frontend AI tool: `add-recognized-media-file`.
  *
  * Appends a `{ season, episode, path }` entry to a recognize-media-file
- * plan created by `beginRecognizeTask`. The plan lives in IndexedDB
- * (`apps/ui/src/ai/planStore.ts`).
- *
- * Mirrors the backend `createAddRecognizedMediaFileTool` factory in
- * `apps/cli/src/tools/recognizeMediaFilesTask.ts`, which appends to
- * the same plan file on disk.
+ * plan created by `beginRecognizeTask`. The plan is persisted on the
+ * backend via the unified `/api/updatePlan` endpoint; entries are
+ * accumulated in the in-memory draft store between `begin` and `end`.
  */
 const addRecognizedMediaFile = tool({
   description:
@@ -42,14 +42,25 @@ const addRecognizedMediaFile = tool({
     }
 
     try {
-      const updated = await addRecognizedFileToPlan(taskId, {
-        season,
-        episode,
-        path: filePath,
-      })
-      if (updated === null) {
+      const plan = getPlanDraft(taskId)
+      if (!plan) {
         return { error: `Error Reason: Task with id "${taskId}" not found` }
       }
+      if (plan.task !== "recognize-media-file") {
+        return {
+          error: `Error Reason: Task with id "${taskId}" is not a recognize-media-file plan`,
+        }
+      }
+
+      const files = [
+        ...plan.files,
+        { season, episode, path: Path.posix(filePath) },
+      ]
+      const resp = await updatePlan(taskId, { files })
+      if (resp.error || !resp.data) {
+        return { error: resp.error ?? "updatePlan failed" }
+      }
+      setPlanDraft(resp.data.plan as RecognizeMediaFilePlan)
       return { error: undefined }
     } catch (error) {
       return {

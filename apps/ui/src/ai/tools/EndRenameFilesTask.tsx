@@ -4,11 +4,11 @@ import {
   END_RENAME_FILES_TASK_DESCRIPTION,
   endRenameFilesTaskInputSchema,
 } from "@core/types/ai-tools/renameFilesTask"
-import { toUIRenameFilesPlanPaths } from "@core/plan/renamePlan"
 import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
-import { readPlan, deletePlan } from "../planStore"
-import { usePlansStore } from "@/stores/plansStore"
-import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
+import { updatePlan } from "@/api/updatePlan"
+import { queryClient } from "@/lib/queryClient"
+import { PLANS_QUERY_ROOT } from "@/hooks/plans"
+import { getPlanDraft, deletePlanDraft } from "../plan/aiPlanDrafts"
 
 const endRenameFilesTask = tool({
   description: END_RENAME_FILES_TASK_DESCRIPTION,
@@ -20,7 +20,7 @@ const endRenameFilesTask = tool({
     }
 
     try {
-      const plan = await readPlan(taskIdCheck)
+      const plan = getPlanDraft(taskIdCheck)
       if (!plan) {
         return { error: `Error Reason: Task with id "${taskIdCheck}" not found` }
       }
@@ -33,18 +33,13 @@ const endRenameFilesTask = tool({
         return { error: "Error Reason: No rename entries in task" }
       }
 
-      const uiPlan: UIRenameFilesPlan = {
-        ...toUIRenameFilesPlanPaths(plan),
-        tmp: true,
+      const resp = await updatePlan(taskIdCheck, { status: "pending" })
+      if (resp.error) {
+        return { error: resp.error }
       }
 
-      usePlansStore.getState().setPlans((prev) => {
-        const exists = prev.some((p) => p.id === plan.id)
-        if (exists) {
-          return prev.map((p) => (p.id === plan.id ? uiPlan : p))
-        }
-        return [...prev, uiPlan]
-      })
+      deletePlanDraft(taskIdCheck)
+      await queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })
 
       return toolOk({})
     } catch (error) {
@@ -58,6 +53,11 @@ export const EndRenameFilesTaskTool = makeAssistantTool({
   toolName: END_RENAME_FILES_TASK,
 })
 
+/**
+ * Drop the in-memory draft for a finalized rename plan. The backend
+ * file is removed when the plan reaches a terminal status via
+ * `/api/updatePlan`.
+ */
 export async function cleanupRenamePlan(planId: string): Promise<void> {
-  await deletePlan(planId)
+  deletePlanDraft(planId)
 }

@@ -21,6 +21,19 @@ Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Nod
 ## DeleteMediaMetadata (REMOVED)
 The `POST /api/deleteMediaMetadata` route was removed in favor of the unified `/api/deleteFile` API. The UI now computes the metadata cache file path (`metadataCacheFilePath(appDataDir, folderPath)`) and calls `/api/deleteFile` directly. The MCP `deleteMediaMetadata` tool continues to work in-process and is not affected.
 
+## Plans (GetPlans / CreatePlan / UpdatePlan)
+Source Code: packages/core-routes/src/plansApi.ts (handlers), packages/core-routes/src/routes/plansRoute.ts (Node http routes), packages/core-routes/src/tools/plans.ts (file store). apps/cli thin wrapper: apps/cli/src/route/Plans.ts (registered in apps/cli/server.ts via `handlePlans`).
+
+Unified, platform-agnostic CRUD for recognize / rename **plans**, replacing the removed `POST /api/getPendingPlans` and the old per-status `POST /api/updatePlan` route. Plans are persisted as `appDataDir/plans/*.plan.json`. The UI consumes these via TanStack Query (`usePlansQuery`, `useCreatePlanMutation`, `useUpdatePlanMutation` in `apps/ui/src/hooks/plans`) instead of the removed Zustand `plansStore` / IndexedDB. A `PlanReady` Socket.IO event triggers `['plans']` query invalidation.
+
+- `POST /api/getPlans` — active (non-terminal) plans for a media folder. Request body: `{ mediaFolderPath: string }`. Response: `{ data: { plans: AnyPlan[] } }` or `{ error }`.
+- `POST /api/createPlan` — create a plan in `preparing` status. Request body: `{ id?: string, task: "recognize-media-file" | "rename-files", mediaFolderPath: string, creator: "app" | "ai" }`. Response: `{ data: { plan: AnyPlan } }` or `{ error }`.
+- `POST /api/updatePlan` — patch a plan's content. Request body: `{ id: string, status?: "preparing" | "pending" | "completed" | "rejected", files?: RecognizedFile[] | RenameEntry[] }`. Terminal statuses (`completed` / `rejected`) delete the plan file. Response: `{ data: { plan: AnyPlan } }` or `{ error }` (e.g. plan not found).
+
+Each plan carries a `creator` field (`"app"` for rule-based UI plans, `"ai"` for AI Assistant / MCP plans) and a `status` lifecycle of `preparing → pending → completed | rejected`.
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). All require `appDataDir` to be configured; return `Error Reason: appDataDir is not configured` otherwise.
+
 ## Shutdown
 Source Code: apps/cli/src/route/shutdown.ts
 HTTP: `POST /api/shutdown` — localhost-only graceful shutdown used by the Electron main process. Runs yt-dlp cookies temp cleanup, stops the CLI server, then exits the process. Response: `{ ok: true }`. Non-loopback callers receive 403.

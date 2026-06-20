@@ -20,6 +20,11 @@ import {
   handleMcpStatusGet,
   handleMcpStopPut,
 } from "./routes/mcpLifecycleRoute.ts";
+import {
+  handleCreatePlanPost,
+  handleGetPlansPost,
+  handleUpdatePlanPost,
+} from "./routes/plansRoute.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -41,6 +46,9 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,
+  handleGetPlansPost,
+  handleCreatePlanPost,
+  handleUpdatePlanPost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -95,6 +103,19 @@ export { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
 export { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
 export { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
 export { handleReadImagePost } from "./routes/readImageRoute.ts";
+export {
+  handleGetPlansPost,
+  handleCreatePlanPost,
+  handleUpdatePlanPost,
+} from "./routes/plansRoute.ts";
+export {
+  doGetPlans,
+  doCreatePlan,
+  doUpdatePlan,
+  type GetPlansResponseBody,
+  type CreatePlanResponseBody,
+  type UpdatePlanResponseBody,
+} from "./plansApi.ts";
 export { doDownloadImage } from "./downloadImage.ts";
 export { doDownloadImageAsFile } from "./downloadImageAsFile.ts";
 export { doReadImage } from "./readImage.ts";

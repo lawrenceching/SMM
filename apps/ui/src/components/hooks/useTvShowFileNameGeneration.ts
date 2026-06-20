@@ -67,6 +67,7 @@ export function useTvShowFileNameGeneration({
         id: crypto.randomUUID(),
         task: "rename-files",
         status: "pending",
+        creator: "app",
         mediaFolderPath: mediaMetadata.mediaFolderPath,
         files,
       }

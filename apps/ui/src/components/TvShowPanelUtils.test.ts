@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
+import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode, handlePendingPlans } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@core/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
@@ -9,6 +9,10 @@ import { toast } from 'sonner'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
+vi.mock('@/ai/tools/EndRecognizeTask', () => ({
+  cleanupRecognizePlan: vi.fn(() => Promise.resolve()),
+}))
+
 vi.mock('@/lib/recognizeEpisodes', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/lib/recognizeEpisodes')>()
   return {
@@ -1312,5 +1316,75 @@ describe('unlinkEpisode', () => {
     })
     const [, metadata] = mockUpdateMediaMetadata.mock.calls[0]
     expect(metadata.mediaFiles).toHaveLength(0)
+  })
+})
+
+describe('handlePendingPlans', () => {
+  // Regression: cancelling a backend-persisted plan must invoke the injected
+  // updatePlan with 'rejected' so the backend plan file stops being returned
+  // by the plans query. Without this the AiBasedRecognizePrompt reopens on the
+  // next plans refetch / folder switch.
+  const baseMediaMetadata = {
+    mediaFolderPath: '/media/tvshow',
+    type: 'tvshow-folder' as const,
+    status: 'ok' as const,
+  }
+
+  const basePlan = {
+    id: 'plan-1',
+    task: 'recognize-media-file' as const,
+    status: 'pending' as const,
+    creator: 'app' as const,
+    mediaFolderPath: '/media/tvshow',
+    files: [],
+  }
+
+  const makeParams = (overrides?: {
+    plan?: Parameters<typeof handlePendingPlans>[0]['pendingPlans'][number]
+    updatePlan?: ReturnType<typeof vi.fn>
+    isAiFeatureEnabled?: boolean
+  }) => {
+    const updatePlan = overrides?.updatePlan ?? vi.fn(() => Promise.resolve())
+    const openAi = vi.fn()
+    const params = {
+      pendingPlans: [overrides?.plan ?? basePlan],
+      mediaMetadata: baseMediaMetadata as never,
+      openRuleBasedRecognizePrompt: vi.fn(),
+      openAiBasedRecognizePrompt: openAi,
+      closeAiBasedRecognizePrompt: vi.fn(),
+      handleAiRecognizeConfirmCallback: vi.fn(),
+      updatePlan,
+      toast,
+      isAiFeatureEnabled: overrides?.isAiFeatureEnabled ?? true,
+    }
+    return { params, openAi, updatePlan }
+  }
+
+  it('does NOT open the AI prompt for a rule-based (app) plan; closes it instead', () => {
+    // Rule-based plans are owned by RuleBasedRecognizePrompt. Surfacing them via
+    // the AI prompt is what made the prompt "reappear" after cancel.
+    const closeAi = vi.fn()
+    const { params, openAi } = makeParams()
+    handlePendingPlans({ ...params, closeAiBasedRecognizePrompt: closeAi })
+    expect(openAi).not.toHaveBeenCalled()
+    expect(closeAi).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancel of an AI-created plan calls updatePlan with rejected exactly once', async () => {
+    const { params, openAi, updatePlan } = makeParams({
+      plan: { ...basePlan, creator: 'ai' as const },
+    })
+    handlePendingPlans(params)
+    const config = openAi.mock.calls[0]?.[0] as { onCancel?: () => Promise<void> }
+    expect(config.onCancel).toBeDefined()
+    await config.onCancel!()
+    expect(updatePlan).toHaveBeenCalledTimes(1)
+    expect(updatePlan).toHaveBeenCalledWith('plan-1', 'rejected')
+  })
+
+  it('skips opening the prompt when AI features are disabled', () => {
+    const { params, openAi } = makeParams({ isAiFeatureEnabled: false })
+    handlePendingPlans(params)
+    expect(openAi).not.toHaveBeenCalled()
   })
 })

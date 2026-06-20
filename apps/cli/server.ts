@@ -40,8 +40,7 @@ import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesT
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
-import { handleGetPendingPlans } from './src/route/GetPendingPlans';
-import { handleUpdatePlan } from './src/route/UpdatePlan';
+import { handlePlans } from './src/route/Plans';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -229,8 +228,7 @@ export class Server {
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
-    handleGetPendingPlans(this.app);
-    handleUpdatePlan(this.app);
+    handlePlans(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);

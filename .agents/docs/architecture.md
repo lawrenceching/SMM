@@ -332,10 +332,11 @@ The desktop view uses a 5-region CSS Grid layout:
 │  │ • uiMediaFolderStore │──────│→ useUserConfigQuery              │  │
 │  │   (folders,selection)│      │→ useConfig (read+write)          │  │
 │  │ • backgroundJobsStore│      │→ useMediaMetadataQuery           │  │
-│  │ • plansStore         │      │→ useFetchMediaMetadataMutation   │  │
-│  │ • sidebarStore       │      │→ useInitializeMediaMetadataMut.  │  │
-│  │ • statusbarStore     │      │→ useUpdateMediaMetadataMut.      │  │
-│  │ • tvShowPromptsStore │      │→ useTmdbQueries                  │  │
+│  │ • sidebarStore       │      │→ useFetchMediaMetadataMutation   │  │
+│  │ • statusbarStore     │      │→ useInitializeMediaMetadataMut.  │  │
+│  │ • tvShowPromptsStore │      │→ useUpdateMediaMetadataMut.      │  │
+│  │                      │      │→ usePlansQuery / use*PlanMut.    │  │
+│  │                      │      │→ useTmdbQueries                  │  │
 │  │                      │      │→ useTvdbQueries                  │  │
 │  │  Local UI state      │      │→ useGetTmdbTvShowMutation        │  │
 │  │  (viewMode,          │      │→ useGetTmdbMovieMutation         │  │
@@ -346,7 +347,6 @@ The desktop view uses a 5-region CSS Grid layout:
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │               Global Contexts (React Context)                │    │
 │  │  • DialogProvider (all dialogs)                              │    │
-│  │  • GlobalStatesProvider (pending plans)                      │    │
 │  │  • JobOrchestratorProvider (background jobs)                 │    │
 │  │  • ThemeProvider (light/dark/system)                         │    │
 │  └─────────────────────────────────────────────────────────────┘    │
@@ -355,7 +355,8 @@ The desktop view uses a 5-region CSS Grid layout:
 
 **Key architectural points:**
 - Zustand stores hold **local UI state** (folder list, selection, sidebar, background jobs, prompts)
-- TanStack Query manages **server state** (user config, media metadata, TMDB/TVDB data) with caching, optimistic updates, and background refetching
+- TanStack Query manages **server state** (user config, media metadata, plans, TMDB/TVDB data) with caching, optimistic updates, and background refetching
+- **Plans** (recognize / rename) are server state: persisted as `appDataDir/plans/*.plan.json` by `packages/core-routes` and read/written through `usePlansQuery`, `useCreatePlanMutation`, and `useUpdatePlanMutation`. `PlanReady` Socket.IO events invalidate the `['plans']` query to resync. (Previously the now-removed `plansStore` Zustand store + `GlobalStatesProvider` + IndexedDB held this state.)
 - All state mutations follow the **Optimistic Update Strategy**: update UI first, then call the backend API, rollback on failure
 
 #### API Layer (`src/api/`)

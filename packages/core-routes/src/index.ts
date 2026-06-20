@@ -61,6 +61,14 @@ export {
 export { doRenameFolder } from "./renameFolder.ts";
 export { doRenameFiles } from "./renameFiles.ts";
 export {
+  doGetPlans,
+  doCreatePlan,
+  doUpdatePlan,
+  type GetPlansResponseBody,
+  type CreatePlanResponseBody,
+  type UpdatePlanResponseBody,
+} from "./plansApi.ts";
+export {
   doDownloadImage,
   type DownloadImageContentType,
   type DownloadImageResult,
@@ -94,6 +102,9 @@ export {
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleGetPlansPost,
+  handleCreatePlanPost,
+  handleUpdatePlanPost,
 } from "./register.ts";
 export type {
   SocketIOCorsConfig,

@@ -5,8 +5,9 @@ import {
   beginRenameFilesTaskInputSchema,
 } from "@core/types/ai-tools/renameFilesTask"
 import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
-import { createRenamePlan } from "../planStore"
+import { createPlan } from "@/api/createPlan"
 import { assertRenameMediaFolderOpened } from "../plan/renamePlanService"
+import { setPlanDraft } from "../plan/aiPlanDrafts"
 
 const beginRenameFilesTask = tool({
   description: BEGIN_RENAME_FILES_TASK_DESCRIPTION,
@@ -23,8 +24,16 @@ const beginRenameFilesTask = tool({
     }
 
     try {
-      const plan = await createRenamePlan(pathCheck)
-      return toolOk({ taskId: plan.id })
+      const resp = await createPlan({
+        task: "rename-files",
+        mediaFolderPath: pathCheck,
+        creator: "ai",
+      })
+      if (resp.error || !resp.data) {
+        return { taskId: undefined, error: resp.error ?? "createPlan failed" }
+      }
+      setPlanDraft(resp.data.plan)
+      return toolOk({ taskId: resp.data.plan.id })
     } catch (error) {
       return { taskId: undefined, ...formatToolError(error) }
     }

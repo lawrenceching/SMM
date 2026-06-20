@@ -4,7 +4,9 @@ import { setupTestMediaFolders, resetUserConfig, prepareMediaMetadata } from '@s
 import { join } from 'node:path';
 import { Path } from '@core/path';
 import { afterEach } from 'node:test';
-import type { GetPendingPlansResponseBody } from '@/route/GetPendingPlans';
+import type { GetPlansResponseBody } from '@smm/core-routes';
+import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
+import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
 
 /**
  * Delay in ms
@@ -692,22 +694,26 @@ describe('MCP Server - BeginRenameEpisodeVideoFileTaskTool, AddRenameEpisodeVide
     expect(endInnerResponse.taskId).toBe(taskId);
     expect(endInnerResponse.fileCount).toBe(2);
 
-    // Step 5: Call getPendingPlans API to verify there's a pending task with our files
-    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPendingPlans', {
+    // Step 5: Call getPlans API to verify there's a pending task with our files
+    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPlans', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ mediaFolderPath: folderPath }),
     });
-    const pendingPlansData = await pendingPlansResponse.json() as GetPendingPlansResponseBody;
+    const pendingPlansData = await pendingPlansResponse.json() as GetPlansResponseBody;
 
-    // Verify pending plans response
-    expect(pendingPlansData.renamePlans).toBeDefined();
-    expect(Array.isArray(pendingPlansData.renamePlans)).toBe(true);
+    // Verify plans response
+    expect(pendingPlansData.data?.plans).toBeDefined();
+    expect(Array.isArray(pendingPlansData.data?.plans)).toBe(true);
+    const renamePlans = (pendingPlansData.data?.plans ?? []).filter(
+      (p): p is RenameFilesPlan => p.task === 'rename-files',
+    );
     // Verify our specific files exist in any pending plan
     const episode1FromPosix = Path.posix(episode1From);
     const episode1ToPosix = Path.posix(episode1To);
-    const ourTask = pendingPlansData.renamePlans.find(p => 
+    const ourTask = renamePlans.find(p =>
       p.files.some(f => f.from === episode1FromPosix && f.to === episode1ToPosix)
     );
     expect(ourTask).toBeDefined();
@@ -808,22 +814,26 @@ describe('MCP Server - BeginRecognizeTaskTool, AddRecognizedFileTool, EndRecogni
     expect(endInnerResponse.taskId).toBe(taskId);
     expect(endInnerResponse.fileCount).toBe(2);
 
-    // Step 5: Call getPendingPlans API to verify there's a pending task with our files
-    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPendingPlans', {
+    // Step 5: Call getPlans API to verify there's a pending task with our files
+    const pendingPlansResponse = await fetch('http://localhost:30000/api/getPlans', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ mediaFolderPath: folderPath }),
     });
-    const pendingPlansData = await pendingPlansResponse.json() as GetPendingPlansResponseBody;
+    const pendingPlansData = await pendingPlansResponse.json() as GetPlansResponseBody;
 
-    // Verify pending plans response - should have our recognize task in data array
-    expect(pendingPlansData.data).toBeDefined();
-    expect(Array.isArray(pendingPlansData.data)).toBe(true);
+    // Verify plans response - should have our recognize task in plans array
+    expect(pendingPlansData.data?.plans).toBeDefined();
+    expect(Array.isArray(pendingPlansData.data?.plans)).toBe(true);
+    const recognizePlans = (pendingPlansData.data?.plans ?? []).filter(
+      (p): p is RecognizeMediaFilePlan => p.task === 'recognize-media-file',
+    );
     // Verify our specific files exist in any pending plan
     const episode1PathPosix = Path.posix(episode1Path);
     const episode2PathPosix = Path.posix(episode2Path);
-    const ourTask = pendingPlansData.data.find(p => 
+    const ourTask = recognizePlans.find(p =>
       p.files.some(f => f.path === episode1PathPosix && f.season === 1 && f.episode === 1)
     );
     expect(ourTask).toBeDefined();

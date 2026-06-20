@@ -5,17 +5,12 @@ import {
   type SetPlanByIdFn,
 } from "./handleRenamePromptConfirmForTvShow"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
-import { savePlan } from "@/actions/planActions"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 
 vi.mock("@/actions/applyRenameFilesPlanForTvShow", () => ({
   applyRenameFilesPlanForTvShow: vi.fn(),
-}))
-
-vi.mock("@/actions/planActions", () => ({
-  savePlan: vi.fn(),
 }))
 
 vi.mock("sonner", () => ({
@@ -33,8 +28,8 @@ describe("handleRenamePromptConfirmForTvShow", () => {
     id: planId,
     task: "rename-files",
     status: "pending",
+    creator: "app",
     mediaFolderPath,
-    tmp: true,
     files: [{ from: "/media/show/1.mkv", to: "/media/show/S01E01.mkv" }],
   }
 
@@ -49,7 +44,6 @@ describe("handleRenamePromptConfirmForTvShow", () => {
   let setPlanById: ReturnType<typeof vi.fn>
   let persistUiMediaMetadata: ReturnType<typeof vi.fn>
   let renameFilesApi: ReturnType<typeof vi.fn>
-  let cleanupRenamePlan: ReturnType<typeof vi.fn>
 
   const renameFailedLabel = "Failed to rename file"
   const noMediaPathErrorLabel = "No media folder path available"
@@ -59,10 +53,9 @@ describe("handleRenamePromptConfirmForTvShow", () => {
     vi.mocked(applyRenameFilesPlanForTvShow).mockResolvedValue({
       renameList: [{ from: "/media/show/1.mkv", to: "/media/show/S01E01.mkv" }],
     })
-    setPlanById = vi.fn()
+    setPlanById = vi.fn().mockResolvedValue(undefined)
     persistUiMediaMetadata = vi.fn().mockResolvedValue(undefined)
     renameFilesApi = vi.fn()
-    cleanupRenamePlan = vi.fn().mockResolvedValue(undefined)
   })
 
   function runHandler(
@@ -85,29 +78,18 @@ describe("handleRenamePromptConfirmForTvShow", () => {
         setPlanById: setPlanById as SetPlanByIdFn,
         persistUiMediaMetadata: persistUiMediaMetadata as PersistUIMediaMetadataFn,
         renameFilesApi,
-        cleanupRenamePlan,
       },
     )
   }
 
-  it("completes tmp plan and cleans up on success", async () => {
+  it("marks plan preparing then completed on success", async () => {
     await runHandler()
 
-    expect(setPlanById).toHaveBeenCalledWith(planId, { status: "loading" })
+    expect(setPlanById).toHaveBeenCalledWith(planId, { status: "preparing" })
     expect(applyRenameFilesPlanForTvShow).toHaveBeenCalledTimes(1)
     expect(persistUiMediaMetadata).toHaveBeenCalledTimes(1)
     expect(setPlanById).toHaveBeenCalledWith(planId, { status: "completed" })
-    expect(cleanupRenamePlan).toHaveBeenCalledWith(planId)
     expect(toast.error).not.toHaveBeenCalled()
-  })
-
-  it("calls savePlan for non-tmp plan on success", async () => {
-    const persistedPlan: UIRenameFilesPlan = { ...plan, tmp: false }
-
-    await runHandler({ plan: persistedPlan })
-
-    expect(savePlan).toHaveBeenCalledTimes(1)
-    expect(cleanupRenamePlan).not.toHaveBeenCalled()
   })
 
   it("shows toast.error and restores plan status when rename API fails", async () => {
@@ -123,7 +105,6 @@ describe("handleRenamePromptConfirmForTvShow", () => {
     )
     expect(setPlanById).toHaveBeenCalledWith(planId, { status: "pending" })
     expect(setPlanById).not.toHaveBeenCalledWith(planId, { status: "completed" })
-    expect(cleanupRenamePlan).not.toHaveBeenCalled()
   })
 
   it("shows toast.error when media folder path is missing", async () => {

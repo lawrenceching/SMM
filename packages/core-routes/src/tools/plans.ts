@@ -1,4 +1,4 @@
-import { mkdir, readdir, stat } from "node:fs/promises";
+import { mkdir, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { Path } from "@smm/core/path";
@@ -6,13 +6,17 @@ import type {
   RecognizeMediaFilePlan,
   RecognizedFile,
 } from "@smm/core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { RenameFileEntry, RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { PlanCreator, PlanStatus } from "@smm/core/types/planCommon";
+import { isActivePlanStatus, isTerminalPlanStatus } from "@smm/core/types/planCommon";
 import {
   createEmptyRenamePlan,
   prepareAppendRenameEntry,
   type PrepareAppendRenameEntryDeps,
 } from "@smm/core/plan/renamePlan";
 import type { ChatFs } from "../chatTypes.ts";
+
+export type AnyPlan = RecognizeMediaFilePlan | RenameFilesPlan;
 
 /**
  * Plan-file storage helpers shared by the `rename-files-task` and
@@ -58,6 +62,9 @@ export interface RenamePlanAppendDeps {
 /**
  * Begin a rename-files task: create an empty plan file and return
  * the new plan id.
+ *
+ * AI/MCP-created plans start as `preparing` with `creator: "ai"`; the
+ * end-task tool flips them to `pending` once entries are added.
  */
 export async function beginRenamePlan(
   appDataDir: string,
@@ -65,7 +72,10 @@ export async function beginRenamePlan(
   fs: ChatFs,
 ): Promise<string> {
   await ensurePlansDirExists(appDataDir, fs);
-  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath));
+  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath), undefined, {
+    creator: "ai",
+    status: "preparing",
+  });
   await fs.writeJson(planFilePath(appDataDir, plan.id), plan);
   return plan.id;
 }
@@ -118,6 +128,9 @@ export async function readRenamePlan(
 /**
  * Begin a recognition task: create an empty plan file and return the
  * new plan id.
+ *
+ * AI/MCP-created plans start as `preparing` with `creator: "ai"`; the
+ * end-task tool flips them to `pending` once files are added.
  */
 export async function beginRecognizePlan(
   appDataDir: string,
@@ -129,7 +142,8 @@ export async function beginRecognizePlan(
   const plan: RecognizeMediaFilePlan = {
     id: planId,
     task: "recognize-media-file",
-    status: "pending",
+    status: "preparing",
+    creator: "ai",
     mediaFolderPath: Path.posix(mediaFolderPath),
     files: [],
   };
@@ -188,4 +202,162 @@ export async function listPlanFiles(
   return files
     .filter((file) => file.endsWith(".plan.json"))
     .map((file) => path.join(dir, file));
+}
+
+// ─── Unified plan CRUD (HTTP getPlans / createPlan / updatePlan) ──
+
+/**
+ * Backfill `creator` for plan files written before the field existed.
+ * Legacy plans are treated as app-created.
+ */
+function withCreatorDefault<T extends AnyPlan>(plan: T): T {
+  if ((plan as { creator?: PlanCreator }).creator) {
+    return plan;
+  }
+  return { ...plan, creator: "app" as PlanCreator };
+}
+
+function normalizePlanPaths(plan: AnyPlan): AnyPlan {
+  const mediaFolderPath = Path.posix(plan.mediaFolderPath);
+  if (plan.task === "recognize-media-file") {
+    return {
+      ...plan,
+      mediaFolderPath,
+      files: plan.files.map((f) => ({ ...f, path: Path.posix(f.path) })),
+    };
+  }
+  return {
+    ...plan,
+    mediaFolderPath,
+    files: plan.files.map((f) => ({
+      from: Path.posix(f.from),
+      to: Path.posix(f.to),
+    })),
+  };
+}
+
+export interface CreatePlanInput {
+  /** Optional client-supplied UUID so the caller can reference the plan immediately. */
+  id?: string;
+  task: "recognize-media-file" | "rename-files";
+  mediaFolderPath: string;
+  creator: PlanCreator;
+}
+
+/**
+ * Create a new plan file in `preparing` status with no entries.
+ */
+export async function createPlan(
+  appDataDir: string,
+  input: CreatePlanInput,
+  fs: ChatFs,
+): Promise<AnyPlan> {
+  await ensurePlansDirExists(appDataDir, fs);
+  const id = input.id ?? randomUUID();
+  const mediaFolderPath = Path.posix(input.mediaFolderPath);
+  const plan: AnyPlan =
+    input.task === "recognize-media-file"
+      ? {
+          id,
+          task: "recognize-media-file",
+          status: "preparing",
+          creator: input.creator,
+          mediaFolderPath,
+          files: [],
+        }
+      : {
+          id,
+          task: "rename-files",
+          status: "preparing",
+          creator: input.creator,
+          mediaFolderPath,
+          files: [],
+        };
+  await fs.writeJson(planFilePath(appDataDir, id), plan);
+  return plan;
+}
+
+export interface UpdatePlanPatch {
+  status?: PlanStatus;
+  files?: RecognizedFile[] | RenameFileEntry[];
+}
+
+/**
+ * Patch a plan's `status` and/or `files`. When the new status is
+ * terminal (`completed`/`rejected`) the plan file is deleted; the
+ * updated plan object is still returned so callers can react to it.
+ *
+ * Returns `null` if the plan file does not exist.
+ */
+export async function updatePlanContent(
+  appDataDir: string,
+  id: string,
+  patch: UpdatePlanPatch,
+  fs: ChatFs,
+): Promise<AnyPlan | null> {
+  const filePath = planFilePath(appDataDir, id);
+  const existing = await fs.readJson<AnyPlan>(filePath);
+  if (!existing) {
+    return null;
+  }
+
+  const merged = withCreatorDefault({
+    ...existing,
+    ...(patch.status !== undefined ? { status: patch.status } : {}),
+    ...(patch.files !== undefined ? { files: patch.files } : {}),
+  } as AnyPlan);
+  const updated = normalizePlanPaths(merged);
+
+  if (patch.status !== undefined && isTerminalPlanStatus(patch.status)) {
+    await deletePlan(appDataDir, id);
+    return updated;
+  }
+
+  await fs.writeJson(filePath, updated);
+  return updated;
+}
+
+/**
+ * Delete a plan file by id. No-op if the file does not exist.
+ */
+export async function deletePlan(
+  appDataDir: string,
+  id: string,
+): Promise<void> {
+  try {
+    await unlink(planFilePath(appDataDir, id));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Return all active (`preparing`/`pending`) plans for a media folder.
+ * Terminal plans are ignored. Legacy plans without `creator` are
+ * treated as app-created.
+ */
+export async function getActivePlansForFolder(
+  appDataDir: string,
+  mediaFolderPath: string,
+  fs: ChatFs,
+): Promise<AnyPlan[]> {
+  const target = Path.posix(mediaFolderPath);
+  const files = await listPlanFiles(appDataDir);
+  const plans: AnyPlan[] = [];
+  for (const file of files) {
+    const plan = await fs.readJson<AnyPlan>(file);
+    if (!plan) {
+      continue;
+    }
+    const normalized = normalizePlanPaths(withCreatorDefault(plan));
+    if (
+      normalized.mediaFolderPath === target &&
+      isActivePlanStatus(normalized.status)
+    ) {
+      plans.push(normalized);
+    }
+  }
+  return plans;
 }

@@ -1,10 +1,12 @@
 import type { MediaMetadata, RenameValidationResult } from '../types'
 import type { RenameFilesPlan } from '../types/RenameFilesPlan'
+import type { PlanCreator, PlanStatus } from '../types/planCommon'
 import { Path } from '../path'
 
 export function createEmptyRenamePlan(
   mediaFolderPath: string,
   id?: string,
+  options?: { creator?: PlanCreator; status?: PlanStatus },
 ): RenameFilesPlan {
   const planId =
     id ??
@@ -15,7 +17,8 @@ export function createEmptyRenamePlan(
   return {
     id: planId,
     task: 'rename-files',
-    status: 'pending',
+    status: options?.status ?? 'pending',
+    creator: options?.creator ?? 'app',
     mediaFolderPath: Path.posix(mediaFolderPath),
     files: [],
   }

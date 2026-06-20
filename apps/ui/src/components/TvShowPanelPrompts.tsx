@@ -7,7 +7,7 @@ import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow } from "@core/types"
 import { useTmdbIdFromFolderNamePromptStore } from "@/stores/useTmdbIdFromFolderNamePromptStore"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
-import { usePlansStore } from "@/stores/plansStore"
+import { usePlansQuery } from "@/hooks/plans"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { isRuleBasedRecognizePlanComplete, isRuleBasedRecognizePlanFullyUnchanged } from "@/lib/isRuleBasedRecognizePlanComplete"
@@ -19,9 +19,9 @@ export function TvShowPanelPrompts() {
   const { isAiFeatureEnabled } = useFeatures()
 
   const tmdbPromptStore = useTmdbIdFromFolderNamePromptStore()
-  const plans = usePlansStore((state) => state.plans)
   const { selectedFolder } = useUIMediaFolderStoreState()
   const { data: mediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
 
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
   const ruleBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
@@ -33,7 +33,7 @@ export function TvShowPanelPrompts() {
   const ruleBasedPlan = ruleBasedRecognizePrompt.planId
     ? (plans.find((p) => p.id === ruleBasedRecognizePrompt.planId) ?? plans.find((p) => p.id === ruleBasedRecognizePrompt.planId))
     : undefined
-  const isRuleBasedRecognizeLoading = ruleBasedPlan?.status === 'loading'
+  const isRuleBasedRecognizeLoading = ruleBasedPlan?.status === 'preparing'
 
   const notAllEpisodesRecognized = useMemo(() => {
     if (

@@ -65,6 +65,7 @@ export async function beginRecognizeTask(mediaFolderPath: string): Promise<strin
     id: planId,
     task: "recognize-media-file",
     status: "pending",
+    creator: "ai",
     mediaFolderPath: folderPathInPosix,
     files: [],
   };

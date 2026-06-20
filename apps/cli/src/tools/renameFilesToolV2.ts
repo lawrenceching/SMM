@@ -61,7 +61,7 @@ async function writeRenamePlanFile(plan: RenameFilesPlan): Promise<void> {
  * Begin a rename-files task. Creates a plan file and returns plan.id (taskId).
  */
 export async function beginRenameFilesTaskV2(mediaFolderPath: string): Promise<string> {
-  const plan = createEmptyRenamePlan(mediaFolderPath)
+  const plan = createEmptyRenamePlan(mediaFolderPath, undefined, { creator: 'ai' })
   await writeRenamePlanFile(plan)
   return plan.id
 }

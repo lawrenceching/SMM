@@ -5,7 +5,8 @@ import {
   beginRecognizeTaskInputSchema,
 } from "@core/types/ai-tools/recognizeMediaFileTask"
 import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
-import { createRecognizePlan } from "../planStore"
+import { createPlan } from "@/api/createPlan"
+import { setPlanDraft } from "../plan/aiPlanDrafts"
 
 const beginRecognizeTask = tool({
   description: BEGIN_RECOGNIZE_TASK_DESCRIPTION,
@@ -17,8 +18,16 @@ const beginRecognizeTask = tool({
     }
 
     try {
-      const plan = await createRecognizePlan(pathCheck)
-      return toolOk({ taskId: plan.id })
+      const resp = await createPlan({
+        task: "recognize-media-file",
+        mediaFolderPath: pathCheck,
+        creator: "ai",
+      })
+      if (resp.error || !resp.data) {
+        return { taskId: undefined, error: resp.error ?? "createPlan failed" }
+      }
+      setPlanDraft(resp.data.plan)
+      return toolOk({ taskId: resp.data.plan.id })
     } catch (error) {
       return { taskId: undefined, ...formatToolError(error) }
     }

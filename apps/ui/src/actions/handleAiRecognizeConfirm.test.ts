@@ -3,12 +3,7 @@ import { handleAiRecognizeConfirm, type SetPlanByIdFn } from './handleAiRecogniz
 import type { PersistUIMediaMetadataFn } from '@/types/persistUIMediaMetadata'
 import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import { updatePlan } from '@/api/updatePlan'
 import { applyRecognizeMediaFilePlan } from '@/components/TvShowPanelUtils'
-
-vi.mock('@/api/updatePlan', () => ({
-  updatePlan: vi.fn(),
-}))
 
 vi.mock('@/components/TvShowPanelUtils', () => ({
   applyRecognizeMediaFilePlan: vi.fn(),
@@ -28,6 +23,7 @@ describe('handleAiRecognizeConfirm', () => {
     id: 'plan-1',
     task: 'recognize-media-file',
     status: 'pending',
+    creator: 'ai',
     mediaFolderPath,
     files: [
       { path: '/media/show/ep1.mkv', season: 1, episode: 1 },
@@ -46,22 +42,21 @@ describe('handleAiRecognizeConfirm', () => {
   let setPlanById: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    vi.mocked(updatePlan).mockResolvedValue({})
     vi.mocked(applyRecognizeMediaFilePlan).mockResolvedValue(undefined)
     persist = vi.fn().mockResolvedValue(undefined)
-    setPlanById = vi.fn()
+    setPlanById = vi.fn().mockResolvedValue(undefined)
   })
 
-  it('calls updatePlan with plan id and "completed" on happy path', async () => {
+  it('applies the plan then persists a "completed" status via setPlanById', async () => {
     await handleAiRecognizeConfirm(plan, mediaMetadata, persist as PersistUIMediaMetadataFn, setPlanById as SetPlanByIdFn)
 
-    expect(updatePlan).toHaveBeenCalledTimes(1)
-    expect(updatePlan).toHaveBeenCalledWith(plan.id, 'completed')
     expect(applyRecognizeMediaFilePlan).toHaveBeenCalledWith(
       plan,
       mediaMetadata,
       persist,
       expect.objectContaining({ traceId: expect.stringMatching(/^handleAiRecognizeConfirm-/) })
     )
+    expect(setPlanById).toHaveBeenCalledTimes(1)
+    expect(setPlanById).toHaveBeenCalledWith(plan.id, { status: 'completed' })
   })
 })

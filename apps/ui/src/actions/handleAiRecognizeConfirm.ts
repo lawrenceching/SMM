@@ -1,13 +1,20 @@
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
-import type { UIPlan } from "@/stores/plansStore"
+import type { UIPlan } from "@/types/UIPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
-import { updatePlan } from "@/api/updatePlan"
 import { applyRecognizeMediaFilePlan } from "@/components/TvShowPanelUtils"
 
-export type SetPlanByIdFn = (id: string, planProps: { status: UIPlan["status"] }) => void
+/**
+ * Persist a plan status change. Backed by `useUpdatePlanMutation` in the
+ * component layer: optimistically updates the plans query cache and
+ * persists via `/api/updatePlan` (terminal statuses delete the file).
+ */
+export type SetPlanByIdFn = (
+  id: string,
+  planProps: { status: UIPlan["status"] },
+) => void | Promise<void>
 
 /**
  * Apply AI-generated recognition plan: update plan status, apply recognition to media metadata, persist plan.
@@ -42,14 +49,11 @@ export async function handleAiRecognizeConfirm(
   }
 
   try {
-    setPlanById(plan.id, { status: "completed" })
     await applyRecognizeMediaFilePlan(plan, mediaMetadata, persist, { traceId })
     console.log(`[${traceId}] Applied recognition from plan`, { planFilesCount: plan.files.length })
     toast.success(`Applied recognition for ${plan.files.length} file(s)`)
-    const isTmp = 'tmp' in plan && (plan as { tmp?: boolean }).tmp === true
-    if (!isTmp) {
-      await updatePlan(plan.id, "completed")
-    }
+    // Persist terminal status (removes the plan file + drops it from the cache).
+    await setPlanById(plan.id, { status: "completed" })
   } catch (error) {
     console.error(`[${traceId}] Error applying recognition:`, error)
     toast.error("Failed to apply recognition")

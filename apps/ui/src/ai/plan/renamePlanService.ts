@@ -7,7 +7,8 @@ import {
 import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync'
 import { validateRenameOperationsApi } from '@/api/validateRenameOperations'
 import { resolveMediaMetadataForFolderPath } from '@/ai/tools/GetMediaMetadata'
-import { readPlan, savePlan } from '../planStore'
+import { updatePlan } from '@/api/updatePlan'
+import { getPlanDraft, setPlanDraft } from './aiPlanDrafts'
 
 async function validateRenameOperationsForFrontend(
   files: Array<{ from: string; to: string }>,
@@ -46,7 +47,7 @@ export async function appendRenameEntryWithValidation(
   planId: string,
   entry: { from: string; to: string },
 ): Promise<RenameFilesPlan | { error: string }> {
-  const plan = await readPlan(planId)
+  const plan = getPlanDraft(planId)
   if (!plan || plan.task !== 'rename-files') {
     return { error: `Error Reason: Task with id "${planId}" not found` }
   }
@@ -62,6 +63,10 @@ export async function appendRenameEntryWithValidation(
     return result
   }
 
-  await savePlan(result)
+  const resp = await updatePlan(planId, { files: result.files })
+  if (resp.error || !resp.data) {
+    return { error: resp.error ?? 'updatePlan failed' }
+  }
+  setPlanDraft(resp.data.plan as RenameFilesPlan)
   return result
 }

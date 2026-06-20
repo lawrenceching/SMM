@@ -544,14 +544,14 @@ describe('buildTvShowEpisodeTableRowsForPlan', () => {
     ])
   })
 
-  it('returns base rows unchanged when recognize plan is loading', () => {
+  it('returns base rows unchanged when recognize plan is preparing', () => {
     const mm = {
       status: 'ok',
       tvShow: tvShowForPlanTests(),
     } as UIMediaMetadata
     const plan = {
       ...recognizePlan([{ season: 1, episode: 1, path: '/media/show/S01E01.mkv' }]),
-      status: 'loading',
+      status: 'preparing',
     } as UIRecognizeMediaFilePlan
 
     const rows = buildTvShowEpisodeTableRowsForPlan(mm, plan, (key) => key)

@@ -1,33 +1,18 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react"
 import { z } from 'zod'
-import { readPlan, deletePlan } from "../planStore"
-import { usePlansStore } from "@/stores/plansStore"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import { Path } from '@core/path'
+import { updatePlan } from "@/api/updatePlan"
+import { queryClient } from "@/lib/queryClient"
+import { PLANS_QUERY_ROOT } from "@/hooks/plans"
+import { getPlanDraft, deletePlanDraft } from "../plan/aiPlanDrafts"
 
 /**
  * Frontend AI tool: `end-recognize-task`.
  *
- * Finalizes a recognize-media-file task and surfaces the plan to the
- * UI. The plan is read from IndexedDB (where `beginRecognizeTask` /
- * `addRecognizedMediaFile` have been writing to), converted to the
- * `UIRecognizeMediaFilePlan` shape the UI consumes, and pushed into
- * `usePlansStore` so the existing recognition-prompt components pick
- * it up and let the user review / confirm the matches.
- *
- * The plan is *also* persisted in IndexedDB after the call returns
- * so the user can navigate away and back; it is deleted from
- * IndexedDB only when the user confirms or rejects via
- * `savePlan()` in `apps/ui/src/actions/planActions.ts` (which calls
- * `updatePlan` on the backend with the new status — IndexedDB stays
- * as the local cache of the same plan).
- *
- * Mirrors the backend `createEndRecognizeTaskTool` factory in
- * `apps/cli/src/tools/recognizeMediaFilesTask.ts`, which broadcasts
- * the `RecognizeMediaFilePlanReady` Socket.IO event so the desktop
- * event listener (`RecognizeMediaFilePlanReadyEventListener`) calls
- * `fetchPlans()`. The frontend path is in-process: it does not need
- * a network round-trip to surface the plan.
+ * Finalizes a recognize-media-file task: flips the backend plan from
+ * `preparing` to `pending` (so it becomes visible to the UI via
+ * `/api/getPlans`) and invalidates the plans query so the recognition
+ * prompt opens. The plan lives on the backend (created via
+ * `/api/createPlan`); the in-memory draft is dropped.
  */
 const endRecognizeTask = tool({
   description:
@@ -45,7 +30,7 @@ const endRecognizeTask = tool({
     }
 
     try {
-      const plan = await readPlan(taskId)
+      const plan = getPlanDraft(taskId)
       if (!plan) {
         return { error: `Error Reason: Task with id "${taskId}" not found` }
       }
@@ -58,46 +43,13 @@ const endRecognizeTask = tool({
         return { error: "Error Reason: No recognized files in task" }
       }
 
-      // Push the plan into the UI's plansStore. The plan file lives
-      // in IndexedDB (the browser-local source of truth for this
-      // frontend path); the UI reads from plansStore directly.
-      const uiPlan: UIRecognizeMediaFilePlan = {
-        ...plan,
-        // Path normalization for display
-        mediaFolderPath: Path.toPlatformPath(plan.mediaFolderPath),
-        files: plan.files.map((f) => ({
-          ...f,
-          path: Path.toPlatformPath(f.path),
-        })),
-        tmp: true,
+      const resp = await updatePlan(taskId, { status: "pending" })
+      if (resp.error) {
+        return { error: resp.error }
       }
 
-      // Append to the store; do not overwrite plans that the
-      // backend may have pushed concurrently.
-      usePlansStore.getState().setPlans((prev) => {
-        // Replace if a plan with the same id already exists in the
-        // store, otherwise append.
-        const exists = prev.some((p) => p.id === plan.id)
-        if (exists) {
-          return prev.map((p) => (p.id === plan.id ? uiPlan : p))
-        }
-        return [...prev, uiPlan]
-      })
-
-      // We deliberately keep the plan in IndexedDB after the tool
-      // call returns. The UI's `savePlan()` action calls
-      // `updatePlan(planId, status)` on the backend; for plans
-      // sourced from IndexedDB, the status update is also reflected
-      // in `plansStore.setPlanById(...)` (which the UI components
-      // already do on confirm/reject). IndexedDB can be cleaned up
-      // on the next session or when the plan moves out of the
-      // pending state.
-      //
-      // Note: we do NOT call deletePlan() here, because the UI may
-      // still be reading the plan in subsequent render passes, and
-      // `savePlan` doesn't depend on IndexedDB (it talks to the
-      // backend). Cleanup of IndexedDB entries is left to a future
-      // housekeeping pass.
+      deletePlanDraft(taskId)
+      await queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })
 
       return { error: undefined }
     } catch (error) {
@@ -116,10 +68,11 @@ export const EndRecognizeTaskTool = makeAssistantTool({
 })
 
 /**
- * Helper for cleanup: drop the IndexedDB entry for a plan that has
- * been confirmed or rejected. Not exposed as a tool — called from
- * the UI's plan-action code path when it knows the plan is final.
+ * Drop the in-memory draft for a plan that has been confirmed or
+ * rejected. Kept for compatibility with the UI confirm/reject code
+ * paths; the backend file is removed when the plan reaches a terminal
+ * status via `/api/updatePlan`.
  */
 export async function cleanupRecognizePlan(planId: string): Promise<void> {
-  await deletePlan(planId)
+  deletePlanDraft(planId)
 }

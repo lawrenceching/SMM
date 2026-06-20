@@ -23,6 +23,7 @@ import {
   beginRecognizePlan,
   planFilePath,
   readRecognizePlan,
+  updatePlanContent,
 } from "./plans.ts";
 import type { ChatFs } from "../chatTypes.ts";
 
@@ -191,6 +192,9 @@ export function buildEndRecognizeTaskTool(
           );
           return formatToolError("No recognized files in task");
         }
+
+        // Flip preparing → pending so the plan becomes visible to the UI.
+        await updatePlanContent(appDataDir, task.id, { status: "pending" }, fs);
 
         const fullPlanPath = planFilePath(appDataDir, task.id);
         const planFilePathInPosix = Path.posix(fullPlanPath);
