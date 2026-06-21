@@ -510,7 +510,9 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "显示..."
+      "showColumns": "显示...",
+      "open": "打开",
+      "properties": "属性"
     },
     "renameCheckboxTitle": "参与重命名",
     "unrecognizedVideoFile": "无法识别视频文件",

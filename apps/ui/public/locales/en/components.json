@@ -512,7 +512,9 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "Show..."
+      "showColumns": "Show...",
+      "open": "Open",
+      "properties": "Properties"
     },
     "renameCheckboxTitle": "Include in rename",
     "unrecognizedVideoFile": "Cannot recognize video file",

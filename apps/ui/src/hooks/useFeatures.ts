@@ -10,6 +10,7 @@ const DISPLAY_FEATURE_CARDS_IN_WELCOME_STORAGE_KEY = "features.isDisplayFeatureC
 const AI_AREA_STORAGE_KEY = "features.isAiAreaEnabled"
 const AI_FEATURE_STORAGE_KEY = "features.isAiFeatureEnabled"
 const UI_AI_CHAT_TRANSPORT_STORAGE_KEY = "features.isUIAiChatTransportEnabled"
+const USE_MEDIA_FILE_TABLE_STORAGE_KEY = "features.useMediaFileTable"
 
 /** Default: enabled when the user has never set a preference (`null`). */
 function readVideoCaptionerAsrOptionsEnabled(): boolean {
@@ -214,6 +215,27 @@ function writeDisplayFeatureCardsInWelcomeEnabled(enabled: boolean): void {
   }
 }
 
+/** Default: disabled until the user opts in via localStorage. */
+function readUseMediaFileTableEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const v = window.localStorage.getItem(USE_MEDIA_FILE_TABLE_STORAGE_KEY)
+    if (v === null) return false
+    return v === "true"
+  } catch {
+    return false
+  }
+}
+
+function writeUseMediaFileTableEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(USE_MEDIA_FILE_TABLE_STORAGE_KEY, enabled ? "true" : "false")
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 /**
  * Best-effort runtime OS detection for renderer (Electron + browser dev).
  * Mirrors patterns used in `@core/path` for Electron vs UA fallback.
@@ -326,6 +348,13 @@ export interface UseFeaturesResult {
    */
   isUIAiChatTransportEnabled: boolean
   setIsUIAiChatTransportEnabled: (enabled: boolean) => void
+  /**
+   * When true, MoviePanel and TvShowPanel render `MediaFileTable` instead of
+   * `TvShowEpisodeTable`. Persisted under `features.useMediaFileTable`.
+   * Defaults to false until the user opts in.
+   */
+  isUseMediaFileTableEnabled: boolean
+  setUseMediaFileTableEnabled: (enabled: boolean) => void
 }
 
 export function useFeatures(): UseFeaturesResult {
@@ -380,6 +409,10 @@ export function useFeatures(): UseFeaturesResult {
     readUiAiChatTransportEnabled,
   )
 
+  const [isUseMediaFileTableEnabled, setIsUseMediaFileTableEnabledState] = useState(
+    readUseMediaFileTableEnabled,
+  )
+
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY) {
@@ -408,6 +441,9 @@ export function useFeatures(): UseFeaturesResult {
       }
       if (event.key === UI_AI_CHAT_TRANSPORT_STORAGE_KEY) {
         setIsUIAiChatTransportEnabledState(readUiAiChatTransportEnabled())
+      }
+      if (event.key === USE_MEDIA_FILE_TABLE_STORAGE_KEY) {
+        setIsUseMediaFileTableEnabledState(readUseMediaFileTableEnabled())
       }
     }
     window.addEventListener("storage", onStorage)
@@ -459,6 +495,11 @@ export function useFeatures(): UseFeaturesResult {
     setIsUIAiChatTransportEnabledState(enabled)
   }, [])
 
+  const setUseMediaFileTableEnabled = useCallback((enabled: boolean) => {
+    writeUseMediaFileTableEnabled(enabled)
+    setIsUseMediaFileTableEnabledState(enabled)
+  }, [])
+
   return useMemo(
     () => ({
       isAiFeatureEnabled,
@@ -484,6 +525,8 @@ export function useFeatures(): UseFeaturesResult {
       setIsDisplayFeatureCardsInWelcomeEnabled: setIsDisplayFeatureCardsInWelcomeEnabledCallback,
       isUIAiChatTransportEnabled,
       setIsUIAiChatTransportEnabled,
+      isUseMediaFileTableEnabled,
+      setUseMediaFileTableEnabled,
     }),
     [
       isAiFeatureEnabled,
@@ -509,6 +552,8 @@ export function useFeatures(): UseFeaturesResult {
       setIsDisplayFeatureCardsInWelcomeEnabledCallback,
       isUIAiChatTransportEnabled,
       setIsUIAiChatTransportEnabled,
+      isUseMediaFileTableEnabled,
+      setUseMediaFileTableEnabled,
     ],
   )
 }

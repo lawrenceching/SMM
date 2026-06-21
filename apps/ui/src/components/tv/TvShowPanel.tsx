@@ -17,6 +17,8 @@ import { useSelectAndUnselectFileFlow } from "@/hooks/tv/useSelectAndUnselectFil
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
 import { usePlansQuery } from "@/hooks/plans"
+import { MediaFileTable } from "@/components/media/MediaFileTable"
+import type { UIMediaFileTableRow } from "@/components/media/UIMediaFileTable"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
@@ -134,7 +136,7 @@ function TvShowPanel() {
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isVideoCompressionEnabled } = useFeatures()
+  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -337,6 +339,15 @@ function TvShowPanel() {
       <div className="flex-1 min-h-0 overflow-auto">
         {uiStatus === "initializing" ? (
           <MediaPanelInitializingHint />
+        ) : isUseMediaFileTableEnabled ? (
+          <MediaFileTable
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData as UIMediaFileTableRow[]}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
+            preview={previewMode}
+            previewStatus={previewStatus}
+            layout={episodeTableLayout}
+          />
         ) : (
           <TvShowEpisodeTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}

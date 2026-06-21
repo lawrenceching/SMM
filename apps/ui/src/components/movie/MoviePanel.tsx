@@ -20,6 +20,8 @@ import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
+import { MediaFileTable } from "../media/MediaFileTable"
+import type { UIMediaFileTableRow } from "../media/UIMediaFileTable"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "../tv/TvShowEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
@@ -114,7 +116,7 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone)
   }, [queriedMediaMetadata])
 
-  const { isVideoCompressionEnabled } = useFeatures()
+  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -347,6 +349,14 @@ function MoviePanel() {
       <div className="flex-1 min-h-0 overflow-auto">
         {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
+        ) : isUseMediaFileTableEnabled ? (
+          <MediaFileTable
+            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            data={tableData as UIMediaFileTableRow[]}
+            mediaFolderPath={mediaMetadata?.mediaFolderPath}
+            layout={isPreviewingForRename ? "simple" : layout}
+            preview={isPreviewingForRename ? "rename" : undefined}
+          />
         ) : (
           <TvShowEpisodeTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}

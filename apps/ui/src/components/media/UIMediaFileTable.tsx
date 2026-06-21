@@ -142,6 +142,13 @@ export interface UIMediaFileTableProps {
    * (e.g. video screenshots). Omit → the area is hidden.
    */
   renderPreviewContent?: (row: UIMediaFileDataRow) => ReactNode
+
+  /**
+   * Double-click handler for data rows and folder file rows.
+   * Divider rows are not interactive and do not trigger this callback.
+   * Omit → double-click has no effect.
+   */
+  onDoubleClick?: (row: UIMediaFileDataRow | UIMediaFileFolderRow) => void
 }
 
 // ========================================================================
@@ -243,6 +250,7 @@ export function UIMediaFileTable({
   layout = "simple",
   onCheck,
   renderPreviewContent,
+  onDoubleClick,
 }: UIMediaFileTableProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(
@@ -466,7 +474,7 @@ export function UIMediaFileTable({
             // ── Folder file row ──
             if (row.type === "folderFile") {
               const folderFileInner = (
-                <TableRow key={`${row.id}-${index}`}>
+                <TableRow key={`${row.id}-${index}`} onDoubleClick={onDoubleClick ? () => onDoubleClick(row) : undefined}>
                   {showCheckboxColumn && (
                     <TableCell className="w-10 shrink-0 px-0 py-1" />
                   )}
@@ -523,7 +531,8 @@ export function UIMediaFileTable({
               <TableRow
                 key={`${row.season}-${row.episode}-${index}`}
                 className={cn(isRowDisabled && "opacity-50")}
-              >
+                onDoubleClick={onDoubleClick ? () => onDoubleClick(row) : undefined}
+                >
                 {showCheckboxColumn && (
                   <TableCell className="w-10 shrink-0 px-0 py-1 text-center align-middle">
                     <input

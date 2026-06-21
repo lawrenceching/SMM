@@ -70,4 +70,21 @@ describe("useFeatures HarmonyOS gating", () => {
 
     expect(result.current.isAiFeatureEnabled).toBe(false)
   })
+
+  it("defaults isUseMediaFileTableEnabled to false", () => {
+    vi.mocked(isHarmonyOS).mockReturnValue(false)
+
+    const { result } = renderHook(() => useFeatures())
+
+    expect(result.current.isUseMediaFileTableEnabled).toBe(false)
+  })
+
+  it("reads isUseMediaFileTableEnabled from localStorage", () => {
+    vi.mocked(isHarmonyOS).mockReturnValue(false)
+    localStorage.setItem("features.useMediaFileTable", "true")
+
+    const { result } = renderHook(() => useFeatures())
+
+    expect(result.current.isUseMediaFileTableEnabled).toBe(true)
+  })
 })

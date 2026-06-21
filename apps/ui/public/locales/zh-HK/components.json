@@ -507,7 +507,9 @@
       "nfo": "NFO"
     },
     "contextMenu": {
-      "showColumns": "顯示..."
+      "showColumns": "顯示...",
+      "open": "開啟",
+      "properties": "屬性"
     },
     "renameCheckboxTitle": "參與重新命名",
     "unrecognizedVideoFile": "無法識別影片檔案",
