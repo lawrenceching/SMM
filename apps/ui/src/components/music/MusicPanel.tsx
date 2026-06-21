@@ -10,9 +10,9 @@ import {
   type LocalFileTableRowData,
   type MusicTableRow,
   type JobTableRowStatus,
-} from "./MusicFileTable";
+} from "../MusicFileTable";
 import { MusicHeaderV2 } from "./MusicHeaderV2";
-import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint";
+import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { convertMusicFilesToTracks, newMusicMediaMetadata } from "@/lib/music";
 import { openFile } from "@/api/openFile";
@@ -32,14 +32,14 @@ import {
 import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@core/path";
-import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/lib/tracksFromDownloadVideoJobs";
+import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/helpers/music/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog } from "@/components/dialogs";
-import type { Track } from "./MediaPlayer";
+import type { Track } from "../MediaPlayer";
 import { useJobManager, useJobs } from "@/hooks/useJobOrchestrator";
 import { absolutePosixMusicFilePath, displayPathForFile } from "@/lib/transcribeDialogRows";
 import { isAbsPath } from "@/lib/path";
-import { syncTracks } from "@/lib/musicPanelSyncTracks";
-import { LocalFileSubtitleScope, useLocalFileSubtitle } from "./LocalFileSubtitleScope";
+import { syncTracks } from "@/helpers/music/musicPanelSyncTracks";
+import { LocalFileSubtitleScope, useLocalFileSubtitle } from "../LocalFileSubtitleScope";
 import { useFeatures } from "@/hooks/useFeatures";
 
 interface PendingDelete {

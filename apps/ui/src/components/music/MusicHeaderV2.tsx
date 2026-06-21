@@ -1,11 +1,11 @@
 import { Captions, ChevronDown, Download, FileVideo, Languages, Music, Sparkles } from "lucide-react"
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu"
+} from "../ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
 import type { MediaMetadata } from "@core/types"
 

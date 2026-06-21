@@ -8,7 +8,7 @@ import { useDialogs } from '@/providers/dialog-provider';
 import { toast } from 'sonner';
 import { openFile } from '@/api/openFile';
 import { moveFileToTrash } from '@/api/moveFileToTrash';
-import type { Track } from './MediaPlayer';
+import type { Track } from '../MediaPlayer';
 import { Path } from '@core/path';
 import { getMediaTags } from '@/api/ffmpeg';
 import { useVideoCaptionerStatus } from '@/hooks/useVideoCaptionerStatus';
@@ -61,7 +61,7 @@ vi.mock('@/lib/music', () => ({
   })),
 }))
 
-vi.mock('@/lib/tracksFromDownloadVideoJobs', () => ({
+vi.mock('@/helpers/music/tracksFromDownloadVideoJobs', () => ({
   mergeLibraryTracksWithJobTracks: (libraryTracks: unknown[], jobTracks: unknown[]) => [
     ...libraryTracks,
     ...jobTracks,
@@ -155,21 +155,21 @@ vi.mock('@/lib/i18n', () => ({
     },
   }),
 }));
-vi.mock('./MusicFileTable', () => ({
+vi.mock('../MusicFileTable', () => ({
   MusicFileTable: () => null,
 }));
 vi.mock('./MusicHeaderV2', () => ({
   MusicHeaderV2: () => null,
 }));
-vi.mock('./LocalFileSubtitleScope', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./LocalFileSubtitleScope')>();
+vi.mock('../LocalFileSubtitleScope', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../LocalFileSubtitleScope')>();
   return {
     ...actual,
     LocalFileSubtitleScope: ({ children }: { children: React.ReactNode }) => children,
     useLocalFileSubtitle: () => actual.createMockLocalFileSubtitleContext(),
   };
 });
-vi.mock('./MediaPanelInitializingHint', () => ({
+vi.mock('../MediaPanelInitializingHint', () => ({
   MediaPanelInitializingHint: () => null,
 }));
 vi.mock('@/components/dialogs', () => ({

@@ -28,7 +28,7 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
-import { computeAssociatedFileRenames } from "./episode-file"
+import { computeAssociatedFileRenames } from "../episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
 

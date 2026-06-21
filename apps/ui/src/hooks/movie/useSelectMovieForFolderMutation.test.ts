@@ -6,8 +6,8 @@ import type { MovieMediaMetadata, TMDBMovie } from "@core/types"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
 import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import { useSelectMovieForFolderMutation } from "./useSelectMovieForFolderMutation"
-import { useGetTmdbMovieMutation } from "./useGetTmdbMovieMutation"
-import { useGetTvdbMovieMutation } from "./useGetTvdbMovieMutation"
+import { useGetTmdbMovieMutation } from "../useGetTmdbMovieMutation"
+import { useGetTvdbMovieMutation } from "../useGetTvdbMovieMutation"
 import { toast } from "sonner"
 
 const hoisted = vi.hoisted(() => ({
@@ -49,7 +49,7 @@ const resolvedMovie: MovieMediaMetadata = {
   database: "TMDB",
 }
 
-vi.mock("./useGetTmdbMovieMutation", () => ({
+vi.mock("../useGetTmdbMovieMutation", () => ({
   useGetTmdbMovieMutation: vi.fn((options?: { onMutate?: (v: unknown) => void; onSuccess?: (d: unknown, v: unknown) => void; onError?: (e: Error, v: unknown) => void }) => ({
     mutate: vi.fn((vars: unknown) => {
       options?.onMutate?.(vars)
@@ -64,7 +64,7 @@ vi.mock("./useGetTmdbMovieMutation", () => ({
   })),
 }))
 
-vi.mock("./useGetTvdbMovieMutation", () => ({
+vi.mock("../useGetTvdbMovieMutation", () => ({
   useGetTvdbMovieMutation: vi.fn((options?: { onMutate?: (v: unknown) => void; onSuccess?: (d: unknown, v: unknown) => void; onError?: (e: Error, v: unknown) => void }) => ({
     mutate: vi.fn((vars: unknown) => {
       options?.onMutate?.(vars)

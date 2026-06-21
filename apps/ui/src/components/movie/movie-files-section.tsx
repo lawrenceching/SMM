@@ -3,7 +3,7 @@ import { FileVideo, FileText, Music, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { FileProps } from "@/lib/types"
-import { EpisodeFile } from "./episode-file"
+import { EpisodeFile } from "../episode-file"
 import { useMemo } from "react"
 import type { MovieFileModel } from "./MoviePanel"
 

@@ -2,7 +2,7 @@ import type { TMDBMovie } from "@core/types"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, FileEdit, Download } from "lucide-react"
 import { cn, nextTraceId } from "@/lib/utils"
-import { ImmersiveMovieSearchbox } from "./ImmersiveMovieSearchbox"
+import { ImmersiveMovieSearchbox } from "../ImmersiveMovieSearchbox"
 import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
@@ -11,7 +11,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQue
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"

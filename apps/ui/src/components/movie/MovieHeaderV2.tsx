@@ -1,9 +1,9 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
-import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
+import { MediaDatabaseSearchbox } from "../MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
 import { useTranslation } from "@/lib/i18n"
 
 export interface MovieHeaderV2Props {
-    onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
+    onSearchResultSelected: (args: import("../MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRenameClick?: () => void
     onTranscribeClick?: () => void
     onTranslateClick?: () => void

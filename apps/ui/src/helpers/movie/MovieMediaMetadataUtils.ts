@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@core/types";
-import { videoFileExtensions } from "./utils";
-import { extname } from "./path";
+import { videoFileExtensions } from "../../lib/utils";
+import { extname } from "../../lib/path";
 export function findMediaFilesForMovieMediaMetadata(mediaMetadata: MediaMetadata): MediaMetadata {
     if(!mediaMetadata.mediaFolderPath) {
 
