@@ -477,7 +477,29 @@ interface ComponentsResources {
     collapse: string
     noFile: string
   }
-  musicFileTable: {
+  mediaFileTable: {
+    columns: {
+      id: string
+      video: string
+      thumbnail: string
+      subtitle: string
+      nfo: string
+    }
+    header: {
+      videoFile: string
+      thumb: string
+      sub: string
+      nfo: string
+    }
+    contextMenu: {
+      showColumns: string
+    }
+    renameCheckboxTitle: string
+    unrecognizedVideoFile: string
+    expand: string
+    collapse: string
+  }
+   musicFileTable: {
     selectAllAria: string
     columns: {
       index: string

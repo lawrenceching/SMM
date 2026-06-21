@@ -492,7 +492,29 @@
     "noFilesSelectedForRename": "未選擇要重新命名的檔案",
     "unrecognizedVideoFile": "無法識別影片檔案"
   },
-  "movieEpisodeTable": {
+  "mediaFileTable": {
+    "columns": {
+      "id": "ID",
+      "video": "影片",
+      "thumbnail": "封面",
+      "subtitle": "字幕",
+      "nfo": "NFO"
+    },
+    "header": {
+      "videoFile": "影片檔案",
+      "thumb": "封面",
+      "sub": "字幕",
+      "nfo": "NFO"
+    },
+    "contextMenu": {
+      "showColumns": "顯示..."
+    },
+    "renameCheckboxTitle": "參與重新命名",
+    "unrecognizedVideoFile": "無法識別影片檔案",
+    "expand": "展開",
+    "collapse": "收起"
+  },
+   "movieEpisodeTable": {
     "columns": {
       "file": "檔案",
       "thumbnail": "封面",

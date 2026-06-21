@@ -1,4 +1,4 @@
-import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/tv/TvShowEpisodeTable";
+import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow } from "@/components/tv/TvShowEpisodeTable";
 import type { MediaMetadata } from "@core/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { basename, join } from "@/lib/path";
