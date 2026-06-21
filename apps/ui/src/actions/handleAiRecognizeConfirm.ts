@@ -4,7 +4,7 @@ import type { UIPlan } from "@/types/UIPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
-import { applyRecognizeMediaFilePlan } from "@/components/TvShowPanelUtils"
+import { applyRecognizeMediaFilePlan } from "@/components/tv/TvShowPanelUtils"
 
 /**
  * Persist a plan status change. Backed by `useUpdatePlanMutation` in the

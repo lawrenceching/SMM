@@ -549,7 +549,7 @@ class TVShowPanel {
         return $('[data-testid="scrape-button"]')
     }
 
-    /** Matches {@link TvShowHeaderV2} transcribe control. */
+    /** Matches {@link TvShowPanelHeader} transcribe control. */
     get transcribeButton() {
         return $('[data-testid="tvshow-header-transcribe"]')
     }

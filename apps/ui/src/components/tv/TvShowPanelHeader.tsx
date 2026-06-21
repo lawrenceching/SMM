@@ -1,9 +1,9 @@
 import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
-import { MediaDatabaseSearchbox } from "./MediaDatabaseSearchbox"
+import { MediaDatabaseSearchbox } from "../MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,8 +18,8 @@ import { isHarmonyOS } from "@/lib/isHarmonyOS"
 
 export type EpisodeTableLayout = "simple" | "detail" | "preview"
 
-export interface TvShowHeaderV2Props {
-    onSearchResultSelected: (args: import("./MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
+export interface TvShowPanelHeaderProps {
+    onSearchResultSelected: (args: import("../MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
     onRecognizeButtonClick?: () => void
     onRenameClick?: () => void
     /** Opens transcribe dialog when VideoCaptioner is available and there are video files. */
@@ -45,7 +45,7 @@ export interface TvShowHeaderV2Props {
     onEpisodeTableLayoutChange?: (layout: EpisodeTableLayout) => void
 }
 
-export function TvShowHeaderV2({
+export function TvShowPanelHeader({
     onSearchResultSelected,
     onRecognizeButtonClick,
     onRenameClick,
@@ -67,7 +67,7 @@ export function TvShowHeaderV2({
     openScrape,
     episodeTableLayout = "simple",
     onEpisodeTableLayoutChange,
-}: TvShowHeaderV2Props) {
+}: TvShowPanelHeaderProps) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
     // HarmonyOS doesn't ship the bundled ffmpeg/thumbnail stack the

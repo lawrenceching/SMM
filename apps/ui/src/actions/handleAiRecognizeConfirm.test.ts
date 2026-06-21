@@ -3,9 +3,9 @@ import { handleAiRecognizeConfirm, type SetPlanByIdFn } from './handleAiRecogniz
 import type { PersistUIMediaMetadataFn } from '@/types/persistUIMediaMetadata'
 import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import { applyRecognizeMediaFilePlan } from '@/components/TvShowPanelUtils'
+import { applyRecognizeMediaFilePlan } from '@/components/tv/TvShowPanelUtils'
 
-vi.mock('@/components/TvShowPanelUtils', () => ({
+vi.mock('@/components/tv/TvShowPanelUtils', () => ({
   applyRecognizeMediaFilePlan: vi.fn(),
 }))
 

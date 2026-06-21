@@ -2,7 +2,7 @@
  * Regression tests for the i18n catalog of the TvShowPanel "Link file"
  * (a.k.a. "Select File" context menu) flow.
  *
- * The orchestrator in apps/ui/src/components/TvShowPanel.tsx#handleEpisodeFileSelect
+ * The orchestrator in apps/ui/src/components/tv/TvShowPanel.tsx#handleEpisodeFileSelect
  * uses this i18n key for the directory-error toast:
  *   - tvShowEpisodeTable.linkFileDirectoryError
  *
@@ -12,10 +12,10 @@
  * supported locales.
  */
 import { describe, it, expect } from "vitest"
-import en from "../../public/locales/en/components.json"
-import zhCN from "../../public/locales/zh-CN/components.json"
-import zhHK from "../../public/locales/zh-HK/components.json"
-import zhTW from "../../public/locales/zh-TW/components.json"
+import en from "../../../public/locales/en/components.json"
+import zhCN from "../../../public/locales/zh-CN/components.json"
+import zhHK from "../../../public/locales/zh-HK/components.json"
+import zhTW from "../../../public/locales/zh-TW/components.json"
 
 interface TvShowEpisodeTable {
   linkFileDirectoryError: string

@@ -5,7 +5,7 @@ import {
   fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan,
   fillTvShowEpisodeTableRowByRenameFilesPlan,
 } from './buildTvShowEpisodeTableRows'
-import type { TvShowEpisodeTableRow, TvShowEpisodeDataRow } from '@/components/TvShowEpisodeTable'
+import type { TvShowEpisodeTableRow, TvShowEpisodeDataRow } from '@/components/tv/TvShowEpisodeTable'
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 import type { UIRenameFilesPlan } from '@/types/UIRenameFilesPlan'
 import type { MediaMetadata } from '@core/types'

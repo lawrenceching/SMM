@@ -1,5 +1,5 @@
 import { UseNfoPrompt } from "./UseNfoPrompt"
-import { RuleBasedRenameFilePrompt } from "./RuleBasedRenameFilePrompt"
+import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
@@ -7,7 +7,7 @@ import type { TMDBTVShow } from "@core/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useTvShowAppPlanPrompts } from "@/components/plans/TvShowAppPlanPromptContext"
+import { useTvShowAppPlanPrompts } from "./plans/TvShowAppPlanPromptContext"
 
 export function TvShowPanelPrompts() {
   const { isAiFeatureEnabled } = useFeatures()

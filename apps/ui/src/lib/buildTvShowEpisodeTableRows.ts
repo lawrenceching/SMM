@@ -1,9 +1,9 @@
-import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/TvShowEpisodeTable";
+import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/tv/TvShowEpisodeTable";
 import type { MediaMetadata } from "@core/types";
 import { basename, join } from "@/lib/path";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { findAssociatedFiles } from "@/lib/utils";
-import { mapTagToFileType } from "@/components/TvShowPanelUtils";
+import { mapTagToFileType } from "@/components/tv/TvShowPanelUtils";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import { mediaFilePathEqual } from "@/lib/mediaFilePathEqual";

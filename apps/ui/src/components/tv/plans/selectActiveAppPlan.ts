@@ -1,5 +1,5 @@
 import type { Plan } from "@/api/getPlans"
-import { mediaFolderPathEqual } from "@/components/TvShowPanelUtils"
+import { mediaFolderPathEqual } from "../TvShowPanelUtils"
 
 type AppPlanTask = "rename-files" | "recognize-media-file"
 

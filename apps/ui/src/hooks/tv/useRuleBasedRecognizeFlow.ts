@@ -3,8 +3,8 @@ import { toast } from "sonner"
 import {
   applyRecognizeMediaFilePlan,
   buildTemporaryRecognitionPlanAsync,
-} from "@/components/TvShowPanelUtils"
-import { selectActiveAppPlan } from "@/components/plans/selectActiveAppPlan"
+} from "@/components/tv/TvShowPanelUtils"
+import { selectActiveAppPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useCreatePlanMutation, toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { useOnFirstOpen } from "@/hooks/useOnFirstOpen"

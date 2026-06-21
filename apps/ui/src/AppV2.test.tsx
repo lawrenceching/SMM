@@ -74,15 +74,15 @@ vi.mock("./components/welcome", () => ({
   default: () => <div data-testid="welcome" />,
 }))
 
-vi.mock("./components/TvShowPanel", () => ({
+vi.mock("./components/tv/TvShowPanel", () => ({
   default: () => <div data-testid="tvshow-panel" />,
 }))
 
-vi.mock("./components/MoviePanel", () => ({
+vi.mock("./components/movie/MoviePanel", () => ({
   default: () => <div data-testid="movie-panel" />,
 }))
 
-vi.mock("./components/MusicPanel", () => ({
+vi.mock("./components/music/MusicPanel", () => ({
   MusicPanel: () => <div data-testid="music-panel" />,
 }))
 

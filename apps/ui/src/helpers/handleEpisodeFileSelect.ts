@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@core/types";
 import { Path } from "@core/path";
-import { updateMediaFileMetadatas } from "@/components/TvShowPanelUtils";
+import { updateMediaFileMetadatas } from "@/components/tv/TvShowPanelUtils";
 
 /**
  * The helper function for TvShowPanel component.

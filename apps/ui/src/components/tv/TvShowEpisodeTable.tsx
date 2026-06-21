@@ -33,7 +33,7 @@ import { openFile } from "@/api/openFile"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { computeAssociatedFileRenames } from "./episode-file"
+import { computeAssociatedFileRenames } from "../episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
 

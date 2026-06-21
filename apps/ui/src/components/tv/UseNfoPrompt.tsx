@@ -1,4 +1,4 @@
-import { FloatingPrompt, type FloatingPromptProps } from "./FloatingPrompt"
+import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import {

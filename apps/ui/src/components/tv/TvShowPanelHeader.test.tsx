@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TvShowHeaderV2 } from './TvShowHeaderV2'
+import { TvShowPanelHeader } from './TvShowPanelHeader'
 import type { MediaMetadata } from '@core/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
@@ -8,11 +8,11 @@ const mockMediaDatabaseSearchbox = vi.fn((props: any) => (
   <div data-testid="media-database-searchbox" data-value={props.value ?? ''} />
 ))
 
-vi.mock('./MediaDatabaseSearchbox', () => ({
+vi.mock('../MediaDatabaseSearchbox', () => ({
   MediaDatabaseSearchbox: (props: any) => mockMediaDatabaseSearchbox(props),
 }))
 
-vi.mock('@/components/ui/dropdown-menu', () => {
+vi.mock('../ui/dropdown-menu', () => {
   const React = require('react')
   return {
     DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
@@ -52,7 +52,7 @@ vi.mock('@/lib/isHarmonyOS', () => ({
   isHarmonyOS: isHarmonyOSMock,
 }))
 
-describe('TvShowHeaderV2', () => {
+describe('TvShowPanelHeader', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
     onRecognizeButtonClick: vi.fn(),
@@ -71,7 +71,7 @@ describe('TvShowHeaderV2', () => {
   describe('"更多" dropdown / "在TMDB中打开"', () => {
     it('always enables the more menu button so overflow actions are accessible on small screens', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={{
             mediaFolderPath: '/media/show',
@@ -86,7 +86,7 @@ describe('TvShowHeaderV2', () => {
 
     it('enables the more menu button when tvShow has TMDB id', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -104,7 +104,7 @@ describe('TvShowHeaderV2', () => {
 
     it('enables the more menu button when tvShow.id is available', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -124,7 +124,7 @@ describe('TvShowHeaderV2', () => {
   describe('TVDB TV Show Metadata', () => {
     it('passes tvShow.name as value for TVDB metadata', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -152,7 +152,7 @@ describe('TvShowHeaderV2', () => {
 
     it('shows "Open in TMDB" when database is TMDB', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -171,7 +171,7 @@ describe('TvShowHeaderV2', () => {
 
     it('shows "Open in TVDB" when database is TVDB', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -190,7 +190,7 @@ describe('TvShowHeaderV2', () => {
 
     it('opens TMDB TV page when clicking the TMDB link', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -213,7 +213,7 @@ describe('TvShowHeaderV2', () => {
 
     it('opens TVDB search page with id and name when clicking the TVDB link', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -236,7 +236,7 @@ describe('TvShowHeaderV2', () => {
 
     it('disables the external link when no media id is available', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={{
             mediaFolderPath: '/media/show',
@@ -260,7 +260,7 @@ describe('TvShowHeaderV2', () => {
 
     it('shows loading skeleton and hides searchbox when selected folder is loading', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'loading' }}
@@ -273,7 +273,7 @@ describe('TvShowHeaderV2', () => {
 
     it('shows searchbox when selected folder status is ok', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -293,7 +293,7 @@ describe('TvShowHeaderV2', () => {
 
     it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -305,7 +305,7 @@ describe('TvShowHeaderV2', () => {
     it('invokes onSynthesizeClick when synthesize menu item is used', () => {
       const onSynthesizeClick = vi.fn()
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -321,7 +321,7 @@ describe('TvShowHeaderV2', () => {
     it('invokes onProcessClick when process menu item is used', () => {
       const onProcessClick = vi.fn()
       render(
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -347,7 +347,7 @@ describe('TvShowHeaderV2', () => {
       return {
         onEpisodeTableLayoutChange,
         renderResult: render(
-          <TvShowHeaderV2
+          <TvShowPanelHeader
             {...defaultProps}
             selectedMediaMetadata={okTv}
             selectedMediaFolder={{ path: '/media/show', status: 'ok' }}

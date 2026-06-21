@@ -4,22 +4,22 @@ import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFold
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { MediaMetadata, TMDBTVShow, TMDBTVShowDetails } from "@core/types"
-import type { SearchResultSelectedArgs } from "./MediaDatabaseSearchbox"
+import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
 import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
-import { useTvShowPanelState } from "./hooks/useTvShowPanelState"
-import { useRuleBasedRenameFilesFlow } from "./hooks/useRuleBasedRenameFilesFlow"
-import { useRuleBasedRecognizeFlow } from "./hooks/useRuleBasedRecognizeFlow"
-import { useAiBasedRenameFilesFlow } from "./hooks/useAiBasedRenameFilesFlow"
-import { useAiBasedRecognizeFlow } from "./hooks/useAiBasedRecognizeFlow"
-import { useSelectAndUnselectFileFlow } from "./hooks/useSelectAndUnselectFileFlow"
+import { useTvShowPanelState } from "@/hooks/tv/useTvShowPanelState"
+import { useRuleBasedRenameFilesFlow } from "@/hooks/tv/useRuleBasedRenameFilesFlow"
+import { useRuleBasedRecognizeFlow } from "@/hooks/tv/useRuleBasedRecognizeFlow"
+import { useAiBasedRenameFilesFlow } from "@/hooks/tv/useAiBasedRenameFilesFlow"
+import { useAiBasedRecognizeFlow } from "@/hooks/tv/useAiBasedRecognizeFlow"
+import { useSelectAndUnselectFileFlow } from "@/hooks/tv/useSelectAndUnselectFileFlow"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
 import { usePlansQuery } from "@/hooks/plans"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
-import { TvShowHeaderV2 } from "./TvShowHeaderV2"
-import { MediaPanelInitializingHint } from "./MediaPanelInitializingHint"
+import { TvShowPanelHeader } from "./TvShowPanelHeader"
+import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
@@ -28,7 +28,7 @@ import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from 
 import {
   rebuildPlanWithSelectedEpisodes,
   rebuildRenamePlanWithSelectedEpisodes,
-} from "@/components/TvShowPanelUtils"
+} from "./TvShowPanelUtils"
 import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
@@ -36,7 +36,7 @@ import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import {
   TvShowAppPlanPromptProvider,
   type TvShowAppPlanPromptContextValue,
-} from "@/components/plans/TvShowAppPlanPromptContext"
+} from "./plans/TvShowAppPlanPromptContext"
 
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
@@ -321,7 +321,7 @@ function TvShowPanel() {
       <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
-        <TvShowHeaderV2
+        <TvShowPanelHeader
           onSearchResultSelected={handleSelectResult}
           onRecognizeButtonClick={recognizeFlow.startRecognizeFlow}
           onRenameClick={renameFlow.startRenameFlow}

@@ -1,4 +1,4 @@
-import { FloatingPrompt, type FloatingPromptProps } from "./FloatingPrompt"
+import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"

@@ -6,7 +6,7 @@ import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { applyRenameFilesPlanForTvShow } from "@/actions/applyRenameFilesPlanForTvShow"
 import { applyRenamePairsToUIMediaMetadata } from "@/lib/applyRenamePairsToUIMediaMetadata"
-import { rebuildRenamePlanWithSelectedEpisodes } from "@/components/TvShowPanelUtils"
+import { rebuildRenamePlanWithSelectedEpisodes } from "@/components/tv/TvShowPanelUtils"
 export type SetPlanByIdFn = (id: string, payload: Partial<UIPlan>) => void | Promise<void>
 
 export type RenameFilesApi = Parameters<typeof applyRenameFilesPlanForTvShow>[1]["renameFilesApi"]
