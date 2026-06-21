@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
 import { MediaDatabaseSearchbox } from "../MediaDatabaseSearchbox"
@@ -29,9 +29,9 @@ export interface MovieHeaderV2Props {
     hasProcessTargets?: boolean
     /** When false, subtitle dropdown is hidden (e.g. HarmonyOS). */
     showSubtitleMenu?: boolean
-    selectedMediaMetadata?: UIMediaMetadata
+    selectedMediaMetadata?: MediaMetadata
     selectedMediaFolder?: UIMediaFolder
-    openScrape?: (params: { mediaMetadata: UIMediaMetadata }) => void
+    openScrape?: (params: { mediaMetadata: MediaMetadata }) => void
 }
 
 export function MovieHeaderV2({

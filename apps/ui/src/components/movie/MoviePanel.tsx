@@ -2,9 +2,8 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { FileProps } from "@/lib/types"
 import { generateNewFileName } from "@/lib/renameRules"
-import { join } from "@/lib/path"
+import { join, extname } from "@/lib/path"
 import { useLatest } from "react-use"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
@@ -12,8 +11,12 @@ import { useSelectMovieForFolderMutation } from "@/hooks/movie/useSelectMovieFor
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
 import { findMediaFilesForMovieMediaMetadata } from "@/helpers/movie/MovieMediaMetadataUtils"
+import {
+  buildMovieFilesFromMediaMetadata,
+  type MovieFileModel,
+} from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 import type { MediaMetadata } from "@core/types"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
@@ -25,9 +28,7 @@ import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useTranslation } from "react-i18next"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
-export interface MovieFileModel {
-    files: FileProps[]
-}
+export type { MovieFileModel } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 
 interface ToolbarOption {
   value: "plex" | "emby",
@@ -56,32 +57,13 @@ function MoviePanel() {
     [folders, selectedFolder],
   )
 
-  const rawMediaMetadata = useMemo((): UIMediaMetadata | undefined => {
-    if (!selectedFolder?.trim()) return undefined
-
-    const domain = queriedMediaMetadata
-
-    const status: UIMediaMetadata["status"] = (() => {
-      if (isMediaMetadataError) return "error_loading_metadata"
-      if (domain) return "ok"
-      if (uiFolderRow?.status) return uiFolderRow.status
-      if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
-      return "loading"
-    })()
-
-    if (!domain) {
-      const normalizedPath = normalizeMediaFolderPathForQuery(selectedFolder)
-      return {
-        mediaFolderPath: normalizedPath,
-        type: "movie-folder",
-        status,
-      } as UIMediaMetadata
-    }
-
-    return {
-      ...domain,
-      status,
-    }
+  const folderStatus = useMemo((): UIMediaFolderStatus => {
+    if (!selectedFolder?.trim()) return "idle"
+    if (isMediaMetadataError) return "error_loading_metadata"
+    if (queriedMediaMetadata) return "ok"
+    if (uiFolderRow?.status) return uiFolderRow.status
+    if (isMediaMetadataPending || mediaMetadataFetchStatus === "fetching") return "initializing"
+    return "loading"
   }, [
     selectedFolder,
     queriedMediaMetadata,
@@ -113,29 +95,24 @@ function MoviePanel() {
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
 
   /**
-   * @deprecated this logic move to MovieUIMediaMetadata, see recognizeMovieMediaFiles method
-   *
-   * The rawMediaMetadata comes from backend
-   * The mediaMetadata is the processed media metadata by frontend.
-   * Frontend will adjust or alter the media metadata for its own requirement.
-   * And those change should not persist to backend.
+   * Frontend-processed media metadata. Adjustments here should not persist to backend.
    */
   const mediaMetadata: MediaMetadata | undefined = useMemo(() => {
-    if(!rawMediaMetadata) {
+    if (!queriedMediaMetadata) {
       return undefined
     }
 
-    const clone: MediaMetadata = structuredClone(rawMediaMetadata)
+    const clone: MediaMetadata = structuredClone(queriedMediaMetadata)
 
     // move this step to Media Folder Initialization process
     return findMediaFilesForMovieMediaMetadata(clone)
-  }, [rawMediaMetadata])
+  }, [queriedMediaMetadata])
 
   const { isVideoCompressionEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
-    uiStatus: rawMediaMetadata?.status,
+    uiStatus: folderStatus,
     onRefreshMediaMetadata: refreshMediaMetadata,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
@@ -143,23 +120,10 @@ function MoviePanel() {
 
   // Merge base files with preview modifications
   useEffect(() => {
-    if (!mediaMetadata) {
-      return
+    const model = buildMovieFilesFromMediaMetadata(mediaMetadata)
+    if (model) {
+      setMovieFiles(model)
     }
-
-    const model: MovieFileModel = {
-      files: [],
-    }
-
-    for (const file of mediaMetadata.mediaFiles || []) {
-      model.files.push({
-        type: "video",
-        path: file.absolutePath,
-        newPath: undefined,
-      })
-    }
-
-    setMovieFiles(model)
   }, [mediaMetadata])
 
   // Compute preview mode from prompt states
@@ -230,13 +194,24 @@ function MoviePanel() {
       return
     }
 
+    const videoFilePath = videoFile.path
+    const videoNewPath = generatedFilePath
+    const videoNewRelativePath = generatedFileRelativePath
+    const videoStem = videoNewRelativePath.replace(extname(videoNewRelativePath), '')
+
     setMovieFiles((prev) => ({
       ...prev,
       files: prev.files.map((file) => {
         if (file.type === "video") {
-          return { ...file, newPath: generatedFilePath }
+          return { ...file, newPath: videoNewPath }
         }
-        return file
+        if (file.path === videoFilePath) {
+          return file
+        }
+        // Associated file: keep the same folder, swap its stem to the new video stem
+        const assocExt = extname(file.path)
+        const assocRelativeNewPath = join(mediaMetadata.mediaFolderPath!, `${videoStem}${assocExt}`)
+        return { ...file, newPath: assocRelativeNewPath }
       }),
     }))
   }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule, movieFiles])
@@ -251,12 +226,12 @@ function MoviePanel() {
     (args: SearchResultSelectedArgs) => {
       debug(`[MoviePanel] handleSelectResult() called`, { args })
 
-      if (rawMediaMetadata === undefined) {
-        console.error(`[MoviePanel] handleSelectResult() rawMediaMetadata is undefined, skip`)
+      if (queriedMediaMetadata === undefined) {
+        console.error(`[MoviePanel] handleSelectResult() queriedMediaMetadata is undefined, skip`)
         return
       }
 
-      const path = rawMediaMetadata.mediaFolderPath
+      const path = queriedMediaMetadata.mediaFolderPath
       if (!path) {
         console.error(`[MoviePanel] handleSelectResult() mediaFolderPath is missing, skip`)
         return
@@ -264,11 +239,11 @@ function MoviePanel() {
 
       selectMovieForFolderMutation.mutate({
         mediaFolderPath: path,
-        baseMetadata: rawMediaMetadata,
+        baseMetadata: queriedMediaMetadata,
         ...args,
       })
     },
-    [rawMediaMetadata, selectMovieForFolderMutation],
+    [queriedMediaMetadata, selectMovieForFolderMutation],
   )
 
   // Handle confirm button click - rename all files
@@ -350,17 +325,13 @@ function MoviePanel() {
           onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
           showSubtitleMenu={subtitleFlow.showSubtitleMenu}
           {...subtitleFlow.header}
-          selectedMediaMetadata={
-            mediaMetadata && rawMediaMetadata
-              ? ({ ...mediaMetadata, status: rawMediaMetadata.status } satisfies UIMediaMetadata)
-              : undefined
-          }
+          selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        {(rawMediaMetadata as UIMediaMetadata | undefined)?.status === "initializing" ? (
+        {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
         ) : (
           <MovieEpisodeTable

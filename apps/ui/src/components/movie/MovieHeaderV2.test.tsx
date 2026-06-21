@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MovieHeaderV2 } from './MovieHeaderV2'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@core/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 function renderWithQueryClient(ui: React.ReactElement) {
@@ -66,7 +66,7 @@ describe('MovieHeaderV2', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
     onRenameClick: vi.fn(),
-    selectedMediaMetadata: undefined as UIMediaMetadata | undefined,
+    selectedMediaMetadata: undefined as MediaMetadata | undefined,
     selectedMediaFolder: defaultOkFolder as UIMediaFolder | undefined,
     openScrape: vi.fn(),
   }
@@ -84,7 +84,7 @@ describe('MovieHeaderV2', () => {
             status: 'ok',
             mediaFolderPath: '/media/movie',
             mediaFiles: [],
-          } as UIMediaMetadata}
+          } as MediaMetadata}
         />
       )
       const moreButton = screen.getByRole('button', { name: 'movie.more' })
@@ -101,7 +101,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { name: 'Movie', id: '', database: 'TMDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -119,7 +119,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -137,7 +137,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: 'tvdb-1', name: 'TVDB Movie', database: 'TVDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -163,7 +163,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -182,7 +182,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: 'tvdb-1', name: 'TVDB Movie Name', database: 'TVDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -201,7 +201,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -224,7 +224,7 @@ describe('MovieHeaderV2', () => {
               mediaFolderPath: '/media/movie',
               mediaFiles: [],
               movie: { id: 'tvdb-1', name: 'TVDB Movie Name', database: 'TVDB' },
-            } as UIMediaMetadata
+            } as MediaMetadata
           }
         />
       )
@@ -245,7 +245,7 @@ describe('MovieHeaderV2', () => {
             status: 'ok',
             mediaFolderPath: '/media/movie',
             mediaFiles: [],
-          } as UIMediaMetadata}
+          } as MediaMetadata}
         />
       )
 
@@ -260,7 +260,7 @@ describe('MovieHeaderV2', () => {
       mediaFolderPath: '/media/movie',
       mediaFiles: [],
       movie: { id: '789', name: 'Test Movie', database: 'TMDB' },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
     it('shows loading skeleton and hides searchbox when selected folder is updating', () => {
       renderWithQueryClient(
@@ -317,7 +317,7 @@ describe('MovieHeaderV2', () => {
       mediaFolderPath: '/media/movie',
       mediaFiles: [],
       movie: { id: '789', name: 'Test Movie', database: 'TMDB' as const },
-    } as UIMediaMetadata
+    } as MediaMetadata
 
     it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       renderWithQueryClient(

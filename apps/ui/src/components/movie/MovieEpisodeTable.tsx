@@ -1,6 +1,4 @@
-import { basename, isAbsPath, join, relative } from "@/lib/path"
-import { Path } from "@core/path"
-import { pathToFileURL } from "@core/url"
+import { basename, relative, join } from "@/lib/path"
 import {
   Table,
   TableBody,
@@ -19,9 +17,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { CheckIcon, MinusIcon } from "lucide-react"
-import Image from "@/components/Image"
 import { useState } from "react"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
@@ -75,42 +71,6 @@ function getDisplayPath(fullPath: string, basePath: string | undefined): string 
   } catch {
     return fullPath
   }
-}
-
-/** Builds a file:// URL for the poster that the backend can resolve (platform path → file URL). */
-function getPosterImageUrl(posterPath: string, mediaFolderPath: string | undefined): string {
-  const absolutePath =
-    mediaFolderPath && !isAbsPath(posterPath)
-      ? join(mediaFolderPath, posterPath)
-      : posterPath
-  const platformPath = Path.toPlatformPath(absolutePath)
-  const url = pathToFileURL(platformPath)
-  if (import.meta.env.DEV) {
-    console.debug("[MovieEpisodeTable] poster image url", {
-      posterPath,
-      absolutePath,
-      platformPath,
-      url,
-    })
-  }
-  return url
-}
-
-function PosterImage({
-  posterPath,
-  mediaFolderPath,
-}: {
-  posterPath: string
-  mediaFolderPath: string | undefined
-}) {
-  const url = getPosterImageUrl(posterPath, mediaFolderPath)
-  return (
-    <Image
-      url={url}
-      alt=""
-      className="max-h-[240px] w-auto rounded object-contain"
-    />
-  )
 }
 
 const COLUMN_KEYS = ["file", "thumbnail", "subtitle", "nfo"] as const
@@ -170,9 +130,9 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
 
   // Group rows by type for display
   const videoRow = data.find((row) => row.type === "video")
-  const posterRow = data.find((row) => row.type === "poster")
+  const posterForVideo = data.find((row) => row.type === "poster")
   const subtitleRows = data.filter((row) => row.type === "subtitle")
-  const nfoRow = data.find((row) => row.type === "nfo")
+  const nfoForVideo = data.find((row) => row.type === "nfo")
 
   return (
     <section className="bg-card">
@@ -248,7 +208,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
                   </TableCell>
                   {columnVisibility.thumbnail && (
                     <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                      <CheckCell value={posterRow?.file} />
+                      <CheckCell value={posterForVideo?.file} />
                     </TableCell>
                   )}
                   {columnVisibility.subtitle && (
@@ -258,7 +218,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
                   )}
                   {columnVisibility.nfo && (
                     <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                      <CheckCell value={nfoRow?.file} />
+                      <CheckCell value={nfoForVideo?.file} />
                     </TableCell>
                   )}
                 </TableRow>
@@ -319,50 +279,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
             </ContextMenu>
           )}
 
-          {/* Poster Row (only if exists and thumbnail column is visible) */}
-          {posterRow?.file && columnVisibility.thumbnail && (
-            <TableRow key="poster-row">
-              <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.poster")}</TableCell>
-              {columnVisibility.file && (
-                <TableCell className="max-w-px px-2 py-1">
-                  <div className="truncate" title={posterRow.file}>
-                    {getDisplayPath(posterRow.file, mediaFolderPath)}
-                  </div>
-                </TableCell>
-              )}
-              <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                <HoverCard openDelay={200} closeDelay={100}>
-                  <HoverCardTrigger asChild>
-                    <div className="flex items-center justify-center cursor-default">
-                      <CheckCell value={posterRow.file} />
-                    </div>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    side="right"
-                    align="center"
-                    className="w-auto max-w-[320px] p-1"
-                  >
-                    <PosterImage
-                      posterPath={posterRow.file}
-                      mediaFolderPath={mediaFolderPath}
-                    />
-                  </HoverCardContent>
-                </HoverCard>
-              </TableCell>
-              {columnVisibility.subtitle && (
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={undefined} />
-                </TableCell>
-              )}
-              {columnVisibility.nfo && (
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={undefined} />
-                </TableCell>
-              )}
-            </TableRow>
-          )}
-
-          {/* Subtitle Rows (only if exist and subtitle column is visible) */}
+          {/* Subtitle Rows — associated files of the video, listed in file column */}
           {subtitleRows.map((row, index) => columnVisibility.file && (
             <TableRow key={`subtitle-row-${index}`}>
               <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.sub")}</TableCell>
@@ -378,7 +295,7 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
               )}
               {columnVisibility.subtitle && (
                 <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={row.file} />
+                  <CheckCell value={undefined} />
                 </TableCell>
               )}
               {columnVisibility.nfo && (
@@ -388,33 +305,6 @@ export function MovieEpisodeTable({ data, mediaFolderPath, preview, onVideoCompr
               )}
             </TableRow>
           ))}
-
-          {/* NFO Row (only if exists and nfo column is visible) */}
-          {nfoRow?.file && columnVisibility.nfo && (
-            <TableRow key="nfo-row">
-              <TableCell className="px-2 py-1 font-mono">{t("movieEpisodeTable.rowTypes.nfo")}</TableCell>
-              {columnVisibility.file && (
-                <TableCell className="max-w-px px-2 py-1">
-                  <div className="truncate" title={nfoRow.file}>
-                    {getDisplayPath(nfoRow.file, mediaFolderPath)}
-                  </div>
-                </TableCell>
-              )}
-              {columnVisibility.thumbnail && (
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={undefined} />
-                </TableCell>
-              )}
-              {columnVisibility.subtitle && (
-                <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                  <CheckCell value={undefined} />
-                </TableCell>
-              )}
-              <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                <CheckCell value={nfoRow.file} />
-              </TableCell>
-            </TableRow>
-          )}
 
           {/* Empty state */}
           {data.length === 0 && (
