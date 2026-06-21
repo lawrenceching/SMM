@@ -1,7 +1,3 @@
-import { Spinner } from "@/components/ui/spinner"
-import { isAbsPath, join, relative } from "@/lib/path"
-import { Path } from "@core/path"
-import { pathToFileURL } from "@core/url"
 import {
   Table,
   TableBody,
@@ -14,18 +10,32 @@ import {
   ContextMenu,
   ContextMenuCheckboxItem,
   ContextMenuContent,
-  ContextMenuItem,
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { CheckIcon, ChevronDownIcon, ChevronRightIcon, MinusIcon } from "lucide-react"
-import Image from "@/components/Image"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { ChevronRightIcon } from "lucide-react"
 import { useState, useMemo, type ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import {
+  MediaFileTableTr,
+  MediaFileTableRowsBody,
+  MediaFileTableSectionRows,
+  type MediaFileTableBodyRow,
+  type MediaFileTableColumnKey,
+  type MediaFileTableRowContext,
+} from "./MediaFileTableRow"
+import {
+  buildMediaFileTableColumnLayout,
+  MediaFileTableColGroup,
+} from "./mediaFileTableColumns"
 
 // ========================================================================
 // Row types
@@ -152,61 +162,10 @@ export interface UIMediaFileTableProps {
 }
 
 // ========================================================================
-// Helpers (private)
-// ========================================================================
-
-function UICheckCell({ value }: { value: string | undefined }) {
-  const checked = value !== undefined
-  if (checked) {
-    return (
-      <div className="flex items-center justify-center">
-        <CheckIcon className="size-3.5 text-emerald-600" />
-      </div>
-    )
-  }
-  return (
-    <div className="flex items-center justify-center">
-      <MinusIcon className="size-3.5 text-muted-foreground" />
-    </div>
-  )
-}
-
-function getDisplayPath(fullPath: string, basePath: string | undefined): string {
-  if (!basePath) return fullPath
-  try {
-    return relative(basePath, fullPath)
-  } catch {
-    return fullPath
-  }
-}
-
-function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | undefined): string {
-  const absolutePath =
-    mediaFolderPath && !isAbsPath(thumbnailPath)
-      ? join(mediaFolderPath, thumbnailPath)
-      : thumbnailPath
-  const platformPath = Path.toPlatformPath(absolutePath)
-  return pathToFileURL(platformPath)
-}
-
-function UIThumbnailImage({
-  thumbnailPath,
-  mediaFolderPath,
-  className = "max-h-[240px] w-auto rounded object-contain",
-}: {
-  thumbnailPath: string
-  mediaFolderPath: string | undefined
-  className?: string
-}) {
-  const url = getThumbnailImageUrl(thumbnailPath, mediaFolderPath)
-  return <Image url={url} alt="" className={className} />
-}
-
-// ========================================================================
 // Column visibility
 // ========================================================================
 
-type ColumnKey = "video" | "thumbnail" | "subtitle" | "nfo"
+type ColumnKey = MediaFileTableColumnKey
 
 const getColumnLabels = (
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -225,16 +184,105 @@ const defaultColumnVisibility: Record<ColumnKey, boolean> = {
 }
 
 // ========================================================================
-// Disabled-resolver helper
+// Table segmentation (divider sections)
 // ========================================================================
 
-function resolveDisabled<R extends UIMediaFileDataRow | UIMediaFileFolderRow>(
-  rule: boolean | ((row: R) => boolean) | undefined,
-  row: R,
-): boolean {
-  if (rule === undefined) return false
-  if (typeof rule === "function") return rule(row)
-  return rule
+type TableSegment =
+  | { kind: "standalone"; row: UIMediaFileTableRow; index: number }
+  | {
+      kind: "section"
+      divider: UIMediaFileDividerRow
+      dividerIndex: number
+      rows: Array<{ row: UIMediaFileTableRow; index: number }>
+    }
+
+function groupTableData(data: UIMediaFileTableRow[]): TableSegment[] {
+  const segments: TableSegment[] = []
+  let index = 0
+
+  while (index < data.length) {
+    const row = data[index]
+    if (row.type === "divider") {
+      const divider = row
+      const dividerIndex = index
+      index += 1
+      const rows: Array<{ row: UIMediaFileTableRow; index: number }> = []
+      while (index < data.length && data[index].type !== "divider") {
+        rows.push({ row: data[index], index })
+        index += 1
+      }
+      segments.push({ kind: "section", divider, dividerIndex, rows })
+    } else {
+      segments.push({ kind: "standalone", row, index })
+      index += 1
+    }
+  }
+
+  return segments
+}
+
+const collapsibleSectionContentClassName = cn(
+  "media-file-table-section-content overflow-hidden",
+  "data-[state=closed]:animate-[media-file-table-collapsible-up_200ms_ease-out]",
+  "data-[state=open]:animate-[media-file-table-collapsible-down_200ms_ease-out]",
+)
+
+type TableRenderBlock =
+  | { kind: "rows"; key: string; rows: MediaFileTableBodyRow[] }
+  | {
+      kind: "section"
+      divider: UIMediaFileDividerRow
+      dividerIndex: number
+      rows: MediaFileTableBodyRow[]
+    }
+
+function toBodyRow(
+  row: UIMediaFileTableRow,
+  index: number,
+): MediaFileTableBodyRow | null {
+  if (row.type === "folderFile") return { row, index }
+  if (row.type === "episode") return { row, index }
+  return null
+}
+
+/** Merge consecutive standalone rows into one tbody so row borders render correctly. */
+function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
+  const blocks: TableRenderBlock[] = []
+  let standaloneBatch: MediaFileTableBodyRow[] = []
+
+  const flushStandalone = () => {
+    if (standaloneBatch.length === 0) return
+    blocks.push({
+      kind: "rows",
+      key: `standalone-${standaloneBatch[0].index}`,
+      rows: standaloneBatch,
+    })
+    standaloneBatch = []
+  }
+
+  for (const segment of segments) {
+    if (segment.kind === "standalone") {
+      const bodyRow = toBodyRow(segment.row, segment.index)
+      if (bodyRow) standaloneBatch.push(bodyRow)
+      continue
+    }
+
+    flushStandalone()
+
+    const sectionRows = segment.rows
+      .map(({ row, index }) => toBodyRow(row, index))
+      .filter((row): row is MediaFileTableBodyRow => row !== null)
+
+    blocks.push({
+      kind: "section",
+      divider: segment.divider,
+      dividerIndex: segment.dividerIndex,
+      rows: sectionRows,
+    })
+  }
+
+  flushStandalone()
+  return blocks
 }
 
 // ========================================================================
@@ -279,25 +327,23 @@ export function UIMediaFileTable({
       ? "w-[100px] min-w-[100px]"
       : ""
 
-  // Map each row index to the id of the most recent divider above it.
-  // Used to hide rows that fall under a collapsed divider.
-  const sectionIdByIndex = useMemo(() => {
-    const map = new Map<number, string>()
-    let currentId = ""
-    data.forEach((row, index) => {
-      if (row.type === "divider") {
-        currentId = row.id
-      }
-      map.set(index, currentId)
-    })
-    return map
-  }, [data])
+  const segments = useMemo(() => groupTableData(data), [data])
+  const renderBlocks = useMemo(() => groupSegmentsForRender(segments), [segments])
+  const columnLayout = useMemo(
+    () =>
+      buildMediaFileTableColumnLayout({
+        layout,
+        preview,
+        columnVisibility,
+      }),
+    [layout, preview, columnVisibility],
+  )
 
-  const toggleCollapsed = (dividerId: string) => {
+  const setSectionCollapsed = (dividerId: string, collapsed: boolean) => {
     setCollapsedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(dividerId)) next.delete(dividerId)
-      else next.add(dividerId)
+      if (collapsed) next.add(dividerId)
+      else next.delete(dividerId)
       return next
     })
   }
@@ -310,9 +356,28 @@ export function UIMediaFileTable({
     t as (key: string, options?: Record<string, unknown>) => string,
   )
 
+  const renderContext: MediaFileTableRowContext = {
+    mediaFolderPath,
+    contextMenuConfig,
+    preview,
+    previewStatus,
+    layout,
+    onCheck,
+    renderPreviewContent,
+    onDoubleClick,
+    isSimpleLayout,
+    isPreviewLayout,
+    showThumbnailColumn,
+    showIdColumn,
+    showCheckboxColumn,
+    columnVisibility,
+    columnLayout,
+    t: t as (key: string, options?: Record<string, unknown>) => string,
+  }
+
   // ── Render: header row with column-visibility context menu ────────────
   const headerRow = (
-    <TableRow className="hover:bg-transparent">
+    <MediaFileTableTr className="hover:bg-transparent">
       {showCheckboxColumn && (
         <TableCell
           className="h-8 w-10 shrink-0 px-0 py-1 text-center"
@@ -378,12 +443,13 @@ export function UIMediaFileTable({
           {t("mediaFileTable.header.nfo")}
         </TableHead>
       )}
-    </TableRow>
+    </MediaFileTableTr>
   )
 
   return (
     <section data-testid="media-file-table" className="bg-card">
       <Table className="text-xs table-fixed w-full">
+        <MediaFileTableColGroup layout={columnLayout} />
         <TableHeader>
           <ContextMenu>
             <ContextMenuTrigger asChild>{headerRow}</ContextMenuTrigger>
@@ -427,423 +493,70 @@ export function UIMediaFileTable({
           </ContextMenu>
         </TableHeader>
 
-        <TableBody>
-          {data.map((row, index) => {
-            // ── Divider row ──
-            if (row.type === "divider") {
-              const isCollapsed = collapsedIds.has(row.id)
-              return (
-                <TableRow
-                  key={`${row.id}-${index}`}
-                  className="bg-muted/60 hover:bg-muted/70"
-                >
+        {renderBlocks.map((block, blockIndex) => {
+          if (block.kind === "rows") {
+            const nextBlock = renderBlocks[blockIndex + 1]
+            const preserveLastRowBorder = nextBlock?.kind === "section"
+            return (
+              <MediaFileTableRowsBody
+                key={block.key}
+                ctx={renderContext}
+                rows={block.rows}
+                preserveLastRowBorder={preserveLastRowBorder}
+              />
+            )
+          }
+
+          const { divider, dividerIndex, rows } = block
+          const isCollapsed = collapsedIds.has(divider.id)
+          const expandLabel = t("mediaFileTable.expand")
+          const collapseLabel = t("mediaFileTable.collapse")
+
+          return (
+            <Collapsible
+              key={`${divider.id}-${dividerIndex}`}
+              asChild
+              open={!isCollapsed}
+              onOpenChange={(open) => setSectionCollapsed(divider.id, !open)}
+            >
+              <TableBody className="group/section">
+                <TableRow className="bg-muted/60 hover:bg-muted/70">
                   {showCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
                   <TableCell
                     colSpan={visibleColumnCount - (showCheckboxColumn ? 1 : 0)}
                     className="px-2 py-1.5 font-semibold"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span>{row.text}</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleCollapsed(row.id)}
-                        className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        title={
-                          isCollapsed
-                            ? t("mediaFileTable.expand")
-                            : t("mediaFileTable.collapse")
-                        }
-                        aria-label={
-                          isCollapsed
-                            ? t("mediaFileTable.expand")
-                            : t("mediaFileTable.collapse")
-                        }
-                      >
-                        {isCollapsed ? (
-                          <ChevronRightIcon className="size-4" />
-                        ) : (
-                          <ChevronDownIcon className="size-4" />
-                        )}
-                      </button>
+                      <span>{divider.text}</span>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title={isCollapsed ? expandLabel : collapseLabel}
+                          aria-label={isCollapsed ? expandLabel : collapseLabel}
+                          aria-expanded={!isCollapsed}
+                        >
+                          <ChevronRightIcon className="size-4 transition-transform duration-200 group-data-[state=open]/section:rotate-90" />
+                        </button>
+                      </CollapsibleTrigger>
                     </div>
                   </TableCell>
                 </TableRow>
-              )
-            }
-
-            // ── Folder file row ──
-            if (row.type === "folderFile") {
-              const folderFileInner = (
-                <TableRow key={`${row.id}-${index}`} onDoubleClick={onDoubleClick ? () => onDoubleClick(row) : undefined}>
-                  {showCheckboxColumn && (
-                    <TableCell className="w-10 shrink-0 px-0 py-1" />
-                  )}
-                  <TableCell className="px-2 py-1 font-mono w-[100px]">
-                    {row.id}
-                  </TableCell>
-                  <TableCell
-                    colSpan={visibleColumnCount - (showCheckboxColumn ? 2 : 1)}
-                    className="max-w-px px-2 py-1 truncate"
-                    title={row.path}
-                  >
-                    {getDisplayPath(row.path, mediaFolderPath)}
+                <TableRow className="border-b-0 hover:bg-transparent">
+                  <TableCell colSpan={visibleColumnCount} className="p-0 border-0 align-top">
+                    <CollapsibleContent className={collapsibleSectionContentClassName}>
+                      <MediaFileTableSectionRows
+                        columnLayout={columnLayout}
+                        ctx={renderContext}
+                        rows={rows}
+                      />
+                    </CollapsibleContent>
                   </TableCell>
                 </TableRow>
-              )
-
-              const folderFileItems = contextMenuConfig?.folderFileRowItems ?? []
-              const hasMenu = folderFileItems.some((item) => item.onClick)
-
-              if (!hasMenu) {
-                return folderFileInner
-              }
-
-              return (
-                <ContextMenu key={`${row.id}-${index}`}>
-                  <ContextMenuTrigger asChild>{folderFileInner}</ContextMenuTrigger>
-                  <ContextMenuContent>
-                    {folderFileItems.map((item) => {
-                      if (!item.onClick) return null
-                      return (
-                        <ContextMenuItem
-                          key={item.id}
-                          disabled={resolveDisabled(item.disabled, row)}
-                          onClick={() => item.onClick?.(row)}
-                        >
-                          {item.label}
-                        </ContextMenuItem>
-                      )
-                    })}
-                  </ContextMenuContent>
-                </ContextMenu>
-              )
-            }
-
-            // ── Data (episode) row ──
-            const sectionId = sectionIdByIndex.get(index)
-            if (sectionId && collapsedIds.has(sectionId)) {
-              return null
-            }
-
-            const isRowDisabled = row.disabled === true
-
-            const dataRowInner = (
-              <TableRow
-                key={`${row.season}-${row.episode}-${index}`}
-                className={cn(isRowDisabled && "opacity-50")}
-                onDoubleClick={onDoubleClick ? () => onDoubleClick(row) : undefined}
-                >
-                {showCheckboxColumn && (
-                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center align-middle">
-                    <input
-                      type="checkbox"
-                      role="checkbox"
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        isRowDisabled
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer",
-                      )}
-                      checked={row.checked}
-                      disabled={isRowDisabled}
-                      onChange={(e) => {
-                        if (isRowDisabled) return
-                        onCheck?.(row, e.target.checked)
-                      }}
-                    />
-                  </TableCell>
-                )}
-                {showIdColumn && (
-                  <TableCell className="px-2 py-1 font-mono">{`S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}`}</TableCell>
-                )}
-                {isSimpleLayout && columnVisibility.video && (
-                  <TableCell className="max-w-px px-2 py-1">
-                    {row.videoFile ? (
-                      preview === "rename" && !row.newVideoFile ? (
-                        <div
-                          className="truncate text-muted-foreground/60 line-through text-xs"
-                          title={row.videoFile}
-                        >
-                          {getDisplayPath(row.videoFile, mediaFolderPath)}
-                        </div>
-                      ) : preview === "rename" &&
-                        row.newVideoFile &&
-                        row.videoFile !== row.newVideoFile ? (
-                        <div className="min-w-0 space-y-0.5">
-                          <div
-                            className="truncate text-muted-foreground/60 line-through text-xs"
-                            title={row.videoFile}
-                            data-testid="media-file-table-old-video-file"
-                          >
-                            {getDisplayPath(row.videoFile, mediaFolderPath)}
-                          </div>
-                          <div
-                            className="truncate text-foreground font-medium"
-                            title={row.newVideoFile}
-                            data-testid="media-file-table-new-video-file"
-                          >
-                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className={cn(
-                            "truncate",
-                            isRowDisabled && "text-muted-foreground/60 text-xs",
-                          )}
-                          title={row.videoFile}
-                        >
-                          {getDisplayPath(row.videoFile, mediaFolderPath)}
-                        </div>
-                      )
-                    ) : preview === "recognize" ? (
-                      previewStatus === "loading" ? (
-                        <span className="text-muted-foreground text-xs">
-                          <Spinner className="size-4" />
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">
-                          {t("mediaFileTable.unrecognizedVideoFile", {
-                            defaultValue: "Cannot recognize video file",
-                          })}
-                        </span>
-                      )
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                )}
-                {isSimpleLayout && showThumbnailColumn && (
-                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                    {row.thumbnail ? (
-                      <HoverCard openDelay={200} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div className="flex items-center justify-center cursor-default">
-                            <UICheckCell value={row.thumbnail} />
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent
-                          side="right"
-                          align="center"
-                          className="w-auto max-w-[320px] p-1"
-                        >
-                          <UIThumbnailImage
-                            thumbnailPath={row.thumbnail}
-                            mediaFolderPath={mediaFolderPath}
-                          />
-                        </HoverCardContent>
-                      </HoverCard>
-                    ) : (
-                      <UICheckCell value={row.thumbnail} />
-                    )}
-                  </TableCell>
-                )}
-                {!isSimpleLayout && showThumbnailColumn && (
-                  <TableCell
-                    className={cn(
-                      isPreviewLayout && "w-[160px] min-w-[160px] px-1 py-1 align-top",
-                      layout === "detail" &&
-                        !isPreviewLayout &&
-                        "w-[100px] min-w-[100px] px-1 py-1 align-top",
-                    )}
-                  >
-                    {isPreviewLayout ? (
-                      row.thumbnail ? (
-                        <UIThumbnailImage
-                          thumbnailPath={row.thumbnail}
-                          mediaFolderPath={mediaFolderPath}
-                          className="max-h-[140px] w-auto rounded object-contain"
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )
-                    ) : layout === "detail" ? (
-                      row.thumbnail ? (
-                        <UIThumbnailImage
-                          thumbnailPath={row.thumbnail}
-                          mediaFolderPath={mediaFolderPath}
-                          className="max-h-[72px] w-auto rounded object-contain"
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )
-                    ) : row.thumbnail ? (
-                      <HoverCard openDelay={200} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div className="flex items-center justify-center cursor-default">
-                            <UICheckCell value={row.thumbnail} />
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent
-                          side="right"
-                          align="center"
-                          className="w-auto max-w-[320px] p-1"
-                        >
-                          <UIThumbnailImage
-                            thumbnailPath={row.thumbnail}
-                            mediaFolderPath={mediaFolderPath}
-                          />
-                        </HoverCardContent>
-                      </HoverCard>
-                    ) : (
-                      <UICheckCell value={row.thumbnail} />
-                    )}
-                  </TableCell>
-                )}
-                {!isSimpleLayout && columnVisibility.video && (
-                  <TableCell className="max-w-px px-2 py-1">
-                    {isPreviewLayout ? (
-                      <div className="min-w-0 space-y-2">
-                        <div
-                          className="truncate font-medium text-foreground"
-                          title={`${row.season}-${row.episode} ${row.episodeTitle || ""}`.trim()}
-                        >
-                          {`S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}`}{" "}
-                          {row.episodeTitle ? `· ${row.episodeTitle}` : ""}
-                        </div>
-                        {row.videoFile ? (
-                          <>
-                            <div
-                              className={cn(
-                                "truncate text-xs",
-                                isRowDisabled
-                                  ? "text-muted-foreground/60"
-                                  : "text-muted-foreground",
-                              )}
-                              title={row.videoFile}
-                            >
-                              {getDisplayPath(row.videoFile, mediaFolderPath)}
-                            </div>
-                            {!isRowDisabled && renderPreviewContent?.(row)}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </div>
-                    ) : layout === "detail" ? (
-                      <div className="min-w-0 space-y-0.5">
-                        <div
-                          className="truncate font-medium text-foreground"
-                          title={
-                            row.episodeTitle ||
-                            `${row.season}-${row.episode}`
-                          }
-                        >
-                          {row.episodeTitle ||
-                            `S${String(row.season).padStart(2, "0")}E${String(row.episode).padStart(2, "0")}` ||
-                            "-"}
-                        </div>
-                        {row.videoFile ? (
-                          preview === "rename" &&
-                          row.newVideoFile &&
-                          row.videoFile !== row.newVideoFile ? (
-                            <>
-                              <div
-                                className="truncate text-muted-foreground/60 line-through text-xs"
-                                title={row.videoFile}
-                              >
-                                {getDisplayPath(row.videoFile, mediaFolderPath)}
-                              </div>
-                              <div
-                                className="truncate text-foreground text-xs"
-                                title={row.newVideoFile}
-                              >
-                                {getDisplayPath(row.newVideoFile, mediaFolderPath)}
-                              </div>
-                            </>
-                          ) : (
-                            <div
-                              className={cn(
-                                "truncate text-xs",
-                                isRowDisabled
-                                  ? "text-muted-foreground/60"
-                                  : "text-muted-foreground",
-                              )}
-                              title={row.videoFile}
-                            >
-                              {getDisplayPath(row.videoFile, mediaFolderPath)}
-                            </div>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </div>
-                    ) : row.videoFile ? (
-                      preview === "rename" &&
-                      row.newVideoFile &&
-                      row.videoFile !== row.newVideoFile ? (
-                        <div className="min-w-0 space-y-0.5">
-                          <div
-                            className="truncate text-muted-foreground/60 line-through text-xs"
-                            title={row.videoFile}
-                          >
-                            {getDisplayPath(row.videoFile, mediaFolderPath)}
-                          </div>
-                          <div
-                            className="truncate text-foreground font-medium"
-                            title={row.newVideoFile}
-                          >
-                            {getDisplayPath(row.newVideoFile, mediaFolderPath)}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className={cn(
-                            "truncate",
-                            isRowDisabled && "text-muted-foreground/60 text-xs",
-                          )}
-                          title={row.videoFile}
-                        >
-                          {getDisplayPath(row.videoFile, mediaFolderPath)}
-                        </div>
-                      )
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                )}
-                {columnVisibility.subtitle && (
-                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                    <UICheckCell value={row.subtitle} />
-                  </TableCell>
-                )}
-                {columnVisibility.nfo && (
-                  <TableCell className="w-10 shrink-0 px-0 py-1 text-center">
-                    <UICheckCell value={row.nfo} />
-                  </TableCell>
-                )}
-              </TableRow>
-            )
-
-            // ── Data row context menu ──
-            const dataRowItems = contextMenuConfig?.dataRowItems ?? []
-            const hasMenu = dataRowItems.some((item) => item.onClick)
-
-            if (!hasMenu) {
-              return dataRowInner
-            }
-
-            return (
-              <ContextMenu key={`${row.season}-${row.episode}-${index}`}>
-                <ContextMenuTrigger asChild>{dataRowInner}</ContextMenuTrigger>
-                <ContextMenuContent>
-                  {dataRowItems.map((item) => {
-                    if (!item.onClick) return null
-                    return (
-                      <ContextMenuItem
-                        key={item.id}
-                        disabled={resolveDisabled(item.disabled, row)}
-                        onClick={() => item.onClick?.(row)}
-                      >
-                        {item.label}
-                      </ContextMenuItem>
-                    )
-                  })}
-                </ContextMenuContent>
-              </ContextMenu>
-            )
-          })}
-        </TableBody>
+              </TableBody>
+            </Collapsible>
+          )
+        })}
       </Table>
     </section>
   )

@@ -136,3 +136,31 @@
 .animate-dvd-youtube-cookies-hint-flash {
   animation: dvd-youtube-cookies-hint-flash 0.5s ease-in-out 3;
 }
+
+@keyframes media-file-table-collapsible-down {
+  from {
+    height: 0;
+    opacity: 0.95;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes media-file-table-collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-file-table-section-content {
+    animation: none !important;
+  }
+}
