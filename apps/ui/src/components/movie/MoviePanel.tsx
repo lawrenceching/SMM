@@ -15,10 +15,12 @@ import {
   buildMovieFilesFromMediaMetadata,
   type MovieFileModel,
 } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
+import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/buildMovieEpisodeTableRows"
 import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
-import { MovieEpisodeTable, type MovieFileRow } from "./MovieEpisodeTable"
+import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
+import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "../tv/TvShowEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
@@ -94,6 +96,10 @@ function MoviePanel() {
   // Prompt states
   const [isRuleBasedRenameFilePromptOpen, setIsRuleBasedRenameFilePromptOpen] = useState(false)
 
+  // Layout state for the episode table (simple / detail / preview)
+  const [layout, setLayout] = useState<EpisodeTableLayout>("simple")
+
+
   /**
    * Frontend-processed media metadata. Adjustments here should not persist to backend.
    */
@@ -130,6 +136,20 @@ function MoviePanel() {
   const isPreviewingForRename = useMemo(() => {
     return isRuleBasedRenameFilePromptOpen
   }, [isRuleBasedRenameFilePromptOpen])
+
+  // Extracts MovieRenamePreviewData from movieFiles when rename prompt is open,
+  // so the adapter can fill newVideoFile/newSubtitle/newNfo on the episode row.
+  const renamePreview = useMemo<MovieRenamePreviewData | null>(() => {
+    if (!isPreviewingForRename) return null
+    const videoRow = latestMovieFiles.current.files.find((f) => f.type === "video")
+    const subtitleRow = latestMovieFiles.current.files.find((f) => f.type === "subtitle")
+    const nfoRow = latestMovieFiles.current.files.find((f) => f.type === "nfo")
+    return {
+      newVideoFile: videoRow?.newPath,
+      newSubtitle: subtitleRow?.newPath,
+      newNfo: nfoRow?.newPath,
+    }
+  }, [latestMovieFiles, isPreviewingForRename])
 
   // Generate new file names for preview mode
   const generateNewFileNames = useCallback(() => {
@@ -287,27 +307,19 @@ function MoviePanel() {
     }
   }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata, t])
 
-  // Build table data from movieFiles
-
-  const tableData = useMemo<MovieFileRow[]>(() => {
-    const rows: MovieFileRow[] = []
-
-    for (const file of movieFiles.files) {
-      rows.push({
-        id: file.path,
-        type: file.type,
-        file: file.path,
-        newFile: file.newPath,
-      })
-    }
-
-    return rows
-  }, [movieFiles.files])
+  // Build table data using the movie→tv-show adapter
+  const tableData = useMemo<TvShowEpisodeTableRow[]>(() => {
+    if (!mediaMetadata) return []
+    return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), {
+      renamePreview: renamePreview ?? undefined,
+    })
+  }, [mediaMetadata, folderStatus, t, renamePreview])
 
   const handleVideoCompressClick = useCallback(
-    (filePath: string) => {
+    (row: TvShowEpisodeDataRow) => {
+      if (!row.videoFile) return
       const [openVideoCompression] = videoCompressionDialog
-      openVideoCompression({ filePath })
+      openVideoCompression({ filePath: row.videoFile })
     },
     [videoCompressionDialog],
   )
@@ -328,18 +340,21 @@ function MoviePanel() {
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
           openScrape={openScrape}
+          episodeTableLayout={layout}
+          onEpisodeTableLayoutChange={setLayout}
         />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
         ) : (
-          <MovieEpisodeTable
+          <TvShowEpisodeTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            preview={isPreviewingForRename}
-            onVideoCompressClick={isVideoCompressionEnabled ? handleVideoCompressClick : undefined}
+            layout={isPreviewingForRename ? "simple" : layout}
+            preview={isPreviewingForRename ? "rename" : undefined}
+            onVideoCompressContextMenuClick={isVideoCompressionEnabled ? handleVideoCompressClick : undefined}
           />
         )}
       </div>

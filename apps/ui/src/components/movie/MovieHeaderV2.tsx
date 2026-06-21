@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@core/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
-import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
+import { FileEdit, Download, MoreVertical, ExternalLink, Captions, ChevronDown, FileVideo, Sparkles, List, LayoutGrid, PanelTop } from "lucide-react"
 import { MediaDatabaseSearchbox } from "../MediaDatabaseSearchbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "../ui/button"
@@ -11,6 +11,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
+import { useMemo } from "react"
+import { cn } from "@/lib/utils"
+import { isHarmonyOS } from "@/lib/isHarmonyOS"
 
 export interface MovieHeaderV2Props {
     onSearchResultSelected: (args: import("../MediaDatabaseSearchbox").SearchResultSelectedArgs) => void
@@ -30,6 +33,8 @@ export interface MovieHeaderV2Props {
     /** When false, subtitle dropdown is hidden (e.g. HarmonyOS). */
     showSubtitleMenu?: boolean
     selectedMediaMetadata?: MediaMetadata
+    episodeTableLayout?: "simple" | "detail" | "preview"
+    onEpisodeTableLayoutChange?: (layout: "simple" | "detail" | "preview") => void
     selectedMediaFolder?: UIMediaFolder
     openScrape?: (params: { mediaMetadata: MediaMetadata }) => void
 }
@@ -53,6 +58,8 @@ export function MovieHeaderV2({
     selectedMediaMetadata,
     selectedMediaFolder,
     openScrape,
+    episodeTableLayout = "simple",
+    onEpisodeTableLayoutChange,
 }: MovieHeaderV2Props) {
     const { t } = useTranslation(['components', 'errors', 'dialogs'])
 
@@ -102,6 +109,8 @@ export function MovieHeaderV2({
             : `https://www.thetvdb.com/search?query=${encodeURIComponent(`${mediaId} ${mediaName}`)}`
         : undefined
 
+    const isHarmonyOSRuntime = useMemo(() => isHarmonyOS(), [])
+
     return (
         <div className="relative w-full space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -120,6 +129,68 @@ export function MovieHeaderV2({
                     )}
                 </div>
                 <div className="flex gap-2 flex-wrap shrink-0">
+                    {onEpisodeTableLayoutChange && (
+                        <div className="hidden @[520px]:inline-flex items-center rounded-md border border-input bg-background shadow-xs">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onEpisodeTableLayoutChange("simple")}
+                                disabled={isUpdatingMovie}
+                                className={cn(
+                                    "h-9 w-9 rounded-none rounded-l-md transition-all",
+                                    episodeTableLayout === "simple"
+                                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                        : "hover:bg-accent hover:text-accent-foreground"
+                                )}
+                                title={t('tvShow.layoutSimple', { ns: 'components', defaultValue: 'Simple layout' })}
+                                aria-label={t('tvShow.layoutSimple', { ns: 'components', defaultValue: 'Simple layout' })}
+                                aria-pressed={episodeTableLayout === "simple"}
+                            >
+                                <List className="size-4" />
+                            </Button>
+                            <div className="h-4 w-px bg-border" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onEpisodeTableLayoutChange("detail")}
+                                disabled={isUpdatingMovie}
+                                className={cn(
+                                    "h-9 w-9 rounded-none transition-all",
+                                    episodeTableLayout === "detail"
+                                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                        : "hover:bg-accent hover:text-accent-foreground",
+                                    isHarmonyOSRuntime && "rounded-r-md"
+                                )}
+                                title={t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
+                                aria-label={t('tvShow.layoutDetail', { ns: 'components', defaultValue: 'Detail layout' })}
+                                aria-pressed={episodeTableLayout === "detail"}
+                            >
+                                <LayoutGrid className="size-4" />
+                            </Button>
+                            {!isHarmonyOSRuntime && (
+                                <>
+                                    <div className="h-4 w-px bg-border" />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => onEpisodeTableLayoutChange("preview")}
+                                        disabled={isUpdatingMovie}
+                                        className={cn(
+                                            "h-9 w-9 rounded-none rounded-r-md transition-all",
+                                            episodeTableLayout === "preview"
+                                                ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                                : "hover:bg-accent hover:text-accent-foreground"
+                                        )}
+                                        title={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                        aria-label={t('tvShow.layoutPreview', { ns: 'components', defaultValue: 'Preview layout' })}
+                                        aria-pressed={episodeTableLayout === "preview"}
+                                    >
+                                        <PanelTop className="size-4" />
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    )}
                     {isUpdatingMovie ? (
                         <>
                             <Skeleton className="h-9 w-24" />
