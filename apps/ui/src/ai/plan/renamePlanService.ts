@@ -7,6 +7,7 @@ import {
 import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync'
 import { validateRenameOperationsApi } from '@/api/validateRenameOperations'
 import { resolveMediaMetadataForFolderPath } from '@/ai/tools/GetMediaMetadata'
+import { getPlanById } from '@/api/getPlanById'
 import { updatePlan } from '@/api/updatePlan'
 import { getPlanDraft, setPlanDraft } from './aiPlanDrafts'
 
@@ -43,13 +44,32 @@ export async function assertRenameMediaFolderOpened(
   return assertMediaFolderHasMetadata(!!metadata, mediaFolderPath)
 }
 
+export async function resolveRenamePlanDraft(
+  planId: string,
+): Promise<RenameFilesPlan | null> {
+  const normalizedId = planId.trim()
+  const draft = getPlanDraft(normalizedId)
+  if (draft?.task === 'rename-files') {
+    return draft
+  }
+
+  const resp = await getPlanById(normalizedId)
+  if (resp.error || !resp.data?.plan || resp.data.plan.task !== 'rename-files') {
+    return null
+  }
+
+  const plan = resp.data.plan as RenameFilesPlan
+  setPlanDraft(plan)
+  return plan
+}
+
 export async function appendRenameEntryWithValidation(
   planId: string,
   entry: { from: string; to: string },
 ): Promise<RenameFilesPlan | { error: string }> {
-  const plan = getPlanDraft(planId)
-  if (!plan || plan.task !== 'rename-files') {
-    return { error: `Error Reason: Task with id "${planId}" not found` }
+  const plan = await resolveRenamePlanDraft(planId)
+  if (!plan) {
+    return { error: `Error Reason: Task with id "${planId.trim()}" not found` }
   }
 
   const result = await prepareAppendRenameEntry(plan, entry, {
@@ -63,7 +83,7 @@ export async function appendRenameEntryWithValidation(
     return result
   }
 
-  const resp = await updatePlan(planId, { files: result.files })
+  const resp = await updatePlan(planId.trim(), { files: result.files })
   if (resp.error || !resp.data) {
     return { error: resp.error ?? 'updatePlan failed' }
   }

@@ -8,7 +8,8 @@ import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/to
 import { updatePlan } from "@/api/updatePlan"
 import { queryClient } from "@/lib/queryClient"
 import { PLANS_QUERY_ROOT } from "@/hooks/plans"
-import { getPlanDraft, deletePlanDraft } from "../plan/aiPlanDrafts"
+import { deletePlanDraft } from "../plan/aiPlanDrafts"
+import { resolveRenamePlanDraft } from "../plan/renamePlanService"
 
 const endRenameFilesTask = tool({
   description: END_RENAME_FILES_TASK_DESCRIPTION,
@@ -20,20 +21,15 @@ const endRenameFilesTask = tool({
     }
 
     try {
-      const plan = getPlanDraft(taskIdCheck)
+      const plan = await resolveRenamePlanDraft(taskIdCheck)
       if (!plan) {
         return { error: `Error Reason: Task with id "${taskIdCheck}" not found` }
-      }
-      if (plan.task !== "rename-files") {
-        return {
-          error: `Error Reason: Task with id "${taskIdCheck}" is not a rename-files plan`,
-        }
       }
       if (plan.files.length === 0) {
         return { error: "Error Reason: No rename entries in task" }
       }
 
-      const resp = await updatePlan(taskIdCheck, { status: "pending" })
+      const resp = await updatePlan(taskIdCheck.trim(), { status: "pending" })
       if (resp.error) {
         return { error: resp.error }
       }

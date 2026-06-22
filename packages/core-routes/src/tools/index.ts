@@ -34,6 +34,7 @@ import {
   buildEndRenameFilesTaskTool,
   type RenameFilesTaskDeps,
 } from "./renameFilesTask.ts";
+import { defaultRenameFilesTaskDeps } from "./renameFilesTaskDefaults.ts";
 import {
   buildAddRecognizedMediaFileTool,
   buildBeginRecognizeTaskTool,
@@ -64,8 +65,9 @@ export interface ChatTools {
 
 /**
  * Extra dependencies the host (cli / ohos) injects so the chat
- * tools can run inside core-routes. Today this is just the rename
- * validation pair; everything else lives in core-routes already.
+ * tools can run inside core-routes. Optional override for rename
+ * validation/metadata lookup; defaults to
+ * {@link defaultRenameFilesTaskDeps} when omitted.
  */
 export interface ChatToolsExtraDeps {
   renameFilesTask?: RenameFilesTaskDeps;
@@ -80,22 +82,6 @@ export interface CreateChatToolsArgs {
   fs: ChatFs;
   extra?: ChatToolsExtraDeps;
 }
-
-/**
- * Default no-op `renameFilesTask` deps. The host (cli Bun) is
- * expected to inject real `validateOperations` and
- * `getMediaMetadata` implementations; this fallback lets the chat
- * endpoint run on a host that does not (e.g. OHOS without the
- * rename-files feature).
- */
-const DEFAULT_RENAME_FILES_TASK_DEPS: RenameFilesTaskDeps = {
-  validateOperations: async () => ({
-    isValid: true,
-    errors: [],
-    validatedRenames: [],
-  }),
-  getMediaMetadata: async () => null,
-};
 
 /**
  * Build the full toolset for one chat request. Used by
@@ -127,7 +113,10 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     logger,
   };
 
-  const renameFilesTaskDeps = extra?.renameFilesTask ?? DEFAULT_RENAME_FILES_TASK_DEPS;
+  // Same deps as the MCP rename tools: metadata cache read +
+  // bundled rename validation. Hosts can override via `extra`.
+  const renameFilesTaskDeps =
+    extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config.appDataDir);
 
   return {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(

@@ -22,6 +22,7 @@ import {
 } from "./routes/mcpLifecycleRoute.ts";
 import {
   handleCreatePlanPost,
+  handleGetPlanByIdPost,
   handleGetPlansPost,
   handleUpdatePlanPost,
 } from "./routes/plansRoute.ts";
@@ -47,6 +48,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleMcpStopPut,
   handleMcpStatusGet,
   handleGetPlansPost,
+  handleGetPlanByIdPost,
   handleCreatePlanPost,
   handleUpdatePlanPost,
 ];
@@ -105,14 +107,17 @@ export { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute
 export { handleReadImagePost } from "./routes/readImageRoute.ts";
 export {
   handleGetPlansPost,
+  handleGetPlanByIdPost,
   handleCreatePlanPost,
   handleUpdatePlanPost,
 } from "./routes/plansRoute.ts";
 export {
   doGetPlans,
+  doGetPlanById,
   doCreatePlan,
   doUpdatePlan,
   type GetPlansResponseBody,
+  type GetPlanByIdResponseBody,
   type CreatePlanResponseBody,
   type UpdatePlanResponseBody,
 } from "./plansApi.ts";

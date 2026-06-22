@@ -10,6 +10,7 @@ import { resolveAppDataDir } from "./userConfig.ts";
 import {
   createPlan,
   getActivePlansForFolder,
+  readPlanById,
   updatePlanContent,
   type AnyPlan,
 } from "./tools/plans.ts";
@@ -25,6 +26,11 @@ export interface CreatePlanResponseBody {
 }
 
 export interface UpdatePlanResponseBody {
+  data?: { plan: AnyPlan };
+  error?: string;
+}
+
+export interface GetPlanByIdResponseBody {
   data?: { plan: AnyPlan };
   error?: string;
 }
@@ -49,6 +55,10 @@ const recognizedFileSchema = z.object({
 const renameEntrySchema = z.object({
   from: z.string(),
   to: z.string(),
+});
+
+const getPlanByIdRequestSchema = z.object({
+  id: z.string().min(1, "id is required"),
 });
 
 const updatePlanRequestSchema = z.object({
@@ -111,6 +121,34 @@ export async function doCreatePlan(
   return { data: { plan } };
 }
 
+export async function doGetPlanById(
+  body: unknown,
+  config: CoreRoutesConfig = { allowlist: [] },
+): Promise<GetPlanByIdResponseBody> {
+  const parsed = getPlanByIdRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { error: validationError(parsed.error) };
+  }
+
+  const appDataDir = resolveAppDataDir(config);
+  if (!appDataDir) {
+    return { error: "Error Reason: appDataDir is not configured" };
+  }
+
+  const plan = await readPlanById(
+    appDataDir,
+    parsed.data.id.trim(),
+    resolveFs(config),
+  );
+  if (!plan) {
+    return {
+      error: `Error Reason: Plan with id "${parsed.data.id.trim()}" not found`,
+    };
+  }
+
+  return { data: { plan } };
+}
+
 export async function doUpdatePlan(
   body: unknown,
   config: CoreRoutesConfig = { allowlist: [] },
@@ -128,7 +166,7 @@ export async function doUpdatePlan(
   const { id, status, files } = parsed.data;
   const plan = await updatePlanContent(
     appDataDir,
-    id,
+    id.trim(),
     {
       status,
       files: files as

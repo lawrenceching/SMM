@@ -110,8 +110,9 @@ export function buildAddRecognizedMediaFileTool(
         episode?: number;
         path?: string;
       };
+      const normalizedTaskId = (taskId ?? "").trim();
       log.info(
-        { taskId, season, episode, path: filePath, clientId },
+        { taskId: normalizedTaskId, season, episode, path: filePath, clientId },
         `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] Adding file to task`,
       );
 
@@ -122,10 +123,21 @@ export function buildAddRecognizedMediaFileTool(
           path: filePath ?? "",
         };
 
-        await appendRecognizedFile(appDataDir, taskId ?? "", recognizedFile, fs);
+        await appendRecognizedFile(
+          appDataDir,
+          normalizedTaskId,
+          recognizedFile,
+          fs,
+        );
 
         log.info(
-          { taskId, season, episode, path: filePath, clientId },
+          {
+            taskId: normalizedTaskId,
+            season,
+            episode,
+            path: filePath,
+            clientId,
+          },
           `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] File added to task successfully`,
         );
 
@@ -133,7 +145,7 @@ export function buildAddRecognizedMediaFileTool(
       } catch (error) {
         log.error(
           {
-            taskId,
+            taskId: normalizedTaskId,
             season,
             episode,
             path: filePath,
@@ -169,25 +181,26 @@ export function buildEndRecognizeTaskTool(
         throw new Error("Request was aborted");
       }
       const { taskId } = (args ?? {}) as { taskId?: string };
+      const normalizedTaskId = (taskId ?? "").trim();
       log.info(
-        { taskId, clientId },
+        { taskId: normalizedTaskId, clientId },
         `[tool][${END_RECOGNIZE_TASK}] Ending recognition task`,
       );
 
       try {
-        const task = await readRecognizePlan(appDataDir, taskId ?? "", fs);
+        const task = await readRecognizePlan(appDataDir, normalizedTaskId, fs);
 
         if (!task) {
           log.error(
-            { taskId, clientId },
+            { taskId: normalizedTaskId, clientId },
             `[tool][${END_RECOGNIZE_TASK}] Task not found`,
           );
-          return formatToolError(`Task with id "${taskId}" not found`);
+          return formatToolError(`Task with id "${normalizedTaskId}" not found`);
         }
 
         if (task.files.length === 0) {
           log.warn(
-            { taskId, clientId },
+            { taskId: normalizedTaskId, clientId },
             `[tool][${END_RECOGNIZE_TASK}] No files in task`,
           );
           return formatToolError("No recognized files in task");
@@ -214,7 +227,7 @@ export function buildEndRecognizeTaskTool(
 
         log.info(
           {
-            taskId,
+            taskId: normalizedTaskId,
             folderPath: task.mediaFolderPath,
             fileCount: task.files.length,
             clientId,

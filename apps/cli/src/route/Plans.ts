@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 import {
   doCreatePlan as doCreatePlanCore,
+  doGetPlanById as doGetPlanByIdCore,
   doGetPlans as doGetPlansCore,
   doUpdatePlan as doUpdatePlanCore,
   type CoreRoutesConfig,
@@ -29,6 +30,7 @@ async function buildConfig(): Promise<CoreRoutesConfig> {
  * Registers the unified plan routes by delegating to the shared
  * `@smm/core-routes` `do*` functions (same logic as OHOS):
  * - `POST /api/getPlans`    — active plans for a media folder
+ * - `POST /api/getPlanById` — load a plan file by id
  * - `POST /api/createPlan`  — create a `preparing` plan
  * - `POST /api/updatePlan`  — patch status/files (terminal => delete)
  */
@@ -54,6 +56,20 @@ export function handlePlans(app: Hono): void {
       return c.json(result, 200);
     } catch (error) {
       logger.error({ error }, '[POST /api/createPlan] route error');
+      return c.json(
+        { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        200,
+      );
+    }
+  });
+
+  app.post('/api/getPlanById', async (c) => {
+    try {
+      const body = await c.req.json();
+      const result = await doGetPlanByIdCore(body, await buildConfig());
+      return c.json(result, 200);
+    } catch (error) {
+      logger.error({ error }, '[POST /api/getPlanById] route error');
       return c.json(
         { error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}` },
         200,

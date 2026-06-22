@@ -137,29 +137,30 @@ export function buildAddRenameFileToTaskTool(
         from?: string;
         to?: string;
       };
+      const normalizedTaskId = (taskId ?? "").trim();
       log.info(
-        { taskId, from, to, clientId },
+        { taskId: normalizedTaskId, from, to, clientId },
         `[tool][${ADD_RENAME_FILE_TO_TASK}] Adding file to task`,
       );
 
       try {
         await appendRenamePlanEntry(
           appDataDir,
-          taskId ?? "",
+          normalizedTaskId,
           from ?? "",
           to ?? "",
           fs,
           deps,
         );
         log.info(
-          { taskId, from, to, clientId },
+          { taskId: normalizedTaskId, from, to, clientId },
           `[tool][${ADD_RENAME_FILE_TO_TASK}] File added successfully`,
         );
         return toolOk({});
       } catch (error) {
         log.error(
           {
-            taskId,
+            taskId: normalizedTaskId,
             from,
             to,
             error: error instanceof Error ? error.message : String(error),
@@ -194,25 +195,26 @@ export function buildEndRenameFilesTaskTool(
         throw new Error("Request was aborted");
       }
       const { taskId } = (args ?? {}) as { taskId?: string };
+      const normalizedTaskId = (taskId ?? "").trim();
       log.info(
-        { taskId, clientId },
+        { taskId: normalizedTaskId, clientId },
         `[tool][${END_RENAME_FILES_TASK}] Ending rename task`,
       );
 
       try {
-        const task = await readRenamePlan(appDataDir, taskId ?? "", fs);
+        const task = await readRenamePlan(appDataDir, normalizedTaskId, fs);
 
         if (!task) {
           log.error(
-            { taskId, clientId },
+            { taskId: normalizedTaskId, clientId },
             `[tool][${END_RENAME_FILES_TASK}] Task not found`,
           );
-          return toolError(`Task with id "${taskId}" not found`);
+          return toolError(`Task with id "${normalizedTaskId}" not found`);
         }
 
         if (task.files.length === 0) {
           log.warn(
-            { taskId, clientId },
+            { taskId: normalizedTaskId, clientId },
             `[tool][${END_RENAME_FILES_TASK}] No files in task`,
           );
           return toolError("No rename entries in task");
@@ -243,7 +245,7 @@ export function buildEndRenameFilesTaskTool(
         );
 
         log.info(
-          { taskId, fileCount: task.files.length, clientId },
+          { taskId: normalizedTaskId, fileCount: task.files.length, clientId },
           `[tool][${END_RENAME_FILES_TASK}] Plan ready, UI notified`,
         );
 
@@ -251,7 +253,7 @@ export function buildEndRenameFilesTaskTool(
       } catch (error) {
         log.error(
           {
-            taskId,
+            taskId: normalizedTaskId,
             error: error instanceof Error ? error.message : String(error),
             clientId,
           },

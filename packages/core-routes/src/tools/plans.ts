@@ -120,7 +120,27 @@ export async function readRenamePlan(
   planId: string,
   fs: ChatFs,
 ): Promise<RenameFilesPlan | null> {
-  return fs.readJson<RenameFilesPlan>(planFilePath(appDataDir, planId));
+  const plan = await readPlanById(appDataDir, planId, fs);
+  if (!plan || plan.task !== "rename-files") {
+    return null;
+  }
+  return plan as RenameFilesPlan;
+}
+
+/**
+ * Read any plan file by id. Returns `null` when the file does not
+ * exist.
+ */
+export async function readPlanById(
+  appDataDir: string,
+  planId: string,
+  fs: ChatFs,
+): Promise<AnyPlan | null> {
+  const plan = await fs.readJson<AnyPlan>(planFilePath(appDataDir, planId));
+  if (!plan) {
+    return null;
+  }
+  return normalizePlanPaths(withCreatorDefault(plan));
 }
 
 // ─── Recognize-media-file plan ───────────────────────────────────
@@ -177,7 +197,11 @@ export async function readRecognizePlan(
   taskId: string,
   fs: ChatFs,
 ): Promise<RecognizeMediaFilePlan | null> {
-  return fs.readJson<RecognizeMediaFilePlan>(planFilePath(appDataDir, taskId));
+  const plan = await readPlanById(appDataDir, taskId, fs);
+  if (!plan || plan.task !== "recognize-media-file") {
+    return null;
+  }
+  return plan as RecognizeMediaFilePlan;
 }
 
 // ─── Generic plan helpers (shared) ───────────────────────────────

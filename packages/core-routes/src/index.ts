@@ -62,9 +62,11 @@ export { doRenameFolder } from "./renameFolder.ts";
 export { doRenameFiles } from "./renameFiles.ts";
 export {
   doGetPlans,
+  doGetPlanById,
   doCreatePlan,
   doUpdatePlan,
   type GetPlansResponseBody,
+  type GetPlanByIdResponseBody,
   type CreatePlanResponseBody,
   type UpdatePlanResponseBody,
 } from "./plansApi.ts";

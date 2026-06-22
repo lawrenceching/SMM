@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { Path } from '@core/path'
 import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
 import { updatePlan } from "@/api/updatePlan"
-import { getPlanDraft, setPlanDraft } from "../plan/aiPlanDrafts"
+import { setPlanDraft } from "../plan/aiPlanDrafts"
+import { resolveRecognizePlanDraft } from "../plan/recognizePlanService"
 
 /**
  * Frontend AI tool: `add-recognized-media-file`.
@@ -42,21 +43,16 @@ const addRecognizedMediaFile = tool({
     }
 
     try {
-      const plan = getPlanDraft(taskId)
+      const plan = await resolveRecognizePlanDraft(taskId)
       if (!plan) {
-        return { error: `Error Reason: Task with id "${taskId}" not found` }
-      }
-      if (plan.task !== "recognize-media-file") {
-        return {
-          error: `Error Reason: Task with id "${taskId}" is not a recognize-media-file plan`,
-        }
+        return { error: `Error Reason: Task with id "${taskId.trim()}" not found` }
       }
 
       const files = [
         ...plan.files,
         { season, episode, path: Path.posix(filePath) },
       ]
-      const resp = await updatePlan(taskId, { files })
+      const resp = await updatePlan(taskId.trim(), { files })
       if (resp.error || !resp.data) {
         return { error: resp.error ?? "updatePlan failed" }
       }

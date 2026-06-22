@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { updatePlan } from "@/api/updatePlan"
 import { queryClient } from "@/lib/queryClient"
 import { PLANS_QUERY_ROOT } from "@/hooks/plans"
-import { getPlanDraft, deletePlanDraft } from "../plan/aiPlanDrafts"
+import { deletePlanDraft } from "../plan/aiPlanDrafts"
+import { resolveRecognizePlanDraft } from "../plan/recognizePlanService"
 
 /**
  * Frontend AI tool: `end-recognize-task`.
@@ -30,25 +31,20 @@ const endRecognizeTask = tool({
     }
 
     try {
-      const plan = getPlanDraft(taskId)
+      const plan = await resolveRecognizePlanDraft(taskId)
       if (!plan) {
-        return { error: `Error Reason: Task with id "${taskId}" not found` }
-      }
-      if (plan.task !== "recognize-media-file") {
-        return {
-          error: `Error Reason: Task with id "${taskId}" is not a recognize-media-file plan`,
-        }
+        return { error: `Error Reason: Task with id "${taskId.trim()}" not found` }
       }
       if (plan.files.length === 0) {
         return { error: "Error Reason: No recognized files in task" }
       }
 
-      const resp = await updatePlan(taskId, { status: "pending" })
+      const resp = await updatePlan(taskId.trim(), { status: "pending" })
       if (resp.error) {
         return { error: resp.error }
       }
 
-      deletePlanDraft(taskId)
+      deletePlanDraft(taskId.trim())
       await queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })
 
       return { error: undefined }
