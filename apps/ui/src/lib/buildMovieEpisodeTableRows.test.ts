@@ -145,7 +145,7 @@ describe("buildMovieEpisodeTableRows", () => {
     expect(rows).toHaveLength(3); // poster folderFile + divider + episode
     expect(rows[0]).toMatchObject({ type: "folderFile", id: "poster", path: "/media/movies/TestMovie/poster.jpg" });
     expect(rows[1]).toMatchObject({ type: "divider", id: "movie" });
-    expect(episodeRow(rows).thumbnail).toBeUndefined();
+    expect(episodeRow(rows).thumbnail).toBe("/media/movies/TestMovie/poster.jpg");
   });
 
   it("creates a fanart folderFile row", () => {
@@ -172,7 +172,7 @@ describe("buildMovieEpisodeTableRows", () => {
     const rows = buildMovieEpisodeTableRows(mm, "ok", t);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toMatchObject({ type: "folderFile", id: "nfo", path: "/media/movies/TestMovie/movie.nfo" });
-    expect(episodeRow(rows).nfo).toBeUndefined();
+    expect(episodeRow(rows).nfo).toBe("/media/movies/TestMovie/movie.nfo");
   });
 
   it("emits multiple folderFile rows, divider, and one episode row", () => {
@@ -190,6 +190,78 @@ describe("buildMovieEpisodeTableRows", () => {
     expect(rows.filter((r) => r.type === "folderFile")).toHaveLength(3);
     expect(rows.filter((r) => r.type === "divider")).toHaveLength(1);
     expect(rows.filter((r) => r.type === "episode")).toHaveLength(1);
+  });
+
+  // ── Folder-level fallbacks ──
+
+  it("falls back to folder-level poster when no stem-matched image exists", () => {
+    const mm = makeMediaMetadata({
+      files: [
+        "/media/movies/Movie (2024)/Movie (2024).mkv",
+        "/media/movies/Movie (2024)/poster.jpg",
+        "/media/movies/Movie (2024)/fanart.jpg",
+        "/media/movies/Movie (2024)/movie.nfo",
+      ],
+      mediaFiles: [{ absolutePath: "/media/movies/Movie (2024)/Movie (2024).mkv" }],
+    });
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    expect(row.thumbnail).toBe("/media/movies/Movie (2024)/poster.jpg");
+    expect(row.nfo).toBe("/media/movies/Movie (2024)/movie.nfo");
+    expect(row.subtitle).toBeUndefined();
+  });
+
+  it("prefers stem-matched thumbnail over folder-level poster", () => {
+    const mm = makeMediaMetadata({
+      files: [
+        "/media/movies/TestMovie/video.mkv",
+        "/media/movies/TestMovie/video.jpg",
+        "/media/movies/TestMovie/poster.jpg",
+      ],
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    expect(row.thumbnail).toBe("/media/movies/TestMovie/video.jpg");
+  });
+
+  it("prefers stem-matched nfo over folder-level movie.nfo", () => {
+    const mm = makeMediaMetadata({
+      files: [
+        "/media/movies/TestMovie/video.mkv",
+        "/media/movies/TestMovie/video.nfo",
+        "/media/movies/TestMovie/movie.nfo",
+      ],
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    expect(row.nfo).toBe("/media/movies/TestMovie/video.nfo");
+  });
+
+  it("leaves columns undefined when no stem match and no folder-level file exist", () => {
+    const mm = makeMediaMetadata({
+      files: ["/media/movies/TestMovie/video.mkv"],
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    expect(row.thumbnail).toBeUndefined();
+    expect(row.nfo).toBeUndefined();
+    expect(row.subtitle).toBeUndefined();
+  });
+
+  it("falls back to subtitleFilePaths when stem does not match", () => {
+    const mm = makeMediaMetadata({
+      files: [
+        "/media/movies/Movie (2024)/Movie (2024).mkv",
+        "/media/movies/Movie (2024)/Movie.srt",
+      ],
+      mediaFiles: [
+        {
+          absolutePath: "/media/movies/Movie (2024)/Movie (2024).mkv",
+          subtitleFilePaths: ["/media/movies/Movie (2024)/Movie.srt"],
+        },
+      ],
+    });
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    expect(row.subtitle).toBe("/media/movies/Movie (2024)/Movie.srt");
   });
 
   // ── Rename preview ──

@@ -73,7 +73,9 @@ export function buildMovieEpisodeTableRows(
   rows.push({ type: "divider", id: "movie", text: "Movie" });
 
   // ── Episode row (S01E01) ──
-  // Stem-matched associated files only (NOT folder-level poster/fanart/movie.nfo)
+  // Preferred: stem-matched associated files (e.g. "Movie (2024).srt").
+  // Fallback: folder-level poster.* / movie.nfo (common for movie folders
+  // where the subtitle/image stem does not match the video basename).
   const associated = findAssociatedFiles(mediaFolderPath, allFiles, videoFile.absolutePath);
 
   let thumbnail: string | undefined;
@@ -95,12 +97,19 @@ export function buildMovieEpisodeTableRows(
     }
   }
 
-  // Supplement with subtitleFilePaths from mediaFiles (populated during recognition).
-  // findAssociatedFiles uses strict stem matching that can miss subtitles with
-  // different naming (e.g., "Movie.srt" for "Movie (2024).mkv").
+  // Subtitle fallback: subtitleFilePaths populated during recognition can hold
+  // subtitles with a different stem than the video (e.g. "Movie.srt" for
+  // "Movie (2024).mkv").
   if (!subtitle && videoFile.subtitleFilePaths?.length) {
     subtitle = videoFile.subtitleFilePaths[0];
   }
+
+  // Folder-level fallbacks for thumbnail / nfo. Movie folders typically only
+  // carry poster.* and movie.nfo at the folder root, not stem-matched to the
+  // video basename, so the stem-matched scan above leaves these columns empty
+  // unless we fall back to the same files we already surface as folderFile rows.
+  if (!thumbnail && posterFile) thumbnail = posterFile;
+  if (!nfo && movieNfoFile) nfo = movieNfoFile;
 
   const row: TvShowEpisodeDataRow = {
     season: 1,
