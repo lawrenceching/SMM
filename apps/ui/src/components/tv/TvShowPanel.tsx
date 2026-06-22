@@ -18,7 +18,11 @@ import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useDialogs } from "@/providers/dialog-provider"
 import { usePlansQuery } from "@/hooks/plans"
 import { MediaFileTable } from "@/components/media/MediaFileTable"
-import type { UIMediaFileTableRow } from "@/components/media/UIMediaFileTable"
+import type {
+  UIMediaFileDataContextMenuItem,
+  UIMediaFileTableRow,
+} from "@/components/media/UIMediaFileTable"
+import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
@@ -86,6 +90,10 @@ function TvShowPanel() {
   const { selectTvShowForFolderMutation, updateMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const videoRenameFlow = useRenameVideoFileFlow({
+    mediaFolderPath: mediaMetadata?.mediaFolderPath,
+    files: mediaMetadata?.files ?? [],
+  })
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([])
   const latestTableData = useLatest(tableData)
@@ -347,6 +355,12 @@ function TvShowPanel() {
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}
+            extraEpisodeContextMenu={[{
+              id: "rename",
+              label: t("episodeFile.rename", { ns: "components" }),
+              onClick: videoRenameFlow.onRenameContextMenuClick,
+              disabled: (row) => !row.videoFile,
+            } satisfies UIMediaFileDataContextMenuItem]}
           />
         ) : (
           <TvShowEpisodeTable

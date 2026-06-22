@@ -21,7 +21,11 @@ import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
 import { MediaFileTable } from "../media/MediaFileTable"
-import type { UIMediaFileTableRow } from "../media/UIMediaFileTable"
+import type {
+  UIMediaFileDataContextMenuItem,
+  UIMediaFileTableRow,
+} from "../media/UIMediaFileTable"
+import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
 import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "../tv/TvShowEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
@@ -122,6 +126,10 @@ function MoviePanel() {
     mediaMetadata,
     uiStatus: folderStatus,
     onRefreshMediaMetadata: refreshMediaMetadata,
+  })
+  const videoRenameFlow = useRenameVideoFileFlow({
+    mediaFolderPath: mediaMetadata?.mediaFolderPath,
+    files: mediaMetadata?.files ?? [],
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
@@ -356,6 +364,12 @@ function MoviePanel() {
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             layout={isPreviewingForRename ? "simple" : layout}
             preview={isPreviewingForRename ? "rename" : undefined}
+            extraEpisodeContextMenu={[{
+              id: "rename",
+              label: t("episodeFile.rename"),
+              onClick: videoRenameFlow.onRenameContextMenuClick,
+              disabled: (row) => !row.videoFile,
+            } satisfies UIMediaFileDataContextMenuItem]}
           />
         ) : (
           <TvShowEpisodeTable

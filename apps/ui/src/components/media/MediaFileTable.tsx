@@ -42,19 +42,36 @@ export interface MediaFileTableProps {
    * (e.g. video screenshots). Omit → the area is hidden.
    */
   renderPreviewContent?: (row: UIMediaFileDataRow) => ReactNode
+  /**
+   * Extra data-row context menu items appended after the built-in "Open" and
+   * "Properties" entries. Use this for panel-private actions (e.g. TvShow
+   * and Movie panels inject their "Rename" item here) so `MediaFileTable`
+   * stays free of panel-specific business logic.
+   */
+  extraEpisodeContextMenu?: UIMediaFileDataContextMenuItem[]
 }
 
 /**
  * Business-logic wrapper around `UIMediaFileTable`. Provides:
  *  - "Open" context menu item → `openFile` API
  *  - "Properties" context menu item → `MediaFilePropertyDialog`
+ *  - caller-supplied extra items via `extraEpisodeContextMenu`
  *  - row double-click → `openFile` API
  *
  * The right-click menu and double-click behavior are owned by this component;
  * the pure UI rendering comes from `UIMediaFileTable`.
  */
 export function MediaFileTable(props: MediaFileTableProps) {
-  const { data, mediaFolderPath, preview, previewStatus, layout, onCheck, renderPreviewContent } = props
+  const {
+    data,
+    mediaFolderPath,
+    preview,
+    previewStatus,
+    layout,
+    onCheck,
+    renderPreviewContent,
+    extraEpisodeContextMenu,
+  } = props
 
   const { t } = useTranslation("components")
   const ctrl = useMediaFileTableController(mediaFolderPath)
@@ -77,6 +94,7 @@ export function MediaFileTable(props: MediaFileTableProps) {
         },
         disabled: (row) => !row.videoFile,
       },
+      ...(extraEpisodeContextMenu ?? []),
     ]
 
     const folderFileRowItems: UIMediaFileFolderContextMenuItem[] = [
@@ -91,7 +109,7 @@ export function MediaFileTable(props: MediaFileTableProps) {
     ]
 
     return { dataRowItems, folderFileRowItems }
-  }, [ctrl, t])
+  }, [ctrl, t, extraEpisodeContextMenu])
 
   return (
     <UIMediaFileTable
