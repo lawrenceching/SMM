@@ -1,6 +1,6 @@
 "use strict";
 
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 // Keep channel names in sync with src/channels.ts
 const DIALOG_SHOW_OPEN_CHANNEL = "dialog:showOpenDialog";
@@ -26,4 +26,13 @@ contextBridge.exposeInMainWorld("electron", {
 
 contextBridge.exposeInMainWorld("api", {
   executeChannel: (request) => ipcRenderer.invoke(EXECUTE_CHANNEL, request),
+  getPathForFile: (file) => {
+    try {
+      const path = webUtils.getPathForFile(file);
+      return path || null;
+    } catch (error) {
+      console.error("[Preload] Failed to get path for file:", error);
+      return null;
+    }
+  },
 });
