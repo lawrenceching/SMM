@@ -235,7 +235,7 @@ function renderEpisodeSimpleVideoContent(
   isRowDisabled: boolean,
 ): ReactNode {
   if (row.videoFile) {
-    if (ctx.preview === "rename" && !row.newVideoFile) {
+    if (ctx.preview === "rename" && !row.newVideoFile && row.checked) {
       return (
         <div
           className="truncate text-muted-foreground/60 line-through text-xs"

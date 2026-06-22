@@ -1,8 +1,7 @@
 import { useCallback } from "react"
 import type { MediaMetadata } from "@core/types"
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
-import { generateNewFileName } from "@/lib/renameRules"
-import { join } from "@/lib/path"
+import { buildTvShowRenamePlanFileEntries } from "@/lib/buildTvShowRenamePlanFileEntries"
 
 interface UseTvShowFileNameGenerationParams {
   mediaMetadata: MediaMetadata | undefined
@@ -27,40 +26,10 @@ export function useTvShowFileNameGeneration({
         return null
       }
 
-      const files: Array<{ from: string; to: string }> = []
+      const files = buildTvShowRenamePlanFileEntries(mediaMetadata, selectedNamingRule)
 
-      for (const season of tvShow.seasons) {
-        if (!season.episodes) continue
-
-        for (const episode of season.episodes) {
-          const mediaFile = mediaMetadata.mediaFiles?.find(
-            file => file.seasonNumber === season.season && file.episodeNumber === episode.episode,
-          )
-
-          if (!mediaFile) continue
-
-          const relativePath = generateNewFileName(selectedNamingRule, {
-            type: "tv",
-            seasonNumber: season.season,
-            episodeNumber: episode.episode,
-            episodeName: episode.name || "",
-            tvshowName: tvShow.name || "",
-            file: mediaFile.absolutePath,
-            tmdbId: tvShow.id?.toString() || "",
-            releaseYear: tvShow.airDate ?? "",
-          })
-
-          const absolutePath = join(mediaMetadata.mediaFolderPath!, relativePath)
-
-          files.push({
-            from: mediaFile.absolutePath,
-            to: absolutePath,
-          })
-
-          console.log(
-            `[TvShowPanel] generated new file name for episode ${season.season}x${episode.episode}: ${relativePath}`,
-          )
-        }
+      if (files.length === 0) {
+        return null
       }
 
       const renamePlan: RenameFilesPlan = {

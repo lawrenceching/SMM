@@ -358,6 +358,17 @@ export function fillTvShowEpisodeTableRowByRenameFilesPlan(
   const rows = structuredClone(_in_rows) as TvShowEpisodeDataRow[]
   const renameFiles = plan.files
 
+  for (const row of rows) {
+    if (row.type !== "episode") {
+      continue
+    }
+    row.newVideoFile = undefined
+    row.disabled = undefined
+    if (row.videoFile) {
+      row.checked = false
+    }
+  }
+
   for(const renameFile of renameFiles) {
     for(const row of rows) {
 
@@ -368,8 +379,18 @@ export function fillTvShowEpisodeTableRowByRenameFilesPlan(
       if(row.videoFile === renameFile.from) {
         row.newVideoFile = renameFile.to;
         row.checked = true;
+        row.disabled = false;
       }
 
+    }
+  }
+
+  for (const row of rows) {
+    if (row.type !== "episode" || !row.videoFile) {
+      continue
+    }
+    if (!row.newVideoFile) {
+      row.disabled = true
     }
   }
 

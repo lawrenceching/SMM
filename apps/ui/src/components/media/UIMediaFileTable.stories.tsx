@@ -378,6 +378,25 @@ export const RenamePreview: Story = {
   },
 }
 
+export const RenamePreviewPartialFilesRename: Story = {
+  args: {
+    data: [
+      season1Divider,
+      {
+        ...season1Ep1,
+        newVideoFile: `${mediaFolderPath}/Show - S01E01 - Pilot.mkv`,
+        checked: true,
+      },
+      {
+        ...season1Ep2,
+        checked: false,
+        disabled: true,
+      },
+    ],
+    preview: "rename",
+  },
+}
+
 export const RenamePreviewWithCheckboxes: Story = {
   args: {
     data: [
@@ -411,7 +430,7 @@ export const RenamePreviewRemoved: Story = {
       season1Divider,
       {
         ...season1Ep1,
-        // newVideoFile === undefined → row will be removed
+        // checked + no newVideoFile → row will be removed (strikethrough in simple layout)
         newVideoFile: undefined,
       },
     ],

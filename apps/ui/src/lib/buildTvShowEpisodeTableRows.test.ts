@@ -288,8 +288,10 @@ describe('fillTvShowEpisodeTableRowByRenameFilesPlan', () => {
 
     expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/Season 01/Episode 01.mkv')
     expect((result[0] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[0] as TvShowEpisodeDataRow).disabled).toBe(false)
     expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
     expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[1] as TvShowEpisodeDataRow).disabled).toBe(true)
   })
 
   it('applies multiple rename mappings to multiple episode rows', () => {
@@ -307,10 +309,13 @@ describe('fillTvShowEpisodeTableRowByRenameFilesPlan', () => {
 
     expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/new/S01E01.mkv')
     expect((result[0] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[0] as TvShowEpisodeDataRow).disabled).toBe(false)
     expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
     expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[1] as TvShowEpisodeDataRow).disabled).toBe(true)
     expect((result[2] as TvShowEpisodeDataRow).newVideoFile).toBe('/media/show/new/S02E01.mkv')
     expect((result[2] as TvShowEpisodeDataRow).checked).toBe(true)
+    expect((result[2] as TvShowEpisodeDataRow).disabled).toBe(false)
   })
 
   it('keeps rows unchanged when no rename from path matches', () => {
@@ -326,8 +331,10 @@ describe('fillTvShowEpisodeTableRowByRenameFilesPlan', () => {
 
     expect((result[0] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
     expect((result[0] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[0] as TvShowEpisodeDataRow).disabled).toBe(true)
     expect((result[1] as TvShowEpisodeDataRow).newVideoFile).toBeUndefined()
     expect((result[1] as TvShowEpisodeDataRow).checked).toBe(false)
+    expect((result[1] as TvShowEpisodeDataRow).disabled).toBe(true)
   })
 
   it('ignores non-episode rows', () => {

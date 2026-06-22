@@ -1,6 +1,5 @@
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
 import { getFullExtensionForAssociatedFile } from "@core/utils";
@@ -27,7 +26,6 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/Recogni
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
-import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
