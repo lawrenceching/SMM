@@ -1,7 +1,6 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
 import { unlinkEpisode } from "@/components/tv/TvShowPanelUtils"
-import type { TvShowEpisodeDataRow } from "@/components/tv/TvShowEpisodeTable"
 import { handleEpisodeFileSelect as handleEpisodeFileSelectHelper } from "@/helpers/handleEpisodeFileSelect"
 import { isElectron } from "@/lib/isElectron"
 import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
@@ -153,14 +152,14 @@ export function useSelectAndUnselectFileFlow({
   )
 
   const onSelectFileContextMenuClick = useCallback(
-    (row: TvShowEpisodeDataRow) => {
+    (row: { season: number; episode: number }) => {
       handleOpenFilePickerForEpisode(row.season, row.episode)
     },
     [handleOpenFilePickerForEpisode],
   )
 
   const onUnlinkContextMenuClick = useCallback(
-    (row: TvShowEpisodeDataRow) => {
+    (row: { season: number; episode: number }) => {
       unlinkEpisode({
         season: row.season,
         episode: row.episode,

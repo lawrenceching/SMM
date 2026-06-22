@@ -493,6 +493,8 @@ interface ComponentsResources {
     }
     contextMenu: {
       showColumns: string
+      open: string
+      properties: string
     }
     renameCheckboxTitle: string
     unrecognizedVideoFile: string

@@ -300,6 +300,34 @@ function TvShowPanel() {
     [mediaMetadata, videoCompressionDialog],
   )
 
+  const extraEpisodeContextMenu: UIMediaFileDataContextMenuItem[] = useMemo(
+    () => [
+      {
+        id: "rename",
+        label: t("episodeFile.rename", { ns: "components" }),
+        onClick: videoRenameFlow.onRenameContextMenuClick,
+        disabled: (row) => !row.videoFile,
+      },
+      {
+        id: "select-file",
+        label: t("episodeFile.selectFile", { ns: "components" }),
+        onClick: selectFileFlow.onSelectFileContextMenuClick,
+      },
+      {
+        id: "unlink",
+        label: t("tvShowEpisodeTable.contextMenu.unlink"),
+        onClick: selectFileFlow.onUnlinkContextMenuClick,
+        disabled: (row) => !row.videoFile,
+      },
+    ],
+    [
+      t,
+      videoRenameFlow.onRenameContextMenuClick,
+      selectFileFlow.onSelectFileContextMenuClick,
+      selectFileFlow.onUnlinkContextMenuClick,
+    ],
+  )
+
   const appPlanPromptValue = useMemo((): TvShowAppPlanPromptContextValue => {
     return {
       appRenamePlan: renameFlow.plan,
@@ -353,14 +381,8 @@ function TvShowPanel() {
             data={tableData as UIMediaFileTableRow[]}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             preview={previewMode}
-            previewStatus={previewStatus}
             layout={episodeTableLayout}
-            extraEpisodeContextMenu={[{
-              id: "rename",
-              label: t("episodeFile.rename", { ns: "components" }),
-              onClick: videoRenameFlow.onRenameContextMenuClick,
-              disabled: (row) => !row.videoFile,
-            } satisfies UIMediaFileDataContextMenuItem]}
+            extraEpisodeContextMenu={extraEpisodeContextMenu}
           />
         ) : (
           <TvShowEpisodeTable

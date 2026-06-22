@@ -6,7 +6,6 @@ import type {
   UIMediaFileFolderContextMenuItem,
   UIMediaFileTableContextMenuConfig,
   UIMediaFileDataRow,
-  UIMediaFileFolderRow,
   UIMediaFileTableRow,
 } from "./UIMediaFileTable"
 import { useMediaFileTableController } from "./useMediaFileTableController"

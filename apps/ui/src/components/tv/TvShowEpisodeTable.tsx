@@ -83,11 +83,11 @@ interface TvShowEpisodeTableProps {
   /** When set, video paths are shown relative to this path. */
   mediaFolderPath?: string
   /** Called when user chooses "Select File" from context menu; row is the row data. */
-  onSelectFileContextMenuClick?: (row: TvShowEpisodeDataRow) => void
+  onSelectFileContextMenuClick?: (row: { season: number; episode: number }) => void
   /** Called when user chooses "Video Compression" from context menu; row is the row data. */
   onVideoCompressContextMenuClick?: (row: TvShowEpisodeDataRow) => void
   /** Called when user chooses "Unlink" from context menu; row is the row data. */
-  onUnlinkContextMenuClick?: (row: TvShowEpisodeDataRow) => void
+  onUnlinkContextMenuClick?: (row: { season: number; episode: number }) => void
   /**
    * NOTE: preview mode is different concept from preview layout.
    * ** Preivew Mode ** Preview the recognition or rename plan
