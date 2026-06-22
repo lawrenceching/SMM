@@ -1,11 +1,10 @@
-import { useEffect } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
+import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
-import { mediaFolderPathEqual } from "@/components/tv/TvShowPanelUtils"
 import { useFeatures } from "@/hooks/useFeatures"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
-import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import type { MediaMetadata } from "@core/types"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
@@ -15,101 +14,77 @@ export interface UseAiBasedRenameFilesFlowOptions {
   mediaMetadata: MediaMetadata | undefined
   onAppRenameConfirm: (planId: string) => Promise<void>
   setSelectedMediaMetadataByMediaFolderPath: (path: string) => void
-  updateMediaMetadata: (
-    path: string,
-    updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
-    options?: { traceId?: string },
-  ) => void | Promise<void>
   /** Called when an AI rename plan is detected (e.g. switch episode table to simple layout). */
   onFlowStart?: () => void
 }
 
 /**
- * Surfaces AI/MCP-created rename plans via AiBasedRenameFilePrompt and handles
- * WebSocket-driven rename confirmation events. Rule-based (creator: 'app') plans
- * are handled exclusively by RuleBasedRenameFilePrompt.
+ * Surfaces AI/MCP-created rename plans for preview mode and
+ * AiBasedRenameFilePrompt. Rule-based (creator: 'app') plans are handled
+ * exclusively by useRuleBasedRenameFilesFlow.
  */
 export function useAiBasedRenameFilesFlow({
   plans,
   mediaMetadata,
   onAppRenameConfirm,
   setSelectedMediaMetadataByMediaFolderPath,
-  updateMediaMetadata,
   onFlowStart,
 }: UseAiBasedRenameFilesFlowOptions) {
   const { isAiFeatureEnabled } = useFeatures()
   const updatePlanMutation = useUpdatePlanMutation()
+  const mediaFolderPath = mediaMetadata?.mediaFolderPath
 
-  const openAiBasedRenameFilePrompt = useTvShowPromptsStore(
-    (state) => state.openAiBasedRenameFilePrompt,
+  const plan = useMemo(
+    () =>
+      isAiFeatureEnabled
+        ? selectActiveAiPlan<UIRenameFilesPlan>(
+            plans,
+            mediaFolderPath,
+            "rename-files",
+          )
+        : undefined,
+    [isAiFeatureEnabled, plans, mediaFolderPath],
   )
-  const closeAiBasedRenameFilePrompt = useTvShowPromptsStore(
-    (state) => state.closeAiBasedRenameFilePrompt,
-  )
-  const updateAiBasedRenameFileStatus = useTvShowPromptsStore(
-    (state) => state.updateAiBasedRenameFileStatus,
-  )
+
+  const promptStatus: "generating" | "wait-for-ack" =
+    plan?.status === "preparing" ? "generating" : "wait-for-ack"
+
+  const onConfirm = useCallback(async () => {
+    if (!plan) return
+    await onAppRenameConfirm(plan.id)
+  }, [plan, onAppRenameConfirm])
+
+  const onCancel = useCallback(async () => {
+    if (!plan || !mediaFolderPath) return
+    try {
+      await updatePlanMutation.mutateAsync({
+        id: plan.id,
+        mediaFolderPath,
+        patch: toUpdatePlanPatch({ status: "rejected" }),
+      })
+      await cleanupRenamePlan(plan.id)
+    } catch (error) {
+      console.error("[useAiBasedRenameFilesFlow] Error rejecting rename plan:", error)
+      toast.error(
+        `Failed to reject rename plan: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }, [plan, mediaFolderPath, updatePlanMutation])
 
   useEffect(() => {
-    if (!isAiFeatureEnabled || !mediaMetadata?.mediaFolderPath) {
-      if (!isAiFeatureEnabled) {
-        closeAiBasedRenameFilePrompt()
-      }
-      return
-    }
-
-    const plan = plans.find(
-      (p): p is UIRenameFilesPlan =>
-        p.task === "rename-files" &&
-        p.creator === "ai" &&
-        p.status === "pending" &&
-        mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath),
-    )
-
     if (plan) {
-      console.log(
-        `[useAiBasedRenameFilesFlow] Detected pending AI RenameFilesPlan, open AiBasedRenameFilePrompt:`,
-        plan,
-      )
       onFlowStart?.()
-      openAiBasedRenameFilePrompt({
-        status: "wait-for-ack",
-        onConfirm: () => onAppRenameConfirm(plan.id),
-        onCancel: async () => {
-          try {
-            await updatePlanMutation.mutateAsync({
-              id: plan.id,
-              mediaFolderPath: mediaMetadata.mediaFolderPath!,
-              patch: toUpdatePlanPatch({ status: "rejected" }),
-            })
-            await cleanupRenamePlan(plan.id)
-          } catch (error) {
-            console.error("[useAiBasedRenameFilesFlow] Error rejecting rename plan:", error)
-            toast.error(
-              `Failed to reject rename plan: ${error instanceof Error ? error.message : "Unknown error"}`,
-            )
-          }
-        },
-      })
-    } else {
-      closeAiBasedRenameFilePrompt()
     }
-  }, [
-    isAiFeatureEnabled,
-    plans,
-    mediaMetadata,
-    openAiBasedRenameFilePrompt,
-    closeAiBasedRenameFilePrompt,
-    onAppRenameConfirm,
-    updatePlanMutation,
-    onFlowStart,
-  ])
+  }, [plan?.id, onFlowStart])
 
   useTvShowWebSocketEvents({
-    mediaMetadata,
     setSelectedMediaMetadataByMediaFolderPath,
-    openAiBasedRenameFilePrompt,
-    setAiBasedRenameFileStatus: updateAiBasedRenameFileStatus,
-    updateMediaMetadata,
   })
+
+  return {
+    plan,
+    promptStatus,
+    onConfirm,
+    onCancel,
+  }
 }

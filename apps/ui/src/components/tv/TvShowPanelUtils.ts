@@ -1,7 +1,6 @@
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask";
 import { extname, join } from "@/lib/path";
 import { Path } from "@core/path";
 import { getFullExtensionForAssociatedFile } from "@core/utils";
@@ -24,7 +23,6 @@ import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { renameFiles as renameFilesApi } from "@/api/renameFiles";
-import type { PlanStatus } from "@core/types/planCommon";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
 import { toast } from "sonner";
@@ -936,88 +934,6 @@ export async function buildTemporaryRecognitionPlanAsync(
 
 
 
-
-export interface HandlePendingPlansParams {
-  pendingPlans: (UIRecognizeMediaFilePlan | UIRenameFilesPlan)[]
-  mediaMetadata: MediaMetadata | undefined
-  openAiBasedRecognizePrompt: (options: {
-    status: "generating" | "wait-for-ack"
-    confirmButtonLabel?: string
-    confirmButtonDisabled?: boolean
-    isRenaming?: boolean
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
-  closeAiBasedRecognizePrompt: () => void
-  handleAiRecognizeConfirmCallback: (plan: RecognizeMediaFilePlan) => Promise<void>
-  handleRuleBasedRecognizeConfirmCallback?: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
-  updatePlan: (planId: string, status: PlanStatus) => Promise<void>
-  toast: typeof toast
-  /** When false, skip opening AI-based recognize prompts. */
-  isAiFeatureEnabled?: boolean
-}
-
-/**
- * @param params 
- * @returns 
- */
-export function handlePendingPlans(params: HandlePendingPlansParams): void {
-  const {
-    pendingPlans,
-    mediaMetadata,
-    openAiBasedRecognizePrompt,
-    closeAiBasedRecognizePrompt,
-    handleAiRecognizeConfirmCallback,
-    updatePlan,
-  } = params
-
-  if (!mediaMetadata?.mediaFolderPath) {
-    return
-  }
-
-  // AI features are disabled — close any open prompt and skip
-  if (!params.isAiFeatureEnabled) {
-    closeAiBasedRecognizePrompt()
-    return
-  }
-
-  console.log(`[handlePendingPlans] pendingPlans: `, structuredClone(pendingPlans))
-
-  // Only AI/MCP-created recognize plans are surfaced via AiBasedRecognizePrompt.
-  // Rule-based (creator: 'app') plans are handled exclusively by
-  // RuleBasedRecognizePrompt (opened directly from the recognize button), so
-  // they must never trigger the AI prompt here.
-  const plan = pendingPlans.find(
-    p =>
-      p.task === "recognize-media-file" &&
-      p.creator === 'ai' &&
-      (p.status === 'pending' || p.status === 'preparing') &&
-      mediaFolderPathEqual(p.mediaFolderPath, mediaMetadata.mediaFolderPath)
-  )
-
-  console.log(`[handlePendingPlans] plan: `, structuredClone(plan))
-  
-  if (plan) {
-    openAiBasedRecognizePrompt({
-        status: "wait-for-ack",
-        confirmButtonLabel: 'Confirm',
-        confirmButtonDisabled: false,
-        isRenaming: false,
-        onConfirm: () => handleAiRecognizeConfirmCallback(plan as RecognizeMediaFilePlan),
-        onCancel: async () => {
-          try {
-            await updatePlan(plan.id, 'rejected')
-            // Drop the in-memory AI draft for this plan.
-            await cleanupRecognizePlan(plan.id)
-          } catch (error) {
-            console.error('[TvShowPanel] Error rejecting plan:', error)
-          }
-        }
-      })
-  } else {
-    closeAiBasedRecognizePrompt()
-  }
-}
 
 export interface OnMediaFolderSelectedParams {
   mediaMetadata: UIMediaMetadata

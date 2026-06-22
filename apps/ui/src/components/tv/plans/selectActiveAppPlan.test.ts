@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { selectActiveAppPlan } from "./selectActiveAppPlan"
+import { selectActiveAiPlan, selectActiveAppPlan } from "./selectActiveAppPlan"
 import type { Plan } from "@/api/getPlans"
 
 describe("selectActiveAppPlan", () => {
@@ -56,5 +56,70 @@ describe("selectActiveAppPlan", () => {
         "rename-files",
       ),
     ).toBeUndefined()
+  })
+})
+
+describe("selectActiveAiPlan", () => {
+  const plans: Plan[] = [
+    {
+      id: "rename-app",
+      task: "rename-files",
+      status: "pending",
+      creator: "app",
+      mediaFolderPath: "/media/show",
+      files: [],
+    },
+    {
+      id: "rename-ai",
+      task: "rename-files",
+      status: "pending",
+      creator: "ai",
+      mediaFolderPath: "/media/show",
+      files: [{ from: "/a.mkv", to: "/b.mkv" }],
+    },
+  ]
+
+  it("returns active AI plan for the given task and folder", () => {
+    expect(
+      selectActiveAiPlan(plans, "/media/show", "rename-files")?.id,
+    ).toBe("rename-ai")
+  })
+
+  it("ignores app plans", () => {
+    expect(
+      selectActiveAiPlan(
+        [
+          {
+            id: "rename-app",
+            task: "rename-files",
+            status: "pending",
+            creator: "app",
+            mediaFolderPath: "/media/show",
+            files: [],
+          },
+        ],
+        "/media/show",
+        "rename-files",
+      ),
+    ).toBeUndefined()
+  })
+
+  it("returns active AI recognize plan", () => {
+    expect(
+      selectActiveAiPlan(
+        [
+          {
+            id: "recognize-ai",
+            task: "recognize-media-file",
+            status: "pending",
+            creator: "ai",
+            mediaFolderPath: "/media/show",
+            files: [{ season: 1, episode: 1, path: "/media/show/S01E01.mkv" }],
+          },
+        ],
+        "/media/show",
+        "recognize-media-file",
+      )?.id,
+    ).toBe("recognize-ai")
   })
 })

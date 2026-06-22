@@ -6,6 +6,8 @@ import {
 } from "@core/types/ai-tools/renameFilesTask"
 import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
 import { createPlan } from "@/api/createPlan"
+import { PLANS_QUERY_ROOT } from "@/hooks/plans"
+import { queryClient } from "@/lib/queryClient"
 import { assertRenameMediaFolderOpened } from "../plan/renamePlanService"
 import { setPlanDraft } from "../plan/aiPlanDrafts"
 
@@ -33,6 +35,7 @@ const beginRenameFilesTask = tool({
         return { taskId: undefined, error: resp.error ?? "createPlan failed" }
       }
       setPlanDraft(resp.data.plan)
+      void queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })
       return toolOk({ taskId: resp.data.plan.id })
     } catch (error) {
       return { taskId: undefined, ...formatToolError(error) }

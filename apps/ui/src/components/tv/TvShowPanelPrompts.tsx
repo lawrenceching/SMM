@@ -15,12 +15,20 @@ export function TvShowPanelPrompts() {
   const {
     appRenamePlan,
     appRecognizePlan,
+    aiRenamePlan,
+    aiRenamePromptStatus,
+    aiRecognizePlan,
+    aiRecognizePromptStatus,
     renameToolbarOptions,
     selectedNamingRule,
     setSelectedNamingRule,
     onAppRenameNamingRuleSelected,
     onAppRenameConfirm,
     onAppRenameCancel,
+    onAiRenameConfirm,
+    onAiRenameCancel,
+    onAiRecognizeConfirm,
+    onAiRecognizeCancel,
     onAppRecognizeConfirm,
     onAppRecognizeCancel,
     tvShowTitle,
@@ -31,12 +39,8 @@ export function TvShowPanelPrompts() {
   } = useTvShowAppPlanPrompts()
 
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
-  const closeAiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
-  const closeAiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
 
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
-  const aiBasedRenameFilePrompt = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
-  const aiBasedRecognizePrompt = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
 
   return (
     <div>
@@ -101,46 +105,27 @@ export function TvShowPanelPrompts() {
 
       {isAiFeatureEnabled && (
         <AiBasedRenameFilePrompt
-          isOpen={aiBasedRenameFilePrompt.isOpen}
-          status={aiBasedRenameFilePrompt.status || "generating"}
+          isOpen={aiRenamePlan !== undefined}
+          status={aiRenamePromptStatus}
           onConfirm={async () => {
-            const callback = aiBasedRenameFilePrompt.onConfirm
-            closeAiBasedRenameFilePrompt()
-            if (callback) {
-              await callback()
-            }
+            await onAiRenameConfirm()
           }}
           onCancel={() => {
-            closeAiBasedRenameFilePrompt()
-            const cancelCallback = aiBasedRenameFilePrompt.onCancel
-            if (cancelCallback) {
-              cancelCallback()
-            }
+            void onAiRenameCancel()
           }}
         />
       )}
 
       {isAiFeatureEnabled && (
         <AiBasedRecognizePrompt
-          isOpen={aiBasedRecognizePrompt.isOpen}
-          status={aiBasedRecognizePrompt.status || "generating"}
+          isOpen={aiRecognizePlan !== undefined}
+          status={aiRecognizePromptStatus}
           onConfirm={() => {
-            const callback = aiBasedRecognizePrompt.onConfirm
-            closeAiBasedRecognizePrompt()
-            if (callback) {
-              callback()
-            }
+            void onAiRecognizeConfirm()
           }}
           onCancel={() => {
-            closeAiBasedRecognizePrompt()
-            const cancelCallback = aiBasedRecognizePrompt.onCancel
-            if (cancelCallback) {
-              cancelCallback()
-            }
+            void onAiRecognizeCancel()
           }}
-          confirmLabel={aiBasedRecognizePrompt.confirmButtonLabel || ""}
-          isConfirmButtonDisabled={aiBasedRecognizePrompt.confirmButtonDisabled || false}
-          isConfirmDisabled={aiBasedRecognizePrompt.isRenaming || false}
         />
       )}
 

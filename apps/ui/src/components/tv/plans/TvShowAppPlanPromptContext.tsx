@@ -10,6 +10,10 @@ export interface RenameToolbarOption {
 export interface TvShowAppPlanPromptContextValue {
   appRenamePlan: UIRenameFilesPlan | undefined
   appRecognizePlan: UIRecognizeMediaFilePlan | undefined
+  aiRenamePlan: UIRenameFilesPlan | undefined
+  aiRenamePromptStatus: "generating" | "wait-for-ack"
+  aiRecognizePlan: UIRecognizeMediaFilePlan | undefined
+  aiRecognizePromptStatus: "generating" | "wait-for-ack"
 
   renameToolbarOptions: RenameToolbarOption[]
   selectedNamingRule: "plex" | "emby"
@@ -18,6 +22,10 @@ export interface TvShowAppPlanPromptContextValue {
   onAppRenameNamingRuleSelected: (rule: "plex" | "emby") => void | Promise<void>
   onAppRenameConfirm: (planId: string) => void | Promise<void>
   onAppRenameCancel: (planId: string) => void | Promise<void>
+  onAiRenameConfirm: () => void | Promise<void>
+  onAiRenameCancel: () => void | Promise<void>
+  onAiRecognizeConfirm: () => void | Promise<void>
+  onAiRecognizeCancel: () => void | Promise<void>
 
   onAppRecognizeConfirm: (plan: UIRecognizeMediaFilePlan) => void | Promise<void>
   onAppRecognizeCancel: (planId: string) => void | Promise<void>

@@ -115,7 +115,7 @@ interface TvShowEpisodeTableProps {
  * 2. Detail 布局包含额外的元数据显示,与预览模式的简化显示冲突
  * 3. Simple 布局是最适合展示重命名预览的布局,能够清晰显示旧文件名和新文件名
  * 
- * 参见: TvShowPanel.tsx 中 handleRuleBasedRenameConfirm 和 openAiBasedRenameFilePrompt 的实现
+ * 参见: TvShowPanel.tsx 中 renameFlow / aiRenameFlow 与 plan 驱动的 preview 实现
  */
 
 function CheckCell({ value }: { value: string | undefined }) {

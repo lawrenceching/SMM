@@ -204,6 +204,14 @@ function TvShowPanel() {
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
+  const aiRenameFlow = useAiBasedRenameFilesFlow({
+    plans,
+    mediaMetadata,
+    onAppRenameConfirm: renameFlow.onConfirm,
+    setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
+    onFlowStart: () => setEpisodeTableLayout("simple"),
+  })
+
   const recognizeFlow = useRuleBasedRecognizeFlow({
     plans,
     mediaMetadata,
@@ -211,21 +219,18 @@ function TvShowPanel() {
     beforeConfirm: recognizeBeforeConfirm,
   })
 
-  const plan = renameFlow.plan ?? recognizeFlow.plan
-
-  useAiBasedRenameFilesFlow({
+  const aiRecognizeFlow = useAiBasedRecognizeFlow({
     plans,
     mediaMetadata,
-    onAppRenameConfirm: renameFlow.onConfirm,
-    setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
-    updateMediaMetadata,
+    beforeConfirm: recognizeBeforeConfirm,
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
-  useAiBasedRecognizeFlow({
-    activePlan: plan,
-    mediaMetadata,
-  })
+  const plan =
+    renameFlow.plan ??
+    aiRenameFlow.plan ??
+    recognizeFlow.plan ??
+    aiRecognizeFlow.plan
 
   const selectFileFlow = useSelectAndUnselectFileFlow({
     mediaMetadata,
@@ -365,12 +370,20 @@ function TvShowPanel() {
     return {
       appRenamePlan: renameFlow.plan,
       appRecognizePlan: recognizeFlow.plan,
+      aiRenamePlan: aiRenameFlow.plan,
+      aiRenamePromptStatus: aiRenameFlow.promptStatus,
+      aiRecognizePlan: aiRecognizeFlow.plan,
+      aiRecognizePromptStatus: aiRecognizeFlow.promptStatus,
       renameToolbarOptions: renameFlow.namingRuleOptions,
       selectedNamingRule: renameFlow.selectedNamingRule,
       setSelectedNamingRule: renameFlow.setSelectedNamingRule,
       onAppRenameNamingRuleSelected: renameFlow.onNamingRuleSelected,
       onAppRenameConfirm: renameFlow.onConfirm,
       onAppRenameCancel: renameFlow.onCancel,
+      onAiRenameConfirm: aiRenameFlow.onConfirm,
+      onAiRenameCancel: aiRenameFlow.onCancel,
+      onAiRecognizeConfirm: aiRecognizeFlow.onConfirm,
+      onAiRecognizeCancel: aiRecognizeFlow.onCancel,
       onAppRecognizeConfirm: recognizeFlow.onConfirm,
       onAppRecognizeCancel: recognizeFlow.onCancel,
       tvShowTitle: recognizeFlow.tvShowTitle,
@@ -379,7 +392,7 @@ function TvShowPanel() {
       notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
       allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
     }
-  }, [renameFlow, recognizeFlow])
+  }, [renameFlow, aiRenameFlow, aiRecognizeFlow, recognizeFlow])
 
   return (
     <TvShowAppPlanPromptProvider value={appPlanPromptValue}>

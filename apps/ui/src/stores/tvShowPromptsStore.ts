@@ -28,23 +28,6 @@ interface RuleBasedRenameFilePromptData {
   onNamingRulesSelected: ((rule: "plex" | "emby") => void) | undefined
 }
 
-interface AiBasedRenameFilePromptData {
-  isOpen: boolean
-  status: "generating" | "wait-for-ack" | undefined
-  onConfirm: (() => void) | undefined
-  onCancel: (() => void) | undefined
-}
-
-interface AiBasedRecognizePromptData {
-  isOpen: boolean
-  status: "generating" | "wait-for-ack" | undefined
-  confirmButtonLabel: string | undefined
-  confirmButtonDisabled: boolean | undefined
-  isRenaming: boolean | undefined
-  onConfirm: (() => void) | undefined
-  onCancel: (() => void) | undefined
-}
-
 interface RuleBasedRecognizePromptData {
   isOpen: boolean
   tvShowTitle: string | undefined
@@ -57,8 +40,6 @@ interface RuleBasedRecognizePromptData {
 interface TvShowPromptsState {
   useNfoPrompt: UseNfoPromptData
   ruleBasedRenameFilePrompt: RuleBasedRenameFilePromptData
-  aiBasedRenameFilePrompt: AiBasedRenameFilePromptData
-  aiBasedRecognizePrompt: AiBasedRecognizePromptData
   ruleBasedRecognizePrompt: RuleBasedRecognizePromptData
 
   openUseNfoPrompt: (config: {
@@ -81,33 +62,6 @@ interface TvShowPromptsState {
 
   updateRuleBasedRenameFilePromptSelectedRule: (rule: "plex" | "emby") => void
   closeRuleBasedRenameFilePrompt: () => void
-
-  openAiBasedRenameFilePrompt: (config: {
-    status: "generating" | "wait-for-ack"
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
-
-  updateAiBasedRenameFileStatus: (status: "generating" | "wait-for-ack") => void
-  closeAiBasedRenameFilePrompt: () => void
-
-  openAiBasedRecognizePrompt: (config: {
-    status: "generating" | "wait-for-ack"
-    confirmButtonLabel?: string
-    confirmButtonDisabled?: boolean
-    isRenaming?: boolean
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
-
-  updateAiBasedRecognizePrompt: (updates: {
-    status?: "generating" | "wait-for-ack"
-    confirmButtonLabel?: string
-    confirmButtonDisabled?: boolean
-    isRenaming?: boolean
-  }) => void
-
-  closeAiBasedRecognizePrompt: () => void
 
   openRuleBasedRecognizePrompt: (config: {
     tvShowTitle: string
@@ -141,23 +95,6 @@ const initialState = {
     onCancel: undefined,
     onNamingRulesSelected: undefined,
   } as RuleBasedRenameFilePromptData,
-
-  aiBasedRenameFilePrompt: {
-    isOpen: false,
-    status: undefined,
-    onConfirm: undefined,
-    onCancel: undefined,
-  } as AiBasedRenameFilePromptData,
-
-  aiBasedRecognizePrompt: {
-    isOpen: false,
-    status: undefined,
-    confirmButtonLabel: undefined,
-    confirmButtonDisabled: undefined,
-    isRenaming: undefined,
-    onConfirm: undefined,
-    onCancel: undefined,
-  } as AiBasedRecognizePromptData,
 
   ruleBasedRecognizePrompt: {
     isOpen: false,
@@ -225,63 +162,6 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
         }))
       },
 
-      openAiBasedRenameFilePrompt: ({ status, onConfirm, onCancel }) => {
-        get().closeAllPrompts()
-        set({
-          aiBasedRenameFilePrompt: {
-            isOpen: true,
-            status,
-            onConfirm,
-            onCancel,
-          },
-        })
-      },
-
-      updateAiBasedRenameFileStatus: (status) => {
-        set((state) => ({
-          aiBasedRenameFilePrompt: {
-            ...state.aiBasedRenameFilePrompt,
-            status,
-          },
-        }))
-      },
-
-      closeAiBasedRenameFilePrompt: () => {
-        set({
-          aiBasedRenameFilePrompt: initialState.aiBasedRenameFilePrompt,
-        })
-      },
-
-      openAiBasedRecognizePrompt: ({ status, confirmButtonLabel, confirmButtonDisabled, isRenaming, onConfirm, onCancel }) => {
-        get().closeAllPrompts()
-        set({
-          aiBasedRecognizePrompt: {
-            isOpen: true,
-            status,
-            confirmButtonLabel,
-            confirmButtonDisabled,
-            isRenaming,
-            onConfirm,
-            onCancel,
-          },
-        })
-      },
-
-      updateAiBasedRecognizePrompt: (updates) => {
-        set((state) => ({
-          aiBasedRecognizePrompt: {
-            ...state.aiBasedRecognizePrompt,
-            ...updates,
-          },
-        }))
-      },
-
-      closeAiBasedRecognizePrompt: () => {
-        set({
-          aiBasedRecognizePrompt: initialState.aiBasedRecognizePrompt,
-        })
-      },
-
       openRuleBasedRecognizePrompt: ({ tvShowTitle, tvShowTmdbId, planId, onConfirm, onCancel }) => {
         get().closeAllPrompts()
         set({
@@ -312,67 +192,9 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
 
 export const useUseNfoPrompt = () => useTvShowPromptsStore((state) => state.useNfoPrompt)
 export const useRuleBasedRenameFilePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
-export const useAiBasedRenameFilePrompt = () => useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
-export const useAiBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
 export const useRuleBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
 
-// Unified control hooks for prompts
-export const useAiBasedRenameFilePromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.aiBasedRenameFilePrompt)
-  const updateStatus = useTvShowPromptsStore((state) => state.updateAiBasedRenameFileStatus)
-  const open = useTvShowPromptsStore((state) => state.openAiBasedRenameFilePrompt)
-  const close = useTvShowPromptsStore((state) => state.closeAiBasedRenameFilePrompt)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; status?: "generating" | "wait-for-ack"; onConfirm?: () => void; onCancel?: () => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          status: config.status || "generating",
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-        })
-      } else if (config.status !== undefined) {
-        updateStatus(config.status)
-      }
-    }
-  }
-}
-
-export const useAiBasedRecognizePromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.aiBasedRecognizePrompt)
-  const update = useTvShowPromptsStore((state) => state.updateAiBasedRecognizePrompt)
-  const open = useTvShowPromptsStore((state) => state.openAiBasedRecognizePrompt)
-  const close = useTvShowPromptsStore((state) => state.closeAiBasedRecognizePrompt)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; status?: "generating" | "wait-for-ack"; confirmButtonLabel?: string; confirmButtonDisabled?: boolean; isRenaming?: boolean; onConfirm?: () => void; onCancel?: () => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          status: config.status || "generating",
-          confirmButtonLabel: config.confirmButtonLabel,
-          confirmButtonDisabled: config.confirmButtonDisabled,
-          isRenaming: config.isRenaming,
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-        })
-      } else if (config.status !== undefined || config.confirmButtonLabel !== undefined || config.confirmButtonDisabled !== undefined || config.isRenaming !== undefined) {
-        update({
-          status: config.status,
-          confirmButtonLabel: config.confirmButtonLabel,
-          confirmButtonDisabled: config.confirmButtonDisabled,
-          isRenaming: config.isRenaming,
-        })
-      }
-    }
-  }
-}
-
+// Unified control hooks for prompts (legacy callers)
 export const useRuleBasedRenameFilePromptControl = () => {
   const state = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
   const open = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)

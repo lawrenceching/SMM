@@ -16,7 +16,6 @@ interface UseTvShowPanelStateParams {
 export function useTvShowPanelState({ mediaMetadata, usePrompts }: UseTvShowPanelStateParams) {
   const [isRenaming, setIsRenaming] = useState(false)
   const [scrollToEpisodeId, setScrollToEpisodeId] = useState<number | null>(null)
-  const [aiBasedRenameFileStatus, setAiBasedRenameFileStatus] = useState<"generating" | "wait-for-ack">("generating")
 
   const prevMediaFolderPathRef = useRef<string | undefined>(undefined)
   const processedMediaFolderPathRef = useRef<string | undefined>(undefined) // Track which folder we've already processed for inference
@@ -57,8 +56,6 @@ export function useTvShowPanelState({ mediaMetadata, usePrompts }: UseTvShowPane
   }, [scrollToEpisodeId])
 
   return {
-    aiBasedRenameFileStatus,
-    setAiBasedRenameFileStatus,
     isRenaming,
     setIsRenaming,
     scrollToEpisodeId,
