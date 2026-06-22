@@ -477,7 +477,8 @@
       "editTags": "編輯標籤",
       "properties": "屬性",
       "notImplemented": "尚未實現",
-      "videoCompress": "视频压缩"
+      "videoCompress": "视频压缩",
+      "formatConvert": "格式轉換"
     },
     "unlinkSuccess": "已取消劇集關聯",
     "unlinkFailed": "取消劇集關聯失敗",

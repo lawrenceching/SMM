@@ -480,7 +480,8 @@
       "editTags": "编辑标签",
       "properties": "属性",
       "notImplemented": "尚未实现",
-      "videoCompress": "视频压缩"
+      "videoCompress": "视频压缩",
+      "formatConvert": "格式转换"
     },
     "unlinkSuccess": "已取消剧集关联",
     "unlinkFailed": "取消剧集关联失败",

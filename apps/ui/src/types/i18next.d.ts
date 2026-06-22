@@ -467,6 +467,7 @@ interface ComponentsResources {
       editTags: string
       properties: string
       videoCompress: string
+      formatConvert: string
       notImplemented: string
     }
     unlinkSuccess: string

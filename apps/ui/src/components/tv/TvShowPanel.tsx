@@ -138,13 +138,13 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { scrapeDialog, videoCompressionDialog } = useDialogs()
+  const { scrapeDialog, videoCompressionDialog, formatConverterDialog } = useDialogs()
   const [openScrape] = scrapeDialog
   const { mediaLanguage } = useResolvedLanguages()
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
+  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled, isFormatConverterEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -279,7 +279,7 @@ function TvShowPanel() {
   }, [mediaMetadata, plan, uiStatus, t])
 
   const handleVideoCompressForRow = useCallback(
-    (row: TvShowEpisodeDataRow) => {
+    (row: { season: number; episode: number; episodeTitle?: string }) => {
       const seasonNo = row.season;
       const episodeNo = row.episode;
       const videoPath = mediaMetadata?.mediaFiles?.find(
@@ -298,6 +298,23 @@ function TvShowPanel() {
       })
     },
     [mediaMetadata, videoCompressionDialog],
+  )
+
+  const handleFormatConvertForRow = useCallback(
+    (row: { season: number; episode: number }) => {
+      const videoPath = mediaMetadata?.mediaFiles?.find(
+        (f) => f.seasonNumber === row.season && f.episodeNumber === row.episode,
+      )?.absolutePath
+      if (!videoPath) {
+        console.warn(
+          `[TvShowPanel] handleFormatConvertForRow: no video path found for S${row.season}E${row.episode}`,
+        )
+        return
+      }
+      const [openFormatConverter] = formatConverterDialog
+      openFormatConverter(videoPath)
+    },
+    [mediaMetadata, formatConverterDialog],
   )
 
   const extraEpisodeContextMenu: UIMediaFileDataContextMenuItem[] = useMemo(
@@ -319,12 +336,28 @@ function TvShowPanel() {
         onClick: selectFileFlow.onUnlinkContextMenuClick,
         disabled: (row) => !row.videoFile,
       },
+      {
+        id: "video-compress",
+        label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
+        onClick: isVideoCompressionEnabled ? handleVideoCompressForRow : undefined,
+        disabled: (row) => !row.videoFile,
+      },
+      {
+        id: "format-convert",
+        label: t("tvShowEpisodeTable.contextMenu.formatConvert"),
+        onClick: isFormatConverterEnabled ? handleFormatConvertForRow : undefined,
+        disabled: (row) => !row.videoFile,
+      },
     ],
     [
       t,
       videoRenameFlow.onRenameContextMenuClick,
       selectFileFlow.onSelectFileContextMenuClick,
       selectFileFlow.onUnlinkContextMenuClick,
+      handleVideoCompressForRow,
+      handleFormatConvertForRow,
+      isVideoCompressionEnabled,
+      isFormatConverterEnabled,
     ],
   )
 

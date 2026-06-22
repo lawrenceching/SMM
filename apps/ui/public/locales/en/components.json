@@ -482,6 +482,7 @@
       "editTags": "Edit tags",
       "properties": "Properties",
       "videoCompress": "Video Compression",
+      "formatConvert": "Format conversion",
       "notImplemented": "Not Implemented Yet"
     },
     "unlinkSuccess": "Episode unlinked successfully",
