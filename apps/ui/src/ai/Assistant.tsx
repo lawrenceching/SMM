@@ -186,6 +186,7 @@ function AssistantImpl() {
     const { userConfig, appConfig } = useConfig()
     const { isUIAiChatTransportEnabled } = useFeatures()
     const isHarmony = useMemo(() => isHarmonyOS(), [])
+    const useFrontendTransport = isHarmony || isUIAiChatTransportEnabled
 
     const transport = useMemo(() => {
         // Use the in-process `ReverseProxyChatTransport` when either:
@@ -200,9 +201,6 @@ function AssistantImpl() {
         // `AssistantChatTransport` and let the CLI's server-side
         // `agentTools.getApplicationContext(clientId)` handle tool
         // execution (the existing pre-migration behavior).
-        // const useFrontendTransport = isHarmony || isUIAiChatTransportEnabled
-        const useFrontendTransport = isUIAiChatTransportEnabled
-
         if (useFrontendTransport) {
             // Renderer-side AI Assistant. Run the AI SDK `streamText`
             // call directly in the renderer and route the request
@@ -312,12 +310,20 @@ function AssistantImpl() {
         <IsFolderExistTool />
         <GetEpisodesTool />
         <RenameFolderTool />
-        <BeginRecognizeTaskTool />
-        <AddRecognizedMediaFileTool />
-        <EndRecognizeTaskTool />
-        <BeginRenameFilesTaskTool />
-        <AddRenameFileToTaskTool />
-        <EndRenameFilesTaskTool />
+        {/* Rename/recognize task tools run HTTP plan APIs in the renderer.
+            On desktop `AssistantChatTransport`, the same tools are executed
+            server-side in `doChat` — mounting them here would duplicate
+            plan creation (orphan id 1 + LLM id 2). */}
+        {useFrontendTransport && (
+            <>
+                <BeginRecognizeTaskTool />
+                <AddRecognizedMediaFileTool />
+                <EndRecognizeTaskTool />
+                <BeginRenameFilesTaskTool />
+                <AddRenameFileToTaskTool />
+                <EndRenameFilesTaskTool />
+            </>
+        )}
         <GetMediaMetadataTool />
         <GetMediaFoldersTool />
         <AIBasedConfirmationBridge />

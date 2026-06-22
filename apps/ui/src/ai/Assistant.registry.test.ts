@@ -28,6 +28,15 @@ import { AI_TOOL_REGISTRY } from '@core/ai-tool/registry'
 
 const ASSISTANT_PATH = join(__dirname, 'Assistant.tsx')
 
+const FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS = new Set([
+  'BeginRenameFilesTaskTool',
+  'AddRenameFileToTaskTool',
+  'EndRenameFilesTaskTool',
+  'BeginRecognizeTaskTool',
+  'AddRecognizedMediaFileTool',
+  'EndRecognizeTaskTool',
+])
+
 interface MountedTool {
   /** Component name as it appears in the JSX (e.g. GetMediaMetadataTool). */
   component: string
@@ -103,5 +112,39 @@ describe('AI tool registry alignment — Assistant.tsx', () => {
         `Tool "${name}" is commented out in Assistant.tsx but the registry marks it as frontend-required`,
       ).toBe(false)
     }
+  })
+
+  it('mounts rename/recognize task tools only behind useFrontendTransport', () => {
+    const source = readFileSync(ASSISTANT_PATH, 'utf8')
+    const liveTaskTools = mounted
+      .filter((m) => !m.commented && FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS.has(m.component))
+      .map((m) => m.component)
+
+    expect(
+      liveTaskTools.length,
+      'Expected rename/recognize task tools to be mounted in Assistant.tsx',
+    ).toBe(FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS.size)
+
+    const conditionalBlockRe =
+      /\{useFrontendTransport\s*&&\s*\(\s*<>[\s\S]*?<\/>\s*\)\}/m
+    expect(
+      source.match(conditionalBlockRe),
+      'Task tools must be gated by useFrontendTransport to avoid duplicate plan execution on desktop /api/chat',
+    ).not.toBeNull()
+  })
+
+  it('does not mount frontend-transport-only task tools unconditionally', () => {
+    const unconditionalRe = new RegExp(
+      `(?<!useFrontendTransport &&\\s*\\(\\s*<>\\s*)<(${[
+        ...FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS,
+      ].join('|')})\\s*/>`,
+    )
+    const source = readFileSync(ASSISTANT_PATH, 'utf8')
+    // Strip the gated block so we only check mounts outside it.
+    const outsideGatedBlock = source.replace(
+      /\{useFrontendTransport\s*&&\s*\(\s*<>[\s\S]*?<\/>\s*\)\}/m,
+      '',
+    )
+    expect(unconditionalRe.test(outsideGatedBlock)).toBe(false)
   })
 })

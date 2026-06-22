@@ -29,7 +29,24 @@ preparing → pending → completed
 
 - `preparing`: plan 已创建，文件内容 (files) 仍在计算/累积中
 - `pending`: 内容就绪，等待用户确认
-- `completed` / `rejected`: 终态。AI 端的内存草稿 (`aiPlanDrafts`) 在终态时清理
+- `completed` / `rejected`: 终态。前端 transport 下的内存草稿 (`aiPlanDrafts`) 在终态时清理
+
+### UI：统一 plan 驱动预览与 prompt
+
+`TvShowPanel` 合并多路 plan 驱动剧集表预览模式：
+
+```
+plan = renameFlow.plan ?? aiRenameFlow.plan ?? recognizeFlow.plan ?? aiRecognizeFlow.plan
+```
+
+| 来源 | Hook | `creator` | Prompt 打开方式 |
+|------|------|-----------|----------------|
+| Rule-based rename | `useRuleBasedRenameFilesFlow` | `app` | `tvShowPromptsStore.ruleBasedRenameFilePrompt` |
+| AI rename | `useAiBasedRenameFilesFlow` | `ai` | `TvShowPanelPrompts`：`isOpen={aiRenamePlan !== undefined}` |
+| Rule-based recognize | `useRuleBasedRecognizeFlow` | `app` | `tvShowPromptsStore.ruleBasedRecognizePrompt` |
+| AI recognize | `useAiBasedRecognizeFlow` | `ai` | `TvShowPanelPrompts`：`isOpen={aiRecognizePlan !== undefined}` |
+
+`selectActiveAppPlan` / `selectActiveAiPlan`（`selectActiveAppPlan.ts`）从 `usePlansQuery` 结果中选取当前文件夹下 `preparing` / `pending` 的 plan。AI flow hooks 返回 `{ plan, promptStatus, onConfirm, onCancel }`，不再通过 Zustand 单独维护 AI prompt 的 `isOpen`。
 
 ### Action Types
 
@@ -45,15 +62,18 @@ preparing → pending → completed
 
 ### 2.1 Three Sources
 
-| Aspect | UI RuleBased | AI Assistant | MCP Tool |
-|---------|-------------|-------------|----------|
-| User Interface | Buttons + dialogs | Chat conversation | External MCP client |
-| Task Storage | File-based (`plans/*.plan.json`, `creator:"app"`) | In-memory draft (`aiPlanDrafts`) → file on `end` (`creator:"ai"`) | File-based (`plans/*.plan.json`, `creator:"ai"`) |
-| Validation | `validateRenameOperations` | `validateRenameOperations` | `validateRenameOperations` |
-| Confirmation | UI dialog | Socket.IO → UI dialog | Socket.IO → UI dialog |
-| Execution | `POST /api/renameFiles` with `mediaFolder` | `executeBatchRenameOperations` | `POST /api/renameFiles` with `mediaFolder` |
-| Metadata Update | In-process (same request) | Direct | In-process (same request) |
-| Broadcast | `mediaMetadataUpdated` via Socket.IO | Same | Same |
+| Aspect | UI RuleBased | AI Assistant (桌面) | AI Assistant (前端 transport) | MCP Tool |
+|---------|-------------|---------------------|------------------------------|----------|
+| User Interface | Buttons + dialogs | Chat | Chat | External MCP client |
+| Task Storage | `plans/*.plan.json`, `creator:"app"` | 服务端 `beginRenamePlan` 写文件, `creator:"ai"` | HTTP `createPlan`/`updatePlan`, `creator:"ai"` + `aiPlanDrafts` | `plans/*.plan.json`, `creator:"ai"` |
+| Tool 执行 | N/A | 仅 `doChat` 服务端 tools | 仅浏览器 `makeAssistantTool` | MCP server |
+| Validation | `validateRenameOperations` | 同左 | 同左 | 同左 |
+| UI 确认 | Rule-based prompt | `AiBasedRenameFilePrompt` | 同左 | `RenameFilesPlanReady` → prompt |
+| Execution | `POST /api/renameFiles` | 用户确认后同左 | 同左 | 同左 |
+| Metadata Update | In-process | 同左 | 同左 | 同左 |
+| Broadcast | `mediaMetadataUpdated` | 同左 | 同左 | 同左 |
+
+桌面 AI 路径**不在浏览器执行** task tool `execute`（避免与 `doChat` 重复创建 plan）。见 `ai-assistant.md` §1.1。
 
 ### 2.2 UI RuleBased Flow
 
@@ -72,32 +92,47 @@ TVShowHeader (Rename button)
 **Key components:**
 - `useTvShowRenaming.ts` — core rename logic
 - `useTvShowFileNameGeneration.ts` — preview generation
-- `tvShowPromptsStore.ts` — dialog state management
+- `tvShowPromptsStore.ts` — **仅** rule-based dialog 状态（NFO / rule-based rename / rule-based recognize）
 
-### 2.3 AI Assistant Flow
+### 2.3 AI Assistant Flow (桌面 `/api/chat`)
 
 ```
-User chat message → POST /api/chat
-  → AI registers 3 tools:
-    beginRenameFilesTaskV2(mediaFolderPath) → taskId
-    addRenameFileToTaskV2(taskId, from, to) × N
-    endRenameFilesTaskV2(taskId)
-  → Socket.IO broadcasts: beginEvent / addFileEvent / endEvent
-  → UI shows confirmation dialog
-  → executeBatchRenameOperations → updateMediaMetadataAndBroadcast
+User chat → POST /api/chat → doChat → streamText
+  → LLM 调用 3 个 kebab-case tools（服务端 execute）:
+    begin-rename-files-task(mediaFolderPath) → taskId (plan id)
+    add-rename-file-to-task(taskId, from, to) × N
+    end-rename-files-task(taskId) → status pending + Socket.IO RenameFilesPlanReady
+  → invalidateQueries(['plans']) / PlanReady 监听器
+  → selectActiveAiPlan → useAiBasedRenameFilesFlow.plan
+  → TvShowPanel 预览模式 + AiBasedRenameFilePrompt
+  → 用户确认 → onAppRenameConfirm → POST /api/renameFiles
 ```
 
-### 2.4 MCP Tool Flow
+浏览器侧**不挂载** `BeginRenameFilesTaskTool` 等组件，因此不会额外 `POST /api/createPlan`。
+
+### 2.4 AI Assistant Flow (前端 transport)
+
+```
+User chat → ReverseProxyChatTransport → streamText (renderer)
+  → makeAssistantTool execute:
+    BeginRenameFilesTask → POST /api/createPlan (creator ai)
+    AddRenameFileToTask → POST /api/updatePlan
+    EndRenameFilesTask → POST /api/updatePlan (pending) + invalidate plans
+  → 同上：usePlansQuery → preview + AiBasedRenameFilePrompt
+```
+
+### 2.5 MCP Tool Flow
 
 External MCP client calls tools (begin/add/end-rename-episode-video-file). Plans stored as `plans/*.plan.json`. UI receives `RenameFilesPlanReady` event → confirmation → `POST /api/renameFiles`.
 
-### 2.5 Shared Backend
+### 2.6 Shared Backend
 
 | Component | File | Role |
 |-----------|------|------|
 | `validateRenameOperations` | `renameFilesInBatch.ts` | Single validation entry point |
 | `executeBatchRenameOperations` | `renameFileUtils.ts` | Batch execution |
 | `updateMediaMetadataAndBroadcast` | `renameFileUtils.ts` | Metadata update + broadcast |
+| `beginRenamePlan` / `appendRenamePlanEntry` | `core-routes/tools/plans.ts` | Plan 文件 I/O |
 
 ## 3. Rule-based Recognize — Episode Validation
 
@@ -111,6 +146,8 @@ TvShowPanelPrompts → RuleBasedRecognizePrompt
   → isRuleBasedRecognizePlanComplete(plan, mediaMetadata)
   → notAllEpisodesRecognized flag
 ```
+
+AI recognize 使用 `useAiBasedRecognizeFlow` + `AiBasedRecognizePrompt`，与 rule-based 对称，不经过 `tvShowPromptsStore`。
 
 ### 3.2 Validation Logic
 

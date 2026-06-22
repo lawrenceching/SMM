@@ -1,30 +1,43 @@
 # AI Assistant
 
-SMM 提供两套**并行**的 AI Assistant 实现 — Bun 后端运行（桌面）和浏览器运行（HarmonyOS / feature flag）。
+SMM 提供两套**并行**的 AI Assistant transport — 桌面默认走后端 `POST /api/chat`，HarmonyOS / feature flag 走浏览器内 `streamText`。
 
 ## 1. Dual Architecture
 
-| 维度 | Backend (Bun) | Frontend (Browser) |
+| 维度 | Backend path (桌面默认) | Frontend path (HarmonyOS / flag) |
 |---|---|---|
 | Transport | `AssistantChatTransport` → `POST /api/chat` | `ReverseProxyChatTransport` → in-process `streamText` |
-| LLM 调用位置 | `apps/cli` (Bun) | `apps/ui` (renderer, via reverse proxy) |
-| 工具执行 | Bun 服务器 (fs, Socket.IO) | Browser (fetch, IndexedDB) |
-| Plan 存储 | `{userDataDir}/plans/*.plan.json` | IndexedDB (`planStore.ts`) |
-| 确认弹窗 | Socket.IO `askForConfirmation` | In-process `requestConfirmation` + DOM event |
-| 触发 | 桌面默认 | HarmonyOS / `isUIAiChatTransportEnabled` flag |
+| LLM 调用位置 | `packages/core-routes` `doChat`（`apps/cli` Hono shell） | `apps/ui` renderer（via reverse proxy） |
+| 工具执行 | Bun/Node 服务端（`core-routes/src/tools/`） | 浏览器（HTTP API、`requestConfirmation` 等） |
+| Plan 存储 | `{appDataDir}/plans/*.plan.json`（服务端写入） | 同上（HTTP `createPlan` / `updatePlan`） |
+| 确认弹窗 | Socket.IO `askForConfirmation` | `confirmationBridge` + `AIBasedConfirmationBridge` |
+| 触发 | 桌面 / Docker 默认 | `isHarmonyOS()` 或 `isUIAiChatTransportEnabled` |
 
-**关键设计原则**：两套实现互为补充，不互相替代。同样的 `toolName`（kebab-case）、同样的 Zod schema（来自 `packages/core`）、语义一致的返回（`toolOk` / `toolError`）。
+**关键设计原则**：同样的 `toolName`（kebab-case）、同样的 Zod schema（`packages/core/types/ai-tools/`）、语义一致的返回（`toolOk` / `toolError`）。**但每个 tool 只在一条 transport 上执行** — 见 §1.1。
+
+### 1.1 Task tools：单路径执行（避免重复 Plan）
+
+Rename / recognize 的 6 个 task 工具在 registry 中同时标记 `backend: true` 与 `frontend: true`，但**不能**在桌面同时挂载前端 `execute` 与后端 `execute`：assistant-ui 会在参数就绪时运行浏览器侧 `makeAssistantTool.execute`，而 `/api/chat` 也会运行服务端工具，曾导致重复 `createPlan`（orphan plan id 1 + LLM 使用的 id 2）。
+
+| Transport | Task tools 执行位置 | 前端组件挂载 |
+|-----------|-------------------|-------------|
+| `AssistantChatTransport`（桌面默认） | 仅 `doChat` → `core-routes` `renameFilesTask` / `recognizeMediaFilesTask` | **不挂载** 6 个 task `makeAssistantTool`（无浏览器 `execute`） |
+| `ReverseProxyChatTransport` | 仅浏览器 `BeginRenameFilesTask` 等 → HTTP plan API | **挂载** 6 个 task 组件 |
+
+`Assistant.tsx` 用 `useFrontendTransport = isHarmony || isUIAiChatTransportEnabled` 同时选择 transport 与是否挂载 task tools。非 task 工具（如 `getApplicationContext`）在桌面仍注册前端 schema；服务端在 `tools` 对象中按 key 覆盖 `execute`（服务端优先）。
 
 ## 2. Assistant Wiring
 
 ```
 Assistant.tsx
-  → isHarmonyOS or isUIAiChatTransportEnabled?
-    Yes → ReverseProxyChatTransport (in-browser streamText via reverse proxy)
-    No  → AssistantChatTransport (POST /api/chat → ChatTask.ts)
+  → useFrontendTransport = isHarmonyOS() || isUIAiChatTransportEnabled?
+    Yes → ReverseProxyChatTransport + ToolsBridge.setTools(useAssistantTools)
+          + mount begin/add/end rename & recognize task tools
+    No  → AssistantChatTransport (POST /api/chat → doChat)
+          + mount read/mutating tools only (no task tool execute in renderer)
 ```
 
-`ToolsBridge` 监听 assistant-ui runtime 的工具注册变化，把工具列表注入 transport。
+`ToolsBridge` 仅在 `ReverseProxyChatTransport` 下把 `useAssistantTools()` 注入 transport；桌面路径由服务端 `streamText` 自带完整 tool 定义。
 
 ## 3. Reverse Proxy & LLM Routing
 
@@ -64,30 +77,32 @@ After:  Sidebar | Content | AI Area (resizable)
 
 ## 7. Frontend AI Tools
 
-9 个前端 AI 工具实现，对齐 backend `ChatTask.ts`:
+14 个工具在 `packages/core/ai-tool/registry.ts` 登记；浏览器侧 `makeAssistantTool` 实现见 `apps/ui/src/ai/tools/`。
 
-| Tool | Data Source (frontend) |
-|------|----------------------|
-| `getApplicationContext` | Zustand + `useConfig` + `useHelloQuery` |
-| `is-folder-exist` | `POST /api/isFolderAvailable` |
-| `get-media-metadata` | TanStack Query cache (mediaMetadataToolBridge) |
-| `get-episodes` | `POST /api/getEpisodes` |
-| `get-media-folders` | `readUserConfig()` → `smm.json` |
-| `list-files-in-media-folder` | `POST /api/listFilesInMediaFolder` |
-| `rename-folder` | `requestConfirmation` + `POST /api/renameFolder` |
-| `begin/add/end-rename-files-task` | `planStore` (IndexedDB) + validation |
-| `begin/add/end-recognize-task` | `planStore` (IndexedDB) |
+| Tool | Data Source (frontend path) | 桌面 `/api/chat` 执行 |
+|------|---------------------------|----------------------|
+| `get-app-context` | Zustand + `useConfig` + `useHelloQuery` | 服务端（key 覆盖） |
+| `is-folder-exist` | `POST /api/isFolderAvailable` | 服务端 |
+| `get-media-metadata` | TanStack Query cache | 服务端 |
+| `get-episodes` | `POST /api/getEpisodes` | 服务端 |
+| `get-media-folders` | `readUserConfig()` | 服务端 |
+| `list-files-in-media-folder` | `POST /api/listFilesInMediaFolder` | 服务端 |
+| `rename-folder` | `requestConfirmation` + API | 服务端 |
+| `begin/add/end-rename-files-task` | HTTP `createPlan`/`updatePlan` + `aiPlanDrafts` | **仅服务端**（前端不挂载 execute） |
+| `begin/add/end-recognize-task` | 同上 | **仅服务端** |
+
+前端 transport 下 task 工具：`createPlan({ creator: 'ai' })` → `setPlanDraft` → `invalidateQueries(['plans'])`；终态时 `deletePlanDraft`。
 
 ## 8. HarmonyOS Migration
 
 ### Phase 1: Chat-only
-HarmonyOS 默认使用 `ReverseProxyChatTransport`（in-process streamText via reverse proxy），不依赖 `/api/chat`。
+HarmonyOS 默认 `useFrontendTransport` → `ReverseProxyChatTransport`，不依赖 `/api/chat`。
 
 ### Phase 2: Client-side Tools
-`getApplicationContext` 迁移到 client-side `makeAssistantTool`，从 Zustand `useUIMediaFolderStore` 读取选中文件夹。Transport 接受 `tools` map 实现工具注册。
+`getApplicationContext` 等 client-side `makeAssistantTool`；task 工具在 HarmonyOS 走 HTTP plan API（与桌面服务端路径互斥）。
 
 ### Phase 3: AI Connectivity Check
-`POST /api/ai/check` 移除，设置页 "Check" 按钮改为浏览器端通过 reverse proxy 直连 AI provider 验证。
+`POST /api/ai/check` 移除，设置页 "Check" 按钮改为浏览器端通过 reverse proxy 验证。
 
 ## 9. Tool Architecture
 
@@ -96,36 +111,45 @@ HarmonyOS 默认使用 `ReverseProxyChatTransport`（in-process streamText via r
 | 层 | 职责 |
 |---|------|
 | `packages/core/types/ai-tools/` | Tool name 常量、Zod schema、description |
+| `packages/core/ai-tool/registry.ts` | 登记 backend / frontend 暴露范围 |
 | `packages/core/ai-tool/` | 统一 `toolOk` / `toolError` 返回值 |
-| `packages/core/plan/` | Plan 创建、追加、校验逻辑 |
-| CLI / UI | 薄 storage adapter（Bun.file / IndexedDB） |
+| `packages/core/plan/` | Plan 领域逻辑 |
+| `packages/core-routes/src/tools/` | 服务端 tool `execute`（`ChatFs` 写 plan 文件） |
+| `apps/ui/src/ai/tools/` | 浏览器 path 的 `makeAssistantTool` 实现 |
 
 ### Confirmation (Two Mechanisms)
 
-- **Backend**: Socket.IO `askForConfirmation` → browser dialog → `acknowledge()`
-- **Frontend**: `confirmationBridge.ts` Promise + `document.dispatchEvent('smm-ai-confirmation-request')` → `AIBasedConfirmationBridge` React 弹窗
+- **Backend path**: Socket.IO `askForConfirmation` → browser dialog → `acknowledge()`
+- **Frontend path**: `confirmationBridge.ts` + `AIBasedConfirmationBridge` React 弹窗
+
+### Plan 与 TvShowPanel
+
+AI 创建的 plan（`creator: 'ai'`）经 `usePlansQuery` + `selectActiveAiPlan` 进入 `useAiBasedRenameFilesFlow` / `useAiBasedRecognizeFlow`，与 rule-based plan 一样驱动表格预览与 `AiBasedRenameFilePrompt` / `AiBasedRecognizePrompt`。详见 `episode-rename-recognize.md`。
 
 ## 10. Adding a New Tool
 
 1. Define contract in `packages/core/types/ai-tools/`
-2. Implement server-side tool in `apps/cli/src/tools/`
-3. Implement frontend tool in `apps/ui/src/ai/tools/`
-4. Mount in `Assistant.tsx`
-5. HTTP API + route if needed
-6. Plan lifecycle: domain logic in `packages/core/plan/`, thin adapters in cli/ui
-7. Confirmation: `requestConfirmation()` from `confirmationBridge.ts`
+2. Add entry to `packages/core/ai-tool/registry.ts`
+3. Implement server tool in `packages/core-routes/src/tools/`（并在 `chat.ts` `tools` 对象注册）
+4. Implement frontend tool in `apps/ui/src/ai/tools/`（若 `frontend: true`）
+5. Mount in `Assistant.tsx`（task 类工具若仅一端执行，按 §1.1 条件挂载）
+6. HTTP API + route if needed
+7. Plan lifecycle: `packages/core-routes/src/tools/plans.ts` + TanStack Query hooks
+8. Confirmation: `requestConfirmation()` 或 Socket.IO acknowledge
 
 ## 11. Key Files
 
 | File | Role |
 |------|------|
-| `apps/ui/src/ai/Assistant.tsx` | Entry point; transport selection; stale plan cleanup |
-| `apps/ui/src/ai/transport/reverseProxyChatTransport.ts` | In-process AI SDK streamText |
-| `apps/ui/src/ai/hooks/useAssistantTools.ts` | ToolsBridge |
+| `apps/ui/src/ai/Assistant.tsx` | Transport 选择；条件挂载 task tools |
+| `apps/ui/src/ai/transport/reverseProxyChatTransport.ts` | In-process AI SDK `streamText` |
+| `apps/ui/src/ai/hooks/useAssistantTools.ts` | `ToolsBridge` 工具收集 |
 | `apps/ui/src/ai/confirmationBridge.ts` | In-process confirmation |
-| `apps/ui/src/ai/planStore.ts` | IndexedDB plan CRUD |
+| `apps/ui/src/ai/plan/aiPlanDrafts.ts` | 前端 transport 下 plan 内存草稿 |
 | `apps/ui/src/ai/prompts.ts` | System prompts |
-| `apps/cli/tasks/ChatTask.ts` | Backend chat handler |
-| `apps/cli/src/tools/` | 14 server-side agent tools |
+| `packages/core-routes/src/chat.ts` | `doChat` + `streamText` tools 合并 |
+| `packages/core-routes/src/tools/` | 14 个服务端 agent tools |
+| `packages/core/ai-tool/registry.ts` | Tool 登记与 path 标志 |
 | `packages/core/types/ai-tools/` | Shared tool contracts |
 | `packages/core-routes/src/reverseProxy.ts` | Reverse proxy |
+| `apps/cli/src/route/chatRoute.ts` | Hono shell → `doChat` |

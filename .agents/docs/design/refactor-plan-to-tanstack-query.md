@@ -262,6 +262,15 @@ sequenceDiagram
 - [ ] `Assistant.tsx`：移除 `cleanupStalePlans()` 调用与 IDB 依赖
 - [ ] 删除 `ai/planStore.ts`、`ai/plan/renamePlanService.ts`（如仅服务 IDB）
 
+**Transport 分流（task tools 单路径执行）**：rename/recognize 的 6 个 task 工具在 registry 中 `backend: true` 且 `frontend: true`，但**同一运行时只在一端 execute**：
+
+| Transport | Task tools `execute` | `Assistant.tsx` 挂载 |
+|-----------|---------------------|---------------------|
+| `AssistantChatTransport`（桌面默认） | 仅 `doChat` → `core-routes` | **不挂载** 6 个 task `makeAssistantTool` |
+| `ReverseProxyChatTransport` | 仅浏览器 → HTTP plan API | **挂载** 6 个 task 组件 |
+
+条件：`useFrontendTransport = isHarmonyOS() \|\| isUIAiChatTransportEnabled`。若桌面同时挂载前端 task tools 与后端 tools，会重复 `createPlan`（orphan plan + LLM taskId 不一致）。详见 `ai-assistant.md` §1.1。
+
 ### 5.9 清理死代码
 
 - [ ] 删除 `stores/plansStore.ts`、`providers/global-states-provider.tsx`、`actions/planActions.ts`
@@ -270,7 +279,8 @@ sequenceDiagram
 ### 5.10 文档
 
 - [ ] 更新 `.agents/docs/architecture.md`（State Management：移除 GlobalStatesProvider/plansStore，新增 plans query hooks）
-- [ ] 更新 `.agents/docs/design/episode-rename-recognize.md`（Plan 生命周期、状态、creator）
+- [x] 更新 `.agents/docs/design/episode-rename-recognize.md`（Plan 生命周期、状态、creator、统一 plan 预览/prompt、AI transport 分流）
+- [x] 更新 `.agents/docs/design/ai-assistant.md`（transport、Plan 存储、task tools 单路径执行）
 - [ ] 更新 `docs/api/index.md`（getPlans/createPlan/updatePlan，移除 getPendingPlans）
 
 ## 6. Backward Compatibility
@@ -283,7 +293,8 @@ sequenceDiagram
 ## 7. Documents
 
 - [ ] `.agents/docs/architecture.md` - 更新 State Management 与 TvShowPanel/MoviePanel 架构图
-- [ ] `.agents/docs/design/episode-rename-recognize.md` - Plan 生命周期/状态/creator/存储统一
+- [x] `.agents/docs/design/episode-rename-recognize.md` - Plan 生命周期/状态/creator/存储统一、AI 预览与 prompt
+- [x] `.agents/docs/design/ai-assistant.md` - transport 与 task tools 单路径执行
 - [ ] `docs/api/index.md` - 新增 getPlans/createPlan/updatePlan，移除 getPendingPlans
 
 ## 8. Post Verification

@@ -69,6 +69,11 @@ export interface AiToolDescriptor {
   /**
    * Whether the tool is available on the in-browser
    * `ReverseProxyChatTransport` path (HarmonyOS / feature flag).
+   *
+   * Task tools (`begin-rename-files-task`, etc.) are listed on both
+   * paths but **execute on only one**: backend fs/plan APIs on
+   * `AssistantChatTransport`, browser HTTP plan APIs on
+   * `ReverseProxyChatTransport`. See `Assistant.tsx` conditional mount.
    */
   readonly frontend: boolean
 }
