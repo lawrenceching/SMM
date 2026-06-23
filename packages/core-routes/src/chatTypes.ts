@@ -83,12 +83,14 @@ export interface ChatConfig {
    */
   logger?: CoreRoutesLogger;
   /**
+   * Socket.IO broadcast for fire-and-forget UI notifications
+   * (`RenameFilesPlanReady`, `RecognizeMediaFilePlanReady`, etc.).
+   */
+  broadcast?: (message: WebSocketMessage) => void;
+  /**
    * Socket.IO acknowledge for the chat toolset (used by
    * `getApplicationContext`, `listFilesInMediaFolder`, etc.). Falls
-   * back to a 1-second-timeout no-op if omitted. The message is
-   * `unknown` so the host (cli / ohos) can pass any concrete
-   * `WebSocketMessage` shape without re-wrapping it; the chat tools
-   * build the message they need.
+   * back to a no-op if omitted.
    */
   acknowledge?: (
     message: unknown,

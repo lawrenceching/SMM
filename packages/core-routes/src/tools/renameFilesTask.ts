@@ -12,6 +12,7 @@ import {
   endRenameFilesTaskInputSchema,
 } from "@smm/core/types/ai-tools/renameFilesTask";
 import { assertMediaFolderHasMetadata } from "@smm/core/plan/renamePlan";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 import { formatToolError, toolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
   RenameFilesPlanReady,
@@ -19,7 +20,8 @@ import {
 } from "@smm/core/event-types";
 import type { CoreRoutesLogger } from "../types.ts";
 import { metadataCacheFilePath } from "../mediaMetadataCache.ts";
-import { defaultAcknowledge } from "./acknowledge.ts";
+import { defaultBroadcast } from "./broadcast.ts";
+import type { WebSocketMessage } from "../socketIO/types.ts";
 import {
   appendRenamePlanEntry,
   beginRenamePlan,
@@ -178,14 +180,12 @@ export function buildEndRenameFilesTaskTool(
   clientId: string,
   appDataDir: string,
   fs: ChatFs,
-  acknowledge:
-    | ((message: unknown, timeoutMs?: number) => Promise<unknown>)
-    | undefined,
+  broadcast: ((message: WebSocketMessage) => void) | undefined,
   logger: CoreRoutesLogger | undefined,
   abortSignal?: AbortSignal,
 ) {
   const log = makeLogger(logger);
-  const ack = acknowledge ?? defaultAcknowledge;
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: END_RENAME_FILES_TASK_DESCRIPTION,
     toolName: END_RENAME_FILES_TASK,
@@ -231,25 +231,18 @@ export function buildEndRenameFilesTaskTool(
           planFilePath: planFilePathInPosix,
         };
 
-        // The host's `acknowledge` is wired to broadcast the
-        // Socket.IO event (it ignores the response promise). The
-        // rename end-tool uses the same `acknowledge` helper as a
-        // fire-and-forget emitter for symmetry with the original
-        // `broadcast(...)` call in `renameFilesTaskV2.endRenameFilesTaskV2`.
-        await ack(
-          {
-            event: RenameFilesPlanReady.event,
-            data,
-          },
-          0,
-        );
+        // Fire-and-forget notify — UI listens via broadcast, not ack.
+        emit({
+          event: RenameFilesPlanReady.event,
+          data,
+        });
 
         log.info(
           { taskId: normalizedTaskId, fileCount: task.files.length, clientId },
           `[tool][${END_RENAME_FILES_TASK}] Plan ready, UI notified`,
         );
 
-        return toolOk({});
+        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
       } catch (error) {
         log.error(
           {

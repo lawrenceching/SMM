@@ -9,6 +9,7 @@ import {
 import type { McpConfig } from "../types.ts";
 import { buildEndRecognizeTaskTool } from "../../tools/recognizeMediaFilesTask.ts";
 import { END_RECOGNIZE_TASK } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 
 /**
  * Register the `end-recognize-task` MCP tool. Finalises a recognise
@@ -25,7 +26,7 @@ export function registerEndRecognizeTaskTool(
     "mcp",
     config.appDataDir,
     fs,
-    config.acknowledge,
+    config.broadcast,
     config.logger,
     undefined,
   );
@@ -63,7 +64,11 @@ export function registerEndRecognizeTaskTool(
           }
         }
 
-        return createSuccessResponse({ success: true, taskId });
+        return createSuccessResponse({
+          success: true,
+          taskId,
+          message: END_PLAN_TASK_SUCCESS_MESSAGE,
+        });
       } catch (error) {
         return createErrorResponse(
           `Error ending recognize task: ${

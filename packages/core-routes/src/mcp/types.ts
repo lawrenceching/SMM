@@ -1,6 +1,7 @@
 import type { UserConfig } from "@smm/core/types";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
+import type { WebSocketMessage } from "../socketIO/types.ts";
 
 /**
  * Configuration for the MCP server factory.
@@ -25,6 +26,12 @@ export interface McpConfig {
    * tools, and to look up the media metadata cache.
    */
   appDataDir: string;
+
+  /**
+   * Socket.IO broadcast for fire-and-forget UI notifications
+   * (`RenameFilesPlanReady`, `RecognizeMediaFilePlanReady`, etc.).
+   */
+  broadcast?: (message: WebSocketMessage) => void;
 
   /**
    * Socket.IO acknowledge for tools that need UI interaction

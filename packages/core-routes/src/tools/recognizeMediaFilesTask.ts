@@ -10,6 +10,7 @@ import {
   addRecognizedMediaFileInputSchema,
   endRecognizeTaskInputSchema,
 } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
   RecognizeMediaFilePlanReady,
@@ -17,7 +18,8 @@ import {
 } from "@smm/core/event-types";
 import type { RecognizedFile } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { CoreRoutesLogger } from "../types.ts";
-import { defaultAcknowledge } from "./acknowledge.ts";
+import { defaultBroadcast } from "./broadcast.ts";
+import type { WebSocketMessage } from "../socketIO/types.ts";
 import {
   appendRecognizedFile,
   beginRecognizePlan,
@@ -164,14 +166,12 @@ export function buildEndRecognizeTaskTool(
   clientId: string,
   appDataDir: string,
   fs: ChatFs,
-  acknowledge:
-    | ((message: unknown, timeoutMs?: number) => Promise<unknown>)
-    | undefined,
+  broadcast: ((message: WebSocketMessage) => void) | undefined,
   logger: CoreRoutesLogger | undefined,
   abortSignal?: AbortSignal,
 ) {
   const log = makeLogger(logger);
-  const ack = acknowledge ?? defaultAcknowledge;
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: END_RECOGNIZE_TASK_DESCRIPTION,
     toolName: END_RECOGNIZE_TASK,
@@ -217,13 +217,10 @@ export function buildEndRecognizeTaskTool(
           planFilePath: planFilePathInPosix,
         };
 
-        await ack(
-          {
-            event: RecognizeMediaFilePlanReady.event,
-            data,
-          },
-          0,
-        );
+        emit({
+          event: RecognizeMediaFilePlanReady.event,
+          data,
+        });
 
         log.info(
           {
@@ -235,7 +232,7 @@ export function buildEndRecognizeTaskTool(
           `[tool][${END_RECOGNIZE_TASK}] Task completed successfully`,
         );
 
-        return toolOk({});
+        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
       } catch (error) {
         return formatToolError(error);
       }

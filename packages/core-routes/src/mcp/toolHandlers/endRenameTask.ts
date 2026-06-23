@@ -12,6 +12,7 @@ import {
   type RenameFilesTaskDeps,
 } from "../../tools/renameFilesTask.ts";
 import { END_RENAME_FILES_TASK } from "@smm/core/types/ai-tools/renameFilesTask";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 
 /**
  * Register the `end-rename-task` MCP tool. Finalises a rename task
@@ -29,7 +30,7 @@ export function registerEndRenameTaskTool(
     "mcp",
     config.appDataDir,
     fs,
-    config.acknowledge,
+    config.broadcast,
     config.logger,
     undefined,
   );
@@ -67,7 +68,11 @@ export function registerEndRenameTaskTool(
           }
         }
 
-        return createSuccessResponse({ success: true, taskId });
+        return createSuccessResponse({
+          success: true,
+          taskId,
+          message: END_PLAN_TASK_SUCCESS_MESSAGE,
+        });
       } catch (error) {
         return createErrorResponse(
           `Error ending rename task: ${

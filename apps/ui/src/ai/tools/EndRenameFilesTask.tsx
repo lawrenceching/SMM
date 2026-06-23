@@ -4,6 +4,7 @@ import {
   END_RENAME_FILES_TASK_DESCRIPTION,
   endRenameFilesTaskInputSchema,
 } from "@core/types/ai-tools/renameFilesTask"
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@core/types/ai-tools/planTaskMessages"
 import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
 import { updatePlan } from "@/api/updatePlan"
 import { queryClient } from "@/lib/queryClient"
@@ -37,7 +38,7 @@ const endRenameFilesTask = tool({
       deletePlanDraft(taskIdCheck)
       await queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })
 
-      return toolOk({})
+      return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE })
     } catch (error) {
       return formatToolError(error)
     }

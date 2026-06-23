@@ -73,6 +73,11 @@ export function getMcpHandler(
         if (!manager) return undefined
         return manager.acknowledge(message as never, timeoutMs)
       },
+      broadcast: (message) => {
+        const manager = options.getSocketManager()
+        if (!manager) return
+        manager.broadcast(message as never)
+      },
       logger: options.logger,
     })
   })()

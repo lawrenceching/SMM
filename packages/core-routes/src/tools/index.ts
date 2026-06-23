@@ -21,6 +21,7 @@ import type { CoreRoutesConfig } from "../types.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatConfig, ChatFs } from "../chatTypes.ts";
 import { defaultAcknowledge } from "./acknowledge.ts";
+import { defaultBroadcast } from "./broadcast.ts";
 import { buildGetApplicationContextTool } from "./getApplicationContext.ts";
 import { buildIsFolderExistTool } from "./isFolderExist.ts";
 import { buildGetMediaMetadataTool } from "./getMediaMetadata.ts";
@@ -91,6 +92,8 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
   const { config, coreRoutesConfig, userConfig, clientId, abortSignal, fs, extra } = args;
   const logger = config.logger ?? coreRoutesConfig?.logger;
   const acknowledge = config.acknowledge ?? defaultAcknowledge;
+  const broadcast =
+    coreRoutesConfig?.broadcast ?? config.broadcast ?? defaultBroadcast;
 
   // Build a synthetic `CoreRoutesConfig` for tools that need
   // `appDataDir` / `allowlist` resolution (e.g. `getMediaMetadata`,
@@ -167,10 +170,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       clientId,
       config.appDataDir,
       fs,
-      // The end-tool broadcasts a Socket.IO event; we reuse the
-      // host's `acknowledge` as a fire-and-forget emitter. The cli
-      // wires `acknowledge` to `manager.broadcast`.
-      acknowledge,
+      broadcast,
       logger,
       abortSignal,
     ),
@@ -192,7 +192,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       clientId,
       config.appDataDir,
       fs,
-      acknowledge,
+      broadcast,
       logger,
       abortSignal,
     ),

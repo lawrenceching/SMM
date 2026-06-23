@@ -4,7 +4,7 @@ import { getAppDataDir } from '@/utils/config'
 import { buildHelloOptions } from '../../tasks/HelloTask'
 import { createAIProvider } from '../../lib/ai-provider'
 import { getUserConfig } from '@/utils/config'
-import { acknowledge as socketAcknowledge } from '@/utils/socketIO'
+import { acknowledge as socketAcknowledge, broadcast as socketBroadcast } from '@/utils/socketIO'
 
 export async function buildCoreRoutesConfig(
   logger: CoreRoutesLogger,
@@ -35,6 +35,7 @@ export function buildChatConfig(
     createAIProvider: (userConfig) => createAIProvider(userConfig),
     getUserConfig: () => getUserConfig(),
     acknowledge: (message, timeoutMs) => socketAcknowledge(message as never, timeoutMs),
+    broadcast: (message) => socketBroadcast(message as never),
   }
 }
 

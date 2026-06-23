@@ -5,7 +5,7 @@ import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { getRequestListener } from '@hono/node-server';
 import path from 'path';
-import { setSocketIOManager, acknowledge } from './src/utils/socketIO.ts';
+import { setSocketIOManager, acknowledge, broadcast } from './src/utils/socketIO.ts';
 import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
 import { handleReadFile } from './src/route/ReadFile';
 import { createAIProvider } from './lib/ai-provider.ts';
@@ -196,6 +196,7 @@ export class Server {
       createAIProvider: (userConfig) => createAIProvider(userConfig),
       getUserConfig: () => getUserConfig(),
       acknowledge: (message, timeoutMs) => acknowledge(message as never, timeoutMs),
+      broadcast: (message) => broadcast(message as never),
     });
     handleReadFile(this.app);
     handleIsFolderAvailable(this.app);

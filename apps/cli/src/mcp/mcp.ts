@@ -20,7 +20,7 @@ import {
 } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
 import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
 import { getAppDataDir } from "@/utils/config";
-import { acknowledge } from "@/utils/socketIO";
+import { acknowledge, broadcast } from "@/utils/socketIO";
 import { logger } from "../../lib/logger";
 import { getLocalizedToolDescription } from "@/i18n/helpers";
 import { initI18n } from "@/i18n/config";
@@ -123,6 +123,8 @@ async function buildMcpConfig(): Promise<McpConfig> {
     appDataDir: getAppDataDir(),
     acknowledge: (message, timeoutMs) =>
       acknowledge(message as Parameters<typeof acknowledge>[0], timeoutMs),
+    broadcast: (message) =>
+      broadcast(message as Parameters<typeof broadcast>[0]),
     toolDescriptions: await loadLocalizedToolDescriptions(),
     logger: {
       debug: (obj, msg) => logger.debug(obj, msg),
