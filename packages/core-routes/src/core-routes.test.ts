@@ -34,6 +34,24 @@ describe("doListFiles", () => {
 
     await rm(dir, { recursive: true, force: true });
   });
+
+  it("activates persisted file access for file:// URIs before listing", async () => {
+    const { doListFiles } = await import("../src/listFiles.ts");
+    const uri = "file://docs/storage/test-folder";
+    const activated: string[][] = [];
+
+    const result = await doListFiles(
+      { path: uri, onlyFiles: true },
+      {
+        activatePersistedFileAccess: async (paths) => {
+          activated.push(paths);
+        },
+      },
+    );
+
+    expect(activated).toEqual([[uri]]);
+    expect(result.error).toMatch(/Directory Not Found|List Directory Failed/);
+  });
 });
 
 describe("doWriteFile", () => {

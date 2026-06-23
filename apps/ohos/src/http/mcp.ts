@@ -36,6 +36,7 @@ export interface CreateMcpHandlerOptions {
    *  shortly after `http.createServer`); the MCP acknowledge
    *  handler tolerates this and resolves `undefined`. */
   getSocketManager: () => SocketIOManager | null
+  activatePersistedFileAccess?: (paths: string[]) => void | Promise<void>
   logger: {
     debug: (obj: unknown, msg?: string) => void
     info: (obj: unknown, msg?: string) => void
@@ -65,6 +66,7 @@ export function getMcpHandler(
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
+      activatePersistedFileAccess: options.activatePersistedFileAccess,
       acknowledge: async (
         message: unknown,
         timeoutMs?: number,

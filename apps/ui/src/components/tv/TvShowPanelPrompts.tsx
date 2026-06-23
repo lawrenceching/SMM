@@ -6,12 +6,9 @@ import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow } from "@core/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import { useFeatures } from "@/hooks/useFeatures"
 import { useTvShowAppPlanPrompts } from "./plans/TvShowAppPlanPromptContext"
 
 export function TvShowPanelPrompts() {
-  const { isAiFeatureEnabled } = useFeatures()
-
   const {
     appRenamePlan,
     appRecognizePlan,
@@ -103,31 +100,27 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      {isAiFeatureEnabled && (
-        <AiBasedRenameFilePrompt
-          isOpen={aiRenamePlan !== undefined}
-          status={aiRenamePromptStatus}
-          onConfirm={async () => {
-            await onAiRenameConfirm()
-          }}
-          onCancel={() => {
-            void onAiRenameCancel()
-          }}
-        />
-      )}
+      <AiBasedRenameFilePrompt
+        isOpen={aiRenamePlan !== undefined}
+        status={aiRenamePromptStatus}
+        onConfirm={async () => {
+          await onAiRenameConfirm()
+        }}
+        onCancel={() => {
+          void onAiRenameCancel()
+        }}
+      />
 
-      {isAiFeatureEnabled && (
-        <AiBasedRecognizePrompt
-          isOpen={aiRecognizePlan !== undefined}
-          status={aiRecognizePromptStatus}
-          onConfirm={() => {
-            void onAiRecognizeConfirm()
-          }}
-          onCancel={() => {
-            void onAiRecognizeCancel()
-          }}
-        />
-      )}
+      <AiBasedRecognizePrompt
+        isOpen={aiRecognizePlan !== undefined}
+        status={aiRecognizePromptStatus}
+        onConfirm={() => {
+          void onAiRecognizeConfirm()
+        }}
+        onCancel={() => {
+          void onAiRecognizeCancel()
+        }}
+      />
 
       <RuleBasedRecognizePrompt
         isOpen={appRecognizePlan !== undefined}

@@ -3,7 +3,6 @@ import { toast } from "sonner"
 import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
-import { useFeatures } from "@/hooks/useFeatures"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import type { MediaMetadata } from "@core/types"
 import type { UIPlan } from "@/types/UIPlan"
@@ -22,6 +21,8 @@ export interface UseAiBasedRenameFilesFlowOptions {
  * Surfaces AI/MCP-created rename plans for preview mode and
  * AiBasedRenameFilePrompt. Rule-based (creator: 'app') plans are handled
  * exclusively by useRuleBasedRenameFilesFlow.
+ *
+ * Not gated by `isAiFeatureEnabled` — see useAiBasedRecognizeFlow.
  */
 export function useAiBasedRenameFilesFlow({
   plans,
@@ -30,20 +31,17 @@ export function useAiBasedRenameFilesFlow({
   setSelectedMediaMetadataByMediaFolderPath,
   onFlowStart,
 }: UseAiBasedRenameFilesFlowOptions) {
-  const { isAiFeatureEnabled } = useFeatures()
   const updatePlanMutation = useUpdatePlanMutation()
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
 
   const plan = useMemo(
     () =>
-      isAiFeatureEnabled
-        ? selectActiveAiPlan<UIRenameFilesPlan>(
-            plans,
-            mediaFolderPath,
-            "rename-files",
-          )
-        : undefined,
-    [isAiFeatureEnabled, plans, mediaFolderPath],
+      selectActiveAiPlan<UIRenameFilesPlan>(
+        plans,
+        mediaFolderPath,
+        "rename-files",
+      ),
+    [plans, mediaFolderPath],
   )
 
   const promptStatus: "generating" | "wait-for-ack" =

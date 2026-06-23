@@ -221,7 +221,7 @@ var import_promises = __toESM(require("node:fs/promises"));
 var import_node_http = __toESM(require("node:http"));
 var import_node_os2 = __toESM(require("node:os"));
 var import_node_path5 = __toESM(require("node:path"));
-var import_electron7 = require("electron");
+var import_electron8 = require("electron");
 
 // src/core-routes-loader.ts
 var import_node_module = require("node:module");
@@ -482,6 +482,7 @@ function getMcpHandler(options) {
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
+      activatePersistedFileAccess: options.activatePersistedFileAccess,
       acknowledge: async (message, timeoutMs) => {
         const manager = options.getSocketManager();
         if (!manager)
@@ -531,6 +532,134 @@ async function handleMcpRequest(req, res, options) {
       res.end();
     }
     return true;
+  }
+}
+
+// src/ipc/file-access-permission.ts
+var import_electron7 = require("electron");
+var LOG_PREFIX2 = "[ohos-file-access]";
+var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
+function isHarmonyOSPlatform() {
+  const platform = process.platform;
+  return platform === "ohos" || platform === "openharmony";
+}
+function logError(message, err) {
+  if (err instanceof Error) {
+    console.error(`${LOG_PREFIX2} ${message}:`, err.message, err.stack);
+    return;
+  }
+  console.error(`${LOG_PREFIX2} ${message}:`, err);
+}
+function validatePaths(paths, context) {
+  if (!Array.isArray(paths)) {
+    const message = `paths must be an array (${context})`;
+    console.error(`${LOG_PREFIX2} ${message}`, { paths });
+    throw new Error(message);
+  }
+  if (paths.length === 0) {
+    const message = `paths must be non-empty (${context})`;
+    console.error(`${LOG_PREFIX2} ${message}`);
+    throw new Error(message);
+  }
+  if (!paths.every((entry) => typeof entry === "string" && entry.length > 0)) {
+    const message = `paths must be non-empty strings (${context})`;
+    console.error(`${LOG_PREFIX2} ${message}`, { paths });
+    throw new Error(message);
+  }
+  return paths;
+}
+function callReactivateFolders(paths, context) {
+  const sp = import_electron7.systemPreferences;
+  if (typeof sp.callArkTSFunction !== "function") {
+    console.error(`${LOG_PREFIX2} callArkTSFunction unavailable (${context})`);
+    return false;
+  }
+  try {
+    sp.callArkTSFunction(REACTIVATE_FOLDERS_BINDING, "void", [paths]);
+    return true;
+  } catch (err) {
+    logError(`callReactivateFolders failed (${context})`, err);
+    return false;
+  }
+}
+function activateOhosFileAccessPermission(paths, context = "direct") {
+  if (!isHarmonyOSPlatform()) {
+    return { ok: true, skipped: true };
+  }
+  let validated;
+  try {
+    validated = validatePaths(paths, context);
+  } catch (err) {
+    logError(`activate validation failed (${context})`, err);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+  if (!callReactivateFolders(validated, context)) {
+    const message = `ReactivateFolders dispatch failed (${context})`;
+    console.error(`${LOG_PREFIX2} ${message}`, { paths: validated });
+    return { ok: false, error: message };
+  }
+  return { ok: true };
+}
+function registerOhosFileAccessPermission(ipcMain) {
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    console.error(`${LOG_PREFIX2} registerOhosFileAccessPermission: invalid ipcMain`);
+    return;
+  }
+  ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
+    let paths;
+    try {
+      paths = validatePaths(payload?.paths, "IPC-persist");
+    } catch (err) {
+      logError("IPC persist validation failed", err);
+      throw err;
+    }
+    if (!isHarmonyOSPlatform()) {
+      return { ok: true, skipped: true };
+    }
+    const sp = import_electron7.systemPreferences;
+    if (typeof sp.fileAccessPersist !== "function") {
+      const message = "systemPreferences.fileAccessPersist is not available";
+      console.error(`${LOG_PREFIX2} IPC persist: ${message}`);
+      throw new Error(message);
+    }
+    try {
+      sp.fileAccessPersist(paths);
+    } catch (err) {
+      logError("IPC persist: fileAccessPersist failed", err);
+      throw err;
+    }
+    if (!callReactivateFolders(paths, "IPC-persist")) {
+      const message = "ReactivateFolders failed after persist";
+      console.error(`${LOG_PREFIX2} IPC persist: ${message}`, { paths });
+      throw new Error(message);
+    }
+    return { ok: true };
+  });
+  ipcMain.handle(FILE_ACCESS_ACTIVATE_CHANNEL, async (_event, payload) => {
+    let paths;
+    try {
+      paths = validatePaths(payload?.paths, "IPC-activate");
+    } catch (err) {
+      logError("IPC activate validation failed", err);
+      throw err;
+    }
+    if (!isHarmonyOSPlatform()) {
+      return { ok: true, skipped: true };
+    }
+    if (!callReactivateFolders(paths, "IPC-activate")) {
+      const message = "ReactivateFolders dispatch failed";
+      console.error(`${LOG_PREFIX2} IPC activate: ${message}`, { paths });
+      throw new Error(message);
+    }
+    return { ok: true };
+  });
+}
+
+// src/http/ohosFileAccess.ts
+function activateOhosPersistedFileAccess(paths) {
+  const result = activateOhosFileAccessPermission(paths, "list-files");
+  if (!result.ok && !result.skipped) {
+    throw new Error(result.error ?? "Failed to activate HarmonyOS file access");
   }
 }
 
@@ -596,8 +725,8 @@ function buildCoreRoutesAllowlist() {
       entries.add(toPosixAllowlistEntry(dir));
   };
   try {
-    add(import_electron7.app.getPath("userData"));
-    add(import_electron7.app.getPath("temp"));
+    add(import_electron8.app.getPath("userData"));
+    add(import_electron8.app.getPath("temp"));
   } catch (err) {
     console.warn("[main] app.getPath failed, falling back to os.tmpdir():", err);
     add(import_node_os2.default.tmpdir());
@@ -736,6 +865,7 @@ async function startMainHttpServer() {
     mainOrigin: MAIN_HTTP_ORIGIN,
     onStop: resetMcpHandler
   });
+  const ohosActivatePersistedFileAccess = activateOhosPersistedFileAccess;
   const coreRoutesHandler = createCoreRoutesRequestHandler({
     allowlist,
     logger: createCoreRoutesLogger(),
@@ -744,7 +874,8 @@ async function startMainHttpServer() {
     broadcast: (message) => socketManager?.broadcast(message),
     fetchImpl: nodeHttpFetch,
     chat: chatConfig,
-    mcp: { manager: ohosMcpManager }
+    mcp: { manager: ohosMcpManager },
+    activatePersistedFileAccess: ohosActivatePersistedFileAccess
   }, { fallbackPort: MAIN_HTTP_PORT });
   const reverseProxyHandler = createReverseProxyRequestHandler(reverseProxyConfig);
   mainHttpServer = import_node_http.default.createServer((req, res) => {
@@ -772,7 +903,8 @@ async function startMainHttpServer() {
         appDataDir: ohosAppDataDir,
         getUserConfig: ohosGetUserConfig,
         getSocketManager: () => socketManager,
-        logger: createCoreRoutesLogger()
+        logger: createCoreRoutesLogger(),
+        activatePersistedFileAccess: ohosActivatePersistedFileAccess
       });
       return;
     }
@@ -799,108 +931,6 @@ async function startMainHttpServer() {
     } else {
       console.warn("[main] applyMcpLifecycleFromConfig not in core-routes bundle; rebuild with pnpm --filter @smm/core-routes build:ohos");
     }
-  });
-}
-
-// src/ipc/file-access-permission.ts
-var import_electron8 = require("electron");
-var LOG_PREFIX2 = "[ohos-file-access]";
-var REACTIVATE_FOLDERS_BINDING = "PermissionManagerAdapter.ReactivateFolders";
-function isHarmonyOSPlatform() {
-  const platform = process.platform;
-  return platform === "ohos" || platform === "openharmony";
-}
-function logError(message, err) {
-  if (err instanceof Error) {
-    console.error(`${LOG_PREFIX2} ${message}:`, err.message, err.stack);
-    return;
-  }
-  console.error(`${LOG_PREFIX2} ${message}:`, err);
-}
-function validatePaths(paths, context) {
-  if (!Array.isArray(paths)) {
-    const message = `paths must be an array (${context})`;
-    console.error(`${LOG_PREFIX2} ${message}`, { paths });
-    throw new Error(message);
-  }
-  if (paths.length === 0) {
-    const message = `paths must be non-empty (${context})`;
-    console.error(`${LOG_PREFIX2} ${message}`);
-    throw new Error(message);
-  }
-  if (!paths.every((entry) => typeof entry === "string" && entry.length > 0)) {
-    const message = `paths must be non-empty strings (${context})`;
-    console.error(`${LOG_PREFIX2} ${message}`, { paths });
-    throw new Error(message);
-  }
-  return paths;
-}
-function callReactivateFolders(paths, context) {
-  const sp = import_electron8.systemPreferences;
-  if (typeof sp.callArkTSFunction !== "function") {
-    console.error(`${LOG_PREFIX2} callArkTSFunction unavailable (${context})`);
-    return false;
-  }
-  try {
-    sp.callArkTSFunction(REACTIVATE_FOLDERS_BINDING, "void", [paths]);
-    return true;
-  } catch (err) {
-    logError(`callReactivateFolders failed (${context})`, err);
-    return false;
-  }
-}
-function registerOhosFileAccessPermission(ipcMain) {
-  if (!ipcMain || typeof ipcMain.handle !== "function") {
-    console.error(`${LOG_PREFIX2} registerOhosFileAccessPermission: invalid ipcMain`);
-    return;
-  }
-  ipcMain.handle(FILE_ACCESS_PERSIST_CHANNEL, async (_event, payload) => {
-    let paths;
-    try {
-      paths = validatePaths(payload?.paths, "IPC-persist");
-    } catch (err) {
-      logError("IPC persist validation failed", err);
-      throw err;
-    }
-    if (!isHarmonyOSPlatform()) {
-      return { ok: true, skipped: true };
-    }
-    const sp = import_electron8.systemPreferences;
-    if (typeof sp.fileAccessPersist !== "function") {
-      const message = "systemPreferences.fileAccessPersist is not available";
-      console.error(`${LOG_PREFIX2} IPC persist: ${message}`);
-      throw new Error(message);
-    }
-    try {
-      sp.fileAccessPersist(paths);
-    } catch (err) {
-      logError("IPC persist: fileAccessPersist failed", err);
-      throw err;
-    }
-    if (!callReactivateFolders(paths, "IPC-persist")) {
-      const message = "ReactivateFolders failed after persist";
-      console.error(`${LOG_PREFIX2} IPC persist: ${message}`, { paths });
-      throw new Error(message);
-    }
-    return { ok: true };
-  });
-  ipcMain.handle(FILE_ACCESS_ACTIVATE_CHANNEL, async (_event, payload) => {
-    let paths;
-    try {
-      paths = validatePaths(payload?.paths, "IPC-activate");
-    } catch (err) {
-      logError("IPC activate validation failed", err);
-      throw err;
-    }
-    if (!isHarmonyOSPlatform()) {
-      return { ok: true, skipped: true };
-    }
-    if (!callReactivateFolders(paths, "IPC-activate")) {
-      const message = "ReactivateFolders dispatch failed";
-      console.error(`${LOG_PREFIX2} IPC activate: ${message}`, { paths });
-      throw new Error(message);
-    }
-    return { ok: true };
   });
 }
 

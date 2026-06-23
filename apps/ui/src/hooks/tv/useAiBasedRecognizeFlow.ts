@@ -3,7 +3,6 @@ import { toast } from "sonner"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
 import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
-import { useFeatures } from "@/hooks/useFeatures"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import type { MediaMetadata } from "@core/types"
@@ -23,6 +22,10 @@ export interface UseAiBasedRecognizeFlowOptions {
  * Surfaces AI/MCP-created recognize plans for preview mode and
  * AiBasedRecognizePrompt. Rule-based (creator: 'app') plans are handled
  * exclusively by useRuleBasedRecognizeFlow.
+ *
+ * Not gated by `isAiFeatureEnabled`: pending MCP/backend plans must always
+ * surface so the user can confirm or reject them (especially on HarmonyOS
+ * where in-app AI chat defaults off but external MCP is supported).
  */
 export function useAiBasedRecognizeFlow({
   plans,
@@ -30,21 +33,18 @@ export function useAiBasedRecognizeFlow({
   beforeConfirm,
   onFlowStart,
 }: UseAiBasedRecognizeFlowOptions) {
-  const { isAiFeatureEnabled } = useFeatures()
   const updatePlanMutation = useUpdatePlanMutation()
   const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
 
   const plan = useMemo(
     () =>
-      isAiFeatureEnabled
-        ? selectActiveAiPlan<UIRecognizeMediaFilePlan>(
-            plans,
-            mediaFolderPath,
-            "recognize-media-file",
-          )
-        : undefined,
-    [isAiFeatureEnabled, plans, mediaFolderPath],
+      selectActiveAiPlan<UIRecognizeMediaFilePlan>(
+        plans,
+        mediaFolderPath,
+        "recognize-media-file",
+      ),
+    [plans, mediaFolderPath],
   )
 
   const promptStatus: "generating" | "wait-for-ack" =

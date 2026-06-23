@@ -18,6 +18,7 @@ import { applyCorsHeaders } from "./cors"
 import { buildHelloConfig } from "./hello-config"
 import { handleMcpRequest, resetMcpHandler } from "./mcp"
 import { createOhosMcpLifecycleManager } from "./ohosMcpLifecycleManager"
+import { activateOhosPersistedFileAccess } from "./ohosFileAccess"
 import { serveStaticFile } from "./static-files"
 
 let mainHttpServer: http.Server | null = null
@@ -267,6 +268,8 @@ export async function startMainHttpServer(): Promise<void> {
     onStop: resetMcpHandler,
   })
 
+  const ohosActivatePersistedFileAccess = activateOhosPersistedFileAccess
+
   const coreRoutesHandler = createCoreRoutesRequestHandler(
     {
       allowlist,
@@ -277,6 +280,7 @@ export async function startMainHttpServer(): Promise<void> {
       fetchImpl: nodeHttpFetch,
       chat: chatConfig,
       mcp: { manager: ohosMcpManager },
+      activatePersistedFileAccess: ohosActivatePersistedFileAccess,
     },
     { fallbackPort: MAIN_HTTP_PORT },
   )
@@ -315,11 +319,12 @@ export async function startMainHttpServer(): Promise<void> {
       // and write the result back. The handler is async; fire and
       // forget — it writes to `res` itself and resolves the
       // response on its own.
-      void handleMcpRequest(req, res, {
+      void       handleMcpRequest(req, res, {
         appDataDir: ohosAppDataDir,
         getUserConfig: ohosGetUserConfig,
         getSocketManager: () => socketManager,
         logger: createCoreRoutesLogger(),
+        activatePersistedFileAccess: ohosActivatePersistedFileAccess,
       })
       return
     }

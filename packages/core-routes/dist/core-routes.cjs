@@ -11154,11 +11154,11 @@ var require_mime_types = __commonJS((exports2) => {
     }
     return exts[0];
   }
-  function lookup(path11) {
-    if (!path11 || typeof path11 !== "string") {
+  function lookup(path12) {
+    if (!path12 || typeof path12 !== "string") {
       return false;
     }
-    var extension2 = extname2("x." + path11).toLowerCase().substr(1);
+    var extension2 = extname2("x." + path12).toLowerCase().substr(1);
     if (!extension2) {
       return false;
     }
@@ -17074,11 +17074,11 @@ var require_server = __commonJS((exports2) => {
       this.init();
     }
     _computePath(options) {
-      let path11 = (options.path || "/engine.io").replace(/\/$/, "");
+      let path12 = (options.path || "/engine.io").replace(/\/$/, "");
       if (options.addTrailingSlash !== false) {
-        path11 += "/";
+        path12 += "/";
       }
-      return path11;
+      return path12;
     }
     upgrades(transport) {
       if (!this.opts.allowUpgrades)
@@ -17496,10 +17496,10 @@ var require_server = __commonJS((exports2) => {
       }
     }
     attach(server, options = {}) {
-      const path11 = this._computePath(options);
+      const path12 = this._computePath(options);
       const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1000;
       function check2(req) {
-        return path11 === req.url.slice(0, path11.length);
+        return path12 === req.url.slice(0, path12.length);
       }
       const listeners = server.listeners("request").slice(0);
       server.removeAllListeners("request");
@@ -17507,7 +17507,7 @@ var require_server = __commonJS((exports2) => {
       server.on("listening", this.init.bind(this));
       server.on("request", (req, res) => {
         if (check2(req)) {
-          debug('intercepting request for path "%s"', path11);
+          debug('intercepting request for path "%s"', path12);
           this.handleRequest(req, res);
         } else {
           let i = 0;
@@ -18222,8 +18222,8 @@ var require_userver = __commonJS((exports2) => {
       return new transports_uws_1.default[transportName](req);
     }
     attach(app, options = {}) {
-      const path11 = this._computePath(options);
-      app.any(path11, this.handleRequest.bind(this)).ws(path11, {
+      const path12 = this._computePath(options);
+      app.any(path12, this.handleRequest.bind(this)).ws(path12, {
         compression: options.compression,
         idleTimeout: options.idleTimeout,
         maxBackpressure: options.maxBackpressure,
@@ -21246,7 +21246,7 @@ var require_dist3 = __commonJS((exports2, module2) => {
   var zlib_1 = require("zlib");
   var accepts = require_accepts();
   var stream_1 = require("stream");
-  var path11 = require("path");
+  var path12 = require("path");
   var engine_io_1 = require_engine_io();
   var client_1 = require_client();
   var events_1 = require("events");
@@ -21414,7 +21414,7 @@ var require_dist3 = __commonJS((exports2, module2) => {
           res.writeHeader("cache-control", "public, max-age=0");
           res.writeHeader("content-type", "application/" + (isMap2 ? "json" : "javascript") + "; charset=utf-8");
           res.writeHeader("etag", expectedEtag);
-          const filepath = path11.join(__dirname, "../client-dist/", filename);
+          const filepath = path12.join(__dirname, "../client-dist/", filename);
           (0, uws_1.serveFile)(res, filepath);
         });
       }
@@ -21470,7 +21470,7 @@ var require_dist3 = __commonJS((exports2, module2) => {
       Server.sendFile(filename, req, res);
     }
     static sendFile(filename, req, res) {
-      const readStream = (0, fs_1.createReadStream)(path11.join(__dirname, "../client-dist/", filename));
+      const readStream = (0, fs_1.createReadStream)(path12.join(__dirname, "../client-dist/", filename));
       const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
       const onError = (err) => {
         if (err) {
@@ -24761,8 +24761,8 @@ var require_utils3 = __commonJS((exports2, module2) => {
     }
     return ind;
   }
-  function removeDotSegments(path11) {
-    let input = path11;
+  function removeDotSegments(path12) {
+    let input = path12;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -24952,8 +24952,8 @@ var require_schemes = __commonJS((exports2, module2) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path11, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path11 && path11 !== "/" ? path11 : undefined;
+      const [path12, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path12 && path12 !== "/" ? path12 : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -28115,10 +28115,15 @@ __export(exports_src, {
   validateUpstreamBaseURL: () => validateUpstreamBaseURL,
   validatePathIsInAllowlist: () => validatePathIsInAllowlist,
   resolveFolderExistence: () => resolveFolderExistence,
+  rejectUnauthorized: () => rejectUnauthorized,
   registerCoreRoutes: () => registerCoreRoutes,
+  parseBearerToken: () => parseBearerToken,
   migrateAIConfig: () => migrateAIConfig,
+  isRequestAuthorized: () => isRequestAuthorized,
   isError: () => isError2,
+  isAuthTokenValid: () => isAuthTokenValid,
   handleWriteFilePost: () => handleWriteFilePost,
+  handleUpdatePlanPost: () => handleUpdatePlanPost,
   handleRenameFolderPost: () => handleRenameFolderPost,
   handleRenameFilesPost: () => handleRenameFilesPost,
   handleReadImagePost: () => handleReadImagePost,
@@ -28132,16 +28137,20 @@ __export(exports_src, {
   handleListFilesGet: () => handleListFilesGet,
   handleIsFolderAvailablePost: () => handleIsFolderAvailablePost,
   handleHelloPost: () => handleHelloPost,
+  handleGetPlansPost: () => handleGetPlansPost,
   handleGetEpisodesPost: () => handleGetEpisodesPost,
   handleDownloadImageGet: () => handleDownloadImageGet,
   handleDownloadImageAsFilePost: () => handleDownloadImageAsFilePost,
   handleDeleteFilePost: () => handleDeleteFilePost,
+  handleCreatePlanPost: () => handleCreatePlanPost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
   handleChatPost: () => handleChatPost,
   findAvailableReverseProxyPort: () => findAvailableReverseProxyPort,
   filterResponseHeaders: () => filterResponseHeaders,
   filterRequestHeaders: () => filterRequestHeaders,
+  enforceCoreRoutesAuth: () => enforceCoreRoutesAuth,
   doWriteFile: () => doWriteFile,
+  doUpdatePlan: () => doUpdatePlan,
   doRenameFolder: () => doRenameFolder,
   doRenameFiles: () => doRenameFiles,
   doReadImage: () => doReadImage,
@@ -28153,10 +28162,13 @@ __export(exports_src, {
   doListFiles: () => doListFiles,
   doIsFolderAvailable: () => doIsFolderAvailable,
   doHello: () => doHello,
+  doGetPlans: () => doGetPlans,
+  doGetPlanById: () => doGetPlanById,
   doGetEpisodes: () => doGetEpisodes,
   doDownloadImageAsFile: () => doDownloadImageAsFile,
   doDownloadImage: () => doDownloadImage,
   doDeleteFile: () => doDeleteFile,
+  doCreatePlan: () => doCreatePlan,
   doChat: () => doChat,
   defaultChatFs: () => defaultChatFs,
   createSuccessResponse: () => createSuccessResponse,
@@ -28182,6 +28194,85 @@ __export(exports_src, {
 });
 module.exports = __toCommonJS(exports_src);
 
+// src/auth.ts
+var import_node_crypto = require("node:crypto");
+
+// src/http.ts
+function createRequestUrl(req, fallbackPort) {
+  const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
+  return new URL(req.url ?? "/", `http://${host}`);
+}
+function sendJson(res, status, body) {
+  const payload = JSON.stringify(body);
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(payload, "utf8")
+  });
+  res.end(payload);
+}
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  if (!raw) {
+    return {};
+  }
+  return JSON.parse(raw);
+}
+function parseBooleanQuery(value) {
+  if (value === undefined || value === null) {
+    return;
+  }
+  return value === "true";
+}
+
+// src/auth.ts
+function parseBearerToken(authorizationHeader) {
+  const raw = Array.isArray(authorizationHeader) ? authorizationHeader[0] : authorizationHeader;
+  if (!raw) {
+    return null;
+  }
+  const match = /^Bearer\s+(.+)$/i.exec(raw.trim());
+  const token = match?.[1]?.trim();
+  return token ? token : null;
+}
+function isAuthTokenValid(authorizationHeader, expectedToken) {
+  const token = parseBearerToken(authorizationHeader);
+  if (!token) {
+    return false;
+  }
+  const provided = Buffer.from(token, "utf8");
+  const expected = Buffer.from(expectedToken, "utf8");
+  if (provided.length !== expected.length) {
+    return false;
+  }
+  return import_node_crypto.timingSafeEqual(provided, expected);
+}
+function rejectUnauthorized(res) {
+  sendJson(res, 401, { error: "Unauthorized: invalid or missing token" });
+}
+function enforceCoreRoutesAuth(req, res, config) {
+  const auth = config.auth;
+  if (!auth?.enabled) {
+    return false;
+  }
+  if (req.method === "OPTIONS") {
+    return false;
+  }
+  if (isAuthTokenValid(req.headers.authorization, auth.token)) {
+    return false;
+  }
+  rejectUnauthorized(res);
+  return true;
+}
+function isRequestAuthorized(authorizationHeader, auth) {
+  if (!auth?.enabled) {
+    return true;
+  }
+  return isAuthTokenValid(authorizationHeader, auth.token);
+}
 // src/allowlist.ts
 function validatePathIsInAllowlist(filePath, allowlist) {
   return allowlist.some((allowlistItem) => filePath.startsWith(allowlistItem));
@@ -56130,6 +56221,9 @@ async function defaultAcknowledge(_message, _timeoutMs) {
   return;
 }
 
+// src/tools/broadcast.ts
+function defaultBroadcast(_message) {}
+
 // src/tools/getApplicationContext.ts
 async function executeGetApplicationContext(params) {
   return {
@@ -56501,8 +56595,27 @@ function requireNonEmptyString(value, field) {
   }
   return value;
 }
+function messageFromUnknownError(error48) {
+  if (error48 instanceof Error) {
+    return error48.message;
+  }
+  if (typeof error48 === "string") {
+    return error48;
+  }
+  if (error48 === null || error48 === undefined) {
+    return "Unknown error (null/undefined thrown)";
+  }
+  try {
+    const json3 = JSON.stringify(error48);
+    if (json3 && json3 !== "{}") {
+      return json3;
+    }
+  } catch {}
+  const text2 = String(error48);
+  return text2 || "Unknown error";
+}
 function formatToolError(error48) {
-  return toolError(error48 instanceof Error ? error48.message : "Unknown error");
+  return toolError(messageFromUnknownError(error48));
 }
 
 // src/isFolderAvailable.ts
@@ -57064,7 +57177,74 @@ function buildListFilesInMediaFolderResponse(filePaths, videoFileOnly = false) {
 // src/listFiles.ts
 var import_node_os = __toESM(require("node:os"));
 var import_promises6 = require("node:fs/promises");
+var import_node_path4 = __toESM(require("node:path"));
+
+// src/resolveListFilesPath.ts
 var import_node_path3 = __toESM(require("node:path"));
+function joinListFilesChildPath(dirPath, childName) {
+  if (dirPath.startsWith("file://")) {
+    const separator = dirPath.endsWith("/") ? "" : "/";
+    return `${dirPath}${separator}${childName}`;
+  }
+  return import_node_path3.default.join(dirPath, childName);
+}
+function resolveListFilesAbsolutePath(folderPath) {
+  if (folderPath.startsWith("file://")) {
+    return folderPath;
+  }
+  return import_node_path3.default.resolve(folderPath);
+}
+function normalizeListFilesInputPath(folderPath) {
+  if (folderPath.startsWith("file://")) {
+    return folderPath;
+  }
+  if (folderPath.startsWith("/") && Path.isWindows()) {
+    const normalizedPosixPath = folderPath.replace(/^\/([A-Za-z]):\//, "/$1/");
+    return Path.win(normalizedPosixPath);
+  }
+  if (/^[A-Za-z]:/.test(folderPath) && !Path.isWindows()) {
+    return new Path(folderPath).abs("posix");
+  }
+  return Path.toPlatformPath(folderPath);
+}
+
+// src/describeToolFailure.ts
+function describeToolFailure(error48) {
+  if (error48 instanceof Error) {
+    return {
+      message: error48.message,
+      errorType: error48.constructor.name,
+      stack: error48.stack,
+      raw: String(error48)
+    };
+  }
+  if (typeof error48 === "string") {
+    return { message: error48, errorType: "string", raw: error48 };
+  }
+  if (error48 === null || error48 === undefined) {
+    return {
+      message: "null or undefined thrown",
+      errorType: String(error48),
+      raw: String(error48)
+    };
+  }
+  try {
+    const json3 = JSON.stringify(error48);
+    return {
+      message: json3 && json3 !== "{}" ? json3 : String(error48),
+      errorType: typeof error48,
+      raw: json3 ?? String(error48)
+    };
+  } catch {
+    return {
+      message: String(error48),
+      errorType: typeof error48,
+      raw: String(error48)
+    };
+  }
+}
+
+// src/listFiles.ts
 var listFilesRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required"),
   onlyFiles: exports_external2.boolean().optional(),
@@ -57078,7 +57258,7 @@ var emptyListFilesData = {
   size: 0
 };
 async function doListFiles(body, config2 = {}) {
-  const { logger } = config2;
+  const { logger, activatePersistedFileAccess } = config2;
   const requestId = `listFiles-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   logger?.info({ requestId, body }, "[ListFiles] request received");
   try {
@@ -57100,22 +57280,31 @@ async function doListFiles(body, config2 = {}) {
     logger?.debug({ requestId, folderPath, onlyFiles, onlyFolders, includeHiddenFiles, recursively }, "[ListFiles] validated params");
     if (folderPath === "~" || folderPath.startsWith("~/")) {
       const homeDir = import_node_os.default.homedir();
-      folderPath = folderPath === "~" ? homeDir : import_node_path3.default.join(homeDir, folderPath.slice(2));
+      folderPath = folderPath === "~" ? homeDir : import_node_path4.default.join(homeDir, folderPath.slice(2));
     }
     try {
-      if (folderPath.startsWith("/") && Path.isWindows()) {
-        const normalizedPosixPath = folderPath.replace(/^\/([A-Za-z]):\//, "/$1/");
-        folderPath = Path.win(normalizedPosixPath);
-      } else if (/^[A-Za-z]:/.test(folderPath) && !Path.isWindows()) {
-        folderPath = new Path(folderPath).abs("posix");
-      } else {
-        folderPath = Path.toPlatformPath(folderPath);
-      }
+      folderPath = normalizeListFilesInputPath(folderPath);
     } catch (error48) {
-      logger?.info({ requestId, folderPath, error: error48 }, "[ListFiles] Path normalization threw, using path.resolve");
+      logger?.info({ requestId, folderPath, error: error48 }, "[ListFiles] Path normalization threw, using raw path");
     }
-    const validatedPath = import_node_path3.default.resolve(folderPath);
+    const validatedPath = resolveListFilesAbsolutePath(folderPath);
     logger?.info({ requestId, validatedPath }, "[ListFiles] resolved absolute path");
+    if (validatedPath.startsWith("file://")) {
+      if (activatePersistedFileAccess) {
+        try {
+          await activatePersistedFileAccess([validatedPath]);
+        } catch (error48) {
+          const failure = describeToolFailure(error48);
+          logger?.warn({ requestId, validatedPath, ...failure }, "[ListFiles] file access activation failed");
+          return {
+            data: { path: validatedPath, items: [], size: 0 },
+            error: `File Access Activation Failed: ${failure.message}`
+          };
+        }
+      } else {
+        logger?.warn({ requestId, validatedPath }, "[ListFiles] file:// path without activatePersistedFileAccess hook");
+      }
+    }
     try {
       const stats = await import_promises6.stat(validatedPath);
       logger?.info({ requestId, validatedPath, isDirectory: stats.isDirectory(), isFile: stats.isFile() }, "[ListFiles] stat result");
@@ -57147,12 +57336,12 @@ async function doListFiles(body, config2 = {}) {
         logger?.debug({ requestId, dirPath, isTopLevel }, "[ListFiles] scanDirectory readdir");
         const items = await import_promises6.readdir(dirPath);
         for (const item of items) {
-          const fullPath = import_node_path3.default.join(dirPath, item);
+          const fullPath = joinListFilesChildPath(dirPath, item);
           try {
             const itemStats = await import_promises6.stat(fullPath);
             const isFile2 = itemStats.isFile();
             const isDirectory = itemStats.isDirectory();
-            const filename = import_node_path3.default.basename(item);
+            const filename = import_node_path4.default.basename(item);
             const isHidden = filename.startsWith(".") || filename === "Thumbs.db" || filename === "desktop.ini";
             if (!includeHiddenFiles && isHidden) {
               continue;
@@ -57533,12 +57722,13 @@ function buildRenameFolderTool(clientId, config2, abortSignal, acknowledge) {
 }
 
 // ../core/plan/renamePlan.ts
-function createEmptyRenamePlan(mediaFolderPath, id) {
+function createEmptyRenamePlan(mediaFolderPath, id, options) {
   const planId = id ?? (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
   return {
     id: planId,
     task: "rename-files",
-    status: "pending",
+    status: options?.status ?? "pending",
+    creator: options?.creator ?? "app",
     mediaFolderPath: Path.posix(mediaFolderPath),
     files: []
   };
@@ -57582,6 +57772,9 @@ async function prepareAppendRenameEntry(plan, entry, deps) {
   };
 }
 
+// ../core/types/ai-tools/planTaskMessages.ts
+var END_PLAN_TASK_SUCCESS_MESSAGE = "Task is created successfuly. User need to go to SMM, review and approve the task.";
+
 // ../core/event-types.ts
 var RecognizeMediaFilePlanReady = {
   event: "recognizeMediaFilePlanReady"
@@ -57592,13 +57785,23 @@ var RenameFilesPlanReady = {
 
 // src/tools/plans.ts
 var import_promises8 = require("node:fs/promises");
-var import_node_path4 = __toESM(require("node:path"));
-var import_node_crypto = require("node:crypto");
+var import_node_path5 = __toESM(require("node:path"));
+var import_node_crypto2 = require("node:crypto");
+
+// ../core/types/planCommon.ts
+function isActivePlanStatus(status) {
+  return status === "preparing" || status === "pending";
+}
+function isTerminalPlanStatus(status) {
+  return status === "completed" || status === "rejected";
+}
+
+// src/tools/plans.ts
 function plansDir(appDataDir) {
-  return import_node_path4.default.join(appDataDir, "plans");
+  return import_node_path5.default.join(appDataDir, "plans");
 }
 function planFilePath(appDataDir, planId) {
-  return import_node_path4.default.join(plansDir(appDataDir), `${planId}.plan.json`);
+  return import_node_path5.default.join(plansDir(appDataDir), `${planId}.plan.json`);
 }
 async function ensurePlansDirExists(appDataDir, fs) {
   const dir = plansDir(appDataDir);
@@ -57617,7 +57820,10 @@ async function ensurePlansDirExists(appDataDir, fs) {
 }
 async function beginRenamePlan(appDataDir, mediaFolderPath, fs) {
   await ensurePlansDirExists(appDataDir, fs);
-  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath));
+  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath), undefined, {
+    creator: "ai",
+    status: "preparing"
+  });
   await fs.writeJson(planFilePath(appDataDir, plan.id), plan);
   return plan.id;
 }
@@ -57634,15 +57840,27 @@ async function appendRenamePlanEntry(appDataDir, planId, from, to, fs, deps) {
   await fs.writeJson(filePath, result);
 }
 async function readRenamePlan(appDataDir, planId, fs) {
-  return fs.readJson(planFilePath(appDataDir, planId));
+  const plan = await readPlanById(appDataDir, planId, fs);
+  if (!plan || plan.task !== "rename-files") {
+    return null;
+  }
+  return plan;
+}
+async function readPlanById(appDataDir, planId, fs) {
+  const plan = await fs.readJson(planFilePath(appDataDir, planId));
+  if (!plan) {
+    return null;
+  }
+  return normalizePlanPaths(withCreatorDefault(plan));
 }
 async function beginRecognizePlan(appDataDir, mediaFolderPath, fs) {
   await ensurePlansDirExists(appDataDir, fs);
-  const planId = import_node_crypto.randomUUID();
+  const planId = import_node_crypto2.randomUUID();
   const plan = {
     id: planId,
     task: "recognize-media-file",
-    status: "pending",
+    status: "preparing",
+    creator: "ai",
     mediaFolderPath: Path.posix(mediaFolderPath),
     files: []
   };
@@ -57663,7 +57881,114 @@ async function appendRecognizedFile(appDataDir, taskId, file2, fs) {
   await fs.writeJson(filePath, plan);
 }
 async function readRecognizePlan(appDataDir, taskId, fs) {
-  return fs.readJson(planFilePath(appDataDir, taskId));
+  const plan = await readPlanById(appDataDir, taskId, fs);
+  if (!plan || plan.task !== "recognize-media-file") {
+    return null;
+  }
+  return plan;
+}
+async function listPlanFiles(appDataDir) {
+  const dir = plansDir(appDataDir);
+  try {
+    const stats = await import_promises8.stat(dir);
+    if (!stats.isDirectory()) {
+      return [];
+    }
+  } catch {
+    return [];
+  }
+  const files = await import_promises8.readdir(dir);
+  return files.filter((file2) => file2.endsWith(".plan.json")).map((file2) => import_node_path5.default.join(dir, file2));
+}
+function withCreatorDefault(plan) {
+  if (plan.creator) {
+    return plan;
+  }
+  return { ...plan, creator: "app" };
+}
+function normalizePlanPaths(plan) {
+  const mediaFolderPath = Path.posix(plan.mediaFolderPath);
+  if (plan.task === "recognize-media-file") {
+    return {
+      ...plan,
+      mediaFolderPath,
+      files: plan.files.map((f) => ({ ...f, path: Path.posix(f.path) }))
+    };
+  }
+  return {
+    ...plan,
+    mediaFolderPath,
+    files: plan.files.map((f) => ({
+      from: Path.posix(f.from),
+      to: Path.posix(f.to)
+    }))
+  };
+}
+async function createPlan(appDataDir, input, fs) {
+  await ensurePlansDirExists(appDataDir, fs);
+  const id = input.id ?? import_node_crypto2.randomUUID();
+  const mediaFolderPath = Path.posix(input.mediaFolderPath);
+  const plan = input.task === "recognize-media-file" ? {
+    id,
+    task: "recognize-media-file",
+    status: "preparing",
+    creator: input.creator,
+    mediaFolderPath,
+    files: []
+  } : {
+    id,
+    task: "rename-files",
+    status: "preparing",
+    creator: input.creator,
+    mediaFolderPath,
+    files: []
+  };
+  await fs.writeJson(planFilePath(appDataDir, id), plan);
+  return plan;
+}
+async function updatePlanContent(appDataDir, id, patch, fs) {
+  const filePath = planFilePath(appDataDir, id);
+  const existing = await fs.readJson(filePath);
+  if (!existing) {
+    return null;
+  }
+  const merged = withCreatorDefault({
+    ...existing,
+    ...patch.status !== undefined ? { status: patch.status } : {},
+    ...patch.files !== undefined ? { files: patch.files } : {}
+  });
+  const updated = normalizePlanPaths(merged);
+  if (patch.status !== undefined && isTerminalPlanStatus(patch.status)) {
+    await deletePlan(appDataDir, id);
+    return updated;
+  }
+  await fs.writeJson(filePath, updated);
+  return updated;
+}
+async function deletePlan(appDataDir, id) {
+  try {
+    await import_promises8.unlink(planFilePath(appDataDir, id));
+  } catch (error48) {
+    if (error48.code !== "ENOENT") {
+      throw error48;
+    }
+  }
+}
+async function getActivePlansForFolder(appDataDir, mediaFolderPath, fs) {
+  const target = Path.posix(mediaFolderPath);
+  const files = await listPlanFiles(appDataDir);
+  const plans = [];
+  for (const file2 of files) {
+    const plan = await fs.readJson(file2);
+    if (!plan) {
+      continue;
+    }
+    const normalized = normalizePlanPaths(withCreatorDefault(plan));
+    if (normalized.mediaFolderPath === target && isActivePlanStatus(normalized.status)) {
+      plans.push(normalized);
+    }
+  }
+  return plans;
 }
 
 // src/tools/renameFilesTask.ts
@@ -57720,14 +58045,15 @@ function buildAddRenameFileToTaskTool(clientId, appDataDir, fs, deps, logger, ab
         throw new Error("Request was aborted");
       }
       const { taskId, from, to } = args ?? {};
-      log.info({ taskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] Adding file to task`);
+      const normalizedTaskId = (taskId ?? "").trim();
+      log.info({ taskId: normalizedTaskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] Adding file to task`);
       try {
-        await appendRenamePlanEntry(appDataDir, taskId ?? "", from ?? "", to ?? "", fs, deps);
-        log.info({ taskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] File added successfully`);
+        await appendRenamePlanEntry(appDataDir, normalizedTaskId, from ?? "", to ?? "", fs, deps);
+        log.info({ taskId: normalizedTaskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] File added successfully`);
         return toolOk({});
       } catch (error48) {
         log.error({
-          taskId,
+          taskId: normalizedTaskId,
           from,
           to,
           error: error48 instanceof Error ? error48.message : String(error48),
@@ -57738,9 +58064,9 @@ function buildAddRenameFileToTaskTool(clientId, appDataDir, fs, deps, logger, ab
     }
   };
 }
-function buildEndRenameFilesTaskTool(clientId, appDataDir, fs, acknowledge, logger, abortSignal) {
+function buildEndRenameFilesTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
   const log = makeLogger(logger);
-  const ack = acknowledge ?? defaultAcknowledge;
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: END_RENAME_FILES_TASK_DESCRIPTION,
     toolName: END_RENAME_FILES_TASK,
@@ -57750,37 +58076,379 @@ function buildEndRenameFilesTaskTool(clientId, appDataDir, fs, acknowledge, logg
         throw new Error("Request was aborted");
       }
       const { taskId } = args ?? {};
-      log.info({ taskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Ending rename task`);
+      const normalizedTaskId = (taskId ?? "").trim();
+      log.info({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Ending rename task`);
       try {
-        const task = await readRenamePlan(appDataDir, taskId ?? "", fs);
+        const task = await readRenamePlan(appDataDir, normalizedTaskId, fs);
         if (!task) {
-          log.error({ taskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task not found`);
-          return toolError(`Task with id "${taskId}" not found`);
+          log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task not found`);
+          return toolError(`Task with id "${normalizedTaskId}" not found`);
         }
         if (task.files.length === 0) {
-          log.warn({ taskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] No files in task`);
+          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] No files in task`);
           return toolError("No rename entries in task");
         }
+        await updatePlanContent(appDataDir, task.id, { status: "pending" }, fs);
         const fullPlanPath = planFilePath(appDataDir, task.id);
         const planFilePathInPosix = Path.posix(fullPlanPath);
         const data = {
           taskId: task.id,
           planFilePath: planFilePathInPosix
         };
-        await ack({
+        emit({
           event: RenameFilesPlanReady.event,
           data
-        }, 0);
-        log.info({ taskId, fileCount: task.files.length, clientId }, `[tool][${END_RENAME_FILES_TASK}] Plan ready, UI notified`);
-        return toolOk({});
+        });
+        log.info({ taskId: normalizedTaskId, fileCount: task.files.length, clientId }, `[tool][${END_RENAME_FILES_TASK}] Plan ready, UI notified`);
+        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
       } catch (error48) {
         log.error({
-          taskId,
+          taskId: normalizedTaskId,
           error: error48 instanceof Error ? error48.message : String(error48),
           clientId
         }, `[tool][${END_RENAME_FILES_TASK}] End task error`);
         return formatToolError(error48);
       }
+    }
+  };
+}
+
+// src/renameFilesValidation.ts
+var import_promises9 = require("node:fs/promises");
+
+// ../core/validations/rename/validateChainingConflicts.ts
+function validateChainingConflicts(tasks) {
+  const sourcePaths = new Set;
+  for (const task of tasks) {
+    sourcePaths.add(task.from);
+  }
+  for (const task of tasks) {
+    if (sourcePaths.has(task.to)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ../core/validations/rename/validateNoAbnormalPaths.ts
+function isPathNormal(p) {
+  if (p.startsWith("../")) {
+    return true;
+  }
+  if (p.includes("/..") || p.includes("/./") || p.endsWith("/.")) {
+    return false;
+  }
+  const platform = Path.toPlatformPath(p);
+  const posix = Path.posix(platform);
+  const parts = posix.split("/").filter((part) => part.length > 0);
+  const resolved = [];
+  for (const part of parts) {
+    if (part === "..") {
+      if (resolved.length === 0) {
+        return false;
+      }
+      resolved.pop();
+    } else if (part !== ".") {
+      resolved.push(part);
+    }
+  }
+  const normalized = posix.startsWith("/") || /^\/[A-Za-z]:/.test(posix) ? (posix.startsWith("/") ? "/" : "") + resolved.join("/") : resolved.join("/");
+  return normalized === posix || normalized === platform;
+}
+function validateNoAbnormalPaths(tasks) {
+  const errors4 = [];
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    if (!isPathNormal(task.from)) {
+      errors4.push(`Source path "${task.from}" is abnormal`);
+    }
+    if (!isPathNormal(task.to)) {
+      errors4.push(`Destination path "${task.to}" is abnormal`);
+    }
+  }
+  return errors4;
+}
+
+// ../core/validations/rename/validateNoDuplicatedDestFile.ts
+function validateNoDuplicatedDestFile(tasks) {
+  const destPaths = new Map;
+  for (let i = 0;i < tasks.length; i++) {
+    const task = tasks[i];
+    if (!task)
+      continue;
+    const existing = destPaths.get(task.to) ?? [];
+    existing.push(i);
+    destPaths.set(task.to, existing);
+  }
+  const duplicates = [];
+  for (const [path6, indices] of destPaths) {
+    if (indices.length > 1) {
+      duplicates.push(path6);
+    }
+  }
+  return {
+    isValid: duplicates.length === 0,
+    duplicates
+  };
+}
+
+// ../core/validations/rename/validateNoDuplicatedSourceFile.ts
+function validateNoDuplicatedSourceFile(tasks) {
+  const sourcePaths = new Map;
+  for (let i = 0;i < tasks.length; i++) {
+    const task = tasks[i];
+    if (!task)
+      continue;
+    const existing = sourcePaths.get(task.from) ?? [];
+    existing.push(i);
+    sourcePaths.set(task.from, existing);
+  }
+  const duplicates = [];
+  for (const [path6, indices] of sourcePaths) {
+    if (indices.length > 1) {
+      duplicates.push(path6);
+    }
+  }
+  return {
+    isValid: duplicates.length === 0,
+    duplicates
+  };
+}
+
+// ../core/validations/rename/validateNoIdenticalSourceAndDestFile.ts
+function validateNoIdenticalSourceAndDestFile(tasks) {
+  const identicals = [];
+  for (const task of tasks) {
+    if (task && task.from === task.to) {
+      identicals.push(task.from);
+    }
+  }
+  return {
+    isValid: identicals.length === 0,
+    identicals
+  };
+}
+
+// ../core/validations/rename/validatePathWithinMediaFolder.ts
+function validatePathWithinMediaFolder(mediaFolderPath, tasks) {
+  const invalidPaths = [];
+  const mediaFolderObj = new Path(mediaFolderPath);
+  const mediaFolderNormalized = mediaFolderObj.abs("posix");
+  const mediaFolderWithoutDrive = mediaFolderNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    const fromPathObj = new Path(task.from);
+    const fromNormalized = fromPathObj.abs("posix");
+    const fromWithoutDrive = fromNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+    if (!fromWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
+      invalidPaths.push({ path: task.from, type: "source" });
+    }
+    const toPathObj = new Path(task.to);
+    const toNormalized = toPathObj.abs("posix");
+    const toWithoutDrive = toNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
+    if (!toWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
+      invalidPaths.push({ path: task.to, type: "destination" });
+    }
+  }
+  return {
+    isValid: invalidPaths.length === 0,
+    invalidPaths
+  };
+}
+
+// ../core/validations/rename/validateRenameOperationsSync.ts
+function validateRenameOperationsSync(files, folderPathInPosix) {
+  const errors4 = [];
+  const normalizedTasks = [];
+  const taskIndexMap = new Map;
+  for (let i = 0;i < files.length; i++) {
+    const renameOp = files[i];
+    if (!renameOp) {
+      continue;
+    }
+    taskIndexMap.set(normalizedTasks.length, i);
+    normalizedTasks.push({
+      from: Path.posix(renameOp.from),
+      to: Path.posix(renameOp.to)
+    });
+  }
+  if (normalizedTasks.length === 0) {
+    return {
+      isValid: true,
+      errors: [],
+      validatedRenames: []
+    };
+  }
+  const abnormalPathErrors = validateNoAbnormalPaths(normalizedTasks);
+  if (abnormalPathErrors.length > 0) {
+    errors4.push(...abnormalPathErrors);
+  }
+  const duplicateSourceResult = validateNoDuplicatedSourceFile(normalizedTasks);
+  if (!duplicateSourceResult.isValid) {
+    for (const duplicatePath of duplicateSourceResult.duplicates) {
+      const indices = [];
+      normalizedTasks.forEach((task, idx) => {
+        if (task.from === duplicatePath) {
+          indices.push(taskIndexMap.get(idx) ?? idx);
+        }
+      });
+      errors4.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
+    }
+  }
+  const duplicateDestResult = validateNoDuplicatedDestFile(normalizedTasks);
+  if (!duplicateDestResult.isValid) {
+    for (const duplicatePath of duplicateDestResult.duplicates) {
+      const indices = [];
+      normalizedTasks.forEach((task, idx) => {
+        if (task.to === duplicatePath) {
+          indices.push(taskIndexMap.get(idx) ?? idx);
+        }
+      });
+      errors4.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
+    }
+  }
+  const identicalResult = validateNoIdenticalSourceAndDestFile(normalizedTasks);
+  const sourcePaths = new Set;
+  normalizedTasks.forEach((task) => sourcePaths.add(task.from));
+  const hasChainingConflicts = !validateChainingConflicts(normalizedTasks);
+  const chainingConflictTasks = new Set;
+  if (hasChainingConflicts) {
+    normalizedTasks.forEach((task, idx) => {
+      if (sourcePaths.has(task.to)) {
+        chainingConflictTasks.add(idx);
+        errors4.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
+      }
+    });
+  }
+  const pathWithinFolderResult = validatePathWithinMediaFolder(folderPathInPosix, normalizedTasks);
+  if (!pathWithinFolderResult.isValid) {
+    for (const invalidPath of pathWithinFolderResult.invalidPaths) {
+      errors4.push(`${invalidPath.type === "source" ? "Source" : "Target"} path "${invalidPath.path}" is outside the media folder "${folderPathInPosix}"`);
+    }
+  }
+  const invalidTasks = new Set;
+  normalizedTasks.forEach((task, idx) => {
+    const hasError = abnormalPathErrors.some((e) => e.includes(`"${task.from}"`) || e.includes(`"${task.to}"`)) || duplicateSourceResult.duplicates.includes(task.from) || duplicateDestResult.duplicates.includes(task.to) || identicalResult.identicals.includes(task.from) || pathWithinFolderResult.invalidPaths.some((p) => p.path === task.from || p.path === task.to) || chainingConflictTasks.has(idx);
+    if (hasError) {
+      invalidTasks.add(idx);
+    }
+  });
+  const validatedRenames = [];
+  normalizedTasks.forEach((task, idx) => {
+    if (!invalidTasks.has(idx) && task.from !== task.to) {
+      validatedRenames.push({
+        from: task.from,
+        to: task.to
+      });
+    }
+  });
+  return {
+    isValid: errors4.length === 0,
+    errors: errors4,
+    validatedRenames
+  };
+}
+
+// src/renameFilesValidation.ts
+async function validateRenameOperations(files, folderPathInPosix) {
+  const normalizedTasks = [];
+  for (let i = 0;i < files.length; i++) {
+    const renameOp = files[i];
+    if (!renameOp) {
+      continue;
+    }
+    normalizedTasks.push({
+      from: Path.posix(renameOp.from),
+      to: Path.posix(renameOp.to)
+    });
+  }
+  if (normalizedTasks.length === 0) {
+    return {
+      isValid: true,
+      errors: [],
+      validatedRenames: []
+    };
+  }
+  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
+  const errors4 = [...syncResult.errors];
+  const sourceExistResult = await validateSourceFileExist(normalizedTasks);
+  if (!sourceExistResult.isValid) {
+    for (const missingFile of sourceExistResult.missingFiles) {
+      errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
+    }
+  }
+  const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
+  if (!destNotExistResult.isValid) {
+    for (const existingFile of destNotExistResult.existingFiles) {
+      errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
+    }
+  }
+  if (errors4.length > 0) {
+    return {
+      isValid: false,
+      errors: errors4,
+      validatedRenames: []
+    };
+  }
+  return syncResult;
+}
+async function validateSourceFileExist(tasks) {
+  const missingFiles = [];
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    try {
+      const platformPath = Path.toPlatformPath(task.from);
+      const stats = await import_promises9.stat(platformPath);
+      if (!stats.isFile()) {
+        missingFiles.push(task.from);
+      }
+    } catch {
+      missingFiles.push(task.from);
+    }
+  }
+  return {
+    isValid: missingFiles.length === 0,
+    missingFiles
+  };
+}
+async function validateDestFileNotExist(tasks) {
+  const existingFiles = [];
+  for (const task of tasks) {
+    if (!task)
+      continue;
+    try {
+      const platformPath = Path.toPlatformPath(task.to);
+      const stats = await statWithTimeout(platformPath);
+      if (stats.isFile()) {
+        existingFiles.push(task.to);
+      }
+    } catch {
+      continue;
+    }
+  }
+  return {
+    isValid: existingFiles.length === 0,
+    existingFiles
+  };
+}
+function statWithTimeout(filePath, timeoutMs = 1000) {
+  return Promise.race([
+    import_promises9.stat(filePath),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`stat timeout for path: ${filePath}`)), timeoutMs))
+  ]);
+}
+
+// src/tools/renameFilesTaskDefaults.ts
+function defaultRenameFilesTaskDeps(appDataDir) {
+  return {
+    validateOperations: async (files, folderPathInPosix) => {
+      return validateRenameOperations(files, folderPathInPosix);
+    },
+    getMediaMetadata: async (folderPathInPosix) => {
+      return await readMediaMetadataCache(appDataDir, folderPathInPosix) ?? null;
     }
   };
 }
@@ -57832,19 +58500,26 @@ function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abort
         throw new Error("Request was aborted");
       }
       const { taskId, season, episode, path: filePath } = args ?? {};
-      log.info({ taskId, season, episode, path: filePath, clientId }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] Adding file to task`);
+      const normalizedTaskId = (taskId ?? "").trim();
+      log.info({ taskId: normalizedTaskId, season, episode, path: filePath, clientId }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] Adding file to task`);
       try {
         const recognizedFile = {
           season: season ?? 0,
           episode: episode ?? 0,
           path: filePath ?? ""
         };
-        await appendRecognizedFile(appDataDir, taskId ?? "", recognizedFile, fs);
-        log.info({ taskId, season, episode, path: filePath, clientId }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] File added to task successfully`);
+        await appendRecognizedFile(appDataDir, normalizedTaskId, recognizedFile, fs);
+        log.info({
+          taskId: normalizedTaskId,
+          season,
+          episode,
+          path: filePath,
+          clientId
+        }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] File added to task successfully`);
         return toolOk({});
       } catch (error48) {
         log.error({
-          taskId,
+          taskId: normalizedTaskId,
           season,
           episode,
           path: filePath,
@@ -57856,9 +58531,9 @@ function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abort
     }
   };
 }
-function buildEndRecognizeTaskTool(clientId, appDataDir, fs, acknowledge, logger, abortSignal) {
+function buildEndRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
   const log = makeLogger2(logger);
-  const ack = acknowledge ?? defaultAcknowledge;
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: END_RECOGNIZE_TASK_DESCRIPTION,
     toolName: END_RECOGNIZE_TASK,
@@ -57868,34 +58543,36 @@ function buildEndRecognizeTaskTool(clientId, appDataDir, fs, acknowledge, logger
         throw new Error("Request was aborted");
       }
       const { taskId } = args ?? {};
-      log.info({ taskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Ending recognition task`);
+      const normalizedTaskId = (taskId ?? "").trim();
+      log.info({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Ending recognition task`);
       try {
-        const task = await readRecognizePlan(appDataDir, taskId ?? "", fs);
+        const task = await readRecognizePlan(appDataDir, normalizedTaskId, fs);
         if (!task) {
-          log.error({ taskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task not found`);
-          return formatToolError(`Task with id "${taskId}" not found`);
+          log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task not found`);
+          return formatToolError(`Task with id "${normalizedTaskId}" not found`);
         }
         if (task.files.length === 0) {
-          log.warn({ taskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] No files in task`);
+          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] No files in task`);
           return formatToolError("No recognized files in task");
         }
+        await updatePlanContent(appDataDir, task.id, { status: "pending" }, fs);
         const fullPlanPath = planFilePath(appDataDir, task.id);
         const planFilePathInPosix = Path.posix(fullPlanPath);
         const data = {
           taskId: task.id,
           planFilePath: planFilePathInPosix
         };
-        await ack({
+        emit({
           event: RecognizeMediaFilePlanReady.event,
           data
-        }, 0);
+        });
         log.info({
-          taskId,
+          taskId: normalizedTaskId,
           folderPath: task.mediaFolderPath,
           fileCount: task.files.length,
           clientId
         }, `[tool][${END_RECOGNIZE_TASK}] Task completed successfully`);
-        return toolOk({});
+        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
       } catch (error48) {
         return formatToolError(error48);
       }
@@ -57904,18 +58581,11 @@ function buildEndRecognizeTaskTool(clientId, appDataDir, fs, acknowledge, logger
 }
 
 // src/tools/index.ts
-var DEFAULT_RENAME_FILES_TASK_DEPS = {
-  validateOperations: async () => ({
-    isValid: true,
-    errors: [],
-    validatedRenames: []
-  }),
-  getMediaMetadata: async () => null
-};
 function createChatTools(args) {
   const { config: config2, coreRoutesConfig, userConfig, clientId, abortSignal, fs, extra } = args;
   const logger = config2.logger ?? coreRoutesConfig?.logger;
   const acknowledge = config2.acknowledge ?? defaultAcknowledge;
+  const broadcast = coreRoutesConfig?.broadcast ?? config2.broadcast ?? defaultBroadcast;
   const syntheticConfig = coreRoutesConfig ?? {
     allowlist: [],
     hello: {
@@ -57931,7 +58601,7 @@ function createChatTools(args) {
     appDataDir: config2.appDataDir,
     logger
   };
-  const renameFilesTaskDeps = extra?.renameFilesTask ?? DEFAULT_RENAME_FILES_TASK_DEPS;
+  const renameFilesTaskDeps = extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config2.appDataDir);
   return {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(clientId, userConfig, (cfg) => resolveAppLanguage({
       configured: cfg.applicationLanguage,
@@ -57945,42 +58615,11 @@ function createChatTools(args) {
     [RENAME_FOLDER]: buildRenameFolderTool(clientId, syntheticConfig, abortSignal, acknowledge),
     [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
     [ADD_RENAME_FILE_TO_TASK]: buildAddRenameFileToTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
-    [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(clientId, config2.appDataDir, fs, acknowledge, logger, abortSignal),
+    [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
     [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, logger, abortSignal),
     [ADD_RECOGNIZED_MEDIA_FILE]: buildAddRecognizedMediaFileTool(clientId, config2.appDataDir, fs, logger, abortSignal),
-    [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(clientId, config2.appDataDir, fs, acknowledge, logger, abortSignal)
+    [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal)
   };
-}
-
-// src/http.ts
-function createRequestUrl(req, fallbackPort) {
-  const host = req.headers.host ?? `127.0.0.1:${fallbackPort}`;
-  return new URL(req.url ?? "/", `http://${host}`);
-}
-function sendJson(res, status, body) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(payload, "utf8")
-  });
-  res.end(payload);
-}
-async function readJsonBody(req) {
-  const chunks = [];
-  for await (const chunk2 of req) {
-    chunks.push(Buffer.isBuffer(chunk2) ? chunk2 : Buffer.from(chunk2));
-  }
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
-  if (!raw) {
-    return {};
-  }
-  return JSON.parse(raw);
-}
-function parseBooleanQuery(value) {
-  if (value === undefined || value === null) {
-    return;
-  }
-  return value === "true";
 }
 
 // src/chat.ts
@@ -59639,8 +60278,8 @@ function createOpenAICompatible(options) {
   const getHeaders = () => withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION4}`);
   const getCommonModelConfig = (modelType) => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path: path5 }) => {
-      const url2 = new URL(`${baseURL}${path5}`);
+    url: ({ path: path6 }) => {
+      const url2 = new URL(`${baseURL}${path6}`);
       if (options.queryParams) {
         url2.search = new URLSearchParams(options.queryParams).toString();
       }
@@ -59771,9 +60410,9 @@ function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
   const base = new URL(upstreamBaseURL);
   const basePath = base.pathname.replace(/\/+$/, "");
   const normalizedPath = incomingPath.startsWith("/") ? incomingPath : `/${incomingPath}`;
-  const path5 = `${basePath}${normalizedPath}`;
+  const path6 = `${basePath}${normalizedPath}`;
   const query = incomingSearch.startsWith("?") ? incomingSearch : "";
-  return `${base.origin}${path5}${query}`;
+  return `${base.origin}${path6}${query}`;
 }
 function validateUpstreamBaseURL(headerValue, allowedUpstreamHosts) {
   let upstreamUrl;
@@ -60256,8 +60895,8 @@ function createStreamingNodeHttpFetch() {
   };
 }
 // src/writeFile.ts
-var import_node_path5 = __toESM(require("node:path"));
-var import_promises9 = require("node:fs/promises");
+var import_node_path6 = __toESM(require("node:path"));
+var import_promises10 = require("node:fs/promises");
 var import_node_fs = require("node:fs");
 
 // ../core/errors.ts
@@ -60265,12 +60904,12 @@ function isError2(error48, message) {
   return error48.startsWith(`${message}:`);
 }
 var ExistedFileError = "File Already Existed";
-function existedFileError(path5) {
-  return `${ExistedFileError}: ${path5}`;
+function existedFileError(path6) {
+  return `${ExistedFileError}: ${path6}`;
 }
 var FileNotFoundError = "File Not Found";
-function fileNotFoundError(path5) {
-  return `${FileNotFoundError}: ${path5}`;
+function fileNotFoundError(path6) {
+  return `${FileNotFoundError}: ${path6}`;
 }
 
 // src/writeFile.ts
@@ -60299,7 +60938,7 @@ async function acquireFileLock(resolvedPath) {
 }
 async function fileExists(filePath) {
   try {
-    await import_promises9.access(filePath, import_node_fs.constants.F_OK);
+    await import_promises10.access(filePath, import_node_fs.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -60318,7 +60957,7 @@ async function doWriteFile(body, config2, traceId = "") {
     }
     const { path: filePath, mode, data } = validationResult.data;
     logger?.debug({ traceId, filePath, mode, dataSize: data.length }, "doWriteFile: Processing write request");
-    const resolvedPath = import_node_path5.default.resolve(filePath);
+    const resolvedPath = import_node_path6.default.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: Path not in allowlist");
@@ -60329,9 +60968,9 @@ async function doWriteFile(body, config2, traceId = "") {
     const release = await acquireFileLock(resolvedPath);
     try {
       const validatedPath = resolvedPath;
-      const parentDir = import_node_path5.default.dirname(validatedPath);
+      const parentDir = import_node_path6.default.dirname(validatedPath);
       try {
-        await import_promises9.mkdir(parentDir, { recursive: true });
+        await import_promises10.mkdir(parentDir, { recursive: true });
         logger?.debug({ traceId, parentDir }, "doWriteFile: Parent directory ensured");
       } catch (error48) {
         logger?.warn({ traceId, error: error48 }, "doWriteFile: Failed to ensure parent directory");
@@ -60345,7 +60984,7 @@ async function doWriteFile(body, config2, traceId = "") {
           };
         }
         try {
-          await import_promises9.writeFile(validatedPath, data, "utf-8");
+          await import_promises10.writeFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, size: data.length }, "doWriteFile: File written successfully (create mode)");
           return {};
         } catch (error48) {
@@ -60358,7 +60997,7 @@ async function doWriteFile(body, config2, traceId = "") {
       if (mode === "overwrite") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Overwrite mode");
         try {
-          await import_promises9.writeFile(validatedPath, data, "utf-8");
+          await import_promises10.writeFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, size: data.length }, "doWriteFile: File written successfully (overwrite mode)");
           return {};
         } catch (error48) {
@@ -60371,7 +61010,7 @@ async function doWriteFile(body, config2, traceId = "") {
       if (mode === "append") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Append mode");
         try {
-          await import_promises9.appendFile(validatedPath, data, "utf-8");
+          await import_promises10.appendFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, appendedSize: data.length }, "doWriteFile: Data appended successfully");
           return {};
         } catch (error48) {
@@ -60401,8 +61040,8 @@ async function doWriteFile(body, config2, traceId = "") {
   }
 }
 // src/readFile.ts
-var import_node_path6 = __toESM(require("node:path"));
-var import_promises10 = require("node:fs/promises");
+var import_node_path7 = __toESM(require("node:path"));
+var import_promises11 = require("node:fs/promises");
 var import_node_fs2 = require("node:fs");
 var readFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required"),
@@ -60410,7 +61049,7 @@ var readFileRequestSchema = exports_external2.object({
 });
 async function fileExists2(filePath) {
   try {
-    await import_promises10.access(filePath, import_node_fs2.constants.F_OK);
+    await import_promises11.access(filePath, import_node_fs2.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -60421,7 +61060,7 @@ async function checkFileIsReadable(filePath) {
     return null;
   }
   try {
-    return await import_promises10.readFile(filePath, "utf-8");
+    return await import_promises11.readFile(filePath, "utf-8");
   } catch {
     return null;
   }
@@ -60439,7 +61078,7 @@ async function doReadFile(body, config2) {
     const { path: filePath, requireValidPath } = validationResult.data;
     logger?.debug({ filePath, requireValidPath }, "doReadFile: processing request");
     const posixPath = Path.posix(filePath);
-    const resolvedPath = import_node_path6.default.posix.resolve(posixPath);
+    const resolvedPath = import_node_path7.default.posix.resolve(posixPath);
     if (requireValidPath === undefined || requireValidPath === true) {
       const isAllowed = validatePathIsInAllowlist(resolvedPath, allowlist);
       if (!isAllowed) {
@@ -60473,8 +61112,8 @@ async function doReadFile(body, config2) {
   }
 }
 // src/deleteFile.ts
-var import_node_path7 = __toESM(require("node:path"));
-var import_promises11 = require("node:fs/promises");
+var import_node_path8 = __toESM(require("node:path"));
+var import_promises12 = require("node:fs/promises");
 var deleteFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required")
 });
@@ -60490,7 +61129,7 @@ async function doDeleteFile(body, config2) {
     }
     const { path: filePath } = validationResult.data;
     logger?.debug({ filePath }, "doDeleteFile: processing request");
-    const resolvedPath = import_node_path7.default.resolve(filePath);
+    const resolvedPath = import_node_path8.default.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
@@ -60500,7 +61139,7 @@ async function doDeleteFile(body, config2) {
     }
     const platformPath = Path.toPlatformPath(posixPath);
     try {
-      const fileStats = await import_promises11.stat(platformPath);
+      const fileStats = await import_promises12.stat(platformPath);
       if (!fileStats.isFile()) {
         logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
         return {
@@ -60519,7 +61158,7 @@ async function doDeleteFile(body, config2) {
       };
     }
     try {
-      await import_promises11.unlink(platformPath);
+      await import_promises12.unlink(platformPath);
       logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
       return { data: { path: platformPath } };
     } catch (error48) {
@@ -60604,11 +61243,11 @@ function getMediaFolder(filePath, folderPaths) {
 }
 
 // src/renameFileExecution.ts
-var import_promises12 = require("node:fs/promises");
-var import_node_path8 = __toESM(require("node:path"));
+var import_promises13 = require("node:fs/promises");
+var import_node_path9 = __toESM(require("node:path"));
 async function directoryExists(dirPath) {
   try {
-    const stats = await import_promises12.stat(dirPath);
+    const stats = await import_promises13.stat(dirPath);
     return stats.isDirectory();
   } catch {
     return false;
@@ -60618,15 +61257,15 @@ async function executeRenameOperation(from, to) {
   const fromPathPlatform = new Path(from).platformAbsPath();
   const toPathPlatform = new Path(to).platformAbsPath();
   try {
-    const destDir = import_node_path8.default.dirname(toPathPlatform);
-    await import_promises12.mkdir(destDir, { recursive: true });
+    const destDir = import_node_path9.default.dirname(toPathPlatform);
+    await import_promises13.mkdir(destDir, { recursive: true });
     if (!await directoryExists(destDir)) {
       return {
         success: false,
         error: `Destination directory does not exist and could not be created: ${destDir}`
       };
     }
-    await import_promises12.rename(fromPathPlatform, toPathPlatform);
+    await import_promises13.rename(fromPathPlatform, toPathPlatform);
     return { success: true };
   } catch (error48) {
     const errorMessage = error48 instanceof Error ? error48.message : "Unknown error";
@@ -60667,250 +61306,13 @@ async function executeBatchRenameOperations(renameMappings, _options = {}) {
 }
 
 // src/validateRenameOperations.ts
-var import_promises13 = require("node:fs/promises");
-
-// ../core/validations/rename/validateChainingConflicts.ts
-function validateChainingConflicts(tasks) {
-  const sourcePaths = new Set;
-  for (const task of tasks) {
-    sourcePaths.add(task.from);
-  }
-  for (const task of tasks) {
-    if (sourcePaths.has(task.to)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// ../core/validations/rename/validateNoAbnormalPaths.ts
-function isPathNormal(p) {
-  if (p.startsWith("../")) {
-    return true;
-  }
-  if (p.includes("/..") || p.includes("/./") || p.endsWith("/.")) {
-    return false;
-  }
-  const platform = Path.toPlatformPath(p);
-  const posix = Path.posix(platform);
-  const parts = posix.split("/").filter((part) => part.length > 0);
-  const resolved = [];
-  for (const part of parts) {
-    if (part === "..") {
-      if (resolved.length === 0) {
-        return false;
-      }
-      resolved.pop();
-    } else if (part !== ".") {
-      resolved.push(part);
-    }
-  }
-  const normalized = posix.startsWith("/") || /^\/[A-Za-z]:/.test(posix) ? (posix.startsWith("/") ? "/" : "") + resolved.join("/") : resolved.join("/");
-  return normalized === posix || normalized === platform;
-}
-function validateNoAbnormalPaths(tasks) {
-  const errors4 = [];
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    if (!isPathNormal(task.from)) {
-      errors4.push(`Source path "${task.from}" is abnormal`);
-    }
-    if (!isPathNormal(task.to)) {
-      errors4.push(`Destination path "${task.to}" is abnormal`);
-    }
-  }
-  return errors4;
-}
-
-// ../core/validations/rename/validateNoDuplicatedDestFile.ts
-function validateNoDuplicatedDestFile(tasks) {
-  const destPaths = new Map;
-  for (let i = 0;i < tasks.length; i++) {
-    const task = tasks[i];
-    if (!task)
-      continue;
-    const existing = destPaths.get(task.to) ?? [];
-    existing.push(i);
-    destPaths.set(task.to, existing);
-  }
-  const duplicates = [];
-  for (const [path9, indices] of destPaths) {
-    if (indices.length > 1) {
-      duplicates.push(path9);
-    }
-  }
-  return {
-    isValid: duplicates.length === 0,
-    duplicates
-  };
-}
-
-// ../core/validations/rename/validateNoDuplicatedSourceFile.ts
-function validateNoDuplicatedSourceFile(tasks) {
-  const sourcePaths = new Map;
-  for (let i = 0;i < tasks.length; i++) {
-    const task = tasks[i];
-    if (!task)
-      continue;
-    const existing = sourcePaths.get(task.from) ?? [];
-    existing.push(i);
-    sourcePaths.set(task.from, existing);
-  }
-  const duplicates = [];
-  for (const [path9, indices] of sourcePaths) {
-    if (indices.length > 1) {
-      duplicates.push(path9);
-    }
-  }
-  return {
-    isValid: duplicates.length === 0,
-    duplicates
-  };
-}
-
-// ../core/validations/rename/validateNoIdenticalSourceAndDestFile.ts
-function validateNoIdenticalSourceAndDestFile(tasks) {
-  const identicals = [];
-  for (const task of tasks) {
-    if (task && task.from === task.to) {
-      identicals.push(task.from);
-    }
-  }
-  return {
-    isValid: identicals.length === 0,
-    identicals
-  };
-}
-
-// ../core/validations/rename/validatePathWithinMediaFolder.ts
-function validatePathWithinMediaFolder(mediaFolderPath, tasks) {
-  const invalidPaths = [];
-  const mediaFolderObj = new Path(mediaFolderPath);
-  const mediaFolderNormalized = mediaFolderObj.abs("posix");
-  const mediaFolderWithoutDrive = mediaFolderNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    const fromPathObj = new Path(task.from);
-    const fromNormalized = fromPathObj.abs("posix");
-    const fromWithoutDrive = fromNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
-    if (!fromWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
-      invalidPaths.push({ path: task.from, type: "source" });
-    }
-    const toPathObj = new Path(task.to);
-    const toNormalized = toPathObj.abs("posix");
-    const toWithoutDrive = toNormalized.replace(/^\/[A-Za-z](?::|\/)/, "");
-    if (!toWithoutDrive.startsWith(mediaFolderWithoutDrive)) {
-      invalidPaths.push({ path: task.to, type: "destination" });
-    }
-  }
-  return {
-    isValid: invalidPaths.length === 0,
-    invalidPaths
-  };
-}
-
-// ../core/validations/rename/validateRenameOperationsSync.ts
-function validateRenameOperationsSync(files, folderPathInPosix) {
-  const errors4 = [];
-  const normalizedTasks = [];
-  const taskIndexMap = new Map;
-  for (let i = 0;i < files.length; i++) {
-    const renameOp = files[i];
-    if (!renameOp) {
-      continue;
-    }
-    taskIndexMap.set(normalizedTasks.length, i);
-    normalizedTasks.push({
-      from: Path.posix(renameOp.from),
-      to: Path.posix(renameOp.to)
-    });
-  }
-  if (normalizedTasks.length === 0) {
-    return {
-      isValid: true,
-      errors: [],
-      validatedRenames: []
-    };
-  }
-  const abnormalPathErrors = validateNoAbnormalPaths(normalizedTasks);
-  if (abnormalPathErrors.length > 0) {
-    errors4.push(...abnormalPathErrors);
-  }
-  const duplicateSourceResult = validateNoDuplicatedSourceFile(normalizedTasks);
-  if (!duplicateSourceResult.isValid) {
-    for (const duplicatePath of duplicateSourceResult.duplicates) {
-      const indices = [];
-      normalizedTasks.forEach((task, idx) => {
-        if (task.from === duplicatePath) {
-          indices.push(taskIndexMap.get(idx) ?? idx);
-        }
-      });
-      errors4.push(`Source file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
-    }
-  }
-  const duplicateDestResult = validateNoDuplicatedDestFile(normalizedTasks);
-  if (!duplicateDestResult.isValid) {
-    for (const duplicatePath of duplicateDestResult.duplicates) {
-      const indices = [];
-      normalizedTasks.forEach((task, idx) => {
-        if (task.to === duplicatePath) {
-          indices.push(taskIndexMap.get(idx) ?? idx);
-        }
-      });
-      errors4.push(`Target file "${duplicatePath}" appears multiple times in the batch (at indices ${indices.join(", ")})`);
-    }
-  }
-  const identicalResult = validateNoIdenticalSourceAndDestFile(normalizedTasks);
-  const sourcePaths = new Set;
-  normalizedTasks.forEach((task) => sourcePaths.add(task.from));
-  const hasChainingConflicts = !validateChainingConflicts(normalizedTasks);
-  const chainingConflictTasks = new Set;
-  if (hasChainingConflicts) {
-    normalizedTasks.forEach((task, idx) => {
-      if (sourcePaths.has(task.to)) {
-        chainingConflictTasks.add(idx);
-        errors4.push(`Target file "${task.to}" conflicts with a source path in the same batch (cannot chain renames)`);
-      }
-    });
-  }
-  const pathWithinFolderResult = validatePathWithinMediaFolder(folderPathInPosix, normalizedTasks);
-  if (!pathWithinFolderResult.isValid) {
-    for (const invalidPath of pathWithinFolderResult.invalidPaths) {
-      errors4.push(`${invalidPath.type === "source" ? "Source" : "Target"} path "${invalidPath.path}" is outside the media folder "${folderPathInPosix}"`);
-    }
-  }
-  const invalidTasks = new Set;
-  normalizedTasks.forEach((task, idx) => {
-    const hasError = abnormalPathErrors.some((e) => e.includes(`"${task.from}"`) || e.includes(`"${task.to}"`)) || duplicateSourceResult.duplicates.includes(task.from) || duplicateDestResult.duplicates.includes(task.to) || identicalResult.identicals.includes(task.from) || pathWithinFolderResult.invalidPaths.some((p) => p.path === task.from || p.path === task.to) || chainingConflictTasks.has(idx);
-    if (hasError) {
-      invalidTasks.add(idx);
-    }
-  });
-  const validatedRenames = [];
-  normalizedTasks.forEach((task, idx) => {
-    if (!invalidTasks.has(idx) && task.from !== task.to) {
-      validatedRenames.push({
-        from: task.from,
-        to: task.to
-      });
-    }
-  });
-  return {
-    isValid: errors4.length === 0,
-    errors: errors4,
-    validatedRenames
-  };
-}
-
-// src/validateRenameOperations.ts
-async function validateSourceFileExist(tasks) {
+var import_promises14 = require("node:fs/promises");
+async function validateSourceFileExist2(tasks) {
   const missingFiles = [];
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.from);
-      const stats = await import_promises13.stat(platformPath);
+      const stats = await import_promises14.stat(platformPath);
       if (!stats.isFile()) {
         missingFiles.push(task.from);
       }
@@ -60923,12 +61325,12 @@ async function validateSourceFileExist(tasks) {
     missingFiles
   };
 }
-async function validateDestFileNotExist(tasks) {
+async function validateDestFileNotExist2(tasks) {
   const existingFiles = [];
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.to);
-      const stats = await import_promises13.stat(platformPath);
+      const stats = await import_promises14.stat(platformPath);
       if (stats.isFile()) {
         existingFiles.push(task.to);
       }
@@ -60941,7 +61343,7 @@ async function validateDestFileNotExist(tasks) {
     existingFiles
   };
 }
-async function validateRenameOperations(files, folderPathInPosix) {
+async function validateRenameOperations2(files, folderPathInPosix) {
   const normalizedTasks = [];
   for (const renameOp of files) {
     if (!renameOp) {
@@ -60961,13 +61363,13 @@ async function validateRenameOperations(files, folderPathInPosix) {
   }
   const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
   const errors4 = [...syncResult.errors];
-  const sourceExistResult = await validateSourceFileExist(normalizedTasks);
+  const sourceExistResult = await validateSourceFileExist2(normalizedTasks);
   if (!sourceExistResult.isValid) {
     for (const missingFile of sourceExistResult.missingFiles) {
       errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
     }
   }
-  const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
+  const destNotExistResult = await validateDestFileNotExist2(normalizedTasks);
   if (!destNotExistResult.isValid) {
     for (const existingFile of destNotExistResult.existingFiles) {
       errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
@@ -61034,7 +61436,7 @@ async function doRenameFiles(body, config2 = {}, headerClientId) {
     return { error: `Media folder not found for ${files[0].from}` };
   }
   const mediaFolderInPosix = Path.posix(mediaFolderPath);
-  const validationResult = await validateRenameOperations(files, mediaFolderInPosix);
+  const validationResult = await validateRenameOperations2(files, mediaFolderInPosix);
   if (!validationResult.isValid) {
     return { error: validationResult.errors.join(", ") };
   }
@@ -61060,11 +61462,104 @@ async function doRenameFiles(body, config2 = {}, headerClientId) {
     }
   };
 }
+// src/plansApi.ts
+var getPlansRequestSchema = exports_external2.object({
+  mediaFolderPath: exports_external2.string().min(1, "mediaFolderPath is required")
+});
+var createPlanRequestSchema = exports_external2.object({
+  id: exports_external2.string().optional(),
+  task: exports_external2.enum(["recognize-media-file", "rename-files"]),
+  mediaFolderPath: exports_external2.string().min(1, "mediaFolderPath is required"),
+  creator: exports_external2.enum(["app", "ai"])
+});
+var recognizedFileSchema = exports_external2.object({
+  season: exports_external2.number(),
+  episode: exports_external2.number(),
+  path: exports_external2.string()
+});
+var renameEntrySchema = exports_external2.object({
+  from: exports_external2.string(),
+  to: exports_external2.string()
+});
+var getPlanByIdRequestSchema = exports_external2.object({
+  id: exports_external2.string().min(1, "id is required")
+});
+var updatePlanRequestSchema = exports_external2.object({
+  id: exports_external2.string().min(1, "id is required"),
+  status: exports_external2.enum(["preparing", "pending", "completed", "rejected"]).optional(),
+  files: exports_external2.union([exports_external2.array(recognizedFileSchema), exports_external2.array(renameEntrySchema)]).optional()
+});
+function resolveFs(config2) {
+  return config2.chat?.fs ?? defaultChatFs();
+}
+function validationError(error48) {
+  return `Error Reason: Invalid request body: ${error48.issues.map((i) => i.message).join(", ")}`;
+}
+async function doGetPlans(body, config2 = { allowlist: [] }) {
+  const parsed = getPlansRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { error: validationError(parsed.error) };
+  }
+  const appDataDir = resolveAppDataDir(config2);
+  if (!appDataDir) {
+    return { error: "Error Reason: appDataDir is not configured" };
+  }
+  const plans = await getActivePlansForFolder(appDataDir, parsed.data.mediaFolderPath, resolveFs(config2));
+  return { data: { plans } };
+}
+async function doCreatePlan(body, config2 = { allowlist: [] }) {
+  const parsed = createPlanRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { error: validationError(parsed.error) };
+  }
+  const appDataDir = resolveAppDataDir(config2);
+  if (!appDataDir) {
+    return { error: "Error Reason: appDataDir is not configured" };
+  }
+  const plan = await createPlan(appDataDir, parsed.data, resolveFs(config2));
+  return { data: { plan } };
+}
+async function doGetPlanById(body, config2 = { allowlist: [] }) {
+  const parsed = getPlanByIdRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { error: validationError(parsed.error) };
+  }
+  const appDataDir = resolveAppDataDir(config2);
+  if (!appDataDir) {
+    return { error: "Error Reason: appDataDir is not configured" };
+  }
+  const plan = await readPlanById(appDataDir, parsed.data.id.trim(), resolveFs(config2));
+  if (!plan) {
+    return {
+      error: `Error Reason: Plan with id "${parsed.data.id.trim()}" not found`
+    };
+  }
+  return { data: { plan } };
+}
+async function doUpdatePlan(body, config2 = { allowlist: [] }) {
+  const parsed = updatePlanRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return { error: validationError(parsed.error) };
+  }
+  const appDataDir = resolveAppDataDir(config2);
+  if (!appDataDir) {
+    return { error: "Error Reason: appDataDir is not configured" };
+  }
+  const { id, status, files } = parsed.data;
+  const plan = await updatePlanContent(appDataDir, id.trim(), {
+    status,
+    files
+  }, resolveFs(config2));
+  if (!plan) {
+    return { error: `Error Reason: Plan with id "${id}" not found` };
+  }
+  return { data: { plan } };
+}
 // src/downloadImage.ts
 var import_node_buffer = require("node:buffer");
-var import_promises14 = require("node:fs/promises");
+var import_promises15 = require("node:fs/promises");
 var import_node_url = require("node:url");
-var import_node_path9 = require("node:path");
+var import_node_path10 = require("node:path");
 var DEFAULT_CONTENT_TYPE = "image/jpeg";
 var EXTENSION_TO_CONTENT_TYPE = {
   ".jpg": "image/jpeg",
@@ -61139,8 +61634,8 @@ async function doDownloadImage(url2, config2) {
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
     }
-    const buffer2 = await import_promises14.readFile(platformPath);
-    const ext = import_node_path9.extname(platformPath);
+    const buffer2 = await import_promises15.readFile(platformPath);
+    const ext = import_node_path10.extname(platformPath);
     const contentType2 = getContentTypeFromExtension(ext);
     logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
     return { buffer: buffer2, contentType: contentType2 };
@@ -61165,16 +61660,16 @@ async function doDownloadImage(url2, config2) {
 }
 // src/downloadImageAsFile.ts
 var import_node_buffer2 = require("node:buffer");
-var import_promises15 = require("node:fs/promises");
+var import_promises16 = require("node:fs/promises");
 var import_node_fs3 = require("node:fs");
-var import_node_path10 = __toESM(require("node:path"));
+var import_node_path11 = __toESM(require("node:path"));
 var downloadImageAsFileRequestSchema = exports_external2.object({
   url: exports_external2.string().min(1, "url is required"),
   path: exports_external2.string().min(1, "path is required")
 });
 async function fileExists3(filePath) {
   try {
-    await import_promises15.access(filePath, import_node_fs3.constants.F_OK);
+    await import_promises16.access(filePath, import_node_fs3.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -61202,7 +61697,7 @@ async function doDownloadImageAsFile(body, config2) {
     }
     const { url: url2, path: destPath } = validationResult.data;
     logger?.debug({ url: url2, destPath }, "[DownloadImageAsFile] processing request");
-    const posixDestPath = import_node_path10.default.posix.resolve(Path.posix(destPath));
+    const posixDestPath = import_node_path11.default.posix.resolve(Path.posix(destPath));
     if (!validatePathIsInAllowlist(posixDestPath, allowlist)) {
       logger?.warn({ destPath, posixDestPath }, "[DownloadImageAsFile] destination not in allowlist");
       return {
@@ -61255,7 +61750,7 @@ async function doDownloadImageAsFile(body, config2) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const buffer = import_node_buffer2.Buffer.from(arrayBuffer);
-    await import_promises15.writeFile(platformDestPath, buffer);
+    await import_promises16.writeFile(platformDestPath, buffer);
     logger?.info({ url: normalizedUrl, destPath: platformDestPath, bytes: buffer.length }, "[DownloadImageAsFile] wrote file");
     return { data: { url: url2, path: destPath } };
   } catch (error48) {
@@ -61271,9 +61766,9 @@ async function doDownloadImageAsFile(body, config2) {
 }
 // src/readImage.ts
 var import_node_buffer3 = require("node:buffer");
-var import_promises16 = require("node:fs/promises");
+var import_promises17 = require("node:fs/promises");
 var import_node_fs4 = require("node:fs");
-var import_node_path11 = __toESM(require("node:path"));
+var import_node_path12 = __toESM(require("node:path"));
 var readImageRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "path is required")
 });
@@ -61302,16 +61797,16 @@ var EXTENSION_TO_MIME = {
   ".tif": "image/tiff"
 };
 function isValidImageFile(filePath) {
-  const ext = import_node_path11.default.extname(filePath).toLowerCase();
+  const ext = import_node_path12.default.extname(filePath).toLowerCase();
   return VALID_IMAGE_EXTENSIONS.includes(ext);
 }
 function getImageMimeType(filePath) {
-  const ext = import_node_path11.default.extname(filePath).toLowerCase();
+  const ext = import_node_path12.default.extname(filePath).toLowerCase();
   return EXTENSION_TO_MIME[ext] ?? "image/jpeg";
 }
 async function fileExists4(filePath) {
   try {
-    await import_promises16.access(filePath, import_node_fs4.constants.F_OK);
+    await import_promises17.access(filePath, import_node_fs4.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -61328,7 +61823,7 @@ async function doReadImage(body, config2) {
       };
     }
     const { path: filePath } = validationResult.data;
-    const posixPath = import_node_path11.default.posix.resolve(Path.posix(filePath));
+    const posixPath = import_node_path12.default.posix.resolve(Path.posix(filePath));
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath, posixPath }, "[ReadImage] path not in allowlist");
       return {
@@ -61347,7 +61842,7 @@ async function doReadImage(body, config2) {
       };
     }
     try {
-      const arrayBuffer = await import_promises16.readFile(platformPath);
+      const arrayBuffer = await import_promises17.readFile(platformPath);
       const base643 = import_node_buffer3.Buffer.from(arrayBuffer).toString("base64");
       const mimeType = getImageMimeType(platformPath);
       return {
@@ -61823,6 +62318,72 @@ async function handleMcpStatusGet(req, res, ctx) {
   return true;
 }
 
+// src/routes/plansRoute.ts
+async function handleGetPlansPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/getPlans") {
+    return false;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const result = await doGetPlans(body, ctx.config);
+    sendJson(res, 200, result);
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "[GetPlans] route error");
+    sendJson(res, 200, {
+      error: `Error Reason: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    });
+  }
+  return true;
+}
+async function handleGetPlanByIdPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/getPlanById") {
+    return false;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const result = await doGetPlanById(body, ctx.config);
+    sendJson(res, 200, result);
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "[GetPlanById] route error");
+    sendJson(res, 200, {
+      error: `Error Reason: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    });
+  }
+  return true;
+}
+async function handleCreatePlanPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/createPlan") {
+    return false;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const result = await doCreatePlan(body, ctx.config);
+    sendJson(res, 200, result);
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "[CreatePlan] route error");
+    sendJson(res, 200, {
+      error: `Error Reason: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    });
+  }
+  return true;
+}
+async function handleUpdatePlanPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/updatePlan") {
+    return false;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const result = await doUpdatePlan(body, ctx.config);
+    sendJson(res, 200, result);
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "[UpdatePlan] route error");
+    sendJson(res, 200, {
+      error: `Error Reason: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    });
+  }
+  return true;
+}
+
 // src/register.ts
 var coreRouteHandlers = [
   handleListFilesGet,
@@ -61842,7 +62403,11 @@ var coreRouteHandlers = [
   handleChatPost,
   handleMcpStartPut,
   handleMcpStopPut,
-  handleMcpStatusGet
+  handleMcpStatusGet,
+  handleGetPlansPost,
+  handleGetPlanByIdPost,
+  handleCreatePlanPost,
+  handleUpdatePlanPost
 ];
 function createCoreRoutesRequestHandler(config2, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;
@@ -61852,6 +62417,9 @@ function createCoreRoutesRequestHandler(config2, options = {}) {
 }
 async function handleCoreRoutesRequest(req, res, config2, fallbackPort = 3001) {
   const url2 = createRequestUrl(req, fallbackPort);
+  if (enforceCoreRoutesAuth(req, res, config2)) {
+    return;
+  }
   const ctx = { config: config2, url: url2 };
   for (const handler of coreRouteHandlers) {
     const handled = await handler(req, res, ctx);
@@ -66621,9 +67189,9 @@ class WebStandardStreamableHTTPServerTransport {
       throw new Error("Stateless transport cannot be reused across requests. Create a new transport per request.");
     }
     this._hasHandledRequest = true;
-    const validationError = this.validateRequestHeaders(req);
-    if (validationError) {
-      return validationError;
+    const validationError2 = this.validateRequestHeaders(req);
+    if (validationError2) {
+      return validationError2;
     }
     switch (req.method) {
       case "POST":
@@ -67065,109 +67633,6 @@ data:
   }
 }
 
-// src/renameFilesValidation.ts
-var import_promises17 = require("node:fs/promises");
-async function validateRenameOperations2(files, folderPathInPosix) {
-  const normalizedTasks = [];
-  for (let i = 0;i < files.length; i++) {
-    const renameOp = files[i];
-    if (!renameOp) {
-      continue;
-    }
-    normalizedTasks.push({
-      from: Path.posix(renameOp.from),
-      to: Path.posix(renameOp.to)
-    });
-  }
-  if (normalizedTasks.length === 0) {
-    return {
-      isValid: true,
-      errors: [],
-      validatedRenames: []
-    };
-  }
-  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
-  const errors4 = [...syncResult.errors];
-  const sourceExistResult = await validateSourceFileExist2(normalizedTasks);
-  if (!sourceExistResult.isValid) {
-    for (const missingFile of sourceExistResult.missingFiles) {
-      errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
-    }
-  }
-  const destNotExistResult = await validateDestFileNotExist2(normalizedTasks);
-  if (!destNotExistResult.isValid) {
-    for (const existingFile of destNotExistResult.existingFiles) {
-      errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
-    }
-  }
-  if (errors4.length > 0) {
-    return {
-      isValid: false,
-      errors: errors4,
-      validatedRenames: []
-    };
-  }
-  return syncResult;
-}
-async function validateSourceFileExist2(tasks) {
-  const missingFiles = [];
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    try {
-      const platformPath = Path.toPlatformPath(task.from);
-      const stats = await import_promises17.stat(platformPath);
-      if (!stats.isFile()) {
-        missingFiles.push(task.from);
-      }
-    } catch {
-      missingFiles.push(task.from);
-    }
-  }
-  return {
-    isValid: missingFiles.length === 0,
-    missingFiles
-  };
-}
-async function validateDestFileNotExist2(tasks) {
-  const existingFiles = [];
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    try {
-      const platformPath = Path.toPlatformPath(task.to);
-      const stats = await statWithTimeout(platformPath);
-      if (stats.isFile()) {
-        existingFiles.push(task.to);
-      }
-    } catch {
-      continue;
-    }
-  }
-  return {
-    isValid: existingFiles.length === 0,
-    existingFiles
-  };
-}
-function statWithTimeout(filePath, timeoutMs = 1000) {
-  return Promise.race([
-    import_promises17.stat(filePath),
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`stat timeout for path: ${filePath}`)), timeoutMs))
-  ]);
-}
-
-// src/tools/renameFilesTaskDefaults.ts
-function defaultRenameFilesTaskDeps(appDataDir) {
-  return {
-    validateOperations: async (files, folderPathInPosix) => {
-      return validateRenameOperations2(files, folderPathInPosix);
-    },
-    getMediaMetadata: async (folderPathInPosix) => {
-      return await readMediaMetadataCache(appDataDir, folderPathInPosix) ?? null;
-    }
-  };
-}
-
 // src/mcp/toolHandlers/addRecognizedFile.ts
 function registerAddRecognizedFileTool(server, config2) {
   const fs = config2.fs ?? defaultChatFs();
@@ -67182,7 +67647,7 @@ function registerAddRecognizedFileTool(server, config2) {
     description: agentTool.description,
     inputSchema
   }, async (args) => {
-    const { taskId, season, episode, path: path11 } = args ?? {};
+    const { taskId, season, episode, path: path12 } = args ?? {};
     if (typeof taskId !== "string" || taskId.trim() === "") {
       return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
     }
@@ -67192,7 +67657,7 @@ function registerAddRecognizedFileTool(server, config2) {
     if (typeof episode !== "number" || episode < 0) {
       return createErrorResponse("Invalid episode: 'episode' must be a non-negative number");
     }
-    if (typeof path11 !== "string" || path11.trim() === "") {
+    if (typeof path12 !== "string" || path12.trim() === "") {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
@@ -67200,7 +67665,7 @@ function registerAddRecognizedFileTool(server, config2) {
         taskId,
         season,
         episode,
-        path: Path.posix(path11)
+        path: Path.posix(path12)
       });
       return createSuccessResponse({ success: true, taskId });
     } catch (error48) {
@@ -67210,7 +67675,7 @@ function registerAddRecognizedFileTool(server, config2) {
 }
 
 // src/mcp/toolHandlers/addRenameFile.ts
-var import_node_path12 = require("node:path");
+var import_node_path13 = require("node:path");
 function registerAddRenameFileTool(server, config2, deps) {
   const fs = config2.fs ?? defaultChatFs();
   const agentTool = buildAddRenameFileToTaskTool("mcp", config2.appDataDir, fs, deps, config2.logger, undefined);
@@ -67256,7 +67721,7 @@ function registerAddRenameFileTool(server, config2, deps) {
   });
 }
 function isVideoFile2(filePath) {
-  const extension = import_node_path12.extname(filePath).toLowerCase();
+  const extension = import_node_path13.extname(filePath).toLowerCase();
   return videoFileExtensions.includes(extension);
 }
 
@@ -67337,7 +67802,7 @@ function registerBeginRenameTaskTool(server, config2, deps) {
 // src/mcp/toolHandlers/endRecognizeTask.ts
 function registerEndRecognizeTaskTool(server, config2) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildEndRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.acknowledge, config2.logger, undefined);
+  const agentTool = buildEndRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     taskId: exports_external.string().describe("The task ID from begin-recognize-task")
   });
@@ -67360,7 +67825,11 @@ function registerEndRecognizeTaskTool(server, config2) {
           });
         }
       }
-      return createSuccessResponse({ success: true, taskId });
+      return createSuccessResponse({
+        success: true,
+        taskId,
+        message: END_PLAN_TASK_SUCCESS_MESSAGE
+      });
     } catch (error48) {
       return createErrorResponse(`Error ending recognize task: ${error48 instanceof Error ? error48.message : String(error48)}`);
     }
@@ -67370,7 +67839,7 @@ function registerEndRecognizeTaskTool(server, config2) {
 // src/mcp/toolHandlers/endRenameTask.ts
 function registerEndRenameTaskTool(server, config2, deps) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildEndRenameFilesTaskTool("mcp", config2.appDataDir, fs, config2.acknowledge, config2.logger, undefined);
+  const agentTool = buildEndRenameFilesTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     taskId: exports_external.string().describe("The task ID returned from begin-rename-task")
   });
@@ -67393,7 +67862,11 @@ function registerEndRenameTaskTool(server, config2, deps) {
           });
         }
       }
-      return createSuccessResponse({ success: true, taskId });
+      return createSuccessResponse({
+        success: true,
+        taskId,
+        message: END_PLAN_TASK_SUCCESS_MESSAGE
+      });
     } catch (error48) {
       return createErrorResponse(`Error ending rename task: ${error48 instanceof Error ? error48.message : String(error48)}`);
     }
@@ -67600,12 +68073,12 @@ function registerIsFolderExistTool(server, config2) {
     inputSchema: isFolderExistInputSchema,
     outputSchema: isFolderExistOutputSchema
   }, async (args) => {
-    const { path: path11 } = args ?? {};
-    if (typeof path11 !== "string" || path11.trim() === "") {
+    const { path: path12 } = args ?? {};
+    if (typeof path12 !== "string" || path12.trim() === "") {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
-      const result = await executeIsFolderExist(path11);
+      const result = await executeIsFolderExist(path12);
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
@@ -67643,7 +68116,10 @@ function registerListFilesTool(server, config2) {
         path: folderPath,
         recursively: recursive ?? false,
         onlyFiles: true
-      }, { logger: config2.logger });
+      }, {
+        logger: config2.logger,
+        activatePersistedFileAccess: config2.activatePersistedFileAccess
+      });
       if (listResult.error) {
         return createErrorResponse(listResult.error);
       }
@@ -67859,16 +68335,10 @@ async function createMcpStreamableHttpHandler(config2) {
   registerGetEpisodesTool(server, config2);
   await server.connect(new WebStandardStreamableHTTPServerTransport({}));
   return async (req) => {
-    const logUrl = `${req.method} ${req.url}`;
-    console.log(`[mcp-diag] handler invoked: ${logUrl}, globalThis.Response === Response: ${globalThis.Response === Response}, Response ctor name: ${Response.name}`);
     await server.close();
     const transport = new WebStandardStreamableHTTPServerTransport({});
     await server.connect(transport);
-    const transportCtor = transport.constructor.name;
-    console.log(`[mcp-diag] new transport: ctor=${transportCtor}, globalThis.Response ctor=${globalThis.Response.name}, globalThis.Request ctor=${globalThis.Request.name}`);
-    const response = await transport.handleRequest(req);
-    console.log(`[mcp-diag] handleRequest returned: status=${response.status}, ctor=${response.constructor.name}, contentType=${response.headers.get("content-type")}, bodyLocked=${response.body?.locked}, bodyConstructor=${response.body?.constructor.name}`);
-    return response;
+    return transport.handleRequest(req);
   };
 }
 // src/mcp/response.ts

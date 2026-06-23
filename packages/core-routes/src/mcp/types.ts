@@ -64,6 +64,13 @@ export interface McpConfig {
    * here via its i18next setup.
    */
   toolDescriptions?: Record<string, string>;
+
+  /**
+   * Re-activate persisted `file://` folder access before listing.
+   * Required on HarmonyOS when external MCP clients call `list-files`
+   * without going through the renderer's file-access IPC.
+   */
+  activatePersistedFileAccess?: (paths: string[]) => void | Promise<void>;
 }
 
 /**

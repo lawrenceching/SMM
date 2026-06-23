@@ -2,9 +2,14 @@ import { z } from "zod/v3";
 import os from "node:os";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { Path } from "@smm/core/path";
 import type { ListFilesRequestBody, ListFilesResponseBody } from "@smm/core/types";
+import {
+  joinListFilesChildPath,
+  normalizeListFilesInputPath,
+  resolveListFilesAbsolutePath,
+} from "./resolveListFilesPath.ts";
 import type { CoreRoutesConfig } from "./types.ts";
+import { describeToolFailure } from "./describeToolFailure.ts";
 
 const listFilesRequestSchema = z.object({
   path: z.string().min(1, "Path is required"),
@@ -26,9 +31,9 @@ const emptyListFilesData = {
 
 export async function doListFiles(
   body: ListFilesRequestBody,
-  config: Pick<CoreRoutesConfig, "logger"> = {},
+  config: Pick<CoreRoutesConfig, "logger" | "activatePersistedFileAccess"> = {},
 ): Promise<ListFilesResponseBody> {
-  const { logger } = config;
+  const { logger, activatePersistedFileAccess } = config;
   const requestId = `listFiles-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   logger?.info({ requestId, body }, "[ListFiles] request received");
 
@@ -65,20 +70,39 @@ export async function doListFiles(
     }
 
     try {
-      if (folderPath.startsWith("/") && Path.isWindows()) {
-        const normalizedPosixPath = folderPath.replace(/^\/([A-Za-z]):\//, "/$1/");
-        folderPath = Path.win(normalizedPosixPath);
-      } else if (/^[A-Za-z]:/.test(folderPath) && !Path.isWindows()) {
-        folderPath = new Path(folderPath).abs("posix");
-      } else {
-        folderPath = Path.toPlatformPath(folderPath);
-      }
+      folderPath = normalizeListFilesInputPath(folderPath);
     } catch (error) {
-      logger?.info({ requestId, folderPath, error }, "[ListFiles] Path normalization threw, using path.resolve");
+      logger?.info(
+        { requestId, folderPath, error },
+        "[ListFiles] Path normalization threw, using raw path",
+      );
     }
 
-    const validatedPath = path.resolve(folderPath);
+    const validatedPath = resolveListFilesAbsolutePath(folderPath);
     logger?.info({ requestId, validatedPath }, "[ListFiles] resolved absolute path");
+
+    if (validatedPath.startsWith("file://")) {
+      if (activatePersistedFileAccess) {
+        try {
+          await activatePersistedFileAccess([validatedPath]);
+        } catch (error) {
+          const failure = describeToolFailure(error);
+          logger?.warn(
+            { requestId, validatedPath, ...failure },
+            "[ListFiles] file access activation failed",
+          );
+          return {
+            data: { path: validatedPath, items: [], size: 0 },
+            error: `File Access Activation Failed: ${failure.message}`,
+          };
+        }
+      } else {
+        logger?.warn(
+          { requestId, validatedPath },
+          "[ListFiles] file:// path without activatePersistedFileAccess hook",
+        );
+      }
+    }
 
     try {
       const stats = await stat(validatedPath);
@@ -120,7 +144,7 @@ export async function doListFiles(
         const items = await readdir(dirPath);
 
         for (const item of items) {
-          const fullPath = path.join(dirPath, item);
+          const fullPath = joinListFilesChildPath(dirPath, item);
 
           try {
             const itemStats = await stat(fullPath);

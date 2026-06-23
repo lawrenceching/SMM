@@ -65,6 +65,12 @@ export interface CoreRoutesConfig {
    * requests must send `Authorization: Bearer <token>`.
    */
   auth?: CoreRoutesAuthConfig;
+  /**
+   * Re-activate persisted file-access permissions before listing a
+   * `file://` folder. Injected by HarmonyOS Electron; no-op on
+   * desktop CLI when omitted.
+   */
+  activatePersistedFileAccess?: (paths: string[]) => void | Promise<void>;
 }
 
 export interface RouteContext {

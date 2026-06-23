@@ -111,12 +111,6 @@ export async function createMcpStreamableHttpHandler(
   await server.connect(new WebStandardStreamableHTTPServerTransport({}));
 
   return async (req: Request): Promise<Response> => {
-    // === DIAGNOSTIC: log handler entry ===
-    const logUrl = `${req.method} ${req.url}`;
-    console.log(
-      `[mcp-diag] handler invoked: ${logUrl}, globalThis.Response === Response: ${globalThis.Response === Response}, Response ctor name: ${Response.name}`,
-    );
-
     // Stateless mode — each request gets a fresh transport. Close
     // the previous transport connection first so `server.connect`
     // can attach a new one (the server keeps its tool registrations).
@@ -124,19 +118,6 @@ export async function createMcpStreamableHttpHandler(
     const transport = new WebStandardStreamableHTTPServerTransport({});
     await server.connect(transport);
 
-    // === DIAGNOSTIC: log transport identity ===
-    const transportCtor = transport.constructor.name;
-    console.log(
-      `[mcp-diag] new transport: ctor=${transportCtor}, globalThis.Response ctor=${globalThis.Response.name}, globalThis.Request ctor=${globalThis.Request.name}`,
-    );
-
-    const response = await transport.handleRequest(req);
-
-    // === DIAGNOSTIC: log response identity ===
-    console.log(
-      `[mcp-diag] handleRequest returned: status=${response.status}, ctor=${response.constructor.name}, contentType=${response.headers.get("content-type")}, bodyLocked=${response.body?.locked}, bodyConstructor=${response.body?.constructor.name}`,
-    );
-
-    return response;
+    return transport.handleRequest(req);
   };
 }

@@ -92,7 +92,10 @@ export function registerListFilesTool(
             recursively: recursive ?? false,
             onlyFiles: true,
           },
-          { logger: config.logger },
+          {
+            logger: config.logger,
+            activatePersistedFileAccess: config.activatePersistedFileAccess,
+          },
         );
 
         if (listResult.error) {

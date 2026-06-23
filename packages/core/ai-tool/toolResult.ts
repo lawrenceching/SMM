@@ -21,6 +21,28 @@ export function requireNonEmptyString(
   return value
 }
 
+function messageFromUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error === null || error === undefined) {
+    return 'Unknown error (null/undefined thrown)'
+  }
+  try {
+    const json = JSON.stringify(error)
+    if (json && json !== '{}') {
+      return json
+    }
+  } catch {
+    // fall through
+  }
+  const text = String(error)
+  return text || 'Unknown error'
+}
+
 export function formatToolError(error: unknown): { error: string } {
-  return toolError(error instanceof Error ? error.message : 'Unknown error')
+  return toolError(messageFromUnknownError(error))
 }
