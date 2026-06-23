@@ -72,7 +72,6 @@ export function McpIndicator({ className }: McpIndicatorProps) {
             // 2. Start server — may fail
             try {
                 await doStartMcpServer(queryClient, { host: mcpHost, port: mcpPort })
-                toast.success(t('statusBar.mcp.serverOn'))
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 console.error(`[${traceId}] MCP start failed:`, msg)
