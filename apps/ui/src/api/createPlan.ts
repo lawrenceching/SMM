@@ -1,5 +1,6 @@
 import type { PlanCreator } from '@core/types/planCommon';
 import type { Plan } from './getPlans';
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface CreatePlanRequest {
   /** Optional client-supplied UUID so the caller can reference the plan immediately. */
@@ -21,7 +22,7 @@ export async function createPlan(
   request: CreatePlanRequest,
   signal?: AbortSignal,
 ): Promise<CreatePlanResponseBody> {
-  const resp = await fetch('/api/createPlan', {
+  const resp = await apiFetch('/api/createPlan', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -10,6 +10,11 @@ export interface CoreRoutesLogger {
   error(obj: Record<string, unknown>, msg?: string): void;
 }
 
+export interface CoreRoutesAuthConfig {
+  enabled: boolean;
+  token: string;
+}
+
 import type { WebSocketMessage } from "./socketIO/types.ts";
 
 export interface CoreRoutesConfig {
@@ -55,6 +60,11 @@ export interface CoreRoutesConfig {
   mcp?: {
     manager: McpLifecycleManager;
   };
+  /**
+   * Optional Bearer token auth for HTTP routes. When `enabled` is true,
+   * requests must send `Authorization: Bearer <token>`.
+   */
+  auth?: CoreRoutesAuthConfig;
 }
 
 export interface RouteContext {

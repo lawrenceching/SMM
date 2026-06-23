@@ -26,6 +26,7 @@ import {
   handleGetPlansPost,
   handleUpdatePlanPost,
 } from "./routes/plansRoute.ts";
+import { enforceCoreRoutesAuth } from "./auth.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
 export const coreRouteHandlers: RouteHandler[] = [
@@ -71,6 +72,9 @@ export async function handleCoreRoutesRequest(
   fallbackPort: number = 3001,
 ): Promise<void> {
   const url = createRequestUrl(req, fallbackPort);
+  if (enforceCoreRoutesAuth(req, res, config)) {
+    return;
+  }
   const ctx: RouteContext = { config, url };
 
   for (const handler of coreRouteHandlers) {

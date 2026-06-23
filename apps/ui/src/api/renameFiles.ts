@@ -1,7 +1,8 @@
 import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types"
+import { apiFetch } from '@/lib/apiFetch';
 
 export async function renameFiles(params: RenameFilesRequestBody): Promise<RenameFilesResponseBody> {
-  const resp = await fetch("/api/renameFiles", {
+  const resp = await apiFetch("/api/renameFiles", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

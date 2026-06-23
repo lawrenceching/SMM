@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 export type IsFolderAvailableResponseBody = {
   available: boolean
   reason?: string
@@ -10,7 +11,7 @@ export async function postIsFolderAvailable(
   path: string,
   signal?: AbortSignal,
 ): Promise<IsFolderAvailableResponseBody> {
-  const resp = await fetch('/api/isFolderAvailable', {
+  const resp = await apiFetch('/api/isFolderAvailable', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path }),

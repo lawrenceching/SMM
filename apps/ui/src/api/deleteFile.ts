@@ -1,9 +1,10 @@
 import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@core/types';
+import { apiFetch } from '@/lib/apiFetch';
 
 export async function deleteFile(path: string): Promise<DeleteFileResponseBody> {
   const req: DeleteFileRequestBody = { path };
 
-  const resp = await fetch('/api/deleteFile', {
+  const resp = await apiFetch('/api/deleteFile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

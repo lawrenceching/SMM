@@ -1,4 +1,5 @@
 import type { RenameValidationResult } from '@core/types'
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface ValidateRenameOperationsRequestBody {
   mediaFolderPath: string
@@ -14,7 +15,7 @@ export interface ValidateRenameOperationsResponseBody {
 export async function validateRenameOperationsApi(
   body: ValidateRenameOperationsRequestBody,
 ): Promise<ValidateRenameOperationsResponseBody> {
-  const response = await fetch('/api/validateRenameOperations', {
+  const response = await apiFetch('/api/validateRenameOperations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

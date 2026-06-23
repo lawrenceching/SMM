@@ -74,10 +74,14 @@ describe("speedtest", () => {
 
     await speedtest(mockUrls);
 
-    expect(globalThis.fetch).toHaveBeenCalledWith("/api/speedtest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls: mockUrls }),
-    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/speedtest',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ urls: mockUrls }),
+      }),
+    );
+    const init = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
   });
 });

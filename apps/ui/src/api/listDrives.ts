@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 export interface ListDrivesResponseBody {
   data: string[];
   error?: string;
@@ -8,7 +9,7 @@ export interface ListDrivesResponseBody {
  * @returns Array of drive paths (e.g., ["C:\\", "D:\\", "E:\\"])
  */
 export async function listDrivesApi(): Promise<ListDrivesResponseBody> {
-  const resp = await fetch('/api/listDrives', {
+  const resp = await apiFetch('/api/listDrives', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

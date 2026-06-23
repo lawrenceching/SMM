@@ -1,5 +1,6 @@
 import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
 import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
+import { apiFetch } from '@/lib/apiFetch';
 
 export type Plan = RecognizeMediaFilePlan | RenameFilesPlan;
 
@@ -15,7 +16,7 @@ export async function getPlans(
   mediaFolderPath: string,
   signal?: AbortSignal,
 ): Promise<GetPlansResponseBody> {
-  const resp = await fetch('/api/getPlans', {
+  const resp = await apiFetch('/api/getPlans', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

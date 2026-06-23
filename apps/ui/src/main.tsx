@@ -27,6 +27,8 @@ import { JobOrchestratorProvider } from './components/JobOrchestratorProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
 import { logger } from './lib/log'
+import { initAuthTokenFromUrl, installAuthenticatedFetch } from './lib/authToken'
+import { AuthGate } from './components/auth/LoginPanel'
 import { useUIMediaFolderStoreState } from './stores/uiMediaFolderStore'
 import { useMediaMetadataQuery } from './hooks/mediaMetadata'
 import { useFeatures } from './hooks/useFeatures'
@@ -179,6 +181,9 @@ function AppSwitcher() {
 }
 
 async function bootstrap() {
+  initAuthTokenFromUrl()
+  installAuthenticatedFetch()
+
   await i18nReady
 
   // Start the media-database service discovery (probes endpoints,
@@ -198,7 +203,9 @@ async function bootstrap() {
                 <UIMediaFolderStoreInitializer />
                 <AppInitializer />
                 <DragDropReceiver>
-                  <AppSwitcher />
+                  <AuthGate>
+                    <AppSwitcher />
+                  </AuthGate>
                 </DragDropReceiver>
               </DialogProvider>
             </JobOrchestratorProvider>

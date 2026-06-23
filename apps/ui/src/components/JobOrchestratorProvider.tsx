@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
+import { apiFetch } from '@/lib/apiFetch'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
 import { useDialogs } from '@/providers/dialog-provider'
@@ -782,7 +783,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
               console.warn('[JobOrchestrator] failed to trash original after tag write')
             }
             try {
-              const resp = await fetch('/api/renameFiles', {
+              const resp = await apiFetch('/api/renameFiles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

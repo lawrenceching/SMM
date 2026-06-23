@@ -8,6 +8,7 @@ import {
   type FfmpegConvertFormat,
   type FfmpegConvertPreset,
 } from "@/lib/whitelistedCmd";
+import { apiFetch } from '@/lib/apiFetch';
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import {
   classifyFfmpegConvertError,
@@ -299,7 +300,7 @@ export async function writeMediaTags(
     };
   }
 
-  const renameResp = await fetch("/api/renameFiles", {
+  const renameResp = await apiFetch("/api/renameFiles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

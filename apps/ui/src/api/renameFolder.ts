@@ -1,4 +1,5 @@
 import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types'
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface RenameFolderParams {
   from: string
@@ -13,7 +14,7 @@ export async function postRenameFolder(
     to: params.to,
   }
 
-  const resp = await fetch('/api/renameFolder', {
+  const resp = await apiFetch('/api/renameFolder', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

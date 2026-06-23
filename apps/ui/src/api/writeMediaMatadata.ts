@@ -1,5 +1,6 @@
 import type { MediaMetadata } from "@core/types";
 import type { WriteMediaMetadataRequestBody } from "@core/types";
+import { apiFetch } from '@/lib/apiFetch';
 
 
 export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<void> {
@@ -7,7 +8,7 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
     data: mediaMetadata,
   }
 
-  const resp = await fetch('/api/writeMediaMetadata', {
+  const resp = await apiFetch('/api/writeMediaMetadata', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

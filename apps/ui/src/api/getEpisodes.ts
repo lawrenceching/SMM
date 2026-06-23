@@ -6,6 +6,7 @@
  */
 
 import type { GetEpisodesToolOutput } from '@core/types/ai-tools/getEpisodes'
+import { apiFetch } from '@/lib/apiFetch';
 
 export type GetEpisodesResponseBody = GetEpisodesToolOutput
 
@@ -17,7 +18,7 @@ export async function getEpisodes(
   params: GetEpisodesRequestBody,
   signal?: AbortSignal,
 ): Promise<GetEpisodesResponseBody> {
-  const resp = await fetch('/api/getEpisodes', {
+  const resp = await apiFetch('/api/getEpisodes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

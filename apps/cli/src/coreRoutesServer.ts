@@ -1,6 +1,7 @@
 import http from "node:http";
 import {
   createCoreRoutesRequestHandler,
+  type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
 } from "@smm/core-routes";
 import { buildAllowlist } from "@/utils/buildAllowlist";
@@ -20,7 +21,9 @@ function createCoreRoutesLogger(): CoreRoutesLogger {
   };
 }
 
-export async function startCoreRoutesServer(): Promise<http.Server> {
+export async function startCoreRoutesServer(
+  auth?: CoreRoutesAuthConfig,
+): Promise<http.Server> {
   const port = parseInt(process.env.CORE_ROUTES_PORT ?? String(DEFAULT_PORT), 10);
   const allowlist = await buildAllowlist();
   const appDataDir = getAppDataDir();
@@ -32,6 +35,7 @@ export async function startCoreRoutesServer(): Promise<http.Server> {
       hello: helloOptions,
       appDataDir,
       broadcast: (message) => broadcast(message),
+      auth,
     },
     { fallbackPort: port },
   );

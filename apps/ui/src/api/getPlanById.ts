@@ -1,4 +1,5 @@
 import type { Plan } from './getPlans';
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface GetPlanByIdResponseBody {
   data?: { plan: Plan };
@@ -13,7 +14,7 @@ export async function getPlanById(
   id: string,
   signal?: AbortSignal,
 ): Promise<GetPlanByIdResponseBody> {
-  const resp = await fetch('/api/getPlanById', {
+  const resp = await apiFetch('/api/getPlanById', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

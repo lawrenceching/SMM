@@ -30,6 +30,15 @@ interface CommonResources {
   next: string
   previous: string
   finish: string
+  auth: {
+    title: string
+    description: string
+    tokenLabel: string
+    tokenPlaceholder: string
+    tokenRequired: string
+    invalidToken: string
+    signIn: string
+  }
 }
 
 interface ComponentsResources {

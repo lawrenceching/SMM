@@ -1,4 +1,5 @@
 import { withDevApiUrl } from '@/api/executeCmd'
+import { apiFetch } from '@/lib/apiFetch'
 
 export type CommandExecutionPhase = 'unknown' | 'running' | 'finished'
 
@@ -17,7 +18,7 @@ export interface CommandExecutionStatusResponse {
 export async function fetchCommandExecutionStatus(
   executionId: string,
 ): Promise<CommandExecutionStatusResponse> {
-  const res = await fetch(
+  const res = await apiFetch(
     withDevApiUrl(`/api/command-execution/${encodeURIComponent(executionId)}`),
     { credentials: 'same-origin' },
   )

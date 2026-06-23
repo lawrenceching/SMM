@@ -1,4 +1,5 @@
 import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
+import { apiFetch } from '@/lib/apiFetch';
 
 /**
  * Writes content to a file
@@ -28,7 +29,7 @@ async function writeFile(path: string, content: string, mode?: 'overwrite' | 'cr
     headers['X-Trace-Id'] = traceId;
   }
 
-  const resp = await fetch('/api/writeFile', {
+  const resp = await apiFetch('/api/writeFile', {
     method: 'POST',
     headers,
     body: JSON.stringify(req),

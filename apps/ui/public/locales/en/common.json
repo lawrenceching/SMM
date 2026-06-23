@@ -25,6 +25,15 @@
   "back": "Back",
   "next": "Next",
   "previous": "Previous",
-  "finish": "Finish"
+  "finish": "Finish",
+  "auth": {
+    "title": "Sign in",
+    "description": "Enter the API auth token to connect to SMM.",
+    "tokenLabel": "Auth token",
+    "tokenPlaceholder": "Paste your token",
+    "tokenRequired": "Auth token is required.",
+    "invalidToken": "Invalid auth token. Check the value and try again.",
+    "signIn": "Sign in"
+  }
 }
 

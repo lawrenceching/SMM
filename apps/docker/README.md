@@ -25,10 +25,24 @@ docker build -f apps/docker/Dockerfile -t smm:latest .
 运行镜像（示例）：
 
 ```bash
-docker run --rm -p 30000:30000 smm:latest
+docker run --rm -p 30000:30000 \
+  -e SMM_AUTH_ENABLED=true \
+  -e SMM_AUTH_TOKEN=your-secret-token \
+  smm:latest
 ```
 
-浏览器访问 `http://localhost:30000`。
+浏览器访问 `http://localhost:30000/?token=your-secret-token`。
+
+### 认证环境变量
+
+| 变量 | 说明 |
+|------|------|
+| `SMM_AUTH_TOKEN` | API Bearer token。未设置或为空时，CLI 启动会自动生成并打印到日志 |
+| `SMM_AUTH_ENABLED` | 设为 `true` 时，所有 `/api/*` 请求必须携带 `Authorization: Bearer <token>` |
+
+UI 从 URL query `token` 或 localStorage `auth-token` 读取 token，并在 HTTP 请求中注入 `Authorization` 头。
+
+本地 Electron / 开发模式默认不启用校验（未设置 `SMM_AUTH_ENABLED`）。
 
 ## 与 Electron 打包的对应关系
 

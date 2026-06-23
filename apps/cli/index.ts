@@ -10,6 +10,7 @@ import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
 import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
 import { startCoreRoutesServer, stopCoreRoutesServer } from './src/coreRoutesServer';
+import { getAuthConfig } from '@/utils/authToken';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
 
@@ -93,17 +94,20 @@ const cookiesCleaner = new YtdlpCookiesCleaner({ userDataDir });
 const cookiesStartupResult = await cookiesCleaner.cleanAll();
 logger.info(cookiesStartupResult, 'yt-dlp cookies temp cleanup on startup');
 
+const authConfig = getAuthConfig();
+
 // Create and start the server
 const server = new Server({
   port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
   root: args.staticDir ?? '../ui/dist',
+  auth: authConfig,
   beforeStop: async () => {
     const result = await cookiesCleaner.cleanAll();
     logger.info(result, 'yt-dlp cookies temp cleanup on shutdown');
   },
 });
 
-const coreRoutesServer = await startCoreRoutesServer();
+const coreRoutesServer = await startCoreRoutesServer(authConfig);
 
 registerGracefulShutdown({
   stopServer: async () => {

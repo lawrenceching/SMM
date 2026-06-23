@@ -1,4 +1,17 @@
-export type { CoreRoutesConfig, CoreRoutesLogger, RouteContext, RouteHandler } from "./types.ts";
+export type {
+  CoreRoutesAuthConfig,
+  CoreRoutesConfig,
+  CoreRoutesLogger,
+  RouteContext,
+  RouteHandler,
+} from "./types.ts";
+export {
+  enforceCoreRoutesAuth,
+  isAuthTokenValid,
+  isRequestAuthorized,
+  parseBearerToken,
+  rejectUnauthorized,
+} from "./auth.ts";
 export { validatePathIsInAllowlist } from "./allowlist.ts";
 export { doHello, type HelloOptions } from "./hello.ts";
 export { doChat, handleChatPost } from "./chat.ts";

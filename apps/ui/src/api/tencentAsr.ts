@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 export interface TencentAsrTranscribeRequest {
   mediaPath: string
   baseUrl: string
@@ -12,7 +13,7 @@ export interface TencentAsrTranscribeResponse {
 export async function transcribeWithTencentAsr(
   request: TencentAsrTranscribeRequest,
 ): Promise<TencentAsrTranscribeResponse> {
-  const resp = await fetch("/api/tencent-asr/transcribe", {
+  const resp = await apiFetch("/api/tencent-asr/transcribe", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

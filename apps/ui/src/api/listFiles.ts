@@ -1,7 +1,8 @@
 import type { ListFilesRequestBody, ListFilesResponseBody } from "@core/types";
+import { apiFetch } from '@/lib/apiFetch';
 
 export async function listFiles(req: ListFilesRequestBody, signal?: AbortSignal): Promise<ListFilesResponseBody> {
-  const resp = await fetch('/api/listFiles', {
+  const resp = await apiFetch('/api/listFiles', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ export async function listFilesApi(
     includeHiddenFiles: options?.includeHiddenFiles,
   };
 
-  const resp = await fetch('/api/listFiles', {
+  const resp = await apiFetch('/api/listFiles', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

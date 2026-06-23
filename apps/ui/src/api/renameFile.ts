@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 /**
  * Local types for legacy renameFile client.
  * The /api/renameFile and /api/renameFileInBatch endpoints have been removed.
@@ -29,7 +30,7 @@ export async function renameFile(params: RenameFileParams): Promise<RenameFileRe
     to: params.to,
   };
 
-  const resp = await fetch('/api/renameFile', {
+  const resp = await apiFetch('/api/renameFile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

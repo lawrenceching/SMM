@@ -1,4 +1,5 @@
 import type { ListFilesInMediaFolderToolOutput } from '@core/types/ai-tools/listFilesInMediaFolder'
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface ListFilesInMediaFolderRequest {
   mediaFolderPath: string
@@ -10,7 +11,7 @@ export async function listFilesInMediaFolder(
   params: ListFilesInMediaFolderRequest,
   signal?: AbortSignal,
 ): Promise<ListFilesInMediaFolderToolOutput> {
-  const resp = await fetch('/api/listFilesInMediaFolder', {
+  const resp = await apiFetch('/api/listFilesInMediaFolder', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

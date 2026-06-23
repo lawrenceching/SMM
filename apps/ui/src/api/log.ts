@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 export type FrontendLogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal"
 
 export interface FrontendLogPayload {
@@ -12,7 +13,7 @@ export interface FrontendLogPayload {
  */
 export async function writeFrontendLog(payload: FrontendLogPayload): Promise<void> {
   try {
-    await fetch("/api/log", {
+    await apiFetch("/api/log", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

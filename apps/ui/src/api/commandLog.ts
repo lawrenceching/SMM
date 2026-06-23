@@ -56,12 +56,14 @@ function buildCommandLogUrl(
  * headers. No server-side structure is imposed — the UI parses
  * whatever it needs from the text (e.g. yt-dlp progress JSON).
  */
+import { apiFetch } from '@/lib/apiFetch';
+
 export async function fetchCommandLogText(
   executionId: string,
   range?: { offset?: number; limit?: number },
 ): Promise<{ text: string; meta: CommandLogResponseMeta }> {
   const url = buildCommandLogUrl(executionId, range)
-  const res = await fetch(url, { credentials: 'same-origin' })
+  const res = await apiFetch(url, { credentials: 'same-origin' })
   const text = await res.text()
   if (!res.ok) {
     if (isCommandLogNotFoundResponse(res, text)) {

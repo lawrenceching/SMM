@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 /**
  * Mirrors the McpServerState from apps/cli/src/mcp/mcpServerManager.ts
  */
@@ -19,7 +20,7 @@ export async function startMcpServer(options?: {
   host?: string;
   port?: number;
 }): Promise<McpServerState> {
-  const resp = await fetch("/api/mcp/start", {
+  const resp = await apiFetch("/api/mcp/start", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(options ?? {}),
@@ -35,7 +36,7 @@ export async function startMcpServer(options?: {
  * Stops the MCP server on the backend.
  */
 export async function stopMcpServer(): Promise<McpServerState> {
-  const resp = await fetch("/api/mcp/stop", { method: "PUT" });
+  const resp = await apiFetch("/api/mcp/stop", { method: "PUT" });
   const data: McpServerState = await resp.json();
   if (!resp.ok) {
     throw new Error(data.error || "Failed to stop MCP server");
@@ -47,6 +48,6 @@ export async function stopMcpServer(): Promise<McpServerState> {
  * Returns the current MCP server runtime state as tracked by the backend.
  */
 export async function getMcpServerStatus(): Promise<McpServerState> {
-  const resp = await fetch("/api/mcp/status");
+  const resp = await apiFetch("/api/mcp/status");
   return resp.json() as Promise<McpServerState>;
 }

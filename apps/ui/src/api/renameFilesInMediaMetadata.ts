@@ -1,4 +1,5 @@
 import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@core/types"
+import { apiFetch } from '@/lib/apiFetch';
 
 /**
  * @deprecated Use renameFiles() with the `mediaFolder` field instead.
@@ -6,7 +7,7 @@ import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataR
  * broadcasts the change when `mediaFolder` is provided.
  */
 export async function renameFilesInMediaMetadata(params: RenameFilesInMediaMetadataRequestBody): Promise<RenameFilesInMediaMetadataResponseBody> {
-  const resp = await fetch("/api/renameFilesInMediaMetadata", {
+  const resp = await apiFetch("/api/renameFilesInMediaMetadata", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 import type { ReadMediaMetadataRequestBody, ReadMediaMetadataResponseBody } from "@core/types";
+import { apiFetch } from '@/lib/apiFetch';
 
 /**
  * 
@@ -10,7 +11,7 @@ export async function readMediaMetadataApi(path: string, signal?: AbortSignal): 
     path: path,
   }
 
-  const resp = await fetch('/api/readMediaMetadata', {
+  const resp = await apiFetch('/api/readMediaMetadata', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { apiFetch } from '@/lib/apiFetch';
 
 export type MediaDatabaseType = 'tmdb' | 'tvdb'
 export type MediaDatabaseAuthorizationMethod = 'date-token' | 'none'
@@ -33,7 +34,7 @@ const responseSchema = z.object({
  * Returns an empty list if the CLI returned no entries (e.g. on error).
  */
 export async function fetchDiscoveredMediaDatabases(): Promise<MediaDatabaseEndpoint[]> {
-  const resp = await fetch('/api/discover', {
+  const resp = await apiFetch('/api/discover', {
     method: 'GET',
     headers: { Accept: 'application/json' },
   })

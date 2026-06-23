@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "npm-run-all2 --parallel dev:ui dev:cli",
     "dev:ui": "pnpm --filter ui dev",
-    "dev:cli": "pnpm --filter cli dev",
+    "dev:cli": "cross-env SMM_AUTH_ENABLED=true SMM_AUTH_TOKEN=ChangeMe123 pnpm --filter cli dev",
     "dev:electron": "cd apps/electron && pnpm run dev",
     "build": "pnpm run build:cli && pnpm run build:ui",
     "build:cli": "cd apps/cli && pnpm run build",
@@ -44,6 +44,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
     "npm-run-all2": "^8.0.4"
   },
   "pnpm": {

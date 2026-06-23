@@ -1,11 +1,12 @@
 import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@core/types';
+import { apiFetch } from '@/lib/apiFetch';
 
 export async function moveFileToTrash(path: string): Promise<MoveFileToTrashResponseBody> {
   const req: MoveFileToTrashRequestBody = {
     path,
   };
 
-  const resp = await fetch('/api/moveFileToTrash', {
+  const resp = await apiFetch('/api/moveFileToTrash', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

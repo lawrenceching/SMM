@@ -25,6 +25,15 @@
   "back": "返回",
   "next": "下一步",
   "previous": "上一步",
-  "finish": "完成"
+  "finish": "完成",
+  "auth": {
+    "title": "登入",
+    "description": "請輸入 API 認證 token 以連線至 SMM。",
+    "tokenLabel": "Auth token",
+    "tokenPlaceholder": "貼上 token",
+    "tokenRequired": "請輸入 auth token。",
+    "invalidToken": "Auth token 無效，請檢查後重試。",
+    "signIn": "登入"
+  }
 }
 

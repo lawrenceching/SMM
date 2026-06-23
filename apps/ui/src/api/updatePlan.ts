@@ -2,6 +2,7 @@ import type { PlanStatus } from '@core/types/planCommon';
 import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan';
 import type { RenameFileEntry } from '@core/types/RenameFilesPlan';
 import type { Plan } from './getPlans';
+import { apiFetch } from '@/lib/apiFetch';
 
 export interface UpdatePlanPatch {
   status?: PlanStatus;
@@ -22,7 +23,7 @@ export async function updatePlan(
   patch: UpdatePlanPatch,
   signal?: AbortSignal,
 ): Promise<UpdatePlanResponseBody> {
-  const resp = await fetch('/api/updatePlan', {
+  const resp = await apiFetch('/api/updatePlan', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

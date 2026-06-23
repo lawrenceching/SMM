@@ -1,4 +1,5 @@
 import type { ScrapeRequestBody, ScrapeResponseBody } from "@core/types";
+import { apiFetch } from '@/lib/apiFetch';
 
 /**
  * Scrape media files (poster, thumbnails, nfo) for a media folder
@@ -9,7 +10,7 @@ export async function scrapeApi(mediaFolderPath: string): Promise<ScrapeResponse
     mediaFolderPath: mediaFolderPath,
   }
 
-  const resp = await fetch('/api/scrape', {
+  const resp = await apiFetch('/api/scrape', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

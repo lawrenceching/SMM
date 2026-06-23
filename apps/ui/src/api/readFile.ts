@@ -1,4 +1,5 @@
 import type { ReadFileRequestBody, ReadFileResponseBody, UserConfig } from '@core/types';
+import { apiFetch } from '@/lib/apiFetch';
 
 
 export async function readFile(path: string, signal?: AbortSignal, options?: {requireValidate?: boolean}): Promise<ReadFileResponseBody> {
@@ -10,7 +11,7 @@ export async function readFile(path: string, signal?: AbortSignal, options?: {re
     req.requireValidPath = false;
   }
 
-  const resp = await fetch('/api/readFile', {
+  const resp = await apiFetch('/api/readFile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -64,7 +65,7 @@ async function readFileApi(path: string): Promise<UserConfig> {
     path: path,
   }
 
-  const resp = await fetch('/api/readFile', {
+  const resp = await apiFetch('/api/readFile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

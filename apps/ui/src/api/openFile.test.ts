@@ -60,11 +60,15 @@ describe('openFile', () => {
 
     const result = await openFile('/tmp/track.mp3');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/openFile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: '/tmp/track.mp3' }),
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/openFile',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ path: '/tmp/track.mp3' }),
+      }),
+    );
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
     expect(result).toEqual({ data: { path: '/tmp/track.mp3' } });
   });
 });

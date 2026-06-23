@@ -1,5 +1,6 @@
 import { Path } from "@core/path";
 import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from "@core/types";
+import { apiFetch } from '@/lib/apiFetch';
 
 const OPEN_IN_FILE_MANAGER_CHANNEL = "open-in-file-manager";
 
@@ -61,7 +62,7 @@ export async function openInFileManagerApi(pathInPosix: string): Promise<OpenInF
     path: platformPath,
   };
   
-  const resp = await fetch('/api/openInFileManager', {
+  const resp = await apiFetch('/api/openInFileManager', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

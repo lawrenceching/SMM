@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 export interface SpeedtestResult {
   url: string;
   timeMs: number | null;
@@ -14,7 +15,7 @@ export interface SpeedtestResponse {
  * The result should be cached in localStorage for use by the DVD guide link.
  */
 export async function speedtest(urls: string[]): Promise<SpeedtestResponse> {
-  const resp = await fetch('/api/speedtest', {
+  const resp = await apiFetch('/api/speedtest', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

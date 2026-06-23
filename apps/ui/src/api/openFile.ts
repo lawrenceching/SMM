@@ -1,4 +1,5 @@
 import type { OpenFileRequestBody, OpenFileResponseBody } from '@core/types';
+import { apiFetch } from '@/lib/apiFetch';
 
 const OPEN_FILE_CHANNEL = 'open-file';
 
@@ -55,7 +56,7 @@ export async function openFile(path: string): Promise<OpenFileResponseBody> {
     path: path,
   };
 
-  const resp = await fetch('/api/openFile', {
+  const resp = await apiFetch('/api/openFile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

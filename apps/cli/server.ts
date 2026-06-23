@@ -59,6 +59,8 @@ import {
   createReverseProxyManager,
   createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  isRequestAuthorized,
+  type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
   type ReverseProxyConfig,
   type ReverseProxyManager,
@@ -72,6 +74,7 @@ export interface ServerConfig {
   port?: number;
   root?: string;
   beforeStop?: () => Promise<void>;
+  auth?: CoreRoutesAuthConfig;
 }
 
 function isExecuteCmdRequest(req: IncomingMessage): boolean {
@@ -97,12 +100,14 @@ export class Server {
   private proxyManager: ReverseProxyManager | null = null;
   private beforeStop?: () => Promise<void>;
   private stopping = false;
+  private auth?: CoreRoutesAuthConfig;
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
     this.beforeStop = config.beforeStop;
+    this.auth = config.auth;
 
     this.app = new Hono();
     this.app.use(requestId())
@@ -177,7 +182,7 @@ export class Server {
       cors({
         origin: '*',
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'X-Timeout', 'X-Command-Execution-Id'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Timeout', 'X-Command-Execution-Id'],
         exposeHeaders: [
           'X-Command-Execution-Id',
           'X-Command-Log-Path',
@@ -185,6 +190,16 @@ export class Server {
         ],
       }),
     );
+
+    this.app.use('/api/*', async (c, next) => {
+      if (c.req.method === 'OPTIONS') {
+        return next();
+      }
+      if (!isRequestAuthorized(c.req.header('Authorization'), this.auth)) {
+        return c.json({ error: 'Unauthorized: invalid or missing token' }, 401);
+      }
+      return next();
+    });
 
     // Register route handlers
     // /api/chat is implemented in @smm/core-routes (post-migration);
