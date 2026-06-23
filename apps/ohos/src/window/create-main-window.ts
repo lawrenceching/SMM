@@ -14,10 +14,13 @@ export interface MainWindowResult {
 }
 
 export function createMainWindow(): MainWindowResult {
-  const tray = new Tray(nativeImage.createFromPath(path.join(getAppRoot(), "electron_white.png")))
+  const iconPath = path.join(getAppRoot(), "icon.png")
+  const tray = new Tray(nativeImage.createFromPath(iconPath))
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    title: "SMM",
+    icon: iconPath,
     webPreferences: {
       preload: path.join(getAppRoot(), "preload.js"),
       contextIsolation: true,

@@ -488,6 +488,12 @@ function getMcpHandler(options) {
           return;
         return manager.acknowledge(message, timeoutMs);
       },
+      broadcast: (message) => {
+        const manager = options.getSocketManager();
+        if (!manager)
+          return;
+        manager.broadcast(message);
+      },
       logger: options.logger
     });
   })();
@@ -965,10 +971,13 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
 var import_node_path7 = __toESM(require("node:path"));
 var import_electron9 = require("electron");
 function createMainWindow() {
-  const tray = new import_electron9.Tray(import_electron9.nativeImage.createFromPath(import_node_path7.default.join(getAppRoot(), "electron_white.png")));
+  const iconPath = import_node_path7.default.join(getAppRoot(), "icon.png");
+  const tray = new import_electron9.Tray(import_electron9.nativeImage.createFromPath(iconPath));
   const mainWindow = new import_electron9.BrowserWindow({
     width: 800,
     height: 600,
+    title: "SMM",
+    icon: iconPath,
     webPreferences: {
       preload: import_node_path7.default.join(getAppRoot(), "preload.js"),
       contextIsolation: true,
