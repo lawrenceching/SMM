@@ -286,6 +286,8 @@ export interface UseFeaturesResult {
   isFormatConverterEnabled: boolean
   /** Video compression dialog (视频压缩). Disabled on HarmonyOS. */
   isVideoCompressionEnabled: boolean
+  /** Music folder type in OpenFolderDialog. Disabled on HarmonyOS. */
+  isMusicFolderImportEnabled: boolean
   /**
    * When true, UI may expose VideoCaptioner ASR engine selection (e.g. Transcribe dialog).
    * Persisted in localStorage under key `features.isVideoCaptionerAsrOptionsEnabled`.
@@ -364,6 +366,7 @@ export function useFeatures(): UseFeaturesResult {
   const isDownloadVideoEnabled = !isHarmonyOSRuntime
   const isFormatConverterEnabled = !isHarmonyOSRuntime
   const isVideoCompressionEnabled = !isHarmonyOSRuntime
+  const isMusicFolderImportEnabled = !isHarmonyOSRuntime
 
   const isTranscribeEnabled = useMemo(() => {
     if (isHarmonyOSRuntime) {
@@ -509,6 +512,7 @@ export function useFeatures(): UseFeaturesResult {
       isDownloadVideoEnabled,
       isFormatConverterEnabled,
       isVideoCompressionEnabled,
+      isMusicFolderImportEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,
@@ -536,6 +540,7 @@ export function useFeatures(): UseFeaturesResult {
       isDownloadVideoEnabled,
       isFormatConverterEnabled,
       isVideoCompressionEnabled,
+      isMusicFolderImportEnabled,
       isVideoCaptionerAsrOptionsEnabled,
       setVideoCaptionerAsrOptionsEnabled,
       isTencentAsrTranscribeEnabled,

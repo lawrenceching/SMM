@@ -17,6 +17,8 @@ export const HARMONYOS_DISABLED_FEATURE_IDS = [
   "formatConverter",
   /** Video compression dialog (视频压缩) */
   "videoCompression",
+  /** Music folder type in OpenFolderDialog (导入音乐文件夹) */
+  "musicFolderImport",
 ] as const
 
 export type HarmonyOSDisabledFeatureId = (typeof HARMONYOS_DISABLED_FEATURE_IDS)[number]

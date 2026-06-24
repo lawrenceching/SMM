@@ -6,6 +6,7 @@ import {
   ScrollableDialogHeader,
 } from "@/components/ui/scrollable-dialog"
 import { Button } from "@/components/ui/button"
+import { useFeatures } from "@/hooks/useFeatures"
 import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
 import type { OpenFolderDialogProps, FolderType } from "./types"
@@ -13,6 +14,7 @@ import type { OpenFolderDialogProps, FolderType } from "./types"
 export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: OpenFolderDialogProps) {
   const { t } = useTranslation('dialogs')
   const { userConfig } = useConfig()
+  const { isMusicFolderImportEnabled } = useFeatures()
 
   const handleSelect = (type: FolderType) => {
     console.log(`[DialogProvider] handleSelect ${type} ${folderPath}`)
@@ -73,16 +75,18 @@ export function OpenFolderDialog({ isOpen, onClose, onSelect, folderPath }: Open
               <span className="text-xs text-muted-foreground">{t('openFolder.types.movie.description')}</span>
             </div>
           </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-auto py-4"
-            onClick={() => handleSelect("music")}
-          >
-            <div className="flex flex-col items-start gap-1">
-              <span className="font-semibold">{t('openFolder.types.music.label')}</span>
-              <span className="text-xs text-muted-foreground">{t('openFolder.types.music.description')}</span>
-            </div>
-          </Button>
+          {isMusicFolderImportEnabled && (
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => handleSelect("music")}
+            >
+              <div className="flex flex-col items-start gap-1">
+                <span className="font-semibold">{t('openFolder.types.music.label')}</span>
+                <span className="text-xs text-muted-foreground">{t('openFolder.types.music.description')}</span>
+              </div>
+            </Button>
+          )}
         </div>
         </ScrollableDialogBody>
       </ScrollableDialogContent>

@@ -9,6 +9,8 @@ SMM supports HarmonyOS as an Electron shell platform. This document covers folde
 | Topic | Document |
 |-------|----------|
 | Open file (`shell.openPath`, fanart / track context menu) | [open-file.md](./open-file.md) |
+| MusicPanel features (open file, summary, download jobs) | [music-panel-features.md](./music-panel-features.md) |
+| Drag-and-drop folder import | [drag-drop-folder-import.md](./drag-drop-folder-import.md) |
 
 ## 1. Folder Import
 
@@ -44,11 +46,54 @@ apps/ui → preload.js → IPC (dialog:showOpenDialog) → main.js → OS dialog
 ### 1.3 Import Flow
 
 ```
-Toolbar "Open Folder"
+Toolbar "Open Folder" / Menu / Drag-and-drop
   → native dialog (Electron) or FilePickerDialog (HTTP)
   → OpenFolderDialog (type selection)
   → UI_MediaFolderImportedEvent
   → MediaFolderImportedEventHandler
+```
+
+**Entry points** that open `OpenFolderDialog`:
+
+| Entry | File |
+|-------|------|
+| Toolbar "Open Folder", Open Media Library | `AppV2.tsx` |
+| Menu import | `menu.tsx` |
+| Electron drag-and-drop | `DragDropReceiver.tsx` |
+
+### 1.4 Hide Music Folder Type on HarmonyOS
+
+Music-related sub-features (download, subtitles, transcode, compression, AI summarize) are already hidden on HarmonyOS (see [§6](#6-disabled-features-harmonyos)). Allowing `music` in the import type dialog let users import music folders without full feature support — inconsistent UX.
+
+**Scope:** UI-only. Does not change `FolderType`, backend APIs, or existing `smm.json` music folders. Programmatic imports (e.g. e2e via `UI_MediaFolderImportedEvent` with `type: "music"`) are not blocked.
+
+**Gating** follows the same pattern as other disabled features: `useFeatures().isMusicFolderImportEnabled` (`false` on HarmonyOS, `true` on desktop). `OpenFolderDialog` conditionally renders the Music button; components do **not** call `isHarmonyOS()` directly.
+
+| Item | Location |
+|------|----------|
+| Feature flag | `apps/ui/src/hooks/useFeatures.ts` → `isMusicFolderImportEnabled` |
+| Feature ID | `apps/ui/src/lib/harmonyOSDisabledFeatures.ts` → `musicFolderImport` |
+| UI | `apps/ui/src/components/dialogs/open-folder-dialog.tsx` |
+| Dialog host | `apps/ui/src/providers/dialog-provider.tsx` |
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant App as AppV2 / Menu / DragDrop
+  participant TypeDialog as OpenFolderDialog
+  participant Features as useFeatures
+  participant Handler as MediaFolderImportedEventHandler
+
+  User->>App: Open Folder
+  App->>TypeDialog: openOpenFolder(callback, folderPath)
+  TypeDialog->>Features: isMusicFolderImportEnabled
+  alt HarmonyOS
+    TypeDialog-->>User: tvshow + movie only
+  else Desktop
+    TypeDialog-->>User: tvshow + movie + music
+  end
+  User->>TypeDialog: select type
+  TypeDialog->>Handler: UI_MediaFolderImportedEvent
 ```
 
 ## 2. File Access Persist
@@ -181,11 +226,13 @@ HarmonyOS builds hide features that depend on bundled CLI tools (yt-dlp, FFmpeg,
 | 下载视频 (yt-dlp) | `downloadVideo` | `isDownloadVideoEnabled` | Menu → Download Video; Welcome card; Music panel download button |
 | 视频转码 (format converter) | `formatConverter` | `isFormatConverterEnabled` | Menu → Format Conversion; Welcome card; track context menu → Format Convert |
 | 视频压缩 (video compression) | `videoCompression` | `isVideoCompressionEnabled` | Menu → Video Compression; TvShow/Movie episode context menu → Compress; music row context menu |
+| 导入音乐文件夹 (music folder import) | `musicFolderImport` | `isMusicFolderImportEnabled` | `OpenFolderDialog` Music type button |
 | TvShow "preview" layout (large cover + video screenshots) | (inline) | `isHarmonyOS()` direct check in `TvShowHeaderV2` | Header layout-selector icon group + dropdown "Preview layout" item |
- | AI 总结 (MusicPanel Summarize) + AI Assistant + AI-based recognize/rename | (master switch) | `isAiFeatureEnabled` | MusicPanel row context menu → Summarize; AI Assistant chat panel; TvShow/Movie AI prompts |
+| AI 总结 (MusicPanel Summarize) + AI Assistant + AI-based recognize/rename | (master switch) | `isAiFeatureEnabled` | MusicPanel row context menu → Summarize; AI Assistant chat panel; TvShow/Movie AI prompts |
 
-On HarmonyOS all five feature flags are `false`. The preview layout is hidden on HarmonyOS because its per-row video screenshot pipeline is not validated on that platform — the gating is a single direct call to `isHarmonyOS()` inside `TvShowHeaderV2.tsx` rather than a `useFeatures()` flag, since it is purely a visual layout choice with no user-facing toggle. Desktop and browser dev builds are unchanged.
+On HarmonyOS all six `useFeatures` flags above default to `false`. The preview layout is hidden on HarmonyOS because its per-row video screenshot pipeline is not validated on that platform — the gating is a single direct call to `isHarmonyOS()` inside `TvShowHeaderV2.tsx` rather than a `useFeatures()` flag, since it is purely a visual layout choice with no user-facing toggle. Desktop and browser dev builds are unchanged.
 
+**Music folder import note:** `isMusicFolderImportEnabled` hides only the Music type button in `OpenFolderDialog` ([§1.4](#14-hide-music-folder-type-on-harmonyos)). It does not remove MusicPanel or block programmatic `type: "music"` imports.
 
 **AI Summary note:** the MusicPanel row right-click "Summarize" item (`apps/ui/src/components/LocalFileRow.tsx`) is gated on `isAiFeatureEnabled`, the same master switch that hides the AI Assistant and AI-based recognize/rename prompts. There is no separate `aiSummary` feature id — flipping the master switch toggles all AI surfaces together.
 
@@ -195,7 +242,7 @@ On HarmonyOS all five feature flags are `false`. The preview layout is hidden on
 
 ### Import media folder on HarmonyOS
 1. User taps "Open Folder" → native picker opens
-2. User selects folder + media type
+2. User selects folder → `OpenFolderDialog` shows **Tv Show / Anime** and **Movie** only (Music hidden; see [§1.4](#14-hide-music-folder-type-on-harmonyos))
 3. App persists file access (`fileAccessPersist` + `SaveUris`)
 4. Media Folder Initialization lists files via core-routes
 5. Folder appears in sidebar with metadata
@@ -219,4 +266,4 @@ On HarmonyOS all five feature flags are `false`. The preview layout is hidden on
 - IPC channel names unchanged
 - Preload surface unchanged on desktop
 - HTTP `/api/listFiles` + `/api/openInFileManager` + `/api/openFile` (CLI) fallback intact for non-Electron runtimes
-- All OHOS-specific logic in main process + `packages/electron-common`; UI has zero OHOS branches
+- All OHOS-specific logic in main process + `packages/electron-common`; UI gates HarmonyOS via centralized `useFeatures()` flags (see [§6](#6-disabled-features-harmonyos)), not ad-hoc `isHarmonyOS()` branches in feature components

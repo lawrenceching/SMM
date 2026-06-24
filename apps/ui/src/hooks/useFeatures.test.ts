@@ -23,6 +23,7 @@ describe("useFeatures HarmonyOS gating", () => {
     expect(result.current.isDownloadVideoEnabled).toBe(true)
     expect(result.current.isFormatConverterEnabled).toBe(true)
     expect(result.current.isVideoCompressionEnabled).toBe(true)
+    expect(result.current.isMusicFolderImportEnabled).toBe(true)
   })
 
   it("disables subtitle, download, format converter, and video compression on HarmonyOS", () => {
@@ -34,6 +35,7 @@ describe("useFeatures HarmonyOS gating", () => {
     expect(result.current.isDownloadVideoEnabled).toBe(false)
     expect(result.current.isFormatConverterEnabled).toBe(false)
     expect(result.current.isVideoCompressionEnabled).toBe(false)
+    expect(result.current.isMusicFolderImportEnabled).toBe(false)
     expect(result.current.isTranscribeEnabled).toBe(false)
   })
 
