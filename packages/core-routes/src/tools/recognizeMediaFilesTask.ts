@@ -10,8 +10,8 @@ import {
   addRecognizedMediaFileInputSchema,
   endRecognizeTaskInputSchema,
 } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
-import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
+import { END_PLAN_TASK_SUCCESS_MESSAGE, PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
+import { formatToolError, toolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
   RecognizeMediaFilePlanReady,
   type RecognizeMediaFilePlanReadyRequestData,
@@ -23,11 +23,36 @@ import type { WebSocketMessage } from "../socketIO/types.ts";
 import {
   appendRecognizedFile,
   beginRecognizePlan,
+  defaultValidateRecognizedFiles,
   planFilePath,
   readRecognizePlan,
   updatePlanContent,
+  type RecognizePlanAppendDeps,
 } from "./plans.ts";
 import type { ChatFs } from "../chatTypes.ts";
+
+/**
+ * Dependencies the `recognize-media-file-task` tools need in
+ * addition to the runtime-neutral plumbing (`fs`, `logger`,
+ * `appDataDir`). Mirrors the shape of {@link RenameFilesTaskDeps}
+ * for the rename pipeline.
+ *
+ * - `validateFiles` — verifies each `path` exists on disk before
+ *   adding it to the plan. Default uses {@link ChatFs.exists}; hosts
+ *   may override (e.g. to surface richer diagnostics or to skip the
+ *   check in tests).
+ */
+export interface RecognizeFilesTaskDeps {
+  validateFiles?: RecognizePlanAppendDeps["validateFiles"];
+}
+
+export function defaultRecognizeFilesTaskDeps(
+  fs: ChatFs,
+): RecognizeFilesTaskDeps {
+  return {
+    validateFiles: (files) => defaultValidateRecognizedFiles(files, fs),
+  };
+}
 
 function makeLogger(logger: CoreRoutesLogger | undefined) {
   return {
@@ -96,6 +121,7 @@ export function buildAddRecognizedMediaFileTool(
   fs: ChatFs,
   logger: CoreRoutesLogger | undefined,
   abortSignal?: AbortSignal,
+  deps?: RecognizeFilesTaskDeps,
 ) {
   const log = makeLogger(logger);
   return {
@@ -124,12 +150,12 @@ export function buildAddRecognizedMediaFileTool(
           episode: episode ?? 0,
           path: filePath ?? "",
         };
-
         await appendRecognizedFile(
           appDataDir,
           normalizedTaskId,
           recognizedFile,
           fs,
+          { validateFiles: deps?.validateFiles },
         );
 
         log.info(
@@ -196,6 +222,14 @@ export function buildEndRecognizeTaskTool(
             `[tool][${END_RECOGNIZE_TASK}] Task not found`,
           );
           return formatToolError(`Task with id "${normalizedTaskId}" not found`);
+        }
+
+        if (task.status === "rejected") {
+          log.warn(
+            { taskId: normalizedTaskId, clientId },
+            `[tool][${END_RECOGNIZE_TASK}] Task cancelled by user`,
+          );
+          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
         }
 
         if (task.files.length === 0) {

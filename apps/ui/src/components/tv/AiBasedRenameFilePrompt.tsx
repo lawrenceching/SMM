@@ -33,9 +33,12 @@ export function AiBasedRenameFilePrompt({
   // Map status to FloatingPrompt's status prop
   const floatingPromptStatus = status === "generating" ? "running" : "wait-for-ack"
 
-  // Determine if confirm button should be disabled
+  // The cancel button (mapped to isConfirmDisabled in FloatingPrompt)
+  // must stay enabled during "generating" so the user can stop a stuck
+  // preparing-state plan. Only the confirm button is disabled while
+  // the AI is still preparing results.
   const isConfirmButtonDisabledFinal = isConfirmButtonDisabled || status === "generating"
-  const isConfirmDisabledFinal = isConfirmDisabled || status === "generating"
+  const isConfirmDisabledFinal = isConfirmDisabled
 
   // Get status message
   const statusMessage = status === "generating" 

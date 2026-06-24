@@ -12,7 +12,7 @@ import {
   endRenameFilesTaskInputSchema,
 } from "@smm/core/types/ai-tools/renameFilesTask";
 import { assertMediaFolderHasMetadata } from "@smm/core/plan/renamePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
+import { END_PLAN_TASK_SUCCESS_MESSAGE, PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 import { formatToolError, toolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
   RenameFilesPlanReady,
@@ -210,6 +210,14 @@ export function buildEndRenameFilesTaskTool(
             `[tool][${END_RENAME_FILES_TASK}] Task not found`,
           );
           return toolError(`Task with id "${normalizedTaskId}" not found`);
+        }
+
+        if (task.status === "rejected") {
+          log.warn(
+            { taskId: normalizedTaskId, clientId },
+            `[tool][${END_RENAME_FILES_TASK}] Task cancelled by user`,
+          );
+          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
         }
 
         if (task.files.length === 0) {

@@ -8,7 +8,8 @@ import type {
 } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { RenameFileEntry, RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { PlanCreator, PlanStatus } from "@smm/core/types/planCommon";
-import { isActivePlanStatus, isTerminalPlanStatus } from "@smm/core/types/planCommon";
+import { isActivePlanStatus } from "@smm/core/types/planCommon";
+import { PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
 import {
   createEmptyRenamePlan,
   prepareAppendRenameEntry,
@@ -98,6 +99,10 @@ export async function appendRenamePlanEntry(
     throw new Error(`Task with id ${planId} not found`);
   }
 
+  if (plan.status === "rejected") {
+    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
+  }
+
   const result = await prepareAppendRenameEntry(
     plan,
     { from, to },
@@ -171,11 +176,49 @@ export async function beginRecognizePlan(
   return planId;
 }
 
+export interface RecognizePlanAppendDeps {
+  /**
+   * Filesystem-existence check for the path being added. Defaults to
+   * a runtime-neutral {@link ChatFs.exists} probe when omitted. The
+   * legacy CLI used Bun's `Bun.file(...).exists()`; both backends
+   * behave identically for the "regular file exists" question this
+   * tool needs to answer.
+   */
+  validateFiles?: (files: RecognizedFile[]) => Promise<void>;
+}
+
+/**
+ * Validate that every recognized file path points to a regular file
+ * on disk. Throws on the first missing path with a descriptive
+ * message. Uses {@link ChatFs.exists} so the same code runs on both
+ * Bun (`apps/cli`) and Node (`apps/ohos`).
+ */
+export async function defaultValidateRecognizedFiles(
+  files: RecognizedFile[],
+  fs: ChatFs,
+): Promise<void> {
+  for (const file of files) {
+    if (!file.path) {
+      throw new Error(
+        `File path is empty for S${file.season}E${file.episode}`,
+      );
+    }
+    const platformPath = Path.toPlatformPath(Path.posix(file.path));
+    const exists = await fs.exists(platformPath);
+    if (!exists) {
+      throw new Error(
+        `File "${Path.posix(file.path)}" (S${file.season}E${file.episode}) does not exist in the media folder`,
+      );
+    }
+  }
+}
+
 export async function appendRecognizedFile(
   appDataDir: string,
   taskId: string,
   file: RecognizedFile,
   fs: ChatFs,
+  deps: RecognizePlanAppendDeps = {},
 ): Promise<void> {
   const filePath = planFilePath(appDataDir, taskId);
   const plan = (await fs.readJson<RecognizeMediaFilePlan>(filePath)) ?? null;
@@ -183,10 +226,20 @@ export async function appendRecognizedFile(
     throw new Error(`Task with id ${taskId} not found`);
   }
 
+  if (plan.status === "rejected") {
+    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
+  }
+
+  const normalizedPath = Path.posix(file.path);
+  const validate =
+    deps.validateFiles ??
+    ((files) => defaultValidateRecognizedFiles(files, fs));
+  await validate([{ ...file, path: normalizedPath }]);
+
   plan.files.push({
     season: file.season,
     episode: file.episode,
-    path: Path.posix(file.path),
+    path: normalizedPath,
   });
 
   await fs.writeJson(filePath, plan);
@@ -307,9 +360,15 @@ export interface UpdatePlanPatch {
 }
 
 /**
- * Patch a plan's `status` and/or `files`. When the new status is
- * terminal (`completed`/`rejected`) the plan file is deleted; the
- * updated plan object is still returned so callers can react to it.
+ * Patch a plan's `status` and/or `files`.
+ *
+ * Behaviour at terminal statuses:
+ * - `completed` (user confirmed and applied): delete the plan file.
+ * - `rejected` (user cancelled, possibly mid-`preparing`): keep the
+ *   plan file with `status: "rejected"` so that a still-in-flight AI
+ *   workflow calling `add-*-file` or `end-*-task` afterwards can detect
+ *   the cancellation and return a clear message instead of silently
+ *   queueing entries into a deleted plan.
  *
  * Returns `null` if the plan file does not exist.
  */
@@ -332,7 +391,7 @@ export async function updatePlanContent(
   } as AnyPlan);
   const updated = normalizePlanPaths(merged);
 
-  if (patch.status !== undefined && isTerminalPlanStatus(patch.status)) {
+  if (patch.status === "completed") {
     await deletePlan(appDataDir, id);
     return updated;
   }
