@@ -61,10 +61,12 @@ export function buildBeginRenameFilesTaskTool(
   appDataDir: string,
   fs: ChatFs,
   _deps: RenameFilesTaskDeps,
+  broadcast: ((message: WebSocketMessage) => void) | undefined,
   logger: CoreRoutesLogger | undefined,
   abortSignal?: AbortSignal,
 ) {
   const log = makeLogger(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RENAME_FILES_TASK_DESCRIPTION,
     toolName: BEGIN_RENAME_FILES_TASK,
@@ -101,7 +103,22 @@ export function buildBeginRenameFilesTaskTool(
           { taskId, mediaFolderPath: folderPathInPosix, clientId },
           `[tool][${BEGIN_RENAME_FILES_TASK}] Task created successfully`,
         );
-        return toolOk({ taskId });
+        // Notify the UI so it can re-fetch active plans and show the
+        // "generating" prompt while the plan is still preparing.
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data: RenameFilesPlanReadyRequestData = {
+          taskId,
+          planFilePath: planFilePathInPosix,
+        };
+        emit({
+          event: RenameFilesPlanReady.event,
+          data,
+        });
+        log.info(
+          { taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true },
+          `[DIAG] begin-rename-files-task: plan created, RenameFilesPlanReady broadcast sent`,
+        );
       } catch (error) {
         log.error(
           {

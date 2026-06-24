@@ -69,10 +69,12 @@ export function buildBeginRecognizeTaskTool(
   clientId: string,
   appDataDir: string,
   fs: ChatFs,
+  broadcast: ((message: WebSocketMessage) => void) | undefined,
   logger: CoreRoutesLogger | undefined,
   abortSignal?: AbortSignal,
 ) {
   const log = makeLogger(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RECOGNIZE_TASK_DESCRIPTION,
     toolName: BEGIN_RECOGNIZE_TASK,
@@ -99,7 +101,21 @@ export function buildBeginRecognizeTaskTool(
           { taskId, mediaFolderPath: folderPathInPosix, clientId },
           `[tool][${BEGIN_RECOGNIZE_TASK}] Task created successfully`,
         );
-        return toolOk({ taskId });
+
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data: RecognizeMediaFilePlanReadyRequestData = {
+          taskId,
+          planFilePath: planFilePathInPosix,
+        };
+        emit({
+          event: RecognizeMediaFilePlanReady.event,
+          data,
+        });
+        log.info(
+          { taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true },
+          `[DIAG] begin-recognize-task: plan created, RecognizeMediaFilePlanReady broadcast sent`,
+        );
       } catch (error) {
         log.error(
           {

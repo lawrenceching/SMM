@@ -21,7 +21,12 @@ export function usePlansQuery(mediaFolderPath: string | undefined) {
           if (resp.error) {
             throw new Error(resp.error)
           }
-          return resp.data?.plans ?? []
+          const plans = resp.data?.plans ?? []
+          console.log(
+            `[DIAG] usePlansQuery: fetched ${plans.length} active plans for ${folderPosix}`,
+            plans.map((p: Plan) => ({ id: p.id, task: p.task, status: p.status, creator: p.creator })),
+          )
+          return plans
         }
       : skipToken,
   })

@@ -36,6 +36,7 @@ export function registerBeginRenameTaskTool(
     config.appDataDir,
     fs,
     deps,
+    config.broadcast,
     config.logger,
     undefined,
   );

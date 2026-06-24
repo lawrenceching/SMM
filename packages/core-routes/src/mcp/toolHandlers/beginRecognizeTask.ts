@@ -27,6 +27,7 @@ export function registerBeginRecognizeTaskTool(
     "mcp",
     config.appDataDir,
     fs,
+    config.broadcast,
     config.logger,
     undefined,
   );

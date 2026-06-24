@@ -43,6 +43,10 @@ export function useAiBasedRenameFilesFlow({
       ),
     [plans, mediaFolderPath],
   )
+    console.log(
+      `[DIAG] useAiBasedRenameFilesFlow: plan=${plan ? `id=${plan.id} status=${plan.status}` : 'undefined'}, ` +
+      `mediaFolderPath=${mediaFolderPath}, plansCount=${plans.length}`,
+    )
 
   const promptStatus: "generating" | "wait-for-ack" =
     plan?.status === "preparing" ? "generating" : "wait-for-ack"
