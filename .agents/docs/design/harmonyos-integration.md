@@ -43,6 +43,8 @@ apps/ui → preload.js → IPC (dialog:showOpenDialog) → main.js → OS dialog
 - `src/lib/isElectron.ts` — single source of truth
 - `src/lib/nativeFolderDialog.ts` — reusable `openNativeFolderDialog()`
 
+**Window chrome:** OHOS main process hides Electron's default application menu (`File` / `Edit` / `View` / …) via `Menu.setApplicationMenu(null)`, `autoHideMenuBar: true`, and `setMenuBarVisibility(false)` in `apps/ohos/src/window/create-main-window.ts`. The in-app SMM menu (`apps/ui` React menu) is unchanged.
+
 ### 1.3 Import Flow
 
 ```

@@ -1000,20 +1000,26 @@ function resolveRedirect(urlString, distDir = getDistDir()) {
 // src/window/create-main-window.ts
 var import_node_path7 = __toESM(require("node:path"));
 var import_electron9 = require("electron");
+function hideElectronDefaultMenu() {
+  import_electron9.Menu.setApplicationMenu(null);
+}
 function createMainWindow() {
   const iconPath = import_node_path7.default.join(getAppRoot(), "icon.png");
   const tray = new import_electron9.Tray(import_electron9.nativeImage.createFromPath(iconPath));
+  hideElectronDefaultMenu();
   const mainWindow = new import_electron9.BrowserWindow({
     width: 800,
     height: 600,
     title: "SMM",
     icon: iconPath,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: import_node_path7.default.join(getAppRoot(), "preload.js"),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
+  mainWindow.setMenuBarVisibility(false);
   mainWindow.setWindowButtonVisibility(true);
   setExternalUrlOpenHandler(mainWindow);
   if (USE_DEV_PAGE) {
