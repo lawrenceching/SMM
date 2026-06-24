@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@ai-sdk/mcp": "latest"
+    "@ai-sdk/mcp": "1.0.21"
   },
   "devDependencies": {
     "@types/bun": "latest"
