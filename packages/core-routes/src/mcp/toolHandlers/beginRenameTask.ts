@@ -82,6 +82,16 @@ export function registerBeginRenameTaskTool(
           });
         }
 
+        config.logger?.error?.(
+          {
+            resultType: typeof result,
+            resultKeys:
+              typeof result === "object" && result !== null
+                ? Object.keys(result)
+                : [],
+          },
+          `[tool][${BEGIN_RENAME_FILES_TASK}] Unexpected agent tool result shape`,
+        );
         return createSuccessResponse(result as { [x: string]: unknown });
       } catch (error) {
         return createErrorResponse(

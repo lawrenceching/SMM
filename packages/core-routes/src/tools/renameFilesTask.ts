@@ -117,8 +117,9 @@ export function buildBeginRenameFilesTaskTool(
         });
         log.info(
           { taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true },
-          `[DIAG] begin-rename-files-task: plan created, RenameFilesPlanReady broadcast sent`,
+          `[tool][${BEGIN_RENAME_FILES_TASK}] RenameFilesPlanReady broadcast sent`,
         );
+        return toolOk({ taskId });
       } catch (error) {
         log.error(
           {

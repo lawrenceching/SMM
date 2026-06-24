@@ -8,18 +8,29 @@ import {
   type McpToolResponse,
 } from "../index.ts";
 import type { McpConfig } from "../types.ts";
-import { buildAddRecognizedMediaFileTool } from "../../tools/recognizeMediaFilesTask.ts";
+import {
+  buildAddRecognizedMediaFileTool,
+  defaultRecognizeFilesTaskDeps,
+} from "../../tools/recognizeMediaFilesTask.ts";
+import { defaultValidateRecognizedFiles } from "../../tools/plans.ts";
 import { ADD_RECOGNIZED_MEDIA_FILE } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
 
 /**
  * Register the `add-recognized-file` MCP tool. Adds a single
  * `(season, episode, path)` entry to an existing recognize task.
+ *
+ * The underlying agent tool performs a filesystem-existence check on
+ * the path via {@link defaultValidateRecognizedFiles}. Errors from
+ * that check, plus any other validation failure, are surfaced to the
+ * MCP client as `success: false` payloads so the AI sees a failed
+ * tool call instead of a silent success.
  */
 export function registerAddRecognizedFileTool(
   server: McpServer,
   config: McpConfig,
 ): void {
   const fs = config.fs ?? defaultChatFs();
+  const deps = defaultRecognizeFilesTaskDeps(fs);
 
   const agentTool = buildAddRecognizedMediaFileTool(
     "mcp",
@@ -27,6 +38,7 @@ export function registerAddRecognizedFileTool(
     fs,
     config.logger,
     undefined,
+    deps,
   );
 
   const inputSchema = z.object({
@@ -37,7 +49,9 @@ export function registerAddRecognizedFileTool(
     episode: z.number().describe("The episode number"),
     path: z
       .string()
-      .describe("The absolute path of the media file"),
+      .describe(
+        "The absolute path of the media file (POSIX or Windows format)",
+      ),
   });
 
   server.registerTool(
@@ -76,12 +90,29 @@ export function registerAddRecognizedFileTool(
       }
 
       try {
-        await agentTool.execute({
+        const result = await agentTool.execute({
           taskId,
           season,
           episode,
           path: Path.posix(path),
         });
+
+        // Agent tools return `{ error: "..." }` instead of throwing
+        // when validation fails (e.g. file does not exist on disk).
+        // Surface those failures to the MCP client so the AI model
+        // does not silently add a non-existent file to the plan.
+        if (
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+        ) {
+          return createSuccessResponse({
+            success: false,
+            error: result.error,
+          });
+        }
+
         return createSuccessResponse({ success: true, taskId });
       } catch (error) {
         return createErrorResponse(

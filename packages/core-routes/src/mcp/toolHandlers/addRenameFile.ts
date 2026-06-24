@@ -92,11 +92,36 @@ export function registerAddRenameFileTool(
       }
 
       try {
-        await agentTool.execute({
+        const result = await agentTool.execute({
           taskId,
           from: Path.posix(from),
           to: Path.posix(to),
         });
+
+        // Agent tools return `{ error: "..." }` instead of throwing
+        // when validation fails (e.g. source file does not exist on
+        // disk, file is outside the media folder, or path is not a
+        // video file linked to any episode). Surface those failures
+        // to the MCP client so the AI model does not silently add a
+        // non-existent file to the plan.
+        if (
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+        ) {
+          const message = result.error;
+          if (message.includes("Not Episode Video File")) {
+            return createSuccessResponse({
+              success: false,
+              error:
+                `"${from}" is not video file to any episode, you're not allowed to rename it. ` +
+                `Call "get-episodes" tool to get the list of episode video files that needs to rename.`,
+            });
+          }
+          return createSuccessResponse({ success: false, error: message });
+        }
+
         return createSuccessResponse({ success: true, taskId });
       } catch (error) {
         const message =

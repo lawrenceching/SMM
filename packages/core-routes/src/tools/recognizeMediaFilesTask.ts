@@ -116,6 +116,7 @@ export function buildBeginRecognizeTaskTool(
           { taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true },
           `[DIAG] begin-recognize-task: plan created, RecognizeMediaFilePlanReady broadcast sent`,
         );
+        return toolOk({ taskId });
       } catch (error) {
         log.error(
           {

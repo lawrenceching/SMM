@@ -122,7 +122,12 @@ export function FloatingPrompt({
               {children}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={onCancel} disabled={isConfirmDisabled}>
+              <Button
+                variant="outline"
+                onClick={onCancel}
+                disabled={isConfirmDisabled}
+                data-testid="floating-prompt-cancel-button"
+              >
                 {defaultCancelLabel}
               </Button>
               <Button

@@ -6,13 +6,35 @@ import mcpClient from '../../lib/McpClient'
 import Prompts from '../../componentobjects/Prompts'
 import Sidebar from '../../componentobjects/Sidebar'
 import TVShowPanel from '../../componentobjects/TVShowPanel.co'
-import { expectMediaMetadataToBe } from '../../lib/testbed'
+import { expectMediaMetadataToBe, cleanup, setup } from '../../lib/testbed'
 import { createAndImportFolder, folder1, type TestFolder } from '../../actions/import-folders'
-import { createMcpSpecContext, registerMcpHooks } from '../../lib/mcpSpecShared'
+import { cleanupMcpTest, createMcpSpecContext, setupMcpTest } from '../../lib/mcpSpecShared'
 
 describe('MCP Other - RecognizeTaskFlow', () => {
   const ctx = createMcpSpecContext()
-  registerMcpHooks()
+
+  beforeEach(async () => {
+    await setup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: true,
+      openBrowserPage: true,
+    })
+    await setupMcpTest()
+  })
+
+  afterEach(async () => {
+    await cleanupMcpTest()
+    await cleanup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: false,
+    })
+  })
 
   it('MCP recognize task tools should recognize episode video file via begin/add/end flow', async () => {
     const folder = await createAndImportFolder(

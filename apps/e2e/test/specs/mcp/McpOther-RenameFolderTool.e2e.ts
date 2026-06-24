@@ -3,16 +3,38 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import type { MediaMetadata } from '@smm/core/types'
 import mcpClient from '../../lib/McpClient'
-import { expectMediaMetadataToBe } from '../../lib/testbed'
+import { expectMediaMetadataToBe, cleanup, setup } from '../../lib/testbed'
 import { createAndImportFolder, folder1, folder2 } from '../../actions/import-folders'
-import { createMcpSpecContext, registerMcpHooks } from '../../lib/mcpSpecShared'
+import { cleanupMcpTest, createMcpSpecContext, setupMcpTest } from '../../lib/mcpSpecShared'
 import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { Path } from '@smm/core'
 
 describe('MCP Other - RenameFolderTool', () => {
   const ctx = createMcpSpecContext()
-  registerMcpHooks()
+
+  beforeEach(async () => {
+    await setup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: true,
+      openBrowserPage: true,
+    })
+    await setupMcpTest()
+  })
+
+  afterEach(async () => {
+    await cleanupMcpTest()
+    await cleanup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: false,
+    })
+  })
 
   it('TV Show', async () => {
     const folder = await createAndImportFolder(folder1, 'e2eTest:RenameFolderTool')
@@ -30,7 +52,7 @@ describe('MCP Other - RenameFolderTool', () => {
     expect(r.from).toBe(folder.path!)
     expect(r.to).toBe(newFolderPath)
 
-    browser.pause(5000);
+    await browser.pause(5000);
 
     await expectMediaMetadataToBe(newFolderPath, (obj) => {
       const mm = obj as MediaMetadata
@@ -60,7 +82,7 @@ describe('MCP Other - RenameFolderTool', () => {
     expect(r.from).toBe(folder.path!)
     expect(r.to).toBe(newFolderPath)
 
-    browser.pause(5000);
+    await browser.pause(5000);
 
     await expectMediaMetadataToBe(newFolderPath, (obj) => {
       const mm = obj as MediaMetadata

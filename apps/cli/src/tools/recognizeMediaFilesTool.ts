@@ -77,26 +77,46 @@ export async function beginRecognizeTask(mediaFolderPath: string): Promise<strin
 }
 
 /**
- * Add a recognized file to a task
- * @param taskId The task ID
- * @param file The recognized file information
+ * Validate that a recognized file path points to a regular file on
+ * disk. Throws on the first missing path so callers (AI tools,
+ * legacy CLI) get a clear error before queueing a non-existent file
+ * for the user to confirm later.
  */
+async function assertRecognizedFileExists(file: RecognizedFile): Promise<void> {
+  if (!file.path) {
+    throw new Error(`File path is empty for S${file.season}E${file.episode}`);
+  }
+  const filePathInPosix = Path.posix(file.path);
+  const platformPath = Path.toPlatformPath(filePathInPosix);
+  const exists = await Bun.file(platformPath).exists();
+  if (!exists) {
+    throw new Error(
+      `File "${filePathInPosix}" (S${file.season}E${file.episode}) does not exist in the media folder`,
+    );
+  }
+}
+
 export async function addRecognizedMediaFile(taskId: string, file: RecognizedFile): Promise<void> {
   const plan = await readPlanFile(taskId);
-  
+
   if (!plan) {
     throw new Error(`Task with id ${taskId} not found`);
   }
-  
+
   // Ensure path is in POSIX format
   const filePathInPosix = Path.posix(file.path);
-  
+
+  // Reject non-existent files before adding them to the plan so the
+  // AI cannot silently queue up a path the user has to unwind at
+  // confirmation time.
+  await assertRecognizedFileExists({ ...file, path: filePathInPosix });
+
   plan.files.push({
     season: file.season,
     episode: file.episode,
     path: filePathInPosix,
   });
-  
+
   const planFilePath = getPlanFilePath(taskId);
   await Bun.write(planFilePath, JSON.stringify(plan, null, 2));
 }

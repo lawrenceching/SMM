@@ -5,13 +5,35 @@ import { Path } from '@smm/core'
 import mcpClient from '../../lib/McpClient'
 import Prompts from '../../componentobjects/Prompts'
 import TVShowPanel from '../../componentobjects/TVShowPanel.co'
-import { expectMediaMetadataToBe } from '../../lib/testbed'
+import { expectMediaMetadataToBe, cleanup, setup } from '../../lib/testbed'
 import { createAndImportFolder, folder1 } from '../../actions/import-folders'
-import { createMcpSpecContext, registerMcpHooks } from '../../lib/mcpSpecShared'
+import { cleanupMcpTest, createMcpSpecContext, setupMcpTest } from '../../lib/mcpSpecShared'
 
 describe('MCP Other - RenameTaskFlow', () => {
   const ctx = createMcpSpecContext()
-  registerMcpHooks()
+
+  beforeEach(async () => {
+    await setup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: true,
+      openBrowserPage: true,
+    })
+    await setupMcpTest()
+  })
+
+  afterEach(async () => {
+    await cleanupMcpTest()
+    await cleanup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: false,
+    })
+  })
 
   it('MCP rename task tools should rename episode video file via begin/add/end flow', async () => {
     const folder = await createAndImportFolder(folder1, 'e2eTest:McpRenameTaskTools')

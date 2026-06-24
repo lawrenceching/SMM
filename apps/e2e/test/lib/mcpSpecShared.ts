@@ -2,7 +2,6 @@ import { expect, browser } from '@wdio/globals'
 import * as path from 'node:path'
 import { delay } from 'es-toolkit'
 import StatusBar from '../componentobjects/StatusBar'
-import { cleanup, setup } from './testbed'
 
 /** Set by `wdio.conf.ts` global `before` when this worker runs MCP-related specs. */
 export const SMM_MCP_GLOBAL_ADDRESS_KEY = '__SMM_MCP_ADDRESS__' as const
@@ -81,63 +80,36 @@ export function createMcpSpecContext(): McpSpecContext {
   }
 }
 
-/** Per-test cleanup for MCP tool specs. MCP server on/off is handled in `wdio.conf.ts`. */
-export function registerMcpHooks(): void {
+/** Enable MCP from StatusBar after {@link setup}. Call from spec `beforeEach`. */
+export async function setupMcpTest(): Promise<void> {
+  await StatusBar.mcpIndicatorButton.waitForDisplayed()
+  await StatusBar.mcpIndicatorButton.click()
+  await StatusBar.waitForMcpPopover(1000)
+  await StatusBar.mcpSwitch.waitForDisplayed()
 
-  beforeEach(async () => {
+  await browser.pause(1000)
 
-    await setup({
-      removeDirInSidebar: true,
-      removeMetadataDir: true,
-      removePlansDir: true,
-      removeMediaFolders: true,
-      resetUserConfig: false,
-      openBrowserPage: true,
-    });
+  if (!(await StatusBar.isMcpToggleOn())) {
+    console.log('MCP switch is off, clicking to turn it on')
+    await StatusBar.mcpSwitch.click()
+    await browser.pause(1000)
+  }
 
-    await StatusBar.mcpIndicatorButton.waitForDisplayed();
-    await StatusBar.mcpIndicatorButton.click();
-    await StatusBar.waitForMcpPopover(1000);
-    await StatusBar.mcpSwitch.waitForDisplayed();
+  if (!(await StatusBar.isMcpToggleOn())) {
+    console.log('[2nd check] MCP switch is still off, clicking to turn it on')
+    await StatusBar.mcpSwitch.click()
+    await browser.pause(1000)
+  }
 
-    // wait for a while for MCP Popover to open and load the MCP server status
-    await browser.pause(1000);
+  if (!(await StatusBar.isMcpToggleOn())) {
+    console.log('[3rd check] MCP switch is still off, clicking to turn it on')
+    await StatusBar.mcpSwitch.click()
+    await browser.pause(1000)
+  }
+}
 
-    if(!await StatusBar.isMcpToggleOn()) {
-      console.log('MCP switch is off, clicking to turn it on');
-      await StatusBar.mcpSwitch.click();
-      // wait for while for MCP server to start
-      await browser.pause(1000);
-    }
-
-    if(!await StatusBar.isMcpToggleOn()) {
-      console.log('[2nd check] MCP switch is still off, clicking to turn it on');
-      await StatusBar.mcpSwitch.click();
-      // wait for while for MCP server to start
-      await browser.pause(1000);
-    }
-
-    if(!await StatusBar.isMcpToggleOn()) {
-      console.log('[3rd check] MCP switch is still off, clicking to turn it on');
-      await StatusBar.mcpSwitch.click();
-      // wait for while for MCP server to start
-      await browser.pause(1000);
-    }
-
-    
-    
-  })
-
-  afterEach(async () => {
-    await cleanup({
-      removeDirInSidebar: true,
-      removeMetadataDir: true,
-      removePlansDir: true,
-      removeMediaFolders: true,
-      resetUserConfig: false,
-    })
-
-    await browser.refresh()
-    await StatusBar.appVersion.waitForDisplayed()
-  })
+/** Refresh browser after MCP spec. Call from spec `afterEach` before {@link cleanup}. */
+export async function cleanupMcpTest(): Promise<void> {
+  await browser.refresh()
+  await StatusBar.appVersion.waitForDisplayed()
 }

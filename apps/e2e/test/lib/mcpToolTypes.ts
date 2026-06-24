@@ -20,7 +20,7 @@ export const McpToolName = {
   addRenameFileToTask: 'add-rename-file-to-task',
   endRenameFilesTask: 'end-rename-files-task',
   beginRecognizeTask: 'begin-recognize-task',
-  addRecognizedFile: 'add-recognized-file',
+  addRecognizedFile: 'add-recognized-media-file',
   endRecognizeTask: 'end-recognize-task',
   getEpisode: 'get-episode',
   getEpisodes: 'get-episodes',

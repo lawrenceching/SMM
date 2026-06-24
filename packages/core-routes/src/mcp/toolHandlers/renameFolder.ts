@@ -6,6 +6,10 @@ import {
   renameFolderOutputSchema,
 } from "@smm/core/types/ai-tools/renameFolder";
 import {
+  USER_CONFIG_FOLDER_RENAMED_EVENT,
+  USER_CONFIG_UPDATED_EVENT,
+} from "@smm/core/event-types";
+import {
   createErrorResponse,
   createSuccessResponse,
   type McpToolResponse,
@@ -70,6 +74,21 @@ export function registerRenameFolderTool(
           { from: params.from, to: params.to },
           syntheticConfig,
         );
+
+        if (result.renamed) {
+          config.broadcast?.({
+            event: USER_CONFIG_FOLDER_RENAMED_EVENT,
+            data: {
+              from: result.from,
+              to: result.to,
+            },
+          });
+          config.broadcast?.({
+            event: USER_CONFIG_UPDATED_EVENT,
+            data: {},
+          });
+        }
+
         return createSuccessResponse(result as { [x: string]: unknown });
       } catch (error) {
         return createErrorResponse(

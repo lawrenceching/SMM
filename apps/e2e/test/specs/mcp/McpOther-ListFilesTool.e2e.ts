@@ -3,11 +3,34 @@ import { expect as expectChai } from 'chai'
 import * as path from 'node:path'
 import mcpClient from '../../lib/McpClient'
 import { createAndImportFolder, folder1 } from '../../actions/import-folders'
-import { createMcpSpecContext, registerMcpHooks } from '../../lib/mcpSpecShared'
+import { cleanup, setup } from '../../lib/testbed'
+import { cleanupMcpTest, createMcpSpecContext, setupMcpTest } from '../../lib/mcpSpecShared'
 
 describe('MCP Other - ListFilesTool', () => {
   const ctx = createMcpSpecContext()
-  registerMcpHooks()
+
+  beforeEach(async () => {
+    await setup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: true,
+      openBrowserPage: true,
+    })
+    await setupMcpTest()
+  })
+
+  afterEach(async () => {
+    await cleanupMcpTest()
+    await cleanup({
+      removeDirInSidebar: true,
+      removeMetadataDir: true,
+      removePlansDir: true,
+      removeMediaFolders: true,
+      resetUserConfig: false,
+    })
+  })
 
   it('ListFilesTool should list files from target folder', async () => {
     const folder = await createAndImportFolder(folder1, 'e2eTest:ListFilesTool')
