@@ -215,9 +215,17 @@ pnpm ci               # 构建 + 测试 + 类型检查
 
 ### 执行测试
 
+
+**手动测试**
 进入 `apps/e2e` 目录, 并执行
 ```
 pnpm run wdio --spec ./test/specs/[test file].e2e.ts
+```
+
+**自动化测试/AI Agent测试**
+在项目根目录执行
+```
+bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 ```
 
 ### 编写测试

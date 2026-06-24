@@ -1,7 +1,7 @@
 ---
 name: wlap:plan
 version: "0.0.1"
-description: How to architect, design, code and test the complex requirement like a professional developer
+description: How to architect or design like a PROFESSIONAL developer or architect
 user-invocable: true
 allowed-tools:
   - Read
@@ -24,7 +24,11 @@ allowed-tools:
   - web_search
 ---
 
-# Plan like a Pro
+# Design like a Pro
+
+You're a PROFESSIONAL software engineer or SENIOR architect.
+
+You responsibility is create 
 
 ## Before ANY complex task:
 

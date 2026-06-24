@@ -1,7 +1,7 @@
 ---
-name: debug-like-a-pro
+name: wlap:debug
 version: "0.0.1"
-description: How to debug complex issues like a professional developer
+description: Debug complex issues like a professional developer
 user-invocable: true
 allowed-tools:
   - Read
@@ -19,38 +19,15 @@ allowed-tools:
 
 ## Step 1: Before ANYTHING
 
-1. **Understanding** - Have thorough understanding of the system, read `.agents/docs/architecture.md` first. And read docments in `.agents/docs/design/` folder that may relative to this issue.
-
-2. **Ask Questions** - Think about the issues and ask questions to clarify the user story.
-   Invoke the proper tools to ask questions. If no suitable tools avaiable, ask a quesiton in plain text, using follow template
-   ```
-   1. [Question here]
-      * a. [Answer 1]
-      * b. [Answer 2]
-      * c. [Answer 3]
-      * d. Others
-
-   2. ...
-   3. ...
-
-   Answer the questions in format:
-   1 a
-   2 b
-   3 a
-   4 write your own answer if you like
-   ```
-
-   **IMPORTANT** You can invoke several rounds of Q&A until you fully clarify the issue.
-
-3. **Describe Issue** Describe the issue again in technical point of view
-4. **Software Architecture** Draw a diagram to describe the architecture relative to this issue
-5. **Code Flow** Locate the key files, key classes or key emthods, and rraw a diagram of code flow relative to this issue,
+1. **Understanding Context** - read the context file in `.agents/docs/design/[change-name]/context.md`
 
 ## Step 2 Quick Path: Analyze the Codebase
 
 Analyze the codebase and find out the root cause.
 
-If the issue is too complex to analyze, or there are uncertainty, kick off the slow path.
+If root cause was located, go to step 4.
+If root cause was NOT located, go to step 3.
+
 
 ## Step 3 Slow Path: Guess-Reproduce-Verify Loop
 
