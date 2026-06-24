@@ -10,7 +10,10 @@ class Page {
     * @param path path of the sub page (e.g. /path/to/page.html)
     */
     public open (url?: string) {
-        return browser.url(url ?? `http://localhost:5173`)
+        const base = url ?? `http://localhost:5173`
+        const token = process.env.SMM_AUTH_TOKEN
+        const targetUrl = token ? `${base}?token=${encodeURIComponent(token)}` : base
+        return browser.url(targetUrl)
     }
 
     /**
