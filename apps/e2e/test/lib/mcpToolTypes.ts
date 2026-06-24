@@ -16,9 +16,9 @@ export const McpToolName = {
   howToRenameEpisodeVideoFiles: 'how-to-rename-episode-video-files',
   howToRecognizeEpisodeVideoFiles: 'how-to-recognize-episode-video-files',
   renameFolder: 'rename-folder',
-  beginRenameEpisodeVideoFileTask: 'begin-rename-episode-video-file-task',
-  addRenameEpisodeVideoFile: 'add-rename-episode-video-file',
-  endRenameEpisodeVideoFileTask: 'end-rename-episode-video-file-task',
+  beginRenameFilesTask: 'begin-rename-files-task',
+  addRenameFileToTask: 'add-rename-file-to-task',
+  endRenameFilesTask: 'end-rename-files-task',
   beginRecognizeTask: 'begin-recognize-task',
   addRecognizedFile: 'add-recognized-file',
   endRecognizeTask: 'end-recognize-task',
@@ -137,36 +137,34 @@ export interface RenameFolderResponse {
 }
 
 // --- rename task (begin/append/end) ---
-export interface BeginRenameEpisodeVideoFileTaskRequest {
+export interface BeginRenameFilesTaskRequest {
   mediaFolderPath: string
 }
 
-export interface BeginRenameEpisodeVideoFileTaskResponse {
+export interface BeginRenameFilesTaskResponse {
   success: boolean
   taskId: string
-  mediaFolderPath?: string
+  mediaFolderPath: string
 }
 
-export interface AddRenameEpisodeVideoFileRequest {
+export interface AddRenameFileToTaskRequest {
   taskId: string
   from: string
   to: string
 }
 
-export interface AddRenameEpisodeVideoFileResponse {
-  success: boolean
+export interface AddRenameFileToTaskResponse {
+  success?: boolean
+}
+
+export interface EndRenameFilesTaskRequest {
   taskId: string
 }
 
-export interface EndRenameEpisodeVideoFileTaskRequest {
-  taskId: string
-}
-
-export interface EndRenameEpisodeVideoFileTaskResponse {
+export interface EndRenameFilesTaskResponse {
   success: boolean
   taskId: string
-  fileCount?: number
-  error?: string
+  message?: string
 }
 
 // --- recognize task ---

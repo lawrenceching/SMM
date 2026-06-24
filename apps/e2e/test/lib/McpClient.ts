@@ -6,16 +6,12 @@ import {
   McpToolName,
   type AddRecognizedFileRequest,
   type AddRecognizedFileResponse,
-  type AddRenameEpisodeVideoFileRequest,
-  type AddRenameEpisodeVideoFileResponse,
-  type BeginRecognizeTaskRequest,
-  type BeginRecognizeTaskResponse,
-  type BeginRenameEpisodeVideoFileTaskRequest,
-  type BeginRenameEpisodeVideoFileTaskResponse,
-  type EndRecognizeTaskRequest,
-  type EndRecognizeTaskResponse,
-  type EndRenameEpisodeVideoFileTaskRequest,
-  type EndRenameEpisodeVideoFileTaskResponse,
+  type AddRenameFileToTaskRequest,
+  type AddRenameFileToTaskResponse,
+  type BeginRenameFilesTaskRequest,
+  type BeginRenameFilesTaskResponse,
+  type EndRenameFilesTaskRequest,
+  type EndRenameFilesTaskResponse,
   type GetAppContextResponse,
   type GetEpisodeRequest,
   type GetEpisodeResponse,
@@ -211,41 +207,41 @@ class McpClient {
     return this.execTyped(clientCwd, mcpAddress, McpToolName.renameFolder, toolArgs(req))
   }
 
-  async beginRenameEpisodeVideoFileTask(
+  async beginRenameFilesTask(
     clientCwd: string,
     mcpAddress: string,
-    req: BeginRenameEpisodeVideoFileTaskRequest,
-  ): Promise<BeginRenameEpisodeVideoFileTaskResponse> {
+    req: BeginRenameFilesTaskRequest,
+  ): Promise<BeginRenameFilesTaskResponse> {
     return this.execTyped(
       clientCwd,
       mcpAddress,
-      McpToolName.beginRenameEpisodeVideoFileTask,
+      McpToolName.beginRenameFilesTask,
       toolArgs(req),
     )
   }
 
-  async addRenameEpisodeVideoFile(
+  async addRenameFileToTask(
     clientCwd: string,
     mcpAddress: string,
-    req: AddRenameEpisodeVideoFileRequest,
-  ): Promise<AddRenameEpisodeVideoFileResponse> {
+    req: AddRenameFileToTaskRequest,
+  ): Promise<AddRenameFileToTaskResponse> {
     return this.execTyped(
       clientCwd,
       mcpAddress,
-      McpToolName.addRenameEpisodeVideoFile,
+      McpToolName.addRenameFileToTask,
       toolArgs(req),
     )
   }
 
-  async endRenameEpisodeVideoFileTask(
+  async endRenameFilesTask(
     clientCwd: string,
     mcpAddress: string,
-    req: EndRenameEpisodeVideoFileTaskRequest,
-  ): Promise<EndRenameEpisodeVideoFileTaskResponse> {
+    req: EndRenameFilesTaskRequest,
+  ): Promise<EndRenameFilesTaskResponse> {
     return this.execTyped(
       clientCwd,
       mcpAddress,
-      McpToolName.endRenameEpisodeVideoFileTask,
+      McpToolName.endRenameFilesTask,
       toolArgs(req),
     )
   }

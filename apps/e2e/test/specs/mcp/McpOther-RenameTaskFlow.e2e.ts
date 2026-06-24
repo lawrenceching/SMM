@@ -19,17 +19,17 @@ describe('MCP Other - RenameTaskFlow', () => {
 
     expect(await TVShowPanel.toString()).toContain('S01E01 S01E01.mkv V V V')
 
-    const r = await mcpClient.beginRenameEpisodeVideoFileTask(ctx.clientCwd, ctx.mcpAddress, {
+    const r = await mcpClient.beginRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folder.path!,
     })
 
-    await mcpClient.addRenameEpisodeVideoFile(ctx.clientCwd, ctx.mcpAddress, {
+    await mcpClient.addRenameFileToTask(ctx.clientCwd, ctx.mcpAddress, {
       taskId: r.taskId,
       from: path.join(folder.path!, 'S01E01.mkv'),
       to: path.join(folder.path!, '[1].mp4'),
     })
 
-    await mcpClient.endRenameEpisodeVideoFileTask(ctx.clientCwd, ctx.mcpAddress, {
+    await mcpClient.endRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
       taskId: r.taskId,
     })
 
