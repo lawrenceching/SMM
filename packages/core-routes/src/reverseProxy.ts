@@ -64,6 +64,14 @@ const PROXY_CONTROL_HEADERS: ReadonlySet<string> = new Set([
   "x-smm-proxy-upstream-baseurl",
 ]);
 
+/** Conditional cache headers — strip when forwarding so upstream returns full 200 bodies. */
+const CONDITIONAL_REQUEST_HEADERS: ReadonlySet<string> = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since",
+]);
+
 export interface ReverseProxyLogger {
   debug(obj: Record<string, unknown>, msg?: string): void;
   info(obj: Record<string, unknown>, msg?: string): void;
@@ -131,6 +139,7 @@ export function filterRequestHeaders(
     const lowerKey = key.toLowerCase();
     if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey)) return;
     if (PROXY_CONTROL_HEADERS.has(lowerKey)) return;
+    if (CONDITIONAL_REQUEST_HEADERS.has(lowerKey)) return;
     headers.set(key, value);
   });
   headers.set("Host", upstreamUrl.host);

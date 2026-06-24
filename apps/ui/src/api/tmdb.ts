@@ -62,7 +62,7 @@ async function fetchJson<T>(
   errorPrefix: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<T> {
-  const resp = await fetchFn(url, init)
+  const resp = await fetchFn(url, { ...init, cache: 'no-store' })
   if (!resp.ok) {
     throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`)
   }

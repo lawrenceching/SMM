@@ -57774,6 +57774,7 @@ async function prepareAppendRenameEntry(plan, entry, deps) {
 
 // ../core/types/ai-tools/planTaskMessages.ts
 var END_PLAN_TASK_SUCCESS_MESSAGE = "Task is created successfuly. User need to go to SMM, review and approve the task.";
+var PLAN_CANCELLED_BY_USER_MESSAGE = "该任务已被用户取消, 请停止后续操作";
 
 // ../core/event-types.ts
 var RecognizeMediaFilePlanReady = {
@@ -57782,6 +57783,8 @@ var RecognizeMediaFilePlanReady = {
 var RenameFilesPlanReady = {
   event: "renameFilesPlanReady"
 };
+var USER_CONFIG_UPDATED_EVENT = "userConfigUpdated";
+var USER_CONFIG_FOLDER_RENAMED_EVENT = "userConfig.folderRenamed";
 
 // src/tools/plans.ts
 var import_promises8 = require("node:fs/promises");
@@ -57791,9 +57794,6 @@ var import_node_crypto2 = require("node:crypto");
 // ../core/types/planCommon.ts
 function isActivePlanStatus(status) {
   return status === "preparing" || status === "pending";
-}
-function isTerminalPlanStatus(status) {
-  return status === "completed" || status === "rejected";
 }
 
 // src/tools/plans.ts
@@ -57833,6 +57833,9 @@ async function appendRenamePlanEntry(appDataDir, planId, from, to, fs, deps) {
   if (!plan) {
     throw new Error(`Task with id ${planId} not found`);
   }
+  if (plan.status === "rejected") {
+    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
+  }
   const result = await prepareAppendRenameEntry(plan, { from, to }, deps);
   if ("error" in result) {
     throw new Error(result.error.replace(/^Error Reason: /, ""));
@@ -57867,16 +57870,34 @@ async function beginRecognizePlan(appDataDir, mediaFolderPath, fs) {
   await fs.writeJson(planFilePath(appDataDir, planId), plan);
   return planId;
 }
-async function appendRecognizedFile(appDataDir, taskId, file2, fs) {
+async function defaultValidateRecognizedFiles(files, fs) {
+  for (const file2 of files) {
+    if (!file2.path) {
+      throw new Error(`File path is empty for S${file2.season}E${file2.episode}`);
+    }
+    const platformPath = Path.toPlatformPath(Path.posix(file2.path));
+    const exists = await fs.exists(platformPath);
+    if (!exists) {
+      throw new Error(`File "${Path.posix(file2.path)}" (S${file2.season}E${file2.episode}) does not exist in the media folder`);
+    }
+  }
+}
+async function appendRecognizedFile(appDataDir, taskId, file2, fs, deps = {}) {
   const filePath = planFilePath(appDataDir, taskId);
   const plan = await fs.readJson(filePath) ?? null;
   if (!plan) {
     throw new Error(`Task with id ${taskId} not found`);
   }
+  if (plan.status === "rejected") {
+    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
+  }
+  const normalizedPath = Path.posix(file2.path);
+  const validate = deps.validateFiles ?? ((files) => defaultValidateRecognizedFiles(files, fs));
+  await validate([{ ...file2, path: normalizedPath }]);
   plan.files.push({
     season: file2.season,
     episode: file2.episode,
-    path: Path.posix(file2.path)
+    path: normalizedPath
   });
   await fs.writeJson(filePath, plan);
 }
@@ -57958,7 +57979,7 @@ async function updatePlanContent(appDataDir, id, patch, fs) {
     ...patch.files !== undefined ? { files: patch.files } : {}
   });
   const updated = normalizePlanPaths(merged);
-  if (patch.status !== undefined && isTerminalPlanStatus(patch.status)) {
+  if (patch.status === "completed") {
     await deletePlan(appDataDir, id);
     return updated;
   }
@@ -57999,8 +58020,9 @@ function makeLogger(logger) {
     error: (obj, msg) => logger?.error(obj, msg)
   };
 }
-function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, logger, abortSignal) {
+function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, broadcast, logger, abortSignal) {
   const log = makeLogger(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RENAME_FILES_TASK_DESCRIPTION,
     toolName: BEGIN_RENAME_FILES_TASK,
@@ -58022,6 +58044,17 @@ function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, logger, 
       try {
         const taskId = await beginRenamePlan(appDataDir, folderPathInPosix, fs);
         log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RENAME_FILES_TASK}] Task created successfully`);
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data = {
+          taskId,
+          planFilePath: planFilePathInPosix
+        };
+        emit({
+          event: RenameFilesPlanReady.event,
+          data
+        });
+        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[tool][${BEGIN_RENAME_FILES_TASK}] RenameFilesPlanReady broadcast sent`);
         return toolOk({ taskId });
       } catch (error48) {
         log.error({
@@ -58083,6 +58116,10 @@ function buildEndRenameFilesTaskTool(clientId, appDataDir, fs, broadcast, logger
         if (!task) {
           log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task not found`);
           return toolError(`Task with id "${normalizedTaskId}" not found`);
+        }
+        if (task.status === "rejected") {
+          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task cancelled by user`);
+          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
         }
         if (task.files.length === 0) {
           log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] No files in task`);
@@ -58454,6 +58491,11 @@ function defaultRenameFilesTaskDeps(appDataDir) {
 }
 
 // src/tools/recognizeMediaFilesTask.ts
+function defaultRecognizeFilesTaskDeps(fs) {
+  return {
+    validateFiles: (files) => defaultValidateRecognizedFiles(files, fs)
+  };
+}
 function makeLogger2(logger) {
   return {
     info: (obj, msg) => logger?.info(obj, msg),
@@ -58461,8 +58503,9 @@ function makeLogger2(logger) {
     error: (obj, msg) => logger?.error(obj, msg)
   };
 }
-function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, logger, abortSignal) {
+function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
   const log = makeLogger2(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RECOGNIZE_TASK_DESCRIPTION,
     toolName: BEGIN_RECOGNIZE_TASK,
@@ -58477,6 +58520,17 @@ function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, logger, abortSign
       try {
         const taskId = await beginRecognizePlan(appDataDir, folderPathInPosix, fs);
         log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RECOGNIZE_TASK}] Task created successfully`);
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data = {
+          taskId,
+          planFilePath: planFilePathInPosix
+        };
+        emit({
+          event: RecognizeMediaFilePlanReady.event,
+          data
+        });
+        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[DIAG] begin-recognize-task: plan created, RecognizeMediaFilePlanReady broadcast sent`);
         return toolOk({ taskId });
       } catch (error48) {
         log.error({
@@ -58489,7 +58543,7 @@ function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, logger, abortSign
     }
   };
 }
-function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abortSignal) {
+function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abortSignal, deps) {
   const log = makeLogger2(logger);
   return {
     description: ADD_RECOGNIZED_MEDIA_FILE_DESCRIPTION,
@@ -58508,7 +58562,7 @@ function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abort
           episode: episode ?? 0,
           path: filePath ?? ""
         };
-        await appendRecognizedFile(appDataDir, normalizedTaskId, recognizedFile, fs);
+        await appendRecognizedFile(appDataDir, normalizedTaskId, recognizedFile, fs, { validateFiles: deps?.validateFiles });
         log.info({
           taskId: normalizedTaskId,
           season,
@@ -58550,6 +58604,10 @@ function buildEndRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, 
         if (!task) {
           log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task not found`);
           return formatToolError(`Task with id "${normalizedTaskId}" not found`);
+        }
+        if (task.status === "rejected") {
+          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task cancelled by user`);
+          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
         }
         if (task.files.length === 0) {
           log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] No files in task`);
@@ -58613,10 +58671,10 @@ function createChatTools(args) {
     [GET_MEDIA_FOLDERS]: buildGetMediaFoldersTool(userConfig, abortSignal),
     [LIST_FILES_IN_MEDIA_FOLDER]: buildListFilesInMediaFolderTool(userConfig, abortSignal),
     [RENAME_FOLDER]: buildRenameFolderTool(clientId, syntheticConfig, abortSignal, acknowledge),
-    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
+    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, broadcast, logger, abortSignal),
     [ADD_RENAME_FILE_TO_TASK]: buildAddRenameFileToTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
     [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
-    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, logger, abortSignal),
+    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
     [ADD_RECOGNIZED_MEDIA_FILE]: buildAddRecognizedMediaFileTool(clientId, config2.appDataDir, fs, logger, abortSignal),
     [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal)
   };
@@ -60406,6 +60464,12 @@ var HOP_BY_HOP_RESPONSE_HEADERS = new Set([
 var PROXY_CONTROL_HEADERS = new Set([
   "x-smm-proxy-upstream-baseurl"
 ]);
+var CONDITIONAL_REQUEST_HEADERS = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since"
+]);
 function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
   const base = new URL(upstreamBaseURL);
   const basePath = base.pathname.replace(/\/+$/, "");
@@ -60436,6 +60500,8 @@ function filterRequestHeaders(request, upstreamUrl) {
     if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey))
       return;
     if (PROXY_CONTROL_HEADERS.has(lowerKey))
+      return;
+    if (CONDITIONAL_REQUEST_HEADERS.has(lowerKey))
       return;
     headers.set(key, value);
   });
@@ -60529,7 +60595,22 @@ async function handleProxyRequest(request, config2 = {}) {
       headers: respHeaders
     });
   } catch (error48) {
-    logger.error({ err: error48, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
+    logger.error({
+      err: error48,
+      method: request.method,
+      forwardUrl,
+      upstreamBaseURL,
+      upstreamHost: upstreamUrl.host,
+      errorMessage: error48 instanceof Error ? error48.message : String(error48),
+      errorName: error48 instanceof Error ? error48.name : undefined,
+      errorStack: error48 instanceof Error ? error48.stack : undefined
+    }, "[Reverse Proxy] upstream request failed");
+    console.error("[ScrapeNfo:debug][reverse-proxy] upstream request failed", {
+      forwardUrl,
+      upstreamBaseURL,
+      upstreamHost: upstreamUrl.host,
+      error: error48 instanceof Error ? error48.message : String(error48)
+    });
     return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
   }
 }
@@ -60703,6 +60784,12 @@ var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
   "upgrade",
   "host"
 ]);
+var CONDITIONAL_REQUEST_HEADERS2 = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since"
+]);
 var STRIPPED_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length"
@@ -60729,11 +60816,26 @@ function buildOutgoingHeaders(request) {
     const lowerKey = key.toLowerCase();
     if (HOP_BY_HOP_REQUEST_HEADERS2.has(lowerKey))
       return;
+    if (CONDITIONAL_REQUEST_HEADERS2.has(lowerKey))
+      return;
     if (lowerKey === "accept-encoding")
       return;
     headers[key] = value;
   });
   return headers;
+}
+function toFetchApiStatus(statusCode) {
+  const status = statusCode ?? 502;
+  if (status === 304)
+    return 200;
+  return status;
+}
+function createNodeHttpResponse(body, statusCode, statusMessage, sourceHeaders, bodyLength) {
+  return new Response(body, {
+    status: toFetchApiStatus(statusCode),
+    statusText: statusMessage ?? "",
+    headers: buildResponseHeaders(sourceHeaders, bodyLength)
+  });
 }
 function buildResponseHeaders(source, bodyLength) {
   const headers = new Headers;
@@ -60787,11 +60889,7 @@ function requestViaNodeHttp(request) {
             const wireBody = Buffer.concat(chunks);
             const body = await decompressBody(wireBody, res.headers["content-encoding"]);
             const bodyBytes = Buffer.from(body);
-            resolve2(new Response(bodyBytes, {
-              status: res.statusCode ?? 502,
-              statusText: res.statusMessage ?? "",
-              headers: buildResponseHeaders(res.headers, bodyBytes.length)
-            }));
+            resolve2(createNodeHttpResponse(bodyBytes, res.statusCode, res.statusMessage, res.headers, bodyBytes.length));
           } catch (error48) {
             reject(error48);
           }
@@ -60836,25 +60934,16 @@ function requestViaNodeHttpStreaming(request) {
   const headers = buildOutgoingHeaders(request);
   return new Promise((resolve2, reject) => {
     const onResponse = (res) => {
-      const respHeaders = buildResponseHeaders(res.headers);
       const contentEncoding = res.headers["content-encoding"];
       const decompressor = decompressorFor(contentEncoding);
       if (decompressor) {
         const decompressed = res.pipe(decompressor);
         decompressor.on("error", reject);
         const webStream = import_node_stream2.Readable.toWeb(decompressed);
-        resolve2(new Response(webStream, {
-          status: res.statusCode ?? 502,
-          statusText: res.statusMessage ?? "",
-          headers: respHeaders
-        }));
+        resolve2(createNodeHttpResponse(webStream, res.statusCode, res.statusMessage, res.headers));
       } else {
         const webStream = import_node_stream2.Readable.toWeb(res);
-        resolve2(new Response(webStream, {
-          status: res.statusCode ?? 502,
-          statusText: res.statusMessage ?? "",
-          headers: respHeaders
-        }));
+        resolve2(createNodeHttpResponse(webStream, res.statusCode, res.statusMessage, res.headers));
       }
     };
     (async () => {
@@ -60961,6 +61050,12 @@ async function doWriteFile(body, config2, traceId = "") {
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: Path not in allowlist");
+      console.error("[ScrapeNfo:debug][doWriteFile] path not in allowlist", {
+        traceId,
+        filePath,
+        posixPath,
+        allowlist
+      });
       return {
         error: `Path "${filePath}" is not in allowlist`
       };
@@ -66057,6 +66152,17 @@ class Server2 extends Protocol {
           }
           return taskValidationResult.data;
         }
+        if (typeof result === "object" && result !== null && "content" in result) {
+          const content0 = result.content?.[0];
+          console.error("[DIAG-SRV] result keys:", Object.keys(result));
+          console.error("[DIAG-SRV] content[0]:", JSON.stringify(content0));
+          console.error("[DIAG-SRV] content[0].text typeof:", typeof content0?.text);
+          if (content0?.text !== undefined) {
+            console.error("[DIAG-SRV] content[0].text length:", content0.text.length);
+          }
+        } else {
+          console.error("[DIAG-SRV] result has NO content:", JSON.stringify(result));
+        }
         const validationResult = safeParse3(CallToolResultSchema, result);
         if (!validationResult.success) {
           const errorMessage = validationResult.error instanceof Error ? validationResult.error.message : String(validationResult.error);
@@ -67636,12 +67742,13 @@ data:
 // src/mcp/toolHandlers/addRecognizedFile.ts
 function registerAddRecognizedFileTool(server, config2) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildAddRecognizedMediaFileTool("mcp", config2.appDataDir, fs, config2.logger, undefined);
+  const deps = defaultRecognizeFilesTaskDeps(fs);
+  const agentTool = buildAddRecognizedMediaFileTool("mcp", config2.appDataDir, fs, config2.logger, undefined, deps);
   const inputSchema = exports_external.object({
     taskId: exports_external.string().describe("The task ID from begin-recognize-task"),
     season: exports_external.number().describe("The season number of the episode"),
     episode: exports_external.number().describe("The episode number"),
-    path: exports_external.string().describe("The absolute path of the media file")
+    path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format)")
   });
   server.registerTool(ADD_RECOGNIZED_MEDIA_FILE, {
     description: agentTool.description,
@@ -67661,12 +67768,18 @@ function registerAddRecognizedFileTool(server, config2) {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
-      await agentTool.execute({
+      const result = await agentTool.execute({
         taskId,
         season,
         episode,
         path: Path.posix(path12)
       });
+      if (typeof result === "object" && result !== null && "error" in result && typeof result.error === "string") {
+        return createSuccessResponse({
+          success: false,
+          error: result.error
+        });
+      }
       return createSuccessResponse({ success: true, taskId });
     } catch (error48) {
       return createErrorResponse(`Error adding recognized file: ${error48 instanceof Error ? error48.message : String(error48)}`);
@@ -67705,11 +67818,21 @@ function registerAddRenameFileTool(server, config2, deps) {
       return createErrorResponse("Invalid path: 'to' must be a video file");
     }
     try {
-      await agentTool.execute({
+      const result = await agentTool.execute({
         taskId,
         from: Path.posix(from),
         to: Path.posix(to)
       });
+      if (typeof result === "object" && result !== null && "error" in result && typeof result.error === "string") {
+        const message = result.error;
+        if (message.includes("Not Episode Video File")) {
+          return createSuccessResponse({
+            success: false,
+            error: `"${from}" is not video file to any episode, you're not allowed to rename it. ` + `Call "get-episodes" tool to get the list of episode video files that needs to rename.`
+          });
+        }
+        return createSuccessResponse({ success: false, error: message });
+      }
       return createSuccessResponse({ success: true, taskId });
     } catch (error48) {
       const message = error48 instanceof Error ? error48.message : String(error48);
@@ -67728,7 +67851,7 @@ function isVideoFile2(filePath) {
 // src/mcp/toolHandlers/beginRecognizeTask.ts
 function registerBeginRecognizeTaskTool(server, config2) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.logger, undefined);
+  const agentTool = buildBeginRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     mediaFolderPath: exports_external.string().describe("The absolute path of the media folder")
   });
@@ -67765,7 +67888,7 @@ function registerBeginRecognizeTaskTool(server, config2) {
 // src/mcp/toolHandlers/beginRenameTask.ts
 function registerBeginRenameTaskTool(server, config2, deps) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRenameFilesTaskTool("mcp", config2.appDataDir, fs, deps, config2.logger, undefined);
+  const agentTool = buildBeginRenameFilesTaskTool("mcp", config2.appDataDir, fs, deps, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, in POSIX or Windows format")
   });
@@ -67792,6 +67915,10 @@ function registerBeginRenameTaskTool(server, config2, deps) {
           mediaFolderPath: Path.posix(mediaFolderPath)
         });
       }
+      config2.logger?.error?.({
+        resultType: typeof result,
+        resultKeys: typeof result === "object" && result !== null ? Object.keys(result) : []
+      }, `[tool][${BEGIN_RENAME_FILES_TASK}] Unexpected agent tool result shape`);
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(`Error starting rename task: ${error48 instanceof Error ? error48.message : String(error48)}`);
@@ -68168,6 +68295,19 @@ function registerRenameFolderTool(server, config2) {
         logger: config2.logger
       };
       const result = await executeRenameFolder({ from: params.from, to: params.to }, syntheticConfig);
+      if (result.renamed) {
+        config2.broadcast?.({
+          event: USER_CONFIG_FOLDER_RENAMED_EVENT,
+          data: {
+            from: result.from,
+            to: result.to
+          }
+        });
+        config2.broadcast?.({
+          event: USER_CONFIG_UPDATED_EVENT,
+          data: {}
+        });
+      }
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));

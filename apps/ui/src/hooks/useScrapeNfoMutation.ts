@@ -231,4 +231,3 @@ export function useScrapeNfoMutation<TContext = unknown>(
     },
   })
 }
-

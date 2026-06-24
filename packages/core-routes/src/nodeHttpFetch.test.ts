@@ -59,4 +59,39 @@ describe("createNodeHttpFetch", () => {
       void originalHttpsRequest;
     }
   });
+
+  it("maps upstream 304 to a constructible 200 Response", async () => {
+    const fetchImpl = createNodeHttpFetch();
+    const request = new Request("https://example.test/resource", { method: "GET" });
+
+    const https = await import("node:https");
+    const requestSpy = vi
+      .spyOn(https.default, "request")
+      .mockImplementation((_options, callback) => {
+        const res = {
+          statusCode: 304,
+          statusMessage: "Not Modified",
+          headers: { etag: '"abc"' },
+          on(event: string, handler: (...args: unknown[]) => void) {
+            if (event === "end") {
+              handler();
+            }
+          },
+        };
+        queueMicrotask(() => callback?.(res as never));
+        return {
+          on() {},
+          write() {},
+          end() {},
+        } as never;
+      });
+
+    try {
+      const response = await fetchImpl(request);
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toBe("");
+    } finally {
+      requestSpy.mockRestore();
+    }
+  });
 });

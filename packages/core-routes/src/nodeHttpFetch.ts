@@ -38,6 +38,14 @@ const HOP_BY_HOP_REQUEST_HEADERS: ReadonlySet<string> = new Set([
   "host",
 ]);
 
+/** Conditional cache headers — strip on outbound requests to avoid 304 responses that break Node's `Response` constructor. */
+const CONDITIONAL_REQUEST_HEADERS: ReadonlySet<string> = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since",
+]);
+
 const STRIPPED_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
   "content-encoding",
   "content-length",
@@ -69,11 +77,36 @@ function buildOutgoingHeaders(request: Request): http.OutgoingHttpHeaders {
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey)) return;
+    if (CONDITIONAL_REQUEST_HEADERS.has(lowerKey)) return;
     // node:http does not auto-decompress; prefer identity upstream bodies.
     if (lowerKey === "accept-encoding") return;
     headers[key] = value;
   });
   return headers;
+}
+
+/**
+ * Node's fetch `Response` rejects status 304. Map forbidden statuses to 200
+ * so proxy callers receive a constructible Response (body may still be empty).
+ */
+function toFetchApiStatus(statusCode: number | undefined): number {
+  const status = statusCode ?? 502;
+  if (status === 304) return 200;
+  return status;
+}
+
+function createNodeHttpResponse(
+  body: Buffer | ReadableStream<Uint8Array>,
+  statusCode: number | undefined,
+  statusMessage: string | undefined,
+  sourceHeaders: http.IncomingHttpHeaders,
+  bodyLength?: number,
+): Response {
+  return new Response(body, {
+    status: toFetchApiStatus(statusCode),
+    statusText: statusMessage ?? "",
+    headers: buildResponseHeaders(sourceHeaders, bodyLength),
+  });
 }
 
 function buildResponseHeaders(
@@ -133,11 +166,13 @@ function requestViaNodeHttp(request: Request): Promise<Response> {
             const body = await decompressBody(wireBody, res.headers["content-encoding"]);
             const bodyBytes = Buffer.from(body);
             resolve(
-              new Response(bodyBytes, {
-                status: res.statusCode ?? 502,
-                statusText: res.statusMessage ?? "",
-                headers: buildResponseHeaders(res.headers, bodyBytes.length),
-              }),
+              createNodeHttpResponse(
+                bodyBytes,
+                res.statusCode,
+                res.statusMessage,
+                res.headers,
+                bodyBytes.length,
+              ),
             );
           } catch (error) {
             reject(error);
@@ -201,7 +236,6 @@ function requestViaNodeHttpStreaming(request: Request): Promise<Response> {
 
   return new Promise((resolve, reject) => {
     const onResponse = (res: http.IncomingMessage) => {
-      const respHeaders = buildResponseHeaders(res.headers);
       const contentEncoding = res.headers["content-encoding"];
       const decompressor = decompressorFor(contentEncoding);
 
@@ -211,21 +245,23 @@ function requestViaNodeHttpStreaming(request: Request): Promise<Response> {
         decompressor.on("error", reject);
         const webStream = Readable.toWeb(decompressed) as ReadableStream<Uint8Array>;
         resolve(
-          new Response(webStream, {
-            status: res.statusCode ?? 502,
-            statusText: res.statusMessage ?? "",
-            headers: respHeaders,
-          }),
+          createNodeHttpResponse(
+            webStream,
+            res.statusCode,
+            res.statusMessage,
+            res.headers,
+          ),
         );
       } else {
         // No compression — convert the raw IncomingMessage
         const webStream = Readable.toWeb(res) as ReadableStream<Uint8Array>;
         resolve(
-          new Response(webStream, {
-            status: res.statusCode ?? 502,
-            statusText: res.statusMessage ?? "",
-            headers: respHeaders,
-          }),
+          createNodeHttpResponse(
+            webStream,
+            res.statusCode,
+            res.statusMessage,
+            res.headers,
+          ),
         );
       }
     };

@@ -130,6 +130,20 @@ describe("filterRequestHeaders", () => {
     const headers = filterRequestHeaders(request, new URL("https://api.themoviedb.org"));
     expect(headers.get("Host")).toBe("api.themoviedb.org");
   });
+
+  it("strips conditional cache request headers", () => {
+    const request = new Request("http://x", {
+      headers: {
+        "If-None-Match": '"abc123"',
+        "If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT",
+        "X-Custom": "keep",
+      },
+    });
+    const headers = filterRequestHeaders(request, new URL("https://api.themoviedb.org/3"));
+    expect(headers.get("If-None-Match")).toBeNull();
+    expect(headers.get("If-Modified-Since")).toBeNull();
+    expect(headers.get("X-Custom")).toBe("keep");
+  });
 });
 
 // ---- filterResponseHeaders ----
