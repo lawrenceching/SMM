@@ -1,0 +1,48 @@
+{
+  "name": "e2e",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@testing-library/webdriverio": "^3.2.1",
+    "@types/bun": "latest",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.0.6",
+    "@types/shelljs": "^0.10.0",
+    "@wdio/cli": "^9.23.0",
+    "@wdio/globals": "^9.23.0",
+    "@wdio/local-runner": "^9.23.0",
+    "@wdio/mocha-framework": "^9.23.0",
+    "@wdio/spec-reporter": "^9.20.0",
+    "cross-env": "^7.0.3",
+    "expect-webdriverio": "^5.6.1",
+    "shelljs": "^0.10.0",
+    "typescript": "^5.0.0",
+    "wdio-html-nice-reporter": "^8.1.7",
+    "wdio-wait-for": "^3.1.1"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\"",
+    "wdio": "wdio run ./wdio.conf.ts",
+    "wdio:run": "wdio run ./wdio.conf.ts --spec ./test/specs/ImportMediaLibrary.e2e.ts",
+    "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts",
+    "wdio:init": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\"",
+    "wdio:tv": "wdio run ./wdio.conf.ts --spec \"./test/specs/tv/*.e2e.ts\"",
+    "wdio:movie": "wdio run ./wdio.conf.ts --spec \"./test/specs/movie/*.e2e.ts\"",
+    "wdio:music": "wdio run ./wdio.conf.ts --spec \"./test/specs/music/*.e2e.ts\"",
+    "wdio:tvdb": "wdio run ./wdio.conf.ts --spec \"./test/specs/tvdb/*.e2e.ts\"",
+    "wdio:other": "wdio run ./wdio.conf.ts --spec \"./test/specs/other/*.e2e.ts\"",
+    "wdio:config": "wdio run ./wdio.conf.ts --spec \"./test/specs/config/*.e2e.ts\"",
+    "wdio:ai": "wdio run ./wdio.conf.ts --spec \"./test/specs/ai/*.e2e.ts\"",
+    "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./test/specs/mcp/*.e2e.ts\""
+  },
+  "dependencies": {
+    "@smm/core": "workspace:*",
+    "@smm/test": "workspace:*",
+    "chai": "^6.2.2",
+    "dotenv": "^17.3.1",
+    "es-toolkit": "^1.44.0"
+  }
+}

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import type { CoreRoutesAuthConfig } from '@smm/core-routes';
 import { logger } from '../../lib/logger';
 
@@ -23,9 +24,22 @@ export function resolveAuthToken(): string {
   return resolvedToken;
 }
 
+function isRunningInDocker(): boolean {
+  try {
+    return existsSync('/.dockerenv');
+  } catch {
+    return false;
+  }
+}
+
 export function isAuthEnabled(): boolean {
-  const value = process.env.SMM_AUTH_ENABLED?.trim().toLowerCase();
-  return value === 'true' || value === '1' || value === 'yes';
+  const raw = process.env.SMM_AUTH_ENABLED?.trim();
+  if (raw !== undefined && raw !== '') {
+    const value = raw.toLowerCase();
+    return value === 'true' || value === '1' || value === 'yes';
+  }
+  // Docker exposes the full API on the network; require auth unless explicitly disabled.
+  return isRunningInDocker();
 }
 
 export function getAuthConfig(): CoreRoutesAuthConfig {

@@ -1,6 +1,6 @@
 {
-  "name": "simple-media-manager",
   "private": true,
+  "packageManager": "pnpm@10.29.3",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -15,7 +15,7 @@
     "build:ui": "cd apps/ui && pnpm run build",
     "build:electron": "pnpm --filter core typecheck && pnpm --filter cli build && pnpm --filter ui build && pnpm --filter electron build",
     "build:core": "cd packages/core && pnpm run typecheck",
-    "build:docker": "docker buildx build --progress=plain -t smm:latest .",
+    "build:docker": "docker buildx build --progress=plain -f apps/docker/Dockerfile -t smm:latest .",
     "build:docker:pkgs": "pnpm --filter \"docker...\" run build",
     "build:e2e": "docker build -t smm-e2e:test -f apps/e2e/Dockerfile .",
     "test": "pnpm -r test",
@@ -46,10 +46,5 @@
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "npm-run-all2": "^8.0.4"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron"
-    ]
   }
 }

@@ -60595,22 +60595,7 @@ async function handleProxyRequest(request, config2 = {}) {
       headers: respHeaders
     });
   } catch (error48) {
-    logger.error({
-      err: error48,
-      method: request.method,
-      forwardUrl,
-      upstreamBaseURL,
-      upstreamHost: upstreamUrl.host,
-      errorMessage: error48 instanceof Error ? error48.message : String(error48),
-      errorName: error48 instanceof Error ? error48.name : undefined,
-      errorStack: error48 instanceof Error ? error48.stack : undefined
-    }, "[Reverse Proxy] upstream request failed");
-    console.error("[ScrapeNfo:debug][reverse-proxy] upstream request failed", {
-      forwardUrl,
-      upstreamBaseURL,
-      upstreamHost: upstreamUrl.host,
-      error: error48 instanceof Error ? error48.message : String(error48)
-    });
+    logger.error({ err: error48, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
     return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
   }
 }
@@ -61050,12 +61035,6 @@ async function doWriteFile(body, config2, traceId = "") {
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: Path not in allowlist");
-      console.error("[ScrapeNfo:debug][doWriteFile] path not in allowlist", {
-        traceId,
-        filePath,
-        posixPath,
-        allowlist
-      });
       return {
         error: `Path "${filePath}" is not in allowlist`
       };

@@ -8,6 +8,11 @@
   },
   "scripts": {
     "build": "docker buildx build --progress=plain -t smm:latest -f Dockerfile ../..",
-    "build:run": "pnpm run build && docker run --rm -p 30000:30000 smm:latest"
+    "build:ui": "docker buildx build --progress=plain -t smm-ui-build:latest -f ui.Dockerfile ../..",
+    "build:run": "pnpm run build && docker run --rm -p 30000:30000 smm:latest",
+    "build:cli": "docker buildx build --progress=plain -t smm-cli-build:latest -f cli.Dockerfile ../..",
+    "build:ffmpeg": "docker buildx build --progress=plain -t smm-ffmpeg:latest -f ffmpeg.Dockerfile ../..",
+    "build:ytdlp": "docker buildx build --progress=plain -t smm-ytdlp:latest -f ytdlp.Dockerfile ../..",
+    "build:videocaptioner": "docker buildx build --progress=plain -t smm-videocaptioner:latest -f videocaptioner.Dockerfile ../.."
   }
 }

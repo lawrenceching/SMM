@@ -46,6 +46,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@shikijs/transformers": "^3.19.0",
+    "@smm/core": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "@tailwindcss/vite": "^4.1.17",
     "@tanstack/react-query": "^5.96.2",

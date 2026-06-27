@@ -9,7 +9,9 @@ on:
       - 'apps/electron/**'
       - 'packages/core/**'
       - 'packages/utils/**'
-      - 'Dockerfile'
+      - 'apps/docker/Dockerfile'
+      - 'pnpm-workspace.yaml'
+      - 'ci/docker/**'
       - '.dockerignore'
       - '.github/workflows/build.yml'
   pull_request:
@@ -20,7 +22,9 @@ on:
       - 'apps/electron/**'
       - 'packages/core/**'
       - 'packages/utils/**'
-      - 'Dockerfile'
+      - 'apps/docker/Dockerfile'
+      - 'pnpm-workspace.yaml'
+      - 'ci/docker/**'
       - '.dockerignore'
       - '.github/workflows/build.yml'
   # Docker image build is slow (multi-arch); run it only via Actions → Run workflow.
@@ -136,6 +140,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: apps/docker/Dockerfile
           push: false
           tags: smm:latest
           cache-from: type=gha

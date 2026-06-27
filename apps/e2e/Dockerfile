@@ -61,8 +61,8 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally (pinned to packageManager version in package.json)
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
 
 RUN npm install -g bun
 

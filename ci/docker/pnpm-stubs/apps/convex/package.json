@@ -1,0 +1,20 @@
+{
+  "name": "convex",
+  "version": "1.1.8",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy -y",
+    "codegen": "convex codegen",
+    "seed": "convex run settings:seedDefaults",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.29.3",
+  "dependencies": {
+    "convex": "^1.1.8"
+  }
+}

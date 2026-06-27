@@ -63,3 +63,33 @@ yarn-error.log*
 Thumbs.db
 .DS_Store
 
+# Platform / desktop apps (not in Docker image; stubs in ci/docker/pnpm-stubs)
+apps/ohos/
+apps/electron/
+apps/e2e/
+apps/convex/
+apps/docker/
+packages/test/
+packages/electron-common/
+packages/utils/
+
+# HarmonyOS ohpm symlinks (Windows tar error)
+**/oh_modules/
+
+# Local binaries (re-downloaded in final stage)
+plugins/
+plugins/**
+bin/
+bin/**
+
+# Test fixtures & logs
+test/
+test/**
+.log/
+**/.log/
+.hvigor/
+**/.hvigor/
+
+# Misc
+.agents/
+
