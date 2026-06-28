@@ -83,6 +83,8 @@ export {
   type CreatePlanResponseBody,
   type UpdatePlanResponseBody,
 } from "./plansApi.ts";
+export { cleanPreparingPlans } from "./tools/plans.ts";
+export { cleanupStalePlans } from "./cleanup.ts";
 export {
   doDownloadImage,
   type DownloadImageContentType,

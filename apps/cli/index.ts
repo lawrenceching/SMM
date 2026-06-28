@@ -10,6 +10,7 @@ import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
 import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
 import { startCoreRoutesServer, stopCoreRoutesServer } from './src/coreRoutesServer';
+import { cleanupStalePlans } from '@smm/core-routes';
 import { getAuthConfig } from '@/utils/authToken';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
@@ -94,6 +95,15 @@ const cookiesCleaner = new YtdlpCookiesCleaner({ userDataDir });
 const cookiesStartupResult = await cookiesCleaner.cleanAll();
 logger.info(cookiesStartupResult, 'yt-dlp cookies temp cleanup on startup');
 
+// Clean up stale preparing plan files left over from a previous session
+const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+if (preparingPlansRemoved > 0) {
+  logger.info(
+    { count: preparingPlansRemoved },
+    '[cleanup] stale preparing plan files cleaned up on startup',
+  );
+}
+
 const authConfig = getAuthConfig();
 
 // Create and start the server
@@ -104,6 +114,14 @@ const server = new Server({
   beforeStop: async () => {
     const result = await cookiesCleaner.cleanAll();
     logger.info(result, 'yt-dlp cookies temp cleanup on shutdown');
+
+    const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+    if (preparingPlansRemoved > 0) {
+      logger.info(
+        { count: preparingPlansRemoved },
+        '[cleanup] stale preparing plan files cleaned up on shutdown',
+      );
+    }
   },
 });
 

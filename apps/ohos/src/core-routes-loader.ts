@@ -45,6 +45,18 @@ export interface CoreRoutesModule {
     opts: { name: string; baseURL: string; apiKey: string },
   ) => unknown
   migrateAIConfig?: (raw: Record<string, unknown>) => boolean
+  /**
+   * Remove `preparing` plan files left over from a previous session.
+   * Available in core-routes bundles built after the cleanup
+   * orchestration was introduced. The optional `fs` and `logger`
+   * parameters match the {@link cleanupStalePlans} signature exported
+   * from `@smm/core-routes`.
+   */
+  cleanupStalePlans?: (
+    appDataDir: string,
+    fs?: unknown,
+    logger?: CoreRoutesLogger,
+  ) => Promise<number>
 }
 
 export interface SocketIOConfig {

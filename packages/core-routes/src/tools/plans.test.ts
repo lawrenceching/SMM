@@ -287,3 +287,55 @@ describe("plan cancellation (rejected status)", () => {
     }
   });
 });
+
+describe("cleanPreparingPlans (real filesystem)", () => {
+  let appDataDir: string;
+  const fs = defaultChatFs();
+
+  beforeAll(async () => {
+    appDataDir = await mkdtemp(join(tmpdir(), "smm-plans-cleanup-"));
+  });
+
+  afterAll(async () => {
+    await rm(appDataDir, { recursive: true, force: true });
+  });
+
+  it("removes only `preparing` plans and leaves `pending`/`rejected` alone", async () => {
+    const { cleanPreparingPlans, listPlanFiles, readPlanById, updatePlanContent } =
+      await import("./plans.ts");
+
+    // Three plans in different states.
+    const preparingId = await beginRecognizePlan(appDataDir, "/media/show-a", fs);
+    const pendingId = await beginRecognizePlan(appDataDir, "/media/show-b", fs);
+    const rejectedId = await beginRecognizePlan(appDataDir, "/media/show-c", fs);
+
+    await updatePlanContent(appDataDir, pendingId, { status: "pending" }, fs);
+    await updatePlanContent(appDataDir, rejectedId, { status: "rejected" }, fs);
+    // `preparingId` stays in its default `preparing` status.
+
+    const before = await listPlanFiles(appDataDir);
+    expect(before).toHaveLength(3);
+
+    const removed = await cleanPreparingPlans(appDataDir, fs);
+    expect(removed).toBe(1);
+
+    // Only the preparing plan was deleted; pending + rejected remain.
+    expect(await readPlanById(appDataDir, preparingId, fs)).toBeNull();
+    expect((await readPlanById(appDataDir, pendingId, fs))?.status).toBe("pending");
+    expect((await readPlanById(appDataDir, rejectedId, fs))?.status).toBe("rejected");
+
+    const after = await listPlanFiles(appDataDir);
+    expect(after).toHaveLength(2);
+  });
+
+  it("is a no-op when no plans exist", async () => {
+    const { cleanPreparingPlans, listPlanFiles } = await import("./plans.ts");
+    const emptyDir = await mkdtemp(join(tmpdir(), "smm-plans-empty-"));
+    try {
+      expect(await listPlanFiles(emptyDir)).toEqual([]);
+      expect(await cleanPreparingPlans(emptyDir, fs)).toBe(0);
+    } finally {
+      await rm(emptyDir, { recursive: true, force: true });
+    }
+  });
+});
