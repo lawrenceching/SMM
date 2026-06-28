@@ -1,6 +1,51 @@
-# ui
+# @smm/core-routes
 
 ## 1.4.0
+
+### Minor Changes
+
+- 7204a61: feat(core-routes): extract startup/shutdown plan cleanup into shared module, run on OHOS too
+
+  The plan-file cleanup logic (deleting stale `preparing` plan files
+  left over from a previous session) was previously only called from
+  the CLI. This change moves the orchestration into
+  `@smm/core-routes` as `cleanupStalePlans(appDataDir, fs?, logger?)`
+  so all hosts benefit.
+  - New `packages/core-routes/src/cleanup.ts` exposes
+    `cleanupStalePlans`. The CLI now calls this instead of
+    `cleanPreparingPlans` directly.
+  - `apps/ohos` (HarmonyOS Electron) gains cleanup on both startup
+    (in `app.whenReady()`, before `startMainHttpServer`) and shutdown
+    (in `app.on('before-quit')`). The OHOS main process dynamically
+    loads the function from the `core-routes` bundle and tolerates
+    older bundles that predate the orchestration.
+  - The CLI preserves its existing pre-shutdown cleanup ordering:
+    `YtdlpCookiesCleaner` runs first, then `cleanupStalePlans`,
+    inside the `Server` `beforeStop` hook.
+  - `cleanPreparingPlans` / `cleanupStalePlans` accept an optional
+    `CoreRoutesLogger`. The CLI passes its pino logger; OHOS creates
+    a console-backed `CoreRoutesLogger` (with a `[cleanup]` prefix
+    for `adb logcat`).
+  - All cleanup-related log messages are prefixed with `[cleanup]`
+    for easy `grep '[cleanup]'` / `adb logcat | grep '[cleanup]'`
+    filtering across the unified log stream.
+  - `apps/cli/index.ts` adds a one-line summary log on each phase
+    (`[cleanup] stale preparing plan files cleaned up on startup/shutdown`).
+
+  Behaviour summary:
+
+  | Host              | Startup cleanup | Shutdown cleanup |
+  | ----------------- | --------------- | ---------------- |
+  | `cli` (Bun)       | yes (unchanged) | yes (unchanged)  |
+  | `ohos` (Electron) | yes (new)       | yes (new)        |
+
+  Tests: `packages/core-routes/src/cleanup.test.ts` covers
+  `cleanupStalePlans` end-to-end, the explicit `ChatFs` override,
+  logger lifecycle (start / per-file / summary / warn) and the
+  `[cleanup]` prefix contract.
+  `packages/core-routes/src/tools/plans.test.ts` covers
+  `cleanPreparingPlans` (removes only `preparing` plans, no-op on
+  empty plans dir).
 
 ### Patch Changes
 
@@ -50,184 +95,5 @@
   pre-existing `@smm/core/path` POSIX→Windows conversion bug; the
   in-memory suite covers the same behaviour cross-platform.
 
-- f4db473: fix(ohos): hide MusicPanel "Summarize" context-menu item on HarmonyOS
-
-  The MusicPanel row right-click "Summarize" item (`LocalFileRow`) was
-  ungated. The `useFeatures().isAiFeatureEnabled` flag is now read and
-  the item is hidden when AI features are disabled. The default for
-  `isAiFeatureEnabled` is now `false` on HarmonyOS (no bundled AI
-  tools) and `true` on desktop, matching the OHOS no-CLI-tools policy
-  documented in `.agents/docs/design/harmonyos-integration.md` §6.
-
-  The flag is a master switch — it also hides the AI Assistant chat
-  and AI-based recognize/rename prompts on OHOS, which is the intended
-  behavior. Existing localStorage `features.isAiFeatureEnabled` values
-  are preserved, so users who explicitly enabled AI keep their setting.
-
 - Updated dependencies
   - @smm/core@1.4.0
-  - @smm/tvdb4@1.3.9
-
-## 1.3.8
-
-### Patch Changes
-
-- v1.3.8
-- Updated dependencies
-  - @smm/tvdb4@1.3.8
-
-## 1.3.7
-
-### Patch Changes
-
-- v1.3.7
-- Updated dependencies
-  - @smm/tvdb4@1.3.7
-
-## 1.3.6
-
-### Patch Changes
-
-- v1.3.6
-- Updated dependencies
-  - @smm/tvdb4@1.3.6
-
-## 1.3.5
-
-### Patch Changes
-
-- v1.3.5
-- Updated dependencies
-  - @smm/tvdb4@1.3.5
-
-## 1.3.4
-
-### Patch Changes
-
-- v1.3.5
-- Updated dependencies
-  - @smm/tvdb4@1.3.4
-
-## 1.3.3
-
-### Patch Changes
-
-- v1.3.4
-- Updated dependencies
-  - @smm/tvdb4@1.3.3
-
-## 1.3.2
-
-### Patch Changes
-
-- v1.3.3
-- Updated dependencies
-  - @smm/tvdb4@1.3.2
-
-## 1.3.1
-
-### Patch Changes
-
-- v1.3.1
-- Updated dependencies
-  - @smm/tvdb4@1.3.1
-
-## 1.3.0
-
-### Minor Changes
-
-- ytdlp and videocaptioner integration
-
-### Patch Changes
-
-- Updated dependencies
-  - @smm/tvdb4@1.3.0
-
-## 1.2.5
-
-### Patch Changes
-
-- v1.2.5
-- Updated dependencies
-  - @smm/tvdb4@1.2.5
-
-## 1.2.4
-
-### Patch Changes
-
-- v1.2.3
-- Updated dependencies
-  - @smm/tvdb4@1.2.4
-
-## 1.2.3
-
-### Patch Changes
-
-- v1.2.3
-- Updated dependencies
-  - @smm/tvdb4@1.2.3
-
-## 1.2.2
-
-### Patch Changes
-
-- Support downloading Bilibili Collection
-- Updated dependencies
-  - @smm/tvdb4@1.2.2
-
-## 1.2.1
-
-### Patch Changes
-
-- Support transcribe for TV show and movie folder
-- Updated dependencies
-  - @smm/tvdb4@1.2.1
-
-## 1.2.0
-
-### Minor Changes
-
-- Support TVDB
-
-### Patch Changes
-
-- Updated dependencies
-  - @smm/tvdb4@1.2.0
-
-## 1.1.6
-
-### Patch Changes
-
-- v1.1.6
-- Updated dependencies
-  - @smm/tvdb4@1.1.6
-
-## 1.1.5
-
-### Patch Changes
-
-- v1.1.5
-
-## 1.1.4
-
-### Patch Changes
-
-- 1.1.4
-
-## 1.1.3
-
-### Patch Changes
-
-- New UI
-
-## 1.1.2
-
-### Patch Changes
-
-- Video format converter
-
-## 1.1.1
-
-### Patch Changes
-
-- yd-dlp integration
