@@ -6,6 +6,7 @@ export {
   EXECUTE_CHANNEL,
   OPEN_IN_FILE_MANAGER_CHANNEL,
   OPEN_FILE_CHANNEL,
+  STARTUP_OPEN_LOG_DIR_CHANNEL,
 } from "./channels"
 export {
   registerDialogIpcHandlers,
@@ -33,3 +34,4 @@ export {
   type OpenFileResult,
 } from "./openFileTask"
 export { setExternalUrlOpenHandler } from "./setExternalUrlOpenHandler"
+export { getSmmLogDir, getSmmLogFilePath } from "./smmPaths"

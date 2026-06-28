@@ -245,6 +245,9 @@ importers:
       vite:
         specifier: ^7.2.6
         version: 7.3.1(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
 
   apps/ohos:
     dependencies:
@@ -10954,7 +10957,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.3.0)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
+      vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
 
   '@vitest/utils@3.2.4':
     dependencies:

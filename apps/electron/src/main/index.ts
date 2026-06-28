@@ -1,5 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler } from '@smm/electron-common'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler, getSmmLogDir, STARTUP_OPEN_LOG_DIR_CHANNEL } from '@smm/electron-common'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
@@ -7,6 +7,17 @@ import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { getConfigTask } from './tasks/GetConfigTask'
+import {
+  CliProcessMonitor,
+  buildMissingBinaryFailure,
+} from './startup/cliMonitor'
+import {
+  collectStartupDiagnostics,
+  getStartupErrorPageDataUrl,
+  toCliStartupFailure,
+} from './startup/startupError'
+import { waitForCliServerReady } from './startup/waitForCliServerReady'
+import { CliStartupError } from './startup/types'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
@@ -111,6 +122,7 @@ const LOADING_HTML = `<!DOCTYPE html>
 </html>`
 
 let cliProcess: ChildProcess | null = null
+let cliStartupMonitor: CliProcessMonitor | null = null
 let cliPort: number | null = null
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
@@ -268,28 +280,64 @@ function logBundledBinariesDiagnostics(): void {
   }
 }
 
-/**
- * Poll until localhost:port returns HTML (e.g. CLI server is ready).
- * Uses fetch every POLL_INTERVAL_MS. Resolves when response is OK and content-type is HTML.
- */
-async function waitForServerReady(port: number): Promise<void> {
-  const url = `http://localhost:${port}`
-  const deadline = Date.now() + SERVER_READY_TIMEOUT_MS
+function showStartupErrorPage(error: unknown): void {
+  const failure = toCliStartupFailure(error)
+  const diagnostics = collectStartupDiagnostics(failure, {
+    cliExecutable: getCLIExecutablePath(),
+    cliPort: cliPort ?? 0,
+    processOutput: cliStartupMonitor?.getProcessOutput(),
+  })
 
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(url, { method: 'GET' })
-      const contentType = res.headers.get('content-type') ?? ''
-      if (res.ok && contentType.includes('text/html')) {
-        return
-      }
-    } catch {
-      // Server not ready, continue polling
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+  console.error('Production startup failed:', failure.details)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadURL(getStartupErrorPageDataUrl(diagnostics))
+  }
+}
+
+function startCLIProcess(port: number): CliProcessMonitor {
+  if (cliProcess) {
+    throw new CliStartupError({
+      kind: 'spawn-failed',
+      title: '无法启动后端服务',
+      message: '后端进程已在运行。',
+      details: 'startCLIProcess called while cliProcess is already set.',
+    })
   }
 
-  throw new Error(`Server at ${url} did not become ready within ${SERVER_READY_TIMEOUT_MS}ms`)
+  const cliExecutable = getCLIExecutablePath()
+  if (!existsSync(cliExecutable)) {
+    throw new CliStartupError(buildMissingBinaryFailure(cliExecutable))
+  }
+
+  const publicFolder = getPublicFolderPath()
+  const cliArgs = ['--staticDir', publicFolder, '--port', port.toString()]
+  console.log(`Starting CLI from: ${cliExecutable}`)
+  console.log(`Public folder path: ${publicFolder}`)
+  console.log(`CLI port: ${port}`)
+  console.log(`CLI command: ${cliExecutable} ${cliArgs.join(' ')}`)
+
+  cliProcess = spawn(cliExecutable, cliArgs, {
+    stdio: 'pipe',
+    detached: false,
+    windowsHide: true,
+    env: {
+      ...process.env,
+      LOG_TARGET: 'file',
+      SMM_RESOURCES_PATH: process.resourcesPath,
+    },
+  })
+
+  const monitor = new CliProcessMonitor(cliProcess, cliExecutable)
+  cliStartupMonitor = monitor
+
+  cliProcess.on('exit', () => {
+    if (cliProcess === monitor.process) {
+      cliProcess = null
+    }
+  })
+
+  console.log('CLI executable started')
+  return monitor
 }
 
 async function requestCliShutdown(port: number): Promise<boolean> {
@@ -360,76 +408,6 @@ async function stopProcessGracefully(
   }
 }
 
-async function startCLI(): Promise<void> {
-  if (cliProcess) {
-    console.log('CLI is already running')
-    return
-  }
-
-  // Get a free port if not already set
-  if (cliPort === null) {
-    cliPort = await getFreePort()
-    console.log(`Found free port: ${cliPort}`)
-  }
-
-  const CLI_EXECUTABLE = getCLIExecutablePath()
-  const PUBLIC_FOLDER = getPublicFolderPath()
-  const cliArgs = ['--staticDir', PUBLIC_FOLDER, '--port', cliPort.toString()]
-  console.log(`Starting CLI from: ${CLI_EXECUTABLE}`)
-  console.log(`Public folder path: ${PUBLIC_FOLDER}`)
-  console.log(`CLI port: ${cliPort}`)
-  console.log(`CLI command: ${CLI_EXECUTABLE} ${cliArgs.join(' ')}`)
-
-  try {
-    cliProcess = spawn(CLI_EXECUTABLE, cliArgs, {
-      stdio: 'pipe', // Pipe stdio to prevent console window from appearing on Windows
-      detached: false,
-      windowsHide: true, // Hide the console window on Windows
-      env: {
-        ...process.env,
-        LOG_TARGET: 'file',
-        SMM_RESOURCES_PATH: process.resourcesPath
-      }
-    })
-
-    // Capture stdout from CLI
-    if (cliProcess.stdout) {
-      cliProcess.stdout.on('data', (data) => {
-        console.log(`[cli] ${data.toString().trim()}`)
-      })
-    }
-
-    // Capture stderr from CLI
-    if (cliProcess.stderr) {
-      cliProcess.stderr.on('data', (data) => {
-        console.error(`[cli] ${data.toString().trim()}`)
-      })
-    }
-
-    cliProcess.on('error', (error) => {
-      console.error('Failed to start CLI:', error)
-      cliProcess = null
-    })
-
-    cliProcess.on('exit', (code, signal) => {
-      console.log(`CLI process exited with code ${code} and signal ${signal}`)
-      if (signal === 'SIGILL') {
-        console.error(
-          '[SMM] CLI crashed with SIGILL (illegal instruction). ' +
-            'This usually means the bundled CLI binary is incompatible with this CPU ' +
-            '(requires SSE4.2; AVX2-only builds fail on pre-2013 x64 CPUs). ' +
-            'Rebuild the app with CLI_COMPILE_TARGET=bun-linux-x64-baseline or upgrade hardware.',
-        )
-      }
-      cliProcess = null
-    })
-
-    console.log('CLI executable started')
-  } catch (error) {
-    console.error('Error starting CLI:', error)
-  }
-}
-
 async function stopCLIGracefully(): Promise<void> {
   const proc = cliProcess
   if (!proc) {
@@ -446,6 +424,7 @@ async function stopCLIGracefully(): Promise<void> {
   if (cliProcess === proc) {
     cliProcess = null
   }
+  cliStartupMonitor = null
   console.log('CLI executable stopped')
 }
 
@@ -647,6 +626,13 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.handle(STARTUP_OPEN_LOG_DIR_CHANNEL, async () => {
+    const result = await shell.openPath(getSmmLogDir())
+    if (result) {
+      console.warn('[SMM] Failed to open log directory:', result)
+    }
+  })
+
   // Dialog IPC handlers (shared with HarmonyOS shell)
   registerDialogIpcHandlers(ipcMain)
   registerFileAccessPersistIpcHandlers(ipcMain)
@@ -680,16 +666,17 @@ app.whenReady().then(() => {
           console.log(`Using CLI port: ${cliPort}`)
         }
         createWindow({ showLoadingFirst: true })
-        startCLI()
-        await waitForServerReady(cliPort)
+        const monitor = startCLIProcess(cliPort)
+        await waitForCliServerReady(cliPort, monitor, {
+          pollIntervalMs: POLL_INTERVAL_MS,
+          timeoutMs: SERVER_READY_TIMEOUT_MS,
+        })
+        monitor.markReady()
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.loadURL(`http://localhost:${cliPort}`)
         }
       } catch (error) {
-        console.error('Production startup failed:', error)
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(getLoadingPageDataUrl())
-        }
+        showStartupErrorPage(error)
       }
     })()
   }

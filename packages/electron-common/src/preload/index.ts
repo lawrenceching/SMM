@@ -21,6 +21,7 @@ export {
   type GetPathForFilePreloadApi,
   type WebUtilsGetPathForFile,
 } from "./getPathForFileApi"
+export { STARTUP_OPEN_LOG_DIR_CHANNEL } from "../channels"
 
 export function createElectronPreloadApi(ipcRenderer: IpcRenderer) {
   return {

@@ -23,9 +23,14 @@ interface EnhancedElectronAPI extends ElectronAPI {
   dialog: DialogAPI
 }
 
+interface SmmStartupAPI {
+  openLogDirectory: () => Promise<void>
+}
+
 declare global {
   interface Window {
     electron: EnhancedElectronAPI
     api: API
+    smmStartup: SmmStartupAPI
   }
 }
