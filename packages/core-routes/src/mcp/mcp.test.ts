@@ -5,6 +5,44 @@ import { join } from "node:path"
 import { createMcpStreamableHttpHandler } from "./createServer.ts"
 import { defaultChatFs } from "../chatFs.ts"
 import type { UserConfig } from "@smm/core/types"
+import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder"
+
+/**
+ * Send a JSON-RPC request through the MCP handler and decode the
+ * single JSON response. The transport is configured in stateless
+ * mode (one `McpServer` instance, fresh transport per request) so
+ * the server's tool registrations persist across calls.
+ */
+async function callMcp(
+  handler: Awaited<ReturnType<typeof createMcpStreamableHttpHandler>>,
+  body: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const request = new Request("http://localhost/mcp/", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify(body),
+  })
+  const response = await handler(request)
+  expect(response.status).toBe(200)
+  const text = await response.text()
+  // Streamable HTTP transport responds with either `application/json`
+  // (single response) or `text/event-stream` (SSE-encoded JSON).
+  // Decode the last `data:` frame, which is the JSON-RPC reply.
+  const contentType = response.headers.get("content-type") ?? ""
+  if (contentType.includes("application/json")) {
+    return JSON.parse(text) as Record<string, unknown>
+  }
+  const dataLines = text
+    .split("\n")
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice("data:".length).trim())
+  const lastData = dataLines.at(-1) ?? ""
+  expect(lastData).not.toBe("")
+  return JSON.parse(lastData) as Record<string, unknown>
+}
 
 async function makeTempConfig(): Promise<{
   appDataDir: string
@@ -139,6 +177,89 @@ describe("createMcpStreamableHttpHandler", () => {
       const initBody = await initResponse.text()
       // The server should advertise the tools capability.
       expect(initBody).toMatch(/tools|capabilities/i)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it("omits tools listed in disabledTools from tools/list", async () => {
+    const { appDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+        disabledTools: [RENAME_FOLDER],
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).not.toContain(RENAME_FOLDER)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it("registers rename-folder when disabledTools is empty", async () => {
+    const { appDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).toContain(RENAME_FOLDER)
     } finally {
       await cleanup()
     }

@@ -57,6 +57,18 @@ export interface CoreRoutesModule {
     fs?: unknown,
     logger?: CoreRoutesLogger,
   ) => Promise<number>
+  /**
+   * MCP tool-name constants. Hosts that cannot rename folders
+   * (e.g. HarmonyOS, where the sandbox denies the operation) pass
+   * `disabledTools: [MCP_TOOL_NAMES.RENAME_FOLDER]` to
+   * {@link createMcpStreamableHttpHandler} so the tool is omitted
+   * from the `tools/list` response. Resolved through the runtime
+   * `core-routes.js` bundle so the host does not need a direct
+   * dependency on `@smm/core`.
+   */
+  MCP_TOOL_NAMES: {
+    readonly RENAME_FOLDER: "rename-folder"
+  }
 }
 
 export interface SocketIOConfig {

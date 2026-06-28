@@ -28183,12 +28183,15 @@ __export(exports_src, {
   createCoreRoutesRequestHandler: () => createCoreRoutesRequestHandler,
   createChatTools: () => createChatTools,
   coreRouteHandlers: () => coreRouteHandlers,
+  cleanupStalePlans: () => cleanupStalePlans,
+  cleanPreparingPlans: () => cleanPreparingPlans,
   checkFolderPathAvailable: () => checkFolderPathAvailable,
   checkFileIsReadable: () => checkFileIsReadable,
   buildUpstreamUrl: () => buildUpstreamUrl,
   applyMcpLifecycleFromConfig: () => applyMcpLifecycleFromConfig,
   PORT_RANGE_START: () => PORT_RANGE_START,
   PORT_RANGE_END: () => PORT_RANGE_END,
+  MCP_TOOL_NAMES: () => MCP_TOOL_NAMES,
   ExistedFileError: () => ExistedFileError,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS: () => DEFAULT_ALLOWED_UPSTREAM_HOSTS
 });
@@ -57995,6 +57998,42 @@ async function deletePlan(appDataDir, id) {
     }
   }
 }
+async function cleanPreparingPlans(appDataDir, fs, logger) {
+  const start = Date.now();
+  const plansPath = plansDir(appDataDir);
+  logger?.info({ appDataDir, plansDir: plansPath }, "[cleanup] plan cleanup: scanning for stale preparing plans");
+  const files = await listPlanFiles(appDataDir);
+  logger?.info({ plansDir: plansPath, scanned: files.length }, "[cleanup] plan cleanup: enumerated plan files");
+  let removed = 0;
+  let failed = 0;
+  for (const filePath of files) {
+    try {
+      const plan = await fs.readJson(filePath);
+      if (!plan) {
+        logger?.debug({ filePath }, "[cleanup] plan cleanup: skipping unreadable plan file");
+        continue;
+      }
+      if (plan.status === "preparing") {
+        await import_promises8.unlink(filePath);
+        removed++;
+        logger?.debug({ filePath, planId: plan.id, task: plan.task }, "[cleanup] plan cleanup: removed stale preparing plan");
+      } else {
+        logger?.debug({ filePath, planId: plan.id, status: plan.status }, "[cleanup] plan cleanup: keeping plan (not preparing)");
+      }
+    } catch (err) {
+      failed++;
+      logger?.warn({ filePath, error: err.message }, "[cleanup] plan cleanup: failed to process plan file, skipping");
+    }
+  }
+  logger?.info({
+    plansDir: plansPath,
+    scanned: files.length,
+    removed,
+    failed,
+    durationMs: Date.now() - start
+  }, "[cleanup] plan cleanup: complete");
+  return removed;
+}
 async function getActivePlansForFolder(appDataDir, mediaFolderPath, fs) {
   const target = Path.posix(mediaFolderPath);
   const files = await listPlanFiles(appDataDir);
@@ -61628,6 +61667,10 @@ async function doUpdatePlan(body, config2 = { allowlist: [] }) {
     return { error: `Error Reason: Plan with id "${id}" not found` };
   }
   return { data: { plan } };
+}
+// src/cleanup.ts
+async function cleanupStalePlans(appDataDir, fs = defaultChatFs(), logger) {
+  return cleanPreparingPlans(appDataDir, fs, logger);
 }
 // src/downloadImage.ts
 var import_node_buffer = require("node:buffer");
@@ -68443,7 +68486,9 @@ async function createMcpStreamableHttpHandler(config2) {
   registerListFilesTool(server, config2);
   registerGetMediaMetadataTool(server, config2);
   registerStaticTextTools(server, config2);
-  registerRenameFolderTool(server, config2);
+  if (!config2.disabledTools?.includes(RENAME_FOLDER)) {
+    registerRenameFolderTool(server, config2);
+  }
   registerBeginRenameTaskTool(server, config2, renameFilesTaskDeps);
   registerAddRenameFileTool(server, config2, renameFilesTaskDeps);
   registerEndRenameTaskTool(server, config2, renameFilesTaskDeps);
@@ -68473,3 +68518,5 @@ function createErrorResponse(message) {
     isError: true
   };
 }
+// src/mcp/index.ts
+var MCP_TOOL_NAMES = { RENAME_FOLDER };

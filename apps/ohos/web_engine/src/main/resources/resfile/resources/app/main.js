@@ -333,7 +333,7 @@ var import_node_path3 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
 
 // src/version.ts
-var APP_VERSION = "1.3.8";
+var APP_VERSION = "1.4.0";
 
 // src/http/hello-config.ts
 function buildHelloConfig(reverseProxyUrl) {
@@ -479,10 +479,15 @@ function getMcpHandler(options) {
     if (!createMcpStreamableHttpHandler) {
       throw new Error("createMcpStreamableHttpHandler is not available in the core-routes bundle. Rebuild core-routes: pnpm --filter @smm/core-routes build:cjs");
     }
+    const mcpToolNames = coreRoutesModule.MCP_TOOL_NAMES;
+    if (!mcpToolNames) {
+      throw new Error("MCP_TOOL_NAMES is not available in the core-routes bundle. Rebuild core-routes: pnpm --filter @smm/core-routes build:cjs");
+    }
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
       activatePersistedFileAccess: options.activatePersistedFileAccess,
+      disabledTools: [mcpToolNames.RENAME_FOLDER],
       acknowledge: async (message, timeoutMs) => {
         const manager = options.getSocketManager();
         if (!manager)
@@ -1034,11 +1039,40 @@ function createMainWindow() {
 registerDialogIpcHandlers(import_electron10.ipcMain);
 registerExecuteChannelIpcHandlers(import_electron10.ipcMain);
 registerOhosFileAccessPermission(import_electron10.ipcMain);
+var isQuitting = false;
+function createPlanCleanupLogger(phase) {
+  const prefix = `[cleanup]`;
+  return {
+    debug: (obj, msg) => console.debug(prefix, msg ?? "debug", obj),
+    info: (obj, msg) => console.info(prefix, msg ?? "info", obj),
+    warn: (obj, msg) => console.warn(prefix, msg ?? "warn", obj),
+    error: (obj, msg) => console.error(prefix, msg ?? "error", obj)
+  };
+}
+async function runPlanCleanup(phase) {
+  const logger = createPlanCleanupLogger(phase);
+  try {
+    const coreRoutes = loadCoreRoutes();
+    if (typeof coreRoutes.cleanupStalePlans !== "function") {
+      logger.warn({
+        hint: "rebuild with pnpm --filter @smm/core-routes build:ohos"
+      }, "[cleanup] cleanupStalePlans not in core-routes bundle; skipping plan cleanup");
+      return;
+    }
+    const appDataDir = import_electron10.app.getPath("userData");
+    const removed = await coreRoutes.cleanupStalePlans(appDataDir, undefined, logger);
+    logger.info({ removed, phase }, "[cleanup] plan cleanup phase finished");
+  } catch (err) {
+    logger.error({ error: err instanceof Error ? err.message : String(err) }, "[cleanup] plan cleanup threw an unexpected error");
+  }
+}
 import_electron10.app.whenReady().then(() => {
   initAppRoot(import_electron10.app.getAppPath());
   getAllowedRootItems();
-  startMainHttpServer().catch((err) => {
-    console.error("[main] failed to start HTTP server:", err);
+  runPlanCleanup("startup").then(() => {
+    startMainHttpServer().catch((err) => {
+      console.error("[main] failed to start HTTP server:", err);
+    });
   });
   import_electron10.session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
     const redirect = resolveRedirect(details.url);
@@ -1049,4 +1083,14 @@ import_electron10.app.whenReady().then(() => {
     }
   });
   createMainWindow();
+});
+import_electron10.app.on("before-quit", (event) => {
+  if (isQuitting) {
+    return;
+  }
+  event.preventDefault();
+  isQuitting = true;
+  runPlanCleanup("shutdown").finally(() => {
+    import_electron10.app.quit();
+  });
 });

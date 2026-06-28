@@ -138,6 +138,7 @@ export { createSocketIOManager } from "./socketIO/manager.ts";
 export {
   createMcpStreamableHttpHandler,
   type McpRequestHandler,
+  MCP_TOOL_NAMES,
   createErrorResponse,
   createSuccessResponse,
   type McpConfig,

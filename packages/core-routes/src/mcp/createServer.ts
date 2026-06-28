@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { defaultChatFs } from "../chatFs.ts";
 import { defaultRenameFilesTaskDeps } from "../tools/renameFilesTaskDefaults.ts";
+import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
 import { registerAddRenameFileTool } from "./toolHandlers/addRenameFile.ts";
 import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
@@ -89,8 +90,12 @@ export async function createMcpStreamableHttpHandler(
   // Read-only documentation tools.
   registerStaticTextTools(server, config);
 
-  // Folder-level rename.
-  registerRenameFolderTool(server, config);
+  // Folder-level rename. Skipped when the host disables it via
+  // `McpConfig.disabledTools` (e.g. HarmonyOS cannot rename folders
+  // due to sandbox permissions — see `apps/ohos/src/http/mcp.ts`).
+  if (!config.disabledTools?.includes(RENAME_FOLDER)) {
+    registerRenameFolderTool(server, config);
+  }
 
   // Episode-level rename task (begin / add / end).
   registerBeginRenameTaskTool(server, config, renameFilesTaskDeps);

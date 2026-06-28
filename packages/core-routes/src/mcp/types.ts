@@ -57,6 +57,18 @@ export interface McpConfig {
   logger?: CoreRoutesLogger;
 
   /**
+   * Optional list of MCP tool names to omit from the server. Hosts
+   * that cannot satisfy a tool's runtime requirements (e.g. HarmonyOS
+   * cannot rename folders due to sandbox permissions) pass the
+   * affected tool names here so the MCP `tools/list` response never
+   * advertises them. Defaults to registering every tool.
+   *
+   * Use the constants from `@smm/core/types/ai-tools/*`
+   * (e.g. `RENAME_FOLDER`).
+   */
+  disabledTools?: readonly string[];
+
+  /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
    * omitted, English defaults from `@smm/core/types/ai-tools/*`

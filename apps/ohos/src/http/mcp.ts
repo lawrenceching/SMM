@@ -6,6 +6,7 @@ import { isOhosMcpEnabled } from "./ohosMcpLifecycleManager"
 import { MAIN_HTTP_ORIGIN } from "../paths"
 import type { UserConfig } from "@smm/core/types"
 
+
 type McpRequestHandler = (req: Request) => Promise<Response>
 
 /**
@@ -49,7 +50,6 @@ export function getMcpHandler(
   options: CreateMcpHandlerOptions,
 ): Promise<McpRequestHandler> {
   if (mcpHandlerPromise) return mcpHandlerPromise
-
   mcpHandlerPromise = (async () => {
     const coreRoutesModule = loadCoreRoutes() as Record<string, unknown>
     const createMcpStreamableHttpHandler =
@@ -63,10 +63,28 @@ export function getMcpHandler(
       )
     }
 
+    // MCP tool names are sourced from the loaded `core-routes.js`
+    // bundle so this file does not need a direct dependency on
+    // `@smm/core` or `@smm/core-routes` (neither is symlinked into
+    // `apps/ohos/node_modules`). The constant is added by the
+    // `MCP_TOOL_NAMES` export from `@smm/core-routes/mcp/index.ts`.
+    const mcpToolNames = coreRoutesModule.MCP_TOOL_NAMES as
+      | { readonly RENAME_FOLDER: string }
+      | undefined
+    if (!mcpToolNames) {
+      throw new Error(
+        "MCP_TOOL_NAMES is not available in the core-routes bundle. Rebuild core-routes: pnpm --filter @smm/core-routes build:cjs",
+      )
+    }
+
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
       activatePersistedFileAccess: options.activatePersistedFileAccess,
+      // HarmonyOS cannot rename folders — the sandbox denies the
+      // operation regardless of `user_config.selectedFolder`, so
+      // the MCP `tools/list` response must not advertise the tool.
+      disabledTools: [mcpToolNames.RENAME_FOLDER],
       acknowledge: async (
         message: unknown,
         timeoutMs?: number,
