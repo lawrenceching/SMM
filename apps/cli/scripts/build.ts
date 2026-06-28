@@ -18,8 +18,24 @@ writeFileSync(versionFilePath, versionFileContent, 'utf-8');
 
 console.log(`✓ Generated version.ts with version: ${version}`);
 
-// Now run the actual build (CLI_COMPILE_TARGET e.g. bun-windows-arm64 for Win ARM64 on x64 CI)
-const compileTarget = process.env.CLI_COMPILE_TARGET?.trim();
+// CLI_COMPILE_TARGET overrides the default (e.g. bun-windows-arm64 for Win ARM64 on x64 CI).
+// On Linux x64, default to baseline so packaged CLI runs on pre-AVX2 CPUs (e.g. Ivy Bridge).
+function resolveDefaultCompileTarget(): string | undefined {
+  if (process.platform !== 'linux') {
+    return undefined;
+  }
+  if (process.arch === 'x64') {
+    return 'bun-linux-x64-baseline';
+  }
+  return undefined;
+}
+
+const compileTarget =
+  process.env.CLI_COMPILE_TARGET?.trim() || resolveDefaultCompileTarget();
+
+if (compileTarget) {
+  console.log(`Using compile target: ${compileTarget}`);
+}
 
 async function runBuildWithRetry(maxAttempts: number): Promise<void> {
   let lastError: unknown = null;

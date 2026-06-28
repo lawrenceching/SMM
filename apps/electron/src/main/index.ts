@@ -413,6 +413,14 @@ async function startCLI(): Promise<void> {
 
     cliProcess.on('exit', (code, signal) => {
       console.log(`CLI process exited with code ${code} and signal ${signal}`)
+      if (signal === 'SIGILL') {
+        console.error(
+          '[SMM] CLI crashed with SIGILL (illegal instruction). ' +
+            'This usually means the bundled CLI binary is incompatible with this CPU ' +
+            '(requires SSE4.2; AVX2-only builds fail on pre-2013 x64 CPUs). ' +
+            'Rebuild the app with CLI_COMPILE_TARGET=bun-linux-x64-baseline or upgrade hardware.',
+        )
+      }
       cliProcess = null
     })
 
