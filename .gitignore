@@ -12,6 +12,9 @@ node_modules/
 .env.local
 *.log
 
+# E2E CI output (uploaded as GitHub Actions artifacts)
+artifacts/e2e/
+
 
 apps/ohos/docs/*
 apps/ohos/web_engine/src/main/resources/resfile/resources/app/dist/*

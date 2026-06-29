@@ -87,6 +87,8 @@ test/
 test/**
 .log/
 **/.log/
+artifacts/e2e/
+**/artifacts/e2e/
 .hvigor/
 **/.hvigor/
 

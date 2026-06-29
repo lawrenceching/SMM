@@ -4,7 +4,7 @@
  * Usage (from repo root):
  *   bun ci/run-e2e-test.ts --spec ./test/specs/hello.e2e.ts
  *
- * Logs are written to `.log/{commandId}/`:
+ * Logs are written to `artifacts/e2e/{commandId}/`:
  *   - cli.log     — pnpm dev:cli output
  *   - test.log    — wdio output
  *   - browser.log — browser console/page logs from test.log (see wdio.conf.ts)
@@ -23,7 +23,7 @@ const UI_READY_URL = 'http://localhost:5173';
 const CLI_AUTH_TOKEN = 'ChangeMe123';
 const CLEANUP_GRACE_MS = 5_000;
 
-const backgroundProcesses: ChildProcess[] = [];
+const E2E_LOG_DIR = path.join(ROOT, 'artifacts', 'e2e');
 const backgroundLogStreams: fs.WriteStream[] = [];
 
 function log(message: string): void {
@@ -235,6 +235,17 @@ function toRepoRelativePath(absolutePath: string): string {
   return path.relative(ROOT, absolutePath).split(path.sep).join('/');
 }
 
+function exportCiOutputs(logDir: string, success: boolean): void {
+  const githubOutput = process.env.GITHUB_OUTPUT;
+  if (!githubOutput) return;
+
+  const lines = [
+    `log_dir=${toRepoRelativePath(logDir)}`,
+    `success=${success}`,
+  ];
+  fs.appendFileSync(githubOutput, `${lines.join('\n')}\n`);
+}
+
 function printRunSummary(options: {
   success: boolean;
   commandId: string;
@@ -251,7 +262,7 @@ function printRunSummary(options: {
 
 async function main(): Promise<number | null> {
   const commandId = String(Math.floor(Date.now() / 1000));
-  const logDir = path.join(ROOT, '.log', commandId);
+  const logDir = path.join(E2E_LOG_DIR, commandId);
   fs.mkdirSync(logDir, { recursive: true });
 
   const cliLogPath = path.join(logDir, 'cli.log');
@@ -301,8 +312,10 @@ async function main(): Promise<number | null> {
     return exitCode;
   } finally {
     await cleanupBackgroundProcesses();
+    const success = exitCode === 0;
+    exportCiOutputs(logDir, success);
     printRunSummary({
-      success: exitCode === 0,
+      success,
       commandId,
       browserLogPath,
       cliLogPath,
