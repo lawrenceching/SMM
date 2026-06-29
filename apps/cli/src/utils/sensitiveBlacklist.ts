@@ -75,23 +75,26 @@ export function _resetSensitiveStringsForTests(): void {
   sensitiveStrings.clear();
 }
 
-export function wrapWithMasking(
-  inner: NodeJS.WritableStream,
-): NodeJS.WritableStream {
+type InnerLike = {
+  write: (
+    c: string,
+    e: BufferEncoding,
+    cb: (err?: Error | null) => void,
+  ) => boolean;
+  on?: (event: "error", listener: (err: Error) => void) => unknown;
+};
+
+export function wrapWithMasking(inner: InnerLike): NodeJS.WritableStream {
   const wrapped = new Writable({
     decodeStrings: false,
-    write(chunk: Buffer | string, encoding: BufferEncoding, cb: (err?: Error) => void) {
+    write(chunk: Buffer | string, encoding: BufferEncoding, cb: (err?: Error | null) => void) {
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
       const masked = maskSensitive(text);
-      inner.write(masked, encoding, cb);
+      inner.write.call(inner, masked, encoding, (err) => cb(err ?? null));
     },
   });
-  // Re-emit inner errors on the wrapper so they don't surface as unhandled
-  // exceptions, while still letting downstream listeners observe them.
-  if (typeof (inner as NodeJS.ReadableStream & { on?: unknown }).on === "function") {
-    (inner as unknown as NodeJS.EventEmitter).on("error", (err: Error) => {
-      wrapped.emit("error", err);
-    });
-  }
+  // Swallow unhandled inner errors so they don't crash the process. Node
+  // still forwards the failure to the wrap's write callback via `cb`.
+  inner.on?.("error", () => {});
   return wrapped;
 }

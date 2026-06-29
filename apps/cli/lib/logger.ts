@@ -5,6 +5,7 @@ import { mkdir } from 'fs/promises';
 import type { Context } from 'hono';
 import os from 'os';
 import { createFrontendLogStream } from '@/utils/FrontendLogFile';
+import { initSensitiveStrings, wrapWithMasking } from '@/utils/sensitiveBlacklist';
 
 /**
  * Masks the OS username in a string with asterisks for security.
@@ -54,11 +55,13 @@ async function createLogger() {
     
     // Use pino.destination() for synchronous file writing
     // This is compatible with Bun compiled executables
-    const destination = pino.destination({
-      dest: logFilePath,
-      append: true,
-      sync: false, // Use async writing for better performance
-    });
+    const destination = wrapWithMasking(
+      pino.destination({
+        dest: logFilePath,
+        append: true,
+        sync: false, // Use async writing for better performance
+      }),
+    );
 
     return pino({
       level: logLevel,
@@ -67,11 +70,14 @@ async function createLogger() {
       base: null,
     }, destination);
   } else {
-    // Console logging (default)
+    // Console logging (default). Use an explicit stdout destination so we
+    // can apply the same masking wrapper as the file branch — keeps
+    // console output consistent with what's persisted to disk.
+    const destination = wrapWithMasking(pino.destination(1));
     return pino({
       level: logLevel,
       base: null,
-    });
+    }, destination);
   }
 }
 
@@ -165,6 +171,8 @@ export function logHttpRespIn(url: string, statusCode: number, body?: unknown) {
   }
 }
 
+await initSensitiveStrings();
+
 // Create and export the logger instance
 export const logger = await createLogger();
 logger.debug(`pino: log level is ${logger.level}`)
@@ -178,8 +186,11 @@ logger.debug(`pino: log level is ${logger.level}`)
 export const frontendLogger = pino(
   { level: process.env.LOG_LEVEL ?? "info", base: null },
   // pino accepts any Node Writable as a destination; rotating-file-stream
-  // implements that interface.
-  createFrontendLogStream() as unknown as pino.DestinationStream
+  // implements that interface. The masking wrapper makes sure sensitive
+  // strings never reach browser.log on disk.
+  wrapWithMasking(
+    createFrontendLogStream() as unknown as NodeJS.WritableStream,
+  ) as unknown as pino.DestinationStream,
 );
 
 // Export a default as well for convenience

@@ -20,6 +20,7 @@ vi.mock("child_process", async () => {
 vi.mock("./config", () => ({
   getUserConfig: vi.fn().mockResolvedValue({}),
   getLogDir: vi.fn().mockReturnValue("/tmp/smm-test-logs"),
+  getUserConfigPath: vi.fn().mockReturnValue("/dev/null/smm.json"),
 }));
 
 vi.mock("fs", async () => {
