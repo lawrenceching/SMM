@@ -1,0 +1,19 @@
+{
+  "name": "@smm/cicd",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./test",
+    "cli": "bun run.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.0.6",
+    "typescript": "^5.0.0"
+  }
+}
