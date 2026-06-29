@@ -1,13 +1,10 @@
 import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
+import type { IsFolderExistOutput } from '../../tools/isFolderExist';
 import type { Hono } from 'hono';
 
-interface IsFolderExistData {
-  exists: boolean;
-  path: string;
-  reason?: string;
-}
+type IsFolderExistData = IsFolderExistOutput;
 
 interface DebugIsFolderExistToolResponseBody {
   success: boolean;
@@ -32,19 +29,11 @@ export async function processIsFolderExistTool(body: unknown): Promise<DebugIsFo
 
     const { path, clientId = '' } = validationResult.data;
     const tool = agentTools.isFolderExist(clientId);
-    const result = await tool.execute({ path });
+    const result = (await tool.execute({ path })) as IsFolderExistOutput;
 
-    if (result.isError) {
-      return {
-        success: false,
-        error: result.content?.[0]?.text ?? 'Unknown error',
-      };
-    }
-
-    const data = result.structuredContent as IsFolderExistData | undefined;
     return {
       success: true,
-      data,
+      data: result,
     };
   } catch (error) {
     return {

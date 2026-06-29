@@ -21,28 +21,85 @@ const WDIO_ARGS = process.argv.slice(2);
 const CLI_READY_URL = 'http://localhost:30000/api/hello';
 const UI_READY_URL = 'http://localhost:5173';
 const CLI_AUTH_TOKEN = 'ChangeMe123';
+const CLEANUP_GRACE_MS = 5_000;
 
 const backgroundProcesses: ChildProcess[] = [];
+const backgroundLogStreams: fs.WriteStream[] = [];
 
 function log(message: string): void {
   console.log(`[run-e2e-test] ${message}`);
 }
 
-function killProcessTree(proc: ChildProcess): void {
+function killUnixProcessGroup(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // Process may already be gone.
+    }
+  }
+}
+
+function killProcessTree(proc: ChildProcess, signal: NodeJS.Signals = 'SIGTERM'): void {
   if (!proc.pid || proc.killed) return;
 
   if (process.platform === 'win32') {
-    spawn('taskkill', ['/pid', String(proc.pid), '/f', '/t'], { shell: true, stdio: 'ignore' });
+    const force = signal === 'SIGKILL';
+    spawn(
+      'taskkill',
+      force ? ['/pid', String(proc.pid), '/f', '/t'] : ['/pid', String(proc.pid), '/t'],
+      { shell: true, stdio: 'ignore' },
+    );
     return;
   }
 
-  proc.kill('SIGTERM');
+  killUnixProcessGroup(proc.pid, signal);
 }
 
-function cleanupBackgroundProcesses(): void {
-  for (const proc of backgroundProcesses) {
-    killProcessTree(proc);
+function closeBackgroundLogStreams(): void {
+  for (const stream of backgroundLogStreams) {
+    stream.destroy();
   }
+  backgroundLogStreams.length = 0;
+}
+
+function waitForProcessExit(proc: ChildProcess, timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    if (proc.exitCode !== null || proc.signalCode !== null) {
+      resolve();
+      return;
+    }
+
+    const timer = setTimeout(resolve, timeoutMs);
+    proc.once('close', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
+async function cleanupBackgroundProcesses(): Promise<void> {
+  for (const proc of backgroundProcesses) {
+    killProcessTree(proc, 'SIGTERM');
+  }
+
+  closeBackgroundLogStreams();
+
+  await Promise.all(
+    backgroundProcesses.map((proc) => waitForProcessExit(proc, CLEANUP_GRACE_MS)),
+  );
+
+  for (const proc of backgroundProcesses) {
+    if (proc.pid && proc.exitCode === null) {
+      killProcessTree(proc, 'SIGKILL');
+    }
+  }
+
+  await Promise.all(
+    backgroundProcesses.map((proc) => waitForProcessExit(proc, 1_000)),
+  );
 }
 
 function spawnBackground(
@@ -60,10 +117,13 @@ function spawnBackground(
     shell: process.platform === 'win32',
     stdio: logStream ? ['ignore', 'pipe', 'pipe'] : 'ignore',
     windowsHide: true,
+    detached: process.platform !== 'win32',
   });
   backgroundProcesses.push(proc);
 
   if (logStream) {
+    backgroundLogStreams.push(logStream);
+
     const writeChunk = (chunk: Buffer) => {
       logStream.write(chunk);
     };
@@ -101,13 +161,16 @@ async function runWdio(
     proc.stdout?.on('data', writeChunk);
     proc.stderr?.on('data', writeChunk);
 
-    proc.on('close', (code) => {
+    const finish = (code: number) => {
       logStream.end();
-      resolve(code ?? 1);
+      resolve(code);
+    };
+
+    proc.on('close', (code) => {
+      finish(code ?? 1);
     });
     proc.on('error', () => {
-      logStream.end();
-      resolve(1);
+      finish(1);
     });
   });
 }
@@ -201,12 +264,14 @@ async function main(): Promise<number | null> {
   let exitCode: number | null = null;
 
   process.on('SIGINT', () => {
-    cleanupBackgroundProcesses();
-    process.exit(130);
+    void cleanupBackgroundProcesses().finally(() => {
+      process.exit(130);
+    });
   });
   process.on('SIGTERM', () => {
-    cleanupBackgroundProcesses();
-    process.exit(143);
+    void cleanupBackgroundProcesses().finally(() => {
+      process.exit(143);
+    });
   });
 
   try {
@@ -235,7 +300,7 @@ async function main(): Promise<number | null> {
     extractBrowserLogs(testLogPath, browserLogPath);
     return exitCode;
   } finally {
-    cleanupBackgroundProcesses();
+    await cleanupBackgroundProcesses();
     printRunSummary({
       success: exitCode === 0,
       commandId,
@@ -248,10 +313,11 @@ async function main(): Promise<number | null> {
 
 main()
   .then((exitCode) => {
-    process.exitCode = exitCode ?? 1;
+    process.exit(exitCode ?? 1);
   })
   .catch((error) => {
     console.error('[run-e2e-test] failed:', error);
-    cleanupBackgroundProcesses();
-    process.exit(1);
+    void cleanupBackgroundProcesses().finally(() => {
+      process.exit(1);
+    });
   });

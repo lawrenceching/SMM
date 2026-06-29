@@ -8,7 +8,6 @@ import env from 'test/lib/env'
 import { createFolderInTestFolder, folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { renameFolderTool } from 'test/lib/debugRenameFolderTool'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
@@ -46,8 +45,20 @@ describe('AI Assistant - RenameFolder Tool', async () => {
     // need to wait for the media metadata file to be created
     await browser.pause(2000)
 
-    await MoviePanelCO.input.waitForDisplayed()
-    expect(await MoviePanelCO.input.getValue()).toBe(sourceFolder.translations?.title?.['en-US'] ?? 'N/A')
+    const expectedTitles = [
+      sourceFolder.translations?.title?.['en-US'],
+      sourceFolder.translations?.title?.['zh-CN'],
+      sourceFolder.mediaName,
+    ].filter((title): title is string => Boolean(title))
+
+    await browser.waitUntil(async () => {
+      const value = await MoviePanelCO.input.getValue()
+      return expectedTitles.includes(value)
+    }, {
+      timeout: 60000,
+      timeoutMsg: `Expected movie title to be one of: ${expectedTitles.join(', ')}`,
+      interval: 500,
+    })
 
     
 

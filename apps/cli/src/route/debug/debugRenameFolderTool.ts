@@ -1,14 +1,10 @@
 import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
-import { handleRenameFolder } from '../../tools/renameFolder';
+import { executeRenameFolder } from '../../tools/renameFolder';
+import type { RenameFolderOutput } from '@core/types/ai-tools/renameFolder';
 import type { Hono } from 'hono';
 
-interface RenameFolderToolData {
-  renamed: boolean;
-  from: string;
-  to: string;
-  error?: string;
-}
+type RenameFolderToolData = RenameFolderOutput;
 
 interface DebugRenameFolderToolResponseBody {
   success: boolean;
@@ -33,19 +29,23 @@ export async function processRenameFolderTool(body: unknown): Promise<DebugRenam
       };
     }
 
-    const result = await handleRenameFolder(validationResult.data, undefined);
-    if (result.isError) {
+    const data = (await executeRenameFolder(
+      validationResult.data,
+      undefined,
+    )) as RenameFolderToolData;
+
+    if (data.error && !data.renamed) {
       return {
         success: false,
-        error: result.content?.[0]?.text ?? 'Unknown error',
+        data,
+        error: data.error,
       };
     }
 
-    const data = result.structuredContent as RenameFolderToolData | undefined;
     return {
-      success: !!data?.renamed && !data.error,
+      success: !!data.renamed && !data.error,
       data,
-      error: data?.error,
+      error: data.error,
     };
   } catch (error) {
     console.error('[DebugAPI] Error executing renameFolderTool:', error);

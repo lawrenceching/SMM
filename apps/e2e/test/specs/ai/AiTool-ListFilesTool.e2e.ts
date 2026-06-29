@@ -41,8 +41,18 @@ describe('AI Assistant - ListFiles Tool', async () => {
 
     await Sidebar.waitForFolderName(importedFolder.folderName!, 60000)
 
-    const response = await listFilesTool({
+    let response = await listFilesTool({
       mediaFolderPath: importedFolder.path!,
+    })
+    await browser.waitUntil(async () => {
+      response = await listFilesTool({
+        mediaFolderPath: importedFolder.path!,
+      })
+      return response.success && (response.data?.count ?? 0) > 0
+    }, {
+      timeout: 60000,
+      timeoutMsg: 'listFiles tool did not return files in time',
+      interval: 2000,
     })
 
     expect(response.success).toBe(true)
