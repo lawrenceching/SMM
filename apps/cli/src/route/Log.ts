@@ -107,10 +107,9 @@ export function handleLog(app: Hono): void {
       return c.json({ error: "Batch too large", max: MAX_BATCH, received: entries.length }, 413);
     }
 
-    // Rate limit charge — Tasks 5-7 will refine to per-entry credits; this
-    // baseline charges 1 credit per request.
-    if (!rateLimiter.isAllowed()) {
-      return c.json({ error: "Rate limit exceeded" }, 429);
+    const credits = Math.max(1, Math.ceil(entries.length / 50));
+    if (!rateLimiter.charge("global", credits)) {
+      return c.json({ error: "Rate limit exceeded", creditsRequested: credits }, 429);
     }
 
     const MAX_BYTES = Number(process.env.FRONTEND_LOG_MAX_BYTES ?? 4096);

@@ -141,3 +141,25 @@ describe("POST /api/log — batch cap", () => {
     expect(res.status).toBe(204);
   });
 });
+
+describe("POST /api/log — rate limiting", () => {
+  it("rate-limits batches that exceed 10 credits/sec total", async () => {
+    const app = new Hono();
+    handleLog(app);
+    // 11 batches of 100 entries each = 11 * ceil(100/50) = 22 credits, > 10/sec
+    const batches = Array.from({ length: 11 }, () => ({
+      entries: Array.from({ length: 100 }, (_, i) => ({ level: "info", message: `m${i}` })),
+      appVersion: "1.0.0",
+    }));
+    const statuses: number[] = [];
+    for (const body of batches) {
+      const res = await app.request("/api/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      statuses.push(res.status);
+    }
+    expect(statuses).toContain(429);
+  });
+});
