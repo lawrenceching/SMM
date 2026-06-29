@@ -176,8 +176,6 @@ export function handleLog(app: Hono): void {
     }
 
     const MAX_BYTES = Number(process.env.FRONTEND_LOG_MAX_BYTES ?? 4096);
-    const serverReceivedAt = new Date().toISOString();
-    const clientIp = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
     for (const entry of entries) {
       const baseCtx = entry.context ?? {};
       const entryMessage = deriveEntryMessage(entry);
@@ -191,16 +189,7 @@ export function handleLog(app: Hono): void {
         message = Buffer.from(entryMessage, "utf8").subarray(0, budget).toString("utf8");
         context = { ...baseCtx, truncated: true };
       }
-      const enriched = {
-        ...context,
-        source: "frontend",
-        appVersion,
-        serverReceivedAt,
-        clientTs: entry.ts,
-        clientUrl: entry.url,
-        sessionId: entry.sessionId,
-        clientIp,
-      };
+      const enriched = { ...context, appVersion };
       const line = "[frontend] " + message;
       // Bind `this` to frontendLogger so pino's internal LOG function sees
       // its msgPrefixSym. Detached method calls (e.g. through Record casts)

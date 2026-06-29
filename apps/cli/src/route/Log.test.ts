@@ -176,9 +176,8 @@ describe("POST /api/log — truncation", () => {
     expect(res.status).toBe(204);
     const calls = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls.length).toBe(1);
-    const ctx = calls[0][0] as { truncated?: boolean; source?: string };
+    const ctx = calls[0][0] as { truncated?: boolean };
     expect(ctx.truncated).toBe(true);
-    expect(ctx.source).toBe("frontend");
   });
 
   it("honours FRONTEND_LOG_MAX_BYTES env override", async () => {
@@ -302,69 +301,6 @@ describe("POST /api/log — frontend 'log' level", () => {
     expect(frontendLogger.info).toHaveBeenCalledTimes(1);
     const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(args[1]).toBe("[frontend] from console.log");
-  });
-});
-
-describe("POST /api/log — client correlation fields", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    _resetRateLimiterForTests();
-  });
-
-  it("enriches context with sessionId, clientTs, clientUrl, and clientIp when present", async () => {
-    const app = new Hono();
-    handleLog(app);
-    const res = await app.request("/api/log", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-forwarded-for": "203.0.113.7",
-      },
-      body: JSON.stringify({
-        level: "info",
-        message: "hello",
-        sessionId: "sid-abc",
-        ts: 1700000000000,
-        url: "https://app.example/path",
-      }),
-    });
-    expect(res.status).toBe(204);
-    expect(frontendLogger.info).toHaveBeenCalledTimes(1);
-    const ctx = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<string, unknown>;
-    expect(ctx.sessionId).toBe("sid-abc");
-    expect(ctx.clientTs).toBe(1700000000000);
-    expect(ctx.clientUrl).toBe("https://app.example/path");
-    expect(ctx.clientIp).toBe("203.0.113.7");
-    expect(ctx.source).toBe("frontend");
-  });
-
-  it("falls back to x-real-ip when x-forwarded-for is absent", async () => {
-    const app = new Hono();
-    handleLog(app);
-    const res = await app.request("/api/log", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-real-ip": "198.51.100.4",
-      },
-      body: JSON.stringify({ level: "info", message: "hi" }),
-    });
-    expect(res.status).toBe(204);
-    const ctx = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<string, unknown>;
-    expect(ctx.clientIp).toBe("198.51.100.4");
-  });
-
-  it("uses 'unknown' when neither x-forwarded-for nor x-real-ip is present", async () => {
-    const app = new Hono();
-    handleLog(app);
-    const res = await app.request("/api/log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ level: "info", message: "hi" }),
-    });
-    expect(res.status).toBe(204);
-    const ctx = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<string, unknown>;
-    expect(ctx.clientIp).toBe("unknown");
   });
 });
 
