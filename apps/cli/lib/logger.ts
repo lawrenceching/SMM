@@ -3,29 +3,8 @@ import { getLogDir } from '@/utils/config';
 import path from 'path';
 import { mkdir } from 'fs/promises';
 import type { Context } from 'hono';
-import os from 'os';
 import { createFrontendLogStream } from '@/utils/FrontendLogFile';
 import { initSensitiveStrings, wrapWithMasking } from '@/utils/sensitiveBlacklist';
-
-/**
- * Masks the OS username in a string with asterisks for security.
- * @param msg - The string that may contain the OS username
- * @returns The string with the OS username replaced by '***'
- */
-export function maskOsUsername(msg: string): string {
-  const username = os.userInfo().username;
-  if (!username) {
-    return msg;
-  }
-  return msg.replace(new RegExp(escapeRegExp(username), 'g'), '***');
-}
-
-/**
- * Escapes special regex characters in a string.
- */
-function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /**
  * Creates a Pino logger instance with appropriate configuration.
