@@ -82,7 +82,7 @@ describe('Search TV Show', () => {
         await TVShowPanel.searchbox.database.waitForDisplayed();
 
         await TVShowPanel.searchbox.setDatabase('TMDB')
-        await TVShowPanel.searchbox.setLanguage('简体中文')
+        await TVShowPanel.searchbox.setLanguage('zh-CN')
         await TVShowPanel.searchbox.searchButton.click()
 
         /**
@@ -204,7 +204,7 @@ S01E35 - - - -`)
         await TVShowPanel.searchbox.database.waitForDisplayed();
 
         await TVShowPanel.searchbox.setDatabase('TVDB')
-        await TVShowPanel.searchbox.setLanguage('简体中文')
+        await TVShowPanel.searchbox.setLanguage('zho')
         await TVShowPanel.searchbox.searchButton.click()
 
         /**

@@ -46,6 +46,8 @@ export function useRuleBasedRenameFilesFlow({
   const updatePlanMutation = useUpdatePlanMutation()
   const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
   const generationRef = useRef(new Set<string>())
+  /** Ensures preview generation waits until createPlan API persists the plan file. */
+  const pendingCreateRef = useRef<Promise<unknown> | null>(null)
 
   const renameFailedMessage = t("toast.renameFailed", {
     defaultValue: "Rename failed. Please try again.",
@@ -325,13 +327,14 @@ export function useRuleBasedRenameFilesFlow({
       tvShow: mediaMetadata?.tvShow?.name,
     })
 
-    void createPlanMutation
-      .createPlanOptimistic({
+    const createPromise = createPlanMutation.createPlanOptimistic({
         id: planId,
         task: "rename-files",
         mediaFolderPath,
         creator: "app",
       })
+    pendingCreateRef.current = createPromise
+    void createPromise
       .then(() => {
         console.log("[rename] empty rename plan created, waiting for prompt to generate preview", {
           planId,
@@ -343,6 +346,11 @@ export function useRuleBasedRenameFilesFlow({
           err instanceof Error && err.message ? err.message : renameFailedMessage
         toast.error(message)
         removePlanFromCache(planId)
+      })
+      .finally(() => {
+        if (pendingCreateRef.current === createPromise) {
+          pendingCreateRef.current = null
+        }
       })
   }, [
     mediaFolderPath,
@@ -356,7 +364,13 @@ export function useRuleBasedRenameFilesFlow({
 
   useOnFirstOpen(
     () => {
-      void onNamingRuleSelected(selectedNamingRule)
+      void (async () => {
+        const pending = pendingCreateRef.current
+        if (pending) {
+          await pending.catch(() => undefined)
+        }
+        await onNamingRuleSelected(selectedNamingRule)
+      })()
     },
     open &&
       plan?.status === "preparing" &&

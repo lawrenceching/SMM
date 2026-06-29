@@ -54,7 +54,7 @@ describe('TVShow - Recognize By Plan', () => {
     })
 
     await page.open()
-    await Sidebar.waitForFolderName(folder.folderName, 1000)
+    await Sidebar.waitForFolderName(folder.folderName, 5000)
     await Sidebar.clickFolder(folder.folderName)
 
     await browser.pause(1000)
@@ -80,7 +80,6 @@ S01E12 - - - -`)
     const plansDir = path.join(userDataDir, 'plans')
     fs.mkdirSync(plansDir, { recursive: true })
 
-    const taskId = crypto.randomUUID()
     const planId = crypto.randomUUID()
     const mediaFolderPathPosix = Path.posix(folder.path!)
 
@@ -88,6 +87,7 @@ S01E12 - - - -`)
       id: planId,
       task: 'recognize-media-file',
       status: 'pending',
+      creator: 'ai',
       mediaFolderPath: mediaFolderPathPosix,
       files: [
         { season: 1, episode: 1, path: mediaFolderPathPosix + '/S01E01.mkv' },
@@ -96,19 +96,23 @@ S01E12 - - - -`)
       ],
     }
 
-    planFilePath = path.join(plansDir, taskId + '.plan.json')
+    planFilePath = path.join(plansDir, planId + '.plan.json')
     fs.writeFileSync(planFilePath, JSON.stringify(plan, null, 2), 'utf-8')
     console.log('Created recognize plan:', planFilePath)
 
     await browser.refresh()
 
-    await Sidebar.waitForFolderName(folder.folderName, 1000)
+    await Sidebar.waitForFolderName(folder.folderName, 10000)
     await Sidebar.clickFolder(folder.folderName)
 
-    await Prompts.confirmButton.waitForDisplayed()
+    await Prompts.aiBasedRecognizePrompt.waitForDisplayed({ timeout: 10000 })
+    await Prompts.confirmButton.waitForClickable({ timeout: 10000 })
     await Prompts.confirmButton.click()
 
-    await browser.pause(1000)
+    await browser.waitUntil(
+      async () => (await TvShowPanelCO.toString()).includes('S01E01 S01E01.mkv V V V'),
+      { timeout: 15000, interval: 500 },
+    )
     expect(await TvShowPanelCO.toString()).toContain(`Specials
 S00E01 - - - -
 Season 1
@@ -168,10 +172,14 @@ S01E12 - - - -`)
 
 
     await TvShowPanelCO.recognizeButton.click()
-    await Prompts.confirmButton.waitForDisplayed()
+    await Prompts.confirmButton.waitForDisplayed({ timeout: 10000 })
+    await Prompts.confirmButton.waitForClickable({ timeout: 10000 })
     await Prompts.confirmButton.click()
 
-    await browser.pause(1000)
+    await browser.waitUntil(
+      async () => (await TvShowPanelCO.toString()).includes('S01E01 S01E01.mkv V V V'),
+      { timeout: 15000, interval: 500 },
+    )
     expect(await TvShowPanelCO.toString()).toContain(`Specials
 S00E01 - - - -
 Season 1

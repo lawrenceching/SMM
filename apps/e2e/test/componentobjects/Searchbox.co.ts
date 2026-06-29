@@ -74,7 +74,7 @@ class SearchboxComponentObject {
         await selectItem.click()
     }
 
-    async setLanguage(language: string) {
+    async setLanguage(languageOrCode: string) {
         const selectTrigger = await this.language
 
         await selectTrigger.waitForExist({ timeout: 5000 })
@@ -84,19 +84,30 @@ class SearchboxComponentObject {
 
         await browser.pause(300)
 
+        const byCode = await $(`[data-testid="tmdb-search-language-option-${languageOrCode}"]`)
+        if (await byCode.isExisting()) {
+            await byCode.waitForClickable({ timeout: 5000 })
+            await byCode.click()
+            return
+        }
+
         const selectItems = await $$('[data-testid^="tmdb-search-language-option-"]')
         let targetItem: WebdriverIO.Element | undefined
 
         for (const item of selectItems) {
-            const text = await item.getText()
-            if (text === language) {
+            const text = (await item.getText()).trim()
+            if (
+                text === languageOrCode ||
+                text.startsWith(`${languageOrCode} (`) ||
+                text.endsWith(`(${languageOrCode})`)
+            ) {
                 targetItem = item
                 break
             }
         }
 
         if (!targetItem) {
-            throw new Error(`Language option "${language}" not found`)
+            throw new Error(`Language option "${languageOrCode}" not found`)
         }
 
         await targetItem.waitForClickable({ timeout: 5000 })

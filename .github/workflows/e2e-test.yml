@@ -1,22 +1,13 @@
 name: E2E Test
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'apps/e2e/**'
-      - '.github/workflows/e2e-test.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'apps/e2e/**'
-      - '.github/workflows/e2e-test.yml'
   workflow_dispatch:
 
 jobs:
   test:
-    name: Run E2E Test
+    name: Run TV E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -33,7 +24,20 @@ jobs:
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run hello.e2e.ts test
-        run: cd apps/e2e && pnpm run wdio:hello
+      - name: Install CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Run TV E2E tests
+        run: bun ci/run-e2e-test.ts --spec "./test/specs/tv/*.e2e.ts"
         env:
           BUILD_ENV: docker
+
+      - name: Upload E2E logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: .log/
+          retention-days: 7

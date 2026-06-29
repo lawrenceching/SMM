@@ -3,6 +3,7 @@ import { setup, cleanup, importFolderWithMediaMetadata } from '../../lib/testbed
 import {createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
+import page from 'test/pageobjects/page'
 
 describe('TVShow - Rename By Plan', () => {
 
@@ -41,14 +42,20 @@ describe('TVShow - Rename By Plan', () => {
 
     await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json')
 
-    await Sidebar.waitForFolderName(folder.folderName, 5000)
+    await page.open()
+    await Sidebar.waitForFolderName(folder.folderName, 10000)
+    await Sidebar.clickFolder(folder.folderName)
+    await TvShowPanelCO.waitForTable(30000)
 
-    await TvShowPanelCO.renameButton.waitForClickable()
+    await TvShowPanelCO.renameButton.waitForClickable({ timeout: 10000 })
     await TvShowPanelCO.renameButton.click()
 
-    await browser.pause(5000)
+    await browser.waitUntil(
+      async () => (await TvShowPanelCO.newVideoFilePaths).length === 3,
+      { timeout: 30000, interval: 500, timeoutMsg: 'Expected 3 rename preview paths in episode table' },
+    )
 
-    expect(await TvShowPanelCO.newVideoFilePaths.length).toBe(3)
+    expect((await TvShowPanelCO.newVideoFilePaths).length).toBe(3)
 
     const newVideoFilePaths = await TvShowPanelCO.newVideoFilePaths.map(i => i.getText())
     expect(newVideoFilePaths).toEqual([
@@ -57,9 +64,16 @@ describe('TVShow - Rename By Plan', () => {
       'Season 01/WATATEN!: an Angel Flew Down to Me - S01E03 - Imprinting.mkv',
     ])
 
-    await TvShowPanelCO.confirmButton.click();
+    await TvShowPanelCO.confirmButton.waitForClickable({ timeout: 10000 })
+    await TvShowPanelCO.confirmButton.click()
 
-    await browser.pause(2000)
+    await browser.waitUntil(
+      async () =>
+        (await TvShowPanelCO.toString()).includes(
+          'Season 01/WATATEN!: an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
+        ),
+      { timeout: 15000, interval: 500 },
+    )
 
     expect(await TvShowPanelCO.toString()).toContain(`Specials
 S00E01 - - - -
