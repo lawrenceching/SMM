@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { resolveAppLanguage } from "@core/locale"
 import { changeLanguage } from "@/lib/i18n"
+import { redactUserConfig } from "@/lib/redactUserConfig"
 import { useHelloQuery } from "./useHelloQuery"
 import { useUserConfigQuery } from "./useUserConfigQuery"
 
@@ -34,7 +35,7 @@ export function AppLanguageSync() {
 
   useEffect(() => {
     if (!debug || !userConfigQuery.isSuccess) return
-    console.log("[AppLanguageSync] userConfig: " + JSON.stringify(userConfig))
+    console.log("[AppLanguageSync] userConfig: " + JSON.stringify(redactUserConfig(userConfig)))
   }, [userConfig, userConfigQuery.isSuccess])
 
   return null
