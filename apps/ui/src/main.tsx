@@ -32,6 +32,9 @@ import { AuthGate } from './components/auth/LoginPanel'
 import { useUIMediaFolderStoreState } from './stores/uiMediaFolderStore'
 import { useMediaMetadataQuery } from './hooks/mediaMetadata'
 import { useFeatures } from './hooks/useFeatures'
+import { FrontendLogBuffer } from '@/lib/frontendLogBuffer'
+import { installConsoleInterceptor } from '@/lib/consoleInterceptor'
+import { startFrontendLogFlusher } from '@/lib/frontendLogFlusher'
 logger.info(`SMM UI launched`)
 
 
@@ -181,6 +184,9 @@ function AppSwitcher() {
 }
 
 async function bootstrap() {
+  const frontendLogBuffer = new FrontendLogBuffer()
+  installConsoleInterceptor(frontendLogBuffer)
+  startFrontendLogFlusher(frontendLogBuffer)
   initAuthTokenFromUrl()
   installAuthenticatedFetch()
 
