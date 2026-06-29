@@ -21,7 +21,7 @@ vi.mock("../../lib/logger", () => ({
 // Also stub FrontendLogFile so no real stream is created
 vi.mock("../utils/FrontendLogFile", () => ({
   createFrontendLogStream: () => ({ write: vi.fn(), end: vi.fn() }),
-  resolveFrontendLogPath: () => "/tmp/frontend.log",
+  resolveFrontendLogPath: () => "/tmp/browser.log",
 }));
 
 describe("POST /api/log — body shapes", () => {

@@ -39,16 +39,16 @@ describe("FrontendLogFile", () => {
     }
   });
 
-  it("resolves path to frontend.log under LOG_DIR", () => {
-    expect(resolveFrontendLogPath()).toBe(path.join(tmpLogRoot, "frontend.log"));
+  it("resolves path to browser.log under LOG_DIR", () => {
+    expect(resolveFrontendLogPath()).toBe(path.join(tmpLogRoot, "browser.log"));
   });
 
-  it("returns a writable stream and writes lines to frontend.log", async () => {
+  it("returns a writable stream and writes lines to browser.log", async () => {
     const stream = createFrontendLogStream();
     stream.write("hello\n");
     stream.write("world\n");
     await new Promise<void>((resolve) => stream.end(resolve));
-    expect(existsSync(path.join(tmpLogRoot, "frontend.log"))).toBe(true);
+    expect(existsSync(path.join(tmpLogRoot, "browser.log"))).toBe(true);
   });
 
   it("honours FRONTEND_LOG_ROTATE_SIZE override (small for test)", async () => {
@@ -58,7 +58,7 @@ describe("FrontendLogFile", () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 50));
     await new Promise<void>((resolve) => stream.end(resolve));
     const rotatedFiles = readdirSync(tmpLogRoot).filter(
-      (f) => f.startsWith("frontend.log.") && f !== "frontend.log"
+      (f) => f.startsWith("browser.log.") && f !== "browser.log"
     );
     expect(rotatedFiles.length).toBeGreaterThanOrEqual(1);
   });

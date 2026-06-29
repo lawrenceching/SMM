@@ -59,14 +59,20 @@ async function createLogger() {
       append: true,
       sync: false, // Use async writing for better performance
     });
-    
+
     return pino({
       level: logLevel,
+      // Drop the default `hostname` field; `pid` stays useful for multi-process
+      // debugging and `time` continues to identify the moment of emission.
+      base: { pid: process.pid },
     }, destination);
   } else {
     // Console logging (default)
     return pino({
       level: logLevel,
+      // Drop the default `hostname` field; `pid` stays useful for multi-process
+      // debugging and `time` continues to identify the moment of emission.
+      base: { pid: process.pid },
     });
   }
 }
@@ -167,12 +173,12 @@ logger.debug(`pino: log level is ${logger.level}`)
 
 /**
  * Logger dedicated to frontend-sourced log entries. Streams to a rotating
- * frontend.log file under the application log directory. Independent of
+ * browser.log file under the application log directory. Independent of
  * LOG_TARGET so the frontend trail is captured even when the backend is in
  * console-only mode.
  */
 export const frontendLogger = pino(
-  { level: process.env.LOG_LEVEL ?? "info" },
+  { level: process.env.LOG_LEVEL ?? "info", base: { pid: process.pid } },
   // pino accepts any Node Writable as a destination; rotating-file-stream
   // implements that interface.
   createFrontendLogStream() as unknown as pino.DestinationStream

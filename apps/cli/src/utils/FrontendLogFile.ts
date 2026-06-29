@@ -4,14 +4,14 @@ import path from "path";
 
 const DEFAULT_ROTATE_SIZE = "10MB";
 const DEFAULT_KEEP = 5;
-const LOG_FILENAME = "frontend.log";
+const LOG_FILENAME = "browser.log";
 
 export function resolveFrontendLogPath(): string {
   return path.join(getLogDir(), LOG_FILENAME);
 }
 
 /**
- * Returns a writable stream that rotates `frontend.log` by size, gzips old
+ * Returns a writable stream that rotates `browser.log` by size, gzips old
  * files, and keeps the configured number of rotations. Defaults: 10MB x 5.
  * Env overrides: FRONTEND_LOG_ROTATE_SIZE, FRONTEND_LOG_ROTATE_KEEP.
  */

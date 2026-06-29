@@ -44,7 +44,7 @@ fallback: fetch({ keepalive: true })
                                                     ▼
                                                  rotating-file-stream
                                                  (10MB × 5 files)
-                                                 → frontend.log
+                                                 → browser.log
 ```
 
 ## Frontend Modules (new)
@@ -155,7 +155,7 @@ import { getLogDir } from '@/utils/config'
 
 export function createFrontendLogStream(): RotatingFileStream {
   const logDir = getLogDir()
-  return createStream('frontend.log', {
+  return createStream('browser.log', {
     path: logDir,
     size: process.env.FRONTEND_LOG_ROTATE_SIZE ?? '10MB',
     maxFiles: Number(process.env.FRONTEND_LOG_ROTATE_KEEP ?? 5),
@@ -224,7 +224,7 @@ Writing:
   - `'log'` (frontend only) → `frontendLogger.info`
   - `'info' | 'debug' | 'warn' | 'error'` → same-named pino method
   - `'trace' | 'fatal'` (single-entry form only) → `frontendLogger.trace` / `frontendLogger.fatal`
-- Call `frontendLogger[method](logContext, '[frontend] ' + message)`. The `'[frontend] '` prefix lets operators `grep '^\\[frontend\\]' smm.log` if both files are ever joined, and is consistent in `frontend.log` alone.
+- Call `frontendLogger[method](logContext, '[frontend] ' + message)`. The `'[frontend] '` prefix lets operators `grep '^\\[frontend\\]' smm.log` if both files are ever joined, and is consistent in `browser.log` alone.
 
 Response codes:
 - `204 No Content` — success.
@@ -249,7 +249,7 @@ Frontend user clicks a button that calls `console.log('opening', folderId)`:
 2. Entry goes into buffer. If buffer now ≥ 50, immediate flush.
 3. Otherwise, on next 2s tick, buffer is drained and `sendBeacon('/api/log', blob)` is called with `{ entries: [...], appVersion: '1.4.0' }`.
 4. Backend route unpacks batch, validates, charges `ceil(50/50) = 1` rate-limit credit, augments each entry with `serverReceivedAt` and `clientIp`, then writes via `frontendLogger.info({ ..., source: 'frontend', sessionId, ts: 1719660000000, appVersion: '1.4.0' }, '[frontend] opening folderId')` to the rotating stream.
-5. After rotation (e.g. when `frontend.log` reaches 10MB), it's renamed `frontend.log.1.gz` and a fresh `frontend.log` starts. Up to 4 old files retained.
+5. After rotation (e.g. when `browser.log` reaches 10MB), it's renamed `browser.log.1.gz` and a fresh `browser.log` starts. Up to 4 old files retained.
 
 ## Error Handling
 

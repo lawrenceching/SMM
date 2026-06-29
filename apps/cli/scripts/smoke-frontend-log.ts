@@ -3,7 +3,7 @@
  *
  * Boots a real Hono app with handleLog(), POSTs representative frontend
  * payloads (including the "log" level that previously crashed pino), then
- * reads the rotated frontend.log file to verify each entry landed with the
+ * reads the rotated browser.log file to verify each entry landed with the
  * expected enriched fields.
  *
  * This is intentionally NOT mocked — it exists to catch regressions that
@@ -113,12 +113,12 @@ async function main(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 1000));
 
   // Verify file contents
-  console.log("\n[E] inspecting frontend.log");
+  console.log("\n[E] inspecting browser.log");
   console.log("[debug] tmpLogRoot contents:", readdirSync(tmpLogRoot));
   console.log("[debug] logFile =", logFile);
-  check("frontend.log exists", existsSync(logFile));
+  check("browser.log exists", existsSync(logFile));
   if (!existsSync(logFile)) {
-    console.error("Cannot continue — frontend.log not created. Aborting.");
+    console.error("Cannot continue — browser.log not created. Aborting.");
     rmSync(tmpLogRoot, { recursive: true, force: true });
     process.exit(1);
   }
