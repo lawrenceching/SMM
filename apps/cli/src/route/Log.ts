@@ -114,7 +114,6 @@ export function handleLog(app: Hono): void {
 
     const MAX_BYTES = Number(process.env.FRONTEND_LOG_MAX_BYTES ?? 4096);
     const serverReceivedAt = new Date().toISOString();
-    const fn = frontendLogger as unknown as Record<typeof entries[number]["level"], (c: object, m: string) => void>;
     for (const entry of entries) {
       const baseCtx = entry.context ?? {};
       const messageBytes = Buffer.byteLength(entry.message, "utf8");
@@ -129,8 +128,13 @@ export function handleLog(app: Hono): void {
       }
       const enriched = { ...context, source: "frontend", appVersion, serverReceivedAt };
       const line = "[frontend] " + message;
-      const levelFn = fn[entry.level]!;
-      levelFn(enriched, line);
+      // Bind `this` to frontendLogger so pino's internal LOG function sees
+      // its msgPrefixSym. Detached method calls (e.g. through Record casts)
+      // crash with "this[msgPrefixSym] is undefined".
+      const method = frontendLogger[entry.level];
+      if (typeof method === "function") {
+        method.call(frontendLogger, enriched, line);
+      }
     }
 
     return new Response(null, { status: 204 });
