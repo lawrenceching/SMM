@@ -49,3 +49,112 @@ describe("maskSensitive", () => {
     expect(maskSensitive("")).toBe("");
   });
 });
+
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import os from "node:os";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { initSensitiveStrings } from "./sensitiveBlacklist";
+
+describe("initSensitiveStrings", () => {
+  let tempDir: string;
+  let originalUserDataDir: string | undefined;
+
+  beforeEach(() => {
+    _resetSensitiveStringsForTests();
+    tempDir = mkdtempSync(join(tmpdir(), "smm-sens-test-"));
+    originalUserDataDir = process.env.USER_DATA_DIR;
+    process.env.USER_DATA_DIR = tempDir;
+  });
+
+  afterEach(() => {
+    if (originalUserDataDir === undefined) {
+      delete process.env.USER_DATA_DIR;
+    } else {
+      process.env.USER_DATA_DIR = originalUserDataDir;
+    }
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("succeeds and adds only the hostname when smm.json is missing", async () => {
+    await expect(initSensitiveStrings()).resolves.not.toThrow();
+    const hostname = os.hostname();
+    if (hostname) {
+      expect(maskSensitive(`the host is ${hostname}`)).toBe("the host is ******");
+    }
+    expect(maskSensitive("just a normal string")).toBe("just a normal string");
+  });
+
+  it("collects all non-empty apiKey fields from a valid smm.json", async () => {
+    writeFileSync(
+      join(tempDir, "smm.json"),
+      JSON.stringify({
+        tmdb: { apiKey: "tmdb-abc", host: "" },
+        tvdb: { apiKey: "tvdb-def" },
+        ai: {
+          openai: { apiKey: "openai-ghi" },
+          custom: { apiKey: "" }, // empty — should be skipped
+        },
+        aiProviders: [
+          { name: "provider1", apiKey: "prov-jkl" },
+          { name: "provider2", baseURL: "http://x" }, // no apiKey
+        ],
+      }),
+    );
+
+    await initSensitiveStrings();
+
+    expect(maskSensitive("use tmdb-abc here")).toBe("use ****** here");
+    expect(maskSensitive("and tvdb-def too")).toBe("and ****** too");
+    expect(maskSensitive("and openai-ghi")).toBe("and ******");
+    expect(maskSensitive("and prov-jkl")).toBe("and ******");
+  });
+
+  it("warns and continues when smm.json is malformed", async () => {
+    writeFileSync(join(tempDir, "smm.json"), "not valid json{{{");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(initSensitiveStrings()).resolves.not.toThrow();
+
+    expect(warnSpy).toHaveBeenCalled();
+    // Init must have continued past the parse error: hostname should still be in the set.
+    const hostname = os.hostname();
+    if (hostname) {
+      expect(maskSensitive(`the host is ${hostname}`)).toBe("the host is ******");
+    }
+
+    warnSpy.mockRestore();
+  });
+
+  it("warns and continues when os.hostname() throws", async () => {
+    const spy = vi.spyOn(os, "hostname").mockImplementation(() => {
+      throw new Error("hostname failed");
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(initSensitiveStrings()).resolves.not.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
+
+    spy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
+  it("re-seeds: a second call replaces the previous set", async () => {
+    writeFileSync(
+      join(tempDir, "smm.json"),
+      JSON.stringify({ tmdb: { apiKey: "old-key" } }),
+    );
+    await initSensitiveStrings();
+    expect(maskSensitive("contains old-key")).toBe("contains ******");
+
+    writeFileSync(
+      join(tempDir, "smm.json"),
+      JSON.stringify({ tmdb: { apiKey: "new-key" } }),
+    );
+    await initSensitiveStrings();
+    // Old key should be gone after re-seed:
+    expect(maskSensitive("contains old-key")).toBe("contains old-key");
+    expect(maskSensitive("contains new-key")).toBe("contains ******");
+  });
+});
