@@ -9,6 +9,7 @@ const BLOB_TYPE = "application/json";
 let bufferRef: FrontendLogBuffer | null = null;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let pageHideHandler: (() => void) | null = null;
+let visibilityHandler: (() => void) | null = null;
 let unsubscribeBuffer: (() => void) | null = null;
 
 function getAppVersion(): string {
@@ -47,9 +48,9 @@ async function flush(): Promise<void> {
 }
 
 /**
- * Start the periodic flush loop, the pagehide handler, and the
- * threshold-based immediate flush. Idempotent: re-calling is a no-op
- * until _resetFlusherForTests() runs.
+ * Start the periodic flush loop, the pagehide/visibilitychange handlers,
+ * and the threshold-based immediate flush. Idempotent: re-calling is a
+ * no-op until _resetFlusherForTests() runs.
  */
 export function startFrontendLogFlusher(buffer: FrontendLogBuffer): void {
   if (intervalId !== null) return;
@@ -57,6 +58,14 @@ export function startFrontendLogFlusher(buffer: FrontendLogBuffer): void {
   intervalId = setInterval(() => { void flush(); }, FLUSH_INTERVAL_MS);
   pageHideHandler = () => { void flush(); };
   window.addEventListener("pagehide", pageHideHandler);
+  // Mobile Safari relies on visibilitychange (not pagehide) when the
+  // tab moves to the background — pagehide only fires on full unload.
+  visibilityHandler = () => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      void flush();
+    }
+  };
+  document.addEventListener("visibilitychange", visibilityHandler);
   // Threshold-based immediate flush: when the buffer crosses
   // FLUSH_THRESHOLD entries, flush now rather than wait for the next
   // interval tick. Subscribed via the buffer's push notification.
@@ -74,6 +83,10 @@ export function _resetFlusherForTests(): void {
   if (pageHideHandler) {
     window.removeEventListener("pagehide", pageHideHandler);
     pageHideHandler = null;
+  }
+  if (visibilityHandler) {
+    document.removeEventListener("visibilitychange", visibilityHandler);
+    visibilityHandler = null;
   }
   if (unsubscribeBuffer) {
     unsubscribeBuffer();

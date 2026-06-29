@@ -125,4 +125,20 @@ describe("FrontendLogFlusher", () => {
     buffer.push(makeEntry());
     expect(sendBeacon).toHaveBeenCalledTimes(1);
   });
+
+  it("flushes when visibilitychange fires with hidden state", () => {
+    startFrontendLogFlusher(buffer);
+    buffer.push(makeEntry());
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not flush on visibilitychange when state is visible", () => {
+    startFrontendLogFlusher(buffer);
+    buffer.push(makeEntry());
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(sendBeacon).not.toHaveBeenCalled();
+  });
 });
