@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import type { UserConfig } from "@core/types"
+import { redactUserConfig } from "@/lib/redactUserConfig"
 import { hello } from "@/api/hello"
 import { readUserConfigFromUserDataDir } from "@/api/readUserConfig"
 import { helloQueryKey } from "@/lib/appQueryKeys"
@@ -32,7 +33,7 @@ export function useReloadAppConfig() {
           queryKey: userConfigQueryKey(data.userDataDir),
           queryFn: () => readUserConfigFromUserDataDir(data.userDataDir),
         })
-        console.log("[useReloadAppConfig] Reloaded user config", config)
+        console.log("[useReloadAppConfig] Reloaded user config", redactUserConfig(config))
 
         if (callback?.onSuccess) {
           await callback.onSuccess(config)
