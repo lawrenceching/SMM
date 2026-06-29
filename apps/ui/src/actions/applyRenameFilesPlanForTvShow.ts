@@ -1,10 +1,7 @@
 import { Path } from "@core/path";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types";
-import Debug from "debug";
 import { buildTvShowRenameListForPlan } from "@/lib/buildTvShowRenameListForPlan";
-
-const debug = Debug("applyRenameFilesPlanForTvShow");
 
 export async function applyRenameFilesPlanForTvShow(
     options: {
@@ -19,10 +16,13 @@ export async function applyRenameFilesPlanForTvShow(
 ): Promise<{ renameList: Array<{ from: string; to: string }> }> {
 
     const { mediaFolderPath, traceId } = options;
-    const logPrefix = traceId ? `[${traceId}] ` : ''
-    debug(`${logPrefix}applyRenameFilesPlanForTvShow CALLED`);
-
     const renameList = buildTvShowRenameListForPlan(options);
+
+    console.log("[rename] calling /renameFiles API", {
+        traceId,
+        mediaFolderPath,
+        renameCount: renameList.length,
+    });
 
     const filesParam = renameList.map(({ from, to }) => { return { from: Path.toPlatformPath(from), to: Path.toPlatformPath(to) } });
     const req: RenameFilesRequestBody = {
@@ -32,15 +32,13 @@ export async function applyRenameFilesPlanForTvShow(
         clientId: undefined,
     }
 
-    debug(`${logPrefix}applyRenameFilesPlanForTvShow REQUEST: ${JSON.stringify(req)}`);
     const resp = await deps.renameFilesApi(req);
-    debug(`${logPrefix}applyRenameFilesPlanForTvShow RESPONSE: ${JSON.stringify(resp)}`);
     if(resp.error) {
-        debug(`${logPrefix}applyRenameFilesPlanForTvShow ERROR: ${resp.error}`);
+        console.error("[rename] /renameFiles API returned error", { traceId, error: resp.error });
         throw new Error(`/api/renameFiles API error: ${resp.error}`);
     }
 
-    debug(`${logPrefix}applyRenameFilesPlanForTvShow SUCCESS`);
+    console.log("[rename] /renameFiles API succeeded", { traceId, renamedCount: renameList.length });
 
     return { renameList };
 }

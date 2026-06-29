@@ -558,6 +558,9 @@
     "readyToReceive": "準備接收資料夾"
   },
   "toast": {
-    "noRecognizedFiles": "無法辨識任何劇集。建議改用 AI 辨識。"
+    "noRecognizedFiles": "無法辨識任何劇集。建議改用 AI 辨識。",
+    "recognizeFailed": "辨識失敗，請重試。",
+    "renameFailed": "重新命名失敗，請重試。",
+    "noRenameFiles": "無法產生重新命名計劃，請確認劇集已關聯影片檔案。"
   }
 }

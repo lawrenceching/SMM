@@ -560,6 +560,9 @@
     "readyToReceive": "准备接收文件夹"
   },
   "toast": {
-    "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。"
+    "noRecognizedFiles": "未能识别任何剧集。建议使用 AI 进行识别。",
+    "recognizeFailed": "识别失败，请重试。",
+    "renameFailed": "重命名失败，请重试。",
+    "noRenameFiles": "无法生成重命名计划，请确认剧集已关联视频文件。"
   }
 }

@@ -200,6 +200,7 @@ function TvShowPanel() {
   const renameFlow = useRuleBasedRenameFilesFlow({
     plans,
     mediaMetadata,
+    uiStatus,
     beforeConfirm: renameBeforeConfirm,
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })

@@ -37,6 +37,7 @@ export async function handleRenamePromptConfirmForTvShow(
   const { setPlanById, persistUiMediaMetadata, renameFilesApi } = deps
 
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
+    console.warn("[rename] cannot apply rename — folder path or file list missing", { planId })
     toast.error(noMediaPathErrorLabel)
     return
   }
@@ -58,16 +59,31 @@ export async function handleRenamePromptConfirmForTvShow(
       },
       { renameFilesApi },
     )
+    console.log("[rename] disk rename succeeded, updating local metadata", {
+      planId,
+      traceId: renameTraceId,
+      renamedCount: renameList.length,
+    })
     const updatedMetadata = applyRenamePairsToUIMediaMetadata(mediaMetadata, renameList)
     await persistUiMediaMetadata(mediaMetadata.mediaFolderPath, updatedMetadata, {
       traceId: renameTraceId,
     })
-    // Persist terminal status: removes the plan file and drops it from cache.
     await setPlanById(planId, { status: "completed" })
+    console.log("[rename] rename plan completed and closed", { planId, traceId: renameTraceId })
   } catch (error) {
-    console.error("[handleRenamePromptConfirmForTvShow] Error applying rename plan:", error)
+    console.error("[rename] disk rename or metadata update failed", {
+      planId,
+      traceId: renameTraceId,
+      error,
+    })
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     toast.error(`${renameFailedLabel}: ${errorMessage}`)
-    await setPlanById(planId, { status: "pending" })
+    try {
+      await setPlanById(planId, { status: "pending" })
+      console.log("[rename] rename plan restored to pending so user can retry", { planId })
+    } catch (revertError) {
+      console.error("[rename] failed to restore rename plan after error", { planId, error: revertError })
+      toast.error(renameFailedLabel)
+    }
   }
 }

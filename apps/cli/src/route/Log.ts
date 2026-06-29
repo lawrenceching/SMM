@@ -124,6 +124,14 @@ function deriveEntryMessage(entry: SingleEntryT): string {
   return (entry.args ?? []).map(formatSerializedArg).join(" ");
 }
 
+/** Untagged browser console lines keep `[frontend]`; tagged lines (e.g. `[rename]`) are written as-is. */
+export function formatFrontendLogLine(message: string): string {
+  if (message.startsWith("[")) {
+    return message;
+  }
+  return "[frontend] " + message;
+}
+
 function parseBody(raw: unknown):
   | { kind: "single"; entry: SingleEntryT }
   | { kind: "array"; entries: SingleEntryT[] }
@@ -190,7 +198,7 @@ export function handleLog(app: Hono): void {
         context = { ...baseCtx, truncated: true };
       }
       const enriched = { ...context, appVersion };
-      const line = "[frontend] " + message;
+      const line = formatFrontendLogLine(message);
       // Bind `this` to frontendLogger so pino's internal LOG function sees
       // its msgPrefixSym. Detached method calls (e.g. through Record casts)
       // crash with "this[msgPrefixSym] is undefined".

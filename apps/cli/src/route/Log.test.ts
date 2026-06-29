@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Hono } from "hono";
-import { handleLog, _resetRateLimiterForTests } from "./Log";
+import { handleLog, _resetRateLimiterForTests, formatFrontendLogLine } from "./Log";
 import { frontendLogger } from "../../lib/logger";
 
 // We test through a Hono app; pino writes go to the real rotating stream,
@@ -301,6 +301,29 @@ describe("POST /api/log — frontend 'log' level", () => {
     expect(frontendLogger.info).toHaveBeenCalledTimes(1);
     const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(args[1]).toBe("[frontend] from console.log");
+  });
+
+  it("writes category-tagged messages without an extra [frontend] prefix", async () => {
+    const app = new Hono();
+    handleLog(app);
+    const res = await app.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: "log", message: "[rename] user started rule-based rename" }),
+    });
+    expect(res.status).toBe(204);
+    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(args[1]).toBe("[rename] user started rule-based rename");
+  });
+});
+
+describe("formatFrontendLogLine", () => {
+  it("keeps [frontend] for untagged messages", () => {
+    expect(formatFrontendLogLine("hello")).toBe("[frontend] hello");
+  });
+
+  it("passes through category-tagged messages", () => {
+    expect(formatFrontendLogLine("[rename] preview ready")).toBe("[rename] preview ready");
   });
 });
 

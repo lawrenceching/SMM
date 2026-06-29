@@ -562,7 +562,10 @@
     "readyToReceive": "Ready to receive folder"
   },
   "toast": {
-    "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead."
+    "noRecognizedFiles": "Unable to recognize any episodes. Consider using AI to recognize instead.",
+    "recognizeFailed": "Recognition failed. Please try again.",
+    "renameFailed": "Rename failed. Please try again.",
+    "noRenameFiles": "Unable to generate a rename plan. Check that episodes have video files."
   }
 }
 

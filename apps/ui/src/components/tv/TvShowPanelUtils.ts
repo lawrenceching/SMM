@@ -190,6 +190,11 @@ export async function applyRecognizeMediaFilePlan(
     persist: PersistUIMediaMetadataFn,
     options: { traceId: string }
 ): Promise<void> {
+    console.log("[recognize] apply recognize plan", {
+        traceId: options.traceId,
+        mediaFolderPath: mediaMetadata.mediaFolderPath,
+        fileCount: plan.files.length,
+    })
     let updatedMediaFiles = mediaMetadata.mediaFiles ?? [];
     for (const recognizedFile of plan.files) {
         updatedMediaFiles = updateMediaFileMetadatas(
@@ -203,7 +208,11 @@ export async function applyRecognizeMediaFilePlan(
         ...mediaMetadata,
         mediaFiles: updatedMediaFiles,
     };
-    console.log(`[applyRecognizeMediaFilePlan] updatedMetadata:`, structuredClone(updatedMetadata))
+    console.log("[recognize] persist recognize plan metadata", {
+        traceId: options.traceId,
+        mediaFolderPath: mediaMetadata.mediaFolderPath,
+        mediaFileCount: updatedMediaFiles.length,
+    })
     await persist(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId })
 }
 
@@ -914,11 +923,27 @@ export async function executeRenamePlan(
 export async function buildTemporaryRecognitionPlanAsync(
   mediaMetadata: MediaMetadata,
 ): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
+  console.log("[recognize] build temporary plan started", {
+    mediaFolderPath: mediaMetadata.mediaFolderPath,
+    fileCount: mediaMetadata.files?.length ?? 0,
+    tvShowId: mediaMetadata.tvShow?.id,
+  })
+
   if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tvShow) {
+    console.warn("[recognize] build temporary plan aborted: missing prerequisites", {
+      hasMediaFolderPath: !!mediaMetadata.mediaFolderPath,
+      hasFiles: !!mediaMetadata.files,
+      hasTvShow: !!mediaMetadata.tvShow,
+    })
     return null
   }
 
   const collected = await recognizeEpisodesAsync(mediaMetadata);
+
+  console.log("[recognize] build temporary plan completed", {
+    mediaFolderPath: mediaMetadata.mediaFolderPath,
+    recognizedCount: collected.length,
+  })
 
   return {
     mediaFolderPath: mediaMetadata.mediaFolderPath,

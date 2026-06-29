@@ -34,7 +34,7 @@ export function pattern1(
     }
     
     if(ret.length > 0) {
-        console.log(`[recongize episode] recognized episode by pattern1 "SXXEYY"`, ret)
+        console.log('[recognize] matched episodes by pattern SXXEYY', ret)
     }
 
     return ret;
@@ -56,7 +56,7 @@ export function pattern2(
     }
 
     if (ret.length > 0) {
-        console.log(`[recognize episode] recognized episode by pattern2 "第X季第Y集"`, ret);
+        console.log('[recognize] matched episodes by pattern 第X季第Y集', ret);
     }
 
     return ret;
@@ -78,7 +78,7 @@ export function pattern3(
     }
 
     if (ret.length > 0) {
-        console.log(`[recognize episode] recognized episode by pattern3 "第XX季第YY集"`, ret);
+        console.log('[recognize] matched episodes by pattern 第XX季第YY集', ret);
     }
 
     return ret;
@@ -114,10 +114,7 @@ export function pattern4(
     }
 
     if (ret.length > 0) {
-        console.log(
-            `[recognize episode] recognized episode by pattern4 "xxx<divider>N.ext"`,
-            ret
-        );
+        console.log('[recognize] matched episodes by pattern xxx<divider>N.ext', ret);
     }
 
     return ret;
@@ -211,6 +208,10 @@ export function recognizeEpisodes(
 ): RecognizedEpisode[] {
 
     const startTime = performance.now();
+    console.log('[recognize] start episode matching', {
+        mediaFolderPath: mm.mediaFolderPath,
+        fileCount: mm.files?.length ?? 0,
+    })
 
     if( mm.files === undefined 
         || mm.files === null
@@ -230,7 +231,7 @@ export function recognizeEpisodes(
         videoFiles = excludeFiles(videoFiles);
 
         if(videoFiles.length === 0) {
-            console.log(`[recognizeEpisodes] no video files found`)
+            console.log('[recognize] no video files found')
             return [];
         }
 
@@ -250,11 +251,11 @@ export function recognizeEpisodes(
 
         return ret;
     } catch (error) {
-        console.error(`[recognizeEpisodes] error:`, error)
+        console.error('[recognize] episode matching error', error)
         return [];
     } finally {
         const endTime = performance.now();
-        console.log(`[recognizeEpisodes] ended in ${endTime - startTime}ms`)
+        console.log(`[recognize] episode matching finished in ${endTime - startTime}ms`)
     }
 
     return [];
@@ -270,6 +271,10 @@ type WorkerMessage = { type: 'result'; id: number; payload: RecognizedEpisode[] 
  * Uses a singleton worker; concurrent calls are serialized.
  */
 export function recognizeEpisodesAsync(mm: MediaMetadata): Promise<RecognizedEpisode[]> {
+  console.log('[recognize] recognizeEpisodesAsync started', {
+    mediaFolderPath: mm.mediaFolderPath,
+    fileCount: mm.files?.length ?? 0,
+  })
   return new Promise((resolve, reject) => {
     const id = nextRequestId++;
     const worker = getRecognizeEpisodesWorker();
@@ -280,8 +285,18 @@ export function recognizeEpisodesAsync(mm: MediaMetadata): Promise<RecognizedEpi
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
       if (msg.type === 'result') {
+        console.log('[recognize] recognizeEpisodesAsync completed', {
+          mediaFolderPath: mm.mediaFolderPath,
+          recognizedCount: msg.payload.length,
+          requestId: id,
+        })
         resolve(msg.payload);
       } else {
+        console.error('[recognize] recognizeEpisodesAsync worker error', {
+          mediaFolderPath: mm.mediaFolderPath,
+          requestId: id,
+          message: msg.message,
+        })
         reject(new Error(msg.message));
       }
     };
@@ -289,6 +304,11 @@ export function recognizeEpisodesAsync(mm: MediaMetadata): Promise<RecognizedEpi
     const onError = (err: ErrorEvent) => {
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
+      console.error('[recognize] recognizeEpisodesAsync worker crashed', {
+        mediaFolderPath: mm.mediaFolderPath,
+        requestId: id,
+        error: err.message,
+      })
       reject(err.message ? new Error(err.message) : new Error('RecognizeEpisodes worker error'));
     };
 
