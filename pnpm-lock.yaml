@@ -74,6 +74,9 @@ importers:
       pino-roll:
         specifier: ^1.3.0
         version: 1.3.0
+      rotating-file-stream:
+        specifier: ^3.2.9
+        version: 3.2.9
       sanitize-filename:
         specifier: ^1.6.3
         version: 1.6.3
@@ -6965,6 +6968,10 @@ packages:
     resolution: {integrity: sha512-2oMpl67a3zCH9H79LeMcbDhXW/UmWG/y2zuqnF2jQq5uq9TbM9TVyXvA4+t+ne2IIkBdrLpAaRQAvo7YI/Yyeg==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  rotating-file-stream@3.2.9:
+    resolution: {integrity: sha512-i9i0KkHh12ryl4xtELg+0gyoFre2PJ9RcQQLzquWsiqygyYsrZLckrqqYrthhnJZGZb4g+KUHtcoWYVq34gaug==}
+    engines: {node: '>=14.0'}
 
   router@2.2.0:
     resolution: {integrity: sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==}
@@ -15385,6 +15392,8 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.59.0
       '@rollup/rollup-win32-x64-msvc': 4.59.0
       fsevents: 2.3.3
+
+  rotating-file-stream@3.2.9: {}
 
   router@2.2.0:
     dependencies:
