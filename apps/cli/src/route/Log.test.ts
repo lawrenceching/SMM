@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Hono } from "hono";
 import { handleLog } from "./Log";
+import { frontendLogger } from "../../lib/logger";
 
 // We test through a Hono app; pino writes go to the real rotating stream,
 // so we stub the logger module.
@@ -76,5 +77,41 @@ describe("POST /api/log — body shapes", () => {
       body: JSON.stringify({ level: "nope", message: "x" }),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/log — truncation", () => {
+  let app: Hono;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    app = new Hono(); handleLog(app);
+  });
+
+  it("truncates a single oversized entry's message and marks context.truncated=true", async () => {
+    const huge = "x".repeat(8000);
+    const res = await app.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: "info", message: huge }),
+    });
+    expect(res.status).toBe(204);
+    const calls = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.length).toBe(1);
+    const ctx = calls[0][0] as { truncated?: boolean; source?: string };
+    expect(ctx.truncated).toBe(true);
+    expect(ctx.source).toBe("frontend");
+  });
+
+  it("honours FRONTEND_LOG_MAX_BYTES env override", async () => {
+    process.env.FRONTEND_LOG_MAX_BYTES = "100";
+    const app2 = new Hono();
+    handleLog(app2);
+    const res = await app2.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: "info", message: "y".repeat(500) }),
+    });
+    expect(res.status).toBe(204);
+    delete process.env.FRONTEND_LOG_MAX_BYTES;
   });
 });

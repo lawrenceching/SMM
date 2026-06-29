@@ -108,11 +108,23 @@ export function handleLog(app: Hono): void {
       return c.json({ error: "Rate limit exceeded" }, 429);
     }
 
+    const MAX_BYTES = Number(process.env.FRONTEND_LOG_MAX_BYTES ?? 4096);
     const serverReceivedAt = new Date().toISOString();
+    const fn = frontendLogger as unknown as Record<typeof entries[number]["level"], (c: object, m: string) => void>;
     for (const entry of entries) {
-      const enriched = { ...(entry.context ?? {}), source: "frontend", appVersion, serverReceivedAt };
-      const line = "[frontend] " + entry.message;
-      const fn = frontendLogger as unknown as Record<typeof entry.level, (c: object, m: string) => void>;
+      const baseCtx = entry.context ?? {};
+      const messageBytes = Buffer.byteLength(entry.message, "utf8");
+      const ctxBytes = Buffer.byteLength(JSON.stringify(baseCtx), "utf8");
+      const truncated = messageBytes + ctxBytes > MAX_BYTES;
+      let message = entry.message;
+      let context = baseCtx;
+      if (truncated) {
+        const budget = Math.max(0, MAX_BYTES - ctxBytes - 1);
+        message = Buffer.from(entry.message, "utf8").subarray(0, budget).toString("utf8");
+        context = { ...baseCtx, truncated: true };
+      }
+      const enriched = { ...context, source: "frontend", appVersion, serverReceivedAt };
+      const line = "[frontend] " + message;
       const levelFn = fn[entry.level]!;
       levelFn(enriched, line);
     }
