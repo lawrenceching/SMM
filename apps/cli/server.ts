@@ -195,6 +195,14 @@ export class Server {
       if (c.req.method === 'OPTIONS') {
         return next();
       }
+      // /api/log is intentionally public: it is write-only, rate-limited
+      // (10/s + 200-entry cap), and body-bounded (~800KB max). The flusher
+      // uses sendBeacon as its primary path, which cannot carry an
+      // Authorization header, so auth would defeat the whole pipeline.
+      // Abuse ceiling is "polluted logs" — no read access, no data leak.
+      if (c.req.path === '/api/log') {
+        return next();
+      }
       if (!isRequestAuthorized(c.req.header('Authorization'), this.auth)) {
         return c.json({ error: 'Unauthorized: invalid or missing token' }, 401);
       }

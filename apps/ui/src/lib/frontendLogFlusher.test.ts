@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { FrontendLogBuffer } from "./frontendLogBuffer";
 import { startFrontendLogFlusher, _resetFlusherForTests } from "./frontendLogFlusher";
+import { AUTH_TOKEN_STORAGE_KEY } from "./authToken";
 
 function makeEntry(ts = Date.now()) {
   return {
@@ -140,5 +141,33 @@ describe("FrontendLogFlusher", () => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
     document.dispatchEvent(new Event("visibilitychange"));
     expect(sendBeacon).not.toHaveBeenCalled();
+  });
+
+  it("attaches Authorization header on the fetch fallback when a token is stored", async () => {
+    // Backend bypasses auth for /api/log, but the flusher still attaches the
+    // Bearer token when present as defense-in-depth. sendBeacon cannot carry
+    // headers, so we exercise the fetch path by making beacon return false.
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "test-token-123");
+    sendBeacon.mockReturnValue(false);
+    startFrontendLogFlusher(buffer);
+    buffer.push(makeEntry());
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer test-token-123");
+    expect(headers["Content-Type"]).toBe("application/json");
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  });
+
+  it("omits Authorization header on fetch when no token is stored", async () => {
+    sendBeacon.mockReturnValue(false);
+    startFrontendLogFlusher(buffer);
+    buffer.push(makeEntry());
+    await vi.advanceTimersByTimeAsync(2_100);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+    expect(headers["Content-Type"]).toBe("application/json");
   });
 });

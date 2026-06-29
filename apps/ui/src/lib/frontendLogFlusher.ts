@@ -1,5 +1,6 @@
 import type { FrontendLogBatch } from "@/types/frontendLog";
 import { FrontendLogBuffer } from "./frontendLogBuffer";
+import { getAuthToken, buildAuthorizationHeader } from "@/lib/authToken";
 
 const FLUSH_INTERVAL_MS = 2_000;
 export const FLUSH_THRESHOLD = 50;
@@ -15,6 +16,17 @@ let unsubscribeBuffer: (() => void) | null = null;
 function getAppVersion(): string {
   const v = (import.meta as unknown as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION;
   return v ?? "unknown";
+}
+
+function buildAuthHeaders(): Record<string, string> {
+  // Backend now bypasses auth for /api/log, but we still attach the token
+  // when present as defense-in-depth: if anyone re-enables auth on this
+  // path, the flusher keeps working without code changes. sendBeacon
+  // cannot carry headers, so this only applies to the fetch fallback.
+  const headers: Record<string, string> = { "Content-Type": BLOB_TYPE };
+  const token = getAuthToken();
+  if (token) headers.Authorization = buildAuthorizationHeader(token);
+  return headers;
 }
 
 async function flush(): Promise<void> {
@@ -37,7 +49,7 @@ async function flush(): Promise<void> {
     if (typeof fetch !== "undefined") {
       await fetch(ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": BLOB_TYPE },
+        headers: buildAuthHeaders(),
         body,
         keepalive: true,
       });

@@ -58,14 +58,31 @@ export function _resetRateLimiterForTests(): void {
 }
 
 const LogLevel = z.enum(["trace", "debug", "info", "warn", "error", "fatal", "log"]);
+// Wire format mirrors apps/ui/src/types/frontendLog.ts SerializedArg. Each
+// captured console arg is wrapped with its kind so non-string values
+// (errors, objects, functions) round-trip without lossy JSON coercion.
+const SerializedArg = z.object({
+  kind: z.enum([
+    "string", "number", "boolean", "null", "undef",
+    "symbol", "object", "error", "circular", "fn", "bigint",
+  ]),
+  value: z.string(),
+});
 const SingleEntry = z.object({
   level: LogLevel.default("info"),
-  message: z.string().min(1, "Message is required"),
+  // Accept either a pre-formed message string (legacy / direct callers)
+  // or the structured args[] array produced by the browser console
+  // interceptor. One of the two MUST be present.
+  message: z.string().min(1).optional(),
+  args: z.array(SerializedArg).optional(),
   context: z.record(z.unknown()).optional(),
   sessionId: z.string().optional(),
   ts: z.number().optional(),
   url: z.string().optional(),
-});
+}).refine(
+  (e) => typeof e.message === "string" || (Array.isArray(e.args) && e.args.length > 0),
+  { message: "Entry must include either `message` (string) or `args` (non-empty array)" },
+);
 const BatchBody = z.object({
   entries: z.array(SingleEntry).min(1),
   appVersion: z.string().optional(),
@@ -73,6 +90,39 @@ const BatchBody = z.object({
 
 type SingleEntryT = z.infer<typeof SingleEntry>;
 type ParsedBatch = { entries: SingleEntryT[]; appVersion?: string };
+
+/**
+ * Join a console arg list into the human-readable string that gets prefixed
+ * with `[frontend]` and written to browser.log. Most kinds already carry a
+ * string in `value` (the interceptor pre-stringifies objects/errors); only
+ * the kinds that benefit from extra decoration get wrapped.
+ */
+function formatSerializedArg(arg: z.infer<typeof SerializedArg>): string {
+  switch (arg.kind) {
+    case "string":
+    case "number":
+    case "boolean":
+    case "symbol":
+    case "object":
+    case "error":
+    case "bigint":
+      return arg.value;
+    case "null":
+      return "null";
+    case "undef":
+      return "undefined";
+    case "circular":
+      return "[Circular]";
+    case "fn":
+      // value already truncated to FN_STRING_LIMIT chars by serializeArg
+      return `[Function: ${arg.value}]`;
+  }
+}
+
+function deriveEntryMessage(entry: SingleEntryT): string {
+  if (typeof entry.message === "string") return entry.message;
+  return (entry.args ?? []).map(formatSerializedArg).join(" ");
+}
 
 function parseBody(raw: unknown):
   | { kind: "single"; entry: SingleEntryT }
@@ -130,14 +180,15 @@ export function handleLog(app: Hono): void {
     const clientIp = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
     for (const entry of entries) {
       const baseCtx = entry.context ?? {};
-      const messageBytes = Buffer.byteLength(entry.message, "utf8");
+      const entryMessage = deriveEntryMessage(entry);
+      const messageBytes = Buffer.byteLength(entryMessage, "utf8");
       const ctxBytes = Buffer.byteLength(JSON.stringify(baseCtx), "utf8");
       const truncated = messageBytes + ctxBytes > MAX_BYTES;
-      let message = entry.message;
+      let message = entryMessage;
       let context = baseCtx;
       if (truncated) {
         const budget = Math.max(0, MAX_BYTES - ctxBytes - 1);
-        message = Buffer.from(entry.message, "utf8").subarray(0, budget).toString("utf8");
+        message = Buffer.from(entryMessage, "utf8").subarray(0, budget).toString("utf8");
         context = { ...baseCtx, truncated: true };
       }
       const enriched = {
