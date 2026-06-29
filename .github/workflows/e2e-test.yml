@@ -4,10 +4,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Run TV E2E Tests
+  e2e:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Run TV Show Tests
+            spec: "./test/specs/tv/*.e2e.ts"
+            artifact_prefix: tv-show
+          - name: Run MCP Server Tests
+            spec: "./test/specs/ai/*.e2e.ts"
+            artifact_prefix: mcp-server
 
     steps:
       - name: Checkout code
@@ -34,9 +44,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
-      - name: Run TV E2E tests
+      - name: Run E2E tests
         id: e2e
-        run: bun ci/run-e2e-test.ts --spec "./test/specs/tv/*.e2e.ts"
+        run: bun ci/run-e2e-test.ts --spec "${{ matrix.spec }}"
         env:
           BUILD_ENV: docker
 
@@ -44,7 +54,16 @@ jobs:
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-logs-${{ github.run_id }}
+          name: ${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
           path: artifacts/e2e/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload WDIO test reports
+        if: always() && steps.e2e.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-reports-${{ github.run_id }}
+          path: apps/e2e/reports/
           if-no-files-found: ignore
           retention-days: 7
