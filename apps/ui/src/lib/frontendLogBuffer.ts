@@ -10,13 +10,12 @@ const FN_STRING_LIMIT = 200;
 export function serializeArg(arg: unknown): SerializedArg {
   if (arg === null) return { kind: "null", value: "" };
   if (arg === undefined) return { kind: "undef", value: "" };
-  const t = typeof arg;
-  if (t === "string") return { kind: "string", value: arg };
-  if (t === "number") return { kind: "number", value: String(arg) };
-  if (t === "boolean") return { kind: "boolean", value: String(arg) };
-  if (t === "bigint") return { kind: "bigint", value: `${arg.toString()}n` };
-  if (t === "symbol") return { kind: "symbol", value: (arg as symbol).toString() };
-  if (t === "function") {
+  if (typeof arg === "string") return { kind: "string", value: arg };
+  if (typeof arg === "number") return { kind: "number", value: String(arg) };
+  if (typeof arg === "boolean") return { kind: "boolean", value: String(arg) };
+  if (typeof arg === "bigint") return { kind: "bigint", value: `${arg.toString()}n` };
+  if (typeof arg === "symbol") return { kind: "symbol", value: (arg as symbol).toString() };
+  if (typeof arg === "function") {
     const src = Function.prototype.toString.call(arg).slice(0, FN_STRING_LIMIT);
     return { kind: "fn", value: src };
   }
