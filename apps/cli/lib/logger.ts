@@ -4,6 +4,7 @@ import path from 'path';
 import { mkdir } from 'fs/promises';
 import type { Context } from 'hono';
 import os from 'os';
+import { createFrontendLogStream } from '@/utils/FrontendLogFile';
 
 /**
  * Masks the OS username in a string with asterisks for security.
@@ -163,6 +164,19 @@ export function logHttpRespIn(url: string, statusCode: number, body?: unknown) {
 // Create and export the logger instance
 export const logger = await createLogger();
 logger.debug(`pino: log level is ${logger.level}`)
+
+/**
+ * Logger dedicated to frontend-sourced log entries. Streams to a rotating
+ * frontend.log file under the application log directory. Independent of
+ * LOG_TARGET so the frontend trail is captured even when the backend is in
+ * console-only mode.
+ */
+export const frontendLogger = pino(
+  { level: process.env.LOG_LEVEL ?? "info" },
+  // pino accepts any Node Writable as a destination; rotating-file-stream
+  // implements that interface.
+  createFrontendLogStream() as unknown as pino.DestinationStream
+);
 
 // Export a default as well for convenience
 export default logger;
