@@ -1,5 +1,9 @@
 # Log Sensitive Information Redaction Implementation Plan
 
+> **Status:** Implemented (2026-06-29). Task checkboxes were never formally flipped to `[x]` during execution — the plan was followed top-to-bottom via `executing-plans` and committed incrementally. The implementation is live; do not re-run.
+
+**Implemented commits (chronological):** cf1bcd50, 44b296e2, ea426840, a6e257aa, cc0241a0, f7aafec7, 80937369, e341dbe1, 2fa3e8d4.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Keep api keys and hostnames out of `browser.log` and `smm.log` via two cooperating layers — a frontend structural redaction at the two known `UserConfig` log sites, and a backend in-memory blacklist that wraps every pino destination's `write()`.

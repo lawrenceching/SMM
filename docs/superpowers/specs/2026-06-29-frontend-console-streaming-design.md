@@ -1,7 +1,7 @@
 # Frontend Console Log Streaming Design
 
 Date: 2026-06-29
-Status: Approved (pending implementation plan)
+Status: Implemented (commits dc29d690..72e0c53a, 2026-06-29)
 
 ## Problem
 

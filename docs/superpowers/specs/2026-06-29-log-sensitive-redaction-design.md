@@ -1,7 +1,7 @@
 # Log Sensitive Information Redaction Design
 
 Date: 2026-06-29
-Status: Approved (pending implementation plan)
+Status: Implemented (commits 3224aafe..2fa3e8d4, 2026-06-29)
 
 ## Problem
 

@@ -1,5 +1,9 @@
 # Frontend Console Log Streaming Implementation Plan
 
+> **Status:** Implemented (2026-06-29). Task checkboxes were never formally flipped to `[x]` during execution — the plan was followed top-to-bottom via `executing-plans` and committed incrementally. The implementation is live; do not re-run.
+
+**Implemented commits (chronological):** dc29d690, 482d072b, c06c928e, 49f05ac8, ca03a377, 5801d00c, d89a950b, e9a6c255, 72e0c53a, b973c312.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Capture every `console.log/info/warn/error/debug` call in the UI, stream them to the CLI backend in batches via `navigator.sendBeacon`, and persist them to a rotating `frontend.log` file under the existing log directory so users can locate and upload it when filing bugs.
