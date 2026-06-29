@@ -92,7 +92,10 @@ export function MediaLibraryImportedEventHandler() {
         status: "pending_for_initialization",
       } as UIMediaFolder))
 
-      setFolders(uiMediaFolders)
+      // Merge with already-imported folders so importing a media library does not
+      // remove folders that were imported previously. _dedupFolders guarantees
+      // no path overlap between `latestFolders.current` and `uiMediaFolders`.
+      setFolders([...latestFolders.current, ...uiMediaFolders])
 
       await saveUserConfig({ traceId: traceIdBase, config: {
         ...latestUserConfig.current,

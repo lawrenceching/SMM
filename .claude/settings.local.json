@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__semble__search",
+      "Bash(npx vitest *)"
+    ]
+  }
+}
