@@ -56,6 +56,13 @@ export async function initSensitiveStrings(): Promise<void> {
     console.warn("[sensitiveBlacklist] failed to read hostname:", err);
   }
 
+  try {
+    addSensitiveString(os.userInfo().username);
+  } catch (err) {
+    // Not fatal — backend can run without username masking.
+    console.warn("[sensitiveBlacklist] failed to read username:", err);
+  }
+
   const configPath = getUserConfigPath();
   try {
     const content = await readFile(configPath, "utf-8");

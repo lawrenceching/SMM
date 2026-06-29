@@ -1,7 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import os from "node:os";
+import { Writable } from "node:stream";
 import {
   addSensitiveString,
+  initSensitiveStrings,
   maskSensitive,
+  wrapWithMasking,
   _resetSensitiveStringsForTests,
 } from "./sensitiveBlacklist";
 
@@ -49,13 +56,6 @@ describe("maskSensitive", () => {
     expect(maskSensitive("")).toBe("");
   });
 });
-
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import os from "node:os";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { initSensitiveStrings } from "./sensitiveBlacklist";
 
 describe("initSensitiveStrings", () => {
   let tempDir: string;
@@ -140,6 +140,30 @@ describe("initSensitiveStrings", () => {
     warnSpy.mockRestore();
   });
 
+  it("collects the OS username", async () => {
+    await initSensitiveStrings();
+    const username = os.userInfo().username;
+    if (username) {
+      expect(maskSensitive(`path /home/${username}/file`)).toBe(
+        "path /home/******/file",
+      );
+    }
+    expect(maskSensitive("just a normal string")).toBe("just a normal string");
+  });
+
+  it("warns and continues when os.userInfo() throws", async () => {
+    const spy = vi.spyOn(os, "userInfo").mockImplementation(() => {
+      throw new Error("userInfo failed");
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(initSensitiveStrings()).resolves.not.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
+
+    spy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
   it("re-seeds: a second call replaces the previous set", async () => {
     writeFileSync(
       join(tempDir, "smm.json"),
@@ -158,9 +182,6 @@ describe("initSensitiveStrings", () => {
     expect(maskSensitive("contains new-key")).toBe("contains ******");
   });
 });
-
-import { Writable } from "node:stream";
-import { wrapWithMasking } from "./sensitiveBlacklist";
 
 describe("wrapWithMasking", () => {
   beforeEach(() => {
