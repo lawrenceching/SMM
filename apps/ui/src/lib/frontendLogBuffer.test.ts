@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { FrontendLogBuffer, serializeArg } from "./frontendLogBuffer";
 import type { FrontendLogEntry } from "@/types/frontendLog";
 
@@ -88,5 +88,24 @@ describe("FrontendLogBuffer", () => {
     b.push(entry({ ts: 1 }));
     expect(b.drain()).toHaveLength(1);
     expect(b.drain()).toEqual([]);
+  });
+
+  it("subscriber fires on each push", () => {
+    const b = new FrontendLogBuffer();
+    const cb = vi.fn();
+    b.subscribe(cb);
+    b.push(entry({ ts: 1 }));
+    b.push(entry({ ts: 2 }));
+    expect(cb).toHaveBeenCalledTimes(2);
+  });
+
+  it("subscribe returns an unsubscribe function", () => {
+    const b = new FrontendLogBuffer();
+    const cb = vi.fn();
+    const unsub = b.subscribe(cb);
+    b.push(entry({ ts: 1 }));
+    unsub();
+    b.push(entry({ ts: 2 }));
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,12 +2,14 @@ import type { FrontendLogBatch } from "@/types/frontendLog";
 import { FrontendLogBuffer } from "./frontendLogBuffer";
 
 const FLUSH_INTERVAL_MS = 2_000;
+export const FLUSH_THRESHOLD = 50;
 const ENDPOINT = "/api/log";
 const BLOB_TYPE = "application/json";
 
 let bufferRef: FrontendLogBuffer | null = null;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let pageHideHandler: (() => void) | null = null;
+let unsubscribeBuffer: (() => void) | null = null;
 
 function getAppVersion(): string {
   const v = (import.meta as unknown as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION;
@@ -45,8 +47,9 @@ async function flush(): Promise<void> {
 }
 
 /**
- * Start the periodic flush loop and the pagehide handler.
- * Idempotent: re-calling is a no-op until _resetFlusherForTests() runs.
+ * Start the periodic flush loop, the pagehide handler, and the
+ * threshold-based immediate flush. Idempotent: re-calling is a no-op
+ * until _resetFlusherForTests() runs.
  */
 export function startFrontendLogFlusher(buffer: FrontendLogBuffer): void {
   if (intervalId !== null) return;
@@ -54,6 +57,12 @@ export function startFrontendLogFlusher(buffer: FrontendLogBuffer): void {
   intervalId = setInterval(() => { void flush(); }, FLUSH_INTERVAL_MS);
   pageHideHandler = () => { void flush(); };
   window.addEventListener("pagehide", pageHideHandler);
+  // Threshold-based immediate flush: when the buffer crosses
+  // FLUSH_THRESHOLD entries, flush now rather than wait for the next
+  // interval tick. Subscribed via the buffer's push notification.
+  unsubscribeBuffer = buffer.subscribe(() => {
+    if (buffer.size() >= FLUSH_THRESHOLD) void flush();
+  });
 }
 
 /** Test helper to undo startFrontendLogFlusher between tests. */
@@ -65,6 +74,10 @@ export function _resetFlusherForTests(): void {
   if (pageHideHandler) {
     window.removeEventListener("pagehide", pageHideHandler);
     pageHideHandler = null;
+  }
+  if (unsubscribeBuffer) {
+    unsubscribeBuffer();
+    unsubscribeBuffer = null;
   }
   bufferRef = null;
 }

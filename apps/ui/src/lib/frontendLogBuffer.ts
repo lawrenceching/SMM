@@ -37,6 +37,7 @@ export function serializeArg(arg: unknown): SerializedArg {
 export class FrontendLogBuffer {
   private entries: FrontendLogEntry[] = [];
   private readonly capacity: number;
+  private subscribers: Array<() => void> = [];
 
   constructor(capacity: number = MAX_CAPACITY) {
     this.capacity = capacity;
@@ -46,6 +47,13 @@ export class FrontendLogBuffer {
     this.entries.push(entry);
     if (this.entries.length > this.capacity) {
       this.entries.splice(0, this.entries.length - this.capacity);
+    }
+    for (const fn of this.subscribers) {
+      try {
+        fn();
+      } catch {
+        // Never let a subscriber error break a push.
+      }
     }
   }
 
@@ -58,5 +66,18 @@ export class FrontendLogBuffer {
     const out = this.entries;
     this.entries = [];
     return out;
+  }
+
+  /**
+   * Register a callback that fires after every push. Returns an
+   * unsubscribe function. Used by the flusher to react when the
+   * buffer crosses FLUSH_THRESHOLD.
+   */
+  subscribe(fn: () => void): () => void {
+    this.subscribers.push(fn);
+    return () => {
+      const idx = this.subscribers.indexOf(fn);
+      if (idx >= 0) this.subscribers.splice(idx, 1);
+    };
   }
 }

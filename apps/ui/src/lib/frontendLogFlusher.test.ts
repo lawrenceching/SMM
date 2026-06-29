@@ -115,4 +115,14 @@ describe("FrontendLogFlusher", () => {
     window.dispatchEvent(new Event("pagehide"));
     expect(sendBeacon).toHaveBeenCalledTimes(1);
   });
+
+  it("flushes immediately when buffer crosses FLUSH_THRESHOLD entries", () => {
+    startFrontendLogFlusher(buffer);
+    for (let i = 0; i < 49; i++) buffer.push(makeEntry());
+    expect(sendBeacon).not.toHaveBeenCalled();
+    // The 50th push crosses the threshold and triggers an immediate
+    // flush without advancing the interval.
+    buffer.push(makeEntry());
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+  });
 });
