@@ -103,7 +103,7 @@ export async function runOrchestrator(
         timedOut = true;
         void killTreeAndWait(child, 1000);
       }, task.timeoutMs);
-      await Promise.race([exitPromise, waitForTimeout(task.timeoutMs)]);
+      await exitPromise;
       clearTimeout(timeoutHandle);
     } else {
       await exitPromise;
@@ -163,6 +163,3 @@ export async function runOrchestrator(
   return { exitCode, taskResults };
 }
 
-function waitForTimeout(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
