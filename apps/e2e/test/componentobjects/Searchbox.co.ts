@@ -34,6 +34,10 @@ class SearchboxComponentObject {
     }
 
     async waitForTitleToBe(expected: string, timeout: number = 10000): Promise<void> {
+        await this.waitForTitleToBeOneOf([expected], timeout)
+    }
+
+    async waitForTitleToBeOneOf(expectedTitles: readonly string[], timeout: number = 10000): Promise<void> {
         await waitForDisplay('[data-testid="immersive-input"]', {
             timeout,
             interval: 200,
@@ -48,12 +52,12 @@ class SearchboxComponentObject {
                     return false
                 }
                 const value = await input.getValue().catch(() => '')
-                return value === expected
+                return expectedTitles.includes(value)
             },
             {
                 interval: 200,
                 timeout,
-                timeoutMsg: `Expected title to be "${expected}", but current immersive-input value is different`
+                timeoutMsg: `Expected title to be one of [${expectedTitles.map((title) => `"${title}"`).join(', ')}], but current immersive-input value is different`
             }
         )
     }

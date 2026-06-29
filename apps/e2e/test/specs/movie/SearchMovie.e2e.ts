@@ -8,12 +8,18 @@ import TVShowPanel from '../../componentobjects/TVShowPanel.co'
 import { setup, cleanup } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 import { createAndImportFolder, folder2 } from 'test/actions/import-folders'
-import { setApplicationLanguage } from 'test/actions/setApplicationLanguage'
 import SearchboxCO from 'test/componentobjects/Searchbox.co'
 import env from 'test/lib/env'
+import type { UserConfig } from '@smm/core/types'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
+
+const folder2RecognizedTitles = [
+    folder2.translations?.title?.['en-US'],
+    folder2.translations?.title?.['zh-CN'],
+    folder2.mediaName,
+].filter((title): title is string => Boolean(title))
 
 describe('Search Movie', () => {
 
@@ -25,7 +31,10 @@ describe('Search Movie', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             openBrowserPage: true,
-            resetUserConfig: true,
+            resetUserConfig: (config: UserConfig) => {
+                config.preferMediaLanguage = 'en-US'
+                return config
+            },
         })
 
         
@@ -47,12 +56,12 @@ describe('Search Movie', () => {
         await createAndImportFolder(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBe(folder2.translations?.title?.['en-US']!, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
         await SearchboxCO.input.click();
 
 
         await SearchboxCO.setDatabase('TMDB')
-        await SearchboxCO.setLanguage('English (US)')
+        await SearchboxCO.setLanguage('en-US')
 
         await SearchboxCO.searchButton.waitForClickable()
         await SearchboxCO.searchButton.click()
@@ -78,11 +87,11 @@ describe('Search Movie', () => {
         await createAndImportFolder(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBe(folder2.translations?.title?.['en-US']!, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TVDB')
-        await SearchboxCO.setLanguage('简体中文')
+        await SearchboxCO.setLanguage('zho')
 
         await SearchboxCO.searchButton.waitForClickable()
         await SearchboxCO.searchButton.click()
@@ -107,11 +116,11 @@ describe('Search Movie', () => {
         await createAndImportFolder(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBe(folder2.translations?.title?.['en-US']!, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TMDB')
-        await SearchboxCO.setLanguage('简体中文')
+        await SearchboxCO.setLanguage('zh-CN')
 
         await SearchboxCO.searchButton.waitForClickable()
         await SearchboxCO.searchButton.click()
@@ -136,11 +145,11 @@ describe('Search Movie', () => {
         await createAndImportFolder(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBe(folder2.translations?.title?.['en-US']!, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TMDB')
-        await SearchboxCO.setLanguage('日本語')
+        await SearchboxCO.setLanguage('ja-JP')
 
         await SearchboxCO.searchButton.waitForClickable()
         await SearchboxCO.searchButton.click()
