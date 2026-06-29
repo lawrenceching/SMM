@@ -115,3 +115,29 @@ describe("POST /api/log — truncation", () => {
     delete process.env.FRONTEND_LOG_MAX_BYTES;
   });
 });
+
+describe("POST /api/log — batch cap", () => {
+  let app: Hono;
+  beforeEach(() => { app = new Hono(); handleLog(app); });
+
+  it("returns 413 when batch exceeds FRONTEND_LOG_BATCH_MAX", async () => {
+    const entries = Array.from({ length: 250 }, (_, i) => ({ level: "info", message: `m${i}` }));
+    const res = await app.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entries, appVersion: "1.0.0" }),
+    });
+    expect(res.status).toBe(413);
+  });
+
+  it("accepts a batch at exactly MAX_BATCH_ENTRIES", async () => {
+    const MAX = Number(process.env.FRONTEND_LOG_BATCH_MAX ?? 200);
+    const entries = Array.from({ length: MAX }, (_, i) => ({ level: "info", message: `m${i}` }));
+    const res = await app.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entries }),
+    });
+    expect(res.status).toBe(204);
+  });
+});

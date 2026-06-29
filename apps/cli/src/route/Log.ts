@@ -102,6 +102,11 @@ export function handleLog(app: Hono): void {
     else if (parsed.kind === "array") { entries = parsed.entries; }
     else { entries = parsed.batch.entries; appVersion = parsed.batch.appVersion; }
 
+    const MAX_BATCH = Number(process.env.FRONTEND_LOG_BATCH_MAX ?? 200);
+    if (entries.length > MAX_BATCH) {
+      return c.json({ error: "Batch too large", max: MAX_BATCH, received: entries.length }, 413);
+    }
+
     // Rate limit charge — Tasks 5-7 will refine to per-entry credits; this
     // baseline charges 1 credit per request.
     if (!rateLimiter.isAllowed()) {
