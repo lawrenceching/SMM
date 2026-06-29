@@ -24,6 +24,7 @@ const CLI_AUTH_TOKEN = 'ChangeMe123';
 const CLEANUP_GRACE_MS = 5_000;
 
 const E2E_LOG_DIR = path.join(ROOT, 'artifacts', 'e2e');
+const backgroundProcesses: ChildProcess[] = [];
 const backgroundLogStreams: fs.WriteStream[] = [];
 
 function log(message: string): void {
