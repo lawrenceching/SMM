@@ -18,7 +18,8 @@ export function resolveFrontendLogPath(): string {
 export function createFrontendLogStream() {
   const logDir = getLogDir();
   const size = process.env.FRONTEND_LOG_ROTATE_SIZE ?? DEFAULT_ROTATE_SIZE;
-  const maxFiles = Number(process.env.FRONTEND_LOG_ROTATE_KEEP ?? DEFAULT_KEEP);
+  const parsedKeep = parseInt(process.env.FRONTEND_LOG_ROTATE_KEEP ?? "", 10);
+  const maxFiles = Number.isFinite(parsedKeep) && parsedKeep > 0 ? parsedKeep : DEFAULT_KEEP;
   return createStream(LOG_FILENAME, {
     path: logDir,
     size,

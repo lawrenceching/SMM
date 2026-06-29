@@ -6,10 +6,14 @@ import { createFrontendLogStream, resolveFrontendLogPath } from "./FrontendLogFi
 
 describe("FrontendLogFile", () => {
   let prevLogDir: string | undefined;
+  let prevRotateSize: string | undefined;
+  let prevRotateKeep: string | undefined;
   let tmpLogRoot: string;
 
   beforeEach(() => {
     prevLogDir = process.env.LOG_DIR;
+    prevRotateSize = process.env.FRONTEND_LOG_ROTATE_SIZE;
+    prevRotateKeep = process.env.FRONTEND_LOG_ROTATE_KEEP;
     tmpLogRoot = mkdtempSync(path.join(tmpdir(), "smm-frontend-log-"));
     process.env.LOG_DIR = tmpLogRoot;
   });
@@ -19,6 +23,16 @@ describe("FrontendLogFile", () => {
       delete process.env.LOG_DIR;
     } else {
       process.env.LOG_DIR = prevLogDir;
+    }
+    if (prevRotateSize === undefined) {
+      delete process.env.FRONTEND_LOG_ROTATE_SIZE;
+    } else {
+      process.env.FRONTEND_LOG_ROTATE_SIZE = prevRotateSize;
+    }
+    if (prevRotateKeep === undefined) {
+      delete process.env.FRONTEND_LOG_ROTATE_KEEP;
+    } else {
+      process.env.FRONTEND_LOG_ROTATE_KEEP = prevRotateKeep;
     }
     if (existsSync(tmpLogRoot)) {
       rmSync(tmpLogRoot, { recursive: true, force: true });
@@ -43,7 +57,9 @@ describe("FrontendLogFile", () => {
     for (let i = 0; i < 50; i++) stream.write(`line-${i}-${"x".repeat(30)}\n`);
     await new Promise<void>((resolve) => setTimeout(resolve, 50));
     await new Promise<void>((resolve) => stream.end(resolve));
-    const files = readdirSync(tmpLogRoot).filter((f) => f.startsWith("frontend.log"));
-    expect(files.length).toBeGreaterThanOrEqual(1);
+    const rotatedFiles = readdirSync(tmpLogRoot).filter(
+      (f) => f.startsWith("frontend.log.") && f !== "frontend.log"
+    );
+    expect(rotatedFiles.length).toBeGreaterThanOrEqual(1);
   });
 });
